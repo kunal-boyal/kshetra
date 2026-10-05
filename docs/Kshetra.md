@@ -1832,6 +1832,7 @@ The rules shared by every import are in M19. Column names below are canonical; t
 | Pack label | Free text such as "500 ML"; checked against the measure (BR-16) |
 | Base unit*, Case factor | Case factor a whole number of at least 1 |
 | Measure type, Measure per base unit | kg or L with a positive value, or empty |
+| Measure per case | Optional instead of measure per base unit: the case's total in kg or L, divided by the case factor |
 | HSN, Tax rate* | Tax 0–100, or a fraction when the mapping marks it |
 | MRP | 0 or more; display only |
 | Price*, Discount % | Price 0 or more; discount 0–100, or a fraction when marked |

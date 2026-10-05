@@ -11,6 +11,7 @@ import {
   type ErrorBody,
   type ErrorCode,
   type ErrorDetail,
+  formatPath,
 } from '@kshetra/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
@@ -44,14 +45,6 @@ function codeForStatus(status: number): ErrorCode {
   }
 }
 
-/** `['items', 0, 'price']` → `items[0].price`, the path format of spec 11.1. */
-function pathOf(path: readonly PropertyKey[]): string {
-  return path.reduce<string>((out, part) => {
-    if (typeof part === 'number') return `${out}[${part}]`;
-    return out === '' ? String(part) : `${out}.${String(part)}`;
-  }, '');
-}
-
 function body(
   code: ErrorCode,
   message: string,
@@ -74,7 +67,7 @@ export function toErrorResponse(
   }
   if (exception instanceof ZodError) {
     const details = exception.issues.map((issue) => ({
-      path: pathOf(issue.path),
+      path: formatPath(issue.path),
       issue: issue.message,
     }));
     return {

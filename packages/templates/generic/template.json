@@ -1,0 +1,558 @@
+{
+  "$schema": "../schema.json",
+  "key": "generic",
+  "version": 1,
+  "name": { "en": "Generic", "hi": "सामान्य" },
+  "description": {
+    "en": "A starting point for any field team: customers, visit and meeting forms, and metrics for visits, coverage and order value.",
+    "hi": "किसी भी फ़ील्ड टीम के लिए शुरुआत: ग्राहक, विज़िट और मीटिंग फ़ॉर्म, और विज़िट, कवरेज और ऑर्डर मूल्य के मेट्रिक।"
+  },
+  "terminology": {},
+  "roles": [
+    {
+      "key": "tenant_admin",
+      "name": { "en": "Admin", "hi": "एडमिन" },
+      "scope": "tenant",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "review_rules.manage",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "target.unlock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.manage",
+        "user.reset_device",
+        "user.sign_out_all",
+        "role.manage",
+        "designation.manage",
+        "territory.manage",
+        "account.view",
+        "account.manage",
+        "account.import",
+        "account.approve",
+        "settings.manage",
+        "terminology.manage",
+        "form.manage",
+        "metric.manage",
+        "workflow.manage",
+        "policy.manage",
+        "notification_template.manage",
+        "module.manage",
+        "catalogue.manage",
+        "price_list.manage",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.decide",
+        "order.line_decide",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "calendar.manage",
+        "leave_type.manage",
+        "expense_policy.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run",
+        "audit.view",
+        "api_client.manage",
+        "webhook.manage",
+        "billing.manage"
+      ]
+    },
+    {
+      "key": "business_head",
+      "name": { "en": "Business head", "hi": "बिज़नेस हेड" },
+      "scope": "tenant",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "review_rules.manage",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "target.unlock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.manage",
+        "user.reset_device",
+        "user.sign_out_all",
+        "role.manage",
+        "designation.manage",
+        "territory.manage",
+        "account.view",
+        "account.manage",
+        "account.import",
+        "account.approve",
+        "settings.manage",
+        "terminology.manage",
+        "form.manage",
+        "metric.manage",
+        "workflow.manage",
+        "policy.manage",
+        "notification_template.manage",
+        "module.manage",
+        "catalogue.manage",
+        "price_list.manage",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.decide",
+        "order.line_decide",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "calendar.manage",
+        "leave_type.manage",
+        "expense_policy.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run",
+        "audit.view"
+      ]
+    },
+    {
+      "key": "manager",
+      "name": { "en": "Manager", "hi": "मैनेजर" },
+      "scope": "team",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.reset_device",
+        "user.sign_out_all",
+        "account.view",
+        "account.approve",
+        "order.create",
+        "order.view",
+        "order.decide",
+        "finance.view",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "payslip.view",
+        "report.view",
+        "export.create"
+      ]
+    },
+    {
+      "key": "field_user",
+      "name": { "en": "Field user", "hi": "फ़ील्ड यूज़र" },
+      "scope": "self",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "target.view",
+        "leaderboard.view",
+        "account.view",
+        "order.create",
+        "order.view",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "payslip.view"
+      ],
+      "mobileOnly": true
+    },
+    {
+      "key": "back_office",
+      "name": { "en": "Back office", "hi": "बैक ऑफ़िस" },
+      "scope": "tenant",
+      "permissions": [
+        "user.view",
+        "account.view",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run"
+      ]
+    },
+    {
+      "key": "viewer",
+      "name": { "en": "Viewer", "hi": "व्यूअर" },
+      "scope": "tenant",
+      "permissions": [
+        "target.view",
+        "performance.view_team",
+        "leaderboard.view",
+        "account.view",
+        "order.view",
+        "report.view"
+      ]
+    }
+  ],
+  "designations": [
+    {
+      "key": "head",
+      "name": {
+        "en": { "one": "Head", "other": "Heads" },
+        "hi": { "one": "प्रमुख", "other": "प्रमुख" }
+      },
+      "level": 1,
+      "defaultRole": "business_head",
+      "canHaveReports": true
+    },
+    {
+      "key": "manager",
+      "name": {
+        "en": { "one": "Manager", "other": "Managers" },
+        "hi": { "one": "मैनेजर", "other": "मैनेजर" }
+      },
+      "level": 2,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "executive",
+      "name": {
+        "en": { "one": "Executive", "other": "Executives" },
+        "hi": { "one": "एग्ज़ीक्यूटिव", "other": "एग्ज़ीक्यूटिव" }
+      },
+      "level": 3,
+      "defaultRole": "field_user",
+      "canHaveReports": false,
+      "ranked": true
+    }
+  ],
+  "geographyLevels": [
+    {
+      "key": "region",
+      "name": {
+        "en": { "one": "Region", "other": "Regions" },
+        "hi": { "one": "रीजन", "other": "रीजन" }
+      }
+    },
+    {
+      "key": "area",
+      "name": {
+        "en": { "one": "Area", "other": "Areas" },
+        "hi": { "one": "एरिया", "other": "एरिया" }
+      }
+    }
+  ],
+  "accountTypes": [
+    {
+      "key": "customer",
+      "name": {
+        "en": { "one": "Customer", "other": "Customers" },
+        "hi": { "one": "ग्राहक", "other": "ग्राहक" }
+      },
+      "icon": "building-2",
+      "code": { "mode": "manual" },
+      "location": { "required": false, "geofencePolicy": "advisory", "fieldUsersMayPropose": true },
+      "creation": "admins",
+      "slots": [
+        {
+          "key": "executive",
+          "name": { "en": "Executive", "hi": "एग्ज़ीक्यूटिव" },
+          "designations": ["executive"],
+          "priority": 1
+        },
+        {
+          "key": "manager",
+          "name": { "en": "Manager", "hi": "मैनेजर" },
+          "designations": ["manager"],
+          "priority": 2
+        }
+      ],
+      "contacts": true
+    }
+  ],
+  "forms": [
+    {
+      "key": "customer_visit",
+      "name": {
+        "en": { "one": "Customer visit", "other": "Customer visits" },
+        "hi": { "one": "ग्राहक विज़िट", "other": "ग्राहक विज़िट" }
+      },
+      "description": {
+        "en": "A visit to a customer: what was discussed and what happens next",
+        "hi": "ग्राहक से मुलाक़ात: क्या बात हुई और आगे क्या होगा"
+      },
+      "icon": "map-pin",
+      "accountLink": { "mode": "required", "accountTypes": ["customer"] },
+      "visitSession": true,
+      "photos": { "min": 1, "max": 3 },
+      "fields": [
+        {
+          "key": "person_met",
+          "type": "short_text",
+          "label": { "en": "Person met", "hi": "किससे मिले" },
+          "required": true
+        },
+        {
+          "key": "purpose",
+          "type": "single_select",
+          "label": { "en": "Purpose", "hi": "उद्देश्य" },
+          "required": true,
+          "options": [
+            { "key": "introduction", "label": { "en": "Introduction", "hi": "परिचय" } },
+            { "key": "follow_up", "label": { "en": "Follow-up", "hi": "फ़ॉलो-अप" } },
+            { "key": "order", "label": { "en": "Order", "hi": "ऑर्डर" } },
+            { "key": "collection", "label": { "en": "Payment collection", "hi": "भुगतान वसूली" } },
+            { "key": "support", "label": { "en": "Service or complaint", "hi": "सेवा या शिकायत" } },
+            { "key": "other", "label": { "en": "Other", "hi": "अन्य" } }
+          ]
+        },
+        {
+          "key": "outcome",
+          "type": "long_text",
+          "label": { "en": "Outcome", "hi": "परिणाम" },
+          "required": true
+        },
+        {
+          "key": "next_step",
+          "type": "short_text",
+          "label": { "en": "Next step", "hi": "अगला कदम" }
+        },
+        {
+          "key": "next_visit_date",
+          "type": "date",
+          "label": { "en": "Next visit date", "hi": "अगली विज़िट की तारीख़" },
+          "minDaysFromToday": 0
+        }
+      ]
+    },
+    {
+      "key": "meeting",
+      "name": {
+        "en": { "one": "Meeting", "other": "Meetings" },
+        "hi": { "one": "मीटिंग", "other": "मीटिंग" }
+      },
+      "description": {
+        "en": "A meeting away from a customer, such as a seminar or a group session",
+        "hi": "ग्राहक के यहाँ से बाहर की मीटिंग, जैसे सेमिनार या समूह बैठक"
+      },
+      "icon": "users",
+      "photos": { "min": 1, "max": 1 },
+      "fields": [
+        {
+          "key": "location_name",
+          "type": "short_text",
+          "label": { "en": "Place", "hi": "स्थान" },
+          "required": true
+        },
+        {
+          "key": "attendees",
+          "type": "number",
+          "label": { "en": "Attendees", "hi": "उपस्थित लोग" },
+          "required": true,
+          "min": 1
+        },
+        {
+          "key": "topic",
+          "type": "short_text",
+          "label": { "en": "Topic", "hi": "विषय" },
+          "required": true
+        },
+        {
+          "key": "outcome",
+          "type": "long_text",
+          "label": { "en": "Outcome", "hi": "परिणाम" },
+          "required": true
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "key": "visits",
+      "name": {
+        "en": { "one": "Visit", "other": "Visits" },
+        "hi": { "one": "विज़िट", "other": "विज़िट" }
+      },
+      "unit": "count",
+      "source": { "type": "submission_count", "forms": ["customer_visit"] }
+    },
+    {
+      "key": "customers_covered",
+      "name": {
+        "en": { "one": "Customer covered", "other": "Customers covered" },
+        "hi": { "one": "कवर किया गया ग्राहक", "other": "कवर किए गए ग्राहक" }
+      },
+      "unit": "count",
+      "source": {
+        "type": "distinct_accounts_visited",
+        "forms": ["customer_visit"],
+        "accountTypes": ["customer"]
+      }
+    },
+    {
+      "key": "coverage",
+      "name": {
+        "en": { "one": "Coverage", "other": "Coverage" },
+        "hi": { "one": "कवरेज", "other": "कवरेज" }
+      },
+      "unit": "percent",
+      "source": {
+        "type": "coverage_percent",
+        "forms": ["customer_visit"],
+        "accountTypes": ["customer"]
+      }
+    },
+    {
+      "key": "active_days",
+      "name": {
+        "en": { "one": "Active day", "other": "Active days" },
+        "hi": { "one": "सक्रिय दिन", "other": "सक्रिय दिन" }
+      },
+      "unit": "count",
+      "source": { "type": "active_days", "forms": ["customer_visit", "meeting"] }
+    },
+    {
+      "key": "order_value",
+      "name": {
+        "en": { "one": "Order value", "other": "Order value" },
+        "hi": { "one": "ऑर्डर मूल्य", "other": "ऑर्डर मूल्य" }
+      },
+      "unit": "currency",
+      "source": {
+        "type": "order_value",
+        "statuses": ["accepted", "partially_accepted", "partially_fulfilled", "fulfilled"],
+        "amount": "before_tax"
+      }
+    }
+  ],
+  "score": {
+    "cap": 1,
+    "metrics": [
+      { "metric": "visits", "weight": 50 },
+      { "metric": "coverage", "weight": 50 }
+    ]
+  },
+  "workflows": {
+    "fallbackRole": "business_head",
+    "definitions": [
+      {
+        "requestType": "leave",
+        "steps": [
+          { "approver": { "type": "reporting_manager" } },
+          { "approver": { "type": "nearest_designation", "designation": "head" } }
+        ]
+      },
+      {
+        "requestType": "regularisation",
+        "steps": [
+          { "approver": { "type": "reporting_manager" } },
+          { "approver": { "type": "nearest_designation", "designation": "head" } }
+        ]
+      },
+      {
+        "requestType": "expense",
+        "steps": [
+          { "approver": { "type": "reporting_manager" } },
+          { "approver": { "type": "nearest_designation", "designation": "head" } }
+        ]
+      },
+      {
+        "requestType": "order",
+        "steps": [{ "approver": { "type": "account_slot", "slot": "manager" } }]
+      }
+    ]
+  },
+  "people": {
+    "calendars": [
+      { "key": "standard", "name": { "en": "Standard", "hi": "सामान्य" }, "weeklyOffs": [7] }
+    ],
+    "defaultCalendar": "standard",
+    "attendance": { "rule": "punch_is_present" },
+    "leaveTypes": [
+      {
+        "key": "casual",
+        "name": { "en": "Casual leave", "hi": "आकस्मिक अवकाश" },
+        "paid": true,
+        "annualQuota": 12,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true
+      },
+      {
+        "key": "sick",
+        "name": { "en": "Sick leave", "hi": "बीमारी अवकाश" },
+        "paid": true,
+        "annualQuota": 12,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true,
+        "attachmentAfterDays": 2
+      },
+      {
+        "key": "unpaid",
+        "name": { "en": "Unpaid leave", "hi": "अवैतनिक अवकाश" },
+        "paid": false,
+        "annualQuota": 0,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true
+      }
+    ],
+    "expensePolicies": []
+  }
+}

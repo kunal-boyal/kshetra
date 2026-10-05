@@ -81,3 +81,16 @@ export class AppError extends Error {
 export function isErrorCode(value: string): value is ErrorCode {
   return Object.hasOwn(ERROR_HTTP_STATUS, value);
 }
+
+/** `['items', 0, 'price']` → `items[0].price`, the path format of spec 11.1. */
+export function formatPath(path: readonly PropertyKey[]): string {
+  return path.reduce<string>((out, part) => {
+    if (typeof part === 'number') return `${out}[${part}]`;
+    return out === '' ? String(part) : `${out}.${String(part)}`;
+  }, '');
+}
+
+/** One problem with one input, at a path such as `['items', 0, 'price']`. */
+export function issueAt(path: readonly PropertyKey[], issue: string): ErrorDetail {
+  return { path: formatPath(path), issue };
+}

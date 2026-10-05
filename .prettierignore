@@ -8,3 +8,6 @@ pnpm-lock.yaml
 
 # Written by drizzle-kit on every `db:generate`.
 **/drizzle/meta/
+
+# Generated from the zod schema by `pnpm --filter @kshetra/templates schema`.
+packages/templates/schema.json

@@ -1,0 +1,3265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "key": {
+      "description": "The template's folder name",
+      "$ref": "#/$defs/Key"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991,
+      "description": "Raise it whenever the template changes; each tenant records the version it started from"
+    },
+    "name": {
+      "$ref": "#/$defs/LocalizedText"
+    },
+    "description": {
+      "type": "object",
+      "properties": {
+        "en": {
+          "type": "string",
+          "maxLength": 300,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+        },
+        "hi": {
+          "type": "string",
+          "maxLength": 300,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+        }
+      },
+      "required": [
+        "en",
+        "hi"
+      ],
+      "additionalProperties": false
+    },
+    "terminology": {
+      "default": {},
+      "$ref": "#/$defs/Terminology"
+    },
+    "roles": {
+      "minItems": 6,
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Role"
+      }
+    },
+    "designations": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Designation"
+      }
+    },
+    "geographyLevels": {
+      "minItems": 2,
+      "maxItems": 6,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/GeographyLevel"
+      }
+    },
+    "userFields": {
+      "default": [],
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CustomField"
+      }
+    },
+    "accountTypes": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AccountType"
+      }
+    },
+    "forms": {
+      "minItems": 1,
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FormDefinition"
+      }
+    },
+    "metrics": {
+      "minItems": 1,
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/MetricDefinition"
+      }
+    },
+    "score": {
+      "$ref": "#/$defs/ScoreDefinition"
+    },
+    "workflows": {
+      "type": "object",
+      "properties": {
+        "fallbackRole": {
+          "description": "Approves requests when no step of the chain remains (BR-31)",
+          "$ref": "#/$defs/Key"
+        },
+        "definitions": {
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Workflow"
+          }
+        }
+      },
+      "required": [
+        "fallbackRole",
+        "definitions"
+      ],
+      "additionalProperties": false
+    },
+    "people": {
+      "type": "object",
+      "properties": {
+        "calendars": {
+          "minItems": 1,
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HolidayCalendar"
+          }
+        },
+        "defaultCalendar": {
+          "description": "The calendar new users belong to",
+          "$ref": "#/$defs/Key"
+        },
+        "attendance": {
+          "$ref": "#/$defs/AttendanceRule"
+        },
+        "leaveTypes": {
+          "default": [],
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LeaveType"
+          }
+        },
+        "expensePolicies": {
+          "default": [],
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExpensePolicy"
+          }
+        }
+      },
+      "required": [
+        "calendars",
+        "defaultCalendar",
+        "attendance"
+      ],
+      "additionalProperties": false
+    },
+    "catalogue": {
+      "$ref": "#/$defs/Catalogue"
+    },
+    "imports": {
+      "default": {},
+      "$ref": "#/$defs/Imports"
+    }
+  },
+  "required": [
+    "key",
+    "version",
+    "name",
+    "description",
+    "roles",
+    "designations",
+    "geographyLevels",
+    "accountTypes",
+    "forms",
+    "metrics",
+    "score",
+    "workflows",
+    "people"
+  ],
+  "additionalProperties": false,
+  "title": "Industry template",
+  "description": "A tenant's starting configuration (spec 5.14 and Appendix A)",
+  "$defs": {
+    "Key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,39}$"
+    },
+    "LocalizedText": {
+      "type": "object",
+      "properties": {
+        "en": {
+          "type": "string",
+          "maxLength": 120,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+        },
+        "hi": {
+          "type": "string",
+          "maxLength": 120,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+        }
+      },
+      "required": [
+        "en",
+        "hi"
+      ],
+      "additionalProperties": false
+    },
+    "Terminology": {
+      "type": "object",
+      "properties": {
+        "term.account": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "term.field_user": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "term.activity": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "term.journey_plan": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "term.plan_item": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "term.target": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "term.order": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "term.punch_in": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "term.punch_out": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "LocalizedNoun": {
+      "type": "object",
+      "properties": {
+        "en": {
+          "type": "object",
+          "properties": {
+            "one": {
+              "type": "string",
+              "maxLength": 60,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "other": {
+              "type": "string",
+              "maxLength": 60,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "one",
+            "other"
+          ],
+          "additionalProperties": false
+        },
+        "hi": {
+          "type": "object",
+          "properties": {
+            "one": {
+              "type": "string",
+              "maxLength": 60,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "other": {
+              "type": "string",
+              "maxLength": 60,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "one",
+            "other"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "en",
+        "hi"
+      ],
+      "additionalProperties": false
+    },
+    "Role": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "self",
+            "team",
+            "territory",
+            "team_or_territory",
+            "tenant"
+          ]
+        },
+        "permissions": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "shift.use",
+              "tracking.pause",
+              "visit.use",
+              "submission.create",
+              "account.propose",
+              "account.propose_location",
+              "submission.review",
+              "submission.review_bulk",
+              "review_rules.manage",
+              "target.view",
+              "target.edit",
+              "target.lock",
+              "target.unlock",
+              "route.manage",
+              "plan_item.manage",
+              "account_plan.manage",
+              "performance.view_team",
+              "leaderboard.view",
+              "live_map.view",
+              "trail.view",
+              "user.view",
+              "user.manage",
+              "user.reset_device",
+              "user.sign_out_all",
+              "role.manage",
+              "designation.manage",
+              "territory.manage",
+              "account.view",
+              "account.manage",
+              "account.import",
+              "account.approve",
+              "settings.manage",
+              "terminology.manage",
+              "form.manage",
+              "metric.manage",
+              "workflow.manage",
+              "policy.manage",
+              "notification_template.manage",
+              "module.manage",
+              "catalogue.manage",
+              "price_list.manage",
+              "order.create",
+              "order.create_without_shift",
+              "order.view",
+              "order.decide",
+              "order.line_decide",
+              "order.fulfil",
+              "finance.view",
+              "finance.manage",
+              "leave.request",
+              "regularisation.request",
+              "expense.claim",
+              "approval.act",
+              "calendar.manage",
+              "leave_type.manage",
+              "expense_policy.manage",
+              "expense.mark_paid",
+              "payroll.manage",
+              "payslip.view",
+              "report.view",
+              "export.create",
+              "import.run",
+              "audit.view",
+              "api_client.manage",
+              "webhook.manage",
+              "billing.manage"
+            ]
+          }
+        },
+        "mobileOnly": {
+          "default": false,
+          "description": "Its users may use the mobile app only; the web answers USE_MOBILE_APP (M1)",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "scope",
+        "permissions"
+      ],
+      "additionalProperties": false
+    },
+    "Designation": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "defaultRole": {
+          "description": "The role new users with this designation get",
+          "$ref": "#/$defs/Key"
+        },
+        "canHaveReports": {
+          "type": "boolean"
+        },
+        "ranked": {
+          "default": false,
+          "description": "Whether people with it appear in rankings, one group per designation (D8)",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "level",
+        "defaultRole",
+        "canHaveReports"
+      ],
+      "additionalProperties": false
+    },
+    "GeographyLevel": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedNoun"
+        }
+      },
+      "required": [
+        "key",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "CustomField": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ShortTextField"
+        },
+        {
+          "$ref": "#/$defs/LongTextField"
+        },
+        {
+          "$ref": "#/$defs/NumberField"
+        },
+        {
+          "$ref": "#/$defs/CurrencyField"
+        },
+        {
+          "$ref": "#/$defs/DateField"
+        },
+        {
+          "$ref": "#/$defs/SingleSelectField"
+        },
+        {
+          "$ref": "#/$defs/MultiSelectField"
+        },
+        {
+          "$ref": "#/$defs/YesNoField"
+        }
+      ]
+    },
+    "ShortTextField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "short_text"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "maxLength": {
+          "default": 200,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "pattern": {
+          "description": "A regular expression the whole value must match",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Condition": {
+      "type": "object",
+      "properties": {
+        "match": {
+          "default": "all",
+          "type": "string",
+          "enum": [
+            "all",
+            "any"
+          ]
+        },
+        "clauses": {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Clause"
+          }
+        }
+      },
+      "required": [
+        "clauses"
+      ],
+      "additionalProperties": false
+    },
+    "Clause": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/Key"
+        },
+        "op": {
+          "type": "string",
+          "enum": [
+            "eq",
+            "neq",
+            "gt",
+            "gte",
+            "lt",
+            "lte",
+            "in",
+            "not_in",
+            "contains",
+            "is_empty",
+            "is_not_empty"
+          ]
+        },
+        "value": {
+          "description": "What to compare with: a number, an amount as a decimal string, text, true or false, an option key, or a list of option keys for `in` and `not_in`. Leave it out for `is_empty` and `is_not_empty`.",
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 200
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "minItems": 1,
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "field",
+        "op"
+      ],
+      "additionalProperties": false
+    },
+    "LongTextField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "long_text"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "maxLength": {
+          "default": 2000,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "NumberField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "number"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "decimals": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "unit": {
+          "description": "Shown after the value, such as \"acres\"",
+          "$ref": "#/$defs/LocalizedText"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "CurrencyField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "currency"
+        },
+        "min": {
+          "$ref": "#/$defs/Money"
+        },
+        "max": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Money": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9]\\d{0,15})(?:\\.\\d{1,2})?$"
+    },
+    "DateField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "date"
+        },
+        "minDaysFromToday": {
+          "description": "The earliest date allowed, in days from the capture date: 0 is not in the past",
+          "type": "integer",
+          "minimum": -3660,
+          "maximum": 3660
+        },
+        "maxDaysFromToday": {
+          "description": "The latest date allowed, in days from the capture date: 0 is not in the future",
+          "type": "integer",
+          "minimum": -3660,
+          "maximum": 3660
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "SingleSelectField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "single_select"
+        },
+        "options": {
+          "minItems": 1,
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Option"
+          }
+        },
+        "optionsFrom": {
+          "description": "Offer catalogue entries instead of fixed options. Give options or this, not both.",
+          "type": "string",
+          "enum": [
+            "catalogue_products",
+            "catalogue_items"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Option": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        }
+      },
+      "required": [
+        "key",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "MultiSelectField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "multi_select"
+        },
+        "options": {
+          "minItems": 1,
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Option"
+          }
+        },
+        "optionsFrom": {
+          "description": "Offer catalogue entries instead of fixed options. Give options or this, not both.",
+          "type": "string",
+          "enum": [
+            "catalogue_products",
+            "catalogue_items"
+          ]
+        },
+        "minSelected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "maxSelected": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "YesNoField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "yes_no"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "AccountType": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "icon": {
+          "$ref": "#/$defs/IconName"
+        },
+        "active": {
+          "default": true,
+          "description": "An inactive type is provisioned switched off, for the admin to switch on",
+          "type": "boolean"
+        },
+        "parentTypes": {
+          "default": [],
+          "description": "Types an account of this type may belong to; a parent can supply its orders",
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Key"
+          }
+        },
+        "code": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "manual"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "auto"
+                },
+                "prefix": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9-]{0,7}$"
+                }
+              },
+              "required": [
+                "mode",
+                "prefix"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "Codes typed in, or numbered automatically after a prefix"
+        },
+        "fields": {
+          "default": [],
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CustomField"
+          }
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "required": {
+              "default": false,
+              "description": "Whether every account needs coordinates",
+              "type": "boolean"
+            },
+            "geofenceRadiusM": {
+              "description": "Leave out to use the tenant's default radius",
+              "type": "integer",
+              "minimum": 50,
+              "maximum": 5000
+            },
+            "geofencePolicy": {
+              "default": "advisory",
+              "description": "What forms that inherit the policy do outside the fence (D7: advisory)",
+              "type": "string",
+              "enum": [
+                "off",
+                "advisory",
+                "required"
+              ]
+            },
+            "fieldUsersMayPropose": {
+              "default": true,
+              "description": "Whether field users may propose a location for an account without one",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "creation": {
+          "default": "admins",
+          "description": "Who creates accounts; field users go through the new_account workflow",
+          "type": "string",
+          "enum": [
+            "admins",
+            "field_users_with_approval"
+          ]
+        },
+        "slots": {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AssignmentSlot"
+          }
+        },
+        "segmentRules": {
+          "default": [],
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SegmentRule"
+          }
+        },
+        "visitFrequencyNorms": {
+          "default": [],
+          "description": "Expected visits per month to accounts in a segment",
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "segment": {
+                "$ref": "#/$defs/Key"
+              },
+              "visitsPerMonth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 31
+              }
+            },
+            "required": [
+              "segment",
+              "visitsPerMonth"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "contacts": {
+          "default": false,
+          "description": "Whether accounts of this type hold contact people",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "icon",
+        "code",
+        "location",
+        "slots"
+      ],
+      "additionalProperties": false
+    },
+    "IconName": {
+      "type": "string",
+      "maxLength": 60,
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "AssignmentSlot": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "designations": {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Key"
+          },
+          "description": "The designations allowed in the slot"
+        },
+        "required": {
+          "default": false,
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "1 is the highest. The primary assignee is the highest-priority filled slot."
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "designations",
+        "priority"
+      ],
+      "additionalProperties": false
+    },
+    "SegmentRule": {
+      "type": "object",
+      "properties": {
+        "segment": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "when": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "segment",
+        "name",
+        "when"
+      ],
+      "additionalProperties": false
+    },
+    "FormDefinition": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "description": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 300,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 300,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "icon": {
+          "$ref": "#/$defs/IconName"
+        },
+        "tags": {
+          "default": [],
+          "description": "Reporting tags",
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Key"
+          }
+        },
+        "accountLink": {
+          "default": {
+            "mode": "none"
+          },
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "none"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "optional",
+                    "required"
+                  ]
+                },
+                "accountTypes": {
+                  "minItems": 1,
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/Key"
+                  }
+                }
+              },
+              "required": [
+                "mode",
+                "accountTypes"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "visitSession": {
+          "default": false,
+          "description": "Whether the form is filled inside a checked-in visit (module M6)",
+          "type": "boolean"
+        },
+        "shift": {
+          "default": "required",
+          "type": "string",
+          "enum": [
+            "required",
+            "allowed_off_shift"
+          ]
+        },
+        "photos": {
+          "description": "Photos of the whole form. Leave out for none.",
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10,
+              "description": "0 makes photos optional"
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "source": {
+              "default": "camera",
+              "type": "string",
+              "enum": [
+                "camera",
+                "camera_and_gallery"
+              ]
+            }
+          },
+          "required": [
+            "min",
+            "max"
+          ],
+          "additionalProperties": false
+        },
+        "signature": {
+          "default": "none",
+          "type": "string",
+          "enum": [
+            "none",
+            "optional",
+            "required"
+          ]
+        },
+        "geofence": {
+          "default": "inherit",
+          "description": "Whether capture must happen inside the account's geofence; inherit follows the account type",
+          "type": "string",
+          "enum": [
+            "inherit",
+            "off",
+            "advisory",
+            "required"
+          ]
+        },
+        "review": {
+          "default": "manual",
+          "description": "Manual review, auto-approval under the tenant's rules, or no review (counts at once)",
+          "type": "string",
+          "enum": [
+            "manual",
+            "auto",
+            "none"
+          ]
+        },
+        "audience": {
+          "description": "Who can use the form. Leave out for everyone who can submit forms.",
+          "type": "object",
+          "properties": {
+            "roles": {
+              "default": [],
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              }
+            },
+            "designations": {
+              "default": [],
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "fields": {
+          "minItems": 1,
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FormField"
+          }
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "icon",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "FormField": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ShortTextField"
+        },
+        {
+          "$ref": "#/$defs/LongTextField"
+        },
+        {
+          "$ref": "#/$defs/NumberField"
+        },
+        {
+          "$ref": "#/$defs/CurrencyField"
+        },
+        {
+          "$ref": "#/$defs/DateField"
+        },
+        {
+          "$ref": "#/$defs/TimeField"
+        },
+        {
+          "$ref": "#/$defs/SingleSelectField"
+        },
+        {
+          "$ref": "#/$defs/MultiSelectField"
+        },
+        {
+          "$ref": "#/$defs/YesNoField"
+        },
+        {
+          "$ref": "#/$defs/RatingField"
+        },
+        {
+          "$ref": "#/$defs/PhotoField"
+        },
+        {
+          "$ref": "#/$defs/BarcodeField"
+        },
+        {
+          "$ref": "#/$defs/AccountPickerField"
+        },
+        {
+          "$ref": "#/$defs/ContactPickerField"
+        },
+        {
+          "$ref": "#/$defs/ProductLinesField"
+        },
+        {
+          "$ref": "#/$defs/InfoTextField"
+        },
+        {
+          "$ref": "#/$defs/SectionField"
+        },
+        {
+          "$ref": "#/$defs/RepeatingGroupField"
+        }
+      ]
+    },
+    "TimeField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "time"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "RatingField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "rating"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "PhotoField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "photo"
+        },
+        "source": {
+          "default": "camera",
+          "type": "string",
+          "enum": [
+            "camera",
+            "camera_and_gallery"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "BarcodeField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "barcode"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "AccountPickerField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "account_picker"
+        },
+        "accountTypes": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Key"
+          }
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type",
+        "accountTypes"
+      ],
+      "additionalProperties": false
+    },
+    "ContactPickerField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "contact_picker"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "ProductLinesField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether the field must be filled. A field hidden by its condition never is.",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "product_lines"
+        },
+        "valueColumn": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "$ref": "#/$defs/LocalizedText"
+            }
+          },
+          "required": [
+            "label"
+          ],
+          "additionalProperties": false
+        },
+        "maxLines": {
+          "default": 50,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "InfoTextField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "type": {
+          "type": "string",
+          "const": "info_text"
+        },
+        "text": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 1000,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 1000,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "key",
+        "type",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "SectionField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "type": {
+          "type": "string",
+          "const": "section"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "key",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "RepeatingGroupField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "required": {
+          "default": false,
+          "description": "Whether at least one item must be added",
+          "type": "boolean"
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "type": {
+          "type": "string",
+          "const": "repeating_group"
+        },
+        "fields": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ShortTextField"
+              },
+              {
+                "$ref": "#/$defs/LongTextField"
+              },
+              {
+                "$ref": "#/$defs/NumberField"
+              },
+              {
+                "$ref": "#/$defs/CurrencyField"
+              },
+              {
+                "$ref": "#/$defs/DateField"
+              },
+              {
+                "$ref": "#/$defs/TimeField"
+              },
+              {
+                "$ref": "#/$defs/SingleSelectField"
+              },
+              {
+                "$ref": "#/$defs/MultiSelectField"
+              },
+              {
+                "$ref": "#/$defs/YesNoField"
+              },
+              {
+                "$ref": "#/$defs/RatingField"
+              },
+              {
+                "$ref": "#/$defs/PhotoField"
+              },
+              {
+                "$ref": "#/$defs/BarcodeField"
+              },
+              {
+                "$ref": "#/$defs/AccountPickerField"
+              },
+              {
+                "$ref": "#/$defs/ContactPickerField"
+              },
+              {
+                "$ref": "#/$defs/ProductLinesField"
+              },
+              {
+                "$ref": "#/$defs/InfoTextField"
+              }
+            ]
+          }
+        },
+        "maxItems": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "MetricDefinition": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "currency",
+            "quantity",
+            "percent",
+            "duration"
+          ]
+        },
+        "direction": {
+          "default": "higher_is_better",
+          "type": "string",
+          "enum": [
+            "higher_is_better",
+            "lower_is_better"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/MetricSource"
+        },
+        "targetable": {
+          "default": true,
+          "description": "Whether it can carry a target",
+          "type": "boolean"
+        },
+        "visibleRoles": {
+          "description": "The roles that can see it. Leave out for every role.",
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Key"
+          }
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "unit",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "MetricSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "submission_count"
+            },
+            "forms": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              },
+              "description": "The forms whose approved submissions count (BR-02)"
+            },
+            "where": {
+              "description": "Count only submissions whose fields match this",
+              "$ref": "#/$defs/Condition"
+            }
+          },
+          "required": [
+            "type",
+            "forms"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "submission_field_sum"
+            },
+            "forms": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              },
+              "description": "The forms whose approved submissions count (BR-02)"
+            },
+            "field": {
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "type",
+            "forms",
+            "field"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "product_line_sum"
+            },
+            "forms": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              },
+              "description": "The forms whose approved submissions count (BR-02)"
+            },
+            "field": {
+              "$ref": "#/$defs/Key"
+            },
+            "column": {
+              "type": "string",
+              "enum": [
+                "quantity",
+                "value"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "forms",
+            "field",
+            "column"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "distinct_accounts_visited"
+            },
+            "forms": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              },
+              "description": "The forms whose approved submissions count (BR-02)"
+            },
+            "accountTypes": {
+              "description": "Count only accounts of these types. Leave out for every type.",
+              "minItems": 1,
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              }
+            },
+            "segment": {
+              "description": "Count only accounts in this segment",
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "type",
+            "forms"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "coverage_percent"
+            },
+            "forms": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              },
+              "description": "The forms whose approved submissions count (BR-02)"
+            },
+            "accountTypes": {
+              "description": "Count only accounts of these types. Leave out for every type.",
+              "minItems": 1,
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              }
+            },
+            "segment": {
+              "description": "Count only accounts in this segment",
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "type",
+            "forms"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "frequency_compliance_percent"
+            },
+            "forms": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              },
+              "description": "The forms whose approved submissions count (BR-02)"
+            },
+            "accountTypes": {
+              "description": "Count only accounts of these types. Leave out for every type.",
+              "minItems": 1,
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "forms"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "plan_compliance_percent"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "visit_duration"
+            },
+            "aggregate": {
+              "type": "string",
+              "enum": [
+                "sum",
+                "average"
+              ]
+            },
+            "accountTypes": {
+              "description": "Count only accounts of these types. Leave out for every type.",
+              "minItems": 1,
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "aggregate"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "order_value"
+            },
+            "statuses": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "submitted",
+                  "accepted",
+                  "partially_accepted",
+                  "rejected",
+                  "fulfilled",
+                  "partially_fulfilled",
+                  "cancelled"
+                ]
+              },
+              "description": "Count orders in these statuses (BR-19)"
+            },
+            "amount": {
+              "type": "string",
+              "enum": [
+                "before_tax",
+                "after_tax"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "statuses",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "order_quantity"
+            },
+            "statuses": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "submitted",
+                  "accepted",
+                  "partially_accepted",
+                  "rejected",
+                  "fulfilled",
+                  "partially_fulfilled",
+                  "cancelled"
+                ]
+              },
+              "description": "Count orders in these statuses (BR-19)"
+            },
+            "measure": {
+              "type": "string",
+              "enum": [
+                "base_units",
+                "kg",
+                "L"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "statuses",
+            "measure"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "productive_visits"
+            },
+            "accountTypes": {
+              "description": "Count only accounts of these types. Leave out for every type.",
+              "minItems": 1,
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              }
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "order_lines"
+            },
+            "statuses": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "submitted",
+                  "accepted",
+                  "partially_accepted",
+                  "rejected",
+                  "fulfilled",
+                  "partially_fulfilled",
+                  "cancelled"
+                ]
+              },
+              "description": "Count orders in these statuses (BR-19)"
+            }
+          },
+          "required": [
+            "type",
+            "statuses"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "active_days"
+            },
+            "forms": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Key"
+              },
+              "description": "The forms whose approved submissions count (BR-02)"
+            }
+          },
+          "required": [
+            "type",
+            "forms"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "new_accounts"
+            },
+            "accountType": {
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "type",
+            "accountType"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "external"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false,
+          "description": "Values loaded by import or the API, such as secondary sales from an ERP"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "ratio"
+            },
+            "numerator": {
+              "$ref": "#/$defs/Key"
+            },
+            "denominator": {
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "type",
+            "numerator",
+            "denominator"
+          ],
+          "additionalProperties": false,
+          "description": "One metric divided by another, from summed parts (BR-04); times 100 when the unit is percent"
+        }
+      ]
+    },
+    "ScoreDefinition": {
+      "type": "object",
+      "properties": {
+        "periodType": {
+          "default": "month",
+          "type": "string",
+          "enum": [
+            "month",
+            "quarter",
+            "year"
+          ]
+        },
+        "cap": {
+          "default": 1,
+          "description": "The highest attainment one metric can contribute: 1 is 100%",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "rankingGroupBy": {
+          "default": "designation",
+          "description": "Users are ranked within groups; designations decide who is ranked (D8)",
+          "type": "string",
+          "enum": [
+            "designation"
+          ]
+        },
+        "metrics": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "metric": {
+                "$ref": "#/$defs/Key"
+              },
+              "weight": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "metric",
+              "weight"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "metrics"
+      ],
+      "additionalProperties": false
+    },
+    "Workflow": {
+      "type": "object",
+      "properties": {
+        "requestType": {
+          "type": "string",
+          "enum": [
+            "leave",
+            "regularisation",
+            "expense",
+            "order",
+            "new_account",
+            "account_location_change",
+            "journey_plan",
+            "target_lock"
+          ]
+        },
+        "steps": {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WorkflowStep"
+          }
+        }
+      },
+      "required": [
+        "requestType",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "WorkflowStep": {
+      "type": "object",
+      "properties": {
+        "approver": {
+          "$ref": "#/$defs/Approver"
+        },
+        "escalateIfNoApprover": {
+          "description": "A role to escalate to when no approver resolves. Leave out to skip the step.",
+          "$ref": "#/$defs/Key"
+        },
+        "reminderAfterHours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 720
+        },
+        "escalation": {
+          "description": "Escalate to a role when the step has waited this long",
+          "type": "object",
+          "properties": {
+            "afterHours": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 720
+            },
+            "to": {
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "afterHours",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        "lineDecisions": {
+          "default": false,
+          "description": "Order approvers at this step decide line by line (order.line_decide)",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "approver"
+      ],
+      "additionalProperties": false
+    },
+    "Approver": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "reporting_manager"
+            },
+            "level": {
+              "default": 1,
+              "description": "1 is the direct manager, 2 is their manager, and so on up the tree",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "nearest_designation"
+            },
+            "designation": {
+              "description": "The closest ancestor with this designation",
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "type",
+            "designation"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "role_in_scope"
+            },
+            "role": {
+              "description": "Anyone whose role's scope covers the requester; first to act decides",
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "type",
+            "role"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "account_slot"
+            },
+            "slot": {
+              "description": "The user in this slot of the request's account",
+              "$ref": "#/$defs/Key"
+            }
+          },
+          "required": [
+            "type",
+            "slot"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "HolidayCalendar": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "weeklyOffs": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "description": "ISO weekdays: 1 is Monday, 7 is Sunday"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "weeklyOffs"
+      ],
+      "additionalProperties": false
+    },
+    "AttendanceRule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "rule": {
+              "type": "string",
+              "const": "punch_is_present"
+            }
+          },
+          "required": [
+            "rule"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "rule": {
+              "type": "string",
+              "const": "hours"
+            },
+            "fullDayHours": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 24
+            },
+            "halfDayHours": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 24
+            }
+          },
+          "required": [
+            "rule",
+            "fullDayHours",
+            "halfDayHours"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "LeaveType": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "paid": {
+          "type": "boolean"
+        },
+        "annualQuota": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 366,
+          "multipleOf": 0.5,
+          "description": "Days per quota year; 0 means the type has no quota"
+        },
+        "quotaYear": {
+          "type": "string",
+          "enum": [
+            "calendar",
+            "financial"
+          ]
+        },
+        "halfDayAllowed": {
+          "type": "boolean"
+        },
+        "attachmentAfterDays": {
+          "description": "Requests longer than this many days need an attachment",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 366
+        },
+        "active": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "paid",
+        "annualQuota",
+        "quotaYear",
+        "halfDayAllowed"
+      ],
+      "additionalProperties": false
+    },
+    "ExpensePolicy": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "travel",
+            "daily_allowance",
+            "other"
+          ]
+        },
+        "calculation": {
+          "type": "string",
+          "enum": [
+            "per_km",
+            "per_day",
+            "per_visit",
+            "actual"
+          ]
+        },
+        "rate": {
+          "description": "Per km, day or visit. Leave out when the claim is the bill amount (actual).",
+          "$ref": "#/$defs/ExpenseRate"
+        },
+        "caps": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "perClaim": {
+              "$ref": "#/$defs/Money"
+            },
+            "perDay": {
+              "$ref": "#/$defs/Money"
+            },
+            "perMonth": {
+              "$ref": "#/$defs/Money"
+            }
+          },
+          "additionalProperties": false
+        },
+        "receiptRequired": {
+          "default": false,
+          "type": "boolean"
+        },
+        "odometerPhotosRequired": {
+          "default": false,
+          "type": "boolean"
+        },
+        "active": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "category",
+        "calculation"
+      ],
+      "additionalProperties": false
+    },
+    "ExpenseRate": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "flat": {
+              "$ref": "#/$defs/Money"
+            }
+          },
+          "required": [
+            "flat"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "byDesignation": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/$defs/Key"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/Money"
+              }
+            }
+          },
+          "required": [
+            "byDesignation"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Catalogue": {
+      "type": "object",
+      "properties": {
+        "units": {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CatalogueUnit"
+          }
+        },
+        "measureTypes": {
+          "default": [],
+          "description": "Physical measures totalled on orders (BR-11)",
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "kg",
+              "L"
+            ]
+          }
+        },
+        "rounding": {
+          "default": "per_unit_first",
+          "description": "Round each unit's net rate before multiplying, or only the totals (BR-10)",
+          "type": "string",
+          "enum": [
+            "per_unit_first",
+            "end"
+          ]
+        },
+        "itemFields": {
+          "default": [],
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CustomField"
+          }
+        },
+        "rejectionReasons": {
+          "minItems": 1,
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/Key"
+              },
+              "name": {
+                "$ref": "#/$defs/LocalizedText"
+              }
+            },
+            "required": [
+              "key",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Reasons for rejecting an order or an order line"
+        }
+      },
+      "required": [
+        "units",
+        "rejectionReasons"
+      ],
+      "additionalProperties": false
+    },
+    "CatalogueUnit": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "name": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
+        "base": {
+          "default": false,
+          "description": "The unit prices refer to. Exactly one unit is the base.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "Imports": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "$ref": "#/$defs/ImportTarget"
+        },
+        "accounts": {
+          "description": "By account type",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/Key"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ImportTarget"
+          }
+        },
+        "items": {
+          "$ref": "#/$defs/ImportTarget"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ImportTarget": {
+      "type": "object",
+      "properties": {
+        "aliases": {
+          "default": {},
+          "description": "Other headers for each column: an Appendix B column, custom.<field> or slot.<slot>",
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?:[a-z][a-z0-9_]*|(?:custom|slot)\\.[a-z][a-z0-9_]{0,39})$"
+          },
+          "additionalProperties": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]{1,60}$"
+            }
+          }
+        },
+        "emptyValues": {
+          "default": [],
+          "description": "Cell values that mean empty, such as \"-\"",
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        },
+        "fractions": {
+          "default": [],
+          "description": "Percentage columns where a value of 1 or less is a fraction (BR-17)",
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
