@@ -9,7 +9,7 @@ This file lists every service Kshetra uses: where it runs, why, and when it arri
 | Service | Port | What it does for Kshetra | Production twin |
 |---|---|---|---|
 | PostgreSQL 18, with PostGIS, pg_partman and pg_trgm | 5433 (`POSTGRES_PORT`) | The database. It holds every tenant's data and keeps tenants apart with row-level security. PostGIS stores GPS points and works out geofences and distances. pg_partman splits the high-volume location table into partitions. pg_trgm powers fuzzy name matching and search. | Amazon RDS for PostgreSQL |
-| Redis 8.10 | 6380 (`REDIS_PORT`) | Holds the background job queues (SMS, push, photo processing, exports, webhooks), so requests never wait on slow work. Also caching and rate limits, such as OTP attempts. | Amazon ElastiCache |
+| Redis 8.10 | 6380 (`REDIS_PORT`) | Sign-in rate limits and tenant-choice tickets today (step 4). From phase 1 it also holds the background job queues (SMS, push, photo processing, exports, webhooks), so requests never wait on slow work, and caches. | Amazon ElastiCache |
 | MinIO, Chainguard's image (decision D21) | 9000 for the S3 API, 9001 for its console | File storage. Phones upload photos, receipts and signatures straight to it through short-lived signed links, and exports wait there for download. | Amazon S3 |
 | Mailpit | 1025 for SMTP, 8025 for the inbox page | Catches every email the app sends, so none reach real inboxes. Read them at http://localhost:8025. | Amazon SES |
 

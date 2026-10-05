@@ -6,8 +6,9 @@ Last updated: 2026-10-05
 
 ## Now
 
-- **Phase 0, step 3** (the templates package) is in review as [kunal-boyal/kshetra#3](https://github.com/kunal-boyal/kshetra/pull/3). Both templates validate, which meets the third exit criterion of phase 0.
-- **Next:** Phase 0, step 4, the directory module: OTP sign-in and tokens.
+- **Phase 0, step 4** (sign-in: one-time codes, tokens and sessions) is in review as [kunal-boyal/kshetra#5](https://github.com/kunal-boyal/kshetra/pull/5).
+- **Next:** Phase 0, step 5, IAM: users, roles, scopes and designations, with device binding.
+- **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
 ## Phase 0: Foundation
@@ -25,9 +26,9 @@ Each step is its own pull request. The order follows dependencies.
 |---|---|---|---|
 | 1 | Monorepo, CI, local services, `CLAUDE.md` | Done | #1 |
 | 2 | API and database foundation: `apps/api` (NestJS), migrations, database roles, tenant context with row-level security, error codes, idempotency | Done | #2 |
-| 3 | Templates package: schema, validator, and the generic and agri templates; form and metric definitions in `packages/forms` and `packages/metrics` | In review | #3 |
-| 4 | Directory module: OTP sign-in, tokens (ES256, JWKS), refresh, tenant switching, device binding (D15) | Next | |
-| 5 | IAM: roles, data scopes, designations, closure tables | To do | |
+| 3 | Templates package: schema, validator, and the generic and agri templates; form and metric definitions in `packages/forms` and `packages/metrics` | Done | #3 |
+| 4 | Directory module: OTP sign-in, ES256 tokens and the JWKS, refresh rotation, choosing and switching tenants (D29) | In review | #5 |
+| 5 | IAM: users, roles, data scopes, designations, closure tables, devices and device binding (D15) | Next | |
 | 6 | Config bundle, terminology resolver, i18n in English and Hindi | To do | |
 | 7 | Audit log and outbox | To do | |
 | 8 | Provisioning CLI, and a seed with two tenants on different templates | To do | |
@@ -39,6 +40,7 @@ Each step is its own pull request. The order follows dependencies.
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-05 | Phase 0 step 3: templates package, with form and metric definitions (decisions D25–D27) | PR #3, merged as `98a11b7` |
 | 2026-10-05 | Phase 0 step 2: the API, database roles, row-level security, error codes and idempotency (decisions D22–D24) | PR #2, merged as `033d3f1` |
 | 2026-10-05 | Clickable prototype: 5 field-app screens and 4 manager-portal pages | claude.ai artifact |
 | 2026-10-05 | Phase 0 step 1: monorepo, CI, local services (MinIO from Chainguard, decision D21) | PR #1, merged as `1e9a8ed` |

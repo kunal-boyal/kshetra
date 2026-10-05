@@ -88,6 +88,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - **Idempotent creates:** use `idempotent()` from `src/platform/idempotency.ts` (BR-46).
 - **Errors:** throw `AppError` from `@kshetra/shared` with a spec 11.4 code; the global filter writes the spec 11.1 format.
 
+## Sign-in and access (decision D29)
+
+- Sign-in lives in `apps/api/src/modules/directory`. Only that module touches the directory schema, through `DirectoryDatabase` as `directory_app`; other modules call its services.
+- Every route needs an access token. The global `AuthGuard` checks it and sets `request.auth`, which handlers read with `@CurrentAuth()`. Only health checks and sign-in routes are `@Public()`.
+- Never log phone numbers, one-time codes or tokens. A message that must name a number uses `maskPhone()`.
+- Integration tests use `test/support.ts`: `startApp()`, `testConfig()`, `DirectoryFixtures`, and fresh numbers and addresses so tests never share rate limits. `OTP_PROVIDER=memory` keeps codes for tests.
+
 ## Configuration and templates
 
 - Tenant configuration (account types, forms, metrics, workflows, policies) is data, checked in two layers: a zod schema for its shape, then checks that every reference resolves and settings agree. Form schemas are in `packages/forms`, metric and score schemas in `packages/metrics`, the rest in `packages/templates/src/schema`.

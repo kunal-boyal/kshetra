@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import type { Config } from '../config';
-import * as schema from '../db/schema';
+import * as schema from '../db/schema/platform';
 import { CONFIG } from './tokens';
 
 export type Db = NodePgDatabase<typeof schema>;

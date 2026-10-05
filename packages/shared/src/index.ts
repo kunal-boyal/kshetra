@@ -15,6 +15,7 @@ export type {
 export { AppError, ERROR_HTTP_STATUS, formatPath, isErrorCode, issueAt } from './errors';
 export type { ErrorBody, ErrorCode, ErrorDetail } from './errors';
 export { isId, newId } from './ids';
+export { maskPhone, normalisePhone } from './phone';
 export { ORDER_STATUSES } from './orders';
 export type { OrderStatus } from './orders';
 export {
@@ -30,6 +31,23 @@ export {
   toMinorUnits,
 } from './schemas/config';
 export type { Locale } from './schemas/config';
+export {
+  AccessClaims,
+  ChooseTenant,
+  LogoutBody,
+  MeResult,
+  OtpRequestBody,
+  OtpRequestResult,
+  OtpVerifyBody,
+  OtpVerifyResult,
+  RefreshBody,
+  RefreshResult,
+  SelectTenantBody,
+  Session,
+  SignedIn,
+  SwitchTenantBody,
+  TenantSummary,
+} from './schemas/auth';
 export { TERMINOLOGY_KEYS } from './terminology';
 export type { TerminologyKey } from './terminology';
 export { ACCOUNT_REQUEST_TYPES, REQUEST_TYPES } from './workflow';
