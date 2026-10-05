@@ -1,15 +1,10 @@
 # Kshetra
 
-A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web portal, a vendor console and a public API. [docs/Kshetra.md](docs/Kshetra.md) is the source of truth for scope and behaviour. If code and spec disagree, raise it with the owner (Kunal) and change one of them deliberately. Decisions are logged in [docs/decisions.md](docs/decisions.md).
+A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web portal, a vendor console and a public API. [docs/Kshetra.md](docs/Kshetra.md) is the source of truth for scope and behaviour. If code and spec disagree, raise it with the owner (Kunal) and change one of them deliberately. Decisions are logged in [docs/decisions.md](docs/decisions.md). Every service the project uses, local and production, is listed in [docs/services.md](docs/services.md).
 
 ## Status
 
-Phase 0 (Foundation) is in progress. The monorepo scaffold is done:
-- pnpm workspaces with Turborepo
-- shared TypeScript, ESLint and Prettier presets in `packages/config`
-- local services in `docker-compose.yml`
-- CI on GitHub Actions
-- `packages/shared`, starting with UUID v7 ids
+Phase 0 (Foundation) is in progress. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
 
 Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
 
