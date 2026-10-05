@@ -1,0 +1,18 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/*
+
+# One version of each shared tool for every package; see docs/versions.md.
+catalog:
+  '@eslint/js': ^10.0.1
+  eslint: ^10.12.0
+  eslint-config-prettier: ^10.1.8
+  globals: ^17.13.0
+  prettier: ^3.9.9
+  turbo: ^2.11.7
+  # Held below 6.1 for typescript-eslint; see docs/versions.md.
+  typescript: ~6.0.3
+  typescript-eslint: ^8.71.0
+  uuid: ^14.0.2
+  vitest: ^5.0.3

@@ -4,20 +4,36 @@ A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web porta
 
 ## Status
 
-Phase 0 (Foundation) hasn't started, so there is no application code yet and the commands below arrive with the monorepo scaffold. Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
+Phase 0 (Foundation) is in progress. The monorepo scaffold is done:
+- pnpm workspaces with Turborepo
+- shared TypeScript, ESLint and Prettier presets in `packages/config`
+- local services in `docker-compose.yml`
+- CI on GitHub Actions
+- `packages/shared`, starting with UUID v7 ids
+
+Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | runs the apps locally |
-| `pnpm test` | unit tests |
-| `pnpm test:int` | integration tests on Testcontainers (PostgreSQL with PostGIS, Redis) |
-| `pnpm lint`, `pnpm typecheck` | static checks |
-| `pnpm db:migrate`, `pnpm db:seed` | migrates; seeds fictional data and refuses non-local databases |
-| `pnpm openapi` | regenerates the OpenAPI document and the typed client |
+| Command | What it does | Available |
+|---|---|---|
+| `pnpm install` | installs the workspace (pnpm 12, Node 24) | now |
+| `pnpm typecheck`, `pnpm lint`, `pnpm test` | static checks and unit tests, through Turborepo | now |
+| `pnpm format`, `pnpm format:check` | Prettier | now |
+| `docker compose up -d` | starts the local services | now |
+| `pnpm dev` | runs the apps locally | with the apps |
+| `pnpm test:int` | integration tests on Testcontainers (PostgreSQL with PostGIS, Redis) | with `apps/api` |
+| `pnpm db:migrate`, `pnpm db:seed` | migrates; seeds fictional data and refuses non-local databases | with `apps/api` |
+| `pnpm openapi` | regenerates the OpenAPI document and the typed client | with `apps/api` |
 
-Local services run in Docker Compose: PostgreSQL with PostGIS, Redis, MinIO and Mailpit. Locally, OTP codes print to the console (`OTP_PROVIDER=console`); production refuses this.
+Local services run in Docker Compose:
+- PostgreSQL 18 with PostGIS, pg_partman and pg_trgm, on port 5433 by default (`POSTGRES_PORT`)
+- Redis
+- Mailpit
+
+S3-compatible storage is pending a decision, because MinIO no longer publishes images. Locally, OTP codes print to the console (`OTP_PROVIDER=console`); production refuses this.
+
+Workspace packages are consumed as TypeScript source (`exports` points at `src/index.ts`), so they need no build step. Shared tool versions live once, in the `catalog` of `pnpm-workspace.yaml`. TypeScript stays on 6.0 until typescript-eslint supports 7; see `docs/versions.md`.
 
 ## Layout (spec 9.4)
 
@@ -70,3 +86,4 @@ Migrations are append-only and backward compatible. They follow expand and contr
 - UI code takes colours, spacing and type from the tokens, never hex values.
 - The same system is published as a claude.ai Design System artifact: https://claude.ai/artifact/REeP6ZXP72DN9kfhVHbPT3. Make every design-system change in both places in the same piece of work.
 - Regenerate `tokens.css` whenever `tokens.json` changes. Until Phase 0 adds the token build step, regenerate it by hand.
+- Prettier ignores `packages/design-tokens/` and all markdown, so the mirrored files stay byte-identical to the artifact.
