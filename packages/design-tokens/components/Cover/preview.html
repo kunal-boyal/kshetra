@@ -1,0 +1,57 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kshetra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .jamun { fill:var(--accent); }
+  .ink { fill:var(--text); }
+  .stone { fill:var(--border-strong); }
+  .ok { fill:var(--success-solid); }
+  .wait { fill:var(--pending-solid); }
+  .blk { rx:var(--radius-lg); }
+  .pill { rx:var(--radius-sm); }
+  .ring { fill:none; stroke:var(--accent-subtle); stroke-width:2; }
+  .ring.inner { stroke-width:3; }
+  .pin { fill:var(--accent-subtle); }
+  .words { position:absolute; left:var(--space-6); bottom:var(--space-6); max-width:440px; }
+  .name { margin:0; font-size:104px; line-height:.92; font-weight:700; letter-spacing:-.02em; color:var(--text); }
+  .tag { margin:var(--space-2) 0 0 4px; font-size:14px; line-height:20px; color:var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      accent (Jamun, the tenant slot) 208×248 bled off the top, the largest · text-ink 240×176 bleeding off the right · border-strong stone 144×40 · success-solid 64×8 and pending-solid 40×8 kept small: they only ever mean a state — ≈45% of 480×288
+  arrangement one tall accent slab with an ink satellite and a stone cap, bottoms aligned space-6 above the edge (y 232), space-4 gutters
+  pattern     literal motif: the geofence (spec M6/M7: "inside the fence" is the product's core judgement) — three concentric rings in accent-subtle at a space-8 pitch around a pin, cut into the slab
+  scales      sides in space-2 multiples; gutters space-4; ring pitch space-8 (32); block corners radius-lg; status pills radius-sm
+-->
+<rect class="jamun blk" x="16" y="-16" width="208" height="248" rx="12"/>
+<circle class="ring" cx="120" cy="116" r="96"/>
+<circle class="ring" cx="120" cy="116" r="64"/>
+<circle class="ring inner" cx="120" cy="116" r="32"/>
+<circle class="pin" cx="120" cy="116" r="6"/>
+<rect class="stone blk" x="240" y="0" width="144" height="40" rx="12"/>
+<rect class="ink blk" x="240" y="56" width="256" height="176" rx="12"/>
+<rect class="ok pill" x="240" y="248" width="64" height="8" rx="4"/>
+<rect class="wait pill" x="320" y="248" width="40" height="8" rx="4"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Kshetra</h1>
+<p class="tag">Field work, recorded where it happens and counted once it is approved.</p>
+</div>
+</div>
+</body>
+</html>

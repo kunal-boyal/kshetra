@@ -1,0 +1,264 @@
+/* Generated from tokens.json. Do not edit by hand: change tokens.json and regenerate.
+   Colours and shadows per theme (data-theme="light|dark|outdoor" on the root; light is the default),
+   then spacing, size, radius, z-index, breakpoints, opacity and font stacks, then one class per type style. */
+
+:root, [data-theme="light"] {
+  --bg: #f7f6f3;
+  --surface: #ffffff;
+  --surface-sunken: #efede8;
+  --surface-raised: #ffffff;
+  --surface-inverse: #1c1a17;
+  --border: #dedad2;
+  --border-strong: #8c8579;
+  --text: #1c1a17;
+  --text-muted: #5c574e;
+  --text-subtle: #6e685e;
+  --text-inverse: #f2efe9;
+  --text-disabled: #a8a296;
+  --accent: #5b2b82;
+  --accent-hover: #4a216b;
+  --accent-subtle: #f3edf8;
+  --accent-subtle-fg: #4a216b;
+  --on-accent: #ffffff;
+  --focus-ring: var(--accent);
+  --success-fg: #1b6a35;
+  --success-bg: #e7f3ea;
+  --success-border: #9fcfae;
+  --success-solid: #23843f;
+  --pending-fg: #755000;
+  --pending-bg: #fcf1d4;
+  --pending-border: #e5c46a;
+  --pending-solid: #a87400;
+  --waiting-fg: #973d00;
+  --waiting-bg: #fdeadb;
+  --waiting-border: #efb085;
+  --waiting-solid: #d9620b;
+  --info-fg: #1c4f9c;
+  --info-bg: #e6eefa;
+  --info-border: #a6c2ea;
+  --info-solid: #2563c4;
+  --danger-fg: #a1201b;
+  --danger-bg: #fbe8e6;
+  --danger-border: #eca9a3;
+  --danger-solid: #c8302a;
+  --neutral-fg: #57534b;
+  --neutral-bg: #eeece7;
+  --neutral-border: #cfcac0;
+  --neutral-solid: #8a8478;
+  --on-danger: #ffffff;
+  --chart-1: #2f5d8a;
+  --chart-2: #b85a24;
+  --chart-3: #2f7f6c;
+  --chart-4: #7a4f9a;
+  --chart-5: #9a7f17;
+  --chart-6: #a63d5a;
+  --chart-7: #55682a;
+  --chart-8: #6b6358;
+  --chart-grid: #e7e4dd;
+  --chart-target: #1c1a17;
+  --map-route: var(--info-solid);
+  --map-geofence: var(--accent);
+  --map-inside: var(--success-solid);
+  --map-outside: var(--waiting-solid);
+  --map-stale: var(--neutral-solid);
+  --scrim: rgba(18, 17, 16, 0.48);
+  --shadow-sm: 0 1px 2px rgba(28, 26, 23, 0.06);
+  --shadow-md: 0 4px 12px rgba(28, 26, 23, 0.10);
+  --shadow-lg: 0 12px 32px rgba(28, 26, 23, 0.16);
+}
+
+[data-theme="dark"] {
+  --bg: #121110;
+  --surface: #1b1a18;
+  --surface-sunken: #0d0c0b;
+  --surface-raised: #24221f;
+  --surface-inverse: #f2efe9;
+  --border: #34312d;
+  --border-strong: #77716a;
+  --text: #f2efe9;
+  --text-muted: #b3ada2;
+  --text-subtle: #9a9489;
+  --text-inverse: #1c1a17;
+  --text-disabled: #5e5952;
+  --accent: #c9a8e8;
+  --accent-hover: #d9c1f0;
+  --accent-subtle: #2c2138;
+  --accent-subtle-fg: #dcc6f0;
+  --on-accent: #1e1229;
+  --focus-ring: var(--accent);
+  --success-fg: #7fd19a;
+  --success-bg: #14291c;
+  --success-border: #2f5c3e;
+  --success-solid: #4cb36c;
+  --pending-fg: #f0c452;
+  --pending-bg: #2d2410;
+  --pending-border: #6a531a;
+  --pending-solid: #e0a92a;
+  --waiting-fg: #f5a06a;
+  --waiting-bg: #33200f;
+  --waiting-border: #774118;
+  --waiting-solid: #ec8135;
+  --info-fg: #93b8f2;
+  --info-bg: #15233b;
+  --info-border: #2f4c7c;
+  --info-solid: #5a8fe0;
+  --danger-fg: #f4938c;
+  --danger-bg: #361615;
+  --danger-border: #7a2d29;
+  --danger-solid: #e5574f;
+  --neutral-fg: #b8b2a7;
+  --neutral-bg: #262420;
+  --neutral-border: #45413b;
+  --neutral-solid: #8f897e;
+  --on-danger: #1b0a09;
+  --chart-1: #7fa8d6;
+  --chart-2: #e6915c;
+  --chart-3: #6cc2ac;
+  --chart-4: #b99ad6;
+  --chart-5: #d6bb52;
+  --chart-6: #e58aa3;
+  --chart-7: #a3ba6b;
+  --chart-8: #b3aba0;
+  --chart-grid: #2a2825;
+  --chart-target: #f2efe9;
+  --map-route: var(--info-solid);
+  --map-geofence: var(--accent);
+  --map-inside: var(--success-solid);
+  --map-outside: var(--waiting-solid);
+  --map-stale: var(--neutral-solid);
+  --scrim: rgba(0, 0, 0, 0.64);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="outdoor"] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-sunken: #eeece7;
+  --surface-raised: #ffffff;
+  --surface-inverse: #12110f;
+  --border: #7a7469;
+  --border-strong: #3f3b35;
+  --text: #12110f;
+  --text-muted: #3a3631;
+  --text-subtle: #4a453e;
+  --text-inverse: #ffffff;
+  --text-disabled: #8a8478;
+  --accent: #5b2b82;
+  --accent-hover: #4a216b;
+  --accent-subtle: #f3edf8;
+  --accent-subtle-fg: #3d1a5a;
+  --on-accent: #ffffff;
+  --focus-ring: var(--accent);
+  --success-fg: #0e5129;
+  --success-bg: #ffffff;
+  --success-border: var(--success-fg);
+  --success-solid: #17733a;
+  --pending-fg: #593b00;
+  --pending-bg: #ffffff;
+  --pending-border: var(--pending-fg);
+  --pending-solid: #8a5f00;
+  --waiting-fg: #772d00;
+  --waiting-bg: #ffffff;
+  --waiting-border: var(--waiting-fg);
+  --waiting-solid: #b04a00;
+  --info-fg: #123c7a;
+  --info-bg: #ffffff;
+  --info-border: var(--info-fg);
+  --info-solid: #1d55b0;
+  --danger-fg: #8a1712;
+  --danger-bg: #ffffff;
+  --danger-border: var(--danger-fg);
+  --danger-solid: #9c1c17;
+  --neutral-fg: #3f3b35;
+  --neutral-bg: #ffffff;
+  --neutral-border: var(--neutral-fg);
+  --neutral-solid: #6e685e;
+  --on-danger: #ffffff;
+  --chart-1: #2f5d8a;
+  --chart-2: #b85a24;
+  --chart-3: #2f7f6c;
+  --chart-4: #7a4f9a;
+  --chart-5: #7d6812;
+  --chart-6: #a63d5a;
+  --chart-7: #55682a;
+  --chart-8: #6b6358;
+  --chart-grid: #c9c4ba;
+  --chart-target: #12110f;
+  --map-route: var(--info-solid);
+  --map-geofence: var(--accent);
+  --map-inside: var(--success-solid);
+  --map-outside: var(--waiting-solid);
+  --map-stale: var(--neutral-solid);
+  --scrim: rgba(0, 0, 0, 0.64);
+  --shadow-sm: none;
+  --shadow-md: 0 0 0 1px #12110f, 0 4px 12px rgba(0, 0, 0, 0.24);
+  --shadow-lg: 0 0 0 2px #12110f, 0 12px 32px rgba(0, 0, 0, 0.32);
+}
+
+:root {
+  --space-0: 0px;
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --touch-min: 44px;
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
+  --row-compact: 40px;
+  --row-comfortable: 56px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --nav-web: 248px;
+  --content-max: 1440px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+  --bp-xs: 360px;
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1536px;
+  --opacity-disabled: 0.48;
+  --opacity-geofence: 0.12;
+  --opacity-stale: 0.56;
+  --font-sans: "Noto Sans", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Noto Sans Mono", ui-monospace, Menlo, monospace;
+}
+
+.display { font-family: var(--font-sans); font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: -0.01em; }
+.heading-xl { font-family: var(--font-sans); font-size: 24px; line-height: 32px; font-weight: 600; }
+.heading-lg { font-family: var(--font-sans); font-size: 20px; line-height: 28px; font-weight: 600; }
+.heading-md { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 600; }
+.body-lg { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+.body-md { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+.body-sm { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.caption { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 400; }
+.label-lg { font-family: var(--font-sans); font-size: 16px; line-height: 20px; font-weight: 600; }
+.label-md { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
+.label-sm { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.01em; }
+.metric-xl { font-family: var(--font-sans); font-size: 32px; line-height: 36px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.metric-md { font-family: var(--font-sans); font-size: 20px; line-height: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.numeric { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 400; }

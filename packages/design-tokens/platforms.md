@@ -1,0 +1,45 @@
+# Platforms and packaging
+
+One token source feeds three apps and two rendering engines. Tokens live in their own package, so mobile can consume them without pulling in web code.
+
+## Packages
+
+| Package | Contents | Consumed by |
+|---|---|---|
+| `packages/design-tokens` | this design system: `tokens.json` (the source) with generated `tokens.css`, `tokens.ts` and `echarts-theme.json`, plus the brand book, component guides and reference `bundle.css` | everything |
+| `packages/ui-web` | shadcn/ui components restyled on the tokens, plus web-only patterns (data table, review card, live map panel) | `apps/web`, `apps/console` |
+| `packages/ui-mobile` | React Native primitives (Button, Badge, Field, Sheet, ListRow) plus field patterns (shift card, sync banner, plan item, photo strip) | `apps/mobile` |
+
+Spec §9.4 lists all three packages. The design system lives in `packages/design-tokens`, and decision D17 in `docs/decisions.md` records the move.
+
+## Web (React, Tailwind, shadcn/ui)
+
+- Tailwind's theme reads CSS variables only: `colors.primary = 'var(--accent)'`, `colors.background = 'var(--bg)'`, `colors.card = 'var(--surface)'`, `colors.muted = 'var(--surface-sunken)'`, `colors.destructive = 'var(--danger-solid)'`, `borderRadius.lg = 'var(--radius-lg)'`, and so on. No hex values in component code. Lint for them.
+- shadcn/ui components are copied in and restyled once. `Badge` gains the six status variants; `Button` gains the sizes `sm`, `md` and `lg` mapped to the control tokens.
+- Charts use Apache ECharts with a generated theme: categorical colours `chart-1` to `chart-8`, axis and grid `chart-grid`, labels in `text-muted` at `caption`, and tabular numbers in tooltips.
+- Maps use the Google Maps JavaScript API with a cloud map style in warm neutrals, so markers in status colours stand out. Markers are SVG built from the map tokens. Outdoor gets its own higher-contrast map style: darker roads and labels, no terrain shading.
+- Themes switch by setting `data-theme` on `<html>`. Outdoor's structural rules (thicker outlines, framed selection, inverted banners) live beside each component in `ui-web` under `[data-theme="outdoor"]`, as in this system's `bundle.css`.
+
+## Mobile (Expo, React Native)
+
+- `tokens.ts` exports `{ light, dark, outdoor }` colour objects, plus spacing, radius, type and size objects. Shadows translate to `elevation` on Android and `shadow*` on iOS. Outdoor's rings become a `borderWidth` on the floating view.
+- The theme provider exposes `theme.name`, so `ui-mobile` components apply Outdoor's structural rules (2 px outlines, framed selection, inverted sync banner) the same way the web CSS does.
+- Type uses the system Noto Sans on Android and loads Noto Sans with Devanagari through `expo-font` on iOS. `allowFontScaling` stays on, and layouts are tested at the largest system size.
+- Numbers use `fontVariant: ['tabular-nums']`.
+- Hit areas use `hitSlop` to reach `touch-min` (44) for icons under 44 px.
+- Maps use `react-native-maps` with the same style JSON as web.
+
+## Generating
+
+One build step (Style Dictionary or a small script in `tools/`) reads `tokens.json` and writes the CSS, TypeScript and ECharts outputs. CI fails in any of these cases:
+- a generated file is stale
+- a colour pair named in a usage note drops under its contrast floor (7:1 for text in Outdoor)
+- a token is missing a value in any of the three themes
+
+## Versioning
+
+- Tokens follow semantic versioning:
+  - **Patch:** a value nudge.
+  - **Minor:** a new token.
+  - **Major:** a rename or removal.
+- Renames ship with an alias for one minor version. Mobile reads the token version from the config bundle, so a JavaScript update over EAS Update and a token change never disagree.
