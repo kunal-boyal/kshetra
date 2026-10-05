@@ -1,0 +1,85 @@
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { isId } from '@kshetra/shared';
+import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { createApp } from '../src/app';
+import { loadConfig } from '../src/config';
+
+const urls = inject('databaseUrls');
+
+async function start(databaseUrl: string): Promise<NestFastifyApplication> {
+  const app = await createApp(loadConfig({ NODE_ENV: 'test', DATABASE_URL: databaseUrl }), false);
+  await app.init();
+  await app.getHttpAdapter().getInstance().ready();
+  return app;
+}
+
+describe('the HTTP API', () => {
+  let app: NestFastifyApplication;
+
+  beforeAll(async () => {
+    app = await start(urls.cellApp);
+  });
+
+  afterAll(() => app.close());
+
+  it('answers /health and gives every response a request ID', async () => {
+    const response = await app.inject({ method: 'GET', url: '/health' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ status: 'ok' });
+    expect(isId(String(response.headers['x-request-id']))).toBe(true);
+  });
+
+  it('is ready when the database answers', async () => {
+    const response = await app.inject({ method: 'GET', url: '/ready' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ status: 'ready', checks: { database: 'ok' } });
+  });
+
+  it("keeps a caller's well-formed X-Request-Id", async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { 'x-request-id': 'phone-42.req:7' },
+    });
+    expect(response.headers['x-request-id']).toBe('phone-42.req:7');
+  });
+
+  it('replaces a malformed X-Request-Id', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { 'x-request-id': 'not ok; drop table' },
+    });
+    expect(isId(String(response.headers['x-request-id']))).toBe(true);
+  });
+
+  it('answers an unknown route in the error format of spec 11.1', async () => {
+    const response = await app.inject({ method: 'GET', url: '/v1/nothing-here' });
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'This was not found.',
+        requestId: response.headers['x-request-id'],
+      },
+    });
+  });
+});
+
+describe('the HTTP API with the database down', () => {
+  let app: NestFastifyApplication;
+
+  beforeAll(async () => {
+    // Nothing listens on port 1, so every connection attempt fails at once.
+    app = await start('postgres://cell_app:unused@127.0.0.1:1/kshetra');
+  });
+
+  afterAll(() => app.close());
+
+  it('stays alive but reports not ready', async () => {
+    expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+    const ready = await app.inject({ method: 'GET', url: '/ready' });
+    expect(ready.statusCode).toBe(503);
+    expect(ready.json()).toEqual({ status: 'not_ready', checks: { database: 'unavailable' } });
+  });
+});

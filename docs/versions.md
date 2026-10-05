@@ -23,6 +23,25 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | Package | Version | Used by |
 |---|---|---|
 | uuid | 14.0.2 | `packages/shared`, for UUID v7 ids |
+| zod | 4.6.5 | `apps/api`, for config and validation |
+
+## API (`apps/api`, added 2026-10-05)
+
+| Package | Version | Notes |
+|---|---|---|
+| @nestjs/core, common, platform-fastify, testing | 12.1.2 | ESM-native, on Fastify 5.12.5 (decision D22) |
+| reflect-metadata | 0.2.2 | Decorator metadata for NestJS dependency injection |
+| rxjs | 7.8.2 | Peer dependency of NestJS |
+| drizzle-orm | 0.45.3 | The latest stable release. 1.0 is still a release candidate; move to it once it's stable. |
+| drizzle-kit | 0.31.11 | Generates migrations (`pnpm --filter @kshetra/api db:generate`) |
+| pg | 8.23.1 | The PostgreSQL driver, with @types/pg 8.23.1 |
+| tsdown | 0.23.0 | Bundles the API and its workspace packages |
+| testcontainers, @testcontainers/postgresql | 12.2.0 | Integration tests against `infra/docker/postgres` |
+| @types/node | 24.19.1 | Matches the Node 24 runtime, not the newest 26.x |
+
+## Install scripts
+
+pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-workspace.yaml` approves it. Only esbuild is approved, because it sets up the native binary that drizzle-kit, Vite and tsdown need. ssh2, cpu-features and protobufjs are denied: the first two only serve Docker over SSH, and the last only prints notices. Review any new request before approving it.
 
 ## Local services (`docker-compose.yml`)
 
