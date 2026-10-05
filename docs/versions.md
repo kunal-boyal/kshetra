@@ -23,7 +23,8 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | Package | Version | Used by |
 |---|---|---|
 | uuid | 14.0.2 | `packages/shared`, for UUID v7 ids |
-| zod | 4.6.5 | `apps/api`, for config and validation |
+| zod | 4.6.5 | Validation: the API's config and requests, and the configuration schemas in `packages/shared`, `forms`, `metrics` and `templates` |
+| ajv | 8.20.0 | `packages/templates` tests, which check each template against the generated `schema.json` |
 
 ## API (`apps/api`, added 2026-10-05)
 

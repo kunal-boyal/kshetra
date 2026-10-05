@@ -13,7 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "uuid": "catalog:"
+    "uuid": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@kshetra/config": "workspace:*",

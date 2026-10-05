@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AppError, ERROR_HTTP_STATUS, isErrorCode } from './errors';
+import { AppError, ERROR_HTTP_STATUS, formatPath, isErrorCode } from './errors';
 
 describe('error codes', () => {
   it('map to the HTTP statuses of spec 11.4', () => {
@@ -37,5 +37,13 @@ describe('AppError', () => {
     expect(error.code).toBe('VALIDATION');
     expect(error.status).toBe(400);
     expect(error.details).toEqual([{ path: 'items[0].price', issue: 'Must be a decimal' }]);
+  });
+});
+
+describe('formatPath', () => {
+  it('writes paths the way spec 11.1 shows them', () => {
+    expect(formatPath(['items', 0, 'price'])).toBe('items[0].price');
+    expect(formatPath([2, 'key'])).toBe('[2].key');
+    expect(formatPath([])).toBe('');
   });
 });

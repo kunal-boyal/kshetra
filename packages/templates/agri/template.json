@@ -1,0 +1,1175 @@
+{
+  "$schema": "../schema.json",
+  "key": "agri",
+  "version": 1,
+  "name": { "en": "Agri inputs", "hi": "कृषि इनपुट" },
+  "description": {
+    "en": "For seed, crop protection and fertiliser companies: distributors, retailers and farmers; farmer meetings, demos and distributor visits that record sales, collection and liquidation; orders by the case.",
+    "hi": "बीज, फ़सल सुरक्षा और उर्वरक कंपनियों के लिए: डिस्ट्रीब्यूटर, रिटेलर और किसान; किसान मीटिंग, डेमो और डिस्ट्रीब्यूटर विज़िट, जिनमें बिक्री, वसूली और लिक्विडेशन दर्ज होते हैं; केस के हिसाब से ऑर्डर।"
+  },
+  "terminology": {
+    "term.field_user": {
+      "en": { "one": "SME", "other": "SMEs" },
+      "hi": { "one": "एसएमई", "other": "एसएमई" }
+    },
+    "term.journey_plan": {
+      "en": { "one": "Beat plan", "other": "Beat plans" },
+      "hi": { "one": "बीट प्लान", "other": "बीट प्लान" }
+    },
+    "term.plan_item": {
+      "en": { "one": "Beat", "other": "Beats" },
+      "hi": { "one": "बीट", "other": "बीट" }
+    },
+    "term.punch_in": { "en": "Punch in", "hi": "पंच इन" },
+    "term.punch_out": { "en": "Punch out", "hi": "पंच आउट" }
+  },
+  "roles": [
+    {
+      "key": "tenant_admin",
+      "name": { "en": "Admin", "hi": "एडमिन" },
+      "scope": "tenant",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "review_rules.manage",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "target.unlock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.manage",
+        "user.reset_device",
+        "user.sign_out_all",
+        "role.manage",
+        "designation.manage",
+        "territory.manage",
+        "account.view",
+        "account.manage",
+        "account.import",
+        "account.approve",
+        "settings.manage",
+        "terminology.manage",
+        "form.manage",
+        "metric.manage",
+        "workflow.manage",
+        "policy.manage",
+        "notification_template.manage",
+        "module.manage",
+        "catalogue.manage",
+        "price_list.manage",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.decide",
+        "order.line_decide",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "calendar.manage",
+        "leave_type.manage",
+        "expense_policy.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run",
+        "audit.view",
+        "api_client.manage",
+        "webhook.manage",
+        "billing.manage"
+      ]
+    },
+    {
+      "key": "business_head",
+      "name": { "en": "Business head", "hi": "बिज़नेस हेड" },
+      "scope": "tenant",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "review_rules.manage",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "target.unlock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.manage",
+        "user.reset_device",
+        "user.sign_out_all",
+        "role.manage",
+        "designation.manage",
+        "territory.manage",
+        "account.view",
+        "account.manage",
+        "account.import",
+        "account.approve",
+        "settings.manage",
+        "terminology.manage",
+        "form.manage",
+        "metric.manage",
+        "workflow.manage",
+        "policy.manage",
+        "notification_template.manage",
+        "module.manage",
+        "catalogue.manage",
+        "price_list.manage",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.decide",
+        "order.line_decide",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "calendar.manage",
+        "leave_type.manage",
+        "expense_policy.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run",
+        "audit.view"
+      ]
+    },
+    {
+      "key": "manager",
+      "name": { "en": "Manager", "hi": "मैनेजर" },
+      "scope": "team",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.reset_device",
+        "user.sign_out_all",
+        "account.view",
+        "account.approve",
+        "order.create",
+        "order.view",
+        "order.decide",
+        "finance.view",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "payslip.view",
+        "report.view",
+        "export.create"
+      ]
+    },
+    {
+      "key": "field_user",
+      "name": { "en": "Field user", "hi": "फ़ील्ड यूज़र" },
+      "scope": "self",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "target.view",
+        "leaderboard.view",
+        "account.view",
+        "order.create",
+        "order.view",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "payslip.view"
+      ],
+      "mobileOnly": true
+    },
+    {
+      "key": "back_office",
+      "name": { "en": "Back office", "hi": "बैक ऑफ़िस" },
+      "scope": "tenant",
+      "permissions": [
+        "user.view",
+        "account.view",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run"
+      ]
+    },
+    {
+      "key": "viewer",
+      "name": { "en": "Viewer", "hi": "व्यूअर" },
+      "scope": "tenant",
+      "permissions": [
+        "target.view",
+        "performance.view_team",
+        "leaderboard.view",
+        "account.view",
+        "order.view",
+        "report.view"
+      ]
+    }
+  ],
+  "designations": [
+    {
+      "key": "business_head",
+      "name": {
+        "en": { "one": "Business Head", "other": "Business Heads" },
+        "hi": { "one": "बिज़नेस हेड", "other": "बिज़नेस हेड" }
+      },
+      "level": 1,
+      "defaultRole": "business_head",
+      "canHaveReports": true
+    },
+    {
+      "key": "asm",
+      "name": {
+        "en": { "one": "ASM", "other": "ASMs" },
+        "hi": { "one": "एएसएम", "other": "एएसएम" }
+      },
+      "level": 2,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "tm",
+      "name": { "en": { "one": "TM", "other": "TMs" }, "hi": { "one": "टीएम", "other": "टीएम" } },
+      "level": 3,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "so",
+      "name": { "en": { "one": "SO", "other": "SOs" }, "hi": { "one": "एसओ", "other": "एसओ" } },
+      "level": 3,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "sme",
+      "name": {
+        "en": { "one": "SME", "other": "SMEs" },
+        "hi": { "one": "एसएमई", "other": "एसएमई" }
+      },
+      "level": 4,
+      "defaultRole": "field_user",
+      "canHaveReports": false,
+      "ranked": true
+    }
+  ],
+  "geographyLevels": [
+    {
+      "key": "zone",
+      "name": {
+        "en": { "one": "Zone", "other": "Zones" },
+        "hi": { "one": "ज़ोन", "other": "ज़ोन" }
+      }
+    },
+    {
+      "key": "region",
+      "name": {
+        "en": { "one": "Region", "other": "Regions" },
+        "hi": { "one": "रीजन", "other": "रीजन" }
+      }
+    },
+    {
+      "key": "territory",
+      "name": {
+        "en": { "one": "Territory", "other": "Territories" },
+        "hi": { "one": "टेरिटरी", "other": "टेरिटरी" }
+      }
+    },
+    {
+      "key": "market",
+      "name": {
+        "en": { "one": "Market", "other": "Markets" },
+        "hi": { "one": "मार्केट", "other": "मार्केट" }
+      }
+    }
+  ],
+  "userFields": [{ "key": "hq", "type": "short_text", "label": { "en": "HQ", "hi": "मुख्यालय" } }],
+  "accountTypes": [
+    {
+      "key": "distributor",
+      "name": {
+        "en": { "one": "Distributor", "other": "Distributors" },
+        "hi": { "one": "डिस्ट्रीब्यूटर", "other": "डिस्ट्रीब्यूटर" }
+      },
+      "icon": "warehouse",
+      "code": { "mode": "manual" },
+      "fields": [
+        {
+          "key": "annual_revenue",
+          "type": "currency",
+          "label": { "en": "Annual revenue", "hi": "सालाना कारोबार" }
+        },
+        {
+          "key": "credit_limit",
+          "type": "currency",
+          "label": { "en": "Credit limit", "hi": "क्रेडिट सीमा" }
+        },
+        {
+          "key": "market_unit",
+          "type": "short_text",
+          "label": { "en": "Market unit", "hi": "मार्केट यूनिट" }
+        }
+      ],
+      "location": {
+        "required": false,
+        "geofenceRadiusM": 300,
+        "geofencePolicy": "advisory",
+        "fieldUsersMayPropose": true
+      },
+      "creation": "field_users_with_approval",
+      "slots": [
+        {
+          "key": "sme",
+          "name": { "en": "SME", "hi": "एसएमई" },
+          "designations": ["sme"],
+          "priority": 1
+        },
+        {
+          "key": "tm_so",
+          "name": { "en": "TM or SO", "hi": "टीएम या एसओ" },
+          "designations": ["tm", "so"],
+          "priority": 2
+        },
+        {
+          "key": "asm",
+          "name": { "en": "ASM", "hi": "एएसएम" },
+          "designations": ["asm"],
+          "required": true,
+          "priority": 3
+        }
+      ],
+      "segmentRules": [
+        {
+          "segment": "commercially_active",
+          "name": { "en": "Commercially active", "hi": "व्यावसायिक रूप से सक्रिय" },
+          "when": { "clauses": [{ "field": "annual_revenue", "op": "gt", "value": "500000" }] }
+        }
+      ]
+    },
+    {
+      "key": "retailer",
+      "name": {
+        "en": { "one": "Retailer", "other": "Retailers" },
+        "hi": { "one": "रिटेलर", "other": "रिटेलर" }
+      },
+      "icon": "store",
+      "parentTypes": ["distributor"],
+      "code": { "mode": "auto", "prefix": "R" },
+      "fields": [
+        { "key": "market", "type": "short_text", "label": { "en": "Market", "hi": "मार्केट" } }
+      ],
+      "location": { "required": false, "geofencePolicy": "advisory", "fieldUsersMayPropose": true },
+      "creation": "admins",
+      "slots": [
+        {
+          "key": "sme",
+          "name": { "en": "SME", "hi": "एसएमई" },
+          "designations": ["sme"],
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "key": "farmer",
+      "name": {
+        "en": { "one": "Farmer", "other": "Farmers" },
+        "hi": { "one": "किसान", "other": "किसान" }
+      },
+      "icon": "tractor",
+      "active": false,
+      "code": { "mode": "auto", "prefix": "F" },
+      "fields": [
+        { "key": "village", "type": "short_text", "label": { "en": "Village", "hi": "गाँव" } },
+        {
+          "key": "crops",
+          "type": "multi_select",
+          "label": { "en": "Crops", "hi": "फ़सलें" },
+          "options": [
+            { "key": "paddy", "label": { "en": "Paddy", "hi": "धान" } },
+            { "key": "wheat", "label": { "en": "Wheat", "hi": "गेहूँ" } },
+            { "key": "maize", "label": { "en": "Maize", "hi": "मक्का" } },
+            { "key": "cotton", "label": { "en": "Cotton", "hi": "कपास" } },
+            { "key": "soybean", "label": { "en": "Soybean", "hi": "सोयाबीन" } },
+            { "key": "sugarcane", "label": { "en": "Sugarcane", "hi": "गन्ना" } },
+            { "key": "pulses", "label": { "en": "Pulses", "hi": "दलहन" } },
+            { "key": "oilseeds", "label": { "en": "Oilseeds", "hi": "तिलहन" } },
+            { "key": "vegetables", "label": { "en": "Vegetables", "hi": "सब्ज़ियाँ" } },
+            { "key": "fruits", "label": { "en": "Fruits", "hi": "फल" } },
+            { "key": "other", "label": { "en": "Other", "hi": "अन्य" } }
+          ]
+        },
+        {
+          "key": "acreage",
+          "type": "number",
+          "label": { "en": "Acreage", "hi": "रकबा" },
+          "min": 0,
+          "decimals": 2,
+          "unit": { "en": "acres", "hi": "एकड़" }
+        }
+      ],
+      "location": {
+        "required": false,
+        "geofencePolicy": "advisory",
+        "fieldUsersMayPropose": false
+      },
+      "creation": "admins",
+      "slots": [
+        {
+          "key": "sme",
+          "name": { "en": "SME", "hi": "एसएमई" },
+          "designations": ["sme"],
+          "priority": 1
+        }
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "key": "farmer_visit",
+      "name": {
+        "en": { "one": "Farmer visit", "other": "Farmer visits" },
+        "hi": { "one": "किसान विज़िट", "other": "किसान विज़िट" }
+      },
+      "description": { "en": "A visit to a farmer in the field", "hi": "खेत पर किसान से मुलाक़ात" },
+      "icon": "sprout",
+      "photos": { "min": 1, "max": 3 },
+      "fields": [
+        {
+          "key": "farmer",
+          "type": "short_text",
+          "label": { "en": "Farmer name", "hi": "किसान का नाम" },
+          "required": true
+        },
+        {
+          "key": "village",
+          "type": "short_text",
+          "label": { "en": "Village", "hi": "गाँव" },
+          "required": true
+        },
+        {
+          "key": "crop",
+          "type": "single_select",
+          "label": { "en": "Crop", "hi": "फ़सल" },
+          "required": true,
+          "options": [
+            { "key": "paddy", "label": { "en": "Paddy", "hi": "धान" } },
+            { "key": "wheat", "label": { "en": "Wheat", "hi": "गेहूँ" } },
+            { "key": "maize", "label": { "en": "Maize", "hi": "मक्का" } },
+            { "key": "cotton", "label": { "en": "Cotton", "hi": "कपास" } },
+            { "key": "soybean", "label": { "en": "Soybean", "hi": "सोयाबीन" } },
+            { "key": "sugarcane", "label": { "en": "Sugarcane", "hi": "गन्ना" } },
+            { "key": "pulses", "label": { "en": "Pulses", "hi": "दलहन" } },
+            { "key": "oilseeds", "label": { "en": "Oilseeds", "hi": "तिलहन" } },
+            { "key": "vegetables", "label": { "en": "Vegetables", "hi": "सब्ज़ियाँ" } },
+            { "key": "fruits", "label": { "en": "Fruits", "hi": "फल" } },
+            { "key": "other", "label": { "en": "Other", "hi": "अन्य" } }
+          ]
+        },
+        {
+          "key": "product",
+          "type": "single_select",
+          "label": { "en": "Product", "hi": "उत्पाद" },
+          "optionsFrom": "catalogue_products"
+        },
+        {
+          "key": "outcome",
+          "type": "long_text",
+          "label": { "en": "Outcome", "hi": "परिणाम" },
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "farmer_meeting",
+      "name": {
+        "en": { "one": "Farmer meeting", "other": "Farmer meetings" },
+        "hi": { "one": "किसान मीटिंग", "other": "किसान मीटिंग" }
+      },
+      "description": {
+        "en": "A meeting with a group of farmers in a village",
+        "hi": "गाँव में किसानों के समूह के साथ मीटिंग"
+      },
+      "icon": "users",
+      "photos": { "min": 1, "max": 3 },
+      "fields": [
+        {
+          "key": "village",
+          "type": "short_text",
+          "label": { "en": "Village", "hi": "गाँव" },
+          "required": true
+        },
+        {
+          "key": "meeting_size",
+          "type": "single_select",
+          "label": { "en": "Meeting size", "hi": "मीटिंग का आकार" },
+          "required": true,
+          "options": [
+            { "key": "small", "label": { "en": "Small", "hi": "छोटी" } },
+            { "key": "large", "label": { "en": "Large", "hi": "बड़ी" } },
+            { "key": "mega", "label": { "en": "Mega", "hi": "मेगा" } }
+          ]
+        },
+        {
+          "key": "attendees",
+          "type": "number",
+          "label": { "en": "Attendees", "hi": "उपस्थित लोग" },
+          "required": true,
+          "min": 1
+        },
+        {
+          "key": "crop",
+          "type": "single_select",
+          "label": { "en": "Crop", "hi": "फ़सल" },
+          "required": true,
+          "options": [
+            { "key": "paddy", "label": { "en": "Paddy", "hi": "धान" } },
+            { "key": "wheat", "label": { "en": "Wheat", "hi": "गेहूँ" } },
+            { "key": "maize", "label": { "en": "Maize", "hi": "मक्का" } },
+            { "key": "cotton", "label": { "en": "Cotton", "hi": "कपास" } },
+            { "key": "soybean", "label": { "en": "Soybean", "hi": "सोयाबीन" } },
+            { "key": "sugarcane", "label": { "en": "Sugarcane", "hi": "गन्ना" } },
+            { "key": "pulses", "label": { "en": "Pulses", "hi": "दलहन" } },
+            { "key": "oilseeds", "label": { "en": "Oilseeds", "hi": "तिलहन" } },
+            { "key": "vegetables", "label": { "en": "Vegetables", "hi": "सब्ज़ियाँ" } },
+            { "key": "fruits", "label": { "en": "Fruits", "hi": "फल" } },
+            { "key": "other", "label": { "en": "Other", "hi": "अन्य" } }
+          ]
+        },
+        {
+          "key": "product",
+          "type": "single_select",
+          "label": { "en": "Product", "hi": "उत्पाद" },
+          "required": true,
+          "optionsFrom": "catalogue_products"
+        },
+        {
+          "key": "outcome",
+          "type": "long_text",
+          "label": { "en": "Outcome", "hi": "परिणाम" },
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "product_demo",
+      "name": {
+        "en": { "one": "Product demo", "other": "Product demos" },
+        "hi": { "one": "उत्पाद डेमो", "other": "उत्पाद डेमो" }
+      },
+      "description": {
+        "en": "A product demonstration or field trial, from application to result",
+        "hi": "उत्पाद का डेमो या फ़ील्ड ट्रायल, प्रयोग से परिणाम तक"
+      },
+      "icon": "flask-conical",
+      "photos": { "min": 1, "max": 3 },
+      "fields": [
+        {
+          "key": "farmer",
+          "type": "short_text",
+          "label": { "en": "Farmer name", "hi": "किसान का नाम" },
+          "required": true
+        },
+        {
+          "key": "village",
+          "type": "short_text",
+          "label": { "en": "Village", "hi": "गाँव" },
+          "required": true
+        },
+        {
+          "key": "crop",
+          "type": "single_select",
+          "label": { "en": "Crop", "hi": "फ़सल" },
+          "required": true,
+          "options": [
+            { "key": "paddy", "label": { "en": "Paddy", "hi": "धान" } },
+            { "key": "wheat", "label": { "en": "Wheat", "hi": "गेहूँ" } },
+            { "key": "maize", "label": { "en": "Maize", "hi": "मक्का" } },
+            { "key": "cotton", "label": { "en": "Cotton", "hi": "कपास" } },
+            { "key": "soybean", "label": { "en": "Soybean", "hi": "सोयाबीन" } },
+            { "key": "sugarcane", "label": { "en": "Sugarcane", "hi": "गन्ना" } },
+            { "key": "pulses", "label": { "en": "Pulses", "hi": "दलहन" } },
+            { "key": "oilseeds", "label": { "en": "Oilseeds", "hi": "तिलहन" } },
+            { "key": "vegetables", "label": { "en": "Vegetables", "hi": "सब्ज़ियाँ" } },
+            { "key": "fruits", "label": { "en": "Fruits", "hi": "फल" } },
+            { "key": "other", "label": { "en": "Other", "hi": "अन्य" } }
+          ]
+        },
+        {
+          "key": "product",
+          "type": "single_select",
+          "label": { "en": "Product", "hi": "उत्पाद" },
+          "required": true,
+          "optionsFrom": "catalogue_products"
+        },
+        {
+          "key": "area",
+          "type": "number",
+          "label": { "en": "Area", "hi": "रकबा" },
+          "required": true,
+          "min": 0.01,
+          "decimals": 2,
+          "unit": { "en": "acres", "hi": "एकड़" }
+        },
+        {
+          "key": "stage",
+          "type": "single_select",
+          "label": { "en": "Stage", "hi": "चरण" },
+          "required": true,
+          "options": [
+            { "key": "application", "label": { "en": "Application", "hi": "प्रयोग" } },
+            { "key": "follow_up", "label": { "en": "Follow-up", "hi": "फ़ॉलो-अप" } },
+            {
+              "key": "result",
+              "label": { "en": "Result or field day", "hi": "परिणाम या फ़ील्ड डे" }
+            }
+          ]
+        },
+        {
+          "key": "observation",
+          "type": "long_text",
+          "label": { "en": "Observation", "hi": "अवलोकन" },
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "distributor_visit",
+      "name": {
+        "en": { "one": "Distributor visit", "other": "Distributor visits" },
+        "hi": { "one": "डिस्ट्रीब्यूटर विज़िट", "other": "डिस्ट्रीब्यूटर विज़िट" }
+      },
+      "description": {
+        "en": "A visit to a distributor for sales, collection or liquidation",
+        "hi": "बिक्री, वसूली या लिक्विडेशन के लिए डिस्ट्रीब्यूटर से मुलाक़ात"
+      },
+      "icon": "warehouse",
+      "accountLink": { "mode": "required", "accountTypes": ["distributor"] },
+      "visitSession": true,
+      "photos": { "min": 1, "max": 3 },
+      "fields": [
+        {
+          "key": "purpose",
+          "type": "single_select",
+          "label": { "en": "Purpose", "hi": "उद्देश्य" },
+          "required": true,
+          "options": [
+            { "key": "sales", "label": { "en": "Sales", "hi": "बिक्री" } },
+            { "key": "collection", "label": { "en": "Collection", "hi": "वसूली" } },
+            { "key": "liquidation", "label": { "en": "Liquidation", "hi": "लिक्विडेशन" } },
+            {
+              "key": "sales_collection",
+              "label": { "en": "Sales + Collection", "hi": "बिक्री + वसूली" }
+            },
+            {
+              "key": "sales_collection_liquidation",
+              "label": {
+                "en": "Sales + Collection + Liquidation",
+                "hi": "बिक्री + वसूली + लिक्विडेशन"
+              }
+            },
+            {
+              "key": "relationship",
+              "label": { "en": "Relationship or follow-up", "hi": "संबंध या फ़ॉलो-अप" }
+            }
+          ]
+        },
+        {
+          "key": "contact",
+          "type": "short_text",
+          "label": { "en": "Contact person", "hi": "संपर्क व्यक्ति" },
+          "required": true
+        },
+        {
+          "key": "reference",
+          "type": "short_text",
+          "label": { "en": "Reference", "hi": "संदर्भ" }
+        },
+        {
+          "key": "outcome",
+          "type": "long_text",
+          "label": { "en": "Outcome", "hi": "परिणाम" },
+          "required": true
+        },
+        {
+          "key": "sales",
+          "type": "currency",
+          "label": { "en": "Sales", "hi": "बिक्री" },
+          "visibleWhen": {
+            "clauses": [
+              {
+                "field": "purpose",
+                "op": "in",
+                "value": ["sales", "sales_collection", "sales_collection_liquidation"]
+              }
+            ]
+          }
+        },
+        {
+          "key": "collection",
+          "type": "currency",
+          "label": { "en": "Collection", "hi": "वसूली" },
+          "visibleWhen": {
+            "clauses": [
+              {
+                "field": "purpose",
+                "op": "in",
+                "value": ["collection", "sales_collection", "sales_collection_liquidation"]
+              }
+            ]
+          }
+        },
+        {
+          "key": "liquidation",
+          "type": "currency",
+          "label": { "en": "Liquidation", "hi": "लिक्विडेशन" },
+          "visibleWhen": {
+            "clauses": [
+              {
+                "field": "purpose",
+                "op": "in",
+                "value": ["liquidation", "sales_collection_liquidation"]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "retailer_visit",
+      "name": {
+        "en": { "one": "Retailer visit", "other": "Retailer visits" },
+        "hi": { "one": "रिटेलर विज़िट", "other": "रिटेलर विज़िट" }
+      },
+      "description": { "en": "A visit to a retailer", "hi": "रिटेलर से मुलाक़ात" },
+      "icon": "store",
+      "accountLink": { "mode": "required", "accountTypes": ["retailer"] },
+      "photos": { "min": 1, "max": 3 },
+      "fields": [
+        {
+          "key": "market",
+          "type": "short_text",
+          "label": { "en": "Market", "hi": "मार्केट" },
+          "required": true
+        },
+        {
+          "key": "product",
+          "type": "single_select",
+          "label": { "en": "Product", "hi": "उत्पाद" },
+          "optionsFrom": "catalogue_products"
+        },
+        {
+          "key": "outcome",
+          "type": "long_text",
+          "label": { "en": "Outcome", "hi": "परिणाम" },
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "new_distributor_appointment",
+      "name": {
+        "en": { "one": "New distributor appointment", "other": "New distributor appointments" },
+        "hi": {
+          "one": "नए डिस्ट्रीब्यूटर की नियुक्ति",
+          "other": "नए डिस्ट्रीब्यूटर की नियुक्तियाँ"
+        }
+      },
+      "description": {
+        "en": "A proposal to appoint a new distributor",
+        "hi": "नया डिस्ट्रीब्यूटर नियुक्त करने का प्रस्ताव"
+      },
+      "icon": "handshake",
+      "photos": { "min": 1, "max": 3 },
+      "fields": [
+        {
+          "key": "distributor_name",
+          "type": "short_text",
+          "label": { "en": "Distributor name", "hi": "डिस्ट्रीब्यूटर का नाम" },
+          "required": true
+        },
+        {
+          "key": "market",
+          "type": "short_text",
+          "label": { "en": "Market", "hi": "मार्केट" },
+          "required": true
+        },
+        {
+          "key": "value_add",
+          "type": "currency",
+          "label": { "en": "Value add", "hi": "वैल्यू ऐड" },
+          "required": true
+        },
+        {
+          "key": "reference",
+          "type": "short_text",
+          "label": { "en": "Reference", "hi": "संदर्भ" },
+          "required": true
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "key": "demand_activities",
+      "name": {
+        "en": { "one": "Demand activity", "other": "Demand activities" },
+        "hi": { "one": "डिमांड गतिविधि", "other": "डिमांड गतिविधियाँ" }
+      },
+      "unit": "count",
+      "source": {
+        "type": "submission_count",
+        "forms": [
+          "farmer_visit",
+          "farmer_meeting",
+          "product_demo",
+          "distributor_visit",
+          "retailer_visit"
+        ]
+      }
+    },
+    {
+      "key": "sales",
+      "name": {
+        "en": { "one": "Sales", "other": "Sales" },
+        "hi": { "one": "बिक्री", "other": "बिक्री" }
+      },
+      "unit": "currency",
+      "source": { "type": "submission_field_sum", "forms": ["distributor_visit"], "field": "sales" }
+    },
+    {
+      "key": "collection",
+      "name": {
+        "en": { "one": "Collection", "other": "Collection" },
+        "hi": { "one": "वसूली", "other": "वसूली" }
+      },
+      "unit": "currency",
+      "source": {
+        "type": "submission_field_sum",
+        "forms": ["distributor_visit"],
+        "field": "collection"
+      }
+    },
+    {
+      "key": "liquidation",
+      "name": {
+        "en": { "one": "Liquidation", "other": "Liquidation" },
+        "hi": { "one": "लिक्विडेशन", "other": "लिक्विडेशन" }
+      },
+      "unit": "currency",
+      "source": {
+        "type": "submission_field_sum",
+        "forms": ["distributor_visit"],
+        "field": "liquidation"
+      }
+    },
+    {
+      "key": "appointments",
+      "name": {
+        "en": { "one": "Appointment", "other": "Appointments" },
+        "hi": { "one": "नियुक्ति", "other": "नियुक्तियाँ" }
+      },
+      "unit": "count",
+      "source": { "type": "submission_count", "forms": ["new_distributor_appointment"] }
+    },
+    {
+      "key": "active_days",
+      "name": {
+        "en": { "one": "Active day", "other": "Active days" },
+        "hi": { "one": "सक्रिय दिन", "other": "सक्रिय दिन" }
+      },
+      "unit": "count",
+      "source": {
+        "type": "active_days",
+        "forms": [
+          "farmer_visit",
+          "farmer_meeting",
+          "product_demo",
+          "distributor_visit",
+          "retailer_visit",
+          "new_distributor_appointment"
+        ]
+      }
+    },
+    {
+      "key": "commercially_active_distributors",
+      "name": {
+        "en": {
+          "one": "Commercially active distributor",
+          "other": "Commercially active distributors"
+        },
+        "hi": {
+          "one": "व्यावसायिक रूप से सक्रिय डिस्ट्रीब्यूटर",
+          "other": "व्यावसायिक रूप से सक्रिय डिस्ट्रीब्यूटर"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "distinct_accounts_visited",
+        "forms": ["distributor_visit"],
+        "accountTypes": ["distributor"],
+        "segment": "commercially_active"
+      }
+    },
+    {
+      "key": "order_value",
+      "name": {
+        "en": { "one": "Order value", "other": "Order value" },
+        "hi": { "one": "ऑर्डर मूल्य", "other": "ऑर्डर मूल्य" }
+      },
+      "unit": "currency",
+      "source": {
+        "type": "order_value",
+        "statuses": ["accepted", "partially_accepted", "partially_fulfilled", "fulfilled"],
+        "amount": "before_tax"
+      }
+    }
+  ],
+  "score": {
+    "cap": 1,
+    "metrics": [
+      { "metric": "sales", "weight": 25 },
+      { "metric": "collection", "weight": 25 },
+      { "metric": "liquidation", "weight": 25 },
+      { "metric": "demand_activities", "weight": 25 }
+    ]
+  },
+  "workflows": {
+    "fallbackRole": "business_head",
+    "definitions": [
+      {
+        "requestType": "leave",
+        "steps": [
+          { "approver": { "type": "reporting_manager" } },
+          { "approver": { "type": "nearest_designation", "designation": "business_head" } }
+        ]
+      },
+      {
+        "requestType": "regularisation",
+        "steps": [
+          { "approver": { "type": "reporting_manager" } },
+          { "approver": { "type": "nearest_designation", "designation": "business_head" } }
+        ]
+      },
+      {
+        "requestType": "expense",
+        "steps": [
+          { "approver": { "type": "reporting_manager" } },
+          { "approver": { "type": "nearest_designation", "designation": "business_head" } }
+        ]
+      },
+      {
+        "requestType": "order",
+        "steps": [
+          { "approver": { "type": "account_slot", "slot": "asm" } },
+          {
+            "approver": { "type": "nearest_designation", "designation": "business_head" },
+            "lineDecisions": true
+          }
+        ]
+      },
+      {
+        "requestType": "new_account",
+        "steps": [
+          { "approver": { "type": "nearest_designation", "designation": "asm" } },
+          { "approver": { "type": "nearest_designation", "designation": "business_head" } }
+        ]
+      }
+    ]
+  },
+  "people": {
+    "calendars": [
+      { "key": "standard", "name": { "en": "Standard", "hi": "सामान्य" }, "weeklyOffs": [7] }
+    ],
+    "defaultCalendar": "standard",
+    "attendance": { "rule": "punch_is_present" },
+    "leaveTypes": [
+      {
+        "key": "casual",
+        "name": { "en": "Casual leave", "hi": "आकस्मिक अवकाश" },
+        "paid": true,
+        "annualQuota": 12,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true
+      },
+      {
+        "key": "sick",
+        "name": { "en": "Sick leave", "hi": "बीमारी अवकाश" },
+        "paid": true,
+        "annualQuota": 12,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true,
+        "attachmentAfterDays": 2
+      },
+      {
+        "key": "unpaid",
+        "name": { "en": "Unpaid leave", "hi": "अवैतनिक अवकाश" },
+        "paid": false,
+        "annualQuota": 0,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true
+      }
+    ],
+    "expensePolicies": [
+      {
+        "key": "fuel",
+        "name": { "en": "Fuel", "hi": "ईंधन" },
+        "category": "travel",
+        "calculation": "per_km",
+        "rate": { "flat": "3.50" },
+        "odometerPhotosRequired": true
+      },
+      {
+        "key": "daily_allowance",
+        "name": { "en": "Daily allowance", "hi": "दैनिक भत्ता" },
+        "category": "daily_allowance",
+        "calculation": "per_day",
+        "rate": {
+          "byDesignation": {
+            "business_head": "750",
+            "asm": "500",
+            "tm": "350",
+            "so": "350",
+            "sme": "250"
+          }
+        }
+      }
+    ]
+  },
+  "catalogue": {
+    "units": [
+      {
+        "key": "pack",
+        "name": {
+          "en": { "one": "Pack", "other": "Packs" },
+          "hi": { "one": "पैक", "other": "पैक" }
+        },
+        "base": true
+      },
+      {
+        "key": "case",
+        "name": {
+          "en": { "one": "Case", "other": "Cases" },
+          "hi": { "one": "केस", "other": "केस" }
+        }
+      }
+    ],
+    "measureTypes": ["kg", "L"],
+    "rounding": "per_unit_first",
+    "itemFields": [
+      {
+        "key": "formulation",
+        "type": "short_text",
+        "label": { "en": "Formulation", "hi": "फ़ॉर्मूलेशन" }
+      }
+    ],
+    "rejectionReasons": [
+      { "key": "overdue", "name": { "en": "Overdue", "hi": "भुगतान बकाया" } },
+      {
+        "key": "credit_limit_exceeded",
+        "name": { "en": "Credit limit exceeded", "hi": "क्रेडिट सीमा पार" }
+      },
+      { "key": "no_stock", "name": { "en": "No stock", "hi": "स्टॉक नहीं है" } }
+    ]
+  },
+  "imports": {
+    "users": {
+      "aliases": {
+        "code": ["employeeid", "employeecode", "empid"],
+        "mobile": ["phoneno", "mobile", "mobileno", "contactno"],
+        "reports_to": ["reporting", "reportingmanager", "reportsto", "manager"],
+        "joining_date": ["dateofjoining", "doj"],
+        "custom.hq": ["hq", "headquarters"]
+      }
+    },
+    "accounts": {
+      "distributor": {
+        "aliases": {
+          "code": ["distributorcode", "distrinutorcode", "code"],
+          "name": ["nameofdistributors", "nameofdistributor", "distributorname"],
+          "slot.asm": ["asm", "asmname"],
+          "slot.tm_so": ["tmso", "tm", "so", "territorymanager"],
+          "slot.sme": ["sme", "smename"]
+        },
+        "emptyValues": ["No TM", "No SME", "-"]
+      }
+    },
+    "items": {
+      "aliases": {
+        "product_name": ["productname"],
+        "item_name": ["itemname", "skuname"],
+        "pack_label": ["packsize"],
+        "mrp": ["mrppack", "mrpperpack"],
+        "price": ["dbpperskupregst", "dbppersku"],
+        "discount_pct": ["productdiscount", "discount"],
+        "expected_net_price": ["creditpriceperskupregst"],
+        "tax_rate": ["gstrate", "gst"],
+        "expected_final_price": ["finalprice", "creditpriceperskupregstfinalprice"],
+        "hsn": ["hsncode", "hsn"],
+        "case_factor": ["unitspercase"],
+        "measure_per_case": ["casesizeinkgltr", "casesize"],
+        "custom.formulation": ["formulations", "formulation"]
+      },
+      "fractions": ["discount_pct", "tax_rate"]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@kshetra/metrics",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Metric and score definitions and their checks; the metric calculators join in phase 1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kshetra/forms": "workspace:*",
+    "@kshetra/shared": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@kshetra/config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

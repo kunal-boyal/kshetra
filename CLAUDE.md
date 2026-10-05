@@ -21,6 +21,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm db:bootstrap` | creates the database roles; refuses anything but a local or CI database | now |
 | `pnpm db:migrate` | applies migrations as the `migrator` role | now |
 | `pnpm --filter @kshetra/api db:generate` | writes a migration for a schema change | now |
+| `pnpm --filter @kshetra/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
 | `pnpm db:seed` | seeds fictional data and refuses non-local databases | with provisioning, step 8 |
 | `pnpm openapi` | regenerates the OpenAPI document and the typed client | with the first `/v1` endpoints |
 
@@ -86,6 +87,15 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - **Schema changes:** edit `schema.ts`, run `db:generate`, and review the SQL before committing. Grants, and anything else Drizzle can't express, go in a migration made with `drizzle-kit generate --custom`.
 - **Idempotent creates:** use `idempotent()` from `src/platform/idempotency.ts` (BR-46).
 - **Errors:** throw `AppError` from `@kshetra/shared` with a spec 11.4 code; the global filter writes the spec 11.1 format.
+
+## Configuration and templates
+
+- Tenant configuration (account types, forms, metrics, workflows, policies) is data, checked in two layers: a zod schema for its shape, then checks that every reference resolves and settings agree. Form schemas are in `packages/forms`, metric and score schemas in `packages/metrics`, the rest in `packages/templates/src/schema`.
+- Checks return `ErrorDetail` lists (`{ path, issue }`, the spec 11.1 format) built with `issueAt`, so the API can return them as they are.
+- Configuration refers to other configuration by key, never by ID. Keys match `^[a-z][a-z0-9_]{0,39}$` and never change once used.
+- Configuration text is in English and Hindi. Names of countable things carry `one` and `other` forms.
+- Money in configuration is a decimal string; compare amounts with `toMinorUnits`.
+- Industry templates live at `packages/templates/<key>/template.json`; see its README. Raise a template's `version` with every change, and keep schema changes additive.
 
 ## Migrations
 
