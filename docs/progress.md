@@ -6,8 +6,9 @@ Last updated: 2026-10-05
 
 ## Now
 
-- **Phase 0, step 1** (the monorepo scaffold, local services and CI) is in review as [kunal-boyal/kshetra#1](https://github.com/kunal-boyal/kshetra/pull/1). CI is passing, and it can be merged.
-- **Next:** Phase 0, step 2, the API and database foundation.
+- **Phase 0, step 2** (the API and database foundation) is in review as [kunal-boyal/kshetra#2](https://github.com/kunal-boyal/kshetra/pull/2).
+- **Next:** Phase 0, step 3, the templates package.
+- **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
 ## Phase 0: Foundation
 
@@ -22,9 +23,9 @@ Each step is its own pull request. The order follows dependencies.
 
 | Step | Capability | Status | Pull request |
 |---|---|---|---|
-| 1 | Monorepo, CI, local services, `CLAUDE.md` | In review | #1 |
-| 2 | API and database foundation: `apps/api` (NestJS), migrations, database roles, tenant context with row-level security, error codes, idempotency | Next | |
-| 3 | Templates package: schema, validator, and the generic and agri templates | To do | |
+| 1 | Monorepo, CI, local services, `CLAUDE.md` | Done | #1 |
+| 2 | API and database foundation: `apps/api` (NestJS), migrations, database roles, tenant context with row-level security, error codes, idempotency | In review | #2 |
+| 3 | Templates package: schema, validator, and the generic and agri templates | Next | |
 | 4 | Directory module: OTP sign-in, tokens (ES256, JWKS), refresh, tenant switching, device binding (D15) | To do | |
 | 5 | IAM: roles, data scopes, designations, closure tables | To do | |
 | 6 | Config bundle, terminology resolver, i18n in English and Hindi | To do | |
@@ -38,9 +39,10 @@ Each step is its own pull request. The order follows dependencies.
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-05 | Clickable prototype: 5 field-app screens and 4 manager-portal pages | claude.ai artifact |
+| 2026-10-05 | Phase 0 step 1: monorepo, CI, local services (MinIO from Chainguard, decision D21) | PR #1, merged as `1e9a8ed` |
 | 2026-10-05 | Design system v1: tokens in three themes, brand book, 15 components, logo and variants | `packages/design-tokens`, artifact version 8, decisions D17–D20 |
 | 2026-10-05 | Repository created; every spec section 16 recommendation accepted | `main` at `1bb773c`, decisions D1–D16 |
-| 2026-10-05 | Local S3 storage settled on MinIO from Chainguard | decision D21, PR #1 |
 
 ## Open items
 

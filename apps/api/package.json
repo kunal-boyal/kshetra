@@ -1,0 +1,44 @@
+{
+  "name": "@kshetra/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The cell API: HTTP entrypoint, migrations and, later, workers and the scheduler",
+  "type": "module",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch --on-success \"node --env-file-if-exists=../../.env dist/main.mjs\"",
+    "start": "node --env-file-if-exists=../../.env dist/main.mjs",
+    "db:bootstrap": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/bootstrap.mjs",
+    "db:migrate": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/migrate.mjs",
+    "db:generate": "drizzle-kit generate",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:int": "vitest run --config vitest.int.config.ts"
+  },
+  "dependencies": {
+    "@kshetra/shared": "workspace:*",
+    "@nestjs/common": "^12.1.2",
+    "@nestjs/core": "^12.1.2",
+    "@nestjs/platform-fastify": "^12.1.2",
+    "drizzle-orm": "^0.45.3",
+    "pg": "^8.23.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@kshetra/config": "workspace:*",
+    "@nestjs/testing": "^12.1.2",
+    "@testcontainers/postgresql": "^12.2.0",
+    "@types/node": "catalog:",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "catalog:",
+    "fastify": "^5.12.5",
+    "testcontainers": "^12.2.0",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

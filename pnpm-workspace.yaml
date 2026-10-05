@@ -3,16 +3,28 @@ packages:
   - packages/*
   - tools/*
 
+# Install scripts run only where approved. esbuild sets up its native binary for drizzle-kit, Vite
+# and tsdown. ssh2 and cpu-features only serve Docker over SSH, and protobufjs only prints notices.
+allowBuilds:
+  cpu-features: false
+  esbuild: true
+  protobufjs: false
+  ssh2: false
+
 # One version of each shared tool for every package; see docs/versions.md.
 catalog:
   '@eslint/js': ^10.0.1
+  # Matches the Node 24 runtime, not the newest @types/node.
+  '@types/node': ^24.19.1
   eslint: ^10.12.0
   eslint-config-prettier: ^10.1.8
   globals: ^17.13.0
   prettier: ^3.9.9
+  tsdown: ^0.23.0
   turbo: ^2.11.7
   # Held below 6.1 for typescript-eslint; see docs/versions.md.
   typescript: ~6.0.3
   typescript-eslint: ^8.71.0
   uuid: ^14.0.2
   vitest: ^5.0.3
+  zod: ^4.6.5

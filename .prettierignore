@@ -5,3 +5,6 @@
 packages/design-tokens/
 
 pnpm-lock.yaml
+
+# Written by drizzle-kit on every `db:generate`.
+**/drizzle/meta/

@@ -16,10 +16,13 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | static checks and unit tests, through Turborepo | now |
 | `pnpm format`, `pnpm format:check` | Prettier | now |
 | `docker compose up -d` | starts the local services | now |
-| `pnpm dev` | runs the apps locally | with the apps |
-| `pnpm test:int` | integration tests on Testcontainers (PostgreSQL with PostGIS, Redis) | with `apps/api` |
-| `pnpm db:migrate`, `pnpm db:seed` | migrates; seeds fictional data and refuses non-local databases | with `apps/api` |
-| `pnpm openapi` | regenerates the OpenAPI document and the typed client | with `apps/api` |
+| `pnpm dev` | runs the apps locally (today the API, on http://127.0.0.1:3000) | now |
+| `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
+| `pnpm db:bootstrap` | creates the database roles; refuses anything but a local or CI database | now |
+| `pnpm db:migrate` | applies migrations as the `migrator` role | now |
+| `pnpm --filter @kshetra/api db:generate` | writes a migration for a schema change | now |
+| `pnpm db:seed` | seeds fictional data and refuses non-local databases | with provisioning, step 8 |
+| `pnpm openapi` | regenerates the OpenAPI document and the typed client | with the first `/v1` endpoints |
 
 Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
 - PostgreSQL 18 with PostGIS, pg_partman and pg_trgm, on port 5433 by default (`POSTGRES_PORT`)
@@ -30,6 +33,16 @@ Local services run in Docker Compose. Every port binds to 127.0.0.1, so only thi
 The non-standard database and Redis ports leave 5432 and 6379 free for copies already installed on the machine.
 
 Locally, OTP codes print to the console (`OTP_PROVIDER=console`); production refuses this.
+
+First run on a new machine:
+
+```bash
+cp .env.example .env
+docker compose up -d
+pnpm db:bootstrap
+pnpm db:migrate
+pnpm dev
+```
 
 Workspace packages are consumed as TypeScript source (`exports` points at `src/index.ts`), so they need no build step. Shared tool versions live once, in the `catalog` of `pnpm-workspace.yaml`. TypeScript stays on 6.0 until typescript-eslint supports 7; see `docs/versions.md`.
 
@@ -64,6 +77,15 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Money is `numeric(18,2)` and goes through a decimal library, never binary floating point. Percentages are `numeric(7,4)`, quantities `numeric(18,3)`.
 - Locations are `geography(Point, 4326)` with GiST indexes.
 - No hard deletes in application code, except retention jobs and tenant deletion.
+
+## Database (decision D23)
+
+- **Roles:** `migrator` owns the schemas and runs migrations. The API connects as `cell_app`, which can't bypass row-level security. `directory_app` is the only role allowed into the `directory` schema.
+- **Tenant data:** reach it only through `Database.forTenant(tenantId, (tx) => …)` in `apps/api/src/platform/database.ts`. It sets `app.tenant_id` for one transaction. Still filter by `tenant_id` in every query.
+- **New tenant tables:** put them in the `cell` schema with `tenant_id`, `.enableRLS()` and the `tenant_isolation` policy, as `apps/api/src/db/schema.ts` shows. `test/database.int.test.ts` fails for any `cell` table without them.
+- **Schema changes:** edit `schema.ts`, run `db:generate`, and review the SQL before committing. Grants, and anything else Drizzle can't express, go in a migration made with `drizzle-kit generate --custom`.
+- **Idempotent creates:** use `idempotent()` from `src/platform/idempotency.ts` (BR-46).
+- **Errors:** throw `AppError` from `@kshetra/shared` with a spec 11.4 code; the global filter writes the spec 11.1 format.
 
 ## Migrations
 
