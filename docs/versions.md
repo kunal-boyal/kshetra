@@ -29,9 +29,9 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | Service | Version | Notes |
 |---|---|---|
 | PostgreSQL | 18.6 | Built from `postgres:18`, with PostGIS 3.6.4, pg_partman 5.5.0 and pg_trgm 1.6 from the PostgreSQL apt repository. The `postgis/postgis` images are Intel-only. Amazon RDS supports PostgreSQL 18 with PostGIS 3.6 and pg_partman 5.4. Published on port 5433 by default (`POSTGRES_PORT`). |
-| Redis | 8.10 | `redis:8.10` |
+| Redis | 8.10 | `redis:8.10`. Published on port 6380 by default (`REDIS_PORT`), so a Redis already installed on the machine can keep 6379. |
 | Mailpit | 1.31.4 | `axllent/mailpit:v1.31`: SMTP on 1025, inbox at http://localhost:8025 |
-| S3-compatible storage | pending | MinIO no longer publishes container images. The replacement awaits the owner's decision. |
+| MinIO (stands in for S3) | RELEASE.2026-09-22T19-25-18Z | Chainguard's `cgr.dev/chainguard/minio:latest`, built from MinIO's source (decision D21). The free tier floats on `latest`, so record the version when it changes: `docker compose exec minio minio --version`. API on 9000, console at http://localhost:9001, region `ap-south-1`. |
 
 ## CI (GitHub Actions)
 

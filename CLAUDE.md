@@ -26,12 +26,15 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm db:migrate`, `pnpm db:seed` | migrates; seeds fictional data and refuses non-local databases | with `apps/api` |
 | `pnpm openapi` | regenerates the OpenAPI document and the typed client | with `apps/api` |
 
-Local services run in Docker Compose:
+Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
 - PostgreSQL 18 with PostGIS, pg_partman and pg_trgm, on port 5433 by default (`POSTGRES_PORT`)
-- Redis
-- Mailpit
+- Redis, on port 6380 by default (`REDIS_PORT`)
+- MinIO standing in for S3: API on 9000, console at http://localhost:9001. It uses Chainguard's image (decision D21).
+- Mailpit: SMTP on 1025, inbox at http://localhost:8025
 
-S3-compatible storage is pending a decision, because MinIO no longer publishes images. Locally, OTP codes print to the console (`OTP_PROVIDER=console`); production refuses this.
+The non-standard database and Redis ports leave 5432 and 6379 free for copies already installed on the machine.
+
+Locally, OTP codes print to the console (`OTP_PROVIDER=console`); production refuses this.
 
 Workspace packages are consumed as TypeScript source (`exports` points at `src/index.ts`), so they need no build step. Shared tool versions live once, in the `catalog` of `pnpm-workspace.yaml`. TypeScript stays on 6.0 until typescript-eslint supports 7; see `docs/versions.md`.
 
