@@ -6,7 +6,8 @@ Last updated: 2026-10-05
 
 ## Now
 
-- **Phase 0, step 3** (the templates package) is in review as [kunal-boyal/kshetra#3](https://github.com/kunal-boyal/kshetra/pull/3). Both templates validate, which meets the third exit criterion of phase 0.
+- **Phase 0, step 3** (the templates package) merged as [kunal-boyal/kshetra#3](https://github.com/kunal-boyal/kshetra/pull/3). Both templates validate, which meets the third exit criterion of phase 0.
+- **Design system v2** (soft and pastel, decision D28) is committed on `design/soft-pastel`, waiting to merge.
 - **Next:** Phase 0, step 4, the directory module: OTP sign-in and tokens.
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
@@ -25,7 +26,7 @@ Each step is its own pull request. The order follows dependencies.
 |---|---|---|---|
 | 1 | Monorepo, CI, local services, `CLAUDE.md` | Done | #1 |
 | 2 | API and database foundation: `apps/api` (NestJS), migrations, database roles, tenant context with row-level security, error codes, idempotency | Done | #2 |
-| 3 | Templates package: schema, validator, and the generic and agri templates; form and metric definitions in `packages/forms` and `packages/metrics` | In review | #3 |
+| 3 | Templates package: schema, validator, and the generic and agri templates; form and metric definitions in `packages/forms` and `packages/metrics` | Done | #3 |
 | 4 | Directory module: OTP sign-in, tokens (ES256, JWKS), refresh, tenant switching, device binding (D15) | Next | |
 | 5 | IAM: roles, data scopes, designations, closure tables | To do | |
 | 6 | Config bundle, terminology resolver, i18n in English and Hindi | To do | |
@@ -39,6 +40,8 @@ Each step is its own pull request. The order follows dependencies.
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-05 | Design system v2, soft and pastel: a pastel palette, rounder shapes, soft shadows, icon chips, and motion tokens and patterns | `packages/design-tokens`, artifact version 10, decision D28 |
+| 2026-10-05 | Phase 0 step 3: templates package, with form and metric definitions (decisions D25–D27) | PR #3, merged as `98a11b7` |
 | 2026-10-05 | Phase 0 step 2: the API, database roles, row-level security, error codes and idempotency (decisions D22–D24) | PR #2, merged as `033d3f1` |
 | 2026-10-05 | Clickable prototype: 5 field-app screens and 4 manager-portal pages | claude.ai artifact |
 | 2026-10-05 | Phase 0 step 1: monorepo, CI, local services (MinIO from Chainguard, decision D21) | PR #1, merged as `1e9a8ed` |
@@ -56,6 +59,7 @@ Each step is its own pull request. The order follows dependencies.
 | Expo account, for mobile builds | Kunal | Phase 0, step 10 |
 | Accounts with long lead times: SMS provider with DLT, Google Play and Apple (each needs a D-U-N-S number), AWS | Kunal | Phase 1 |
 | Outdoor theme field test, on two Android brands in midday sun (D19) | Team | Before onboarding suggests Outdoor |
+| Review the soft pastel design system (D28): the hues, how round, and how fast the motion is | Kunal | Before the web shell, step 9 |
 | Confirm the template starting points: default role permissions (D26), leave types, and the agri expense rates (D27) | Kunal | Before the pilot |
 | Have a native speaker review the Hindi text in both templates | Kunal | Before the pilot |
 | The agri forms pick products from the catalogue, which spec 15 schedules for phase 2. Bring the item import (without prices) into phase 1, or the pilot can't fill those fields. | Kunal | Phase 1 planning |

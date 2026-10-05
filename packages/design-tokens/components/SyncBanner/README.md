@@ -9,7 +9,7 @@ The sync banner sits under the mobile app bar and tells the field user what is s
 - `info` — system notices that must stay visible: support access sessions, read-only billing state.
 
 ## The consumer provides
-The count and the state from the local queue; an action label (View, Open). Full width, min height `touch-min`, `z-sticky`.
+The count and the state from the local queue; an action label (View, Open). Inset by `space-3` under the app bar on a `radius-lg` pastel card, min height `touch-min`, `z-sticky`. It drops in (`duration-base`, `ease-enter`) when it appears. While uploading, the `cloud-upload` icon bobs gently (stopped on entry-level phones).
 
 ## Rules
 Never auto-dismiss. Never say "error" without saying what to do. The red state outranks amber; show only one banner.

@@ -1,4 +1,4 @@
-Kshetra is the shared design language for a multi-tenant field-force product: one Android-first mobile app, one tenant web portal and one vendor console, rebranded per tenant at runtime and used in Hindi, English and regional languages. Tenants supply the accent colour and the vocabulary. The system supplies everything else: neutrals, fixed status colours, honest labels, a type scale that holds Devanagari, density modes for phone and desk, and an Outdoor theme for work in direct sun.
+Kshetra is the shared design language for a multi-tenant field-force product: one Android-first mobile app, one tenant web portal and one vendor console, rebranded per tenant at runtime and used in Hindi, English and regional languages. Tenants supply the accent colour and the vocabulary. The system supplies everything else: neutrals, a pastel palette, fixed status colours, honest labels, a type scale that holds Devanagari, density modes for phone and desk, soft shapes, icons and calm motion, and an Outdoor theme for work in direct sun.
 
 ## Principles
 
@@ -7,6 +7,7 @@ Kshetra is the shared design language for a multi-tenant field-force product: on
 3. **The tenant owns the accent and nothing else.** Brand colour flows only into the `accent` tokens. Status colours, neutrals and data-viz colours are the same for every tenant, so a reviewer moving between tenants reads them the same way.
 4. **Built for the worst phone in the field.** Design at 360 dp, with large text, in sunlight, on a 4 GB Android phone, offline. Check every screen in the Outdoor theme as well as Light. Desktop is the easy case.
 5. **Configuration before components.** Industry words (beat, outlet, MR, liquidation) never appear in component copy. Components take resolved strings from the terminology layer.
+6. **Soft and friendly, never vague.** Rounded shapes, pastel colours, icons and calm motion make the app easy to approach for someone new to a work app. They never replace a label, a number or a status word, and each gives way in Outdoor and under reduced motion.
 
 ## Content fundamentals
 
@@ -38,7 +39,13 @@ Kshetra is the shared design language for a multi-tenant field-force product: on
 
 - **Ground:** use `bg` for the page, `surface` for cards and tables, `surface-sunken` for wells and table headers, and `surface-raised` (always with a shadow token) for menus and sheets. The neutrals are warm stone, never blue-grey.
 - **Text:** use `text` for content, `text-muted` for help and meta, and `text-subtle` only for placeholders and timestamps. All three pass 4.5:1 on every surface in Light and Dark, and 8:1 in Outdoor.
-- **Accent:** `accent` fills the one primary action per view, the selected tab, the active nav item and links. Set text on it in `on-accent`. Use `accent-subtle` with `accent-subtle-fg` for selected rows and chips. The product default is Jamun (#5b2b82). Tenants override it (see Tenant theming).
+- **Accent:** `accent` fills the one primary action per view, the selected tab, the active nav item and links. Set text on it in `on-accent`. Use `accent-subtle` with `accent-subtle-fg` for selected rows and chips, and `accent-soft` for the active tab pill and the hover of tonal buttons. The product default is Jamun (#5b2b82). Tenants override it (see Tenant theming).
+- **Pastels:** eight soft hues give each kind of thing an identity at a glance: `sky`, `peach`, `mint`, `lilac`, `butter`, `rose`, `sage` and `sand`, in that order.
+  - Each hue has three tokens. `pastel-<hue>-bg` tints a card or a soft chip, `pastel-<hue>-fill` fills icon chips, avatars and chart bars, and `pastel-<hue>-fg` is the ink for icons, initials and text on either.
+  - Account types, forms and metrics take hues in their configured order, so a thing keeps its colour on every screen and in every chart. People take a hue from their user ID.
+  - A pastel says what kind of thing, never what state. Never use one to mean good, bad or waiting; that is what the status tokens and their words are for.
+  - Tint at most one featured card per screen (today's summary on Home, an account's header). Lists, tables and forms stay on `surface`.
+  - The palette is product-owned, like the status colours. Tenants recolour only the accent.
 - **Status (fixed across tenants):**
 
 | Meaning | Token set | Used for |
@@ -50,17 +57,17 @@ Kshetra is the shared design language for a multi-tenant field-force product: on
 | Refused | `danger-*` | rejected, absent, parked uploads, destructive actions, errors |
 | Off | `neutral-*` | cancelled, inactive, missed, auto-closed, discarded |
 
-Each set has four roles: `-fg` for text and icons, `-bg` for badge and banner fills, `-border` for outlines, and `-solid` for dots, markers and chart fills. Never set text on `-solid`. The exceptions are destructive buttons and count badges, which pair `danger-solid` with `on-danger`. Amber `pending` and orange `waiting` sit close in hue, so the label always tells them apart.
-- **Data viz:** take categorical series from `chart-1` to `chart-8` in order. When a series means a status (approved and pending on the daily trend), use the status `-solid` tokens instead. Draw targets as a dashed `chart-target` line and gridlines in `chart-grid`.
+Each set has four roles: `-fg` for text and icons, `-bg` for badge and banner fills, `-border` for outlines, and `-solid` for dots, markers and progress fills. In Light and Dark, `-border` matches `-bg`, so badges, pills and banners are soft pastel shapes with no edge; in Outdoor it becomes the `-fg` outline. Never set text on `-solid`. The exceptions are destructive buttons and count badges, which pair `danger-solid` with `on-danger`. Amber `pending` and orange `waiting` sit close in hue, so the label always tells them apart.
+- **Data viz:** take categorical series from `chart-1` to `chart-8` in order for lines, points and outlines. Fill bars and areas with the matching pastel (`chart-1` with `pastel-sky-fill`, `chart-2` with `pastel-peach-fill`, and so on), outlined at 1.5 px in the series colour. When a series means a status (approved and pending on the daily trend), use the status `-solid` tokens instead. Draw targets as a dashed `chart-target` line and gridlines in `chart-grid`.
 - **Maps:** route `map-route`, geofence `map-geofence` (fill at `opacity-geofence`), visit inside `map-inside`, outside `map-outside`, stale users `map-stale` at `opacity-stale` with their last-seen age as text.
 
 ### Themes
 
 | Theme | Who sees it | Character |
 |---|---|---|
-| Light | the default everywhere | warm stone grounds, tinted status badges |
-| Dark | follows the OS on mobile; a profile setting on web | deep grounds, a lightened accent with dark `on-accent` text |
-| Outdoor | chosen by the user for direct sun; offered on web as the high-contrast option | white grounds, near-black text, outlined status, drawn edges |
+| Light | the default everywhere | warm stone grounds, pastel tints, soft shadows |
+| Dark | follows the OS on mobile; a profile setting on web | deep grounds, deep pastel tints with light ink, a lightened accent with dark `on-accent` text |
+| Outdoor | chosen by the user for direct sun; offered on web as the high-contrast option | white grounds, near-black text, outlined status and icon chips, drawn edges |
 
 Outdoor is for a phone read in midday sun, where glare washes out pale tints, light grey text and hairlines. In Outdoor:
 
@@ -70,6 +77,7 @@ Outdoor is for a phone read in midday sun, where glare washes out pale tints, li
   - Borders separate things, never shade alone. `border` reaches 3.9:1 on every ground, and `border-strong` 9.4:1.
   - `shadow-sm` is `none`. `shadow-md` and `shadow-lg` add an ink ring under the shadow.
 - **Status:** badges and pills are outlined, never tinted. Every `-bg` is white, and every `-border` aliases its `-fg`.
+- **Pastels:** every `pastel-*-bg` is white and every `-fill` nearly so. Icon chips get a 2 px outline in their ink, tinted cards turn white with a `border`, tonal buttons become `accent` outlines, and skeletons stop shimmering.
 - **Sync banners invert:** the status `-fg` becomes the fill, with `text-inverse` on it. A banner's job is to be noticed, and a dark band survives glare where a tint does not.
 - **Structure,** under `[data-theme="outdoor"]` in `bundle.css`:
   - a 3 px focus ring
@@ -97,35 +105,69 @@ The accent stays the tenant's, darkened only as far as Outdoor's 7:1 rule needs 
   - `comfortable` is the mobile default: `control-lg` (48) controls, `row-comfortable` rows, `body-lg` text.
   - `compact` is the web default: `control-md` (40), `control-sm` (32) in tables, `row-compact` rows, `body-md` text.
 - **Touch:** anything tappable on mobile has a hit area of at least `touch-min` (44). Pad small icons out to that size rather than enlarging them.
+- **Icon chips:** `iconchip-sm` (32) in tables, `iconchip-md` (40) on rows and tiles, `iconchip-lg` (48) on mobile rows and the form picker, `iconchip-xl` (72) on empty states.
 
 ### Shape and depth
 
-- Corners follow the radius scale:
+- **Nothing is square.** The smallest corner is `radius-xs` (6 px), and corners grow with the surface:
 
 | Radius | Used for |
 |---|---|
-| `radius-sm` | badges, chips |
-| `radius-md` | controls |
-| `radius-lg` | cards and banners |
-| `radius-xl` | sheets |
-| `radius-full` | pills and dots |
+| `radius-xs` | checkboxes, chart bar ends, photo tags |
+| `radius-sm` | menu items, tooltips, 32 px icon chips |
+| `radius-md` | inputs, notices, photo tiles, map boxes, icon chips |
+| `radius-lg` | cards, KPI tiles, tables, list groups, inset banners, menus |
+| `radius-xl` | sheets, dialogs, the bottom tab bar, empty states, tinted cards, 72 px icon chips |
+| `radius-full` | buttons, badges, chips, pills, avatars, progress tracks, dots |
 
-- Borders do most of the separating: `border` hairlines between rows and cards, `border-strong` around inputs. Shadows are reserved for things that float:
+- Photos and maps inside a card take `radius-md` and sit inside its padding, never against its edge.
+- **Soft depth:** surfaces rest on soft, wide shadows with a faint `border` edge, never a hard outline:
 
 | Shadow | Used for |
 |---|---|
-| `shadow-sm` | tiles on `bg` |
-| `shadow-md` | menus |
+| `shadow-sm` | cards, KPI tiles, list groups, tables and empty states on `bg` |
+| `shadow-md` | the shift card, menus, popovers |
 | `shadow-lg` | dialogs, sheets |
 
+- `border-strong` still outlines inputs, checkboxes and secondary buttons, because a control needs a visible edge.
 - Layering follows the `zIndex` tokens. The sync banner and bottom tab bar sit at `z-sticky`.
 
-### States and motion
+### States
 
-- **Focus:** a 2 px `focus-ring` outline (3 px in Outdoor) with a 2 px offset on every focusable element. It never disappears on mouse click for inputs.
-- **Hover:** shift fills one step (`accent` → `accent-hover`). Pressed is the same as hover on touch devices.
+- **Focus:** a 2 px `focus-ring` outline (3 px in Outdoor) with a 2 px offset on every focusable element, following its rounded corners. It never disappears on mouse click for inputs.
+- **Hover:** shift fills one step (`accent` → `accent-hover`, `accent-subtle` → `accent-soft`). Pressed is the same as hover on touch devices.
+- **Pressed:** buttons, list rows and tappable cards scale to 97% for `duration-instant`, then return.
 - **Disabled:** `opacity-disabled` with `text-disabled` labels, and no hover. Always say why nearby: "Start your day to place orders."
-- **Motion:** 120 ms for state changes and 200 ms for sheets and dialogs, ease-out. Nothing moves when `prefers-reduced-motion` is set, and the tracking indicator never animates on entry-level phones.
+
+### Motion
+
+Motion says what just happened and where things went. Feedback is quick, arrivals are calm and loops are rare.
+
+- **Tokens:** `duration-instant` (90 ms), `duration-fast` (150), `duration-base` (240), `duration-slow` (360), `duration-celebrate` (700) and `duration-loop` (1,600). `ease-standard` for most changes, `ease-enter` for arrivals, `ease-exit` for departures, `ease-spring` for a small overshoot, and `ease-linear` for loops only.
+- **Patterns:**
+
+| Moment | What moves | Tokens |
+|---|---|---|
+| Press | the button, row or card scales to 97% and back | `duration-instant`, `ease-standard` |
+| Arrive | fades in and rises `space-2`; list items 40 ms apart, the first six only | `duration-base`, `ease-enter` |
+| Leave | fades out and sinks `space-1` | `duration-fast`, `ease-exit` |
+| Sheet or dialog | slides up on mobile, or fades and grows from 96% on web, over a fading `scrim` | `duration-slow`, `ease-enter` |
+| Switch tab | the active pill grows in; the content crossfades | `duration-base`, `ease-spring` |
+| Banner | drops in under the app bar | `duration-base`, `ease-enter` |
+| First view of a figure | KPI values count up and progress bars fill, once per session | `duration-celebrate`, `ease-standard` |
+| Success | a tick draws itself in a `mint` chip that pops: saved, uploaded, approved | `duration-celebrate`, `ease-spring` |
+| Start day | three rings ripple out from the pin, like the logo's geofence | `duration-celebrate`, `ease-exit` |
+| Loading | skeletons shimmer | `duration-loop`, `ease-linear` |
+| On duty | the live dot pulses | `duration-loop`, `ease-exit` |
+
+- **Rules:**
+  - Animate `transform` and `opacity` only, never layout. On mobile, animations run on the UI thread.
+  - Motion never blocks input. A tap during an animation acts at once.
+  - Count-ups and fills run on the first view in a session. A refreshed figure changes in place, so numbers never dance.
+  - At most one loop on screen at a time.
+  - Nothing moves under a thumb that is typing. The review queue keeps a 150 ms fade between cards, so reviewers keep their pace.
+- **Reduced motion:** when the OS asks, or the app sets `data-motion="reduced"` on the root, every duration becomes instant. Things still appear and change, but nothing counts, fills, pulses, shimmers or ripples.
+- **Entry-level phones:** the app sets `data-motion="lite"` on Android Go and on phones with 3 GB of RAM or less. Feedback and arrivals stay; every loop stops, and the tracking indicator never animates.
 
 ### Layout
 
@@ -140,26 +182,33 @@ The accent stays the tenant's, darkened only as far as Outdoor's 7:1 rule needs 
 
 ## Iconography
 
-- **Lucide** (the icon set shadcn/ui ships with) on web and mobile, via `lucide-react` and `lucide-react-native`: 1.75 px stroke at `icon-md` (20), 2 px at `icon-sm` (16). The previews here draw simplified outlines in the same style. Products import the real components.
+- **Lucide** (the icon set shadcn/ui ships with) on web and mobile, via `lucide-react` and `lucide-react-native`: 1.75 px stroke at `icon-md` (20) and `icon-lg` (24), 2 px at `icon-sm` (16), 1.5 px at `icon-xl` (32). Round caps and joins, never filled. The previews here draw simplified outlines in the same style. Products import the real components.
+- **Icons wherever people scan:** every tab, navigation item, list row, KPI tile, notification and mobile primary or tonal action carries one. An icon never stands in for a word, except in an icon button with an accessible label.
 - Icons inherit `currentColor` from their text token. Status icons use the status `-fg` token and always sit beside the status word.
-- **Core glyphs:**
+- **Icon chips** put an icon on its pastel hue (`IconChip`): rounded squares for things, circles with initials for people. Account types and forms carry their own Lucide `icon` in configuration, and the templates set them.
+- **Icon map:**
 
-| Meaning | Icons |
+| Area | Icons |
 |---|---|
+| Navigation | `house` (Home), `calendar-days` (Plan), `shopping-bag` (Orders), `users` (Team), `circle-user-round` (Me), `inbox` (Approvals), `bell` (Notifications), `chart-column` (Performance), `trophy` (Leaderboard), `map` (Live map), `settings` |
 | Shift | `play` and `square` (start and end day), `pause` |
-| Tracking | `map-pin` |
-| Evidence | `camera`, `image` (gallery) |
-| Sync | `cloud-off`, `cloud-upload` |
-| Flags | `alert-triangle` |
-| Statuses | `check` (approved), `clock` (pending), `x` (rejected) |
+| Visits and evidence | `map-pin` (visit), `map-pin-check` (checked in), `target` (geofence), `locate-fixed` (GPS fix), `camera`, `image` (gallery), `pen-line` (signature), `scan-barcode` |
+| Work | `clipboard-list` (forms and activities), `route` (journey plan), `goal` (targets), `wallet` (collection), `receipt` (expenses), `calendar-check` (attendance), `calendar-x` (leave), `indian-rupee` (amounts) |
+| Sync | `cloud-off` (offline), `cloud-upload` (uploading), `cloud-check` (all sent), `refresh-cw` (retry) |
+| Statuses | `check` (approved), `clock` (pending), `hourglass` (waiting at a later step), `x` (rejected), `ban` (cancelled) |
+| Flags | `triangle-alert` (advisory), `shield-alert` (integrity), `clock-alert` (clock skew) |
 
-- No emoji in the product UI, and no illustrations in operational screens. Empty states are a sentence and an action.
+- **Empty states** carry a 72 px icon chip, a sentence and at most one action. No emoji anywhere in the product UI, and no illustrations: icons, colour and shape carry the friendliness.
 - **Logo:** the Kshetra mark, a Jamun square holding three geofence rings and a pin.
   - At 96 px and larger, use `assets/Logos/kshetra-mark.webp`. Below that, use `kshetra-mark-small.svg`.
   - Android's tracking notification uses the white `kshetra-notification-glyph.svg`.
   - The mark is always Jamun whatever the tenant's accent, and never sits on an `accent` fill.
   - The tenant's logo replaces it in the app bar and on PDFs.
   - The Logos group's notes hold the full rules.
+
+## Intentional additions
+
+- **IconChip, Skeleton and the Motion card,** added at the owner's request for icons, motion, soft shapes and pastel colours. The screens need them: icons on rows and tiles, a loading state for slow networks, and one reference for every motion pattern.
 
 ## Accessibility
 
@@ -173,7 +222,9 @@ The accent stays the tenant's, darkened only as far as Outdoor's 7:1 rule needs 
 | `-solid` marks, chart series | ≥ 3:1 | ≥ 4.6:1 on white |
 | `border-strong` | ≥ 3.1:1 | ≥ 9.4:1 |
 | `border` | decorative | ≥ 3.9:1 |
+| pastel `-fg` on its `-bg` and `-fill` | ≥ 5.9:1 | ≥ 10:1 |
 
 - Outdoor doubles as the high-contrast theme for low-vision users on web.
+- Motion follows reduced motion everywhere, and nothing flashes more than three times a second.
 - A badge's accessible name is its label, not its colour. Maps duplicate every coloured marker in the side list as text.
 - Layouts must survive 200% text on mobile. Rows grow, they never truncate a status word.

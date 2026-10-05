@@ -19,4 +19,5 @@ The translated state label (from the state machine in Appendix C), and the varia
 - Never render the dot without the word, even in dense tables.
 - Auto-approved records read "Approved · auto", not a different colour.
 - A badge is not a button. Filtering by status uses chips, not badges.
+- In Light and Dark the badge is a soft pastel pill with no visible edge: its `-border` matches its `-bg`.
 - In Outdoor the badge is outlined: a white fill with a 1 px outline in its `-fg`, so the shape holds in glare where a tint would wash out. The tokens do this, and nothing changes in markup.

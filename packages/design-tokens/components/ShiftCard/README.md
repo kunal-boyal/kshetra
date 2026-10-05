@@ -13,3 +13,6 @@ Shift state from local storage (works offline), the times, the resolved punch te
 
 ## Rules
 End day asks for confirmation only if items are unsent. The tracking explanation is never hidden.
+
+## Motion
+While on duty, the live dot pulses once per `duration-loop`. The pulse stops on entry-level phones (`data-motion="lite"`) and under reduced motion. Starting the day plays the ring ripple from the README's Motion section once, in place of the dot.
