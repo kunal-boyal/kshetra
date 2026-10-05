@@ -1,23 +1,37 @@
 # Kshetra
 
-A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web portal, a vendor console and a public API. [docs/Kshetra.md](docs/Kshetra.md) is the source of truth for scope and behaviour. If code and spec disagree, raise it with the owner (Kunal) and change one of them deliberately. Decisions are logged in [docs/decisions.md](docs/decisions.md).
+A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web portal, a vendor console and a public API. [docs/Kshetra.md](docs/Kshetra.md) is the source of truth for scope and behaviour. If code and spec disagree, raise it with the owner (Kunal) and change one of them deliberately. Decisions are logged in [docs/decisions.md](docs/decisions.md). Every service the project uses, local and production, is listed in [docs/services.md](docs/services.md).
 
 ## Status
 
-Phase 0 (Foundation) hasn't started, so there is no application code yet and the commands below arrive with the monorepo scaffold. Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
+Phase 0 (Foundation) is in progress. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
+
+Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | runs the apps locally |
-| `pnpm test` | unit tests |
-| `pnpm test:int` | integration tests on Testcontainers (PostgreSQL with PostGIS, Redis) |
-| `pnpm lint`, `pnpm typecheck` | static checks |
-| `pnpm db:migrate`, `pnpm db:seed` | migrates; seeds fictional data and refuses non-local databases |
-| `pnpm openapi` | regenerates the OpenAPI document and the typed client |
+| Command | What it does | Available |
+|---|---|---|
+| `pnpm install` | installs the workspace (pnpm 12, Node 24) | now |
+| `pnpm typecheck`, `pnpm lint`, `pnpm test` | static checks and unit tests, through Turborepo | now |
+| `pnpm format`, `pnpm format:check` | Prettier | now |
+| `docker compose up -d` | starts the local services | now |
+| `pnpm dev` | runs the apps locally | with the apps |
+| `pnpm test:int` | integration tests on Testcontainers (PostgreSQL with PostGIS, Redis) | with `apps/api` |
+| `pnpm db:migrate`, `pnpm db:seed` | migrates; seeds fictional data and refuses non-local databases | with `apps/api` |
+| `pnpm openapi` | regenerates the OpenAPI document and the typed client | with `apps/api` |
 
-Local services run in Docker Compose: PostgreSQL with PostGIS, Redis, MinIO and Mailpit. Locally, OTP codes print to the console (`OTP_PROVIDER=console`); production refuses this.
+Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
+- PostgreSQL 18 with PostGIS, pg_partman and pg_trgm, on port 5433 by default (`POSTGRES_PORT`)
+- Redis, on port 6380 by default (`REDIS_PORT`)
+- MinIO standing in for S3: API on 9000, console at http://localhost:9001. It uses Chainguard's image (decision D21).
+- Mailpit: SMTP on 1025, inbox at http://localhost:8025
+
+The non-standard database and Redis ports leave 5432 and 6379 free for copies already installed on the machine.
+
+Locally, OTP codes print to the console (`OTP_PROVIDER=console`); production refuses this.
+
+Workspace packages are consumed as TypeScript source (`exports` points at `src/index.ts`), so they need no build step. Shared tool versions live once, in the `catalog` of `pnpm-workspace.yaml`. TypeScript stays on 6.0 until typescript-eslint supports 7; see `docs/versions.md`.
 
 ## Layout (spec 9.4)
 
@@ -70,3 +84,4 @@ Migrations are append-only and backward compatible. They follow expand and contr
 - UI code takes colours, spacing and type from the tokens, never hex values.
 - The same system is published as a claude.ai Design System artifact: https://claude.ai/artifact/REeP6ZXP72DN9kfhVHbPT3. Make every design-system change in both places in the same piece of work.
 - Regenerate `tokens.css` whenever `tokens.json` changes. Until Phase 0 adds the token build step, regenerate it by hand.
+- Prettier ignores `packages/design-tokens/` and all markdown, so the mirrored files stay byte-identical to the artifact.

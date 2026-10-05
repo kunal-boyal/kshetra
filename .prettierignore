@@ -1,0 +1,7 @@
+# Hand-written documents keep their own formatting.
+*.md
+
+# Mirrored byte for byte with the design-system artifact; see CLAUDE.md.
+packages/design-tokens/
+
+pnpm-lock.yaml

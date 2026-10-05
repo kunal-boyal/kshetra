@@ -1,0 +1,64 @@
+# Local services (spec 14.1). Start with `docker compose up -d`.
+# Every port binds to 127.0.0.1, so only this machine can reach the services, not its network.
+name: kshetra
+
+services:
+  postgres:
+    build: infra/docker/postgres
+    image: kshetra-postgres:18
+    environment:
+      POSTGRES_USER: kshetra
+      POSTGRES_PASSWORD: kshetra-local
+      POSTGRES_DB: kshetra
+    ports:
+      # 5433 by default, so a PostgreSQL already installed on the machine can keep 5432.
+      - '127.0.0.1:${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      # PostgreSQL 18 images keep their data under /var/lib/postgresql/18.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kshetra -d kshetra']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:8.10
+    ports:
+      # 6380 by default, so a Redis already installed on the machine can keep 6379.
+      - '127.0.0.1:${REDIS_PORT:-6380}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    # Stands in for Amazon S3. MinIO stopped publishing free images in October 2025, so this is
+    # Chainguard's build from MinIO's source (decision D21); its free tier offers only `latest`.
+    image: cgr.dev/chainguard/minio:latest
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: kshetra
+      MINIO_ROOT_PASSWORD: kshetra-local
+      MINIO_SITE_REGION: ap-south-1
+    ports:
+      - '127.0.0.1:9000:9000' # S3 API
+      - '127.0.0.1:9001:9001' # console at http://localhost:9001
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'MC_HOST_local=http://localhost:9000 mc ready local']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.31
+    ports:
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # inbox at http://localhost:8025
+
+volumes:
+  postgres-data:
+  minio-data:
