@@ -16,15 +16,17 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | static checks and unit tests, through Turborepo | now |
 | `pnpm format`, `pnpm format:check` | Prettier | now |
 | `docker compose up -d` | starts the local services | now |
-| `pnpm dev` | runs the apps locally (today the API, on http://127.0.0.1:3000) | now |
+| `pnpm dev` | runs the API on http://127.0.0.1:3000 and the web portal on http://127.0.0.1:5173, which passes `/auth` and `/v1` through to the API | now |
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
+| `pnpm test:e2e` | Playwright tests of the web portal, with axe, against a mocked API. Install the browser once with `pnpm --filter @kshetra/web exec playwright install chromium`. | now |
+| `pnpm tokens` | regenerates `tokens.css` and `tokens.ts` in `packages/design-tokens` from `tokens.json` | now |
 | `pnpm db:bootstrap` | creates the database roles; refuses anything but a local or CI database | now |
 | `pnpm db:migrate` | applies migrations as the `migrator` role | now |
 | `pnpm --filter @kshetra/api db:generate` | writes a migration for a schema change | now |
 | `pnpm --filter @kshetra/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
 | `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
 | `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin | now |
-| `pnpm openapi` | regenerates the OpenAPI document and the typed client | with the first `/v1` endpoints |
+| `pnpm openapi` | regenerates the OpenAPI document and the typed client's route calls | with the route registry, step 11 |
 
 Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
 - PostgreSQL 18 with PostGIS, pg_partman and pg_trgm, on port 5433 by default (`POSTGRES_PORT`)
@@ -57,7 +59,7 @@ Workspace packages are consumed as TypeScript source (`exports` points at `src/i
 apps/        api (NestJS: main.ts, worker.ts, scheduler.ts, migrate.ts), web, console (Vite SPAs), mobile (Expo)
 packages/    shared, forms, metrics, i18n, templates, api-client, design-tokens, ui-web, ui-mobile, config
 infra/       terraform modules and environments
-tools/       provisioning CLI, k6 load tests, data generators
+tools/       token build (tools/tokens), k6 load tests, data generators
 docs/        the specification, decisions.md, versions.md, runbooks/
 ```
 
@@ -116,6 +118,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Consumers registered with `Outbox.consume()` must be idempotent: delivery is at least once.
 - Work that must wait for a commit goes through `Database.afterCommit()`.
 
+## Web portal (decision D35)
+
+- The web never stores a token. The refresh token lives in the directory's httpOnly cookie and the access token in memory, so a reload restores the session with `client.restore()`. Never put a token in `localStorage`, `sessionStorage` or a URL.
+- Web code calls the API only through `@kshetra/api-client`, which refreshes tokens and turns error responses into `ApiError` with a spec 11.4 code. Show errors with `errorMessage()` from `apps/web/src/i18n.tsx`.
+- Build screens from `@kshetra/ui-web` and the design system's `ks-*` classes; Tailwind is for layout. Text comes from `useLanguage().t`, in English and Hindi.
+- Each screen gets a Vitest test with Testing Library, and each page a Playwright test that runs axe.
+
 ## Configuration and templates
 
 - Tenant configuration (account types, forms, metrics, workflows, policies) is data, checked in two layers: a zod schema for its shape, then checks that every reference resolves and settings agree. Form schemas are in `packages/forms`, metric and score schemas in `packages/metrics`, the rest in `packages/templates/src/schema`.
@@ -136,12 +145,12 @@ Migrations are append-only and backward compatible. They follow expand and contr
 - **Cross-tenant contract test:** generated from the route registry. CI fails when a route has no fixture.
 - **End to end:** Playwright (with axe) for the web apps, Maestro for mobile.
 - **Load:** k6.
-- **Merging:** a pull request merges only with typecheck, lint, unit and integration tests green.
+- **Merging:** a pull request merges only with typecheck, lint, unit, integration and end-to-end tests green.
 
 ## Design system
 
-- `packages/design-tokens` holds the design system. `tokens.json` is the source of truth, and `tokens.css` is generated from it. The package also holds the brand book (`README.md`), the component guides, the reference `bundle.css` and the logos.
+- `packages/design-tokens` holds the design system. `tokens.json` is the source of truth, and `tokens.css` and `tokens.ts` are generated from it. The package also holds the brand book (`README.md`), the component guides, the reference `bundle.css` and the logos.
 - UI code takes colours, spacing, radii, type and motion from the tokens, never hex values or hand-picked timings. Motion honours reduced motion (`prefers-reduced-motion`, and `data-motion` on the root).
 - The same system is published as a claude.ai Design System artifact: https://claude.ai/artifact/REeP6ZXP72DN9kfhVHbPT3. Make every design-system change in both places in the same piece of work.
-- Regenerate `tokens.css` whenever `tokens.json` changes. Until Phase 0 adds the token build step, regenerate it by hand.
+- Run `pnpm tokens` whenever `tokens.json` changes. The token tests fail when a generated file is stale, a themed token misses a theme, or a colour pair named in the usage notes falls under its contrast floor.
 - Prettier ignores `packages/design-tokens/` and all markdown, so the mirrored files stay byte-identical to the artifact.

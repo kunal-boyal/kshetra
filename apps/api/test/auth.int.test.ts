@@ -3,7 +3,7 @@ import { createLocalJWKSet, jwtVerify } from 'jose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { MemoryOtpSender } from '../src/modules/directory/otp-sender';
 import { SigningKey } from '../src/modules/directory/signing-key';
-import { newAddress, newPhone, startApp, World } from './support';
+import { newAddress, newPhone, startApp, testConfig, World } from './support';
 
 let app: NestFastifyApplication;
 let world: World;
@@ -329,5 +329,95 @@ describe('cell routes', () => {
       cell: 'local',
       rev: 0,
     });
+  });
+});
+
+describe('the web (spec 13.1)', () => {
+  const web = { 'x-client': 'web' };
+  const cookieOf = (response: { cookies: { name: string; value: string }[] }) =>
+    response.cookies.find((cookie) => cookie.name === 'kshetra_refresh');
+
+  it('keeps the refresh token in an httpOnly same-site cookie, never in a body', async () => {
+    const person = await member('Lotus Web');
+    await requestCode(person.phone);
+    const verified = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/otp/verify',
+      headers: web,
+      payload: { phone: person.phone, code: sender.lastCode(person.phone) },
+      remoteAddress: newAddress(),
+    });
+    expect(verified.statusCode).toBe(200);
+    expect(verified.json().session.refreshToken).toBeUndefined();
+    const first = cookieOf(verified);
+    expect(first).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/auth/v1' });
+
+    // A reloaded page refreshes with the cookie, and learns its tenant again.
+    const refreshed = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/token/refresh',
+      headers: web,
+      cookies: { kshetra_refresh: first!.value },
+    });
+    expect(refreshed.statusCode).toBe(200);
+    expect(refreshed.json().tenant).toMatchObject({ id: person.tenantIds[0], name: 'Lotus Web' });
+    expect(refreshed.json().session.refreshToken).toBeUndefined();
+    const second = cookieOf(refreshed);
+    expect(second!.value).not.toBe(first!.value);
+
+    // Without the web header the cookie counts for nothing, so a forged request can't spend it.
+    const forged = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/token/refresh',
+      cookies: { kshetra_refresh: second!.value },
+    });
+    expect(forged.statusCode).toBe(401);
+    expect(forged.json().error.code).toBe('SESSION_REVOKED');
+
+    const signedOut = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/logout',
+      headers: web,
+      cookies: { kshetra_refresh: second!.value },
+    });
+    expect(signedOut.statusCode).toBe(204);
+    expect(cookieOf(signedOut)).toMatchObject({
+      value: '',
+      httpOnly: true,
+      sameSite: 'Strict',
+      path: '/auth/v1',
+    });
+    const after = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/token/refresh',
+      headers: web,
+      cookies: { kshetra_refresh: second!.value },
+    });
+    expect(after.json().error.code).toBe('SESSION_REVOKED');
+  });
+
+  it('answers browsers from allowed origins only', async () => {
+    const allowed = 'https://app.example.test';
+    const corsApp = await startApp(testConfig({ CORS_ORIGINS: allowed }));
+    try {
+      const preflight = (origin: string) =>
+        corsApp.inject({
+          method: 'OPTIONS',
+          url: '/auth/v1/token/refresh',
+          headers: {
+            origin,
+            'access-control-request-method': 'POST',
+            'access-control-request-headers': 'content-type,x-client',
+          },
+        });
+      const ok = await preflight(allowed);
+      expect(ok.headers['access-control-allow-origin']).toBe(allowed);
+      expect(ok.headers['access-control-allow-credentials']).toBe('true');
+      expect(String(ok.headers['access-control-allow-headers'])).toContain('x-client');
+      const elsewhere = await preflight('https://elsewhere.example.test');
+      expect(elsewhere.headers['access-control-allow-origin']).toBeUndefined();
+    } finally {
+      await corsApp.close();
+    }
   });
 });

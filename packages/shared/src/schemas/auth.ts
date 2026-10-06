@@ -38,11 +38,20 @@ export const OtpVerifyBody = z.strictObject({
   device: DeviceInfo.optional(),
 });
 
+/**
+ * The web sends this header with every request to the directory. Its refresh token then travels
+ * only in an httpOnly, same-site cookie (spec 13.1), and a request that relies on that cookie must
+ * carry the header, which a page on another site can't add without the API's CORS consent.
+ */
+export const WEB_CLIENT_HEADER = 'x-client';
+export const WEB_CLIENT = 'web';
+
 export const Session = z.object({
   tokenType: z.literal('Bearer'),
   accessToken: z.string(),
   accessTokenExpiresAt: z.iso.datetime(),
-  refreshToken: z.string(),
+  /** Absent for the web, whose refresh token is in a cookie the page can't read. */
+  refreshToken: z.string().optional(),
   refreshTokenExpiresAt: z.iso.datetime(),
 });
 
@@ -74,12 +83,14 @@ export const SelectTenantBody = z.strictObject({
   device: DeviceInfo.optional(),
 });
 
-export const RefreshBody = z.strictObject({ refreshToken: Secret });
+/** The app sends its refresh token; the web leaves it out and relies on its cookie. */
+export const RefreshBody = z.strictObject({ refreshToken: Secret.optional() });
 
-export const RefreshResult = z.object({ session: Session });
+/** A new pair of tokens, and the tenant they belong to, so a reloaded web page knows its cell. */
+export const RefreshResult = z.object({ session: Session, tenant: TenantSummary });
 
 export const SwitchTenantBody = z.strictObject({
-  refreshToken: Secret,
+  refreshToken: Secret.optional(),
   tenantId: z.uuid(),
   device: DeviceInfo.optional(),
 });

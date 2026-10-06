@@ -1,0 +1,252 @@
+import { describe, expect, it, vi } from 'vitest';
+import { ApiError, createClient, NetworkError, type SessionState } from './client';
+import { memoryStore } from './stores';
+
+const TENANT = {
+  id: '01a10000-0000-7000-8000-000000000001',
+  name: 'Sunrise Traders',
+  cellUrl: 'https://cell.test',
+};
+const USER = '01a10000-0000-7000-8000-000000000002';
+
+const later = (ms: number) => new Date(Date.now() + ms).toISOString();
+
+function session(token: string, refresh?: string, ttl = 15 * 60_000) {
+  return {
+    tokenType: 'Bearer' as const,
+    accessToken: token,
+    accessTokenExpiresAt: later(ttl),
+    ...(refresh ? { refreshToken: refresh } : {}),
+    refreshTokenExpiresAt: later(30 * 86_400_000),
+  };
+}
+
+const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json', ...headers },
+  });
+
+const ME = {
+  userId: USER,
+  tenantId: TENANT.id,
+  cell: 'local',
+  code: 'SUN-001',
+  name: 'Anita Rao',
+  designation: 'head',
+  role: 'tenant_admin',
+  scope: 'tenant',
+  permissions: ['user.view'],
+  deviceId: null,
+};
+
+/** A fake API: it records every call and answers from the handler. */
+function fakeServer(handler: (url: string, init: RequestInit) => Response | Promise<Response>) {
+  const calls: { url: string; init: RequestInit }[] = [];
+  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    calls.push({ url, init: init ?? {} });
+    return handler(url, init ?? {});
+  });
+  return { fetch: fetch as unknown as typeof globalThis.fetch, calls };
+}
+
+describe('signing in', () => {
+  it('keeps the session from the code and calls the cell with its access token', async () => {
+    const server = fakeServer((url) => {
+      if (url.endsWith('/auth/v1/otp/verify')) {
+        return json(200, { status: 'signed_in', tenant: TENANT, session: session('a1', 'r1') });
+      }
+      return json(200, ME);
+    });
+    const store = memoryStore();
+    const client = createClient({ directoryUrl: '', platform: 'app', store, fetch: server.fetch });
+    const result = await client.verifyCode('9000000001', '123456');
+    expect(result.status).toBe('signed_in');
+    expect(await store.load()).toMatchObject({ accessToken: 'a1', refreshToken: 'r1' });
+
+    expect((await client.me()).name).toBe('Anita Rao');
+    const call = server.calls[1]!;
+    expect(call.url).toBe('https://cell.test/v1/me');
+    expect((call.init.headers as Record<string, string>).authorization).toBe('Bearer a1');
+    expect((call.init.headers as Record<string, string>)['x-device-time']).toMatch(/^\d{4}-/);
+  });
+
+  it('on the web sends the client header and the cookie, and never holds a refresh token', async () => {
+    const server = fakeServer(() =>
+      json(200, { status: 'signed_in', tenant: TENANT, session: session('a1') }),
+    );
+    const store = memoryStore();
+    const client = createClient({ directoryUrl: '', platform: 'web', store, fetch: server.fetch });
+    await client.verifyCode('9000000001', '123456');
+    const { init } = server.calls[0]!;
+    expect(init.credentials).toBe('include');
+    expect((init.headers as Record<string, string>)['x-client']).toBe('web');
+    expect((await store.load())?.refreshToken).toBeUndefined();
+  });
+});
+
+describe('refreshing', () => {
+  it('refreshes once for many calls when the server says the token expired', async () => {
+    let refreshes = 0;
+    const server = fakeServer(async (url, init) => {
+      if (url.endsWith('/auth/v1/token/refresh')) {
+        refreshes += 1;
+        expect(JSON.parse(String(init.body))).toEqual({ refreshToken: 'r1' });
+        return json(200, { session: session('a2', 'r2'), tenant: TENANT });
+      }
+      const auth = (init.headers as Record<string, string>).authorization;
+      return auth === 'Bearer a2'
+        ? json(200, ME)
+        : json(401, { error: { code: 'TOKEN_EXPIRED', message: 'Expired', requestId: 'x' } });
+    });
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    const client = createClient({ directoryUrl: '', platform: 'app', store, fetch: server.fetch });
+    const results = await Promise.all([client.me(), client.me(), client.me()]);
+    expect(results.every((me) => me.userId === USER)).toBe(true);
+    expect(refreshes).toBe(1);
+    expect(await store.load()).toMatchObject({ accessToken: 'a2', refreshToken: 'r2' });
+  });
+
+  it('refreshes ahead of a token about to run out, inside the lock', async () => {
+    const order: string[] = [];
+    const server = fakeServer((url) => {
+      order.push(new URL(url, 'https://web.test').pathname);
+      return url.endsWith('/auth/v1/token/refresh')
+        ? json(200, { session: session('a2'), tenant: TENANT })
+        : json(200, ME);
+    });
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', undefined, 10_000) } as SessionState);
+    const locked: string[] = [];
+    const lock = async <T>(name: string, work: () => Promise<T>): Promise<T> => {
+      locked.push(name);
+      return work();
+    };
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'web',
+      store,
+      fetch: server.fetch,
+      lock,
+    });
+    await client.me();
+    expect(order).toEqual(['/auth/v1/token/refresh', '/v1/me']);
+    expect(locked).toEqual(['session-refresh']);
+  });
+
+  it('ends the session when the server revokes it', async () => {
+    const onSignedOut = vi.fn();
+    const server = fakeServer(() =>
+      json(401, { error: { code: 'SESSION_REVOKED', message: 'Ended', requestId: 'x' } }),
+    );
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store,
+      fetch: server.fetch,
+      onSignedOut,
+    });
+    await expect(client.me()).rejects.toMatchObject({ code: 'SESSION_REVOKED', status: 401 });
+    expect(onSignedOut).toHaveBeenCalledOnce();
+    expect(await store.load()).toBeNull();
+  });
+
+  it('restores a web session from the cookie, or finds none', async () => {
+    let signedIn = true;
+    const server = fakeServer(() =>
+      signedIn
+        ? json(200, { session: session('a9'), tenant: TENANT })
+        : json(401, { error: { code: 'SESSION_REVOKED', message: 'No', requestId: 'x' } }),
+    );
+    const client = createClient({
+      directoryUrl: 'https://auth.test',
+      platform: 'web',
+      store: memoryStore(),
+      fetch: server.fetch,
+    });
+    expect(await client.restore()).toMatchObject({ accessToken: 'a9', tenant: TENANT });
+    expect(server.calls[0]!.url).toBe('https://auth.test/auth/v1/token/refresh');
+    signedIn = false;
+    const fresh = createClient({
+      directoryUrl: 'https://auth.test',
+      platform: 'web',
+      store: memoryStore(),
+      fetch: server.fetch,
+    });
+    expect(await fresh.restore()).toBeNull();
+  });
+});
+
+describe('signing out', () => {
+  const offline = () => {
+    throw new TypeError('Failed to fetch');
+  };
+
+  it('on a phone forgets the session even when the directory is out of reach', async () => {
+    const onSignedOut = vi.fn();
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store,
+      fetch: fakeServer(offline).fetch,
+      onSignedOut,
+    });
+    await client.signOut();
+    expect(onSignedOut).toHaveBeenCalledOnce();
+    expect(await store.load()).toBeNull();
+  });
+
+  it('on the web stays signed in when the directory is out of reach, as its cookie does', async () => {
+    const onSignedOut = vi.fn();
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1') } as SessionState);
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'web',
+      store,
+      fetch: fakeServer(offline).fetch,
+      onSignedOut,
+    });
+    await expect(client.signOut()).rejects.toBeInstanceOf(NetworkError);
+    expect(onSignedOut).not.toHaveBeenCalled();
+    expect(client.session?.accessToken).toBe('a1');
+  });
+});
+
+describe('errors', () => {
+  it('carry the code, the details and how long to wait', async () => {
+    const server = fakeServer(() =>
+      json(
+        429,
+        { error: { code: 'RATE_LIMITED', message: 'Too many', requestId: 'x' } },
+        { 'retry-after': '42' },
+      ),
+    );
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store: memoryStore(),
+      fetch: server.fetch,
+    });
+    const error = await client.requestCode('9000000001').catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfterSeconds: 42 });
+  });
+
+  it('answer an unchanged config bundle as not modified', async () => {
+    const server = fakeServer(() => new Response(null, { status: 304 }));
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1') } as SessionState);
+    const client = createClient({ directoryUrl: '', platform: 'web', store, fetch: server.fetch });
+    expect(await client.config('"7-role"')).toEqual({ status: 'not_modified' });
+    expect((server.calls[0]!.init.headers as Record<string, string>)['if-none-match']).toBe(
+      '"7-role"',
+    );
+  });
+});

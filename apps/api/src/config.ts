@@ -14,6 +14,22 @@ const schema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     // Behind a load balancer, trust its X-Forwarded-For so rate limits see the caller's address.
     TRUST_PROXY: z.stringbool().default(false),
+    // Web origins allowed to call this API from a browser, comma-separated (spec 13.1). Empty
+    // allows none; locally the web app proxies through its own origin and needs none.
+    CORS_ORIGINS: z
+      .string()
+      .default('')
+      .transform((list) =>
+        list
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean),
+      )
+      .pipe(
+        z.array(
+          z.url().regex(/^https?:\/\/[^/]+$/, 'Use an origin, such as https://app.example.com'),
+        ),
+      ),
     // This deployment's cell. Access tokens name it, and a cell refuses tokens for another.
     CELL_ID: z.string().min(1).default('local'),
     // Where apps reach this cell, as the directory hands it out at sign-in, and its region.

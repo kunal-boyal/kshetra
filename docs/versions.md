@@ -42,6 +42,28 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | jose | 6.2.12 | ES256 access tokens and the JWKS (decision D29) |
 | ioredis | 6.0.0 | The Redis client: sign-in rate limits and tickets now, BullMQ queues later |
 | @types/node | 24.19.1 | Matches the Node 24 runtime, not the newest 26.x |
+| @fastify/cookie | 11.1.2 | The web's refresh cookie (decision D35) |
+| @fastify/cors | 11.3.0 | The `CORS_ORIGINS` allowlist (decision D35) |
+
+## Web (`apps/web`, `packages/ui-web`, `packages/api-client`, added 2026-10-06)
+
+| Package | Version | Notes |
+|---|---|---|
+| react, react-dom | 19.3.0 | With @types/react and @types/react-dom 19.3.0, in the catalog |
+| vite | 8.3.3 | The dev server and build, with @vitejs/plugin-react 6.1.2 |
+| @tanstack/react-router | 1.170.41 | Routes defined in code |
+| @tanstack/react-query | 5.104.1 | Server state, such as the config bundle with its ETag |
+| tailwindcss, @tailwindcss/vite | 4.3.3 | Layout utilities, with the tokens mapped into the theme |
+| lucide-react | 1.52.0 | Icons (decision D18) |
+| @fontsource-variable/noto-sans | 5.3.0 | Self-hosted Noto Sans |
+| @fontsource/noto-sans-devanagari | 5.3.0 | Self-hosted Noto Sans Devanagari, weights 400 and 600 |
+| @playwright/test | 1.63.0 | End-to-end tests, in Chromium |
+| @axe-core/playwright | 4.13.0 | Accessibility checks in the end-to-end tests |
+| jsdom | 30.1.2 | The DOM for component tests |
+| @testing-library/react | 16.3.3 | With @testing-library/jest-dom 7.0.1 and @testing-library/user-event 14.6.7 |
+| eslint-plugin-react-hooks | 7.1.1 | In the `@kshetra/config/eslint-react` preset |
+
+pnpm installs a release only once it is a day old (`minimumReleaseAge`). Vite 8.3.3 and @vitejs/plugin-react 6.1.2 were the current stable releases but younger than that when they were added, so `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` admits those exact versions. Remove the entries when either package is next upgraded.
 
 ## Install scripts
 

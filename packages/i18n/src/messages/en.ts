@@ -76,6 +76,47 @@ export const en = {
   'copy.truncated_statement':
     'Showing the first {limit} entries. The closing balance includes every entry. Export is turned off so a partial statement is not shared.',
 
+  // Signing in (spec 8.1, module M1).
+  'signin.title': 'Sign in',
+  'signin.intro': 'Use the mobile number your organisation has for you.',
+  'signin.phone_label': 'Mobile number',
+  'signin.phone_help': 'We will send a 6-digit code to this number.',
+  'signin.phone_invalid': 'Enter a valid mobile number, such as 98765 43210.',
+  'signin.send_code': 'Send code',
+  'signin.code_label': 'Code',
+  'signin.code_help': 'Enter the 6-digit code we sent to {phone}.',
+  'signin.verify': 'Sign in',
+  'signin.resend': 'Send a new code',
+  'signin.resend_in': {
+    one: 'You can ask for a new code in {count} second.',
+    other: 'You can ask for a new code in {count} seconds.',
+  },
+  'signin.other_number': 'Use a different number',
+  'signin.choose_title': 'Choose an organisation',
+  'signin.choose_intro':
+    'Your number belongs to more than one organisation. You can switch later from the menu.',
+
+  // The web portal's frame (spec 8.2).
+  'shell.navigation': 'Main menu',
+  'shell.home': 'Home',
+  'shell.account_menu': 'Your profile and settings',
+  'shell.switch_organisation': 'Switch organisation',
+  'shell.sign_out': 'Sign out',
+  'shell.language': 'Language',
+  'shell.theme': 'Theme',
+  'shell.theme_light': 'Light',
+  'shell.theme_dark': 'Dark',
+  'shell.theme_outdoor': 'High contrast',
+  'shell.skip': 'Skip to content',
+  'home.greeting': 'Hello, {name}',
+  'home.where': '{designation} at {tenant}',
+  'home.empty_title': 'Your dashboard is on its way',
+  'home.empty_body':
+    'Sign-in, roles and settings are ready. Next come {term.activity:other:lower}, {term.journey_plan:other:lower} and {term.target:other:lower}.',
+  'common.loading': 'Loading…',
+  'common.offline': 'The server could not be reached. Check your connection, then try again.',
+  'common.retry': 'Try again',
+
   // The sync banner on the mobile home screen (spec 8.1).
   'sync.waiting': {
     one: '{count} item is waiting to upload.',

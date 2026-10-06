@@ -1,0 +1,371 @@
+import {
+  ConfigBundle,
+  type DeviceInfo,
+  type ErrorCode,
+  type ErrorDetail,
+  isErrorCode,
+  MeResult,
+  OtpRequestResult,
+  OtpVerifyResult,
+  RefreshResult,
+  type Session,
+  SignedIn,
+  type TenantSummary,
+  WEB_CLIENT,
+  WEB_CLIENT_HEADER,
+} from '@kshetra/shared';
+import type { z } from 'zod';
+
+/** An error response from the API (spec 11.1), with its code from spec 11.4. */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: ErrorCode,
+    message: string,
+    readonly details: readonly ErrorDetail[] = [],
+    readonly retryAfterSeconds?: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/** The API could not be reached at all: no network, or the server is down. */
+export class NetworkError extends Error {
+  constructor(cause: unknown) {
+    super('The server could not be reached.', { cause });
+    this.name = 'NetworkError';
+  }
+}
+
+/** What a signed-in client holds. The web's refresh token is never here: it lives in a cookie. */
+export interface SessionState {
+  tenant: TenantSummary;
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  refreshToken?: string;
+}
+
+/** Where the session is kept between launches: the phone's secure store, or memory on the web. */
+export interface SessionStore {
+  load(): Promise<SessionState | null>;
+  save(session: SessionState | null): Promise<void>;
+}
+
+export interface ClientOptions {
+  /** The directory's base URL; empty for the page's own origin. */
+  directoryUrl: string;
+  /**
+   * `web` leaves the refresh token in the directory's httpOnly cookie (spec 13.1); `app` keeps it
+   * in the session store.
+   */
+  platform: 'web' | 'app';
+  store: SessionStore;
+  /**
+   * Runs refreshes one at a time across tabs or processes, such as `navigator.locks.request` on
+   * the web. Two refreshes with the same token would end the whole session (M1, rule 6).
+   */
+  lock?: <T>(name: string, work: () => Promise<T>) => Promise<T>;
+  /** The base URL for a tenant's cell; by default the one the directory hands out at sign-in. */
+  cellUrl?: (tenant: TenantSummary) => string;
+  /** The phone signing in, sent by the mobile app so the tenant can bind it (M1, rule 5). */
+  device?: () => Promise<DeviceInfo | undefined>;
+  appVersion?: string;
+  fetch?: typeof fetch;
+  /** Called when the session ends: signed out, revoked, or no longer refreshable. */
+  onSignedOut?: () => void;
+}
+
+export interface RequestOptions {
+  body?: unknown;
+  /** For creates and actions without a client-generated ID (spec 11.1, BR-46). */
+  idempotencyKey?: string;
+  headers?: Record<string, string>;
+}
+
+/** Refresh a little before the access token runs out, so requests never race its expiry. */
+const EXPIRY_MARGIN_MS = 30_000;
+
+function toState(tenant: TenantSummary, session: Session, previous?: SessionState): SessionState {
+  const refreshToken = session.refreshToken ?? previous?.refreshToken;
+  return {
+    tenant,
+    accessToken: session.accessToken,
+    accessTokenExpiresAt: session.accessTokenExpiresAt,
+    ...(refreshToken ? { refreshToken } : {}),
+  };
+}
+
+async function errorFrom(response: Response): Promise<ApiError> {
+  const retryAfter = response.headers.get('retry-after');
+  try {
+    const body = (await response.json()) as {
+      error?: { code?: string; message?: string; details?: ErrorDetail[] };
+    };
+    const code = body.error?.code ?? '';
+    return new ApiError(
+      response.status,
+      isErrorCode(code) ? code : 'INTERNAL',
+      body.error?.message ?? response.statusText,
+      body.error?.details ?? [],
+      retryAfter ? Number(retryAfter) : undefined,
+    );
+  } catch {
+    return new ApiError(response.status, 'INTERNAL', response.statusText);
+  }
+}
+
+/**
+ * The client for the directory's sign-in and the tenant's cell (spec 11). It keeps the session,
+ * sends the access token, refreshes it before it expires or when the server says so, and ends the
+ * session when the server revokes it.
+ */
+export function createClient(options: ClientOptions) {
+  const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
+  const lock = options.lock ?? (async <T>(_name: string, work: () => Promise<T>) => work());
+  const web = options.platform === 'web';
+  let session: SessionState | null = null;
+  let loaded = false;
+  let refreshing: Promise<SessionState> | null = null;
+
+  async function current(): Promise<SessionState | null> {
+    if (!loaded) {
+      session = await options.store.load();
+      loaded = true;
+    }
+    return session;
+  }
+
+  async function keep(next: SessionState | null): Promise<void> {
+    session = next;
+    loaded = true;
+    await options.store.save(next);
+  }
+
+  async function signedOut(): Promise<void> {
+    await keep(null);
+    options.onSignedOut?.();
+  }
+
+  async function send(url: string, init: RequestInit): Promise<Response> {
+    try {
+      return await doFetch(url, init);
+    } catch (error) {
+      throw new NetworkError(error);
+    }
+  }
+
+  /** A call to the directory's sign-in routes. The web sends its client header and cookie. */
+  async function directory<T extends z.ZodType>(
+    path: string,
+    schema: T,
+    body: unknown,
+  ): Promise<z.output<T>> {
+    const response = await send(`${options.directoryUrl}/auth/v1/${path}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(web ? { [WEB_CLIENT_HEADER]: WEB_CLIENT } : {}),
+      },
+      body: JSON.stringify(body ?? {}),
+      credentials: web ? 'include' : 'omit',
+    });
+    if (!response.ok) throw await errorFrom(response);
+    return schema.parse(await response.json());
+  }
+
+  async function refresh(): Promise<SessionState> {
+    refreshing ??= lock('session-refresh', async () => {
+      const before = await current();
+      if (!web && !before?.refreshToken) throw new ApiError(401, 'SESSION_REVOKED', 'Sign in.');
+      try {
+        const result = await directory(
+          'token/refresh',
+          RefreshResult,
+          web ? {} : { refreshToken: before!.refreshToken },
+        );
+        const next = toState(result.tenant, result.session, before ?? undefined);
+        await keep(next);
+        return next;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) await signedOut();
+        throw error;
+      }
+    }).finally(() => {
+      refreshing = null;
+    });
+    return refreshing;
+  }
+
+  function expiring(state: SessionState): boolean {
+    return Date.parse(state.accessTokenExpiresAt) - Date.now() < EXPIRY_MARGIN_MS;
+  }
+
+  function cellBase(tenant: TenantSummary): string {
+    return options.cellUrl ? options.cellUrl(tenant) : tenant.cellUrl;
+  }
+
+  async function signedIn(result: z.output<typeof SignedIn>): Promise<SessionState> {
+    const state = toState(result.tenant, result.session);
+    await keep(state);
+    return state;
+  }
+
+  /**
+   * A call to the tenant's cell, with the access token. A token that is about to expire, or that
+   * the server calls expired, is refreshed once and the call repeated.
+   */
+  async function cell(method: string, path: string, request: RequestOptions = {}) {
+    const attempt = async (state: SessionState) =>
+      send(`${cellBase(state.tenant)}${path}`, {
+        method,
+        headers: {
+          authorization: `Bearer ${state.accessToken}`,
+          'x-device-time': new Date().toISOString(),
+          ...(options.appVersion ? { 'x-app-version': options.appVersion } : {}),
+          ...(request.body === undefined ? {} : { 'content-type': 'application/json' }),
+          ...(request.idempotencyKey ? { 'idempotency-key': request.idempotencyKey } : {}),
+          ...request.headers,
+        },
+        ...(request.body === undefined ? {} : { body: JSON.stringify(request.body) }),
+      });
+    let state = await current();
+    if (!state) throw new ApiError(401, 'UNAUTHENTICATED', 'Sign in to continue.');
+    if (expiring(state)) state = await refresh();
+    let response = await attempt(state);
+    if (response.status === 401) {
+      const error = await errorFrom(response);
+      if (error.code !== 'TOKEN_EXPIRED') {
+        if (error.code === 'SESSION_REVOKED') await signedOut();
+        throw error;
+      }
+      response = await attempt(await refresh());
+    }
+    // A 304 answers a conditional request for something the caller already has.
+    if (!response.ok && response.status !== 304) {
+      const error = await errorFrom(response);
+      if (error.code === 'SESSION_REVOKED') await signedOut();
+      throw error;
+    }
+    return response;
+  }
+
+  return {
+    /** The session, once loaded or signed in. */
+    get session(): SessionState | null {
+      return session;
+    },
+
+    requestCode(phone: string) {
+      return directory('otp/request', OtpRequestResult, { phone });
+    },
+
+    /** Verifies a code. One tenant signs straight in; several return a ticket to choose with. */
+    async verifyCode(phone: string, code: string) {
+      const device = await options.device?.();
+      const result = await directory('otp/verify', OtpVerifyResult, {
+        phone,
+        code,
+        ...(device ? { device } : {}),
+      });
+      if (result.status === 'signed_in') await signedIn(result);
+      return result;
+    },
+
+    async selectTenant(ticket: string, tenantId: string) {
+      const device = await options.device?.();
+      return signedIn(
+        await directory('select-tenant', SignedIn, {
+          ticket,
+          tenantId,
+          ...(device ? { device } : {}),
+        }),
+      );
+    },
+
+    async switchTenant(tenantId: string) {
+      const before = await current();
+      const device = await options.device?.();
+      return signedIn(
+        await directory('switch-tenant', SignedIn, {
+          tenantId,
+          ...(web ? {} : { refreshToken: before?.refreshToken }),
+          ...(device ? { device } : {}),
+        }),
+      );
+    },
+
+    /**
+     * Picks up an earlier session: the stored one on a phone, or on the web a fresh access token
+     * from the cookie, which is the only way to learn whether a session exists. Resolves to null
+     * when there is none.
+     */
+    async restore(): Promise<SessionState | null> {
+      const state = await current();
+      if (!web && !state) return null;
+      try {
+        return web || (state && expiring(state)) ? await refresh() : state;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) return null;
+        throw error;
+      }
+    },
+
+    /**
+     * Ends the session. A phone forgets it even when the directory can't be reached. The web
+     * can't: only the directory can clear its httpOnly cookie, so the web stays signed in and
+     * the call rejects, rather than looking signed out until the next reload signs back in.
+     */
+    async signOut(): Promise<void> {
+      const state = await current();
+      try {
+        await send(`${options.directoryUrl}/auth/v1/logout`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            ...(web ? { [WEB_CLIENT_HEADER]: WEB_CLIENT } : {}),
+          },
+          body: JSON.stringify(web ? {} : { refreshToken: state?.refreshToken }),
+          credentials: web ? 'include' : 'omit',
+        });
+      } catch (error) {
+        if (web) throw error;
+      }
+      await signedOut();
+    },
+
+    async me() {
+      return MeResult.parse(await (await cell('GET', '/v1/me')).json());
+    },
+
+    /**
+     * The config bundle (spec 11.2). With the ETag of the copy the caller has, an unchanged bundle
+     * answers `not_modified` instead of the whole bundle again.
+     */
+    async config(etag?: string) {
+      const response = await cell('GET', '/v1/config', {
+        ...(etag ? { headers: { 'if-none-match': etag } } : {}),
+      });
+      if (response.status === 304) return { status: 'not_modified' as const };
+      return {
+        status: 'fresh' as const,
+        etag: response.headers.get('etag') ?? undefined,
+        bundle: ConfigBundle.parse(await response.json()),
+      };
+    },
+
+    /** Any other call to the cell, for the screens that arrive with each module. */
+    async request<T extends z.ZodType>(
+      method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+      path: string,
+      schema: T,
+      request: RequestOptions = {},
+    ): Promise<z.output<T> | undefined> {
+      const response = await cell(method, path, request);
+      if (response.status === 204) return undefined;
+      return schema.parse(await response.json());
+    },
+  };
+}
+
+export type Client = ReturnType<typeof createClient>;

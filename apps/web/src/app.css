@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+@import '@kshetra/ui-web/styles.css';
+
+/* Tailwind scans the shared components too. */
+@source '../../../packages/ui-web/src';
+
+/* Tailwind's theme reads the design tokens only, never raw values (packages/design-tokens/platforms.md). */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --spacing: 4px;
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --font-sans: var(--font-sans);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}

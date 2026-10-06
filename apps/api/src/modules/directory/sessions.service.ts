@@ -7,6 +7,7 @@ import {
   type RefreshResult,
   type Session,
   type SignedIn,
+  type TenantSummary,
 } from '@kshetra/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 import { identities, memberships, refreshTokens } from '../../db/schema/directory';
@@ -82,14 +83,16 @@ export class SessionsService {
 
   /** Spends a refresh token for a new pair in the same family. */
   async refresh(refreshToken: string): Promise<RefreshResult> {
-    const session = await this.database.db.transaction(async (tx) => {
+    const result = await this.database.db.transaction(async (tx) => {
       const claimed = await this.claim(tx, refreshToken);
       if (!claimed) return null;
       await this.spend(tx, claimed.token);
-      return this.issue(tx, claimed.membership, claimed.token.familyId, claimed.token.deviceId);
+      const { membership, token } = claimed;
+      const session = await this.issue(tx, membership, token.familyId, token.deviceId);
+      return { session, tenant: this.summary(membership) };
     });
-    if (!session) throw revoked();
-    return { session };
+    if (!result) throw revoked();
+    return result;
   }
 
   /** Moves the session to another tenant of the same person, without a second code (M1, rule 4). */
@@ -198,11 +201,11 @@ export class SessionsService {
   }
 
   private signedIn(row: MembershipRow, session: Session): SignedIn {
-    return {
-      status: 'signed_in',
-      tenant: { id: row.tenantId, name: row.tenantName, cellUrl: row.cellUrl },
-      session,
-    };
+    return { status: 'signed_in', tenant: this.summary(row), session };
+  }
+
+  private summary(row: MembershipRow): TenantSummary {
+    return { id: row.tenantId, name: row.tenantName, cellUrl: row.cellUrl };
   }
 
   private async issue(

@@ -19,6 +19,8 @@
     "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "11.1.2",
+    "@fastify/cors": "11.3.0",
     "@kshetra/i18n": "workspace:*",
     "@kshetra/shared": "workspace:*",
     "@kshetra/templates": "workspace:*",

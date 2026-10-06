@@ -669,7 +669,8 @@ describe('every route', () => {
         const prototype = Object.getPrototypeOf(wrapper.instance) as Record<string, unknown>;
         for (const name of Object.getOwnPropertyNames(prototype)) {
           if (name === 'constructor') continue;
-          const handler = prototype[name];
+          // Reading a getter would run it; routes are plain methods.
+          const handler = Object.getOwnPropertyDescriptor(prototype, name)?.value;
           if (typeof handler !== 'function' || Reflect.getMetadata('path', handler) === undefined) {
             continue;
           }

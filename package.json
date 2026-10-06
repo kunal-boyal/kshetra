@@ -14,10 +14,12 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:int": "turbo run test:int",
+    "test:e2e": "turbo run test:e2e",
     "db:bootstrap": "pnpm --filter @kshetra/api db:bootstrap",
     "db:migrate": "pnpm --filter @kshetra/api db:migrate",
     "db:seed": "pnpm --filter @kshetra/api db:seed",
     "provision": "pnpm --filter @kshetra/api provision",
+    "tokens": "pnpm --filter @kshetra/tokens-tool build",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import fastifyCookie from '@fastify/cookie';
+import { WEB_CLIENT_HEADER } from '@kshetra/shared';
 import { ConsoleLogger, Logger, type LoggerService, type LogLevel } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -34,6 +36,26 @@ export async function createApp(
   });
   app.useGlobalFilters(new ErrorFilter());
   app.enableShutdownHooks();
+  // The web's refresh token travels in a cookie (spec 13.1).
+  await app.register(fastifyCookie);
+  if (config.CORS_ORIGINS.length > 0) {
+    app.enableCors({
+      origin: config.CORS_ORIGINS,
+      credentials: true,
+      allowedHeaders: [
+        'authorization',
+        'content-type',
+        'idempotency-key',
+        'if-none-match',
+        'x-request-id',
+        'x-device-time',
+        'x-app-version',
+        WEB_CLIENT_HEADER,
+      ],
+      exposedHeaders: ['etag', 'retry-after', 'x-request-id'],
+      maxAge: 600,
+    });
+  }
 
   const fastify = app.getHttpAdapter().getInstance();
   fastify.addHook('onSend', async (request, reply) => {
