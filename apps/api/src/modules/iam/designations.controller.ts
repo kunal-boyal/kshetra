@@ -1,12 +1,15 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import {
   CreateDesignationBody,
-  type DesignationListResult,
+  DesignationListResult,
+  DesignationResult,
+  IdParams,
   UpdateDesignationBody,
 } from '@kshetra/shared';
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
+import { Contract } from '../../platform/routes';
 import { pathId } from './actor';
 import { DesignationsService } from './designations.service';
 
@@ -19,6 +22,11 @@ export class DesignationsController {
   ) {}
 
   @Get()
+  @Contract({
+    tag: 'People',
+    summary: "The tenant's designations",
+    response: DesignationListResult,
+  })
   @SignedIn()
   async list(@CurrentAccess() access: Access): Promise<DesignationListResult> {
     const items = await this.database.forTenant(access.tenantId, (tx) =>
@@ -28,6 +36,13 @@ export class DesignationsController {
   }
 
   @Post()
+  @Contract({
+    tag: 'People',
+    summary: 'Create a designation',
+    body: CreateDesignationBody,
+    response: DesignationResult,
+    idempotencyKey: true,
+  })
   @Requires('designation.manage')
   @HttpCode(201)
   async create(
@@ -52,6 +67,13 @@ export class DesignationsController {
   }
 
   @Patch(':id')
+  @Contract({
+    tag: 'People',
+    summary: 'Change a designation',
+    params: IdParams,
+    body: UpdateDesignationBody,
+    response: DesignationResult,
+  })
   @Requires('designation.manage')
   update(@CurrentAccess() access: Access, @Param('id') id: string, @Body() body: unknown) {
     const designationId = pathId(id);

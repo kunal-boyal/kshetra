@@ -12,12 +12,17 @@ import {
 } from '@nestjs/common';
 import {
   AppError,
+  JwksResult,
   LogoutBody,
   OtpRequestBody,
+  OtpRequestResult,
   OtpVerifyBody,
+  OtpVerifyResult,
   RefreshBody,
+  RefreshResult,
   SelectTenantBody,
   type Session,
+  SignedIn,
   SwitchTenantBody,
   WEB_CLIENT,
   WEB_CLIENT_HEADER,
@@ -25,6 +30,7 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from '../../config';
 import { Public } from '../../platform/auth';
+import { Contract } from '../../platform/routes';
 import { CONFIG } from '../../platform/tokens';
 import { OtpService } from './otp.service';
 import { SessionsService } from './sessions.service';
@@ -58,6 +64,12 @@ export class AuthController {
 
   @Post('otp/request')
   @HttpCode(202)
+  @Contract({
+    tag: 'Sign-in',
+    summary: 'Send a one-time code to a mobile number',
+    body: OtpRequestBody,
+    response: OtpRequestResult,
+  })
   request(@Body() body: unknown, @Ip() address: string) {
     const { phone } = OtpRequestBody.parse(body);
     return this.otp.request(phone, address);
@@ -65,6 +77,12 @@ export class AuthController {
 
   @Post('otp/verify')
   @HttpCode(200)
+  @Contract({
+    tag: 'Sign-in',
+    summary: 'Sign in with the code, or get a ticket to choose a tenant',
+    body: OtpVerifyBody,
+    response: OtpVerifyResult,
+  })
   @Header('Cache-Control', 'no-store')
   async verify(
     @Body() body: unknown,
@@ -81,6 +99,12 @@ export class AuthController {
 
   @Post('select-tenant')
   @HttpCode(200)
+  @Contract({
+    tag: 'Sign-in',
+    summary: 'Choose a tenant with the ticket from the code',
+    body: SelectTenantBody,
+    response: SignedIn,
+  })
   @Header('Cache-Control', 'no-store')
   async selectTenant(
     @Body() body: unknown,
@@ -95,6 +119,12 @@ export class AuthController {
 
   @Post('token/refresh')
   @HttpCode(200)
+  @Contract({
+    tag: 'Sign-in',
+    summary: 'Spend a refresh token for a new pair',
+    body: RefreshBody,
+    response: RefreshResult,
+  })
   @Header('Cache-Control', 'no-store')
   async refresh(
     @Body() body: unknown,
@@ -108,6 +138,12 @@ export class AuthController {
 
   @Post('switch-tenant')
   @HttpCode(200)
+  @Contract({
+    tag: 'Sign-in',
+    summary: "Switch to another of the person's tenants",
+    body: SwitchTenantBody,
+    response: SignedIn,
+  })
   @Header('Cache-Control', 'no-store')
   async switchTenant(
     @Body() body: unknown,
@@ -127,6 +163,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
+  @Contract({ tag: 'Sign-in', summary: 'End the session', body: LogoutBody })
   async logout(
     @Body() body: unknown,
     @Req() request: FastifyRequest,
@@ -140,6 +177,11 @@ export class AuthController {
 
   /** The public key cells verify access tokens with (spec 9.3). */
   @Get('jwks')
+  @Contract({
+    tag: 'Sign-in',
+    summary: 'The public keys access tokens are signed with',
+    response: JwksResult,
+  })
   @Header('Cache-Control', 'public, max-age=300')
   jwks() {
     return this.keys.jwks();

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DATA_SCOPES, TENANT_PERMISSIONS } from '../access';
+import { DataScope, Permission } from './common';
 import { PhoneInput } from './auth';
 import { Key, LocalizedNoun, LocalizedText } from './config';
 
@@ -14,8 +14,8 @@ export const RoleDefinition = z
   .strictObject({
     key: Key,
     name: LocalizedText,
-    scope: z.enum(DATA_SCOPES),
-    permissions: z.array(z.enum(TENANT_PERMISSIONS)).min(1),
+    scope: DataScope,
+    permissions: z.array(Permission).min(1),
     mobileOnly: z.boolean().default(false).meta({
       description: 'Its users may use the mobile app only; the web answers USE_MOBILE_APP (M1)',
     }),
@@ -53,8 +53,8 @@ export const CreateRoleBody = RoleDefinition;
 export const UpdateRoleBody = z
   .strictObject({
     name: LocalizedText.optional(),
-    scope: z.enum(DATA_SCOPES).optional(),
-    permissions: z.array(z.enum(TENANT_PERMISSIONS)).min(1).optional(),
+    scope: DataScope.optional(),
+    permissions: z.array(Permission).min(1).optional(),
     mobileOnly: z.boolean().optional(),
   })
   .refine((body) => Object.keys(body).length > 0, 'Send at least one field to change');
@@ -158,8 +158,8 @@ export const MeResult = z.object({
   name: z.string(),
   designation: Key,
   role: Key,
-  scope: z.enum(DATA_SCOPES),
-  permissions: z.array(z.enum(TENANT_PERMISSIONS)),
+  scope: DataScope,
+  permissions: z.array(Permission),
   /** The bound phone this session runs on; web sessions have none (M1, rule 5). */
   deviceId: z.uuid().nullable(),
 });

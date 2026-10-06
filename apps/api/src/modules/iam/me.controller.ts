@@ -1,7 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
-import type { MeResult } from '@kshetra/shared';
+import { MeResult } from '@kshetra/shared';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
+import { Contract } from '../../platform/routes';
 import { UsersService } from './users.service';
 
 /** `GET /v1/me` (spec 11.2): who is signed in, and what they may do. */
@@ -13,6 +14,7 @@ export class MeController {
   ) {}
 
   @Get('me')
+  @Contract({ tag: 'People', summary: 'Who is calling, and what they may do', response: MeResult })
   @SignedIn()
   me(@CurrentAccess() access: Access): Promise<MeResult> {
     return this.database.forTenant(access.tenantId, (tx) => this.users.me(tx, access));

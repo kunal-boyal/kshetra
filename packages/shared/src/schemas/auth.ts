@@ -47,6 +47,18 @@ export const OtpVerifyBody = z.strictObject({
 export const WEB_CLIENT_HEADER = 'x-client';
 export const WEB_CLIENT = 'web';
 
+/** `GET /auth/v1/jwks`: the public keys cells check access tokens with (spec 9.3). */
+export const JwksResult = z.object({
+  keys: z.array(
+    z.looseObject({
+      kty: z.string(),
+      kid: z.string(),
+      alg: z.string().optional(),
+      use: z.string().optional(),
+    }),
+  ),
+});
+
 export const Session = z.object({
   tokenType: z.literal('Bearer'),
   accessToken: z.string(),

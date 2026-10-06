@@ -1,13 +1,14 @@
 import { Body, Controller, Get, Patch, Put } from '@nestjs/common';
 import {
-  type TenantSettings,
+  TenantSettings,
   TerminologyOverrides,
-  type TerminologyResult,
+  TerminologyResult,
   UpdateSettingsBody,
 } from '@kshetra/shared';
 import { userActor } from '../../platform/audit';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
+import { Contract } from '../../platform/routes';
 import { TenantConfigService } from './tenant-config.service';
 
 /**
@@ -22,6 +23,12 @@ export class SettingsController {
   ) {}
 
   @Patch('settings')
+  @Contract({
+    tag: 'Settings',
+    summary: "Change the tenant's settings",
+    body: UpdateSettingsBody,
+    response: TenantSettings,
+  })
   @Requires('settings.manage')
   updateSettings(@CurrentAccess() access: Access, @Body() body: unknown): Promise<TenantSettings> {
     const patch = UpdateSettingsBody.parse(body);
@@ -31,6 +38,7 @@ export class SettingsController {
   }
 
   @Get('terminology')
+  @Contract({ tag: 'Settings', summary: "The tenant's own words", response: TerminologyResult })
   @Requires('terminology.manage')
   async terminology(@CurrentAccess() access: Access): Promise<TerminologyResult> {
     const overrides = await this.database.forTenant(access.tenantId, (tx) =>
@@ -40,6 +48,12 @@ export class SettingsController {
   }
 
   @Put('terminology')
+  @Contract({
+    tag: 'Settings',
+    summary: "Replace the tenant's own words",
+    body: TerminologyOverrides,
+    response: TerminologyResult,
+  })
   @Requires('terminology.manage')
   async replaceTerminology(
     @CurrentAccess() access: Access,

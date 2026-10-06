@@ -9,10 +9,18 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { CreateUserBody, UpdateUserBody, UserListQuery } from '@kshetra/shared';
+import {
+  CreateUserBody,
+  IdParams,
+  UpdateUserBody,
+  UserListQuery,
+  UserListResult,
+  UserResult,
+} from '@kshetra/shared';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
+import { Contract } from '../../platform/routes';
 import { pathId } from './actor';
 import { UsersService } from './users.service';
 
@@ -25,6 +33,12 @@ export class UsersController {
   ) {}
 
   @Get()
+  @Contract({
+    tag: 'People',
+    summary: "The users the caller's scope reaches, a page at a time",
+    query: UserListQuery,
+    response: UserListResult,
+  })
   @Requires('user.view')
   list(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = UserListQuery.parse(query);
@@ -32,6 +46,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @Contract({ tag: 'People', summary: 'One user', params: IdParams, response: UserResult })
   @Requires('user.view')
   get(@CurrentAccess() access: Access, @Param('id') id: string) {
     const userId = pathId(id);
@@ -39,6 +54,13 @@ export class UsersController {
   }
 
   @Post()
+  @Contract({
+    tag: 'People',
+    summary: 'Create a user',
+    body: CreateUserBody,
+    response: UserResult,
+    idempotencyKey: true,
+  })
   @Requires('user.manage')
   @HttpCode(201)
   async create(
@@ -63,6 +85,13 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @Contract({
+    tag: 'People',
+    summary: 'Change a user',
+    params: IdParams,
+    body: UpdateUserBody,
+    response: UserResult,
+  })
   @Requires('user.manage')
   update(@CurrentAccess() access: Access, @Param('id') id: string, @Body() body: unknown) {
     const userId = pathId(id);
@@ -73,6 +102,12 @@ export class UsersController {
   }
 
   @Post(':id/reset-device')
+  @Contract({
+    tag: 'People',
+    summary: "Release a user's phone, so another can bind",
+    params: IdParams,
+    idempotencyKey: true,
+  })
   @Requires('user.reset_device')
   @HttpCode(204)
   async resetDevice(
@@ -96,6 +131,12 @@ export class UsersController {
   }
 
   @Post(':id/sign-out-everywhere')
+  @Contract({
+    tag: 'People',
+    summary: "End every one of a user's sessions",
+    params: IdParams,
+    idempotencyKey: true,
+  })
   @Requires('user.sign_out_all')
   @HttpCode(204)
   async signOutEverywhere(

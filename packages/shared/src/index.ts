@@ -26,6 +26,8 @@ export type { AppPlatform } from './app-version';
 export { contrastRatio, HEX_COLOUR } from './colour';
 export { todayIn } from './dates';
 export { AppError, ERROR_HTTP_STATUS, formatPath, isErrorCode, issueAt } from './errors';
+export { ErrorResponse } from './schemas/errors';
+export { HealthResult, IdParams, ReadyResult } from './schemas/common';
 export type { ErrorBody, ErrorCode, ErrorDetail } from './errors';
 export { EVENT_PAYLOADS, EVENT_TYPES, TenantProvisionedPayload, UserEventPayload } from './events';
 export type { EventPayload, EventType } from './events';
@@ -59,6 +61,7 @@ export {
   AccessClaims,
   ChooseTenant,
   DeviceInfo,
+  JwksResult,
   LogoutBody,
   OtpRequestBody,
   OtpRequestResult,

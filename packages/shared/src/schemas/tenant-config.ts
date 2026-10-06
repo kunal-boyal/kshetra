@@ -1,6 +1,6 @@
 import { type CountryCode, isSupportedCountry } from 'libphonenumber-js';
 import { z } from 'zod';
-import { DATA_SCOPES, TENANT_PERMISSIONS } from '../access';
+import { DataScope, Permission } from './common';
 import { contrastRatio, HEX_COLOUR } from '../colour';
 import { TERMINOLOGY_KEYS, type TerminologyKey } from '../terminology';
 import { Key, LOCALES, LocalizedNoun, localizedText, NounForms } from './config';
@@ -167,8 +167,8 @@ export const ConfigBundle = z.object({
   /** What the caller may do: their role, its scope and its permissions (spec 4.2). */
   access: z.object({
     role: Key,
-    scope: z.enum(DATA_SCOPES),
-    permissions: z.array(z.enum(TENANT_PERMISSIONS)),
+    scope: DataScope,
+    permissions: z.array(Permission),
   }),
 });
 

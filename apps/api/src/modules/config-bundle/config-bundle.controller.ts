@@ -1,9 +1,10 @@
 import { Controller, Get, Headers, Res } from '@nestjs/common';
-import { type ConfigBundle, TENANT_PERMISSIONS } from '@kshetra/shared';
+import { ConfigBundle, TENANT_PERMISSIONS } from '@kshetra/shared';
 import { resolveTerminology } from '@kshetra/i18n';
 import type { FastifyReply } from 'fastify';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
+import { Contract } from '../../platform/routes';
 import { DesignationsService } from '../iam/designations.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
@@ -31,6 +32,13 @@ export class ConfigBundleController {
   ) {}
 
   @Get('config')
+  @Contract({
+    tag: 'Configuration',
+    summary: "The caller's config bundle",
+    response: ConfigBundle,
+    headers: [{ name: 'If-None-Match', description: 'The ETag of the bundle the caller holds' }],
+    also: [{ status: 304, description: 'The bundle the caller holds is current' }],
+  })
   @SignedIn()
   async bundle(
     @CurrentAccess() access: Access,

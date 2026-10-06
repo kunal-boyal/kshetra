@@ -1,4 +1,4 @@
-import { type DynamicModule, Module } from '@nestjs/common';
+import { type DynamicModule, Module, type Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import type { Config } from './config';
 import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
@@ -15,23 +15,31 @@ import { Database } from './platform/database';
 import { HEALTH_CHECKS, HealthController, type HealthChecks } from './platform/health.controller';
 import { PlatformModule } from './platform/platform.module';
 import { RedisClient } from './platform/redis';
+import { controllersOf } from './platform/routes';
+
+/** The feature modules. The route registry reads their controllers without starting the app. */
+export const FEATURE_MODULES = [
+  PlanesModule,
+  DirectoryModule,
+  IamModule,
+  TerritoriesModule,
+  TenantConfigModule,
+  ConfigBundleModule,
+  AuditModule,
+  ProvisioningModule,
+];
+
+/** Every controller the API serves: the health checks and each feature module's. */
+export function apiControllers(): Type[] {
+  return [HealthController, ...controllersOf(FEATURE_MODULES)];
+}
 
 @Module({})
 export class AppModule {
   static forRoot(config: Config): DynamicModule {
     return {
       module: AppModule,
-      imports: [
-        PlatformModule.forRoot(config),
-        PlanesModule,
-        DirectoryModule,
-        IamModule,
-        TerritoriesModule,
-        TenantConfigModule,
-        ConfigBundleModule,
-        AuditModule,
-        ProvisioningModule,
-      ],
+      imports: [PlatformModule.forRoot(config), ...FEATURE_MODULES],
       controllers: [HealthController],
       providers: [
         AccessTokens,

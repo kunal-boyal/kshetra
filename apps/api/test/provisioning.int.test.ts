@@ -1,5 +1,5 @@
 import { newId, type ProvisionTenantInput } from '@kshetra/shared';
-import { loadTemplate } from '@kshetra/templates';
+import { loadTemplate, TEMPLATE_KEYS } from '@kshetra/templates';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SEED, seed } from '../src/db/seed';
@@ -101,7 +101,17 @@ describe('provisioning a tenant (spec 5.14)', () => {
   });
 });
 
+/**
+ * Phase 0's exit criteria (spec 15): a user signs in on a phone and on the web into either of two
+ * seeded tenants; the cross-tenant contract test passes (test/cross-tenant.int.test.ts); both
+ * templates validate.
+ */
 describe('the seed and the phase 0 exit check (spec 15)', () => {
+  it('validates both templates', () => {
+    expect(TEMPLATE_KEYS).toEqual(['agri', 'generic']);
+    for (const key of TEMPLATE_KEYS) expect(() => loadTemplate(key)).not.toThrow();
+  });
+
   it('seeds two tenants once, and running it again changes nothing', async () => {
     const first = await seed(app);
     expect(first.created.sort()).toEqual(['harit', 'sunrise']);

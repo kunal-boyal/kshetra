@@ -19,6 +19,7 @@
     "db:migrate": "pnpm --filter @kshetra/api db:migrate",
     "db:seed": "pnpm --filter @kshetra/api db:seed",
     "provision": "pnpm --filter @kshetra/api provision",
+    "openapi": "pnpm --filter @kshetra/api openapi",
     "tokens": "pnpm --filter @kshetra/tokens-tool build",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
