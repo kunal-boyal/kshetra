@@ -1,17 +1,15 @@
 import { newId } from '@kshetra/shared';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
-import { loadConfig } from '../src/config';
 import type { StoredResponse } from '../src/db/schema';
 import { Database } from '../src/platform/database';
 import { idempotent } from '../src/platform/idempotency';
+import { testConfig } from './support';
 
 const urls = inject('databaseUrls');
 let database: Database;
 
 beforeAll(() => {
-  database = new Database(
-    loadConfig({ NODE_ENV: 'test', DATABASE_URL: urls.cellApp, DB_POOL_MAX: '4' }),
-  );
+  database = new Database(testConfig({ DATABASE_URL: urls.cellApp, DB_POOL_MAX: '4' }));
 });
 
 afterAll(() => database.onModuleDestroy());

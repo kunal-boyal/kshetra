@@ -976,7 +976,7 @@ In phases 0–2 the directory runs as a module inside the same deployable, with 
 ```text
 kshetra/
 ├── apps/
-│   ├── api/                # NestJS. Entrypoints: main.ts (HTTP), worker.ts, scheduler.ts, migrate.ts
+│   ├── api/                # NestJS. Entrypoints: main.ts (HTTP), worker.ts, scheduler.ts, migrate.ts, provision.ts, seed.ts
 │   │   ├── src/modules/    # one folder per module (9.6)
 │   │   ├── src/platform/   # auth guard, tenant context and RLS session, idempotency, errors, outbox, audit
 │   │   ├── src/db/         # schema per module, migrations, seed (refuses non-local databases)
@@ -998,7 +998,7 @@ kshetra/
 ├── infra/terraform/
 │   ├── modules/            # network, directory, cell, web-hosting, observability, dns
 │   └── envs/               # dev, staging, prod, dedicated-<customer>
-├── tools/                  # tenant provisioning CLI, k6 load tests, data generators
+├── tools/                  # k6 load tests, data generators
 ├── docs/                   # decisions.md, versions.md, runbooks/, this specification
 ├── docker-compose.yml      # PostgreSQL with PostGIS, Redis, MinIO, Mailpit
 └── CLAUDE.md
@@ -1127,7 +1127,8 @@ tenants(id, slug UQ, name, status enum(trial,active,grace,read_only,suspended,te
         plan_id, template_key, template_version, created_at)
 cells(id, name, region, api_base_url, kind enum(shared,dedicated), status, capacity_users)
 identities(id, phone_e164 UQ, email UQ NULL, created_at, last_login_at)
-memberships(id, identity_id, tenant_id, user_id, status, auth_revision)      UQ(identity_id, tenant_id)
+memberships(id, identity_id, tenant_id, user_id, status, auth_revision)
+            UQ(tenant_id, user_id) · UQ(identity_id, tenant_id) WHERE status = 'active'
 otp_challenges(id, identity_key, code_hmac, channel, attempts, expires_at, consumed_at, ip, created_at)
 refresh_tokens(id, membership_id, device_id NULL, token_hash UQ, family_id, auth_revision,
                expires_at, revoked_at, created_at)                            IX(family_id)
@@ -1147,15 +1148,15 @@ tenant_settings(tid PK, settings jsonb, config_version bigint, updated_at, updat
 terminology_overrides(tid, key, locale, value)                               PK(tid, key, locale)
 tenant_modules(tid, module, enabled)                                         PK(tid, module)
 review_rules(tid PK, rules jsonb, updated_by, updated_at)
-designations(id, tid, name jsonb, level, default_role_id, can_have_reports, ranked)
-roles(id, tid, key, name, permissions text[], scope enum, system bool)       UQ(tid, key)
+designations(id, tid, key, name jsonb, level, default_role_id, can_have_reports, ranked)  UQ(tid, key)
+roles(id, tid, key, name, permissions text[], scope enum, mobile_only, system bool)  UQ(tid, key)
 users(id, tid, code, name, phone_e164, email, designation_id, role_id, manager_id NULL, calendar_id,
       joining_date, exit_date, status enum(active,inactive), auth_revision, custom jsonb, row_version)
       UQ(tid, code) · UQ(tid, phone_e164) · IX(tid, manager_id)
 reporting_closure(tid, ancestor_id, descendant_id, depth)                    PK(tid, ancestor_id, descendant_id)
-devices(id, tid, user_id, device_key, platform enum(android,ios,web), model, os_version, app_version,
+devices(id, tid, user_id, device_key_hash, platform enum(android,ios,web), model, os_version, app_version,
         push_token, integrity_verdict, health jsonb, bound_at, last_seen_at, revoked_at)
-territory_levels(tid, level, name jsonb)                                     PK(tid, level)
+territory_levels(tid, level, key, name jsonb)                                PK(tid, level) · UQ(tid, key)
 territories(id, tid, level, parent_id, code, name, owner_user_id, active, row_version)  UQ(tid, code)
 territory_closure(tid, ancestor_id, descendant_id, depth)
 user_territories(tid, user_id, territory_id, valid_from, valid_to)
@@ -1278,8 +1279,9 @@ export_jobs(id, tid, kind, params jsonb, status, file_media_id NULL, error, requ
 api_clients(id, tid, name, client_id UQ, secret_hash, scopes text[], status, last_used_at)
 webhook_subscriptions(id, tid, url, events text[], secret_encrypted, status)
 webhook_deliveries(id, tid, subscription_id, event_id, attempt, status, response_code, created_at)  PART monthly
-outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, dispatched_at NULL)
-       IX(created_at) WHERE dispatched_at IS NULL
+outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, attempts, next_attempt_at, last_error NULL,
+       dispatched_at NULL)
+       IX(next_attempt_at) WHERE dispatched_at IS NULL
 idempotency_keys(tid, key, request_hash, response jsonb, created_at)       PK(tid, key) · purged after 7 days
 sync_tombstones(tid, entity, entity_id, row_version)
 audit_log(id, tid, actor_id, actor_kind enum(user,platform,system,api_client), action, target_type, target_id,
@@ -1325,10 +1327,10 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 
 | Group | Representative endpoints |
 |---|---|
-| Auth (directory) | `POST /auth/v1/otp/request`, `POST /auth/v1/otp/verify`, `POST /auth/v1/token/refresh`, `POST /auth/v1/logout`, `POST /auth/v1/switch-tenant`, `POST /auth/v1/totp/verify`, `GET /auth/v1/sso/:tenant/start` |
-| Me and config | `GET /v1/me`, `GET /v1/config` (settings, terminology, modules, effective permissions, current form versions, account types, metrics; ETag), `POST /v1/devices/heartbeat`, `PUT /v1/devices/push-token` |
+| Auth (directory) | `POST /auth/v1/otp/request`, `POST /auth/v1/otp/verify`, `POST /auth/v1/select-tenant`, `POST /auth/v1/token/refresh`, `POST /auth/v1/logout`, `POST /auth/v1/switch-tenant`, `GET /auth/v1/jwks`, `POST /auth/v1/totp/verify`, `GET /auth/v1/sso/:tenant/start` |
+| Me and config | `GET /v1/me`, `GET /v1/config` (settings, terminology, modules, effective permissions, current form versions, account types, metrics; ETag), `PATCH /v1/settings`, `GET /v1/terminology`, `PUT /v1/terminology`, `POST /v1/devices/heartbeat`, `PUT /v1/devices/push-token` |
 | Sync | `GET /v1/sync/pull?entities=...&cursor=...` |
-| People | `GET /v1/users`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/roles`, `POST /v1/roles`, `GET /v1/designations`, `POST /v1/designations` |
+| People | `GET /v1/users`, `GET /v1/users/:id`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/roles`, `POST /v1/roles`, `PATCH /v1/roles/:id`, `GET /v1/designations`, `POST /v1/designations`, `PATCH /v1/designations/:id` |
 | Territories | `GET /v1/territories`, `POST /v1/territories`, `PATCH /v1/territories/:id` |
 | Accounts | `GET /v1/accounts`, `POST /v1/accounts`, `PATCH /v1/accounts/:id`, `GET /v1/accounts/:id/overview`, `POST /v1/accounts/:id/location-proposals`, `GET /v1/account-types`, `POST /v1/account-types/:id/versions` |
 | Forms | `GET /v1/forms`, `POST /v1/forms`, `POST /v1/forms/:id/versions` (publish) |
@@ -2070,6 +2072,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | Variable | Purpose |
 |---|---|
 | `NODE_ENV`, `PORT`, `CELL_ID`, `PRODUCT_SLUG` | Runtime basics |
+| `CELL_API_URL`, `CELL_REGION` | Where apps reach this cell, as the directory hands it out at sign-in, and its region |
 | `DATABASE_URL`, `DATABASE_REPLICA_URL`, `DATABASE_MIGRATOR_URL`, `DB_POOL_MAX` | Application role, read replica, migration role, pool size |
 | `DIRECTORY_DATABASE_URL` | Directory schema connection, used by the directory module only |
 | `REDIS_URL` | TLS URL in cloud environments |

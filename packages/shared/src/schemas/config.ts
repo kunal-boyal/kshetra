@@ -39,13 +39,16 @@ export function localizedText(max: number) {
 /** A label, an option or a short name, in every launch language. */
 export const LocalizedText = localizedText(120).meta({ id: 'LocalizedText' });
 
-const noun = z.strictObject({ one: phrase(60), other: phrase(60) });
+/** A noun's singular and plural, as `Intl.PluralRules` names them: "1 visit", "3 visits". */
+export const NounForms = z.strictObject({ one: phrase(60), other: phrase(60) });
 
 /**
  * A noun in every launch language. Its forms are named after the plural categories of
  * `Intl.PluralRules`, so a count picks the right one: "1 visit", "3 visits".
  */
-export const LocalizedNoun = z.strictObject({ en: noun, hi: noun }).meta({ id: 'LocalizedNoun' });
+export const LocalizedNoun = z
+  .strictObject({ en: NounForms, hi: NounForms })
+  .meta({ id: 'LocalizedNoun' });
 
 /**
  * An amount of money as a decimal string with at most two decimals, such as `"1250.50"`. Money

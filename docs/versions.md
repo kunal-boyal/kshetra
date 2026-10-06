@@ -23,6 +23,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | Package | Version | Used by |
 |---|---|---|
 | uuid | 14.0.2 | `packages/shared`, for UUID v7 ids |
+| libphonenumber-js | 1.13.14 | `packages/shared`, for E.164 phone numbers |
 | zod | 4.6.5 | Validation: the API's config and requests, and the configuration schemas in `packages/shared`, `forms`, `metrics` and `templates` |
 | ajv | 8.20.0 | `packages/templates` tests, which check each template against the generated `schema.json` |
 
@@ -37,7 +38,9 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | drizzle-kit | 0.31.11 | Generates migrations (`pnpm --filter @kshetra/api db:generate`) |
 | pg | 8.23.1 | The PostgreSQL driver, with @types/pg 8.23.1 |
 | tsdown | 0.23.0 | Bundles the API and its workspace packages |
-| testcontainers, @testcontainers/postgresql | 12.2.0 | Integration tests against `infra/docker/postgres` |
+| testcontainers, @testcontainers/postgresql, @testcontainers/redis | 12.2.0 | Integration tests against `infra/docker/postgres` and Redis |
+| jose | 6.2.12 | ES256 access tokens and the JWKS (decision D29) |
+| ioredis | 6.0.0 | The Redis client: sign-in rate limits and tickets now, BullMQ queues later |
 | @types/node | 24.19.1 | Matches the Node 24 runtime, not the newest 26.x |
 
 ## Install scripts

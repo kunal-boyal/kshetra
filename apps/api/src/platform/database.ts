@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import type { Config } from '../config';
-import * as schema from '../db/schema';
+import * as schema from '../db/schema/platform';
 import { CONFIG } from './tokens';
 
 export type Db = NodePgDatabase<typeof schema>;
@@ -15,6 +15,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 @Injectable()
 export class Database implements OnModuleDestroy {
   private readonly logger = new Logger(Database.name);
+  private readonly afterCommitTasks = new WeakMap<TenantTx, (() => Promise<void>)[]>();
   readonly pool: pg.Pool;
   readonly db: Db;
 
@@ -42,10 +43,31 @@ export class Database implements OnModuleDestroy {
     if (!UUID.test(tenantId)) {
       throw new Error('A tenant ID must be a UUID.');
     }
-    return this.db.transaction(async (tx) => {
+    const committed: (() => Promise<void>)[] = [];
+    const result = await this.db.transaction(async (tx) => {
+      this.afterCommitTasks.set(tx, committed);
       await tx.execute(sql`select set_config('app.tenant_id', ${tenantId}, true)`);
       return work(tx);
     });
+    for (const task of committed) {
+      try {
+        await task();
+      } catch (error) {
+        this.logger.error(`A task after commit failed: ${(error as Error).message}`);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Runs `task` once the transaction commits, and never if it rolls back. The change is committed
+   * by then, so a failing task is logged rather than thrown; whatever it does must be retried by
+   * something else, as the outbox relay does for events.
+   */
+  afterCommit(tx: TenantTx, task: () => Promise<void>): void {
+    const tasks = this.afterCommitTasks.get(tx);
+    if (!tasks) throw new Error('afterCommit needs the transaction Database.forTenant opened.');
+    tasks.push(task);
   }
 
   /** For readiness: can the API reach the database at all? */

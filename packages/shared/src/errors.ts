@@ -65,12 +65,20 @@ export interface ErrorBody {
 export class AppError extends Error {
   readonly code: ErrorCode;
   readonly details: ErrorDetail[] | undefined;
+  /** For `RATE_LIMITED`: how long to wait, sent as the `Retry-After` header (spec 11.4). */
+  readonly retryAfterSeconds: number | undefined;
 
-  constructor(code: ErrorCode, message: string, details?: ErrorDetail[]) {
+  constructor(
+    code: ErrorCode,
+    message: string,
+    details?: ErrorDetail[],
+    options: { retryAfterSeconds?: number } = {},
+  ) {
     super(message);
     this.name = 'AppError';
     this.code = code;
     this.details = details;
+    this.retryAfterSeconds = options.retryAfterSeconds;
   }
 
   get status(): number {

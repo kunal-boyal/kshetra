@@ -2,9 +2,9 @@ import { newId } from '@kshetra/shared';
 import { eq } from 'drizzle-orm';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
-import { loadConfig } from '../src/config';
 import { idempotencyKeys } from '../src/db/schema';
 import { Database } from '../src/platform/database';
+import { testConfig } from './support';
 
 const urls = inject('databaseUrls');
 
@@ -35,9 +35,7 @@ describe('row-level security (spec 9.5)', () => {
   let database: Database;
 
   beforeAll(async () => {
-    database = new Database(
-      loadConfig({ NODE_ENV: 'test', DATABASE_URL: urls.cellApp, DB_POOL_MAX: '1' }),
-    );
+    database = new Database(testConfig({ DATABASE_URL: urls.cellApp, DB_POOL_MAX: '1' }));
     await database.forTenant(tenantA, (tx) =>
       tx.insert(idempotencyKeys).values({ tenantId: tenantA, key: 'same-key', requestHash: 'a' }),
     );

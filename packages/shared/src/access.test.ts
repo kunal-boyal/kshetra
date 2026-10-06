@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canGrant,
+  DATA_SCOPES,
   PERMISSIONS_BY_AREA,
   PLATFORM_PERMISSIONS,
+  scopeContains,
   SYSTEM_ROLES,
   TENANT_PERMISSIONS,
 } from './access';
@@ -36,5 +39,47 @@ describe('the permission catalogue (spec Appendix E)', () => {
       'back_office',
       'viewer',
     ]);
+  });
+});
+
+describe('scopes', () => {
+  it('each reach the user, and the wider ones reach the narrower', () => {
+    for (const scope of DATA_SCOPES) {
+      expect(scopeContains(scope, 'self')).toBe(true);
+      expect(scopeContains('tenant', scope)).toBe(true);
+    }
+    expect(scopeContains('team_or_territory', 'team')).toBe(true);
+    expect(scopeContains('team_or_territory', 'territory')).toBe(true);
+    expect(scopeContains('team', 'territory')).toBe(false);
+    expect(scopeContains('territory', 'team')).toBe(false);
+    expect(scopeContains('team', 'tenant')).toBe(false);
+    expect(scopeContains('self', 'team')).toBe(false);
+  });
+});
+
+describe('granting a role', () => {
+  const admin = { permissions: TENANT_PERMISSIONS, scope: 'tenant' as const };
+  const head = {
+    permissions: TENANT_PERMISSIONS.filter((p) => p !== 'billing.manage'),
+    scope: 'tenant' as const,
+  };
+  const manager = { permissions: ['user.view', 'user.reset_device'], scope: 'team' as const };
+
+  it('lets an admin grant anything', () => {
+    expect(canGrant(admin, admin)).toBe(true);
+    expect(canGrant(admin, manager)).toBe(true);
+  });
+
+  it('refuses a permission the granter lacks', () => {
+    expect(canGrant(head, admin)).toBe(false);
+    expect(canGrant(head, head)).toBe(true);
+    expect(canGrant(manager, { permissions: ['user.manage'], scope: 'self' })).toBe(false);
+  });
+
+  it('refuses a scope wider than the granter reaches', () => {
+    expect(canGrant(manager, { permissions: ['user.view'], scope: 'team' })).toBe(true);
+    expect(canGrant(manager, { permissions: ['user.view'], scope: 'self' })).toBe(true);
+    expect(canGrant(manager, { permissions: ['user.view'], scope: 'tenant' })).toBe(false);
+    expect(canGrant(manager, { permissions: ['user.view'], scope: 'territory' })).toBe(false);
   });
 });

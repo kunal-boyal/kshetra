@@ -2,13 +2,14 @@
 
 This file tracks where the build stands against the delivery phases in spec section 15. Update it in the same pull request as every step, so it never drifts from the code.
 
-Last updated: 2026-10-05
+Last updated: 2026-10-06
 
 ## Now
 
-- **Phase 0, step 3** (the templates package) merged as [kunal-boyal/kshetra#3](https://github.com/kunal-boyal/kshetra/pull/3). Both templates validate, which meets the third exit criterion of phase 0.
-- **Design system v2** (soft and pastel, decision D28) is committed on `design/soft-pastel`, waiting to merge.
-- **Next:** Phase 0, step 4, the directory module: OTP sign-in and tokens.
+- **Phase 0, steps 4 to 8** are merged: sign-in (#5), people and access (#6), configuration and languages (#7), the audit log and outbox (#8), and provisioning with the seed (#9). The first exit criterion holds for the API: on the seeded tenants, a person signs in on the web into either tenant, and a field user signs in on a phone.
+- **Design system v2** (soft and pastel, decision D28) is merged with #4.
+- **Next:** Phase 0, step 9: the web shell with sign-in.
+- **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
 ## Phase 0: Foundation
@@ -27,12 +28,12 @@ Each step is its own pull request. The order follows dependencies.
 | 1 | Monorepo, CI, local services, `CLAUDE.md` | Done | #1 |
 | 2 | API and database foundation: `apps/api` (NestJS), migrations, database roles, tenant context with row-level security, error codes, idempotency | Done | #2 |
 | 3 | Templates package: schema, validator, and the generic and agri templates; form and metric definitions in `packages/forms` and `packages/metrics` | Done | #3 |
-| 4 | Directory module: OTP sign-in, tokens (ES256, JWKS), refresh, tenant switching, device binding (D15) | Next | |
-| 5 | IAM: roles, data scopes, designations, closure tables | To do | |
-| 6 | Config bundle, terminology resolver, i18n in English and Hindi | To do | |
-| 7 | Audit log and outbox | To do | |
-| 8 | Provisioning CLI, and a seed with two tenants on different templates | To do | |
-| 9 | Web shell with sign-in: `apps/web`, `packages/ui-web`, the token build step | To do | |
+| 4 | Directory module: OTP sign-in, ES256 tokens and the JWKS, refresh rotation, choosing and switching tenants (D29) | Done | #5 |
+| 5 | IAM: users, roles, data scopes, designations, closure tables, devices and device binding (D15, D30) | Done | #6 |
+| 6 | Config bundle, terminology resolver, i18n in English and Hindi; the tenant settings that step 5 waits on: the device-binding switch, the timezone and the default country (D31) | Done | #7 |
+| 7 | Audit log and outbox (D32) | Done | #8 |
+| 8 | Provisioning command, and a seed with two tenants on different templates (D33) | Done | #9 |
+| 9 | Web shell with sign-in: `apps/web`, `packages/ui-web`, the token build step | Next | |
 | 10 | Mobile shell with sign-in: `apps/mobile` (Expo), `packages/ui-mobile`. Needs an Expo account. | To do | |
 | 11 | Cross-tenant contract test over every route, and the phase 0 exit check | To do | |
 
@@ -40,7 +41,12 @@ Each step is its own pull request. The order follows dependencies.
 
 | Date | What | Where |
 |---|---|---|
-| 2026-10-05 | Design system v2, soft and pastel: a pastel palette, rounder shapes, soft shadows, icon chips, and motion tokens and patterns | `packages/design-tokens`, artifact version 10, decision D28 |
+| 2026-10-06 | Design system v2, soft and pastel: a pastel palette, rounder shapes, soft shadows, icon chips, and motion tokens and patterns | PR #4, `packages/design-tokens`, artifact version 10, decision D28 |
+| 2026-10-06 | Phase 0 step 8: the provisioning command, and a seed of two tenants on different templates (decision D33) | PR #9, merged as `b6f6b28` |
+| 2026-10-06 | Phase 0 step 7: the audit log, the outbox and its relay (decision D32) | PR #8, merged as `dbfb92f` |
+| 2026-10-06 | Phase 0 step 6: the config bundle, tenant settings, terminology, and English and Hindi strings (decision D31) | PR #7, merged as `57e4102` |
+| 2026-10-06 | Phase 0 step 5: users, roles, scopes, designations and device binding (decision D30) | PR #6, merged as `cfc8ee3` |
+| 2026-10-06 | Phase 0 step 4: sign-in with one-time codes, tokens and sessions (decision D29) | PR #5, merged as `bace236` |
 | 2026-10-05 | Phase 0 step 3: templates package, with form and metric definitions (decisions D25–D27) | PR #3, merged as `98a11b7` |
 | 2026-10-05 | Phase 0 step 2: the API, database roles, row-level security, error codes and idempotency (decisions D22–D24) | PR #2, merged as `033d3f1` |
 | 2026-10-05 | Clickable prototype: 5 field-app screens and 4 manager-portal pages | claude.ai artifact |
@@ -53,6 +59,7 @@ Each step is its own pull request. The order follows dependencies.
 | Item | Who | Needed by |
 |---|---|---|
 | Turborepo's `AGENTS.md`: commit it, or switch it off with `"agentGuidance": false` | Kunal | Any time |
+| Confirm decisions D29 to D33, merged with #5 to #9; D30's access rules most of all: nobody resets their own device or changes their own role or status, and nobody grants access they don't hold | Kunal | Before the pilot |
 | D1: product name, domain and the legal entity that publishes the apps | Kunal | Before DLT registration and store listings |
 | D2: name the pilot customer (agri inputs) | Kunal | Phase 1 |
 | D3: seat prices and plan contents | Kunal | Before phase 3 |
@@ -61,7 +68,7 @@ Each step is its own pull request. The order follows dependencies.
 | Outdoor theme field test, on two Android brands in midday sun (D19) | Team | Before onboarding suggests Outdoor |
 | Review the soft pastel design system (D28): the hues, how round, and how fast the motion is | Kunal | Before the web shell, step 9 |
 | Confirm the template starting points: default role permissions (D26), leave types, and the agri expense rates (D27) | Kunal | Before the pilot |
-| Have a native speaker review the Hindi text in both templates | Kunal | Before the pilot |
+| Have a native speaker review the Hindi text in both templates and in `packages/i18n` | Kunal | Before the pilot |
 | The agri forms pick products from the catalogue, which spec 15 schedules for phase 2. Bring the item import (without prices) into phase 1, or the pilot can't fill those fields. | Kunal | Phase 1 planning |
 
 ## Later phases (spec section 15)

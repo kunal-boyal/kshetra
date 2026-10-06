@@ -22,7 +22,8 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm db:migrate` | applies migrations as the `migrator` role | now |
 | `pnpm --filter @kshetra/api db:generate` | writes a migration for a schema change | now |
 | `pnpm --filter @kshetra/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
-| `pnpm db:seed` | seeds fictional data and refuses non-local databases | with provisioning, step 8 |
+| `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
+| `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin | now |
 | `pnpm openapi` | regenerates the OpenAPI document and the typed client | with the first `/v1` endpoints |
 
 Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
@@ -42,8 +43,11 @@ cp .env.example .env
 docker compose up -d
 pnpm db:bootstrap
 pnpm db:migrate
+pnpm db:seed
 pnpm dev
 ```
+
+The seed prints who can sign in. One person belongs to both seeded tenants, so choosing a tenant after the code can be tried.
 
 Workspace packages are consumed as TypeScript source (`exports` points at `src/index.ts`), so they need no build step. Shared tool versions live once, in the `catalog` of `pnpm-workspace.yaml`. TypeScript stays on 6.0 until typescript-eslint supports 7; see `docs/versions.md`.
 
@@ -83,10 +87,34 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 - **Roles:** `migrator` owns the schemas and runs migrations. The API connects as `cell_app`, which can't bypass row-level security. `directory_app` is the only role allowed into the `directory` schema.
 - **Tenant data:** reach it only through `Database.forTenant(tenantId, (tx) => …)` in `apps/api/src/platform/database.ts`. It sets `app.tenant_id` for one transaction. Still filter by `tenant_id` in every query.
-- **New tenant tables:** put them in the `cell` schema with `tenant_id`, `.enableRLS()` and the `tenant_isolation` policy, as `apps/api/src/db/schema.ts` shows. `test/database.int.test.ts` fails for any `cell` table without them.
-- **Schema changes:** edit `schema.ts`, run `db:generate`, and review the SQL before committing. Grants, and anything else Drizzle can't express, go in a migration made with `drizzle-kit generate --custom`.
+- **New tenant tables:** put them in the `cell` schema with `tenant_id`, `.enableRLS()` and the `isolation()` policy, as `apps/api/src/db/schema/iam.ts` shows. `test/database.int.test.ts` fails for any `cell` table without them. Primary keys start with `tenant_id` (`(tenant_id, id)`), and references carry it too, so a row can't point into another tenant (decision D30). Syncable tables take `rowVersionColumn()` and a `next_row_version` trigger.
+- **Schema changes:** edit the files in `apps/api/src/db/schema/`, run `db:generate`, and review the SQL before committing. Grants, triggers and anything else Drizzle can't express go in a migration made with `drizzle-kit generate --custom`.
 - **Idempotent creates:** use `idempotent()` from `src/platform/idempotency.ts` (BR-46).
 - **Errors:** throw `AppError` from `@kshetra/shared` with a spec 11.4 code; the global filter writes the spec 11.1 format.
+
+## Sign-in and access (decisions D29 and D30)
+
+- Sign-in lives in `apps/api/src/modules/directory`. Only that module touches the directory schema, through `DirectoryDatabase` as `directory_app`. The directory and the cell reach each other only through the seams in `apps/api/src/platform/planes.ts`: the cell admits each sign-in and binds the phone, and tells the directory whenever a user's sign-in facts change.
+- Every route declares who may call it: `@Public()` (health checks and sign-in only), `@SignedIn()`, `@Requires(...)` or `@RequiresAny(...)`, with permissions from spec Appendix E. A route that declares nothing is refused, and `test/iam.int.test.ts` fails. Handlers read the caller with `@CurrentAccess()`.
+- The global `AuthGuard` checks the token. IAM then checks, on every request, that the tenant, user and device are still active at the token's auth revision.
+- Filter records by the caller's data scope with `Scopes` from the IAM module. A record outside the scope answers `OUT_OF_SCOPE`; another tenant's record answers `NOT_FOUND`.
+- Nobody gives access they don't hold (`canGrant` in `@kshetra/shared`), and nobody acts on their own record where a rule forbids it, such as resetting their own device.
+- Never log phone numbers, one-time codes or tokens. A message that must name a number uses `maskPhone()`.
+- Integration tests use `test/support.ts`: `startApp()`, `testConfig()`, and `World`. `World` makes tenants from a template and users through the app's own services, and signs people in on the web, or on a phone with `newDevice()`. Fresh numbers and addresses keep tests from sharing rate limits. `OTP_PROVIDER=memory` keeps codes for tests.
+
+## Configuration bundle and text (decision D31)
+
+- Strings live in `packages/i18n/src/messages/en.ts` and `hi.ts` under stable keys. Add both languages in the same change. A message names a term through a placeholder such as `{term.account:lower}`, never as a word; plural messages carry `one` and `other`.
+- Format numbers, money and dates with `formatNumber`, `formatMoney`, `formatDate` and `formatDateTime` from `@kshetra/i18n`. A tenant's "today" is `todayIn(settings.timezone)` from `@kshetra/shared`.
+- Tenant settings are `TenantSettings` in `@kshetra/shared`, with `SETTING_DEFAULTS`; read them with `TenantConfigService.settings()`. A new setting needs a default, and settings are never renamed.
+- Anything the config bundle holds moves the config version: call `TenantConfigService.touch()` in the same transaction as the change.
+
+## Audit and events (decision D32)
+
+- Every change writes an audit entry with `AuditLog.record()` in the same transaction: the action from `AUDIT_ACTIONS` in `@kshetra/shared`, the target, and the values before and after. `userActor(access)` names the caller; `SYSTEM_ACTOR` names provisioning.
+- Publish a domain event with `Outbox.publish()` in the same transaction as the change; it is delivered once the transaction commits, and retried by the relay if a consumer fails. Add event types and payloads to `packages/shared/src/events.ts`.
+- Consumers registered with `Outbox.consume()` must be idempotent: delivery is at least once.
+- Work that must wait for a commit goes through `Database.afterCommit()`.
 
 ## Configuration and templates
 

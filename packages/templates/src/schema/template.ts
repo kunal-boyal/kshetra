@@ -2,12 +2,10 @@ import { CustomField, FormDefinition } from '@kshetra/forms';
 import { MetricDefinition, ScoreDefinition } from '@kshetra/metrics';
 import {
   Key,
-  LocalizedNoun,
   LocalizedText,
   localizedText,
   SYSTEM_ROLES,
-  TERMINOLOGY_KEYS,
-  type TerminologyKey,
+  TerminologyOverrides,
 } from '@kshetra/shared';
 import { z } from 'zod';
 import { AccountType } from './account-types';
@@ -17,25 +15,8 @@ import { Designation, GeographyLevel, Role } from './organisation';
 import { People } from './people';
 import { Workflows } from './workflows';
 
-const TermLabel = localizedText(40);
-
-type TerminologyShape = {
-  [K in TerminologyKey]: z.ZodOptional<
-    (typeof TERMINOLOGY_KEYS)[K] extends 'noun' ? typeof LocalizedNoun : typeof TermLabel
-  >;
-};
-
 /** Overrides of the product's words (spec 5.2). Leave a key out to keep the default. */
-export const Terminology = z
-  .strictObject(
-    Object.fromEntries(
-      Object.entries(TERMINOLOGY_KEYS).map(([key, kind]) => [
-        key,
-        (kind === 'noun' ? LocalizedNoun : TermLabel).optional(),
-      ]),
-    ) as TerminologyShape,
-  )
-  .meta({ id: 'Terminology' });
+export const Terminology = TerminologyOverrides;
 
 /**
  * An industry template: a tenant's starting configuration, applied once when the tenant is

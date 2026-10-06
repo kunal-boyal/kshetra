@@ -5,6 +5,15 @@ import { z } from 'zod';
 import { toErrorResponse } from './errors';
 
 describe('toErrorResponse', () => {
+  it('sends Retry-After with a rate-limit error', () => {
+    const error = new AppError('RATE_LIMITED', 'Too many attempts.', undefined, {
+      retryAfterSeconds: 42,
+    });
+    const response = toErrorResponse(error, 'req-9');
+    expect(response.status).toBe(429);
+    expect(response.headers).toEqual({ 'retry-after': '42' });
+  });
+
   it('keeps an AppError code, message and details', () => {
     const error = new AppError('PRICE_CHANGED', 'The price changed.', [
       { path: 'lines[0].price', issue: 'Was 120.00' },

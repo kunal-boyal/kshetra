@@ -1,0 +1,50 @@
+import { Injectable, Module } from '@nestjs/common';
+import type { Config } from '../../config';
+import { TokenKeys } from '../../platform/auth';
+import { CONFIG } from '../../platform/tokens';
+import { AuthController } from './auth.controller';
+import { DirectoryDatabase } from './directory.database';
+import { DirectoryMembers } from './members';
+import { OtpService } from './otp.service';
+import { ConsoleOtpSender, MemoryOtpSender, OtpSender } from './otp-sender';
+import { SessionsService } from './sessions.service';
+import { SigningKey } from './signing-key';
+import { DirectoryTenants } from './tenants';
+
+/** For readiness checks: the directory's database, without exposing the connection itself. */
+@Injectable()
+export class DirectoryHealth {
+  constructor(private readonly database: DirectoryDatabase) {}
+
+  ping(): Promise<boolean> {
+    return this.database.ping();
+  }
+}
+
+/**
+ * The directory plane (spec 9.3, 9.6): identities, memberships, the tenant registry and cells,
+ * one-time codes and sessions. It runs inside the API until a second cell exists; until then no
+ * other module touches its schema. Cells reach it through the seams in `platform/planes.ts`, and
+ * it asks a cell to admit each sign-in through the same seams.
+ */
+@Module({
+  controllers: [AuthController],
+  providers: [
+    DirectoryDatabase,
+    DirectoryHealth,
+    SigningKey,
+    { provide: TokenKeys, useExisting: SigningKey },
+    {
+      provide: OtpSender,
+      inject: [CONFIG],
+      useFactory: (config: Config) =>
+        config.OTP_PROVIDER === 'memory' ? new MemoryOtpSender() : new ConsoleOtpSender(),
+    },
+    OtpService,
+    SessionsService,
+    DirectoryMembers,
+    DirectoryTenants,
+  ],
+  exports: [TokenKeys, DirectoryHealth, OtpSender, DirectoryMembers, DirectoryTenants],
+})
+export class DirectoryModule {}

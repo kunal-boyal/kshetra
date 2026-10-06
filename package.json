@@ -16,6 +16,8 @@
     "test:int": "turbo run test:int",
     "db:bootstrap": "pnpm --filter @kshetra/api db:bootstrap",
     "db:migrate": "pnpm --filter @kshetra/api db:migrate",
+    "db:seed": "pnpm --filter @kshetra/api db:seed",
+    "provision": "pnpm --filter @kshetra/api provision",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
