@@ -52,7 +52,7 @@ export abstract class AccessResolver {
   abstract resolve(auth: AuthContext): Promise<Access>;
 }
 
-type AccessRule =
+export type AccessRule =
   | { kind: 'public' }
   | { kind: 'signed_in' }
   | { kind: 'all' | 'any'; permissions: readonly TenantPermission[] };
@@ -84,6 +84,12 @@ export function accessRule(
   targets: Parameters<Reflector['getAllAndOverride']>[1],
 ): AccessRule | undefined {
   return reflector.getAllAndOverride<AccessRule | undefined>(ACCESS_RULE, targets);
+}
+
+/** The rule a handler declares, or else its controller's, read without a running app. */
+export function accessRuleOf(handler: object, controller: object): AccessRule | undefined {
+  return (Reflect.getMetadata(ACCESS_RULE, handler) ??
+    Reflect.getMetadata(ACCESS_RULE, controller)) as AccessRule | undefined;
 }
 
 /** The caller of a route that is not public. */

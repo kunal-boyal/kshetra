@@ -990,7 +990,7 @@ kshetra/
 │   ├── metrics/            # metric-definition schema and calculators
 │   ├── i18n/               # string tables, terminology resolver, formatters
 │   ├── templates/          # industry templates (JSON), schema, validator, loader
-│   ├── api-client/         # typed client: sessions and refresh, with route calls generated from the OpenAPI document
+│   ├── api-client/         # typed client on the shared zod schemas: sessions, refresh and route calls
 │   ├── design-tokens/      # design system: tokens.json (source) with generated CSS, TypeScript and ECharts theme; brand book and component guides
 │   ├── ui-web/             # shared web components (React over the design system's reference CSS, Radix primitives where needed)
 │   ├── ui-mobile/          # shared mobile components (React Native primitives and field patterns on design-tokens)

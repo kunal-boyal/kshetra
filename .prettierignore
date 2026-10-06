@@ -15,3 +15,6 @@ packages/templates/schema.json
 # Expo writes these while it runs; they are git-ignored.
 **/.expo/
 apps/mobile/expo-env.d.ts
+
+# Written by `pnpm openapi` from the route registry.
+apps/api/openapi.json

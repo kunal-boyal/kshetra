@@ -1,8 +1,15 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Patch, Post } from '@nestjs/common';
-import { CreateRoleBody, type RoleListResult, UpdateRoleBody } from '@kshetra/shared';
+import {
+  CreateRoleBody,
+  IdParams,
+  RoleListResult,
+  RoleResult,
+  UpdateRoleBody,
+} from '@kshetra/shared';
 import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
+import { Contract } from '../../platform/routes';
 import { pathId } from './actor';
 import { RolesService } from './roles.service';
 
@@ -15,6 +22,7 @@ export class RolesController {
   ) {}
 
   @Get()
+  @Contract({ tag: 'People', summary: "The tenant's roles", response: RoleListResult })
   @RequiresAny('user.manage', 'role.manage')
   async list(@CurrentAccess() access: Access): Promise<RoleListResult> {
     const items = await this.database.forTenant(access.tenantId, (tx) =>
@@ -24,6 +32,13 @@ export class RolesController {
   }
 
   @Post()
+  @Contract({
+    tag: 'People',
+    summary: 'Create a role',
+    body: CreateRoleBody,
+    response: RoleResult,
+    idempotencyKey: true,
+  })
   @Requires('role.manage')
   @HttpCode(201)
   async create(
@@ -48,6 +63,13 @@ export class RolesController {
   }
 
   @Patch(':id')
+  @Contract({
+    tag: 'People',
+    summary: 'Change a role',
+    params: IdParams,
+    body: UpdateRoleBody,
+    response: RoleResult,
+  })
   @Requires('role.manage')
   update(@CurrentAccess() access: Access, @Param('id') id: string, @Body() body: unknown) {
     const roleId = pathId(id);

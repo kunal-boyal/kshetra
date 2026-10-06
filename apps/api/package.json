@@ -13,6 +13,7 @@
     "db:seed": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/seed.mjs",
     "db:generate": "drizzle-kit generate",
     "provision": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/provision.mjs",
+    "openapi": "tsdown --log-level warn && node dist/openapi.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",

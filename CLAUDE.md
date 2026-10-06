@@ -28,7 +28,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm --filter @kshetra/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
 | `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
 | `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin | now |
-| `pnpm openapi` | regenerates the OpenAPI document and the typed client's route calls | with the route registry, step 11 |
+| `pnpm openapi` | regenerates `apps/api/openapi.json` from the route registry; a test fails while it is out of date | now |
 
 Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
 - PostgreSQL 18 with PostGIS, pg_partman and pg_trgm, on port 5433 by default (`POSTGRES_PORT`)
@@ -100,6 +100,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 - Sign-in lives in `apps/api/src/modules/directory`. Only that module touches the directory schema, through `DirectoryDatabase` as `directory_app`. The directory and the cell reach each other only through the seams in `apps/api/src/platform/planes.ts`: the cell admits each sign-in and binds the phone, and tells the directory whenever a user's sign-in facts change.
 - Every route declares who may call it: `@Public()` (health checks and sign-in only), `@SignedIn()`, `@Requires(...)` or `@RequiresAny(...)`, with permissions from spec Appendix E. A route that declares nothing is refused, and `test/iam.int.test.ts` fails. Handlers read the caller with `@CurrentAccess()`.
+- Every route also declares what it takes and gives with `@Contract(...)`: a summary, its group, and the shared zod schemas of its path parameters, query, body and answer (decision D37). The route registry (`src/platform/routes.ts`) reads both, and the OpenAPI document and the cross-tenant contract test are built from it. After changing a route, run `pnpm openapi`.
 - The global `AuthGuard` checks the token. IAM then checks, on every request, that the tenant, user and device are still active at the token's auth revision.
 - Filter records by the caller's data scope with `Scopes` from the IAM module. A record outside the scope answers `OUT_OF_SCOPE`; another tenant's record answers `NOT_FOUND`.
 - Nobody gives access they don't hold (`canGrant` in `@kshetra/shared`), and nobody acts on their own record where a rule forbids it, such as resetting their own device.
@@ -153,7 +154,7 @@ Migrations are append-only and backward compatible. They follow expand and contr
 
 - **Unit:** Vitest for business rules, the form engine and metrics; Jest with jest-expo for React Native components and screens.
 - **Integration:** Testcontainers and supertest against real migrations and RLS.
-- **Cross-tenant contract test:** generated from the route registry. CI fails when a route has no fixture.
+- **Cross-tenant contract test:** `test/cross-tenant.int.test.ts`, generated from the route registry; it fails for a route without a fixture. A new route's fixture has tenant B try tenant A's IDs: `sameAsNowhere()` for anything that takes an ID, `holdsNothingOfA()` for reads, and every row of A's is compared after each request.
 - **End to end:** Playwright (with axe) for the web apps, Maestro for mobile.
 - **Load:** k6.
 - **Merging:** a pull request merges only with typecheck, lint, unit, integration and end-to-end tests green.
