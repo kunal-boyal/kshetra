@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { todayIn } from '@kshetra/shared';
 import { and, eq, or, type SQL, sql } from 'drizzle-orm';
 import { reportingClosure, users } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 
 /**
@@ -12,10 +14,13 @@ import { TerritoriesService } from '../territories/territories.service';
  */
 @Injectable()
 export class Scopes {
-  constructor(private readonly territories: TerritoriesService) {}
+  constructor(
+    private readonly territories: TerritoriesService,
+    private readonly config: TenantConfigService,
+  ) {}
 
   /** A condition on `users` that holds for the users the caller reaches. */
-  users(access: Access): SQL {
+  async users(tx: TenantTx, access: Access): Promise<SQL> {
     const self = eq(users.id, access.userId);
     // The closure pairs each user with themselves at depth 0, so a team includes its manager.
     const team = sql`exists (
@@ -23,16 +28,25 @@ export class Scopes {
        where rc.tenant_id = ${users.tenantId}
          and rc.ancestor_id = ${access.userId}
          and rc.descendant_id = ${users.id})`;
-    const territory = sql`${users.id} in (${this.territories.usersReachedBy(access.tenantId, access.userId)})`;
+    // Attachments apply by the tenant's calendar, so "today" is in its timezone.
+    const territory = async () => {
+      const { timezone } = await this.config.settings(tx, access.tenantId);
+      const reached = this.territories.usersReachedBy(
+        access.tenantId,
+        access.userId,
+        todayIn(timezone),
+      );
+      return sql`${users.id} in (${reached})`;
+    };
     switch (access.scope) {
       case 'self':
         return self;
       case 'team':
         return team;
       case 'territory':
-        return or(self, territory)!;
+        return or(self, await territory())!;
       case 'team_or_territory':
-        return or(team, territory)!;
+        return or(team, await territory())!;
       case 'tenant':
         return sql`true`;
     }
@@ -43,7 +57,13 @@ export class Scopes {
     const [row] = await tx
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.tenantId, access.tenantId), eq(users.id, userId), this.users(access)));
+      .where(
+        and(
+          eq(users.tenantId, access.tenantId),
+          eq(users.id, userId),
+          await this.users(tx, access),
+        ),
+      );
     return row !== undefined;
   }
 }

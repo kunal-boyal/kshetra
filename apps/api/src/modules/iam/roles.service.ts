@@ -13,6 +13,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { roles } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { type Actor, actorId, invalid, notFound, SYSTEM, uniqueViolation } from './actor';
 
 type RoleRow = typeof roles.$inferSelect;
@@ -32,9 +33,14 @@ function toResult(row: RoleRow): RoleResult {
 const beyondOwnAccess = () =>
   new AppError('FORBIDDEN', 'A role cannot hold access that you do not have yourself.');
 
-/** Roles (spec 4.2): the six every tenant starts with, and the tenant's own. */
+/**
+ * Roles (spec 4.2): the six every tenant starts with, and the tenant's own. A role's permissions
+ * are in the config bundle, so every change moves the config version on.
+ */
 @Injectable()
 export class RolesService {
+  constructor(private readonly config: TenantConfigService) {}
+
   async list(tx: TenantTx, tenantId: string): Promise<RoleResult[]> {
     const rows = await tx
       .select()
@@ -69,6 +75,7 @@ export class RolesService {
           updatedBy: by,
         })
         .returning();
+      await this.config.touch(tx, tenantId, by);
       return toResult(row!);
     } catch (error) {
       if (uniqueViolation(error) === 'roles_tenant_key') throw keyTaken();
@@ -111,6 +118,7 @@ export class RolesService {
       .set({ ...next, updatedAt: new Date(), updatedBy: access.userId })
       .where(and(eq(roles.tenantId, access.tenantId), eq(roles.id, id)))
       .returning();
+    await this.config.touch(tx, access.tenantId, access.userId);
     return toResult(row!);
   }
 }

@@ -14,6 +14,8 @@ export type {
   SystemRole,
   TenantPermission,
 } from './access';
+export { contrastRatio, HEX_COLOUR } from './colour';
+export { todayIn } from './dates';
 export { AppError, ERROR_HTTP_STATUS, formatPath, isErrorCode, issueAt } from './errors';
 export type { ErrorBody, ErrorCode, ErrorDetail } from './errors';
 export { isId, newId } from './ids';
@@ -29,6 +31,7 @@ export {
   LocalizedText,
   localizedText,
   Money,
+  NounForms,
   repeats,
   toMinorUnits,
 } from './schemas/config';
@@ -72,6 +75,16 @@ export {
   UserResult,
   UserStatus,
 } from './schemas/iam';
+export {
+  ConfigBundle,
+  SETTING_DEFAULTS,
+  TenantSettings,
+  TerminologyOverrides,
+  TerminologyResult,
+  TermValue,
+  UpdateSettingsBody,
+  withDefaults,
+} from './schemas/tenant-config';
 export { isOpenTenant, OPEN_TENANT_STATUSES, TENANT_STATUSES } from './tenants';
 export type { TenantStatus } from './tenants';
 export { TERMINOLOGY_KEYS } from './terminology';

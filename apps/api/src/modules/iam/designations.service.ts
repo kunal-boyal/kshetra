@@ -11,6 +11,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import { designations, roles, users } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { type Actor, actorId, invalid, notFound, uniqueViolation } from './actor';
 
 const selection = {
@@ -23,9 +24,14 @@ const selection = {
   ranked: designations.ranked,
 };
 
-/** Designations (spec 5.3): job titles with a level. They grant no permissions themselves. */
+/**
+ * Designations (spec 5.3): job titles with a level. They grant no permissions themselves. They
+ * are in the config bundle, so every change moves the config version on.
+ */
 @Injectable()
 export class DesignationsService {
+  constructor(private readonly config: TenantConfigService) {}
+
   async list(tx: TenantTx, tenantId: string): Promise<DesignationResult[]> {
     return this.query(tx)
       .where(eq(designations.tenantId, tenantId))
@@ -63,6 +69,7 @@ export class DesignationsService {
       if (uniqueViolation(error) === 'designations_tenant_key') throw keyTaken();
       throw error;
     }
+    await this.config.touch(tx, tenantId, by);
     return this.get(tx, tenantId, id);
   }
 
@@ -116,6 +123,7 @@ export class DesignationsService {
       .update(designations)
       .set({ ...changes, updatedAt: new Date(), updatedBy: access.userId })
       .where(and(eq(designations.tenantId, access.tenantId), eq(designations.id, id)));
+    await this.config.touch(tx, access.tenantId, access.userId);
     return this.get(tx, access.tenantId, id);
   }
 

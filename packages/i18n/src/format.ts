@@ -1,0 +1,58 @@
+import type { Locale } from '@kshetra/shared';
+
+/**
+ * Numbers, money and dates for display (spec 8.5): the user's language with the tenant's region,
+ * so `en-IN` groups digits in lakhs (₹1,23,456.00). Times show in the tenant's timezone.
+ */
+
+export interface FormatContext {
+  locale: Locale;
+  /** The tenant's default country. */
+  region?: string;
+}
+
+/** The BCP 47 tag for a language in a region, such as `hi-IN`. */
+export function localeTag(locale: Locale, region = 'IN'): string {
+  return `${locale}-${region}`;
+}
+
+export function formatNumber(
+  value: number | `${number}`,
+  { locale, region }: FormatContext,
+  options?: Intl.NumberFormatOptions,
+): string {
+  return new Intl.NumberFormat(localeTag(locale, region), options).format(value);
+}
+
+/** An amount kept as a decimal string, formatted exactly, never through binary floating point. */
+export function formatMoney(
+  amount: `${number}`,
+  { locale, region, currency = 'INR' }: FormatContext & { currency?: string },
+): string {
+  return new Intl.NumberFormat(localeTag(locale, region), {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+/** A calendar date (`YYYY-MM-DD`), which already belongs to the tenant's timezone. */
+export function formatDate(date: string, { locale, region }: FormatContext): string {
+  return new Intl.DateTimeFormat(localeTag(locale, region), {
+    dateStyle: 'medium',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
+/** A moment in time, shown in the tenant's timezone. */
+export function formatDateTime(
+  instant: Date | string,
+  { locale, region, timeZone }: FormatContext & { timeZone: string },
+): string {
+  return new Intl.DateTimeFormat(localeTag(locale, region), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone,
+  }).format(typeof instant === 'string' ? new Date(instant) : instant);
+}

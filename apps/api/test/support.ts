@@ -13,6 +13,7 @@ import { OTP_LIMITS } from '../src/modules/directory/otp.service';
 import { SYSTEM } from '../src/modules/iam/actor';
 import { IamSetup } from '../src/modules/iam/setup.service';
 import { UsersService } from '../src/modules/iam/users.service';
+import { TenantConfigService } from '../src/modules/tenant-config/tenant-config.service';
 import { TerritoriesService } from '../src/modules/territories/territories.service';
 import { Database } from '../src/platform/database';
 import { RedisClient } from '../src/platform/redis';
@@ -141,8 +142,9 @@ export class World {
 
   async tenant(name: string, status = 'active', template = 'generic'): Promise<string> {
     const tenantId = await this.directory.tenant(name, status);
-    const { roles, designations, geographyLevels } = loadTemplate(template);
+    const { terminology, roles, designations, geographyLevels } = loadTemplate(template);
     await this.database.forTenant(tenantId, async (tx) => {
+      await this.app.get(TenantConfigService).applyTemplate(tx, tenantId, { terminology });
       await this.app.get(IamSetup).applyTemplate(tx, tenantId, { roles, designations });
       await this.app.get(TerritoriesService).applyLevels(tx, tenantId, geographyLevels);
     });

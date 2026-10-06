@@ -1327,7 +1327,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Group | Representative endpoints |
 |---|---|
 | Auth (directory) | `POST /auth/v1/otp/request`, `POST /auth/v1/otp/verify`, `POST /auth/v1/select-tenant`, `POST /auth/v1/token/refresh`, `POST /auth/v1/logout`, `POST /auth/v1/switch-tenant`, `GET /auth/v1/jwks`, `POST /auth/v1/totp/verify`, `GET /auth/v1/sso/:tenant/start` |
-| Me and config | `GET /v1/me`, `GET /v1/config` (settings, terminology, modules, effective permissions, current form versions, account types, metrics; ETag), `POST /v1/devices/heartbeat`, `PUT /v1/devices/push-token` |
+| Me and config | `GET /v1/me`, `GET /v1/config` (settings, terminology, modules, effective permissions, current form versions, account types, metrics; ETag), `PATCH /v1/settings`, `GET /v1/terminology`, `PUT /v1/terminology`, `POST /v1/devices/heartbeat`, `PUT /v1/devices/push-token` |
 | Sync | `GET /v1/sync/pull?entities=...&cursor=...` |
 | People | `GET /v1/users`, `GET /v1/users/:id`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/roles`, `POST /v1/roles`, `PATCH /v1/roles/:id`, `GET /v1/designations`, `POST /v1/designations`, `PATCH /v1/designations/:id` |
 | Territories | `GET /v1/territories`, `POST /v1/territories`, `PATCH /v1/territories/:id` |
