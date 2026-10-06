@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { APP_PLATFORMS } from '../app-version';
 
 /**
  * Sign-in at the directory (module M1, spec 11.2 `/auth/v1`), and the claims every cell reads from
@@ -26,7 +27,7 @@ export const DeviceInfo = z.strictObject({
     .string()
     .regex(/^[A-Za-z0-9_-]{32,128}$/, 'Use 32 to 128 random base64url characters')
     .meta({ description: 'A random secret the app makes once and keeps in its secure store' }),
-  platform: z.enum(['android', 'ios']),
+  platform: z.enum(APP_PLATFORMS),
   model: z.string().trim().max(100).optional(),
   osVersion: z.string().trim().max(40).optional(),
   appVersion: z.string().trim().max(40).optional(),

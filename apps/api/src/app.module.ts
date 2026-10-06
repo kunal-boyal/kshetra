@@ -9,6 +9,7 @@ import { ProvisioningModule } from './modules/provisioning/provisioning.module';
 import { TenantConfigModule } from './modules/tenant-config/tenant-config.module';
 import { TerritoriesModule } from './modules/territories/territories.module';
 import { PlanesModule } from './planes.module';
+import { AppVersionGuard } from './platform/app-version';
 import { AccessTokens, AuthGuard } from './platform/auth';
 import { Database } from './platform/database';
 import { HEALTH_CHECKS, HealthController, type HealthChecks } from './platform/health.controller';
@@ -34,7 +35,9 @@ export class AppModule {
       controllers: [HealthController],
       providers: [
         AccessTokens,
-        // Every route needs an access token unless it is marked @Public().
+        // Guards run in this order: an outdated app hears that first, then every route needs an
+        // access token unless it is marked @Public().
+        { provide: APP_GUARD, useClass: AppVersionGuard },
         { provide: APP_GUARD, useClass: AuthGuard },
         {
           provide: HEALTH_CHECKS,

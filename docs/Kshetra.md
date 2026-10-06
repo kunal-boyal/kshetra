@@ -1309,7 +1309,7 @@ Exports, reports and bulk reads from the public API run on the read replica. Wri
 | Base paths | Cell API `https://<cell-host>/v1/...`; directory `https://<directory-host>/auth/v1/...`; platform console `https://<directory-host>/platform/v1/...`; `/health` (liveness) and `/ready` (readiness) on every service |
 | Format | JSON, UTF-8, camelCase fields |
 | Authentication | `Authorization: Bearer <access token>`. Claims: `sub` (user), `tid` (tenant), `cell`, `did` (device), `rev` (auth revision), `scp` (scopes, for API clients). |
-| Request headers | `X-Device-Time` (for BR-44), `X-App-Version`, `X-Request-Id` (echoed back), `Idempotency-Key` for creates without a client ID |
+| Request headers | `X-Device-Time` (for BR-44), `X-App-Platform` and `X-App-Version` from the mobile app (checked against the platform's minimum, M1 rule 8), `X-Request-Id` (echoed back), `Idempotency-Key` for creates without a client ID |
 | IDs | UUIDv7; client-generated for device records |
 | Time and location | ISO 8601 with offset; dates `YYYY-MM-DD`; a GPS fix is `{ lat, lng, accuracy, fixTime, mocked, speed? }` |
 | Money | Decimal strings in responses (`"10195.20"`); requests accept numbers or strings and parse them as decimals |
@@ -2087,10 +2087,11 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `LICENCE_PUBLIC_KEY`, `LICENCE_FILE_PATH` | Dedicated deployments |
 | `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT` | Observability |
 | `CORS_ORIGINS` | Allowed web origins |
+| `MIN_APP_VERSION_ANDROID`, `MIN_APP_VERSION_IOS` | The oldest app version each platform may use; older apps get `UPGRADE_REQUIRED` (M1, rule 8). Unset allows every version. |
 
 Web portal and console: `VITE_DIRECTORY_URL`, `VITE_CELL_URL` (optional; overrides the cell address handed out at sign-in), `VITE_PRODUCT_NAME`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN`.
 
-Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`. The cell URL comes from the sign-in response, never from the build.
+Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`, and `PRODUCT_SLUG` and `PRODUCT_NAME`, from which the app's name and store identifiers derive. The cell URL comes from the sign-in response, never from the build.
 
 ## Appendix G. Glossary
 

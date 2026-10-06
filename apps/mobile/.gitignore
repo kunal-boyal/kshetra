@@ -1,0 +1,20 @@
+# Expo writes these while it runs.
+.expo/
+expo-env.d.ts
+dist/
+web-build/
+
+# Continuous native generation: android/ and ios/ come from app.config.ts on every build.
+/android
+/ios
+
+# Signing material never lives in the repository; EAS keeps store credentials (spec 14.3).
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+
+# Local settings.
+.env*.local

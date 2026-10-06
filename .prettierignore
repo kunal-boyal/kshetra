@@ -11,3 +11,7 @@ pnpm-lock.yaml
 
 # Generated from the zod schema by `pnpm --filter @kshetra/templates schema`.
 packages/templates/schema.json
+
+# Expo writes these while it runs; they are git-ignored.
+**/.expo/
+apps/mobile/expo-env.d.ts

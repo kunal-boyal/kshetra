@@ -239,6 +239,28 @@ describe('errors', () => {
     expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfterSeconds: 42 });
   });
 
+  it('tell a phone app when it must update, and it names its version on every call', async () => {
+    const onUpgradeRequired = vi.fn();
+    const server = fakeServer(() =>
+      json(426, { error: { code: 'UPGRADE_REQUIRED', message: 'Update', requestId: 'x' } }),
+    );
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store: memoryStore(),
+      fetch: server.fetch,
+      app: { platform: 'android', version: '1.0.0' },
+      onUpgradeRequired,
+    });
+    await expect(client.requestCode('9000000001')).rejects.toMatchObject({
+      code: 'UPGRADE_REQUIRED',
+    });
+    expect(onUpgradeRequired).toHaveBeenCalledOnce();
+    const headers = server.calls[0]!.init.headers as Record<string, string>;
+    expect(headers['x-app-platform']).toBe('android');
+    expect(headers['x-app-version']).toBe('1.0.0');
+  });
+
   it('answer an unchanged config bundle as not modified', async () => {
     const server = fakeServer(() => new Response(null, { status: 304 }));
     const store = memoryStore();

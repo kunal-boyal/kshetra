@@ -1,4 +1,12 @@
+import { APP_VERSION } from '@kshetra/shared';
 import { z } from 'zod';
+
+// A store version such as 1.4.0; an empty value in .env counts as unset.
+const minimumVersion = z
+  .string()
+  .optional()
+  .transform((value) => value || undefined)
+  .pipe(z.string().regex(APP_VERSION, 'Use a version such as 1.4.0').optional());
 
 /** The API's settings (spec Appendix F). Production values come from Secrets Manager or the task definition. */
 const schema = z
@@ -36,6 +44,10 @@ const schema = z
     // Provisioning registers the cell with these; production must set the URL.
     CELL_API_URL: z.url().optional(),
     CELL_REGION: z.string().min(1).default('local'),
+    // The oldest app version each platform may still use (M1, rule 8). An older app gets
+    // UPGRADE_REQUIRED and shows its blocking update screen. Unset lets every version in.
+    MIN_APP_VERSION_ANDROID: minimumVersion,
+    MIN_APP_VERSION_IOS: minimumVersion,
     DATABASE_URL: z.url(),
     // The directory module's own role (decision D23); phases 0 to 2 run it inside the API.
     DIRECTORY_DATABASE_URL: z.url(),
