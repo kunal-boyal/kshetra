@@ -40,9 +40,9 @@ export class AuthController {
   @Post('select-tenant')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
-  selectTenant(@Body() body: unknown) {
+  selectTenant(@Body() body: unknown, @Ip() address: string) {
     const { ticket, tenantId, device } = SelectTenantBody.parse(body);
-    return this.sessions.selectTenant(ticket, tenantId, device);
+    return this.sessions.selectTenant(ticket, tenantId, device, address);
   }
 
   @Post('token/refresh')
@@ -56,9 +56,9 @@ export class AuthController {
   @Post('switch-tenant')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
-  switchTenant(@Body() body: unknown) {
+  switchTenant(@Body() body: unknown, @Ip() address: string) {
     const { refreshToken, tenantId, device } = SwitchTenantBody.parse(body);
-    return this.sessions.switchTenant(refreshToken, tenantId, device);
+    return this.sessions.switchTenant(refreshToken, tenantId, device, address);
   }
 
   @Post('logout')

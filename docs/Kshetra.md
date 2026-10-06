@@ -1279,8 +1279,9 @@ export_jobs(id, tid, kind, params jsonb, status, file_media_id NULL, error, requ
 api_clients(id, tid, name, client_id UQ, secret_hash, scopes text[], status, last_used_at)
 webhook_subscriptions(id, tid, url, events text[], secret_encrypted, status)
 webhook_deliveries(id, tid, subscription_id, event_id, attempt, status, response_code, created_at)  PART monthly
-outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, dispatched_at NULL)
-       IX(created_at) WHERE dispatched_at IS NULL
+outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, attempts, next_attempt_at, last_error NULL,
+       dispatched_at NULL)
+       IX(next_attempt_at) WHERE dispatched_at IS NULL
 idempotency_keys(tid, key, request_hash, response jsonb, created_at)       PK(tid, key) · purged after 7 days
 sync_tombstones(tid, entity, entity_id, row_version)
 audit_log(id, tid, actor_id, actor_kind enum(user,platform,system,api_client), action, target_type, target_id,

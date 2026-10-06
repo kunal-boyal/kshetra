@@ -11,6 +11,8 @@ export interface AdmissionRequest {
   userId: string;
   /** The phone signing in. The web sends none. */
   device?: DeviceInfo;
+  /** The address the sign-in came from, for the audit log. */
+  ip?: string;
 }
 
 export interface Admission {

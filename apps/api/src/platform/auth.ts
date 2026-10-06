@@ -23,6 +23,8 @@ export interface AuthContext {
   revision: number;
   /** The bound phone the session runs on; web sessions have none. */
   deviceId?: string;
+  /** The caller's address, for the audit log. */
+  ip?: string;
 }
 
 /**
@@ -175,6 +177,7 @@ export class AuthGuard implements CanActivate {
       tenantId: claims.tid,
       cell: claims.cell,
       revision: claims.rev,
+      ip: request.ip,
       ...(claims.did ? { deviceId: claims.did } : {}),
     });
     request.access = access;

@@ -52,6 +52,12 @@ export class Scopes {
     }
   }
 
+  /** A subquery of the IDs of the users the caller reaches, for other modules' filters. */
+  async userIds(tx: TenantTx, access: Access): Promise<SQL> {
+    return sql`select ${users.id} from ${users}
+      where ${users.tenantId} = ${access.tenantId} and ${await this.users(tx, access)}`;
+  }
+
   /** Whether the caller reaches this user. */
   async reaches(tx: TenantTx, access: Access, userId: string): Promise<boolean> {
     const [row] = await tx

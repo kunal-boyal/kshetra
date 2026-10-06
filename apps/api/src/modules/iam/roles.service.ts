@@ -11,10 +11,19 @@ import {
 } from '@kshetra/shared';
 import { and, asc, eq } from 'drizzle-orm';
 import { roles } from '../../db/schema/iam';
+import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
-import { type Actor, actorId, invalid, notFound, SYSTEM, uniqueViolation } from './actor';
+import {
+  type Actor,
+  actorId,
+  auditActor,
+  invalid,
+  notFound,
+  SYSTEM,
+  uniqueViolation,
+} from './actor';
 
 type RoleRow = typeof roles.$inferSelect;
 
@@ -39,7 +48,10 @@ const beyondOwnAccess = () =>
  */
 @Injectable()
 export class RolesService {
-  constructor(private readonly config: TenantConfigService) {}
+  constructor(
+    private readonly config: TenantConfigService,
+    private readonly audit: AuditLog,
+  ) {}
 
   async list(tx: TenantTx, tenantId: string): Promise<RoleResult[]> {
     const rows = await tx
@@ -75,8 +87,14 @@ export class RolesService {
           updatedBy: by,
         })
         .returning();
+      const created = toResult(row!);
       await this.config.touch(tx, tenantId, by);
-      return toResult(row!);
+      await this.audit.record(tx, tenantId, auditActor(actor), {
+        action: 'role.created',
+        target: { type: 'role', id: created.id },
+        after: created,
+      });
+      return created;
     } catch (error) {
       if (uniqueViolation(error) === 'roles_tenant_key') throw keyTaken();
       throw error;
@@ -118,8 +136,15 @@ export class RolesService {
       .set({ ...next, updatedAt: new Date(), updatedBy: access.userId })
       .where(and(eq(roles.tenantId, access.tenantId), eq(roles.id, id)))
       .returning();
+    const updated = toResult(row!);
     await this.config.touch(tx, access.tenantId, access.userId);
-    return toResult(row!);
+    await this.audit.record(tx, access.tenantId, userActor(access), {
+      action: 'role.updated',
+      target: { type: 'role', id },
+      before: toResult(role),
+      after: updated,
+    });
+    return updated;
   }
 }
 

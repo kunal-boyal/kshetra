@@ -2,6 +2,7 @@ import { type DynamicModule, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import type { Config } from './config';
 import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { ConfigBundleModule } from './modules/config-bundle/config-bundle.module';
 import { IamModule } from './modules/iam/iam.module';
 import { TenantConfigModule } from './modules/tenant-config/tenant-config.module';
@@ -26,6 +27,7 @@ export class AppModule {
         TerritoriesModule,
         TenantConfigModule,
         ConfigBundleModule,
+        AuditModule,
       ],
       controllers: [HealthController],
       providers: [

@@ -126,6 +126,6 @@ export class OtpService {
     if (outcome === 'invalid') {
       throw new AppError('OTP_INVALID', 'That code is not right. Check it and try again.');
     }
-    return this.sessions.signIn(phone, device);
+    return this.sessions.signIn(phone, device, address);
   }
 }

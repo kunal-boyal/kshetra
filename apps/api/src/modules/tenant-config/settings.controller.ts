@@ -5,6 +5,7 @@ import {
   type TerminologyResult,
   UpdateSettingsBody,
 } from '@kshetra/shared';
+import { userActor } from '../../platform/audit';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { TenantConfigService } from './tenant-config.service';
@@ -25,7 +26,7 @@ export class SettingsController {
   updateSettings(@CurrentAccess() access: Access, @Body() body: unknown): Promise<TenantSettings> {
     const patch = UpdateSettingsBody.parse(body);
     return this.database.forTenant(access.tenantId, (tx) =>
-      this.config.updateSettings(tx, access.tenantId, access.userId, patch),
+      this.config.updateSettings(tx, access.tenantId, userActor(access), patch),
     );
   }
 
@@ -46,7 +47,7 @@ export class SettingsController {
   ): Promise<TerminologyResult> {
     const input = TerminologyOverrides.parse(body);
     const overrides = await this.database.forTenant(access.tenantId, (tx) =>
-      this.config.replaceTerminology(tx, access.tenantId, access.userId, input),
+      this.config.replaceTerminology(tx, access.tenantId, userActor(access), input),
     );
     return { overrides };
   }
