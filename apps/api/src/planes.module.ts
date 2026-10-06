@@ -32,9 +32,15 @@ export class PlanesModule implements OnModuleInit {
   constructor(
     private readonly outbox: Outbox,
     private readonly members: MembershipSync,
+    private readonly tenants: DirectoryTenants,
   ) {}
 
   onModuleInit(): void {
+    // A tenant opens once its cell has applied the template and added the first admin.
+    this.outbox.consume(['tenant.provisioned'], 'directory.tenant_status', async (event) => {
+      const { tenantId, status } = event.payload as EventPayload<'tenant.provisioned'>;
+      await this.tenants.setStatus(tenantId, status);
+    });
     this.outbox.consume(
       ['user.created', 'user.updated', 'user.deactivated'],
       'directory.membership',

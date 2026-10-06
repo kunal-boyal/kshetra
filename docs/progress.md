@@ -10,7 +10,8 @@ Last updated: 2026-10-06
 - **Phase 0, step 5** (IAM: users, roles, scopes, designations and device binding) is in review as [kunal-boyal/kshetra#6](https://github.com/kunal-boyal/kshetra/pull/6), built on top of step 4. Its design is decision D30.
 - **Phase 0, step 6** (config bundle, terminology and languages) is in review as [kunal-boyal/kshetra#7](https://github.com/kunal-boyal/kshetra/pull/7), built on top of step 5. Its design is decision D31.
 - **Phase 0, step 7** (the audit log and the outbox) is in review as [kunal-boyal/kshetra#8](https://github.com/kunal-boyal/kshetra/pull/8), built on top of step 6. Its design is decision D32.
-- **Phase 0, step 8** (the provisioning CLI and the seed) is in progress.
+- **Phase 0, step 8** (the provisioning command and the seed) is in review as [kunal-boyal/kshetra#9](https://github.com/kunal-boyal/kshetra/pull/9), built on top of step 7. Its design is decision D33. The first exit criterion now holds for the API: on the seeded tenants, a person signs in on the web into either tenant, and a field user signs in on a phone.
+- **Next:** Phase 0, step 9: the web shell with sign-in.
 - **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
@@ -34,8 +35,8 @@ Each step is its own pull request. The order follows dependencies.
 | 5 | IAM: users, roles, data scopes, designations, closure tables, devices and device binding (D15, D30) | In review | #6 |
 | 6 | Config bundle, terminology resolver, i18n in English and Hindi; the tenant settings that step 5 waits on: the device-binding switch, the timezone and the default country (D31) | In review | #7 |
 | 7 | Audit log and outbox (D32) | In review | #8 |
-| 8 | Provisioning CLI, and a seed with two tenants on different templates | In progress | |
-| 9 | Web shell with sign-in: `apps/web`, `packages/ui-web`, the token build step | To do | |
+| 8 | Provisioning command, and a seed with two tenants on different templates (D33) | In review | #9 |
+| 9 | Web shell with sign-in: `apps/web`, `packages/ui-web`, the token build step | Next | |
 | 10 | Mobile shell with sign-in: `apps/mobile` (Expo), `packages/ui-mobile`. Needs an Expo account. | To do | |
 | 11 | Cross-tenant contract test over every route, and the phase 0 exit check | To do | |
 

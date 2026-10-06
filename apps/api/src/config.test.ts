@@ -57,6 +57,7 @@ describe('loadConfig', () => {
     expect(() => loadConfig(production)).toThrow(/OTP_PROVIDER/);
     expect(() => loadConfig(production)).toThrow(/JWT_SIGNING_KEY/);
     expect(() => loadConfig(production)).toThrow(/OTP_PEPPER/);
+    expect(() => loadConfig(production)).toThrow(/CELL_API_URL/);
   });
 
   it('keeps the memory code sender to tests', () => {

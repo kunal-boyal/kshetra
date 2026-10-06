@@ -226,6 +226,9 @@ importers:
       '@kshetra/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@kshetra/templates':
+        specifier: workspace:*
+        version: link:../../packages/templates
       '@nestjs/common':
         specifier: ^12.1.2
         version: 12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -260,9 +263,6 @@ importers:
       '@kshetra/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@kshetra/templates':
-        specifier: workspace:*
-        version: link:../../packages/templates
       '@nestjs/testing':
         specifier: ^12.1.2
         version: 12.1.2(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
