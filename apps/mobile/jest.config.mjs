@@ -20,6 +20,8 @@ const COMPILED = [
 export default {
   preset: 'jest-expo',
   setupFiles: ['./jest.setup.ts'],
+  // A cold CI runner spends seconds loading React Native before the first test renders.
+  testTimeout: 30_000,
   transform: { '\\.mjs$': preset.transform['\\.[jt]sx?$'] },
   transformIgnorePatterns: [`node_modules/(?!(?:\\.pnpm/)?(${COMPILED.join('|')}))`],
 };
