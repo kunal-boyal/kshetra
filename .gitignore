@@ -6,6 +6,10 @@ coverage/
 .turbo/
 *.tsbuildinfo
 
+# Playwright's results and traces
+test-results/
+playwright-report/
+
 # Expo
 .expo/
 

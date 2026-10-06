@@ -902,7 +902,7 @@ English and Hindi at launch, covering every mobile string and the web screens ma
 | Data access | Drizzle ORM with SQL migrations; raw parameterised SQL for hot paths | Typed queries close to SQL; full control over partitioned and spatial tables |
 | Cache, rate limits, queues | Redis-compatible store (Amazon ElastiCache) with BullMQ | Retries, priorities, schedules and per-group concurrency |
 | Object storage | Amazon S3 with presigned uploads; CloudFront signed URLs for reads | Phones upload straight to storage; reads are fast and short-lived |
-| Web apps | React, Vite, TanStack Router and Query, Tailwind CSS, shadcn/ui, Apache ECharts, Google Maps JavaScript API | Logged-in single-page apps with no SEO needs |
+| Web apps | React, Vite, TanStack Router and Query, Tailwind CSS, `ui-web` components over the design system's CSS with Radix primitives, Apache ECharts, Google Maps JavaScript API | Logged-in single-page apps with no SEO needs |
 | Mobile | Expo (React Native) with a development client, Expo Router, expo-sqlite, expo-location with TaskManager, expo-camera, react-native-maps, EAS Build and EAS Update | One codebase for Android and iOS, background location, offline storage, store builds and over-the-air JavaScript updates |
 | Identity | Own identity module: OTP through an Indian SMS provider with DLT templates (MSG91 or equivalent), JWT signed with ES256 and published as JWKS, TOTP for admins, OIDC and SAML through maintained libraries | Phone-first sign-in for field staff; enterprise SSO for web users |
 | Messaging | FCM and APNs (directly or through Expo push), WhatsApp Business Platform (a provider or the Cloud API), SMS provider, Amazon SES for email | Channels Indian field teams use |
@@ -990,15 +990,15 @@ kshetra/
 │   ├── metrics/            # metric-definition schema and calculators
 │   ├── i18n/               # string tables, terminology resolver, formatters
 │   ├── templates/          # industry templates (JSON), schema, validator, loader
-│   ├── api-client/         # typed client generated from the OpenAPI document
+│   ├── api-client/         # typed client: sessions and refresh, with route calls generated from the OpenAPI document
 │   ├── design-tokens/      # design system: tokens.json (source) with generated CSS, TypeScript and ECharts theme; brand book and component guides
-│   ├── ui-web/             # shared web components (shadcn/ui restyled on design-tokens)
+│   ├── ui-web/             # shared web components (React over the design system's reference CSS, Radix primitives where needed)
 │   ├── ui-mobile/          # shared mobile components (React Native primitives and field patterns on design-tokens)
 │   └── config/             # tsconfig, eslint and prettier presets
 ├── infra/terraform/
 │   ├── modules/            # network, directory, cell, web-hosting, observability, dns
 │   └── envs/               # dev, staging, prod, dedicated-<customer>
-├── tools/                  # k6 load tests, data generators
+├── tools/                  # token build (tools/tokens), k6 load tests, data generators
 ├── docs/                   # decisions.md, versions.md, runbooks/, this specification
 ├── docker-compose.yml      # PostgreSQL with PostGIS, Redis, MinIO, Mailpit
 └── CLAUDE.md
@@ -2088,7 +2088,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT` | Observability |
 | `CORS_ORIGINS` | Allowed web origins |
 
-Web portal and console: `VITE_DIRECTORY_URL`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN`.
+Web portal and console: `VITE_DIRECTORY_URL`, `VITE_CELL_URL` (optional; overrides the cell address handed out at sign-in), `VITE_PRODUCT_NAME`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN`.
 
 Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`. The cell URL comes from the sign-in response, never from the build.
 

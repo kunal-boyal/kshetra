@@ -37,6 +37,17 @@ describe('loadConfig', () => {
     expect(config.TRUST_PROXY).toBe(true);
   });
 
+  it('reads the CORS allowlist as a list of origins', () => {
+    expect(loadConfig(required).CORS_ORIGINS).toEqual([]);
+    expect(
+      loadConfig({ ...required, CORS_ORIGINS: 'https://app.example.com, http://localhost:5173' })
+        .CORS_ORIGINS,
+    ).toEqual(['https://app.example.com', 'http://localhost:5173']);
+    expect(() => loadConfig({ ...required, CORS_ORIGINS: 'https://app.example.com/path' })).toThrow(
+      /CORS_ORIGINS/,
+    );
+  });
+
   it('reads an empty signing key as none, as .env.example leaves it', () => {
     expect(loadConfig({ ...required, JWT_SIGNING_KEY: '' }).JWT_SIGNING_KEY).toBeUndefined();
   });

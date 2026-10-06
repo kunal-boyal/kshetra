@@ -38,7 +38,7 @@ If a check fails, nudge L until it passes and log the adjustment in the audit en
 
 ## Delivery
 
-- **Web:** the config bundle is fetched at sign-in and the six accent variables are written to `:root`, before first paint, from a cached copy. Tailwind maps `primary` to `var(--accent)` and `primary-foreground` to `var(--on-accent)`, so shadcn/ui components follow the tenant automatically.
+- **Web:** the config bundle is fetched at sign-in and the six accent variables are written to `:root`, before first paint, from a cached copy. The `ui-web` components and Tailwind's theme (`--color-accent: var(--accent)`, `--color-on-accent: var(--on-accent)`) read only these variables, so every screen follows the tenant automatically.
 - **Mobile:** the derived palette is stored in SQLite with the config bundle and read synchronously at launch, so offline cold starts are already branded. A theme provider exposes it to components. No accent value is ever compiled into the JS bundle.
 - **PDFs and exports:** use the accent for the header rule only. Tables stay neutral for print.
 - **Console:** the vendor console uses the product default accent, never a tenant's, so staff always know which side they are on. Support-access sessions inside a tenant show a fixed `waiting`-coloured banner ("Support access as …").

@@ -63,6 +63,8 @@ export {
   SignedIn,
   SwitchTenantBody,
   TenantSummary,
+  WEB_CLIENT,
+  WEB_CLIENT_HEADER,
 } from './schemas/auth';
 export {
   CreateDesignationBody,

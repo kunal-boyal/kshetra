@@ -70,6 +70,45 @@ export const hi: Record<MessageKey, Message> = {
   'copy.truncated_statement':
     'पहली {limit} एंट्री दिखाई जा रही हैं। अंतिम शेष में हर एंट्री शामिल है। अधूरा स्टेटमेंट साझा न हो, इसलिए एक्सपोर्ट बंद है।',
 
+  'signin.title': 'साइन इन करें',
+  'signin.intro': 'वही मोबाइल नंबर डालें जो आपके संगठन के पास आपका है।',
+  'signin.phone_label': 'मोबाइल नंबर',
+  'signin.phone_help': 'इस नंबर पर 6 अंकों का कोड भेजा जाएगा।',
+  'signin.phone_invalid': 'सही मोबाइल नंबर डालें, जैसे 98765 43210।',
+  'signin.send_code': 'कोड भेजें',
+  'signin.code_label': 'कोड',
+  'signin.code_help': '{phone} पर भेजा गया 6 अंकों का कोड डालें।',
+  'signin.verify': 'साइन इन करें',
+  'signin.resend': 'नया कोड भेजें',
+  'signin.resend_in': {
+    one: 'आप {count} सेकंड में नया कोड मँगा सकते हैं।',
+    other: 'आप {count} सेकंड में नया कोड मँगा सकते हैं।',
+  },
+  'signin.other_number': 'दूसरा नंबर इस्तेमाल करें',
+  'signin.choose_title': 'संगठन चुनें',
+  'signin.choose_intro':
+    'आपका नंबर एक से ज़्यादा संगठनों में है। बाद में आप मेनू से संगठन बदल सकते हैं।',
+
+  'shell.navigation': 'मुख्य मेनू',
+  'shell.home': 'होम',
+  'shell.account_menu': 'आपकी प्रोफ़ाइल और सेटिंग',
+  'shell.switch_organisation': 'संगठन बदलें',
+  'shell.sign_out': 'साइन आउट करें',
+  'shell.language': 'भाषा',
+  'shell.theme': 'थीम',
+  'shell.theme_light': 'हल्की',
+  'shell.theme_dark': 'गहरी',
+  'shell.theme_outdoor': 'उच्च कंट्रास्ट',
+  'shell.skip': 'सीधे सामग्री पर जाएँ',
+  'home.greeting': 'नमस्ते, {name}',
+  'home.where': '{tenant} में {designation}',
+  'home.empty_title': 'आपका डैशबोर्ड जल्द आ रहा है',
+  'home.empty_body':
+    'साइन इन, भूमिकाएँ और सेटिंग तैयार हैं। अगले चरण में: {term.activity:other}, {term.journey_plan:other} और {term.target:other}।',
+  'common.loading': 'लोड हो रहा है…',
+  'common.offline': 'सर्वर तक नहीं पहुँच सके। अपना कनेक्शन जाँचें, फिर कोशिश करें।',
+  'common.retry': 'फिर कोशिश करें',
+
   'sync.waiting': {
     one: '{count} आइटम अपलोड होने का इंतज़ार कर रहा है।',
     other: '{count} आइटम अपलोड होने का इंतज़ार कर रहे हैं।',
