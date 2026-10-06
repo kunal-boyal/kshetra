@@ -22,7 +22,8 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm db:migrate` | applies migrations as the `migrator` role | now |
 | `pnpm --filter @kshetra/api db:generate` | writes a migration for a schema change | now |
 | `pnpm --filter @kshetra/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
-| `pnpm db:seed` | seeds fictional data and refuses non-local databases | with provisioning, step 8 |
+| `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
+| `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin | now |
 | `pnpm openapi` | regenerates the OpenAPI document and the typed client | with the first `/v1` endpoints |
 
 Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
@@ -42,8 +43,11 @@ cp .env.example .env
 docker compose up -d
 pnpm db:bootstrap
 pnpm db:migrate
+pnpm db:seed
 pnpm dev
 ```
+
+The seed prints who can sign in. One person belongs to both seeded tenants, so choosing a tenant after the code can be tried.
 
 Workspace packages are consumed as TypeScript source (`exports` points at `src/index.ts`), so they need no build step. Shared tool versions live once, in the `catalog` of `pnpm-workspace.yaml`. TypeScript stays on 6.0 until typescript-eslint supports 7; see `docs/versions.md`.
 

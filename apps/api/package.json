@@ -10,7 +10,9 @@
     "start": "node --env-file-if-exists=../../.env dist/main.mjs",
     "db:bootstrap": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/bootstrap.mjs",
     "db:migrate": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/migrate.mjs",
+    "db:seed": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/seed.mjs",
     "db:generate": "drizzle-kit generate",
+    "provision": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/provision.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
@@ -19,6 +21,7 @@
   "dependencies": {
     "@kshetra/i18n": "workspace:*",
     "@kshetra/shared": "workspace:*",
+    "@kshetra/templates": "workspace:*",
     "@nestjs/common": "^12.1.2",
     "@nestjs/core": "^12.1.2",
     "@nestjs/platform-fastify": "^12.1.2",
@@ -32,7 +35,6 @@
   },
   "devDependencies": {
     "@kshetra/config": "workspace:*",
-    "@kshetra/templates": "workspace:*",
     "@nestjs/testing": "^12.1.2",
     "@testcontainers/postgresql": "^12.2.0",
     "@testcontainers/redis": "^12.2.0",

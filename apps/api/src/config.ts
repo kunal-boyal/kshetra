@@ -16,6 +16,10 @@ const schema = z
     TRUST_PROXY: z.stringbool().default(false),
     // This deployment's cell. Access tokens name it, and a cell refuses tokens for another.
     CELL_ID: z.string().min(1).default('local'),
+    // Where apps reach this cell, as the directory hands it out at sign-in, and its region.
+    // Provisioning registers the cell with these; production must set the URL.
+    CELL_API_URL: z.url().optional(),
+    CELL_REGION: z.string().min(1).default('local'),
     DATABASE_URL: z.url(),
     // The directory module's own role (decision D23); phases 0 to 2 run it inside the API.
     DIRECTORY_DATABASE_URL: z.url(),
@@ -51,6 +55,13 @@ const schema = z
           code: 'custom',
           path: ['JWT_SIGNING_KEY'],
           message: 'Production needs a signing key that survives restarts.',
+        });
+      }
+      if (!config.CELL_API_URL) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['CELL_API_URL'],
+          message: 'Production needs the URL apps reach this cell at.',
         });
       }
       if (config.OTP_PEPPER.length < 32) {

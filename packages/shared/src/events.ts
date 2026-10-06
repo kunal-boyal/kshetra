@@ -16,10 +16,20 @@ export const UserEventPayload = z.object({
   authRevision: z.int().min(0),
 });
 
+/** A tenant whose configuration and first admin are in place, ready to open. */
+export const TenantProvisionedPayload = z.object({
+  tenantId: z.uuid(),
+  templateKey: z.string(),
+  templateVersion: z.int().min(1),
+  /** The status the tenant opens with. */
+  status: z.enum(['trial', 'active']),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
   'user.deactivated': UserEventPayload,
+  'tenant.provisioned': TenantProvisionedPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

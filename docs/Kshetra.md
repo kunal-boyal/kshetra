@@ -976,7 +976,7 @@ In phases 0–2 the directory runs as a module inside the same deployable, with 
 ```text
 kshetra/
 ├── apps/
-│   ├── api/                # NestJS. Entrypoints: main.ts (HTTP), worker.ts, scheduler.ts, migrate.ts
+│   ├── api/                # NestJS. Entrypoints: main.ts (HTTP), worker.ts, scheduler.ts, migrate.ts, provision.ts, seed.ts
 │   │   ├── src/modules/    # one folder per module (9.6)
 │   │   ├── src/platform/   # auth guard, tenant context and RLS session, idempotency, errors, outbox, audit
 │   │   ├── src/db/         # schema per module, migrations, seed (refuses non-local databases)
@@ -998,7 +998,7 @@ kshetra/
 ├── infra/terraform/
 │   ├── modules/            # network, directory, cell, web-hosting, observability, dns
 │   └── envs/               # dev, staging, prod, dedicated-<customer>
-├── tools/                  # tenant provisioning CLI, k6 load tests, data generators
+├── tools/                  # k6 load tests, data generators
 ├── docs/                   # decisions.md, versions.md, runbooks/, this specification
 ├── docker-compose.yml      # PostgreSQL with PostGIS, Redis, MinIO, Mailpit
 └── CLAUDE.md
@@ -2072,6 +2072,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | Variable | Purpose |
 |---|---|
 | `NODE_ENV`, `PORT`, `CELL_ID`, `PRODUCT_SLUG` | Runtime basics |
+| `CELL_API_URL`, `CELL_REGION` | Where apps reach this cell, as the directory hands it out at sign-in, and its region |
 | `DATABASE_URL`, `DATABASE_REPLICA_URL`, `DATABASE_MIGRATOR_URL`, `DB_POOL_MAX` | Application role, read replica, migration role, pool size |
 | `DIRECTORY_DATABASE_URL` | Directory schema connection, used by the directory module only |
 | `REDIS_URL` | TLS URL in cloud environments |

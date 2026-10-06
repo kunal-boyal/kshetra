@@ -18,7 +18,7 @@ export { contrastRatio, HEX_COLOUR } from './colour';
 export { todayIn } from './dates';
 export { AppError, ERROR_HTTP_STATUS, formatPath, isErrorCode, issueAt } from './errors';
 export type { ErrorBody, ErrorCode, ErrorDetail } from './errors';
-export { EVENT_PAYLOADS, EVENT_TYPES, UserEventPayload } from './events';
+export { EVENT_PAYLOADS, EVENT_TYPES, TenantProvisionedPayload, UserEventPayload } from './events';
 export type { EventPayload, EventType } from './events';
 export { isId, newId } from './ids';
 export { maskPhone, normalisePhone } from './phone';
@@ -85,6 +85,7 @@ export {
   UserResult,
   UserStatus,
 } from './schemas/iam';
+export { ProvisionTenantInput, TenantSlug } from './schemas/provisioning';
 export {
   ConfigBundle,
   SETTING_DEFAULTS,
