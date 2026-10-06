@@ -1,8 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { AppError, newId, type RefreshResult, type Session, type SignedIn } from '@kshetra/shared';
-import type { OtpVerifyResult } from '@kshetra/shared';
+import {
+  AppError,
+  type DeviceInfo,
+  newId,
+  type OtpVerifyResult,
+  type RefreshResult,
+  type Session,
+  type SignedIn,
+} from '@kshetra/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 import { identities, memberships, refreshTokens } from '../../db/schema/directory';
+import { CellAdmission } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
 import { DirectoryDatabase, type DirectoryDb, type DirectoryTx } from './directory.database';
 import { activeMemberships, type MembershipRow } from './memberships';
@@ -20,7 +28,9 @@ type RefreshTokenRow = typeof refreshTokens.$inferSelect;
 
 /**
  * Sessions: a refresh-token family per sign-in, with access tokens issued from it. Reusing a spent
- * refresh token ends the whole family, because only a copy could be presented twice.
+ * refresh token ends the whole family, because only a copy could be presented twice. Before a
+ * family starts, the tenant's cell admits the user and binds the phone (M1, rule 5); the family
+ * keeps that device for good.
  */
 @Injectable()
 export class SessionsService {
@@ -28,10 +38,11 @@ export class SessionsService {
     private readonly database: DirectoryDatabase,
     private readonly keys: SigningKey,
     private readonly client: RedisClient,
+    private readonly cell: CellAdmission,
   ) {}
 
   /** After a verified code: one tenant signs straight in; several get a ticket to choose with. */
-  async signIn(phone: string): Promise<OtpVerifyResult> {
+  async signIn(phone: string, device?: DeviceInfo): Promise<OtpVerifyResult> {
     const rows = await activeMemberships(this.database.db, eq(identities.phoneE164, phone));
     const [first] = rows;
     if (!first) throw new AppError('FORBIDDEN', 'This number has no active account.');
@@ -39,7 +50,7 @@ export class SessionsService {
       .update(identities)
       .set({ lastLoginAt: new Date() })
       .where(eq(identities.id, first.identityId));
-    if (rows.length === 1) return this.start(first);
+    if (rows.length === 1) return this.start(first, device);
 
     const ticket = newSecret();
     await this.client.redis.set(`ticket:${digest(ticket)}`, first.identityId, 'EX', TICKET_SECONDS);
@@ -51,7 +62,7 @@ export class SessionsService {
   }
 
   /** Spends a ticket on one of the identity's tenants. A ticket works once. */
-  async selectTenant(ticket: string, tenantId: string): Promise<SignedIn> {
+  async selectTenant(ticket: string, tenantId: string, device?: DeviceInfo): Promise<SignedIn> {
     const identityId = await this.client.redis.getdel(`ticket:${digest(ticket)}`);
     if (!identityId) {
       throw new AppError('OTP_EXPIRED', 'This sign-in has expired. Request a new code.');
@@ -61,7 +72,7 @@ export class SessionsService {
       and(eq(memberships.identityId, identityId), eq(memberships.tenantId, tenantId)),
     );
     if (!row) throw new AppError('FORBIDDEN', 'You do not have access to this organisation.');
-    return this.start(row);
+    return this.start(row, device);
   }
 
   /** Spends a refresh token for a new pair in the same family. */
@@ -70,14 +81,18 @@ export class SessionsService {
       const claimed = await this.claim(tx, refreshToken);
       if (!claimed) return null;
       await this.spend(tx, claimed.token);
-      return this.issue(tx, claimed.membership, claimed.token.familyId);
+      return this.issue(tx, claimed.membership, claimed.token.familyId, claimed.token.deviceId);
     });
     if (!session) throw revoked();
     return { session };
   }
 
   /** Moves the session to another tenant of the same person, without a second code (M1, rule 4). */
-  async switchTenant(refreshToken: string, tenantId: string): Promise<SignedIn> {
+  async switchTenant(
+    refreshToken: string,
+    tenantId: string,
+    device?: DeviceInfo,
+  ): Promise<SignedIn> {
     const result = await this.database.db.transaction(async (tx) => {
       const claimed = await this.claim(tx, refreshToken);
       if (!claimed) return 'revoked' as const;
@@ -89,9 +104,15 @@ export class SessionsService {
         ),
       );
       if (!target) return 'forbidden' as const;
+      // Refused admission rolls this back, and the old session carries on.
+      const { deviceId } = await this.cell.admit({
+        tenantId: target.tenantId,
+        userId: target.userId,
+        ...(device ? { device } : {}),
+      });
       // One app holds one tenant at a time, so the old session ends.
       await this.endFamily(tx, claimed.token.familyId);
-      const session = await this.issue(tx, target, newId());
+      const session = await this.issue(tx, target, newId(), deviceId);
       return { session, target };
     });
     if (result === 'revoked') throw revoked();
@@ -155,8 +176,13 @@ export class SessionsService {
       .where(and(eq(refreshTokens.familyId, familyId), isNull(refreshTokens.revokedAt)));
   }
 
-  private async start(row: MembershipRow): Promise<SignedIn> {
-    return this.signedIn(row, await this.issue(this.database.db, row, newId()));
+  private async start(row: MembershipRow, device: DeviceInfo | undefined): Promise<SignedIn> {
+    const { deviceId } = await this.cell.admit({
+      tenantId: row.tenantId,
+      userId: row.userId,
+      ...(device ? { device } : {}),
+    });
+    return this.signedIn(row, await this.issue(this.database.db, row, newId(), deviceId));
   }
 
   private signedIn(row: MembershipRow, session: Session): SignedIn {
@@ -171,12 +197,14 @@ export class SessionsService {
     db: DirectoryDb | DirectoryTx,
     row: MembershipRow,
     familyId: string,
+    deviceId: string | null | undefined,
   ): Promise<Session> {
     const refreshToken = newSecret();
     const refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 86_400_000);
     await db.insert(refreshTokens).values({
       id: newId(),
       membershipId: row.membershipId,
+      deviceId: deviceId ?? null,
       tokenHash: digest(refreshToken),
       familyId,
       authRevision: row.authRevision,
@@ -187,6 +215,7 @@ export class SessionsService {
       tenantId: row.tenantId,
       cell: row.cellName,
       revision: row.authRevision,
+      ...(deviceId ? { deviceId } : {}),
     });
     return {
       tokenType: 'Bearer',

@@ -1127,7 +1127,8 @@ tenants(id, slug UQ, name, status enum(trial,active,grace,read_only,suspended,te
         plan_id, template_key, template_version, created_at)
 cells(id, name, region, api_base_url, kind enum(shared,dedicated), status, capacity_users)
 identities(id, phone_e164 UQ, email UQ NULL, created_at, last_login_at)
-memberships(id, identity_id, tenant_id, user_id, status, auth_revision)      UQ(identity_id, tenant_id)
+memberships(id, identity_id, tenant_id, user_id, status, auth_revision)
+            UQ(tenant_id, user_id) · UQ(identity_id, tenant_id) WHERE status = 'active'
 otp_challenges(id, identity_key, code_hmac, channel, attempts, expires_at, consumed_at, ip, created_at)
 refresh_tokens(id, membership_id, device_id NULL, token_hash UQ, family_id, auth_revision,
                expires_at, revoked_at, created_at)                            IX(family_id)
@@ -1147,15 +1148,15 @@ tenant_settings(tid PK, settings jsonb, config_version bigint, updated_at, updat
 terminology_overrides(tid, key, locale, value)                               PK(tid, key, locale)
 tenant_modules(tid, module, enabled)                                         PK(tid, module)
 review_rules(tid PK, rules jsonb, updated_by, updated_at)
-designations(id, tid, name jsonb, level, default_role_id, can_have_reports, ranked)
-roles(id, tid, key, name, permissions text[], scope enum, system bool)       UQ(tid, key)
+designations(id, tid, key, name jsonb, level, default_role_id, can_have_reports, ranked)  UQ(tid, key)
+roles(id, tid, key, name, permissions text[], scope enum, mobile_only, system bool)  UQ(tid, key)
 users(id, tid, code, name, phone_e164, email, designation_id, role_id, manager_id NULL, calendar_id,
       joining_date, exit_date, status enum(active,inactive), auth_revision, custom jsonb, row_version)
       UQ(tid, code) · UQ(tid, phone_e164) · IX(tid, manager_id)
 reporting_closure(tid, ancestor_id, descendant_id, depth)                    PK(tid, ancestor_id, descendant_id)
-devices(id, tid, user_id, device_key, platform enum(android,ios,web), model, os_version, app_version,
+devices(id, tid, user_id, device_key_hash, platform enum(android,ios,web), model, os_version, app_version,
         push_token, integrity_verdict, health jsonb, bound_at, last_seen_at, revoked_at)
-territory_levels(tid, level, name jsonb)                                     PK(tid, level)
+territory_levels(tid, level, key, name jsonb)                                PK(tid, level) · UQ(tid, key)
 territories(id, tid, level, parent_id, code, name, owner_user_id, active, row_version)  UQ(tid, code)
 territory_closure(tid, ancestor_id, descendant_id, depth)
 user_territories(tid, user_id, territory_id, valid_from, valid_to)
@@ -1328,7 +1329,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Auth (directory) | `POST /auth/v1/otp/request`, `POST /auth/v1/otp/verify`, `POST /auth/v1/select-tenant`, `POST /auth/v1/token/refresh`, `POST /auth/v1/logout`, `POST /auth/v1/switch-tenant`, `GET /auth/v1/jwks`, `POST /auth/v1/totp/verify`, `GET /auth/v1/sso/:tenant/start` |
 | Me and config | `GET /v1/me`, `GET /v1/config` (settings, terminology, modules, effective permissions, current form versions, account types, metrics; ETag), `POST /v1/devices/heartbeat`, `PUT /v1/devices/push-token` |
 | Sync | `GET /v1/sync/pull?entities=...&cursor=...` |
-| People | `GET /v1/users`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/roles`, `POST /v1/roles`, `GET /v1/designations`, `POST /v1/designations` |
+| People | `GET /v1/users`, `GET /v1/users/:id`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/roles`, `POST /v1/roles`, `PATCH /v1/roles/:id`, `GET /v1/designations`, `POST /v1/designations`, `PATCH /v1/designations/:id` |
 | Territories | `GET /v1/territories`, `POST /v1/territories`, `PATCH /v1/territories/:id` |
 | Accounts | `GET /v1/accounts`, `POST /v1/accounts`, `PATCH /v1/accounts/:id`, `GET /v1/accounts/:id/overview`, `POST /v1/accounts/:id/location-proposals`, `GET /v1/account-types`, `POST /v1/account-types/:id/versions` |
 | Forms | `GET /v1/forms`, `POST /v1/forms`, `POST /v1/forms/:id/versions` (publish) |

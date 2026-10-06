@@ -6,19 +6,36 @@ import { z } from 'zod';
  * sides.
  */
 
-const Phone = z.string().trim().min(6).max(32).meta({
+export const PhoneInput = z.string().trim().min(6).max(32).meta({
   description: 'A mobile number. Without a country code it is read as Indian (+91).',
 });
 const Secret = z.string().min(20).max(256);
 
-export const OtpRequestBody = z.strictObject({ phone: Phone });
+export const OtpRequestBody = z.strictObject({ phone: PhoneInput });
 
 /** The same answer whether or not the number is registered (M1, rule 2). */
 export const OtpRequestResult = z.object({ expiresInSeconds: z.int() });
 
+/**
+ * The phone the mobile app runs on. The app makes `key` once, keeps it in its secure store and
+ * sends it with every sign-in, so the tenant can bind the user to this phone (M1, rule 5). The web
+ * sends no device, and its sessions are never bound.
+ */
+export const DeviceInfo = z.strictObject({
+  key: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{32,128}$/, 'Use 32 to 128 random base64url characters')
+    .meta({ description: 'A random secret the app makes once and keeps in its secure store' }),
+  platform: z.enum(['android', 'ios']),
+  model: z.string().trim().max(100).optional(),
+  osVersion: z.string().trim().max(40).optional(),
+  appVersion: z.string().trim().max(40).optional(),
+});
+
 export const OtpVerifyBody = z.strictObject({
-  phone: Phone,
+  phone: PhoneInput,
   code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+  device: DeviceInfo.optional(),
 });
 
 export const Session = z.object({
@@ -51,19 +68,27 @@ export const ChooseTenant = z.object({
 
 export const OtpVerifyResult = z.discriminatedUnion('status', [SignedIn, ChooseTenant]);
 
-export const SelectTenantBody = z.strictObject({ ticket: Secret, tenantId: z.uuid() });
+export const SelectTenantBody = z.strictObject({
+  ticket: Secret,
+  tenantId: z.uuid(),
+  device: DeviceInfo.optional(),
+});
 
 export const RefreshBody = z.strictObject({ refreshToken: Secret });
 
 export const RefreshResult = z.object({ session: Session });
 
-export const SwitchTenantBody = z.strictObject({ refreshToken: Secret, tenantId: z.uuid() });
+export const SwitchTenantBody = z.strictObject({
+  refreshToken: Secret,
+  tenantId: z.uuid(),
+  device: DeviceInfo.optional(),
+});
 
 export const LogoutBody = RefreshBody;
 
 /**
- * Access token claims (spec 11.1): the user, their tenant, the cell that serves it and their auth
- * revision (BR-39). `did`, the device, joins with device binding.
+ * Access token claims (spec 11.1): the user, their tenant, the cell that serves it, their auth
+ * revision (BR-39) and, for the mobile app, the device the session is bound to.
  */
 export const AccessClaims = z.object({
   sub: z.uuid(),
@@ -73,13 +98,7 @@ export const AccessClaims = z.object({
   did: z.uuid().optional(),
 });
 
-/** `GET /v1/me`: who the token belongs to. The user's profile joins with the users table. */
-export const MeResult = z.object({
-  userId: z.uuid(),
-  tenantId: z.uuid(),
-  cell: z.string(),
-});
-
+export type DeviceInfo = z.infer<typeof DeviceInfo>;
 export type OtpRequestResult = z.infer<typeof OtpRequestResult>;
 export type Session = z.infer<typeof Session>;
 export type TenantSummary = z.infer<typeof TenantSummary>;
@@ -88,4 +107,3 @@ export type ChooseTenant = z.infer<typeof ChooseTenant>;
 export type OtpVerifyResult = z.infer<typeof OtpVerifyResult>;
 export type RefreshResult = z.infer<typeof RefreshResult>;
 export type AccessClaims = z.infer<typeof AccessClaims>;
-export type MeResult = z.infer<typeof MeResult>;

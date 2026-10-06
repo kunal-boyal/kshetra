@@ -69,3 +69,16 @@ export async function idempotent(
   }
   return { ...existing.response, replayed: true };
 }
+
+/**
+ * The `Idempotency-Key` header that creates and actions without a client-generated ID carry
+ * (spec 11.1, BR-46).
+ */
+export function requireIdempotencyKey(header: string | undefined): string {
+  if (!header) {
+    throw new AppError('VALIDATION', 'Send an Idempotency-Key header with this request.', [
+      { path: 'Idempotency-Key', issue: 'Required: a new random value for each change' },
+    ]);
+  }
+  return header;
+}

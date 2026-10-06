@@ -83,17 +83,20 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 - **Roles:** `migrator` owns the schemas and runs migrations. The API connects as `cell_app`, which can't bypass row-level security. `directory_app` is the only role allowed into the `directory` schema.
 - **Tenant data:** reach it only through `Database.forTenant(tenantId, (tx) => …)` in `apps/api/src/platform/database.ts`. It sets `app.tenant_id` for one transaction. Still filter by `tenant_id` in every query.
-- **New tenant tables:** put them in the `cell` schema with `tenant_id`, `.enableRLS()` and the `tenant_isolation` policy, as `apps/api/src/db/schema.ts` shows. `test/database.int.test.ts` fails for any `cell` table without them.
-- **Schema changes:** edit `schema.ts`, run `db:generate`, and review the SQL before committing. Grants, and anything else Drizzle can't express, go in a migration made with `drizzle-kit generate --custom`.
+- **New tenant tables:** put them in the `cell` schema with `tenant_id`, `.enableRLS()` and the `isolation()` policy, as `apps/api/src/db/schema/iam.ts` shows. `test/database.int.test.ts` fails for any `cell` table without them. Primary keys start with `tenant_id` (`(tenant_id, id)`), and references carry it too, so a row can't point into another tenant (decision D30). Syncable tables take `rowVersionColumn()` and a `next_row_version` trigger.
+- **Schema changes:** edit the files in `apps/api/src/db/schema/`, run `db:generate`, and review the SQL before committing. Grants, triggers and anything else Drizzle can't express go in a migration made with `drizzle-kit generate --custom`.
 - **Idempotent creates:** use `idempotent()` from `src/platform/idempotency.ts` (BR-46).
 - **Errors:** throw `AppError` from `@kshetra/shared` with a spec 11.4 code; the global filter writes the spec 11.1 format.
 
-## Sign-in and access (decision D29)
+## Sign-in and access (decisions D29 and D30)
 
-- Sign-in lives in `apps/api/src/modules/directory`. Only that module touches the directory schema, through `DirectoryDatabase` as `directory_app`; other modules call its services.
-- Every route needs an access token. The global `AuthGuard` checks it and sets `request.auth`, which handlers read with `@CurrentAuth()`. Only health checks and sign-in routes are `@Public()`.
+- Sign-in lives in `apps/api/src/modules/directory`. Only that module touches the directory schema, through `DirectoryDatabase` as `directory_app`. The directory and the cell reach each other only through the seams in `apps/api/src/platform/planes.ts`: the cell admits each sign-in and binds the phone, and tells the directory whenever a user's sign-in facts change.
+- Every route declares who may call it: `@Public()` (health checks and sign-in only), `@SignedIn()`, `@Requires(...)` or `@RequiresAny(...)`, with permissions from spec Appendix E. A route that declares nothing is refused, and `test/iam.int.test.ts` fails. Handlers read the caller with `@CurrentAccess()`.
+- The global `AuthGuard` checks the token. IAM then checks, on every request, that the tenant, user and device are still active at the token's auth revision.
+- Filter records by the caller's data scope with `Scopes` from the IAM module. A record outside the scope answers `OUT_OF_SCOPE`; another tenant's record answers `NOT_FOUND`.
+- Nobody gives access they don't hold (`canGrant` in `@kshetra/shared`), and nobody acts on their own record where a rule forbids it, such as resetting their own device.
 - Never log phone numbers, one-time codes or tokens. A message that must name a number uses `maskPhone()`.
-- Integration tests use `test/support.ts`: `startApp()`, `testConfig()`, `DirectoryFixtures`, and fresh numbers and addresses so tests never share rate limits. `OTP_PROVIDER=memory` keeps codes for tests.
+- Integration tests use `test/support.ts`: `startApp()`, `testConfig()`, and `World`. `World` makes tenants from a template and users through the app's own services, and signs people in on the web, or on a phone with `newDevice()`. Fresh numbers and addresses keep tests from sharing rate limits. `OTP_PROVIDER=memory` keeps codes for tests.
 
 ## Configuration and templates
 

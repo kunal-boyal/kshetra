@@ -1,9 +1,7 @@
+import { OPEN_TENANT_STATUSES } from '@kshetra/shared';
 import { and, eq, inArray, type SQL } from 'drizzle-orm';
 import { cells, identities, memberships, tenants } from '../../db/schema/directory';
 import type { DirectoryDb, DirectoryTx } from './directory.database';
-
-/** Tenant states whose users may sign in. Suspended and terminated tenants are closed (M23). */
-export const SIGN_IN_STATUSES = ['trial', 'active', 'grace', 'read_only'] as const;
 
 export interface MembershipRow {
   membershipId: string;
@@ -34,7 +32,11 @@ export function activeMemberships(db: DirectoryDb | DirectoryTx, where: SQL | un
     .innerJoin(tenants, eq(tenants.id, memberships.tenantId))
     .innerJoin(cells, eq(cells.id, tenants.cellId))
     .where(
-      and(where, eq(memberships.status, 'active'), inArray(tenants.status, [...SIGN_IN_STATUSES])),
+      and(
+        where,
+        eq(memberships.status, 'active'),
+        inArray(tenants.status, [...OPEN_TENANT_STATUSES]),
+      ),
     )
     .orderBy(tenants.name);
 }

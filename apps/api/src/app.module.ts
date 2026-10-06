@@ -3,6 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import type { Config } from './config';
 import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
 import { IamModule } from './modules/iam/iam.module';
+import { TerritoriesModule } from './modules/territories/territories.module';
+import { PlanesModule } from './planes.module';
 import { AccessTokens, AuthGuard } from './platform/auth';
 import { Database } from './platform/database';
 import { HEALTH_CHECKS, HealthController, type HealthChecks } from './platform/health.controller';
@@ -14,7 +16,13 @@ export class AppModule {
   static forRoot(config: Config): DynamicModule {
     return {
       module: AppModule,
-      imports: [PlatformModule.forRoot(config), DirectoryModule, IamModule],
+      imports: [
+        PlatformModule.forRoot(config),
+        PlanesModule,
+        DirectoryModule,
+        IamModule,
+        TerritoriesModule,
+      ],
       controllers: [HealthController],
       providers: [
         AccessTokens,

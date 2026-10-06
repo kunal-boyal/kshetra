@@ -1,23 +1,22 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { newId } from '@kshetra/shared';
 import { createLocalJWKSet, jwtVerify } from 'jose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { MemoryOtpSender, OtpSender } from '../src/modules/directory/otp-sender';
+import type { MemoryOtpSender } from '../src/modules/directory/otp-sender';
 import { SigningKey } from '../src/modules/directory/signing-key';
-import { DirectoryFixtures, newAddress, newPhone, startApp } from './support';
+import { newAddress, newPhone, startApp, World } from './support';
 
 let app: NestFastifyApplication;
-let fixtures: DirectoryFixtures;
+let world: World;
 let sender: MemoryOtpSender;
 
 beforeAll(async () => {
   app = await startApp();
-  fixtures = await DirectoryFixtures.connect();
-  sender = app.get(OtpSender) as MemoryOtpSender;
+  world = await World.create(app);
+  sender = world.sender;
 });
 
 afterAll(async () => {
-  await fixtures.end();
+  await world.end();
   await app.close();
 });
 
@@ -31,12 +30,12 @@ const refresh = (refreshToken: string) => post('/auth/v1/token/refresh', { refre
 const me = (accessToken: string) =>
   app.inject({ method: 'GET', url: '/v1/me', headers: { authorization: `Bearer ${accessToken}` } });
 
-/** A person with an active membership in a new tenant for each name. */
+/** A person with an active user in a new tenant for each name. */
 async function member(...tenantNames: string[]) {
   const phone = newPhone();
   const tenantIds: string[] = [];
-  for (const name of tenantNames) tenantIds.push(await fixtures.tenant(name));
-  return { phone, tenantIds, ...(await fixtures.member(phone, tenantIds)) };
+  for (const name of tenantNames) tenantIds.push(await world.tenant(name));
+  return { phone, tenantIds, ...(await world.member(phone, tenantIds)) };
 }
 
 /** Signs a one-tenant member in and returns the session. */
@@ -64,7 +63,7 @@ describe('requesting a code', () => {
 
   it('sends nothing for a tenant that is suspended', async () => {
     const phone = newPhone();
-    await fixtures.member(phone, [await fixtures.tenant('Closed Co', 'suspended')]);
+    await world.member(phone, [await world.tenant('Closed Co', 'suspended')]);
     expect((await requestCode(phone)).statusCode).toBe(202);
     expect(sender.lastCode(phone)).toBeUndefined();
   });
@@ -114,10 +113,14 @@ describe('verifying a code', () => {
 
     const who = await me(body.session.accessToken);
     expect(who.statusCode).toBe(200);
-    expect(who.json()).toEqual({
+    expect(who.json()).toMatchObject({
       userId: person.userIds[0],
       tenantId: person.tenantIds[0],
       cell: 'local',
+      designation: 'manager',
+      role: 'manager',
+      scope: 'team',
+      deviceId: null,
     });
   });
 
@@ -137,7 +140,7 @@ describe('verifying a code', () => {
   it('expires a code after five minutes', async () => {
     const person = await member('Dhara Inputs');
     await requestCode(person.phone);
-    await fixtures.client.query(
+    await world.directory.client.query(
       `update directory.otp_challenges set expires_at = now() - interval '1 second' where identity_key = $1`,
       [person.phone],
     );
@@ -204,7 +207,7 @@ describe('people in several tenants', () => {
     expect(again.json().error.code).toBe('OTP_EXPIRED');
 
     const zetaSession = chosen.json().session;
-    const outsider = await fixtures.tenant('Not Theirs');
+    const outsider = await world.directory.tenant('Not Theirs');
     const refused = await post('/auth/v1/switch-tenant', {
       refreshToken: zetaSession.refreshToken,
       tenantId: outsider,
@@ -249,7 +252,7 @@ describe('sessions', () => {
   it('end when the membership is deactivated or its auth revision moves (BR-39)', async () => {
     const deactivated = await member('Hari Seeds');
     const one = await signIn(deactivated.phone);
-    await fixtures.client.query(
+    await world.directory.client.query(
       `update directory.memberships set status = 'inactive' where id = $1`,
       [deactivated.membershipIds[0]],
     );
@@ -257,7 +260,7 @@ describe('sessions', () => {
 
     const revised = await member('Indus Inputs');
     const two = await signIn(revised.phone);
-    await fixtures.client.query(
+    await world.directory.client.query(
       `update directory.memberships set auth_revision = auth_revision + 1 where id = $1`,
       [revised.membershipIds[0]],
     );
@@ -267,7 +270,7 @@ describe('sessions', () => {
   it('end when the refresh token expires', async () => {
     const person = await member('Jai Kisan');
     const session = await signIn(person.phone);
-    await fixtures.client.query(
+    await world.directory.client.query(
       `update directory.refresh_tokens set expires_at = now() - interval '1 second' where membership_id = $1`,
       [person.membershipIds[0]],
     );
@@ -278,7 +281,13 @@ describe('sessions', () => {
 describe('cell routes', () => {
   it('need a valid access token for this cell', async () => {
     const keys = app.get(SigningKey);
-    const claims = { userId: newId(), tenantId: newId(), cell: 'local', revision: 0 };
+    const person = await member('Lotus Agri');
+    const claims = {
+      userId: person.userIds[0]!,
+      tenantId: person.tenantIds[0]!,
+      cell: 'local',
+      revision: 0,
+    };
 
     expect((await app.inject({ method: 'GET', url: '/v1/me' })).json().error.code).toBe(
       'UNAUTHENTICATED',

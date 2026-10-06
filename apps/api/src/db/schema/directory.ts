@@ -1,4 +1,6 @@
-import { index, integer, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { TENANT_STATUSES } from '@kshetra/shared';
+import { sql } from 'drizzle-orm';
+import { index, integer, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { directory } from './common';
 
 /**
@@ -9,14 +11,7 @@ import { directory } from './common';
 
 export const cellKind = directory.enum('cell_kind', ['shared', 'dedicated']);
 
-export const tenantStatus = directory.enum('tenant_status', [
-  'trial',
-  'active',
-  'grace',
-  'read_only',
-  'suspended',
-  'terminated',
-]);
+export const tenantStatus = directory.enum('tenant_status', TENANT_STATUSES);
 
 export const membershipStatus = directory.enum('membership_status', ['active', 'inactive']);
 
@@ -60,7 +55,12 @@ export const identities = directory.table('identities', {
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
 });
 
-/** An identity's place in one tenant: the user it is there, and that user's auth revision (BR-39). */
+/**
+ * An identity's place in one tenant: the user it is there, whether they may sign in, and their
+ * auth revision (BR-39). The tenant's cell owns these facts and sends them here whenever they
+ * change; a membership belongs to one user for good, and moves to another identity when that
+ * user's phone number changes.
+ */
 export const memberships = directory.table(
   'memberships',
   {
@@ -75,7 +75,13 @@ export const memberships = directory.table(
     status: membershipStatus('status').notNull().default('active'),
     authRevision: integer('auth_revision').notNull().default(0),
   },
-  (table) => [unique('memberships_identity_tenant_key').on(table.identityId, table.tenantId)],
+  (table) => [
+    uniqueIndex('memberships_tenant_user_key').on(table.tenantId, table.userId),
+    // A phone number signs in to at most one user in each tenant.
+    uniqueIndex('memberships_active_identity_tenant_key')
+      .on(table.identityId, table.tenantId)
+      .where(sql`${table.status} = 'active'`),
+  ],
 );
 
 /** One code sent (or, for an unknown number, pretended). Only an HMAC of the code is kept. */

@@ -114,3 +114,36 @@ export const SYSTEM_ROLES = [
 ] as const;
 
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
+
+/**
+ * What each scope reaches, as the scopes it contains. Every scope reaches the user's own records,
+ * `team_or_territory` reaches both halves, and `tenant` reaches everything.
+ */
+const CONTAINS: Readonly<Record<DataScope, readonly DataScope[]>> = {
+  self: ['self'],
+  team: ['self', 'team'],
+  territory: ['self', 'territory'],
+  team_or_territory: ['self', 'team', 'territory', 'team_or_territory'],
+  tenant: DATA_SCOPES,
+};
+
+/** True when `outer` reaches at least every record `inner` reaches. */
+export function scopeContains(outer: DataScope, inner: DataScope): boolean {
+  return CONTAINS[outer].includes(inner);
+}
+
+/**
+ * Whether someone may give a role to a user, or define or change one: only when the role holds no
+ * permission they lack and reaches no further than they do. Without this rule, anyone who manages
+ * users or roles could raise their own access through a second account or through a role.
+ */
+export function canGrant(
+  actor: { permissions: Iterable<string>; scope: DataScope },
+  role: { permissions: Iterable<string>; scope: DataScope },
+): boolean {
+  const held = new Set(actor.permissions);
+  for (const permission of role.permissions) {
+    if (!held.has(permission)) return false;
+  }
+  return scopeContains(actor.scope, role.scope);
+}
