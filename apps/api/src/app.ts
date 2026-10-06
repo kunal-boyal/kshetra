@@ -24,7 +24,11 @@ export async function createApp(
   config: Config,
   logger: LoggerService | false = createLogger(config),
 ): Promise<NestFastifyApplication> {
-  const adapter = new FastifyAdapter({ genReqId, bodyLimit: 1_048_576 });
+  const adapter = new FastifyAdapter({
+    genReqId,
+    bodyLimit: 1_048_576,
+    trustProxy: config.TRUST_PROXY,
+  });
   const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(config), adapter, {
     logger,
   });

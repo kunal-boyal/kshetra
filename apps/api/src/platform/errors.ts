@@ -58,11 +58,14 @@ function body(
 export function toErrorResponse(
   exception: unknown,
   requestId: string,
-): { status: number; body: ErrorBody } {
+): { status: number; body: ErrorBody; headers?: Record<string, string> } {
   if (exception instanceof AppError) {
     return {
       status: exception.status,
       body: body(exception.code, exception.message, requestId, exception.details),
+      ...(exception.retryAfterSeconds === undefined
+        ? {}
+        : { headers: { 'retry-after': String(exception.retryAfterSeconds) } }),
     };
   }
   if (exception instanceof ZodError) {
@@ -97,12 +100,13 @@ export class ErrorFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const request = http.getRequest<FastifyRequest>();
     const reply = http.getResponse<FastifyReply>();
-    const { status, body } = toErrorResponse(exception, String(request.id));
+    const { status, body, headers } = toErrorResponse(exception, String(request.id));
     if (status >= 500) {
       const detail =
         exception instanceof Error ? (exception.stack ?? exception.message) : String(exception);
       this.logger.error({ requestId: request.id, error: detail });
     }
+    if (headers) void reply.headers(headers);
     void reply.status(status).send(body);
   }
 }

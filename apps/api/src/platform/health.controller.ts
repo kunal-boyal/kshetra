@@ -1,11 +1,16 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Inject, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { Database } from './database';
+import { Public } from './auth';
+
+/** What readiness depends on, by name: each answers whether it is reachable. */
+export const HEALTH_CHECKS = Symbol('HEALTH_CHECKS');
+export type HealthChecks = Record<string, () => Promise<boolean>>;
 
 /** `/health` and `/ready`, on every service (spec 11.1). */
+@Public()
 @Controller()
 export class HealthController {
-  constructor(private readonly database: Database) {}
+  constructor(@Inject(HEALTH_CHECKS) private readonly checks: HealthChecks) {}
 
   /** Liveness: the process is up and answering. */
   @Get('health')
@@ -13,13 +18,16 @@ export class HealthController {
     return { status: 'ok' };
   }
 
-  /** Readiness: the process can do real work, which needs the database. */
+  /** Readiness: everything real work needs answers. */
   @Get('ready')
   async ready(@Res({ passthrough: true }) reply: FastifyReply) {
-    if (!(await this.database.ping())) {
-      void reply.status(503);
-      return { status: 'not_ready', checks: { database: 'unavailable' } };
-    }
-    return { status: 'ready', checks: { database: 'ok' } };
+    const names = Object.keys(this.checks);
+    const results = await Promise.all(names.map((name) => this.checks[name]!()));
+    const checks = Object.fromEntries(
+      names.map((name, i) => [name, results[i] ? 'ok' : 'unavailable']),
+    );
+    if (results.every(Boolean)) return { status: 'ready', checks };
+    void reply.status(503);
+    return { status: 'not_ready', checks };
   }
 }

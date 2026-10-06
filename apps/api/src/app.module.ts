@@ -1,17 +1,39 @@
 import { type DynamicModule, Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import type { Config } from './config';
+import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
+import { IamModule } from './modules/iam/iam.module';
+import { AccessTokens, AuthGuard } from './platform/auth';
 import { Database } from './platform/database';
-import { HealthController } from './platform/health.controller';
-import { CONFIG } from './platform/tokens';
+import { HEALTH_CHECKS, HealthController, type HealthChecks } from './platform/health.controller';
+import { PlatformModule } from './platform/platform.module';
+import { RedisClient } from './platform/redis';
 
 @Module({})
 export class AppModule {
   static forRoot(config: Config): DynamicModule {
     return {
       module: AppModule,
+      imports: [PlatformModule.forRoot(config), DirectoryModule, IamModule],
       controllers: [HealthController],
-      providers: [{ provide: CONFIG, useValue: config }, Database],
-      exports: [Database],
+      providers: [
+        AccessTokens,
+        // Every route needs an access token unless it is marked @Public().
+        { provide: APP_GUARD, useClass: AuthGuard },
+        {
+          provide: HEALTH_CHECKS,
+          inject: [Database, DirectoryHealth, RedisClient],
+          useFactory: (
+            database: Database,
+            directory: DirectoryHealth,
+            redis: RedisClient,
+          ): HealthChecks => ({
+            database: () => database.ping(),
+            directory: () => directory.ping(),
+            redis: () => redis.ping(),
+          }),
+        },
+      ],
     };
   }
 }

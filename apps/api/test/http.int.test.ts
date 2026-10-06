@@ -1,23 +1,13 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { isId } from '@kshetra/shared';
-import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
-import { createApp } from '../src/app';
-import { loadConfig } from '../src/config';
-
-const urls = inject('databaseUrls');
-
-async function start(databaseUrl: string): Promise<NestFastifyApplication> {
-  const app = await createApp(loadConfig({ NODE_ENV: 'test', DATABASE_URL: databaseUrl }), false);
-  await app.init();
-  await app.getHttpAdapter().getInstance().ready();
-  return app;
-}
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { startApp, testConfig } from './support';
 
 describe('the HTTP API', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
-    app = await start(urls.cellApp);
+    app = await startApp();
   });
 
   afterAll(() => app.close());
@@ -29,10 +19,13 @@ describe('the HTTP API', () => {
     expect(isId(String(response.headers['x-request-id']))).toBe(true);
   });
 
-  it('is ready when the database answers', async () => {
+  it('is ready when the databases and Redis answer', async () => {
     const response = await app.inject({ method: 'GET', url: '/ready' });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ status: 'ready', checks: { database: 'ok' } });
+    expect(response.json()).toEqual({
+      status: 'ready',
+      checks: { database: 'ok', directory: 'ok', redis: 'ok' },
+    });
   });
 
   it("keeps a caller's well-formed X-Request-Id", async () => {
@@ -66,12 +59,18 @@ describe('the HTTP API', () => {
   });
 });
 
-describe('the HTTP API with the database down', () => {
+describe('the HTTP API with its databases and Redis down', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
     // Nothing listens on port 1, so every connection attempt fails at once.
-    app = await start('postgres://cell_app:unused@127.0.0.1:1/kshetra');
+    app = await startApp(
+      testConfig({
+        DATABASE_URL: 'postgres://cell_app:unused@127.0.0.1:1/kshetra',
+        DIRECTORY_DATABASE_URL: 'postgres://directory_app:unused@127.0.0.1:1/kshetra',
+        REDIS_URL: 'redis://127.0.0.1:1',
+      }),
+    );
   });
 
   afterAll(() => app.close());
@@ -80,6 +79,9 @@ describe('the HTTP API with the database down', () => {
     expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
     const ready = await app.inject({ method: 'GET', url: '/ready' });
     expect(ready.statusCode).toBe(503);
-    expect(ready.json()).toEqual({ status: 'not_ready', checks: { database: 'unavailable' } });
+    expect(ready.json()).toEqual({
+      status: 'not_ready',
+      checks: { database: 'unavailable', directory: 'unavailable', redis: 'unavailable' },
+    });
   });
 });
