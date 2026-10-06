@@ -41,6 +41,7 @@ Each step is its own pull request. The order follows dependencies.
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-06 | Kunal confirmed decisions D29 to D33, and switched off Turborepo's `AGENTS.md` (CLAUDE.md is the agents' guide) | `docs/decisions.md`, `turbo.json` |
 | 2026-10-06 | Design system v2, soft and pastel: a pastel palette, rounder shapes, soft shadows, icon chips, and motion tokens and patterns | PR #4, `packages/design-tokens`, artifact version 10, decision D28 |
 | 2026-10-06 | Phase 0 step 8: the provisioning command, and a seed of two tenants on different templates (decision D33) | PR #9, merged as `b6f6b28` |
 | 2026-10-06 | Phase 0 step 7: the audit log, the outbox and its relay (decision D32) | PR #8, merged as `dbfb92f` |
@@ -58,12 +59,10 @@ Each step is its own pull request. The order follows dependencies.
 
 | Item | Who | Needed by |
 |---|---|---|
-| Turborepo's `AGENTS.md`: commit it, or switch it off with `"agentGuidance": false` | Kunal | Any time |
-| Confirm decisions D29 to D33, merged with #5 to #9; D30's access rules most of all: nobody resets their own device or changes their own role or status, and nobody grants access they don't hold | Kunal | Before the pilot |
 | D1: product name, domain and the legal entity that publishes the apps | Kunal | Before DLT registration and store listings |
 | D2: name the pilot customer (agri inputs) | Kunal | Phase 1 |
 | D3: seat prices and plan contents | Kunal | Before phase 3 |
-| Expo account, for mobile builds | Kunal | Phase 0, step 10 |
+| Expo account for mobile builds: sign up at expo.dev, then run `eas login` in a terminal (the EAS command-line tool is installed). Accounts and passwords stay with you. | Kunal | Phase 0, step 10 |
 | Accounts with long lead times: SMS provider with DLT, Google Play and Apple (each needs a D-U-N-S number), AWS | Kunal | Phase 1 |
 | Outdoor theme field test, on two Android brands in midday sun (D19) | Team | Before onboarding suggests Outdoor |
 | Review the soft pastel design system (D28): the hues, how round, and how fast the motion is | Kunal | Before the web shell, step 9 |
