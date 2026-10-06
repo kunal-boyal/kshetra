@@ -1,0 +1,53 @@
+import { Body, Controller, Get, Patch, Put } from '@nestjs/common';
+import {
+  type TenantSettings,
+  TerminologyOverrides,
+  type TerminologyResult,
+  UpdateSettingsBody,
+} from '@kshetra/shared';
+import { type Access, CurrentAccess, Requires } from '../../platform/auth';
+import { Database } from '../../platform/database';
+import { TenantConfigService } from './tenant-config.service';
+
+/**
+ * Tenant settings and terminology (spec 5.1, 5.2). Changes reach every app with its next config
+ * fetch, with no release (module M2). Both requests are idempotent by themselves.
+ */
+@Controller('v1')
+export class SettingsController {
+  constructor(
+    private readonly database: Database,
+    private readonly config: TenantConfigService,
+  ) {}
+
+  @Patch('settings')
+  @Requires('settings.manage')
+  updateSettings(@CurrentAccess() access: Access, @Body() body: unknown): Promise<TenantSettings> {
+    const patch = UpdateSettingsBody.parse(body);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.config.updateSettings(tx, access.tenantId, access.userId, patch),
+    );
+  }
+
+  @Get('terminology')
+  @Requires('terminology.manage')
+  async terminology(@CurrentAccess() access: Access): Promise<TerminologyResult> {
+    const overrides = await this.database.forTenant(access.tenantId, (tx) =>
+      this.config.terminology(tx, access.tenantId),
+    );
+    return { overrides };
+  }
+
+  @Put('terminology')
+  @Requires('terminology.manage')
+  async replaceTerminology(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+  ): Promise<TerminologyResult> {
+    const input = TerminologyOverrides.parse(body);
+    const overrides = await this.database.forTenant(access.tenantId, (tx) =>
+      this.config.replaceTerminology(tx, access.tenantId, access.userId, input),
+    );
+    return { overrides };
+  }
+}

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { IamAccess } from './access.service';
 import { IamAdmission } from './admission.service';
@@ -19,7 +20,7 @@ import { UsersService } from './users.service';
  * directory whenever someone's access to sign in changes.
  */
 @Module({
-  imports: [TerritoriesModule],
+  imports: [TerritoriesModule, TenantConfigModule],
   controllers: [MeController, UsersController, RolesController, DesignationsController],
   providers: [
     IamAccess,
@@ -31,6 +32,6 @@ import { UsersService } from './users.service';
     DesignationsService,
     IamSetup,
   ],
-  exports: [IamAccess, IamAdmission, Scopes, UsersService, IamSetup],
+  exports: [IamAccess, IamAdmission, Scopes, UsersService, DesignationsService, IamSetup],
 })
 export class IamModule {}

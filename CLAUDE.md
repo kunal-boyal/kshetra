@@ -98,6 +98,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Never log phone numbers, one-time codes or tokens. A message that must name a number uses `maskPhone()`.
 - Integration tests use `test/support.ts`: `startApp()`, `testConfig()`, and `World`. `World` makes tenants from a template and users through the app's own services, and signs people in on the web, or on a phone with `newDevice()`. Fresh numbers and addresses keep tests from sharing rate limits. `OTP_PROVIDER=memory` keeps codes for tests.
 
+## Configuration bundle and text (decision D31)
+
+- Strings live in `packages/i18n/src/messages/en.ts` and `hi.ts` under stable keys. Add both languages in the same change. A message names a term through a placeholder such as `{term.account:lower}`, never as a word; plural messages carry `one` and `other`.
+- Format numbers, money and dates with `formatNumber`, `formatMoney`, `formatDate` and `formatDateTime` from `@kshetra/i18n`. A tenant's "today" is `todayIn(settings.timezone)` from `@kshetra/shared`.
+- Tenant settings are `TenantSettings` in `@kshetra/shared`, with `SETTING_DEFAULTS`; read them with `TenantConfigService.settings()`. A new setting needs a default, and settings are never renamed.
+- Anything the config bundle holds moves the config version: call `TenantConfigService.touch()` in the same transaction as the change.
+
 ## Configuration and templates
 
 - Tenant configuration (account types, forms, metrics, workflows, policies) is data, checked in two layers: a zod schema for its shape, then checks that every reference resolves and settings agree. Form schemas are in `packages/forms`, metric and score schemas in `packages/metrics`, the rest in `packages/templates/src/schema`.

@@ -5,16 +5,20 @@ import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
 import { Database } from '../../platform/database';
 import { type Admission, type AdmissionRequest, CellAdmission } from '../../platform/planes';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 /**
- * Admits a sign-in on behalf of the tenant (M1, rules 5 and 9). The user must be active; a web
- * sign-in needs a role allowed on the web; and a phone must be the one the user is bound to, or
- * becomes it when they have none (BR-38). Device binding is a tenant setting that is on by default
- * (spec 5.1, D15); until tenant settings exist, it is on for everyone.
+ * Admits a sign-in on behalf of the tenant (M1, rules 5 and 9). The user must be active, and a web
+ * sign-in needs a role allowed on the web. With device binding on (the default, spec 5.1 and D15),
+ * a phone must be the one the user is bound to, or becomes it when they have none (BR-38); with it
+ * off, every phone is recorded and none is refused.
  */
 @Injectable()
 export class IamAdmission extends CellAdmission {
-  constructor(private readonly database: Database) {
+  constructor(
+    private readonly database: Database,
+    private readonly config: TenantConfigService,
+  ) {
     super();
   }
 
@@ -42,10 +46,20 @@ export class IamAdmission extends CellAdmission {
 
       const keyHash = createHash('sha256').update(device.key).digest('hex');
       const owned = await tx
-        .select({ id: devices.id, keyHash: devices.deviceKeyHash, revokedAt: devices.revokedAt })
+        .select({
+          id: devices.id,
+          keyHash: devices.deviceKeyHash,
+          boundAt: devices.boundAt,
+          revokedAt: devices.revokedAt,
+        })
         .from(devices)
         .where(and(eq(devices.tenantId, tenantId), eq(devices.userId, userId)));
-      if (owned.some((other) => other.revokedAt === null && other.keyHash !== keyHash)) {
+      const same = owned.find((known) => known.keyHash === keyHash);
+      const inUse = same !== undefined && same.revokedAt === null;
+      const { deviceBinding } = await this.config.settings(tx, tenantId);
+      // A phone already in use carries on, including any let in while binding was off; a new
+      // phone binds only when the user has none.
+      if (deviceBinding && !inUse && owned.some((other) => other.revokedAt === null)) {
         throw new AppError(
           'DEVICE_NOT_BOUND',
           'This phone is not registered for your account. Ask your manager to reset your device.',
@@ -60,18 +74,28 @@ export class IamAdmission extends CellAdmission {
         appVersion: device.appVersion ?? null,
         lastSeenAt: now,
       };
-      const same = owned.find((known) => known.keyHash === keyHash);
+      // `bound_at` is when the phone became the user's bound one. A phone let in while binding is
+      // off has none until it signs in with binding on.
       if (same) {
         await tx
           .update(devices)
-          .set({ ...details, ...(same.revokedAt ? { revokedAt: null, boundAt: now } : {}) })
+          .set({
+            ...details,
+            revokedAt: null,
+            boundAt: inUse && same.boundAt ? same.boundAt : deviceBinding ? now : null,
+          })
           .where(and(eq(devices.tenantId, tenantId), eq(devices.id, same.id)));
         return { deviceId: same.id };
       }
       const id = newId();
-      await tx
-        .insert(devices)
-        .values({ id, tenantId, userId, deviceKeyHash: keyHash, ...details, boundAt: now });
+      await tx.insert(devices).values({
+        id,
+        tenantId,
+        userId,
+        deviceKeyHash: keyHash,
+        ...details,
+        boundAt: deviceBinding ? now : null,
+      });
       return { deviceId: id };
     });
   }

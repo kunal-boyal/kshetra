@@ -28,7 +28,7 @@ export class IamAccess extends AccessResolver {
     if (!isOpenTenant(status)) {
       throw new AppError(
         'TENANT_SUSPENDED',
-        "Your organisation's account is suspended. Ask your administrator.",
+        "Your organisation's subscription is suspended. Ask an admin about billing.",
       );
     }
 

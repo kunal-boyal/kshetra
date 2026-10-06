@@ -9,6 +9,7 @@ import {
   normalisePhone,
   TENANT_PERMISSIONS,
   type TenantPermission,
+  type TenantSettings,
   type UpdateUserBody,
   type UserListQuery,
   type UserListResult,
@@ -28,6 +29,7 @@ import {
   SYSTEM,
   uniqueViolation,
 } from './actor';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ReportingTree } from './reporting-tree';
 import { Scopes } from './scopes';
 
@@ -65,8 +67,8 @@ function toResult(row: SelectedUser): UserResult {
   return { ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString() };
 }
 
-function parsePhone(raw: string): string {
-  const phone = normalisePhone(raw);
+function parsePhone(raw: string, country: TenantSettings['defaultCountry']): string {
+  const phone = normalisePhone(raw, country);
   if (!phone) throw invalid('phone', 'Not a valid mobile number');
   return phone;
 }
@@ -92,6 +94,7 @@ export class UsersService {
     private readonly scopes: Scopes,
     private readonly tree: ReportingTree,
     private readonly members: MembershipSync,
+    private readonly config: TenantConfigService,
   ) {}
 
   async list(tx: TenantTx, access: Access, query: UserListQuery): Promise<UserListResult> {
@@ -99,7 +102,7 @@ export class UsersService {
       .where(
         and(
           eq(users.tenantId, access.tenantId),
-          this.scopes.users(access),
+          await this.scopes.users(tx, access),
           query.status ? eq(users.status, query.status) : undefined,
           query.cursor ? gt(users.id, query.cursor) : undefined,
         ),
@@ -142,7 +145,7 @@ export class UsersService {
     actor: Actor,
     input: CreateUserBody,
   ): Promise<UserResult> {
-    const phone = input.phone === undefined ? null : parsePhone(input.phone);
+    const phone = input.phone === undefined ? null : await this.phone(tx, tenantId, input.phone);
     const designation = await this.designation(tx, tenantId, input.designation);
     const role = input.role
       ? await this.roleByKey(tx, tenantId, input.role)
@@ -208,7 +211,7 @@ export class UsersService {
         ? current.phoneE164
         : input.phone === null
           ? null
-          : parsePhone(input.phone);
+          : await this.phone(tx, tenantId, input.phone);
     const designation = input.designation
       ? await this.designation(tx, tenantId, input.designation)
       : undefined;
@@ -472,6 +475,12 @@ export class UsersService {
       )
       .innerJoin(roles, and(eq(roles.tenantId, users.tenantId), eq(roles.id, users.roleId)))
       .$dynamic();
+  }
+
+  /** A number in E.164; one without a country code takes the tenant's default country (M1). */
+  private async phone(tx: TenantTx, tenantId: string, raw: string): Promise<string> {
+    const { defaultCountry } = await this.config.settings(tx, tenantId);
+    return parsePhone(raw, defaultCountry);
   }
 
   private async designation(tx: TenantTx, tenantId: string, key: string) {

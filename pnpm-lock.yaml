@@ -220,6 +220,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@kshetra/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@kshetra/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -326,6 +329,25 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.6.5
+    devDependencies:
+      '@kshetra/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: 'catalog:'
+        version: 10.12.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.3(@types/node@24.19.1)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  packages/i18n:
+    dependencies:
+      '@kshetra/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@kshetra/config':
         specifier: workspace:*

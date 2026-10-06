@@ -10,12 +10,6 @@ import {
 } from '../../db/schema/territories';
 import type { TenantTx } from '../../platform/database';
 
-/**
- * Today in the tenant's timezone, which decides the attachments that apply now (spec 5.4). Tenant
- * settings (spec 5.1) will give each tenant its own timezone; until then all use the default.
- */
-const TODAY = sql`(now() at time zone 'Asia/Kolkata')::date`;
-
 export interface NewTerritory {
   code: string;
   name: string;
@@ -103,10 +97,11 @@ export class TerritoriesService {
   }
 
   /**
-   * The users attached today to any territory at or below one the given user is attached to
-   * today: whom a `territory` scope reaches (spec 4.2). A subquery that selects user IDs.
+   * The users attached on `today` (`YYYY-MM-DD`, the tenant's date) to any territory at or below
+   * one the given user is attached to on that day: whom a `territory` scope reaches (spec 4.2).
+   * A subquery that selects user IDs.
    */
-  usersReachedBy(tenantId: string, userId: string): SQL {
+  usersReachedBy(tenantId: string, userId: string, today: string): SQL {
     return sql`
       select theirs.user_id
         from ${userTerritories} mine
@@ -116,7 +111,9 @@ export class TerritoriesService {
           on theirs.tenant_id = tree.tenant_id and theirs.territory_id = tree.descendant_id
        where mine.tenant_id = ${tenantId}
          and mine.user_id = ${userId}
-         and mine.valid_from <= ${TODAY} and (mine.valid_to is null or mine.valid_to > ${TODAY})
-         and theirs.valid_from <= ${TODAY} and (theirs.valid_to is null or theirs.valid_to > ${TODAY})`;
+         and mine.valid_from <= ${today}::date
+         and (mine.valid_to is null or mine.valid_to > ${today}::date)
+         and theirs.valid_from <= ${today}::date
+         and (theirs.valid_to is null or theirs.valid_to > ${today}::date)`;
   }
 }
