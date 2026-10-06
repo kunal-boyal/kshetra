@@ -1,4 +1,5 @@
 import { AppError } from '@kshetra/shared';
+import { type AuditActor, SYSTEM_ACTOR, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 
 /** Changes made by the system itself, such as provisioning a tenant, which no user's access limits. */
@@ -10,6 +11,11 @@ export type Actor = Access | typeof SYSTEM;
 /** The user to record as `created_by` or `updated_by`; null for the system. */
 export function actorId(actor: Actor): string | null {
   return actor === SYSTEM ? null : actor.userId;
+}
+
+/** The actor as the audit log records them. */
+export function auditActor(actor: Actor): AuditActor {
+  return actor === SYSTEM ? SYSTEM_ACTOR : userActor(actor);
 }
 
 /** A problem with one field of the request. */

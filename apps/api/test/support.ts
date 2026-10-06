@@ -28,6 +28,8 @@ export function testConfig(overrides: Record<string, string> = {}): Config {
     REDIS_URL: inject('redisUrl'),
     OTP_PROVIDER: 'memory',
     OTP_PEPPER: 'a-test-pepper-of-16+',
+    // Tests run the relay themselves, so nothing retries behind their backs.
+    OUTBOX_RELAY: 'false',
     ...overrides,
   });
 }

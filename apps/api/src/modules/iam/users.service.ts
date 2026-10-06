@@ -19,10 +19,12 @@ import { and, asc, count, eq, gt, isNull, ne, or, type SQL } from 'drizzle-orm';
 import { designations, devices, roles, users } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
-import { MembershipSync } from '../../platform/planes';
+import { AuditLog, userActor } from '../../platform/audit';
+import { Outbox } from '../../platform/outbox';
 import {
   type Actor,
   actorId,
+  auditActor,
   invalid,
   notFound,
   outOfScope,
@@ -93,7 +95,8 @@ export class UsersService {
   constructor(
     private readonly scopes: Scopes,
     private readonly tree: ReportingTree,
-    private readonly members: MembershipSync,
+    private readonly audit: AuditLog,
+    private readonly outbox: Outbox,
     private readonly config: TenantConfigService,
   ) {}
 
@@ -187,8 +190,19 @@ export class UsersService {
       }),
     );
     await this.tree.add(tx, tenantId, id, input.managerId);
-    await this.members.sync({ tenantId, userId: id, phone, active: true, authRevision: 0 });
-    return this.read(tx, tenantId, id);
+    const created = await this.read(tx, tenantId, id);
+    await this.audit.record(tx, tenantId, auditActor(actor), {
+      action: 'user.created',
+      target: { type: 'user', id },
+      after: created,
+    });
+    await this.outbox.publish(tx, tenantId, 'user.created', id, {
+      userId: id,
+      phone,
+      status: 'active',
+      authRevision: 0,
+    });
+    return created;
   }
 
   async update(
@@ -285,7 +299,8 @@ export class UsersService {
       ...(exitDate !== current.exitDate ? { exitDate } : {}),
       ...(status !== current.status ? { status } : {}),
     };
-    if (Object.keys(changes).length === 0) return this.read(tx, tenantId, id);
+    const before = await this.read(tx, tenantId, id);
+    if (Object.keys(changes).length === 0) return before;
 
     // A change of phone, role or status ends every session the user has (BR-39).
     const revise = 'phoneE164' in changes || 'roleId' in changes || 'status' in changes;
@@ -297,16 +312,21 @@ export class UsersService {
         .where(and(eq(users.tenantId, tenantId), eq(users.id, id))),
     );
     if (managerChanged) await this.tree.move(tx, tenantId, id, managerId);
-    if (revise) {
-      await this.members.sync({
-        tenantId,
-        userId: id,
-        phone,
-        active: status === 'active',
-        authRevision,
-      });
-    }
-    return this.read(tx, tenantId, id);
+    const after = await this.read(tx, tenantId, id);
+    await this.audit.record(tx, tenantId, auditActor(actor), {
+      action: 'user.updated',
+      target: { type: 'user', id },
+      before,
+      after,
+    });
+    const deactivated = status === 'inactive' && current.status === 'active';
+    await this.outbox.publish(tx, tenantId, deactivated ? 'user.deactivated' : 'user.updated', id, {
+      userId: id,
+      phone,
+      status,
+      authRevision,
+    });
+    return after;
   }
 
   /**
@@ -322,7 +342,7 @@ export class UsersService {
       );
     }
     if (!(await this.scopes.reaches(tx, access, id))) throw outOfScope();
-    await tx
+    const revoked = await tx
       .update(devices)
       .set({ revokedAt: new Date() })
       .where(
@@ -331,8 +351,14 @@ export class UsersService {
           eq(devices.userId, id),
           isNull(devices.revokedAt),
         ),
-      );
+      )
+      .returning({ id: devices.id });
     await this.revise(tx, access, user);
+    await this.audit.record(tx, access.tenantId, userActor(access), {
+      action: 'user.device_reset',
+      target: { type: 'user', id },
+      after: { revokedDevices: revoked.map((device) => device.id) },
+    });
   }
 
   /** Ends every session the user has, on every device (BR-39). */
@@ -340,6 +366,10 @@ export class UsersService {
     const user = await this.lock(tx, access.tenantId, id);
     if (!(await this.scopes.reaches(tx, access, id))) throw outOfScope();
     await this.revise(tx, access, user);
+    await this.audit.record(tx, access.tenantId, userActor(access), {
+      action: 'user.signed_out_everywhere',
+      target: { type: 'user', id },
+    });
   }
 
   /** Moves the user's auth revision on, so every token they hold fails on its next use. */
@@ -349,11 +379,10 @@ export class UsersService {
       .update(users)
       .set({ authRevision, updatedAt: new Date(), updatedBy: access.userId })
       .where(and(eq(users.tenantId, user.tenantId), eq(users.id, user.id)));
-    await this.members.sync({
-      tenantId: user.tenantId,
+    await this.outbox.publish(tx, user.tenantId, 'user.updated', user.id, {
       userId: user.id,
       phone: user.phoneE164,
-      active: user.status === 'active',
+      status: user.status,
       authRevision,
     });
   }

@@ -20,6 +20,8 @@ describe('loadConfig', () => {
       DB_POOL_MAX: 10,
       LOG_LEVEL: 'info',
       OTP_PROVIDER: 'console',
+      OUTBOX_RELAY: true,
+      OUTBOX_POLL_MS: 1000,
     });
   });
 

@@ -9,6 +9,7 @@ import {
 } from '@kshetra/shared';
 import { eq, sql } from 'drizzle-orm';
 import { tenantSettings, terminologyOverrides } from '../../db/schema/tenant-config';
+import { type AuditActor, AuditLog, SYSTEM_ACTOR } from '../../platform/audit';
 import type { TenantTx } from '../../platform/database';
 
 /**
@@ -17,6 +18,8 @@ import type { TenantTx } from '../../platform/database';
  */
 @Injectable()
 export class TenantConfigService {
+  constructor(private readonly audit: AuditLog) {}
+
   /** The tenant's settings, defaults filled in. */
   async settings(tx: TenantTx, tenantId: string): Promise<TenantSettings> {
     const [row] = await tx
@@ -54,14 +57,16 @@ export class TenantConfigService {
   async updateSettings(
     tx: TenantTx,
     tenantId: string,
-    actorId: string,
+    actor: AuditActor,
     patch: UpdateSettingsBody,
   ): Promise<TenantSettings> {
+    const actorId = actor.id;
     const [row] = await tx
       .select({ settings: tenantSettings.settings })
       .from(tenantSettings)
       .where(eq(tenantSettings.tenantId, tenantId))
       .for('update');
+    const before = withDefaults(row?.settings ?? {});
     const changed = { ...row?.settings, ...patch };
     const settings = withDefaults(changed);
     await tx
@@ -76,6 +81,12 @@ export class TenantConfigService {
           updatedBy: actorId,
         },
       });
+    await this.audit.record(tx, tenantId, actor, {
+      action: 'settings.updated',
+      target: { type: 'tenant', id: tenantId },
+      before,
+      after: settings,
+    });
     return settings;
   }
 
@@ -96,22 +107,29 @@ export class TenantConfigService {
 
   /**
    * Replaces the tenant's words as a whole: a term left out goes back to the product's word. The
-   * rows are configuration, not records, so the old ones go; the audit log (module M21) is where
-   * a change like this one is kept.
+   * rows are configuration, not records, so the old ones go; the audit log keeps them.
    */
   async replaceTerminology(
     tx: TenantTx,
     tenantId: string,
-    actorId: string | null,
+    actor: AuditActor,
     overrides: TerminologyOverrides,
   ): Promise<TerminologyOverrides> {
+    const before = await this.terminology(tx, tenantId);
     await tx.delete(terminologyOverrides).where(eq(terminologyOverrides.tenantId, tenantId));
     const rows = Object.entries(overrides).flatMap(([key, value]) =>
       value ? LOCALES.map((locale) => ({ tenantId, key, locale, value: value[locale] })) : [],
     );
     if (rows.length > 0) await tx.insert(terminologyOverrides).values(rows);
-    await this.touch(tx, tenantId, actorId);
-    return this.terminology(tx, tenantId);
+    await this.touch(tx, tenantId, actor.id);
+    const after = await this.terminology(tx, tenantId);
+    await this.audit.record(tx, tenantId, actor, {
+      action: 'terminology.replaced',
+      target: { type: 'tenant', id: tenantId },
+      before,
+      after,
+    });
+    return after;
   }
 
   /** A new tenant's settings row and its template's words (spec 5.14). */
@@ -120,6 +138,6 @@ export class TenantConfigService {
     tenantId: string,
     template: { terminology: TerminologyOverrides },
   ): Promise<void> {
-    await this.replaceTerminology(tx, tenantId, null, template.terminology);
+    await this.replaceTerminology(tx, tenantId, SYSTEM_ACTOR, template.terminology);
   }
 }

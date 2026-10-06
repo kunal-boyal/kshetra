@@ -105,6 +105,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Tenant settings are `TenantSettings` in `@kshetra/shared`, with `SETTING_DEFAULTS`; read them with `TenantConfigService.settings()`. A new setting needs a default, and settings are never renamed.
 - Anything the config bundle holds moves the config version: call `TenantConfigService.touch()` in the same transaction as the change.
 
+## Audit and events (decision D32)
+
+- Every change writes an audit entry with `AuditLog.record()` in the same transaction: the action from `AUDIT_ACTIONS` in `@kshetra/shared`, the target, and the values before and after. `userActor(access)` names the caller; `SYSTEM_ACTOR` names provisioning.
+- Publish a domain event with `Outbox.publish()` in the same transaction as the change; it is delivered once the transaction commits, and retried by the relay if a consumer fails. Add event types and payloads to `packages/shared/src/events.ts`.
+- Consumers registered with `Outbox.consume()` must be idempotent: delivery is at least once.
+- Work that must wait for a commit goes through `Database.afterCommit()`.
+
 ## Configuration and templates
 
 - Tenant configuration (account types, forms, metrics, workflows, policies) is data, checked in two layers: a zod schema for its shape, then checks that every reference resolves and settings agree. Form schemas are in `packages/forms`, metric and score schemas in `packages/metrics`, the rest in `packages/templates/src/schema`.

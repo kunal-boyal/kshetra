@@ -18,6 +18,8 @@ export { contrastRatio, HEX_COLOUR } from './colour';
 export { todayIn } from './dates';
 export { AppError, ERROR_HTTP_STATUS, formatPath, isErrorCode, issueAt } from './errors';
 export type { ErrorBody, ErrorCode, ErrorDetail } from './errors';
+export { EVENT_PAYLOADS, EVENT_TYPES, UserEventPayload } from './events';
+export type { EventPayload, EventType } from './events';
 export { isId, newId } from './ids';
 export { maskPhone, normalisePhone } from './phone';
 export { ORDER_STATUSES } from './orders';
@@ -36,6 +38,14 @@ export {
   toMinorUnits,
 } from './schemas/config';
 export type { Locale } from './schemas/config';
+export {
+  AUDIT_ACTIONS,
+  AUDIT_ACTOR_KINDS,
+  AuditEntry,
+  AuditListQuery,
+  AuditListResult,
+} from './schemas/audit';
+export type { AuditAction, AuditActorKind } from './schemas/audit';
 export {
   AccessClaims,
   ChooseTenant,

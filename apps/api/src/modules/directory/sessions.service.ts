@@ -42,7 +42,7 @@ export class SessionsService {
   ) {}
 
   /** After a verified code: one tenant signs straight in; several get a ticket to choose with. */
-  async signIn(phone: string, device?: DeviceInfo): Promise<OtpVerifyResult> {
+  async signIn(phone: string, device?: DeviceInfo, ip?: string): Promise<OtpVerifyResult> {
     const rows = await activeMemberships(this.database.db, eq(identities.phoneE164, phone));
     const [first] = rows;
     if (!first) throw new AppError('FORBIDDEN', 'This number has no active account.');
@@ -50,7 +50,7 @@ export class SessionsService {
       .update(identities)
       .set({ lastLoginAt: new Date() })
       .where(eq(identities.id, first.identityId));
-    if (rows.length === 1) return this.start(first, device);
+    if (rows.length === 1) return this.start(first, device, ip);
 
     const ticket = newSecret();
     await this.client.redis.set(`ticket:${digest(ticket)}`, first.identityId, 'EX', TICKET_SECONDS);
@@ -62,7 +62,12 @@ export class SessionsService {
   }
 
   /** Spends a ticket on one of the identity's tenants. A ticket works once. */
-  async selectTenant(ticket: string, tenantId: string, device?: DeviceInfo): Promise<SignedIn> {
+  async selectTenant(
+    ticket: string,
+    tenantId: string,
+    device?: DeviceInfo,
+    ip?: string,
+  ): Promise<SignedIn> {
     const identityId = await this.client.redis.getdel(`ticket:${digest(ticket)}`);
     if (!identityId) {
       throw new AppError('OTP_EXPIRED', 'This sign-in has expired. Request a new code.');
@@ -72,7 +77,7 @@ export class SessionsService {
       and(eq(memberships.identityId, identityId), eq(memberships.tenantId, tenantId)),
     );
     if (!row) throw new AppError('FORBIDDEN', 'You do not have access to this organisation.');
-    return this.start(row, device);
+    return this.start(row, device, ip);
   }
 
   /** Spends a refresh token for a new pair in the same family. */
@@ -92,6 +97,7 @@ export class SessionsService {
     refreshToken: string,
     tenantId: string,
     device?: DeviceInfo,
+    ip?: string,
   ): Promise<SignedIn> {
     const result = await this.database.db.transaction(async (tx) => {
       const claimed = await this.claim(tx, refreshToken);
@@ -109,6 +115,7 @@ export class SessionsService {
         tenantId: target.tenantId,
         userId: target.userId,
         ...(device ? { device } : {}),
+        ...(ip ? { ip } : {}),
       });
       // One app holds one tenant at a time, so the old session ends.
       await this.endFamily(tx, claimed.token.familyId);
@@ -176,11 +183,16 @@ export class SessionsService {
       .where(and(eq(refreshTokens.familyId, familyId), isNull(refreshTokens.revokedAt)));
   }
 
-  private async start(row: MembershipRow, device: DeviceInfo | undefined): Promise<SignedIn> {
+  private async start(
+    row: MembershipRow,
+    device: DeviceInfo | undefined,
+    ip: string | undefined,
+  ): Promise<SignedIn> {
     const { deviceId } = await this.cell.admit({
       tenantId: row.tenantId,
       userId: row.userId,
       ...(device ? { device } : {}),
+      ...(ip ? { ip } : {}),
     });
     return this.signedIn(row, await this.issue(this.database.db, row, newId(), deviceId));
   }

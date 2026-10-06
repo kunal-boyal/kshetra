@@ -9,10 +9,11 @@ import {
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { designations, roles, users } from '../../db/schema/iam';
+import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
-import { type Actor, actorId, invalid, notFound, uniqueViolation } from './actor';
+import { type Actor, actorId, auditActor, invalid, notFound, uniqueViolation } from './actor';
 
 const selection = {
   id: designations.id,
@@ -30,7 +31,10 @@ const selection = {
  */
 @Injectable()
 export class DesignationsService {
-  constructor(private readonly config: TenantConfigService) {}
+  constructor(
+    private readonly config: TenantConfigService,
+    private readonly audit: AuditLog,
+  ) {}
 
   async list(tx: TenantTx, tenantId: string): Promise<DesignationResult[]> {
     return this.query(tx)
@@ -69,8 +73,14 @@ export class DesignationsService {
       if (uniqueViolation(error) === 'designations_tenant_key') throw keyTaken();
       throw error;
     }
+    const created = await this.get(tx, tenantId, id);
     await this.config.touch(tx, tenantId, by);
-    return this.get(tx, tenantId, id);
+    await this.audit.record(tx, tenantId, auditActor(actor), {
+      action: 'designation.created',
+      target: { type: 'designation', id },
+      after: created,
+    });
+    return created;
   }
 
   async update(
@@ -85,6 +95,7 @@ export class DesignationsService {
       .where(and(eq(designations.tenantId, access.tenantId), eq(designations.id, id)))
       .for('update');
     if (!current) throw notFound();
+    const before = await this.get(tx, access.tenantId, id);
     if (input.canHaveReports === false && current.canHaveReports) {
       // Spec 5.3: a manager holds a designation that can have reports.
       const manager = alias(users, 'manager');
@@ -123,8 +134,15 @@ export class DesignationsService {
       .update(designations)
       .set({ ...changes, updatedAt: new Date(), updatedBy: access.userId })
       .where(and(eq(designations.tenantId, access.tenantId), eq(designations.id, id)));
+    const after = await this.get(tx, access.tenantId, id);
     await this.config.touch(tx, access.tenantId, access.userId);
-    return this.get(tx, access.tenantId, id);
+    await this.audit.record(tx, access.tenantId, userActor(access), {
+      action: 'designation.updated',
+      target: { type: 'designation', id },
+      before,
+      after,
+    });
+    return after;
   }
 
   private async get(tx: TenantTx, tenantId: string, id: string): Promise<DesignationResult> {
