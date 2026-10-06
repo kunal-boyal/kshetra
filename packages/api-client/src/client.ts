@@ -1,4 +1,7 @@
 import {
+  APP_PLATFORM_HEADER,
+  APP_VERSION_HEADER,
+  type AppPlatform,
   ConfigBundle,
   type DeviceInfo,
   type ErrorCode,
@@ -70,7 +73,13 @@ export interface ClientOptions {
   cellUrl?: (tenant: TenantSummary) => string;
   /** The phone signing in, sent by the mobile app so the tenant can bind it (M1, rule 5). */
   device?: () => Promise<DeviceInfo | undefined>;
-  appVersion?: string;
+  /**
+   * The mobile app's platform and store version, sent with every request so the API can turn
+   * away versions it no longer supports (M1, rule 8). The web sends neither.
+   */
+  app?: { platform: AppPlatform; version: string };
+  /** Called when the API answers `UPGRADE_REQUIRED`: the app shows its blocking update screen. */
+  onUpgradeRequired?: () => void;
   fetch?: typeof fetch;
   /** Called when the session ends: signed out, revoked, or no longer refreshable. */
   onSignedOut?: () => void;
@@ -124,6 +133,9 @@ export function createClient(options: ClientOptions) {
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   const lock = options.lock ?? (async <T>(_name: string, work: () => Promise<T>) => work());
   const web = options.platform === 'web';
+  const appHeaders: Record<string, string> = options.app
+    ? { [APP_PLATFORM_HEADER]: options.app.platform, [APP_VERSION_HEADER]: options.app.version }
+    : {};
   let session: SessionState | null = null;
   let loaded = false;
   let refreshing: Promise<SessionState> | null = null;
@@ -155,6 +167,13 @@ export function createClient(options: ClientOptions) {
     }
   }
 
+  /** The error a failed response carries, after telling the app when it must update. */
+  async function failure(response: Response): Promise<ApiError> {
+    const error = await errorFrom(response);
+    if (error.code === 'UPGRADE_REQUIRED') options.onUpgradeRequired?.();
+    return error;
+  }
+
   /** A call to the directory's sign-in routes. The web sends its client header and cookie. */
   async function directory<T extends z.ZodType>(
     path: string,
@@ -166,11 +185,12 @@ export function createClient(options: ClientOptions) {
       headers: {
         'content-type': 'application/json',
         ...(web ? { [WEB_CLIENT_HEADER]: WEB_CLIENT } : {}),
+        ...appHeaders,
       },
       body: JSON.stringify(body ?? {}),
       credentials: web ? 'include' : 'omit',
     });
-    if (!response.ok) throw await errorFrom(response);
+    if (!response.ok) throw await failure(response);
     return schema.parse(await response.json());
   }
 
@@ -222,7 +242,7 @@ export function createClient(options: ClientOptions) {
         headers: {
           authorization: `Bearer ${state.accessToken}`,
           'x-device-time': new Date().toISOString(),
-          ...(options.appVersion ? { 'x-app-version': options.appVersion } : {}),
+          ...appHeaders,
           ...(request.body === undefined ? {} : { 'content-type': 'application/json' }),
           ...(request.idempotencyKey ? { 'idempotency-key': request.idempotencyKey } : {}),
           ...request.headers,
@@ -234,7 +254,7 @@ export function createClient(options: ClientOptions) {
     if (expiring(state)) state = await refresh();
     let response = await attempt(state);
     if (response.status === 401) {
-      const error = await errorFrom(response);
+      const error = await failure(response);
       if (error.code !== 'TOKEN_EXPIRED') {
         if (error.code === 'SESSION_REVOKED') await signedOut();
         throw error;
@@ -243,7 +263,7 @@ export function createClient(options: ClientOptions) {
     }
     // A 304 answers a conditional request for something the caller already has.
     if (!response.ok && response.status !== 304) {
-      const error = await errorFrom(response);
+      const error = await failure(response);
       if (error.code === 'SESSION_REVOKED') await signedOut();
       throw error;
     }
@@ -324,6 +344,7 @@ export function createClient(options: ClientOptions) {
           headers: {
             'content-type': 'application/json',
             ...(web ? { [WEB_CLIENT_HEADER]: WEB_CLIENT } : {}),
+            ...appHeaders,
           },
           body: JSON.stringify(web ? {} : { refreshToken: state?.refreshToken }),
           credentials: web ? 'include' : 'omit',

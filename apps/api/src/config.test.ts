@@ -52,6 +52,18 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...required, JWT_SIGNING_KEY: '' }).JWT_SIGNING_KEY).toBeUndefined();
   });
 
+  it('reads the minimum app versions, with an empty one as none', () => {
+    const config = loadConfig({ ...required, MIN_APP_VERSION_ANDROID: '1.4.0' });
+    expect(config.MIN_APP_VERSION_ANDROID).toBe('1.4.0');
+    expect(config.MIN_APP_VERSION_IOS).toBeUndefined();
+    expect(
+      loadConfig({ ...required, MIN_APP_VERSION_IOS: '' }).MIN_APP_VERSION_IOS,
+    ).toBeUndefined();
+    expect(() => loadConfig({ ...required, MIN_APP_VERSION_ANDROID: 'v1.4' })).toThrow(
+      /MIN_APP_VERSION_ANDROID/,
+    );
+  });
+
   it('turns escaped newlines in the signing key back into a PEM', () => {
     const config = loadConfig({ ...required, JWT_SIGNING_KEY: 'line one\\nline two' });
     expect(config.JWT_SIGNING_KEY).toBe('line one\nline two');

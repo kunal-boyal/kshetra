@@ -65,6 +65,33 @@ Each dependency uses its current stable release on the day it is added (spec sec
 
 pnpm installs a release only once it is a day old (`minimumReleaseAge`). Vite 8.3.3 and @vitejs/plugin-react 6.1.2 were the current stable releases but younger than that when they were added, so `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` admits those exact versions. Remove the entries when either package is next upgraded.
 
+## Mobile (`apps/mobile`, `packages/ui-mobile`, added 2026-10-06)
+
+Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes most of these versions, and `pnpm exec expo install --check` in `apps/mobile` confirms them. The versions `packages/ui-mobile` shares with the app sit in the `mobile` catalog of `pnpm-workspace.yaml`, so the app loads a single React (decision D36).
+
+| Package | Version | Notes |
+|---|---|---|
+| expo | 57.0.26 | SDK 57 |
+| react-native | 0.86.3 | The New Architecture |
+| react, react-dom | 19.2.3 | The SDK's React; the web stays on 19.3 |
+| expo-router | 57.0.24 | Routes in `src/app` |
+| expo-secure-store, expo-crypto, expo-device, expo-localization, expo-font, expo-constants, expo-linking | 57.0.4, 57.0.3, 57.0.2, 57.0.2, 57.0.4, 57.0.20, 57.0.11 | The session and device key, the phone's details and language, fonts, configuration and links |
+| expo-splash-screen, expo-status-bar, expo-system-ui, expo-dev-client | 57.0.9, 57.0.1, 57.0.4, 57.0.19 | Start-up, system bars, and the development client of spec 9.2 |
+| react-native-screens, react-native-safe-area-context, react-native-gesture-handler | 4.26.2, 5.7.0, 2.32.0 | For the router |
+| react-native-reanimated, react-native-worklets | 4.5.1, 0.10.1 | The versions Expo Go carries, pinned because the router names them as optional peers and pnpm would otherwise install newer native code |
+| react-native-svg | 15.15.4 | Icons and the mark |
+| react-native-web | 0.21.3 | The development-only web target |
+| lucide-react-native | 1.52.0 | Icons, the same release as `lucide-react` |
+| @expo-google-fonts/noto-sans, @expo-google-fonts/noto-sans-devanagari | 0.4.2, 0.4.1 | Loaded on iOS and the web target only (D36) |
+| @tanstack/react-query | 5.104.1 | As on the web |
+| jest, @jest/globals | 29.7.0 | Held back from Jest 30.5, because jest-expo 57 runs on Jest 29. Move with jest-expo. |
+| jest-expo | 57.0.5 | The SDK's Jest preset |
+| @testing-library/react-native | 14.0.1 | Its `render` and `fireEvent` are async |
+| test-renderer | 1.2.0 | Held below 1.3, which renders with React 19.3's reconciler |
+| @react-native/metro-config | 0.86.3 | Pinned to React Native's version for a peer dependency |
+
+The EAS command-line tool (eas-cli 24.11.0) is installed globally on Kunal's machine rather than in the workspace, as Expo recommends.
+
 ## Install scripts
 
 pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-workspace.yaml` approves it. Only esbuild is approved, because it sets up the native binary that drizzle-kit, Vite and tsdown need. ssh2, cpu-features and protobufjs are denied: the first two only serve Docker over SSH, and the last only prints notices. Review any new request before approving it.

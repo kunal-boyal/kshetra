@@ -14,6 +14,15 @@ export type {
   SystemRole,
   TenantPermission,
 } from './access';
+export {
+  APP_PLATFORM_HEADER,
+  APP_PLATFORMS,
+  APP_VERSION,
+  APP_VERSION_HEADER,
+  compareVersions,
+  isBelowMinimum,
+} from './app-version';
+export type { AppPlatform } from './app-version';
 export { contrastRatio, HEX_COLOUR } from './colour';
 export { todayIn } from './dates';
 export { AppError, ERROR_HTTP_STATUS, formatPath, isErrorCode, issueAt } from './errors';

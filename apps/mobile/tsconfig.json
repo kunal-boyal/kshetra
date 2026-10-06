@@ -1,0 +1,10 @@
+{
+  "extends": ["expo/tsconfig.base", "@kshetra/config/tsconfig/base.json"],
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "jsx": "react-jsx",
+    "customConditions": ["react-native"],
+    "allowJs": false
+  },
+  "include": ["src", "app.config.ts", ".expo/types/**/*.ts", "expo-env.d.ts"]
+}

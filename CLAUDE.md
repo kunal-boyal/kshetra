@@ -16,7 +16,9 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | static checks and unit tests, through Turborepo | now |
 | `pnpm format`, `pnpm format:check` | Prettier | now |
 | `docker compose up -d` | starts the local services | now |
-| `pnpm dev` | runs the API on http://127.0.0.1:3000 and the web portal on http://127.0.0.1:5173, which passes `/auth` and `/v1` through to the API | now |
+| `pnpm dev` | runs the API on http://127.0.0.1:3000, the web portal on http://127.0.0.1:5173 (which passes `/auth` and `/v1` through to the API), and the field app's Expo dev server | now |
+| `pnpm --filter @kshetra/mobile go` | serves the field app to Expo Go on a phone on the same Wi-Fi; run the API with `HOST=0.0.0.0` | now |
+| `pnpm --filter @kshetra/mobile web` | runs the field app in a browser, standing in for an Android phone; development only, so add http://localhost:8081 to `CORS_ORIGINS` | now |
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
 | `pnpm test:e2e` | Playwright tests of the web portal, with axe, against a mocked API. Install the browser once with `pnpm --filter @kshetra/web exec playwright install chromium`. | now |
 | `pnpm tokens` | regenerates `tokens.css` and `tokens.ts` in `packages/design-tokens` from `tokens.json` | now |
@@ -125,6 +127,15 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Build screens from `@kshetra/ui-web` and the design system's `ks-*` classes; Tailwind is for layout. Text comes from `useLanguage().t`, in English and Hindi.
 - Each screen gets a Vitest test with Testing Library, and each page a Playwright test that runs axe.
 
+## Mobile app (decision D36)
+
+- Build screens from `@kshetra/ui-mobile`, whose components take everything from the tokens; text goes through its `Text`, since React Native passes no colour down. Strings come from `useLanguage().t`, in English and Hindi.
+- The app calls the API only through the client in `apps/mobile/src/client.ts`, and keeps the session and the device key in the secure store through `src/storage.ts`. Never put a token in plain storage or a log.
+- Native modules follow the Expo SDK: add them with `pnpm exec expo install <package>` in `apps/mobile`, put any version `packages/ui-mobile` shares into the `mobile` catalog, and check with `pnpm exec expo install --check`.
+- Signed-in screens live under `src/app/(app)`, behind the root layout's guards. Tabs follow components/BottomNav: at most five, filtered by permissions and modules.
+- Components and screens are tested with Jest (jest-expo) and React Native Testing Library 14, whose `render` and `fireEvent` are async. `src/screens/sign-in.test.tsx` shows the fake client.
+- Cloud builds (`eas build`) run on Kunal's Expo account (D34): ask first.
+
 ## Configuration and templates
 
 - Tenant configuration (account types, forms, metrics, workflows, policies) is data, checked in two layers: a zod schema for its shape, then checks that every reference resolves and settings agree. Form schemas are in `packages/forms`, metric and score schemas in `packages/metrics`, the rest in `packages/templates/src/schema`.
@@ -140,7 +151,7 @@ Migrations are append-only and backward compatible. They follow expand and contr
 
 ## Testing (spec 14.4)
 
-- **Unit:** Vitest for business rules, the form engine and metrics.
+- **Unit:** Vitest for business rules, the form engine and metrics; Jest with jest-expo for React Native components and screens.
 - **Integration:** Testcontainers and supertest against real migrations and RLS.
 - **Cross-tenant contract test:** generated from the route registry. CI fails when a route has no fixture.
 - **End to end:** Playwright (with axe) for the web apps, Maestro for mobile.

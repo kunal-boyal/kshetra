@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import fastifyCookie from '@fastify/cookie';
-import { WEB_CLIENT_HEADER } from '@kshetra/shared';
+import { APP_PLATFORM_HEADER, APP_VERSION_HEADER, WEB_CLIENT_HEADER } from '@kshetra/shared';
 import { ConsoleLogger, Logger, type LoggerService, type LogLevel } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -49,7 +49,8 @@ export async function createApp(
         'if-none-match',
         'x-request-id',
         'x-device-time',
-        'x-app-version',
+        APP_PLATFORM_HEADER,
+        APP_VERSION_HEADER,
         WEB_CLIENT_HEADER,
       ],
       exposedHeaders: ['etag', 'retry-after', 'x-request-id'],

@@ -1,0 +1,44 @@
+{
+  "name": "@kshetra/ui-mobile",
+  "version": "0.0.0",
+  "private": true,
+  "description": "React Native components for the mobile app, on the design system's tokens",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@kshetra/design-tokens": "workspace:*"
+  },
+  "peerDependencies": {
+    "lucide-react-native": "catalog:mobile",
+    "react": "catalog:mobile",
+    "react-native": "catalog:mobile",
+    "react-native-safe-area-context": "catalog:mobile",
+    "react-native-svg": "catalog:mobile"
+  },
+  "devDependencies": {
+    "@jest/globals": "catalog:mobile",
+    "@kshetra/config": "workspace:*",
+    "@testing-library/react-native": "catalog:mobile",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:mobile",
+    "eslint": "catalog:",
+    "expo": "catalog:mobile",
+    "jest": "catalog:mobile",
+    "jest-expo": "catalog:mobile",
+    "lucide-react-native": "catalog:mobile",
+    "react": "catalog:mobile",
+    "react-native": "catalog:mobile",
+    "react-native-safe-area-context": "catalog:mobile",
+    "react-native-svg": "catalog:mobile",
+    "test-renderer": "catalog:mobile",
+    "typescript": "catalog:"
+  }
+}

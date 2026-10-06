@@ -92,7 +92,7 @@ The accent stays the tenant's, darkened only as far as Outdoor's 7:1 rule needs 
 
 ### Type
 
-- **One family, many scripts:** Noto Sans. It covers Latin, Devanagari and every regional script on the roadmap (Gujarati, Bengali, Gurmukhi, Telugu, Tamil, Kannada) with matched metrics, and Android already ships it, so most phones download nothing. Load Latin and Devanagari from Google Fonts on web. Add each script's Noto subset only when that language is enabled.
+- **One family, many scripts:** Noto Sans. It covers Latin, Devanagari and every regional script on the roadmap (Gujarati, Bengali, Gurmukhi, Telugu, Tamil, Kannada) with matched metrics. Android already ships it for Devanagari and the regional scripts, so phones download nothing for them; Latin text on Android uses the phone's own face unless the app bundles Noto Sans (decision D36). Load Latin and Devanagari from Google Fonts on web. Add each script's Noto subset only when that language is enabled.
 - **Scale:** `display` → `heading-xl` → `heading-lg` → `heading-md` for structure. Body copy uses `body-lg` on mobile and `body-md` on web. Use `label-*` for controls and badges, and `metric-*` / `numeric` for figures.
 - **Figures:** every number uses `font-variant-numeric: tabular-nums`. Right-align numbers in tables.
 - **Indic scripts:** under `:lang(hi)` and other Indic locales, add 4 px of line-height to every style. Matras and conjuncts clip otherwise. Never set Indic text below 13 px. `bundle.css` applies both through `--ks-lead` and `--ks-min`, so a component written in Latin stays correct in Hindi. Badges, flags and pills grow taller instead of clipping.

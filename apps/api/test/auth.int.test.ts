@@ -421,3 +421,40 @@ describe('the web (spec 13.1)', () => {
     }
   });
 });
+
+describe('app versions (M1, rule 8)', () => {
+  it('turns away an app older than its platform minimum, before anything else', async () => {
+    const gated = await startApp(testConfig({ MIN_APP_VERSION_ANDROID: '2.0.0' }));
+    try {
+      const ask = (headers: Record<string, string>) =>
+        gated.inject({
+          method: 'POST',
+          url: '/auth/v1/otp/request',
+          headers,
+          payload: { phone: newPhone() },
+          remoteAddress: newAddress(),
+        });
+      const old = await ask({ 'x-app-platform': 'android', 'x-app-version': '1.9.9' });
+      expect(old.statusCode).toBe(426);
+      expect(old.json().error.code).toBe('UPGRADE_REQUIRED');
+      expect(
+        (await ask({ 'x-app-platform': 'android', 'x-app-version': '2.0.0' })).statusCode,
+      ).toBe(202);
+      // iOS has no minimum here, and the web sends neither header.
+      expect((await ask({ 'x-app-platform': 'ios', 'x-app-version': '1.0.0' })).statusCode).toBe(
+        202,
+      );
+      expect((await ask({})).statusCode).toBe(202);
+
+      // The version is checked before the access token, so the app shows its update screen.
+      const signedIn = await gated.inject({
+        method: 'GET',
+        url: '/v1/me',
+        headers: { 'x-app-platform': 'android', 'x-app-version': '1.0.0' },
+      });
+      expect(signedIn.json().error.code).toBe('UPGRADE_REQUIRED');
+    } finally {
+      await gated.close();
+    }
+  });
+});
