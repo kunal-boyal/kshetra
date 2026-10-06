@@ -4,7 +4,7 @@ A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web porta
 
 ## Status
 
-Phase 0 (Foundation) is in progress. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
+Phase 0 (Foundation) is complete, and phase 1 (the field core) is next. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
 
 Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
 
