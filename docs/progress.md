@@ -6,12 +6,9 @@ Last updated: 2026-10-06
 
 ## Now
 
-- **Phase 0, steps 4 to 8** are merged: sign-in (#5), people and access (#6), configuration and languages (#7), the audit log and outbox (#8), and provisioning with the seed (#9). The first exit criterion holds for the API: on the seeded tenants, a person signs in on the web into either tenant, and a field user signs in on a phone.
-- **Design system v2** (soft and pastel, decision D28) is merged with #4.
-- **Phase 0, step 9** (the web shell with sign-in) is in review as [kunal-boyal/kshetra#11](https://github.com/kunal-boyal/kshetra/pull/11). Its design is decision D35. On the seeded tenants, a person now signs in on the web into either tenant, switches between them and signs out, in English or Hindi and in any of the three themes.
-- **Phase 0, step 10** (the mobile shell with sign-in) is in review as [kunal-boyal/kshetra#12](https://github.com/kunal-boyal/kshetra/pull/12), stacked on #11. Its design is decision D36. A field user signs in on the app, the phone is bound to them, another phone is refused, and an app below the minimum version shows only its update screen. The EAS project is [@kunalboyal/kshetra](https://expo.dev/accounts/kunalboyal/projects/kshetra).
-- **Phase 0, step 11** (the cross-tenant contract test and the phase 0 exit check) is in review as [kunal-boyal/kshetra#13](https://github.com/kunal-boyal/kshetra/pull/13), stacked on #12. Its design is decision D37. Every exit criterion of phase 0 is now checked by a test: sign-in on the web into either seeded tenant and on a phone, the contract test over all 27 routes, and both templates.
-- **Next:** merge #11, #12 and #13 in order, which completes phase 0. Phase 1 then needs the owner items below: the pilot customer (D2), the catalogue import, and the accounts with long lead times.
+- **Phase 0 is complete.** Steps 1 to 11 are merged; the last three were the web shell (#11), the mobile shell (#12) and the cross-tenant contract test with the exit check (#13). Every exit criterion is checked by a test: a person signs in on the web into either seeded tenant and a field user on a phone, the cross-tenant contract test passes over all 27 routes, and both templates validate. The field app has run in a browser standing in for a phone; Kunal's phone comes next.
+- **Decisions D35, D36 and D37** are merged as proposed and wait for Kunal to confirm them, with D36's choice of font on Android.
+- **Next:** phase 1, the field core. It needs Kunal's answers below first: the pilot customer (D2), the catalogue import, and the accounts with long lead times.
 - **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
@@ -36,14 +33,18 @@ Each step is its own pull request. The order follows dependencies.
 | 6 | Config bundle, terminology resolver, i18n in English and Hindi; the tenant settings that step 5 waits on: the device-binding switch, the timezone and the default country (D31) | Done | #7 |
 | 7 | Audit log and outbox (D32) | Done | #8 |
 | 8 | Provisioning command, and a seed with two tenants on different templates (D33) | Done | #9 |
-| 9 | Web shell with sign-in: `apps/web`, `packages/ui-web`, `packages/api-client`, the token build step (D35) | In review | #11 |
-| 10 | Mobile shell with sign-in: `apps/mobile` (Expo, on the account `kunalboyal`, D34), `packages/ui-mobile`, the minimum app version (D36) | In review | #12 |
-| 11 | Cross-tenant contract test over every route, the route registry and OpenAPI document, and the phase 0 exit check (D37) | In review | #13 |
+| 9 | Web shell with sign-in: `apps/web`, `packages/ui-web`, `packages/api-client`, the token build step (D35) | Done | #11 |
+| 10 | Mobile shell with sign-in: `apps/mobile` (Expo, on the account `kunalboyal`, D34), `packages/ui-mobile`, the minimum app version (D36) | Done | #12 |
+| 11 | Cross-tenant contract test over every route, the route registry and OpenAPI document, and the phase 0 exit check (D37) | Done | #13 |
 
 ## Done
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-06 | Phase 0 complete: every exit criterion is checked by a test | PRs #11 to #13 |
+| 2026-10-06 | Phase 0 step 11: the route registry, the cross-tenant contract test, the OpenAPI document and the exit check (decision D37) | PR #13, merged as `fa1e876` |
+| 2026-10-06 | Phase 0 step 10: the mobile shell with sign-in, device binding and the minimum app version (decision D36) | PR #12, merged as `1183eff` |
+| 2026-10-06 | Phase 0 step 9: the web shell with sign-in (decision D35) | PR #11, merged as `41ee391` |
 | 2026-10-06 | The EAS project `@kunalboyal/kshetra` created for the field app | https://expo.dev/accounts/kunalboyal/projects/kshetra, decision D34 |
 | 2026-10-06 | Kunal created the Expo account `kunalboyal` and signed in to EAS; it owns the mobile app's project (decision D34) | `docs/decisions.md` |
 | 2026-10-06 | Kunal confirmed decisions D29 to D33, and switched off Turborepo's `AGENTS.md` (CLAUDE.md is the agents' guide) | `docs/decisions.md`, `turbo.json` |
@@ -67,10 +68,8 @@ Each step is its own pull request. The order follows dependencies.
 | D1: product name, domain and the legal entity that publishes the apps | Kunal | Before DLT registration and store listings |
 | D2: name the pilot customer (agri inputs) | Kunal | Phase 1 |
 | D3: seat prices and plan contents | Kunal | Before phase 3 |
-| Review decision D35, the web shell's design, in #11 | Kunal | Before #11 merges |
-| Review decision D36, the mobile shell's design, in #12; it includes one choice: bundle Noto Sans on Android (about 2.4 MB) or keep the phone's own Latin font | Kunal | Before #12 merges |
-| Review decision D37, the contract test and the OpenAPI document, in #13 | Kunal | Before #13 merges |
-| Try the field app on your phone: Expo Go (`pnpm --filter @kshetra/mobile go`, then scan the code), or a development build from EAS, which runs in Expo's cloud on your account and needs your go-ahead | Kunal | Before the phase 0 exit check |
+| Confirm decisions D35 (the web shell), D36 (the mobile shell) and D37 (the contract test and the OpenAPI document), merged as proposed. D36 holds one choice: bundle Noto Sans on Android (about 2.4 MB) or keep the phone's own Latin font | Kunal | Before phase 1 builds on them |
+| Try the field app on your phone: Expo Go (`pnpm --filter @kshetra/mobile go`, then scan the code), or a development build from EAS, which runs in Expo's cloud on your account and needs your go-ahead | Kunal | Early in phase 1 |
 | Accounts with long lead times: SMS provider with DLT, Google Play and Apple (each needs a D-U-N-S number), AWS | Kunal | Phase 1 |
 | Outdoor theme field test, on two Android brands in midday sun (D19) | Team | Before onboarding suggests Outdoor |
 | Look over the soft pastel design system (D28) in the running web portal (`pnpm dev`): the hues, how round, and how fast the motion is | Kunal | Before phase 1 builds more screens on it |
