@@ -1,0 +1,84 @@
+<!-- @dsCard group="Foundations" height=640 subtitle="Every motion pattern, on the duration and easing tokens" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Motion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>html,body{margin:0}
+.mo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:840px}
+.mo{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);min-height:168px}
+.mo-stage{flex:1;display:grid;place-items:center;min-height:96px}
+.mo-cap{margin:0;font-size:13px;line-height:18px;color:var(--text-muted)}
+.mo-cap b{color:var(--text);font-weight:600}
+.mo-rows{display:grid;gap:8px;width:100%}
+.mo-rows > div{display:flex;align-items:center;gap:8px}
+.mo-ripple{position:relative;width:96px;height:96px;display:grid;place-items:center}
+.mo-ripple i{position:absolute;inset:0;border-radius:var(--radius-full);border:2px solid var(--accent);opacity:0;animation:ks-ripple var(--duration-celebrate) var(--ease-exit) both}
+.mo-ripple i:nth-child(2){animation-delay:140ms}
+.mo-ripple i:nth-child(3){animation-delay:280ms}
+.mo-pin{width:14px;height:14px;border-radius:var(--radius-full);background:var(--accent);box-shadow:0 0 0 4px var(--accent-subtle)}
+.mo-phone{position:relative;width:140px;height:104px;border-radius:var(--radius-md);background:var(--surface-sunken);overflow:hidden}
+.mo-phone .scrim{position:absolute;inset:0;background:var(--scrim);animation:ks-fade var(--duration-base) var(--ease-standard) both}
+.mo-phone .sheet{position:absolute;left:0;right:0;bottom:0;height:60px;background:var(--surface-raised);border-radius:var(--radius-lg) var(--radius-lg) 0 0;box-shadow:var(--shadow-lg);animation:ks-sheet var(--duration-slow) var(--ease-enter) 80ms both}
+.mo-phone .grab{display:block;width:32px;height:4px;margin:8px auto 0;border-radius:var(--radius-full);background:var(--border-strong)}
+.mo .ks-tabs{width:100%;height:60px;border-radius:var(--radius-lg)}
+.mo .ks-tab{cursor:pointer}
+.mo-kpi{width:100%}
+.mo-kpi .ks-kpi-value{margin:0}
+.mo-head{display:flex;justify-content:space-between;align-items:center;max-width:840px;margin-bottom:12px}</style>
+</head>
+<body>
+<div class="ks ks-pv" data-density="compact">
+ <div class="mo-head"><p class="ks-meta">Reduced motion makes every one of these instant.</p><button class="ks-btn tonal sm" id="replay">Replay</button></div>
+ <div class="mo-grid" id="stage">
+  <div class="mo"><div class="mo-stage"><button class="ks-btn primary">Press and hold</button></div><p class="mo-cap"><b>Press</b> · duration-instant, scales to 97%</p></div>
+  <div class="mo"><div class="mo-stage"><div class="mo-rows ks-stagger"><div><span class="ks-ico sm hue-sky"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"/></svg></span><span class="ks-skel" style="width:70%;animation:none"></span></div><div><span class="ks-ico sm hue-peach"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m2 7 4.4-4.4A2 2 0 0 1 7.8 2h8.4a2 2 0 0 1 1.4.6L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20v3a2 2 0 0 1-2 2 2.7 2.7 0 0 1-4 0 2.7 2.7 0 0 1-4 0 2.7 2.7 0 0 1-4 0 2.7 2.7 0 0 1-4 0 2 2 0 0 1-2-2z"/></svg></span><span class="ks-skel" style="width:54%;animation:none"></span></div><div><span class="ks-ico sm hue-mint"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 8.4V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.4a2 2 0 0 1 1.3-1.9l8-3.2a2 2 0 0 1 1.4 0l8 3.2A2 2 0 0 1 22 8.4z"/><path d="M6 18h12M6 14h12"/><rect x="6" y="10" width="12" height="12"/></svg></span><span class="ks-skel" style="width:62%;animation:none"></span></div><div><span class="ks-ico sm hue-lilac"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg></span><span class="ks-skel" style="width:46%;animation:none"></span></div></div></div><p class="mo-cap"><b>Arrive</b> · duration-base, ease-enter, 40 ms apart</p></div>
+  <div class="mo"><div class="mo-stage"><span class="ks-ico xl hue-mint ks-pop"><svg class="ks-icon ks-draw" viewBox="0 0 24 24" aria-hidden="true"><circle pathLength="1" cx="12" cy="12" r="10"/><path pathLength="1" d="m8 12 3 3 5-6"/></svg></span></div><p class="mo-cap"><b>Success</b> · duration-celebrate, ease-spring</p></div>
+  <div class="mo"><div class="mo-stage"><div class="mo-kpi"><p class="ks-kpi-label">Retailer visits</p><p class="ks-kpi-value" data-count="184">184</p><div class="ks-bar"><i class="done" style="width:72%"></i><i class="pend" style="width:6%"></i></div></div></div><p class="mo-cap"><b>First view</b> · duration-celebrate: count up, fill</p></div>
+  <div class="mo"><div class="mo-stage"><span class="mo-ripple"><i></i><i></i><i></i><span class="mo-pin"></span></span></div><p class="mo-cap"><b>Start day</b> · rings ripple from the pin</p></div>
+  <div class="mo"><div class="mo-stage"><div class="mo-rows"><div><span class="ks-skel chip"></span><span class="ks-skel" style="width:66%"></span></div><div><span class="ks-skel chip"></span><span class="ks-skel" style="width:48%"></span></div><div><span class="ks-skel chip"></span><span class="ks-skel" style="width:58%"></span></div></div></div><p class="mo-cap"><b>Loading</b> · duration-loop, ease-linear</p></div>
+  <div class="mo"><div class="mo-stage"><span class="ks-shift-state"><span class="ks-live"></span> On duty since 09:12</span></div><p class="mo-cap"><b>On duty</b> · duration-loop pulse</p></div>
+  <div class="mo"><div class="mo-stage"><span class="mo-phone"><span class="scrim"></span><span class="sheet"><span class="grab"></span></span></span></div><p class="mo-cap"><b>Sheet</b> · duration-slow, ease-enter</p></div>
+  <div class="mo"><div class="mo-stage"><nav class="ks-tabs" aria-label="Demo tabs"><a class="ks-tab" aria-current="page"><span class="ks-tab-ico"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .7-1.5l7-6a2 2 0 0 1 2.6 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>Home</a><a class="ks-tab"><span class="ks-tab-ico"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg></span>Plan</a><a class="ks-tab"><span class="ks-tab-ico"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.7V17c0 .6-.5 1-1 1.2-1.2.5-2 2-2 3.8M14 14.7V17c0 .6.5 1 1 1.2 1.2.5 2 2 2 3.8"/><path d="M18 2H6v7a6 6 0 0 0 12 0z"/></svg></span>Rank</a></nav></div><p class="mo-cap"><b>Switch tab</b> · duration-base, ease-spring: tap a tab</p></div>
+ </div>
+</div>
+<script>
+// Count up each [data-count] figure once, as on first view; reduced motion shows the final figure.
+function countUp(root) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const ms = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--duration-celebrate')) || 700;
+  const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+  const plain = new Intl.NumberFormat('en-IN');
+  root.querySelectorAll('[data-count]').forEach((el) => {
+    const end = Number(el.dataset.count), fmt = el.dataset.format === 'inr' ? inr : plain, start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / ms);
+      el.textContent = fmt.format(Math.round(end * (1 - Math.pow(1 - t, 4))));
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+// Tabs: tapping one moves the active pill, which grows in on the spring easing.
+function wire(stage) {
+  stage.querySelectorAll('.ks-tabs').forEach((nav) => nav.addEventListener('click', (event) => {
+    const tab = event.target.closest('.ks-tab');
+    if (!tab) return;
+    nav.querySelectorAll('.ks-tab').forEach((t) => t.removeAttribute('aria-current'));
+    tab.setAttribute('aria-current', 'page');
+  }));
+  countUp(stage);
+}
+// Replay: a fresh copy of the stage runs every animation again.
+document.getElementById('replay').addEventListener('click', () => {
+  const stage = document.getElementById('stage');
+  const copy = stage.cloneNode(true);
+  stage.replaceWith(copy);
+  wire(copy);
+});
+wire(document.getElementById('stage'));
+</script>
+</body>
+</html>

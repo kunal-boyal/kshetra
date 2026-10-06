@@ -13,15 +13,18 @@
   .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
   .art svg { display:block; width:480px; height:288px; }
   .jamun { fill:var(--accent); }
+  .mint { fill:var(--pastel-mint-fill); }
+  .lilac { fill:var(--pastel-lilac-fill); }
+  .peach { fill:var(--pastel-peach-fill); }
   .ink { fill:var(--text); }
-  .stone { fill:var(--border-strong); }
-  .ok { fill:var(--success-solid); }
-  .wait { fill:var(--pending-solid); }
-  .blk { rx:var(--radius-lg); }
-  .pill { rx:var(--radius-sm); }
+  .slab { rx:var(--radius-xl); }
   .ring { fill:none; stroke:var(--accent-subtle); stroke-width:2; }
   .ring.inner { stroke-width:3; }
   .pin { fill:var(--accent-subtle); }
+  /* Outdoor: pastel fills wash out in glare, so the blocks take their inks. */
+  [data-theme="outdoor"] .mint { fill:var(--pastel-mint-fg); }
+  [data-theme="outdoor"] .lilac { fill:var(--pastel-lilac-fg); }
+  [data-theme="outdoor"] .peach { fill:var(--pastel-peach-fg); }
   .words { position:absolute; left:var(--space-6); bottom:var(--space-6); max-width:440px; }
   .name { margin:0; font-size:104px; line-height:.92; font-weight:700; letter-spacing:-.02em; color:var(--text); }
   .tag { margin:var(--space-2) 0 0 4px; font-size:14px; line-height:20px; color:var(--text-muted); }
@@ -32,20 +35,20 @@
 <div class="art" aria-hidden="true">
 <svg viewBox="0 0 480 288" width="480" height="288">
 <!--
-  blocks      accent (Jamun, the tenant slot) 208×248 bled off the top, the largest · text-ink 240×176 bleeding off the right · border-strong stone 144×40 · success-solid 64×8 and pending-solid 40×8 kept small: they only ever mean a state — ≈45% of 480×288
-  arrangement one tall accent slab with an ink satellite and a stone cap, bottoms aligned space-6 above the edge (y 232), space-4 gutters
-  pattern     literal motif: the geofence (spec M6/M7: "inside the fence" is the product's core judgement) — three concentric rings in accent-subtle at a space-8 pitch around a pin, cut into the slab
-  scales      sides in space-2 multiples; gutters space-4; ring pitch space-8 (32); block corners radius-lg; status pills radius-sm
+  blocks      accent (Jamun, the tenant slot) 192×260 slab bled off the top, the largest · pastel-mint-fill 112×112 tile · pastel-lilac-fill disc, r 56 · pastel-peach-fill 272×64 pill bleeding off the right · text ink 96×8 pill, kept small — ≈46% of 480×288
+  arrangement one tall accent slab with pastel satellites in two rows and an ink cap, bottoms aligned at y 232 (space-6 + space-8 above the edge), space-4 gutters
+  pattern     literal motif: the geofence (spec M6/M7: "inside the fence" is the product's core judgement) — three concentric rings in accent-subtle at a space-8 pitch around a pin, cut into the slab; the satellites are the system's soft shapes, a rounded tile, a disc and a pill, because every control is now a pill and every surface rounds
+  scales      sides in space-2 multiples; gutters space-4; ring pitch space-8 (32); slab and tile corners radius-xl (28); pills and the disc at half their short side
 -->
-<rect class="jamun blk" x="16" y="-16" width="208" height="248" rx="12"/>
-<circle class="ring" cx="120" cy="116" r="96"/>
-<circle class="ring" cx="120" cy="116" r="64"/>
-<circle class="ring inner" cx="120" cy="116" r="32"/>
-<circle class="pin" cx="120" cy="116" r="6"/>
-<rect class="stone blk" x="240" y="0" width="144" height="40" rx="12"/>
-<rect class="ink blk" x="240" y="56" width="256" height="176" rx="12"/>
-<rect class="ok pill" x="240" y="248" width="64" height="8" rx="4"/>
-<rect class="wait pill" x="320" y="248" width="40" height="8" rx="4"/>
+<rect class="jamun slab" x="16" y="-28" width="192" height="260" rx="28"/>
+<circle class="ring" cx="112" cy="112" r="96"/>
+<circle class="ring" cx="112" cy="112" r="64"/>
+<circle class="ring inner" cx="112" cy="112" r="32"/>
+<circle class="pin" cx="112" cy="112" r="6"/>
+<rect class="mint slab" x="224" y="16" width="112" height="112" rx="28"/>
+<circle class="lilac" cx="408" cy="72" r="56"/>
+<rect class="peach" x="224" y="144" width="272" height="64" rx="32"/>
+<rect class="ink" x="224" y="224" width="96" height="8" rx="4"/>
 </svg>
 </div>
 <div class="words">

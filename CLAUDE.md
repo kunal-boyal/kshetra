@@ -141,7 +141,7 @@ Migrations are append-only and backward compatible. They follow expand and contr
 ## Design system
 
 - `packages/design-tokens` holds the design system. `tokens.json` is the source of truth, and `tokens.css` is generated from it. The package also holds the brand book (`README.md`), the component guides, the reference `bundle.css` and the logos.
-- UI code takes colours, spacing and type from the tokens, never hex values.
+- UI code takes colours, spacing, radii, type and motion from the tokens, never hex values or hand-picked timings. Motion honours reduced motion (`prefers-reduced-motion`, and `data-motion` on the root).
 - The same system is published as a claude.ai Design System artifact: https://claude.ai/artifact/REeP6ZXP72DN9kfhVHbPT3. Make every design-system change in both places in the same piece of work.
 - Regenerate `tokens.css` whenever `tokens.json` changes. Until Phase 0 adds the token build step, regenerate it by hand.
 - Prettier ignores `packages/design-tokens/` and all markdown, so the mirrored files stay byte-identical to the artifact.
