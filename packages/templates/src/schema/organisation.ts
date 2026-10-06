@@ -1,11 +1,11 @@
 import {
-  DATA_SCOPES,
+  DesignationDefinition,
   type ErrorDetail,
   issueAt,
   Key,
   LocalizedNoun,
-  LocalizedText,
   repeats,
+  RoleDefinition,
   SYSTEM_ROLES,
   TENANT_PERMISSIONS,
 } from '@kshetra/shared';
@@ -13,32 +13,9 @@ import { z } from 'zod';
 
 type Path = readonly PropertyKey[];
 
-/** Permissions from spec Appendix E, and whose records they reach (spec 4.2). */
-export const Role = z
-  .strictObject({
-    key: Key,
-    name: LocalizedText,
-    scope: z.enum(DATA_SCOPES),
-    permissions: z.array(z.enum(TENANT_PERMISSIONS)).min(1),
-    mobileOnly: z.boolean().default(false).meta({
-      description: 'Its users may use the mobile app only; the web answers USE_MOBILE_APP (M1)',
-    }),
-  })
-  .meta({ id: 'Role' });
-
-/** A job title with a level, 1 being the highest. It grants no permissions (spec 4.2). */
-export const Designation = z
-  .strictObject({
-    key: Key,
-    name: LocalizedNoun,
-    level: z.int().min(1).max(10),
-    defaultRole: Key.meta({ description: 'The role new users with this designation get' }),
-    canHaveReports: z.boolean(),
-    ranked: z.boolean().default(false).meta({
-      description: 'Whether people with it appear in rankings, one group per designation (D8)',
-    }),
-  })
-  .meta({ id: 'Designation' });
+/** Roles and designations share their shape with the roles and designations API (spec 11.2). */
+export const Role = RoleDefinition;
+export const Designation = DesignationDefinition;
 
 /** One level of the territory tree, highest first, such as Zone → Region → Area (spec 5.4). */
 export const GeographyLevel = z

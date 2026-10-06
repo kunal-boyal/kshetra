@@ -4,10 +4,11 @@ import {
   type ExecutionContext,
   Inject,
   Injectable,
+  Logger,
   SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AccessClaims, AppError } from '@kshetra/shared';
+import { AccessClaims, AppError, type DataScope, type TenantPermission } from '@kshetra/shared';
 import type { FastifyRequest } from 'fastify';
 import { createLocalJWKSet, errors, type JSONWebKeySet, jwtVerify } from 'jose';
 import type { Config } from '../config';
@@ -20,25 +21,74 @@ export interface AuthContext {
   cell: string;
   /** The auth revision the token was issued at (BR-39). */
   revision: number;
+  /** The bound phone the session runs on; web sessions have none. */
   deviceId?: string;
+}
+
+/**
+ * The caller's access, read from the tenant's data on every request (spec 4.2, BR-39): their role,
+ * what it permits, and whose records it reaches.
+ */
+export interface Access extends AuthContext {
+  roleId: string;
+  roleKey: string;
+  scope: DataScope;
+  permissions: ReadonlySet<TenantPermission>;
 }
 
 declare module 'fastify' {
   interface FastifyRequest {
-    auth?: AuthContext;
+    access?: Access;
   }
 }
 
-const PUBLIC_ROUTE = 'public-route';
+/**
+ * Checks that the caller's user, tenant and device are still active and the token's auth revision
+ * is current, then returns their access. IAM provides it.
+ */
+export abstract class AccessResolver {
+  abstract resolve(auth: AuthContext): Promise<Access>;
+}
 
-/** Marks a route or controller that needs no access token: health checks and sign-in. */
-export const Public = () => SetMetadata(PUBLIC_ROUTE, true);
+type AccessRule =
+  | { kind: 'public' }
+  | { kind: 'signed_in' }
+  | { kind: 'all' | 'any'; permissions: readonly TenantPermission[] };
 
-/** The caller of a guarded route. */
-export const CurrentAuth = createParamDecorator((_: unknown, context: ExecutionContext) => {
-  const auth = context.switchToHttp().getRequest<FastifyRequest>().auth;
-  if (!auth) throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
-  return auth;
+const ACCESS_RULE = 'access-rule';
+
+/**
+ * Every route declares who may call it, and a route that declares nothing is refused (spec 4.2:
+ * the server checks permission on every read and write).
+ */
+
+/** No access token needed: health checks and sign-in. */
+export const Public = () => SetMetadata(ACCESS_RULE, { kind: 'public' } satisfies AccessRule);
+
+/** Anyone signed in to the tenant. */
+export const SignedIn = () => SetMetadata(ACCESS_RULE, { kind: 'signed_in' } satisfies AccessRule);
+
+/** Callers whose role holds every one of these permissions. */
+export const Requires = (...permissions: [TenantPermission, ...TenantPermission[]]) =>
+  SetMetadata(ACCESS_RULE, { kind: 'all', permissions } satisfies AccessRule);
+
+/** Callers whose role holds at least one of these permissions. */
+export const RequiresAny = (...permissions: [TenantPermission, ...TenantPermission[]]) =>
+  SetMetadata(ACCESS_RULE, { kind: 'any', permissions } satisfies AccessRule);
+
+/** The access rule a route declares on its handler or its controller, or undefined for none. */
+export function accessRule(
+  reflector: Reflector,
+  targets: Parameters<Reflector['getAllAndOverride']>[1],
+): AccessRule | undefined {
+  return reflector.getAllAndOverride<AccessRule | undefined>(ACCESS_RULE, targets);
+}
+
+/** The caller of a route that is not public. */
+export const CurrentAccess = createParamDecorator((_: unknown, context: ExecutionContext) => {
+  const access = context.switchToHttp().getRequest<FastifyRequest>().access;
+  if (!access) throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
+  return access;
 });
 
 /**
@@ -86,24 +136,30 @@ export class AccessTokens {
 }
 
 /**
- * Every route needs a valid access token for this cell unless it is marked `@Public()`. Later
- * steps add the per-request checks of the user, device and auth revision (BR-39) and the
- * permission and scope checks (spec 4.2).
+ * Guards every route. Unless the route is public, it needs a valid access token for this cell,
+ * an active user, tenant and device at the token's auth revision, and the permissions the route
+ * declares.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name);
+
   constructor(
     private readonly reflector: Reflector,
     private readonly tokens: AccessTokens,
+    private readonly resolver: AccessResolver,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_ROUTE, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (isPublic) return true;
+    const rule = accessRule(this.reflector, [context.getHandler(), context.getClass()]);
+    if (rule?.kind === 'public') return true;
+    if (!rule) {
+      this.logger.error(
+        `${context.getClass().name}.${context.getHandler().name} declares no access rule`,
+      );
+      throw new AppError('FORBIDDEN', 'You do not have access to this.');
+    }
 
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     const [scheme, token] = (request.headers.authorization ?? '').split(' ');
@@ -114,13 +170,20 @@ export class AuthGuard implements CanActivate {
     if (claims.cell !== this.config.CELL_ID) {
       throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
     }
-    request.auth = {
+    const access = await this.resolver.resolve({
       userId: claims.sub,
       tenantId: claims.tid,
       cell: claims.cell,
       revision: claims.rev,
       ...(claims.did ? { deviceId: claims.did } : {}),
-    };
+    });
+    request.access = access;
+
+    if (rule.kind === 'signed_in') return true;
+    const held = (permission: TenantPermission) => access.permissions.has(permission);
+    const allowed =
+      rule.kind === 'all' ? rule.permissions.every(held) : rule.permissions.some(held);
+    if (!allowed) throw new AppError('FORBIDDEN', 'You do not have access to this.');
     return true;
   }
 }

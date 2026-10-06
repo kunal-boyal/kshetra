@@ -33,16 +33,16 @@ export class AuthController {
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   verify(@Body() body: unknown, @Ip() address: string) {
-    const { phone, code } = OtpVerifyBody.parse(body);
-    return this.otp.verify(phone, code, address);
+    const { phone, code, device } = OtpVerifyBody.parse(body);
+    return this.otp.verify(phone, code, address, device);
   }
 
   @Post('select-tenant')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   selectTenant(@Body() body: unknown) {
-    const { ticket, tenantId } = SelectTenantBody.parse(body);
-    return this.sessions.selectTenant(ticket, tenantId);
+    const { ticket, tenantId, device } = SelectTenantBody.parse(body);
+    return this.sessions.selectTenant(ticket, tenantId, device);
   }
 
   @Post('token/refresh')
@@ -57,8 +57,8 @@ export class AuthController {
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   switchTenant(@Body() body: unknown) {
-    const { refreshToken, tenantId } = SwitchTenantBody.parse(body);
-    return this.sessions.switchTenant(refreshToken, tenantId);
+    const { refreshToken, tenantId, device } = SwitchTenantBody.parse(body);
+    return this.sessions.switchTenant(refreshToken, tenantId, device);
   }
 
   @Post('logout')

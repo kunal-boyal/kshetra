@@ -2,12 +2,13 @@
 
 This file tracks where the build stands against the delivery phases in spec section 15. Update it in the same pull request as every step, so it never drifts from the code.
 
-Last updated: 2026-10-05
+Last updated: 2026-10-06
 
 ## Now
 
 - **Phase 0, step 4** (sign-in: one-time codes, tokens and sessions) is in review as [kunal-boyal/kshetra#5](https://github.com/kunal-boyal/kshetra/pull/5).
-- **Next:** Phase 0, step 5, IAM: users, roles, scopes and designations, with device binding.
+- **Phase 0, step 5** (IAM: users, roles, scopes, designations and device binding) is in review as [kunal-boyal/kshetra#6](https://github.com/kunal-boyal/kshetra/pull/6), built on top of step 4. Its design is decision D30.
+- **Phase 0, step 6** (config bundle, terminology and languages) is in progress.
 - **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
@@ -28,8 +29,8 @@ Each step is its own pull request. The order follows dependencies.
 | 2 | API and database foundation: `apps/api` (NestJS), migrations, database roles, tenant context with row-level security, error codes, idempotency | Done | #2 |
 | 3 | Templates package: schema, validator, and the generic and agri templates; form and metric definitions in `packages/forms` and `packages/metrics` | Done | #3 |
 | 4 | Directory module: OTP sign-in, ES256 tokens and the JWKS, refresh rotation, choosing and switching tenants (D29) | In review | #5 |
-| 5 | IAM: users, roles, data scopes, designations, closure tables, devices and device binding (D15) | Next | |
-| 6 | Config bundle, terminology resolver, i18n in English and Hindi | To do | |
+| 5 | IAM: users, roles, data scopes, designations, closure tables, devices and device binding (D15, D30) | In review | #6 |
+| 6 | Config bundle, terminology resolver, i18n in English and Hindi; the tenant settings that step 5 waits on (device binding switch, timezone) and custom user fields | In progress | |
 | 7 | Audit log and outbox | To do | |
 | 8 | Provisioning CLI, and a seed with two tenants on different templates | To do | |
 | 9 | Web shell with sign-in: `apps/web`, `packages/ui-web`, the token build step | To do | |
@@ -52,6 +53,7 @@ Each step is its own pull request. The order follows dependencies.
 | Item | Who | Needed by |
 |---|---|---|
 | Turborepo's `AGENTS.md`: commit it, or switch it off with `"agentGuidance": false` | Kunal | Any time |
+| Review D30's access rules: nobody resets their own device or changes their own role or status, and nobody grants access they don't hold | Kunal | With #6 |
 | D1: product name, domain and the legal entity that publishes the apps | Kunal | Before DLT registration and store listings |
 | D2: name the pilot customer (agri inputs) | Kunal | Phase 1 |
 | D3: seat prices and plan contents | Kunal | Before phase 3 |

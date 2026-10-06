@@ -20,6 +20,8 @@ export interface AccessTokenInput {
   tenantId: string;
   cell: string;
   revision: number;
+  /** The bound phone; the web has none. */
+  deviceId?: string;
 }
 
 /**
@@ -66,7 +68,12 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
     const issuedAt = Math.floor(now.getTime() / 1000);
     const expiresAt = new Date((issuedAt + ACCESS_TOKEN_SECONDS) * 1000);
     const { issuer, audience } = tokenParties(this.config);
-    const token = await new SignJWT({ tid: input.tenantId, cell: input.cell, rev: input.revision })
+    const token = await new SignJWT({
+      tid: input.tenantId,
+      cell: input.cell,
+      rev: input.revision,
+      ...(input.deviceId ? { did: input.deviceId } : {}),
+    })
       .setProtectedHeader({ alg: 'ES256', kid: this.publicJwk.kid!, typ: 'JWT' })
       .setSubject(input.userId)
       .setIssuer(issuer)

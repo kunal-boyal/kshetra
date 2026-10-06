@@ -1,7 +1,9 @@
 export {
+  canGrant,
   DATA_SCOPES,
   PERMISSIONS_BY_AREA,
   PLATFORM_PERMISSIONS,
+  scopeContains,
   SYSTEM_ROLES,
   TENANT_PERMISSIONS,
 } from './access';
@@ -34,12 +36,13 @@ export type { Locale } from './schemas/config';
 export {
   AccessClaims,
   ChooseTenant,
+  DeviceInfo,
   LogoutBody,
-  MeResult,
   OtpRequestBody,
   OtpRequestResult,
   OtpVerifyBody,
   OtpVerifyResult,
+  PhoneInput,
   RefreshBody,
   RefreshResult,
   SelectTenantBody,
@@ -48,6 +51,29 @@ export {
   SwitchTenantBody,
   TenantSummary,
 } from './schemas/auth';
+export {
+  CreateDesignationBody,
+  CreateRoleBody,
+  CreateUserBody,
+  DesignationDefinition,
+  DesignationListResult,
+  DesignationResult,
+  MeResult,
+  RoleDefinition,
+  RoleListResult,
+  RoleResult,
+  UpdateDesignationBody,
+  UpdateRoleBody,
+  UpdateUserBody,
+  USER_STATUSES,
+  UserCode,
+  UserListQuery,
+  UserListResult,
+  UserResult,
+  UserStatus,
+} from './schemas/iam';
+export { isOpenTenant, OPEN_TENANT_STATUSES, TENANT_STATUSES } from './tenants';
+export type { TenantStatus } from './tenants';
 export { TERMINOLOGY_KEYS } from './terminology';
 export type { TerminologyKey } from './terminology';
 export { ACCOUNT_REQUEST_TYPES, REQUEST_TYPES } from './workflow';

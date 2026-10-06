@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   AppError,
+  type DeviceInfo,
   newId,
   normalisePhone,
   type OtpRequestResult,
@@ -79,7 +80,12 @@ export class OtpService {
     return { expiresInSeconds: OTP.ttlSeconds };
   }
 
-  async verify(rawPhone: string, code: string, address: string): Promise<OtpVerifyResult> {
+  async verify(
+    rawPhone: string,
+    code: string,
+    address: string,
+    device?: DeviceInfo,
+  ): Promise<OtpVerifyResult> {
     const phone = parsePhone(rawPhone);
     await this.limiter.hit(OTP_LIMITS.verificationsPerAddress, address);
 
@@ -120,6 +126,6 @@ export class OtpService {
     if (outcome === 'invalid') {
       throw new AppError('OTP_INVALID', 'That code is not right. Check it and try again.');
     }
-    return this.sessions.signIn(phone);
+    return this.sessions.signIn(phone, device);
   }
 }

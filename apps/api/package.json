@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@kshetra/config": "workspace:*",
+    "@kshetra/templates": "workspace:*",
     "@nestjs/testing": "^12.1.2",
     "@testcontainers/postgresql": "^12.2.0",
     "@testcontainers/redis": "^12.2.0",

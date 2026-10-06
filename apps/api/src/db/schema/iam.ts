@@ -1,0 +1,207 @@
+import {
+  DATA_SCOPES,
+  type LocalizedNoun,
+  type LocalizedText,
+  USER_STATUSES,
+} from '@kshetra/shared';
+import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import type { z } from 'zod';
+import { cell, changeColumns, isolation, rowVersionColumn } from './common';
+
+/**
+ * People and access (spec 4.2, 5.3, 10.3), owned by the IAM module. Every table leads its keys
+ * with `tenant_id`, and references between them carry it too, so a row can never point into
+ * another tenant, even though foreign-key checks bypass row-level security.
+ */
+
+export const dataScope = cell.enum('data_scope', DATA_SCOPES);
+export const userStatus = cell.enum('user_status', USER_STATUSES);
+export const devicePlatform = cell.enum('device_platform', ['android', 'ios', 'web']);
+
+export const roles = cell
+  .table(
+    'roles',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      key: text('key').notNull(),
+      name: jsonb('name').$type<z.output<typeof LocalizedText>>().notNull(),
+      permissions: text('permissions').array().notNull(),
+      scope: dataScope('scope').notNull(),
+      mobileOnly: boolean('mobile_only').notNull().default(false),
+      system: boolean('system').notNull().default(false),
+      ...changeColumns(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('roles_tenant_key').on(table.tenantId, table.key),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+export const designations = cell
+  .table(
+    'designations',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      key: text('key').notNull(),
+      name: jsonb('name').$type<z.output<typeof LocalizedNoun>>().notNull(),
+      level: integer('level').notNull(),
+      defaultRoleId: uuid('default_role_id').notNull(),
+      canHaveReports: boolean('can_have_reports').notNull(),
+      ranked: boolean('ranked').notNull().default(false),
+      ...changeColumns(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('designations_tenant_key').on(table.tenantId, table.key),
+      foreignKey({
+        name: 'designations_default_role_fk',
+        columns: [table.tenantId, table.defaultRoleId],
+        foreignColumns: [roles.tenantId, roles.id],
+      }),
+      check('designations_level_range', sql`${table.level} between 1 and 10`),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+export const users = cell
+  .table(
+    'users',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      code: text('code').notNull(),
+      name: text('name').notNull(),
+      // Users who never sign in may have none (D11).
+      phoneE164: text('phone_e164'),
+      email: text('email'),
+      designationId: uuid('designation_id').notNull(),
+      roleId: uuid('role_id').notNull(),
+      managerId: uuid('manager_id'),
+      joiningDate: date('joining_date'),
+      exitDate: date('exit_date'),
+      status: userStatus('status').notNull().default('active'),
+      // Moves with every change that must sign the user out (BR-39).
+      authRevision: integer('auth_revision').notNull().default(0),
+      custom: jsonb('custom').$type<Record<string, unknown>>().notNull().default({}),
+      rowVersion: rowVersionColumn(),
+      ...changeColumns(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('users_tenant_code').on(table.tenantId, table.code),
+      uniqueIndex('users_tenant_phone').on(table.tenantId, table.phoneE164),
+      index('users_tenant_manager').on(table.tenantId, table.managerId),
+      index('users_tenant_row_version').on(table.tenantId, table.rowVersion),
+      foreignKey({
+        name: 'users_designation_fk',
+        columns: [table.tenantId, table.designationId],
+        foreignColumns: [designations.tenantId, designations.id],
+      }),
+      foreignKey({
+        name: 'users_role_fk',
+        columns: [table.tenantId, table.roleId],
+        foreignColumns: [roles.tenantId, roles.id],
+      }),
+      foreignKey({
+        name: 'users_manager_fk',
+        columns: [table.tenantId, table.managerId],
+        foreignColumns: [table.tenantId, table.id],
+      }),
+      check('users_not_own_manager', sql`${table.managerId} <> ${table.id}`),
+      check(
+        'users_exit_after_joining',
+        sql`${table.exitDate} is null or ${table.joiningDate} is null or ${table.exitDate} >= ${table.joiningDate}`,
+      ),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * Every ancestor and descendant pair in the reporting tree, including each user paired with
+ * themselves at depth 0, so "my team" is one indexed lookup (spec 4.2). It is derived from
+ * `users.manager_id` and rebuilt from it when a manager changes.
+ */
+export const reportingClosure = cell
+  .table(
+    'reporting_closure',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      ancestorId: uuid('ancestor_id').notNull(),
+      descendantId: uuid('descendant_id').notNull(),
+      depth: integer('depth').notNull(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.ancestorId, table.descendantId] }),
+      index('reporting_closure_descendant').on(table.tenantId, table.descendantId),
+      foreignKey({
+        name: 'reporting_closure_ancestor_fk',
+        columns: [table.tenantId, table.ancestorId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      foreignKey({
+        name: 'reporting_closure_descendant_fk',
+        columns: [table.tenantId, table.descendantId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * A phone a user signed in on (spec 10.3). With device binding on, a user has one unrevoked
+ * device until a manager or an admin resets it (BR-38). Web sessions have no device.
+ */
+export const devices = cell
+  .table(
+    'devices',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      userId: uuid('user_id').notNull(),
+      // SHA-256 of the key the app keeps in its secure store; the key itself is never stored.
+      deviceKeyHash: text('device_key_hash').notNull(),
+      platform: devicePlatform('platform').notNull(),
+      model: text('model'),
+      osVersion: text('os_version'),
+      appVersion: text('app_version'),
+      pushToken: text('push_token'),
+      integrityVerdict: text('integrity_verdict'),
+      health: jsonb('health').$type<Record<string, unknown>>(),
+      boundAt: timestamp('bound_at', { withTimezone: true }),
+      lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+      revokedAt: timestamp('revoked_at', { withTimezone: true }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('devices_tenant_user_key').on(table.tenantId, table.userId, table.deviceKeyHash),
+      foreignKey({
+        name: 'devices_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
