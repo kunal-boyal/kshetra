@@ -9,6 +9,8 @@ export { ChoiceGroup, ListGroup, ListRow } from './lists';
 export type { Choice, ListRowProps } from './lists';
 export { ease, useReducedMotion } from './motion';
 export { Screen } from './screen';
+export { StatusBadge, SyncBanner } from './status';
+export type { BadgeVariant } from './status';
 export { Card, EmptyState, IconChip, Notice } from './surfaces';
 export type { Hue } from './surfaces';
 export { Text } from './text';

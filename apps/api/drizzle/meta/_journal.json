@@ -57,6 +57,20 @@
       "when": 1791270514829,
       "tag": "0007_audit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791359423572,
+      "tag": "0008_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791359451563,
+      "tag": "0009_sync_row_versions",
+      "breakpoints": true
     }
   ]
 }

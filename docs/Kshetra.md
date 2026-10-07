@@ -1072,7 +1072,7 @@ Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group c
 - Money is `numeric(18,2)`, percentages `numeric(7,4)`, quantities `numeric(18,3)`. The shared package uses a decimal library for pricing and converts only at the edges; money never passes through binary floating point in calculations.
 - Locations are `geography(Point, 4326)` with GiST indexes.
 - Fixed system statuses use PostgreSQL enums. Tenant-defined data (custom fields, form data, settings, workflow steps) is `jsonb`, validated in the application against the versioned definition. Frequently filtered custom fields can be promoted to indexed generated columns.
-- Syncable tables have `row_version bigint`, set from a global sequence by trigger on insert and update. Removals are status changes or rows in `sync_tombstones`.
+- Syncable tables have `row_version bigint`: the ID of the transaction that last wrote the row, set on insert and by trigger on update, so a pull never moves its cursor past a row that isn't visible yet (decision D40). Removals are status changes or rows in `sync_tombstones`.
 - Application code never hard-deletes, except retention jobs and tenant deletion.
 - Mutable tables carry `created_at`, `created_by`, `updated_at` and `updated_by`.
 
@@ -1283,7 +1283,7 @@ outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, attempts, 
        dispatched_at NULL)
        IX(next_attempt_at) WHERE dispatched_at IS NULL
 idempotency_keys(tid, key, request_hash, response jsonb, created_at)       PK(tid, key) · purged after 7 days
-sync_tombstones(tid, entity, entity_id, row_version)
+sync_tombstones(tid, entity, entity_id, row_version, created_at)
 audit_log(id, tid, actor_id, actor_kind enum(user,platform,system,api_client), action, target_type, target_id,
        before jsonb, after jsonb, ip, device_id, support_grant_id NULL, created_at)  PART monthly
 ```
@@ -1368,7 +1368,7 @@ Storage on the phone (SQLite in WAL mode):
 Pull, from server to device:
 
 1. `GET /v1/sync/pull?entities=accounts,plan_items,...&cursor=<opaque>` returns, per entity, rows with `row_version` above the cursor that fall inside the user's sync scope, plus tombstones and a new cursor. Pages hold up to 500 rows per entity.
-2. Scope changes (an account reassigned away from the user) arrive as tombstones for that user.
+2. Scope changes (an account reassigned away from the user) arrive as a full pass of that entity: the server sends every row the user may now hold, and the phone drops the rows the pass did not send (decision D40). Rows removed for everyone arrive as tombstones.
 3. The config bundle and catalogue use ETags; a changed `config_version` triggers a refetch.
 4. A full refresh runs on first sign-in, after a tenant switch, and when the server answers `SYNC_RESET` (cursor too old or schema changed).
 
@@ -2077,6 +2077,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `DIRECTORY_DATABASE_URL` | Directory schema connection, used by the directory module only |
 | `REDIS_URL` | TLS URL in cloud environments |
 | `OUTBOX_RELAY`, `OUTBOX_POLL_MS`, `SCHEDULER_TICK_MS` | Whether a process runs the outbox relay (the worker does by default) and how often it polls; how often the scheduler looks for tenants' scheduled moments |
+| `SYNC_EPOCH` | Carried by every sync cursor; raising it after the cell's database is restored or moved makes every phone take a full copy (decision D40) |
 | `JWT_SIGNING_KEY` (directory), `JWKS_URL` (cells), `OTP_PEPPER`, `COLUMN_ENCRYPTION_KEY_ID` | Token signing and verification, OTP hashing, KMS key for encrypted columns |
 | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `CLOUDFRONT_DOMAIN`, `CLOUDFRONT_KEY_ID`, `CLOUDFRONT_PRIVATE_KEY` | Media storage and signed reads |
 | `OTP_PROVIDER`, `SMS_PROVIDER`, `SMS_API_KEY`, `SMS_TEMPLATE_IDS` | OTP and SMS; `console` is allowed only locally |

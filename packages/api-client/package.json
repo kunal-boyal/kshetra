@@ -2,10 +2,12 @@
   "name": "@kshetra/api-client",
   "version": "0.0.0",
   "private": true,
-  "description": "The typed client the web and mobile apps use: sign-in, sessions with refresh, and the cell's API",
+  "description": "The typed client the web and mobile apps use: sign-in, sessions with refresh, the cell's API, and the phone's sync engine",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./sync": "./src/sync/index.ts",
+    "./node-sqlite": "./src/sync/node-sqlite.ts"
   },
   "sideEffects": false,
   "scripts": {
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@kshetra/config": "workspace:*",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

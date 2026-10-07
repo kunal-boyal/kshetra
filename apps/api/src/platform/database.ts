@@ -12,6 +12,15 @@ export type TenantTx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export interface TransactionOptions {
+  /**
+   * `repeatable read` gives every statement the same snapshot, for reads that must agree with each
+   * other, such as a sync pull. A transaction that only reads never fails for it.
+   */
+  isolation?: 'read committed' | 'repeatable read';
+  readOnly?: boolean;
+}
+
 @Injectable()
 export class Database implements OnModuleDestroy {
   private readonly logger = new Logger(Database.name);
@@ -39,16 +48,26 @@ export class Database implements OnModuleDestroy {
    * query to that tenant (spec 9.5, layer 2). Queries inside still filter by `tenant_id` explicitly
    * (layer 4).
    */
-  async forTenant<T>(tenantId: string, work: (tx: TenantTx) => Promise<T>): Promise<T> {
+  async forTenant<T>(
+    tenantId: string,
+    work: (tx: TenantTx) => Promise<T>,
+    options: TransactionOptions = {},
+  ): Promise<T> {
     if (!UUID.test(tenantId)) {
       throw new Error('A tenant ID must be a UUID.');
     }
     const committed: (() => Promise<void>)[] = [];
-    const result = await this.db.transaction(async (tx) => {
-      this.afterCommitTasks.set(tx, committed);
-      await tx.execute(sql`select set_config('app.tenant_id', ${tenantId}, true)`);
-      return work(tx);
-    });
+    const result = await this.db.transaction(
+      async (tx) => {
+        this.afterCommitTasks.set(tx, committed);
+        await tx.execute(sql`select set_config('app.tenant_id', ${tenantId}, true)`);
+        return work(tx);
+      },
+      {
+        ...(options.isolation ? { isolationLevel: options.isolation } : {}),
+        ...(options.readOnly ? { accessMode: 'read only' as const } : {}),
+      },
+    );
     for (const task of committed) {
       try {
         await task();

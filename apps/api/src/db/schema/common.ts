@@ -43,12 +43,12 @@ export const changeColumns = () => ({
 });
 
 /**
- * Syncable rows take a new value from this sequence on every insert and update (a trigger covers
- * updates), so the mobile sync can ask for everything changed since a cursor (spec 10.1, 11.3).
+ * Syncable rows carry the ID of the transaction that last wrote them, on insert by this default
+ * and on update by the `next_row_version` trigger (spec 10.1, decision D40). Transaction IDs only
+ * grow, and the sync can tell which ones may still commit, so a pull never moves its cursor past
+ * a row that is not visible yet (spec 11.3).
  */
-export const rowVersion = cell.sequence('row_version');
-
 export const rowVersionColumn = () =>
   bigint('row_version', { mode: 'number' })
     .notNull()
-    .default(sql`nextval('cell.row_version')`);
+    .default(sql`(pg_current_xact_id()::text)::bigint`);

@@ -8,8 +8,8 @@ Last updated: 2026-10-07
 
 - **Phase 0 is complete.** Steps 1 to 11 are merged; the last three were the web shell (#11), the mobile shell (#12) and the cross-tenant contract test with the exit check (#13). Every exit criterion is checked by a test: a person signs in on the web into either seeded tenant and a field user on a phone, the cross-tenant contract test passes over all 27 routes, and both templates validate. The field app has run in a browser standing in for a phone; Kunal's phone comes next.
 - **Decisions D35, D36 and D37** are merged as proposed and wait for Kunal to confirm them; D36's choice of font on Android is decided (D38).
-- **Phase 1 has started** (decision D38). Step 1, background work, is in review as [kunal-boyal/kshetra#15](https://github.com/kunal-boyal/kshetra/pull/15). Its design is decision D39.
-- **Next:** phase 1, step 2: offline sync.
+- **Phase 1 is in progress** (decision D38). Step 1, background work, is merged ([kunal-boyal/kshetra#15](https://github.com/kunal-boyal/kshetra/pull/15), decision D39). Step 2, offline sync, is in review as [kunal-boyal/kshetra#16](https://github.com/kunal-boyal/kshetra/pull/16). Its design is decision D40.
+- **Next:** phase 1, step 3: people on the web.
 - **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
@@ -50,9 +50,9 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 
 | Step | Capability | Needs from Kunal | Status | Pull request |
 |---|---|---|---|---|
-| 1 | Background work: worker and scheduler processes with BullMQ queues, tenant-local schedules; the outbox relay moves into the worker (spec 12.3, D39) | | In review | #15 |
-| 2 | Offline sync: pull with cursors and tombstones, the app's SQLite store and push outbox, the upload queue screen, the config bundle offline, the device heartbeat (spec 11.3) | | Next | |
-| 3 | People on the web: users (create, edit, deactivate, transfer, reset device, sign out everywhere), the org chart, device health, roles and designations, custom user fields (M3, M2, D31) | | To do | |
+| 1 | Background work: worker and scheduler processes with BullMQ queues, tenant-local schedules; the outbox relay moves into the worker (spec 12.3, D39) | | Done | #15 |
+| 2 | Offline sync: pull with cursors and tombstones, the app's SQLite store and push outbox, the upload queue screen, the config bundle offline, the device heartbeat (spec 11.3, D40) | | In review | #16 |
+| 3 | People on the web: users (create, edit, deactivate, transfer, reset device, sign out everywhere), the org chart, device health, roles and designations, custom user fields (M3, M2, D31) | | Next | |
 | 4 | Imports and territories: the import framework, user and territory imports, territory tree screens (M19, M4) | | To do | |
 | 5 | Accounts: types, slots, visibility, geofence, contacts, segments, the account overview and import, the app's offline list, proposals of new accounts and locations, approved by the proposer's manager until phase 2 (M4, D38) | | To do | |
 | 6 | Photos: camera capture, presigned uploads, processing with duplicate checks, signed reads (spec 12.2) | | To do | |
@@ -72,6 +72,7 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-07 | Phase 1 step 1: background work, the worker and scheduler processes (decision D39) | PR #15, merged as `c1c83ee` |
 | 2026-10-06 | Kunal approved the phase 1 plan and started phase 1, and decided how proposals are approved before phase 2, that the item import joins phase 1, and the font on Android (decision D38) | `docs/decisions.md`, this file |
 | 2026-10-06 | Phase 0 complete: every exit criterion is checked by a test | PRs #11 to #13 |
 | 2026-10-06 | Phase 0 step 11: the route registry, the cross-tenant contract test, the OpenAPI document and the exit check (decision D37) | PR #13, merged as `fa1e876` |
@@ -101,7 +102,8 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | D2: name the pilot customer (agri inputs) | Kunal | Phase 1 |
 | D3: seat prices and plan contents | Kunal | Before phase 3 |
 | Confirm decisions D35 (the web shell), D36 (the mobile shell) and D37 (the contract test and the OpenAPI document), merged as proposed; D36's font choice is decided (D38) | Kunal | Before phase 1 builds on them |
-| Review decision D39, background work, in #15 | Kunal | Before #15 merges |
+| Confirm decision D39 (background work), merged as proposed in #15 | Kunal | Before phase 1 builds on it |
+| Review decision D40, the mobile sync, in #16. It changes how row versions work, and spec 10.1 and 11.3 with them | Kunal | Before #16 merges |
 | Try the field app on your phone: Expo Go (`pnpm --filter @kshetra/mobile go`, then scan the code), or a development build from EAS, which runs in Expo's cloud on your account and needs your go-ahead | Kunal | Early in phase 1 |
 | Accounts with long lead times: SMS provider with DLT, Google Play and Apple (each needs a D-U-N-S number), AWS | Kunal | Phase 1 |
 | Outdoor theme field test, on two Android brands in midday sun (D19) | Team | Before onboarding suggests Outdoor |

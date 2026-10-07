@@ -6,6 +6,7 @@ import { AppProvider, useApp } from '../app-state';
 import { LanguageProvider } from '../i18n';
 import { Look } from '../look';
 import { UpdateRequiredScreen } from '../screens/update-required';
+import { SyncProvider } from '../sync';
 
 // The splash screen stays up until the fonts are in and the saved session has been looked for.
 void SplashScreen.preventAutoHideAsync();
@@ -14,9 +15,11 @@ export default function RootLayout() {
   return (
     <LanguageProvider>
       <AppProvider>
-        <Look>
-          <Routes />
-        </Look>
+        <SyncProvider>
+          <Look>
+            <Routes />
+          </Look>
+        </SyncProvider>
       </AppProvider>
     </LanguageProvider>
   );

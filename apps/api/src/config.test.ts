@@ -24,6 +24,7 @@ describe('loadConfig', () => {
       OUTBOX_RELAY: false,
       OUTBOX_POLL_MS: 1000,
       SCHEDULER_TICK_MS: 300_000,
+      SYNC_EPOCH: '1',
     });
   });
 

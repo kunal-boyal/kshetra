@@ -60,6 +60,7 @@ export const territories = cell
       primaryKey({ columns: [table.tenantId, table.id] }),
       uniqueIndex('territories_tenant_code').on(table.tenantId, table.code),
       index('territories_tenant_parent').on(table.tenantId, table.parentId),
+      index('territories_tenant_row_version').on(table.tenantId, table.rowVersion),
       foreignKey({
         name: 'territories_level_fk',
         columns: [table.tenantId, table.level],

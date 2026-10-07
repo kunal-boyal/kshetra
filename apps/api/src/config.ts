@@ -64,6 +64,13 @@ const schema = z
     OUTBOX_POLL_MS: z.coerce.number().int().min(100).max(60_000).default(1_000),
     // How often the scheduler looks for tenants whose local time has reached scheduled work.
     SCHEDULER_TICK_MS: z.coerce.number().int().min(1_000).max(3_600_000).default(300_000),
+    // Every sync cursor carries this value, and a cursor with another one is refused with
+    // SYNC_RESET. Raise it after restoring or moving the cell's database: every phone then takes
+    // a full copy of its data (decision D40).
+    SYNC_EPOCH: z
+      .string()
+      .regex(/^[A-Za-z0-9._-]{1,64}$/)
+      .default('1'),
     // PKCS8 PEM of the P-256 key that signs access tokens (ES256), with newlines written as \n.
     // Left unset outside production, the API makes a temporary key at start-up.
     JWT_SIGNING_KEY: z

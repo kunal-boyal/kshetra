@@ -135,12 +135,19 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Declare repeated work in `Schedules`: `every()` across the cell, `atTenantTime()` for a moment of each tenant's day (`HH:MM` on the tenant's clock). Give one-off jobs that must run once a `jobId`.
 - `pnpm dev` runs the API, the worker and the scheduler together (`apps/api/scripts/dev.mjs`); production runs them as separate services.
 
+## Offline sync (decision D40)
+
+- Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.
+- `row_version` is the writing transaction's ID, not a sequence number, so a cursor never passes a row that isn't committed yet. Rows removed for everyone go out as tombstones: call `SyncTombstones.record()` in the same transaction.
+- On the phone, a capture writes its records and `Outbox.enqueue()` in one local transaction, and its kind gets a sender and a label in `apps/mobile/src/outbox-kinds.ts`. Senders call the API with the record's client-generated ID, so an upload sent twice is applied once.
+- The sync engine runs on Node's built-in SQLite in tests (`@kshetra/api-client/node-sqlite`); `apps/api/test/device.int.test.ts` runs it as a simulated phone against the real API.
+
 ## Mobile app (decision D36)
 
 - Build screens from `@kshetra/ui-mobile`, whose components take everything from the tokens; text goes through its `Text`, since React Native passes no colour down. Strings come from `useLanguage().t`, in English and Hindi.
 - The app calls the API only through the client in `apps/mobile/src/client.ts`, and keeps the session and the device key in the secure store through `src/storage.ts`. Never put a token in plain storage or a log.
 - Native modules follow the Expo SDK: add them with `pnpm exec expo install <package>` in `apps/mobile`, put any version `packages/ui-mobile` shares into the `mobile` catalog, and check with `pnpm exec expo install --check`.
-- Signed-in screens live under `src/app/(app)`, behind the root layout's guards. Tabs follow components/BottomNav: at most five, filtered by permissions and modules.
+- Signed-in screens live under `src/app/(app)`, behind the root layout's guards: tabs in `(tabs)`, and full-screen screens such as the upload queue beside it, above the tabs. Tabs follow components/BottomNav: at most five, filtered by permissions and modules.
 - Components and screens are tested with Jest (jest-expo) and React Native Testing Library 14, whose `render` and `fireEvent` are async. `src/screens/sign-in.test.tsx` shows the fake client.
 - Cloud builds (`eas build`) run on Kunal's Expo account (D34): ask first.
 
