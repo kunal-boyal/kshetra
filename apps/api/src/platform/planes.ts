@@ -46,4 +46,6 @@ export abstract class MembershipSync {
 /** The tenant's status as the directory records it. Cells check it on every request (M1, rule 7). */
 export abstract class TenantDirectory {
   abstract status(tenantId: string): Promise<TenantStatus | undefined>;
+  /** The open tenants on a cell, for work the cell schedules for each of them (spec 12.3). */
+  abstract openTenants(cellName: string): Promise<string[]>;
 }

@@ -4,33 +4,47 @@ import {
   Logger,
   type OnApplicationBootstrap,
   type OnModuleDestroy,
+  type OnModuleInit,
 } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import type { Config } from '../config';
 import { Database } from './database';
 import { Outbox } from './outbox';
+import { Queues } from './queues';
+import { Schedules } from './schedules';
 import { CONFIG } from './tokens';
 
 const HOUSEKEEPING_MS = 60 * 60_000;
 
 /**
  * The outbox relay (spec 12.3): delivers events that are due again after a failure, or that no
- * process delivered after commit, and once an hour creates the coming months' audit partitions
- * and purges what retention allows. Several processes may run it at once: each event is locked
- * while one of them delivers it.
+ * process delivered after commit. The worker process runs it; several processes may, since each
+ * event is locked while one of them delivers it. Once an hour, a maintenance job creates the
+ * coming months' audit partitions and purges what retention allows.
  */
 @Injectable()
-export class OutboxRelay implements OnApplicationBootstrap, OnModuleDestroy {
+export class OutboxRelay implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(OutboxRelay.name);
   private timer: NodeJS.Timeout | undefined;
   private stopped = false;
-  private lastHousekeeping = 0;
 
   constructor(
     private readonly database: Database,
     private readonly outbox: Outbox,
+    private readonly queues: Queues,
+    private readonly schedules: Schedules,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
+
+  onModuleInit(): void {
+    this.queues.handle('maintenance', 'housekeeping', () => this.housekeeping());
+    this.schedules.every({
+      id: 'housekeeping',
+      everyMs: HOUSEKEEPING_MS,
+      queue: 'maintenance',
+      kind: 'housekeeping',
+    });
+  }
 
   onApplicationBootstrap(): void {
     if (this.config.OUTBOX_RELAY) this.schedule();
@@ -50,14 +64,13 @@ export class OutboxRelay implements OnApplicationBootstrap, OnModuleDestroy {
     for (const event of due.rows) {
       if (await this.outbox.deliver(event.tenant_id, event.id)) delivered += 1;
     }
-    if (Date.now() - this.lastHousekeeping >= HOUSEKEEPING_MS) await this.housekeeping();
     return delivered;
   }
 
+  /** Audit partitions for the coming months, and the purges retention allows (D32). */
   async housekeeping(): Promise<void> {
     await this.database.db.execute(sql`select cell.ensure_audit_log_partitions()`);
     await this.database.db.execute(sql`select cell.purge_outbox_and_idempotency_keys()`);
-    this.lastHousekeeping = Date.now();
   }
 
   private schedule(): void {

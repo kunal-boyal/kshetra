@@ -40,7 +40,8 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | tsdown | 0.23.0 | Bundles the API and its workspace packages |
 | testcontainers, @testcontainers/postgresql, @testcontainers/redis | 12.2.0 | Integration tests against `infra/docker/postgres` and Redis |
 | jose | 6.2.12 | ES256 access tokens and the JWKS (decision D29) |
-| ioredis | 6.0.0 | The Redis client: sign-in rate limits and tickets now, BullMQ queues later |
+| ioredis | 6.0.0 | The Redis client: sign-in rate limits and tickets, and the connection BullMQ uses |
+| bullmq | 6.3.11 | Background jobs and schedules (decision D39). BullMQ 6 replaces repeatable jobs with job schedulers. |
 | @types/node | 24.19.1 | Matches the Node 24 runtime, not the newest 26.x |
 | @fastify/cookie | 11.1.2 | The web's refresh cookie (decision D35) |
 | @fastify/cors | 11.3.0 | The `CORS_ORIGINS` allowlist (decision D35) |
@@ -94,7 +95,7 @@ The EAS command-line tool (eas-cli 24.11.0) is installed globally on Kunal's mac
 
 ## Install scripts
 
-pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-workspace.yaml` approves it. Only esbuild is approved, because it sets up the native binary that drizzle-kit, Vite and tsdown need. ssh2, cpu-features and protobufjs are denied: the first two only serve Docker over SSH, and the last only prints notices. Review any new request before approving it.
+pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-workspace.yaml` approves it. Only esbuild is approved, because it sets up the native binary that drizzle-kit, Vite and tsdown need. ssh2, cpu-features, protobufjs and msgpackr-extract are denied: the first two only serve Docker over SSH, protobufjs only prints notices, and msgpackr-extract is an optional native speed-up that BullMQ's MessagePack works without. Review any new request before approving it.
 
 ## Local services (`docker-compose.yml`)
 

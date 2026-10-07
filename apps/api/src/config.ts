@@ -58,10 +58,12 @@ const schema = z
     OTP_PROVIDER: z.enum(['console', 'memory']).default('console'),
     // The secret one-time codes are hashed with (spec M1, rule 3).
     OTP_PEPPER: z.string().min(16),
-    // Whether this process runs the outbox relay, which retries events and keeps partitions and
-    // retention up to date. The API runs it until a separate worker process exists.
-    OUTBOX_RELAY: z.stringbool().default(true),
+    // Whether this process runs the outbox relay, which retries events whose delivery failed. The
+    // worker process turns it on; elsewhere it stays off unless set.
+    OUTBOX_RELAY: z.stringbool().default(false),
     OUTBOX_POLL_MS: z.coerce.number().int().min(100).max(60_000).default(1_000),
+    // How often the scheduler looks for tenants whose local time has reached scheduled work.
+    SCHEDULER_TICK_MS: z.coerce.number().int().min(1_000).max(3_600_000).default(300_000),
     // PKCS8 PEM of the P-256 key that signs access tokens (ES256), with newlines written as \n.
     // Left unset outside production, the API makes a temporary key at start-up.
     JWT_SIGNING_KEY: z

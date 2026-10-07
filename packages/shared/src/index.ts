@@ -24,7 +24,7 @@ export {
 } from './app-version';
 export type { AppPlatform } from './app-version';
 export { contrastRatio, HEX_COLOUR } from './colour';
-export { todayIn } from './dates';
+export { momentDue, timeIn, todayIn } from './dates';
 export { AppError, ERROR_HTTP_STATUS, formatPath, isErrorCode, issueAt } from './errors';
 export { ErrorResponse } from './schemas/errors';
 export { HealthResult, IdParams, ReadyResult } from './schemas/common';

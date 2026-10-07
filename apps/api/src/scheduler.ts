@@ -1,0 +1,14 @@
+// The scheduler entrypoint (spec 9.4): adds scheduled jobs (spec 12.3), which the worker runs.
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import { createLogger } from './app';
+import { AppModule } from './app.module';
+import { loadConfig } from './config';
+import { TenantScheduler } from './modules/scheduling/tenant-scheduler';
+
+const config = loadConfig();
+const app = await NestFactory.createApplicationContext(AppModule.forRoot(config), {
+  logger: createLogger(config),
+});
+app.enableShutdownHooks();
+await app.get(TenantScheduler).start();

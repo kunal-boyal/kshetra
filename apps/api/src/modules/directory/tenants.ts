@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { AppError, newId, type TenantStatus } from '@kshetra/shared';
-import { eq } from 'drizzle-orm';
+import { AppError, newId, OPEN_TENANT_STATUSES, type TenantStatus } from '@kshetra/shared';
+import { and, eq, inArray } from 'drizzle-orm';
 import { cells, tenants } from '../../db/schema/directory';
 import { TenantDirectory } from '../../platform/planes';
 import { DirectoryDatabase } from './directory.database';
@@ -34,6 +34,16 @@ export class DirectoryTenants extends TenantDirectory {
       .from(tenants)
       .where(eq(tenants.id, tenantId));
     return tenant?.status;
+  }
+
+  async openTenants(cellName: string): Promise<string[]> {
+    const rows = await this.database.db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .innerJoin(cells, eq(cells.id, tenants.cellId))
+      .where(and(eq(cells.name, cellName), inArray(tenants.status, [...OPEN_TENANT_STATUSES])))
+      .orderBy(tenants.id);
+    return rows.map((row) => row.id);
   }
 
   /** Registers a cell, or keeps the entry it already has. Returns its ID. */
