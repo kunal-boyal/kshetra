@@ -26,20 +26,31 @@ export interface AccessTokenInput {
 
 /**
  * The directory's ES256 key (spec 9.2). It signs access tokens, and its public half is the JWKS
- * that cells verify against. The key comes from `JWT_SIGNING_KEY`; outside production, without
- * one, a temporary key is made at start-up and tokens stop working when the API restarts.
+ * that cells verify against. The key comes from `JWT_SIGNING_KEY`, checked at start-up. Outside
+ * production, without one, a temporary key is made when first needed, so processes that never
+ * sign, such as the worker, make none; tokens stop working when the API restarts.
  */
 @Injectable()
 export class SigningKey extends TokenKeys implements OnModuleInit {
   private readonly logger = new Logger(SigningKey.name);
   private privateKey: Awaited<ReturnType<typeof importPKCS8>> | undefined;
   private publicJwk: JWK | undefined;
+  private loading: Promise<void> | undefined;
 
   constructor(@Inject(CONFIG) private readonly config: Config) {
     super();
   }
 
   async onModuleInit(): Promise<void> {
+    if (this.config.JWT_SIGNING_KEY) await this.load();
+  }
+
+  private load(): Promise<void> {
+    this.loading ??= this.read();
+    return this.loading;
+  }
+
+  private async read(): Promise<void> {
     if (this.config.JWT_SIGNING_KEY) {
       this.privateKey = await importPKCS8(this.config.JWT_SIGNING_KEY, 'ES256', {
         extractable: true,
@@ -55,6 +66,7 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
   }
 
   async jwks(): Promise<JSONWebKeySet> {
+    await this.load();
     if (!this.publicJwk) throw new Error('The signing key is not loaded yet.');
     return { keys: [this.publicJwk] };
   }
@@ -64,6 +76,7 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
     input: AccessTokenInput,
     now: Date = new Date(),
   ): Promise<{ token: string; expiresAt: Date }> {
+    await this.load();
     if (!this.privateKey || !this.publicJwk) throw new Error('The signing key is not loaded yet.');
     const issuedAt = Math.floor(now.getTime() / 1000);
     const expiresAt = new Date((issuedAt + ACCESS_TOKEN_SECONDS) * 1000);

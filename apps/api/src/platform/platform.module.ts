@@ -3,9 +3,11 @@ import type { Config } from '../config';
 import { AuditLog } from './audit';
 import { Database } from './database';
 import { Outbox } from './outbox';
+import { Queues } from './queues';
 import { RateLimiter } from './rate-limit';
 import { RedisClient } from './redis';
 import { OutboxRelay } from './relay';
+import { Schedules } from './schedules';
 import { CONFIG } from './tokens';
 
 /** Settings and shared infrastructure every module can inject. */
@@ -23,8 +25,20 @@ export class PlatformModule {
         AuditLog,
         Outbox,
         OutboxRelay,
+        Queues,
+        Schedules,
       ],
-      exports: [CONFIG, Database, RedisClient, RateLimiter, AuditLog, Outbox, OutboxRelay],
+      exports: [
+        CONFIG,
+        Database,
+        RedisClient,
+        RateLimiter,
+        AuditLog,
+        Outbox,
+        OutboxRelay,
+        Queues,
+        Schedules,
+      ],
     };
   }
 }

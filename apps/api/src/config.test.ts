@@ -20,8 +20,10 @@ describe('loadConfig', () => {
       DB_POOL_MAX: 10,
       LOG_LEVEL: 'info',
       OTP_PROVIDER: 'console',
-      OUTBOX_RELAY: true,
+      // The worker process turns the relay on for itself.
+      OUTBOX_RELAY: false,
       OUTBOX_POLL_MS: 1000,
+      SCHEDULER_TICK_MS: 300_000,
     });
   });
 

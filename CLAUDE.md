@@ -4,7 +4,7 @@ A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web porta
 
 ## Status
 
-Phase 0 (Foundation) is complete, and phase 1 (the field core) is next. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
+Phase 1 (the field core) is in progress, and phase 0 is complete. Start a new phase only with Kunal's explicit go-ahead. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
 
 Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
 
@@ -16,7 +16,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | static checks and unit tests, through Turborepo | now |
 | `pnpm format`, `pnpm format:check` | Prettier | now |
 | `docker compose up -d` | starts the local services | now |
-| `pnpm dev` | runs the API on http://127.0.0.1:3000, the web portal on http://127.0.0.1:5173 (which passes `/auth` and `/v1` through to the API), and the field app's Expo dev server | now |
+| `pnpm dev` | runs the API on http://127.0.0.1:3000 with its worker and scheduler, the web portal on http://127.0.0.1:5173 (which passes `/auth` and `/v1` through to the API), and the field app's Expo dev server | now |
 | `pnpm --filter @kshetra/mobile go` | serves the field app to Expo Go on a phone on the same Wi-Fi; run the API with `HOST=0.0.0.0` | now |
 | `pnpm --filter @kshetra/mobile web` | runs the field app in a browser, standing in for an Android phone; development only, so add http://localhost:8081 to `CORS_ORIGINS` | now |
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
@@ -127,6 +127,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Web code calls the API only through `@kshetra/api-client`, which refreshes tokens and turns error responses into `ApiError` with a spec 11.4 code. Show errors with `errorMessage()` from `apps/web/src/i18n.tsx`.
 - Build screens from `@kshetra/ui-web` and the design system's `ks-*` classes; Tailwind is for layout. Text comes from `useLanguage().t`, in English and Hindi.
 - Each screen gets a Vitest test with Testing Library, and each page a Playwright test that runs axe.
+
+## Background work (decision D39)
+
+- Add a queue to `QUEUE_NAMES` in `apps/api/src/platform/queues.ts` with the first work that needs it. Register a handler per kind of job with `Queues.handle()` in the owning module's `onModuleInit`; only the worker process runs handlers.
+- A job for one tenant carries `tenantId`, and its handler does its work inside `Database.forTenant`. Handlers are idempotent: a job can run again after a failure.
+- Declare repeated work in `Schedules`: `every()` across the cell, `atTenantTime()` for a moment of each tenant's day (`HH:MM` on the tenant's clock). Give one-off jobs that must run once a `jobId`.
+- `pnpm dev` runs the API, the worker and the scheduler together (`apps/api/scripts/dev.mjs`); production runs them as separate services.
 
 ## Mobile app (decision D36)
 

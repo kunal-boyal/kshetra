@@ -4,10 +4,12 @@ packages:
   - tools/*
 
 # Install scripts run only where approved. esbuild sets up its native binary for drizzle-kit, Vite
-# and tsdown. ssh2 and cpu-features only serve Docker over SSH, and protobufjs only prints notices.
+# and tsdown. ssh2 and cpu-features only serve Docker over SSH, protobufjs only prints notices, and
+# msgpackr-extract is an optional native speed-up that BullMQ's MessagePack works without.
 allowBuilds:
   cpu-features: false
   esbuild: true
+  msgpackr-extract: false
   protobufjs: false
   ssh2: false
 

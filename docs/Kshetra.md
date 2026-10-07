@@ -2076,6 +2076,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `DATABASE_URL`, `DATABASE_REPLICA_URL`, `DATABASE_MIGRATOR_URL`, `DB_POOL_MAX` | Application role, read replica, migration role, pool size |
 | `DIRECTORY_DATABASE_URL` | Directory schema connection, used by the directory module only |
 | `REDIS_URL` | TLS URL in cloud environments |
+| `OUTBOX_RELAY`, `OUTBOX_POLL_MS`, `SCHEDULER_TICK_MS` | Whether a process runs the outbox relay (the worker does by default) and how often it polls; how often the scheduler looks for tenants' scheduled moments |
 | `JWT_SIGNING_KEY` (directory), `JWKS_URL` (cells), `OTP_PEPPER`, `COLUMN_ENCRYPTION_KEY_ID` | Token signing and verification, OTP hashing, KMS key for encrypted columns |
 | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `CLOUDFRONT_DOMAIN`, `CLOUDFRONT_KEY_ID`, `CLOUDFRONT_PRIVATE_KEY` | Media storage and signed reads |
 | `OTP_PROVIDER`, `SMS_PROVIDER`, `SMS_API_KEY`, `SMS_TEMPLATE_IDS` | OTP and SMS; `console` is allowed only locally |

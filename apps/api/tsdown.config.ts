@@ -3,6 +3,8 @@ import { defineConfig } from 'tsdown';
 export default defineConfig({
   entry: [
     'src/main.ts',
+    'src/worker.ts',
+    'src/scheduler.ts',
     'src/migrate.ts',
     'src/bootstrap.ts',
     'src/provision.ts',
