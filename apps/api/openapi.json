@@ -969,6 +969,11 @@
                 "user.updated",
                 "user.device_reset",
                 "user.signed_out_everywhere",
+                "user_fields.replaced",
+                "transfer.scheduled",
+                "transfer.applied",
+                "transfer.cancelled",
+                "transfer.failed",
                 "role.created",
                 "role.updated",
                 "designation.created",
@@ -1086,6 +1091,11 @@
                               "user.updated",
                               "user.device_reset",
                               "user.signed_out_everywhere",
+                              "user_fields.replaced",
+                              "transfer.scheduled",
+                              "transfer.applied",
+                              "transfer.cancelled",
+                              "transfer.failed",
                               "role.created",
                               "role.updated",
                               "designation.created",
@@ -2064,6 +2074,80 @@
         }
       }
     },
+    "/v1/org-chart": {
+      "get": {
+        "operationId": "OrgChartController.level",
+        "summary": "One level of the organisation chart, with team counts by designation",
+        "tags": [
+          "People"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: user.view",
+        "parameters": [
+          {
+            "name": "managerId",
+            "in": "query",
+            "required": false,
+            "description": "Whose direct reports to list. Leave out for the top of the caller's reach.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrgChartNode"
+                      }
+                    },
+                    "totals": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "totals"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/roles": {
       "get": {
         "operationId": "RolesController.list",
@@ -2755,7 +2839,7 @@
                             "rows": {
                               "type": "array",
                               "items": {
-                                "$ref": "#/components/schemas/SyncTerritory"
+                                "$ref": "#/components/schemas/Territory"
                               }
                             },
                             "removed": {
@@ -2914,6 +2998,163 @@
         }
       }
     },
+    "/v1/territories": {
+      "get": {
+        "operationId": "TerritoriesController.list",
+        "summary": "The tenant's territory tree",
+        "tags": [
+          "Territories"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [
+          {
+            "name": "active",
+            "in": "query",
+            "required": false,
+            "description": "Only active nodes, or only inactive",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Territory"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/user-fields": {
+      "get": {
+        "operationId": "UserFieldsController.get",
+        "summary": "The tenant's custom user fields, in use and retired",
+        "tags": [
+          "People"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserFields"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "UserFieldsController.replace",
+        "summary": "Replace the custom user fields in use; those left out retire",
+        "tags": [
+          "People"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: settings.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CustomField"
+                    }
+                  }
+                },
+                "required": [
+                  "fields"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserFields"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/users": {
       "get": {
         "operationId": "UsersController.list",
@@ -2960,6 +3201,36 @@
                 "inactive"
               ]
             }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Part of a name, code or mobile number",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "designation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Key"
+            }
+          },
+          {
+            "name": "managerId",
+            "in": "query",
+            "required": false,
+            "description": "Only this person's direct reports",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
           }
         ],
         "responses": {
@@ -2973,107 +3244,7 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "phone": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "email": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "designation": {
-                            "$ref": "#/components/schemas/Key"
-                          },
-                          "role": {
-                            "$ref": "#/components/schemas/Key"
-                          },
-                          "managerId": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "format": "uuid",
-                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "joiningDate": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "format": "date",
-                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "exitDate": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "format": "date",
-                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "active",
-                              "inactive"
-                            ]
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time",
-                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "format": "date-time",
-                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "code",
-                          "name",
-                          "phone",
-                          "email",
-                          "designation",
-                          "role",
-                          "managerId",
-                          "joiningDate",
-                          "exitDate",
-                          "status",
-                          "createdAt",
-                          "updatedAt"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/UserView"
                       }
                     },
                     "nextCursor": {
@@ -3192,6 +3363,26 @@
                     "type": "string",
                     "format": "date",
                     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "territoryIds": {
+                    "default": [],
+                    "description": "The territories the user works in, from today (spec 5.4)",
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "custom": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "$ref": "#/components/schemas/Key"
+                    },
+                    "additionalProperties": {},
+                    "description": "Values of the tenant's custom user fields, by key, checked against their definitions"
                   }
                 },
                 "required": [
@@ -3284,6 +3475,67 @@
                         "inactive"
                       ]
                     },
+                    "manager": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "code",
+                            "name"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "territories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "custom": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -3307,6 +3559,9 @@
                     "joiningDate",
                     "exitDate",
                     "status",
+                    "manager",
+                    "territories",
+                    "custom",
                     "createdAt",
                     "updatedAt"
                   ],
@@ -3331,7 +3586,7 @@
     "/v1/users/{id}": {
       "get": {
         "operationId": "UsersController.get",
-        "summary": "One user",
+        "summary": "One user, with the phone they are bound to",
         "tags": [
           "People"
         ],
@@ -3359,107 +3614,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "phone": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "email": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "designation": {
-                      "$ref": "#/components/schemas/Key"
-                    },
-                    "role": {
-                      "$ref": "#/components/schemas/Key"
-                    },
-                    "managerId": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "uuid",
-                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "joiningDate": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "date",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "exitDate": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "date",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "active",
-                        "inactive"
-                      ]
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "code",
-                    "name",
-                    "phone",
-                    "email",
-                    "designation",
-                    "role",
-                    "managerId",
-                    "joiningDate",
-                    "exitDate",
-                    "status",
-                    "createdAt",
-                    "updatedAt"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/UserView"
                 }
               }
             }
@@ -3590,6 +3745,21 @@
                       "active",
                       "inactive"
                     ]
+                  },
+                  "custom": {
+                    "description": "Custom values to change, by key; `null` clears one. Others stay as they are.",
+                    "type": "object",
+                    "propertyNames": {
+                      "$ref": "#/components/schemas/Key"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {},
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
                   }
                 },
                 "additionalProperties": false
@@ -3677,6 +3847,67 @@
                         "inactive"
                       ]
                     },
+                    "manager": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "code",
+                            "name"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "territories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "custom": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -3700,8 +3931,234 @@
                     "joiningDate",
                     "exitDate",
                     "status",
+                    "manager",
+                    "territories",
+                    "custom",
                     "createdAt",
                     "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}/history": {
+      "get": {
+        "operationId": "UserHistoryController.history",
+        "summary": "What changed about a user, newest first",
+        "tags": [
+          "People"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: user.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "actor": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "user",
+                                  "platform",
+                                  "system",
+                                  "api_client"
+                                ]
+                              },
+                              "id": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "id"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "user.created",
+                              "user.updated",
+                              "user.device_reset",
+                              "user.signed_out_everywhere",
+                              "user_fields.replaced",
+                              "transfer.scheduled",
+                              "transfer.applied",
+                              "transfer.cancelled",
+                              "transfer.failed",
+                              "role.created",
+                              "role.updated",
+                              "designation.created",
+                              "designation.updated",
+                              "settings.updated",
+                              "terminology.replaced",
+                              "session.signed_in",
+                              "session.device_refused"
+                            ]
+                          },
+                          "target": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string"
+                              },
+                              "id": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "id"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "before": {},
+                          "after": {},
+                          "ip": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "deviceId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "supportGrantId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "actor",
+                          "action",
+                          "target",
+                          "before",
+                          "after",
+                          "ip",
+                          "deviceId",
+                          "supportGrantId",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
                   ],
                   "additionalProperties": false
                 }
@@ -3826,10 +4283,483 @@
           }
         }
       }
+    },
+    "/v1/users/{id}/transfers": {
+      "get": {
+        "operationId": "TransfersController.list",
+        "summary": "A user's transfers, latest first",
+        "tags": [
+          "People"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: user.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Transfer"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "TransfersController.create",
+        "summary": "Transfer a user from a date on: at once for today, or on the day",
+        "tags": [
+          "People"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: user.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "effectiveDate": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "The first day, on the tenant's calendar"
+                  },
+                  "managerId": {
+                    "description": "`null` puts them at the top",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "designation": {
+                    "$ref": "#/components/schemas/Key"
+                  },
+                  "role": {
+                    "$ref": "#/components/schemas/Key"
+                  },
+                  "territoryIds": {
+                    "description": "The territories they work in from the date on, replacing the ones before",
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "effectiveDate"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transfer"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}/transfers/{transferId}/cancel": {
+      "post": {
+        "operationId": "TransfersController.cancel",
+        "summary": "Cancel a transfer that is still to come",
+        "tags": [
+          "People"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: user.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "transferId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transfer"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Clause": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "eq",
+              "neq",
+              "gt",
+              "gte",
+              "lt",
+              "lte",
+              "in",
+              "not_in",
+              "contains",
+              "is_empty",
+              "is_not_empty"
+            ]
+          },
+          "value": {
+            "description": "What to compare with: a number, an amount as a decimal string, text, true or false, an option key, or a list of option keys for `in` and `not_in`. Leave it out for `is_empty` and `is_not_empty`.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "minItems": 1,
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "field",
+          "op"
+        ],
+        "additionalProperties": false
+      },
+      "Condition": {
+        "type": "object",
+        "properties": {
+          "match": {
+            "default": "all",
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ]
+          },
+          "clauses": {
+            "minItems": 1,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Clause"
+            }
+          }
+        },
+        "required": [
+          "match",
+          "clauses"
+        ],
+        "additionalProperties": false
+      },
+      "ConditionInput": {
+        "type": "object",
+        "properties": {
+          "match": {
+            "default": "all",
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ]
+          },
+          "clauses": {
+            "minItems": 1,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Clause"
+            }
+          }
+        },
+        "required": [
+          "clauses"
+        ],
+        "additionalProperties": false
+      },
+      "CurrencyField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "currency"
+          },
+          "min": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "max": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "CurrencyFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "currency"
+          },
+          "min": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "max": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "CustomField": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ShortTextFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/LongTextFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/NumberFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/CurrencyFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/DateFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/SingleSelectFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/MultiSelectFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/YesNoFieldInput"
+          }
+        ]
+      },
       "DataScope": {
         "type": "string",
         "enum": [
@@ -3839,6 +4769,131 @@
           "team_or_territory",
           "tenant"
         ]
+      },
+      "DateField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "date"
+          },
+          "minDaysFromToday": {
+            "description": "The earliest date allowed, in days from the capture date: 0 is not in the past",
+            "type": "integer",
+            "minimum": -3660,
+            "maximum": 3660
+          },
+          "maxDaysFromToday": {
+            "description": "The latest date allowed, in days from the capture date: 0 is not in the future",
+            "type": "integer",
+            "minimum": -3660,
+            "maximum": 3660
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "DateFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "date"
+          },
+          "minDaysFromToday": {
+            "description": "The earliest date allowed, in days from the capture date: 0 is not in the past",
+            "type": "integer",
+            "minimum": -3660,
+            "maximum": 3660
+          },
+          "maxDaysFromToday": {
+            "description": "The latest date allowed, in days from the capture date: 0 is not in the future",
+            "type": "integer",
+            "minimum": -3660,
+            "maximum": 3660
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
       },
       "Designation": {
         "type": "object",
@@ -3873,6 +4928,213 @@
           "level",
           "defaultRole",
           "canHaveReports"
+        ],
+        "additionalProperties": false
+      },
+      "DeviceHealth": {
+        "type": "object",
+        "properties": {
+          "appVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "osVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "permissions": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "backgroundLocation": {
+                "type": "string",
+                "enum": [
+                  "granted",
+                  "denied",
+                  "undetermined"
+                ]
+              },
+              "notifications": {
+                "type": "string",
+                "enum": [
+                  "granted",
+                  "denied",
+                  "undetermined"
+                ]
+              },
+              "camera": {
+                "type": "string",
+                "enum": [
+                  "granted",
+                  "denied",
+                  "undetermined"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "batteryOptimised": {
+            "type": "boolean"
+          },
+          "queue": {
+            "type": "object",
+            "properties": {
+              "queued": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "parked": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "oldestQueuedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "queued",
+              "parked",
+              "oldestQueuedAt"
+            ],
+            "additionalProperties": false
+          },
+          "lastSyncAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "clockSkewSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "appVersion",
+          "osVersion",
+          "permissions",
+          "queue",
+          "lastSyncAt",
+          "receivedAt",
+          "clockSkewSeconds"
+        ],
+        "additionalProperties": false
+      },
+      "DeviceSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios",
+              "web"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "osVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "appVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "boundAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastSeenAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "health": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeviceHealth"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "platform",
+          "model",
+          "osVersion",
+          "appVersion",
+          "boundAt",
+          "lastSeenAt",
+          "health"
         ],
         "additionalProperties": false
       },
@@ -4041,6 +5303,502 @@
         ],
         "additionalProperties": false
       },
+      "LongTextField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "long_text"
+          },
+          "minLength": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5000
+          },
+          "maxLength": {
+            "default": 2000,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type",
+          "maxLength"
+        ],
+        "additionalProperties": false
+      },
+      "LongTextFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "long_text"
+          },
+          "minLength": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5000
+          },
+          "maxLength": {
+            "default": 2000,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "Money": {
+        "type": "string",
+        "pattern": "^(?:0|[1-9]\\d{0,15})(?:\\.\\d{1,2})?$"
+      },
+      "MultiSelectField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "multi_select"
+          },
+          "options": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Option"
+            }
+          },
+          "optionsFrom": {
+            "description": "Offer catalogue entries instead of fixed options. Give options or this, not both.",
+            "type": "string",
+            "enum": [
+              "catalogue_products",
+              "catalogue_items"
+            ]
+          },
+          "minSelected": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "maxSelected": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "MultiSelectFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "multi_select"
+          },
+          "options": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Option"
+            }
+          },
+          "optionsFrom": {
+            "description": "Offer catalogue entries instead of fixed options. Give options or this, not both.",
+            "type": "string",
+            "enum": [
+              "catalogue_products",
+              "catalogue_items"
+            ]
+          },
+          "minSelected": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "maxSelected": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "NumberField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "number"
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "decimals": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "unit": {
+            "description": "Shown after the value, such as \"acres\"",
+            "$ref": "#/components/schemas/LocalizedText"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type",
+          "decimals"
+        ],
+        "additionalProperties": false
+      },
+      "NumberFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "number"
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "decimals": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "unit": {
+            "description": "Shown after the value, such as \"acres\"",
+            "$ref": "#/components/schemas/LocalizedText"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "Option": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "OrgChartNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "designation": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          },
+          "managerId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reports": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "team": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "designation",
+          "status",
+          "managerId",
+          "reports",
+          "team"
+        ],
+        "additionalProperties": false
+      },
       "Permission": {
         "type": "string",
         "enum": [
@@ -4145,48 +5903,272 @@
         ],
         "additionalProperties": false
       },
-      "SyncTerritory": {
+      "ShortTextField": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          "key": {
+            "$ref": "#/components/schemas/Key"
           },
-          "parentId": {
-            "anyOf": [
-              {
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
                 "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
               },
-              {
-                "type": "null"
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
               }
-            ]
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
           },
-          "level": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "code": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "active": {
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
             "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "short_text"
+          },
+          "minLength": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 500
+          },
+          "maxLength": {
+            "default": 200,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "pattern": {
+            "description": "A regular expression the whole value must match",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           }
         },
         "required": [
-          "id",
-          "parentId",
-          "level",
-          "code",
-          "name",
-          "active"
+          "key",
+          "label",
+          "required",
+          "type",
+          "maxLength"
+        ],
+        "additionalProperties": false
+      },
+      "ShortTextFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "short_text"
+          },
+          "minLength": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 500
+          },
+          "maxLength": {
+            "default": 200,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "pattern": {
+            "description": "A regular expression the whole value must match",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "SingleSelectField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "single_select"
+          },
+          "options": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Option"
+            }
+          },
+          "optionsFrom": {
+            "description": "Offer catalogue entries instead of fixed options. Give options or this, not both.",
+            "type": "string",
+            "enum": [
+              "catalogue_products",
+              "catalogue_items"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "SingleSelectFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "single_select"
+          },
+          "options": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Option"
+            }
+          },
+          "optionsFrom": {
+            "description": "Offer catalogue entries instead of fixed options. Give options or this, not both.",
+            "type": "string",
+            "enum": [
+              "catalogue_products",
+              "catalogue_items"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
         ],
         "additionalProperties": false
       },
@@ -4313,6 +6295,476 @@
             "additionalProperties": false
           }
         },
+        "additionalProperties": false
+      },
+      "Territory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "parentId",
+          "level",
+          "code",
+          "name",
+          "active"
+        ],
+        "additionalProperties": false
+      },
+      "Transfer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "changes": {
+            "type": "object",
+            "properties": {
+              "managerId": {
+                "description": "`null` puts them at the top",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "designation": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "role": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "territoryIds": {
+                "description": "The territories they work in from the date on, replacing the ones before",
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "applied",
+              "cancelled",
+              "failed"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "createdBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "appliedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancelledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "effectiveDate",
+          "changes",
+          "status",
+          "reason",
+          "createdAt",
+          "createdBy",
+          "appliedAt",
+          "cancelledAt"
+        ],
+        "additionalProperties": false
+      },
+      "UserFields": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomField"
+            }
+          },
+          "retired": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomField"
+            }
+          }
+        },
+        "required": [
+          "fields",
+          "retired"
+        ],
+        "additionalProperties": false
+      },
+      "UserView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "designation": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "managerId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "joiningDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exitDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          },
+          "manager": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "code",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "territories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "custom": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeviceSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "phone",
+          "email",
+          "designation",
+          "role",
+          "managerId",
+          "joiningDate",
+          "exitDate",
+          "status",
+          "manager",
+          "territories",
+          "custom",
+          "createdAt",
+          "updatedAt",
+          "device"
+        ],
+        "additionalProperties": false
+      },
+      "YesNoField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "yes_no"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "YesNoFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "yes_no"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
         "additionalProperties": false
       }
     },

@@ -18,6 +18,7 @@
     "@fontsource/noto-sans-devanagari": "^5.3.0",
     "@kshetra/api-client": "workspace:*",
     "@kshetra/design-tokens": "workspace:*",
+    "@kshetra/forms": "workspace:*",
     "@kshetra/i18n": "workspace:*",
     "@kshetra/shared": "workspace:*",
     "@kshetra/ui-web": "workspace:*",
@@ -25,7 +26,8 @@
     "@tanstack/react-router": "^1.170.41",
     "lucide-react": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

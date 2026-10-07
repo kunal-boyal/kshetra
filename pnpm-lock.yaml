@@ -305,6 +305,9 @@ importers:
       '@fastify/cors':
         specifier: 11.3.0
         version: 11.3.0
+      '@kshetra/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
       '@kshetra/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -547,6 +550,9 @@ importers:
       '@kshetra/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@kshetra/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
       '@kshetra/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -571,6 +577,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.0(react@19.3.0)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.13.0

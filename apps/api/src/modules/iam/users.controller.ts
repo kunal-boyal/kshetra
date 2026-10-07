@@ -16,6 +16,7 @@ import {
   UserListQuery,
   UserListResult,
   UserResult,
+  UserView,
 } from '@kshetra/shared';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
@@ -46,7 +47,12 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Contract({ tag: 'People', summary: 'One user', params: IdParams, response: UserResult })
+  @Contract({
+    tag: 'People',
+    summary: 'One user, with the phone they are bound to',
+    params: IdParams,
+    response: UserView,
+  })
   @Requires('user.view')
   get(@CurrentAccess() access: Access, @Param('id') id: string) {
     const userId = pathId(id);

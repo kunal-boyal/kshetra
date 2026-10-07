@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Key } from './config';
 import { UserStatus } from './iam';
+import { TerritoryResult } from './territories';
 
 /**
  * The mobile sync protocol (spec 11.3, decision D40). The phone pulls the reference data it may
@@ -49,17 +50,8 @@ export const SyncUser = z
   })
   .meta({ id: 'SyncUser' });
 
-/** A node of the tenant's territory tree (spec 5.4). */
-export const SyncTerritory = z
-  .object({
-    id: z.uuid(),
-    parentId: z.uuid().nullable(),
-    level: z.int(),
-    code: z.string(),
-    name: z.string(),
-    active: z.boolean(),
-  })
-  .meta({ id: 'SyncTerritory' });
+/** A node of the tenant's territory tree (spec 5.4), as `GET /v1/territories` lists it. */
+export const SyncTerritory = TerritoryResult;
 
 /**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
@@ -92,44 +84,8 @@ export const SyncPullResult = z.object({
   more: z.boolean(),
 });
 
-const PermissionState = z.enum(['granted', 'denied', 'undetermined']);
-
-/**
- * `POST /v1/devices/heartbeat`: the phone's health (spec 12.1, M3), sent when the app starts and
- * every 15 minutes on duty. A permission or setting the app can't read yet is left out.
- */
-export const DeviceHeartbeatBody = z.strictObject({
-  appVersion: z.string().trim().min(1).max(32),
-  osVersion: z.string().trim().min(1).max(32),
-  model: z.string().trim().min(1).max(100).optional(),
-  permissions: z
-    .strictObject({
-      backgroundLocation: PermissionState.optional(),
-      notifications: PermissionState.optional(),
-      camera: PermissionState.optional(),
-    })
-    .default({}),
-  /** Whether the phone's battery optimisation may stop the app in the background. */
-  batteryOptimised: z.boolean().optional(),
-  queue: z.strictObject({
-    queued: z.int().min(0),
-    parked: z.int().min(0),
-    oldestQueuedAt: z.iso.datetime({ offset: true }).nullable(),
-  }),
-  lastSyncAt: z.iso.datetime({ offset: true }).nullable(),
-});
-
-/** What the cell keeps of a heartbeat in `devices.health`, with when it arrived. */
-export const DeviceHealth = DeviceHeartbeatBody.extend({
-  receivedAt: z.iso.datetime(),
-  /** Device time minus server time when it arrived, from `X-Device-Time` (BR-44). */
-  clockSkewSeconds: z.int().nullable(),
-}).meta({ id: 'DeviceHealth' });
-
 export type SyncEntity = z.infer<typeof SyncEntity>;
 export type SyncPullQuery = z.output<typeof SyncPullQuery>;
 export type SyncUser = z.infer<typeof SyncUser>;
 export type SyncTerritory = z.infer<typeof SyncTerritory>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;
-export type DeviceHeartbeatBody = z.output<typeof DeviceHeartbeatBody>;
-export type DeviceHealth = z.infer<typeof DeviceHealth>;

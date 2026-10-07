@@ -22,6 +22,7 @@
   "dependencies": {
     "@fastify/cookie": "11.1.2",
     "@fastify/cors": "11.3.0",
+    "@kshetra/forms": "workspace:*",
     "@kshetra/i18n": "workspace:*",
     "@kshetra/shared": "workspace:*",
     "@kshetra/templates": "workspace:*",

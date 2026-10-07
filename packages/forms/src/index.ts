@@ -28,3 +28,6 @@ export {
 export type { AnyField, FieldType } from './fields';
 export { AccountLink, checkFields, checkForm, FormDefinition } from './form';
 export type { FieldContext, FormContext } from './form';
+export { UpdateUserFieldsBody, UserFieldsResult } from './user-fields';
+export { checkValues, conditionHolds } from './values';
+export type { ValueContext, Values } from './values';

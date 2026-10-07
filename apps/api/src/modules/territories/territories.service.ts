@@ -1,6 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { AppError, newId, type LocalizedNoun } from '@kshetra/shared';
-import { and, eq, type SQL, sql } from 'drizzle-orm';
+import {
+  AppError,
+  issueAt,
+  newId,
+  type LocalizedNoun,
+  type TerritoryListQuery,
+  type TerritoryRef,
+  type TerritoryResult,
+} from '@kshetra/shared';
+import { and, asc, eq, gt, inArray, isNull, lte, or, type SQL, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import {
   territories,
@@ -85,6 +93,153 @@ export class TerritoriesService {
     return id;
   }
 
+  /** The tree, highest level first, for pickers and filters. */
+  async list(
+    tx: TenantTx,
+    tenantId: string,
+    query: TerritoryListQuery,
+  ): Promise<TerritoryResult[]> {
+    return tx
+      .select({
+        id: territories.id,
+        parentId: territories.parentId,
+        level: territories.level,
+        code: territories.code,
+        name: territories.name,
+        active: territories.active,
+      })
+      .from(territories)
+      .where(
+        and(
+          eq(territories.tenantId, tenantId),
+          query.active === undefined ? undefined : eq(territories.active, query.active),
+        ),
+      )
+      .orderBy(asc(territories.level), asc(territories.code));
+  }
+
+  /** The territories each user is attached to on `day`, by user. */
+  async attachmentsOf(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    day: string,
+  ): Promise<Map<string, TerritoryRef[]>> {
+    const found = new Map<string, TerritoryRef[]>();
+    if (userIds.length === 0) return found;
+    const rows = await tx
+      .select({
+        userId: userTerritories.userId,
+        id: territories.id,
+        code: territories.code,
+        name: territories.name,
+      })
+      .from(userTerritories)
+      .innerJoin(
+        territories,
+        and(
+          eq(territories.tenantId, userTerritories.tenantId),
+          eq(territories.id, userTerritories.territoryId),
+        ),
+      )
+      .where(
+        and(
+          eq(userTerritories.tenantId, tenantId),
+          inArray(userTerritories.userId, [...userIds]),
+          validOn(day),
+        ),
+      )
+      .orderBy(asc(territories.code));
+    for (const { userId, ...territory } of rows) {
+      found.set(userId, [...(found.get(userId) ?? []), territory]);
+    }
+    return found;
+  }
+
+  /** Refuses IDs that name no active territory, each at its place in `path`. */
+  async checkTerritories(
+    tx: TenantTx,
+    tenantId: string,
+    territoryIds: readonly string[],
+    path: readonly PropertyKey[] = ['territoryIds'],
+  ): Promise<void> {
+    if (territoryIds.length === 0) return;
+    const active = new Set(
+      (
+        await tx
+          .select({ id: territories.id })
+          .from(territories)
+          .where(
+            and(
+              eq(territories.tenantId, tenantId),
+              inArray(territories.id, [...new Set(territoryIds)]),
+              eq(territories.active, true),
+            ),
+          )
+      ).map((row) => row.id),
+    );
+    const issues = territoryIds.flatMap((id, index) =>
+      active.has(id)
+        ? []
+        : [issueAt([...path, index], 'There is no active territory with this ID')],
+    );
+    if (issues.length > 0) {
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', issues);
+    }
+  }
+
+  /**
+   * Makes `territoryIds` the user's territories from `from` on (spec 5.4): attachments that end
+   * stop the day before, new ones start that day, and the ones that stay are left alone. Every ID
+   * must name an active territory, or the change fails at `path`.
+   */
+  async replaceAttachments(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    territoryIds: readonly string[],
+    from: string,
+    path: readonly PropertyKey[] = ['territoryIds'],
+  ): Promise<void> {
+    await this.checkTerritories(tx, tenantId, territoryIds, path);
+    const wanted = [...new Set(territoryIds)];
+    // What applies on `from` or starts later.
+    const current = await tx
+      .select({ territoryId: userTerritories.territoryId, validFrom: userTerritories.validFrom })
+      .from(userTerritories)
+      .where(
+        and(
+          eq(userTerritories.tenantId, tenantId),
+          eq(userTerritories.userId, userId),
+          or(isNull(userTerritories.validTo), gt(userTerritories.validTo, from)),
+        ),
+      );
+    const kept = new Set<string>();
+    for (const attachment of current) {
+      const mine = and(
+        eq(userTerritories.tenantId, tenantId),
+        eq(userTerritories.userId, userId),
+        eq(userTerritories.territoryId, attachment.territoryId),
+        eq(userTerritories.validFrom, attachment.validFrom),
+      );
+      if (wanted.includes(attachment.territoryId) && attachment.validFrom <= from) {
+        kept.add(attachment.territoryId);
+      } else if (attachment.validFrom < from) {
+        await tx.update(userTerritories).set({ validTo: from }).where(mine);
+      } else {
+        // An attachment that hasn't started yet never applied, so it goes rather than ending
+        // before it began.
+        await tx.delete(userTerritories).where(mine);
+      }
+    }
+    const added = wanted.filter((id) => !kept.has(id));
+    if (added.length > 0) {
+      await tx
+        .insert(userTerritories)
+        .values(added.map((territoryId) => ({ tenantId, userId, territoryId, validFrom: from })));
+    }
+  }
+
   /** Attaches a user to a territory from a date on (spec 5.4). */
   async attach(
     tx: TenantTx,
@@ -116,4 +271,12 @@ export class TerritoriesService {
          and theirs.valid_from <= ${today}::date
          and (theirs.valid_to is null or theirs.valid_to > ${today}::date)`;
   }
+}
+
+/** Attachments that apply on `day`: `valid_to` is the first day one no longer applies. */
+function validOn(day: string): SQL {
+  return and(
+    lte(userTerritories.validFrom, day),
+    or(isNull(userTerritories.validTo), gt(userTerritories.validTo, day)),
+  )!;
 }

@@ -10,6 +10,15 @@ import type { WebClient } from './client';
 import { AppShell } from './layout/app-shell';
 import { HomePage } from './pages/home';
 import { SignInPage } from './pages/sign-in';
+import { OrgChartPage } from './people/org-chart-page';
+import { PeoplePage } from './people/people-page';
+import { EditPersonPage, NewPersonPage } from './people/person-form-page';
+import { PersonPage } from './people/person-page';
+import { TransferPage } from './people/transfer-page';
+import { DesignationsPage } from './settings/designations-page';
+import { RolesPage } from './settings/roles-page';
+import { SettingsLayout } from './settings/settings-layout';
+import { UserFieldsPage } from './settings/user-fields-page';
 
 export interface RouterContext {
   client: WebClient;
@@ -39,7 +48,80 @@ const app = createRoute({
 
 const home = createRoute({ getParentRoute: () => app, path: '/', component: HomePage });
 
-const tree = root.addChildren([signIn, app.addChildren([home])]);
+const people = createRoute({ getParentRoute: () => app, path: '/people', component: PeoplePage });
+const newPerson = createRoute({
+  getParentRoute: () => app,
+  path: '/people/new',
+  component: NewPersonPage,
+});
+const person = createRoute({
+  getParentRoute: () => app,
+  path: '/people/$userId',
+  component: function PersonRoute() {
+    const { userId } = person.useParams();
+    // A new key per person, so moving between people starts each page afresh.
+    return <PersonPage key={userId} userId={userId} />;
+  },
+});
+const editPerson = createRoute({
+  getParentRoute: () => app,
+  path: '/people/$userId/edit',
+  component: function EditPersonRoute() {
+    const { userId } = editPerson.useParams();
+    return <EditPersonPage key={userId} userId={userId} />;
+  },
+});
+const transfer = createRoute({
+  getParentRoute: () => app,
+  path: '/people/$userId/transfer',
+  component: function TransferRoute() {
+    const { userId } = transfer.useParams();
+    return <TransferPage key={userId} userId={userId} />;
+  },
+});
+const orgChart = createRoute({
+  getParentRoute: () => app,
+  path: '/org-chart',
+  component: OrgChartPage,
+});
+
+const settings = createRoute({
+  getParentRoute: () => app,
+  path: '/settings',
+  component: SettingsLayout,
+});
+const settingsIndex = createRoute({
+  getParentRoute: () => settings,
+  path: '/',
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/designations' });
+  },
+});
+const roles = createRoute({ getParentRoute: () => settings, path: '/roles', component: RolesPage });
+const designations = createRoute({
+  getParentRoute: () => settings,
+  path: '/designations',
+  component: DesignationsPage,
+});
+const userFields = createRoute({
+  getParentRoute: () => settings,
+  path: '/people-fields',
+  component: UserFieldsPage,
+});
+
+const tree = root.addChildren([
+  signIn,
+  app.addChildren([
+    home,
+    people,
+    newPerson,
+    person,
+    editPerson,
+    transfer,
+    orgChart,
+    settings.addChildren([settingsIndex, roles, designations, userFields]),
+  ]),
+]);
 
 export function createAppRouter(context: RouterContext) {
   return createRouter({ routeTree: tree, context, defaultPreload: 'intent' });

@@ -45,6 +45,10 @@ let b: Tenant;
 let bToken: string;
 /** A cursor tenant A's admin was given by a sync pull. */
 let aCursor: string;
+/** A transfer of A's member, scheduled for next month. */
+let aTransferId: string;
+/** A day comfortably in the future on every tenant's calendar. */
+const NEXT_MONTH = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
 /** Every ID in tenant A's rows that tenant B doesn't also hold. */
 let aIds: string[];
 let aRows: Record<string, unknown[]>;
@@ -160,6 +164,10 @@ async function tenant(name: string, word: string): Promise<Tenant> {
   expect([role.statusCode, designation.statusCode]).toEqual([201, 201]);
   await send(token, 'PUT', '/v1/terminology', { 'term.account': noun(word) });
   await send(token, 'PATCH', '/v1/settings', { geofenceRadiusMeters: 250 });
+  const fields = await send(token, 'PUT', '/v1/user-fields', {
+    fields: [{ key: 'zone', type: 'short_text', label: named(`${word} zone`) }],
+  });
+  expect(fields.statusCode).toBe(200);
   return {
     tenantId,
     admin: { id: adminUser.id, phone: adminPhone },
@@ -399,6 +407,77 @@ const FIXTURES: Record<string, Fixture> = {
       expect(errorOf(reused)).toEqual(errorOf(madeUp));
     },
   },
+  'GET /v1/territories': {
+    kind: 'own tenant',
+    run: async () => {
+      const listed = await asB('GET', '/v1/territories');
+      expect(listed.statusCode).toBe(200);
+      holdsNothingOfA(listed);
+    },
+  },
+  'GET /v1/org-chart': {
+    kind: 'own tenant',
+    run: async () => {
+      const top = await asB('GET', '/v1/org-chart');
+      expect(top.statusCode).toBe(200);
+      holdsNothingOfA(top);
+      await sameAsNowhere((id) => asB('GET', `/v1/org-chart?managerId=${id}`), a.admin.id);
+    },
+  },
+  'GET /v1/user-fields': {
+    kind: 'own tenant',
+    run: async () => {
+      const fields = await asB('GET', '/v1/user-fields');
+      expect(fields.body).toContain(`${b.word} zone`);
+      holdsNothingOfA(fields);
+    },
+  },
+  'PUT /v1/user-fields': {
+    kind: 'write',
+    run: async () => {
+      const replaced = await asB('PUT', '/v1/user-fields', {
+        fields: [
+          { key: 'zone', type: 'short_text', label: named(`${b.word} zone`), required: false },
+        ],
+      });
+      expect(replaced.statusCode).toBe(200);
+      holdsNothingOfA(replaced);
+    },
+  },
+  'POST /v1/users/:id/transfers': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/users/${id}/transfers`, {
+            effectiveDate: NEXT_MONTH,
+            designation: 'executive',
+          }),
+        a.member.id,
+      ),
+  },
+  'GET /v1/users/:id/transfers': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/users/${id}/transfers`), a.member.id),
+  },
+  'POST /v1/users/:id/transfers/:transferId/cancel': {
+    kind: 'by ID',
+    run: async () => {
+      // A's transfer, through A's user or B's own: both answer as for a transfer nowhere.
+      await sameAsNowhere(
+        (id) => asB('POST', `/v1/users/${a.member.id}/transfers/${id}/cancel`),
+        aTransferId,
+      );
+      await sameAsNowhere(
+        (id) => asB('POST', `/v1/users/${b.member.id}/transfers/${id}/cancel`),
+        aTransferId,
+      );
+    },
+  },
+  'GET /v1/users/:id/history': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/users/${id}/history`), a.member.id),
+  },
   'POST /v1/devices/heartbeat': {
     kind: 'write',
     run: async () => {
@@ -431,6 +510,12 @@ beforeAll(async () => {
   // A sync cursor of A's, made before A's rows are taken down, since signing in writes some.
   const aToken = (await world.signIn(a.admin.phone)).accessToken;
   aCursor = (await send(aToken, 'GET', '/v1/sync/pull?entities=users')).json().cursor;
+  const transfer = await send(aToken, 'POST', `/v1/users/${a.member.id}/transfers`, {
+    effectiveDate: NEXT_MONTH,
+    designation: 'executive',
+  });
+  expect(transfer.statusCode).toBe(201);
+  aTransferId = transfer.json().id;
   aRows = await rowsOf(a.tenantId);
   const theirs = idsIn(await rowsOf(b.tenantId));
   aIds = [...idsIn(aRows)].filter((id) => !theirs.has(id));

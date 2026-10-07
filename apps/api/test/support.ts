@@ -144,10 +144,11 @@ export class World {
 
   async tenant(name: string, status = 'active', template = 'generic'): Promise<string> {
     const tenantId = await this.directory.tenant(name, status);
-    const { terminology, roles, designations, geographyLevels } = loadTemplate(template);
+    const { terminology, roles, designations, geographyLevels, userFields } =
+      loadTemplate(template);
     await this.database.forTenant(tenantId, async (tx) => {
       await this.app.get(TenantConfigService).applyTemplate(tx, tenantId, { terminology });
-      await this.app.get(IamSetup).applyTemplate(tx, tenantId, { roles, designations });
+      await this.app.get(IamSetup).applyTemplate(tx, tenantId, { roles, designations, userFields });
       await this.app.get(TerritoriesService).applyLevels(tx, tenantId, geographyLevels);
     });
     return tenantId;
