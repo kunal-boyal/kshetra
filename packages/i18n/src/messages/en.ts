@@ -129,6 +129,7 @@ export const en = {
   'common.loading': 'Loading…',
   'common.offline': 'The server could not be reached. Check your connection, then try again.',
   'common.retry': 'Try again',
+  'common.back': 'Back',
 
   // The sync banner on the mobile home screen (spec 8.1).
   'sync.waiting': {
@@ -139,6 +140,48 @@ export const en = {
     one: '{count} item was refused. Open the upload queue to see why.',
     other: '{count} items were refused. Open the upload queue to see why.',
   },
+  'sync.offline': {
+    one: 'Offline. {count} item is saved on this phone.',
+    other: 'Offline. {count} items are saved on this phone.',
+  },
+  'sync.view': 'View',
+
+  // The upload queue (spec 8.1 More, 11.3).
+  'uploads.title': 'Upload queue',
+  'uploads.intro': 'What you save on this phone waits here until it reaches the server.',
+  'uploads.empty_title': 'Everything has uploaded',
+  'uploads.empty_body':
+    'When there is no signal, what you save waits here and uploads by itself once the signal returns.',
+  'uploads.sync_now': 'Sync now',
+  'uploads.last_sync': 'Last synced {time}',
+  'uploads.never_synced': 'Not synced yet',
+  'uploads.offline': 'No signal. Everything uploads by itself when it returns.',
+  'uploads.queued': 'Waiting',
+  'uploads.parked': 'Refused',
+  'uploads.saved_at': 'Saved {time}',
+  'uploads.next_try': 'Next try {time}',
+  'uploads.discard': 'Discard',
+  'uploads.discard_confirm':
+    'Discard this record? It is deleted from this phone and will never upload.',
+  'uploads.discard_yes': 'Discard it',
+  'uploads.discard_no': 'Keep it',
+  'uploads.item': 'Record ({kind})',
+  'uploads.DEPENDENCY_DISCARDED':
+    "Something this record needed was discarded, so it can't upload. Discard it too.",
+  'uploads.UNKNOWN_KIND': "This version of the app can't upload this record. Update the app.",
+  'app.uploads': 'Upload queue',
+  'app.uploads_waiting': {
+    one: '{count} waiting',
+    other: '{count} waiting',
+  },
+  'app.uploads_done': 'Everything has uploaded',
+  'app.sign_out_unsent': {
+    one: "{count} record hasn't uploaded. It stays on this phone and uploads when you sign in again.",
+    other:
+      "{count} records haven't uploaded. They stay on this phone and upload when you sign in again.",
+  },
+  'app.sign_out_anyway': 'Sign out anyway',
+  'app.stay_signed_in': 'Stay signed in',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;

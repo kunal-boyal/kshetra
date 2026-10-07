@@ -13,6 +13,7 @@ const COMPILED = [
   '@react-navigation/.*',
   'react-native-svg',
   'lucide-react-native',
+  'standard-navigation',
   'uuid',
 ];
 

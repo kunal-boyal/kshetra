@@ -1,8 +1,9 @@
 import { spacing } from '@kshetra/design-tokens';
-import { Card, ChoiceGroup, ListGroup, ListRow, Screen, Text } from '@kshetra/ui-mobile';
-import { Building2, LogOut, Repeat } from 'lucide-react-native';
+import { Button, Card, ChoiceGroup, ListGroup, ListRow, Screen, Text } from '@kshetra/ui-mobile';
+import { router } from 'expo-router';
+import { Building2, CloudUpload, LogOut, Repeat } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { useConfig, useMe } from '../data';
 import { appVersion } from '../device';
@@ -10,11 +11,12 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useDisplay } from '../look';
 import type { Display } from '../preferences';
 import { savedTenants } from '../preferences';
+import { useSyncStatus } from '../sync';
 
 /**
  * Me (spec 8.1). For now it holds what the More screen will: the profile, the tenant switcher,
- * language, display and sign-out. Attendance, leave, expenses and requests arrive with their
- * modules.
+ * language, display, the upload queue and sign-out, which warns about unsent records.
+ * Attendance, leave, expenses and requests arrive with their modules.
  */
 export function MeScreen() {
   const { client, queryClient, session, sync } = useApp();
@@ -23,6 +25,9 @@ export function MeScreen() {
   const me = useMe();
   const config = useConfig();
   const [error, setError] = useState<string>();
+  const [warning, setWarning] = useState(false);
+  const status = useSyncStatus();
+  const unsent = status ? status.counts.queued + status.counts.parked : 0;
   const tenant = session?.tenant;
   const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
   const designation = config.data?.bundle.designations.find(
@@ -95,14 +100,49 @@ export function MeScreen() {
         ]}
       />
 
-      <ListGroup>
-        <ListRow
-          icon={LogOut}
-          tone="danger"
-          label={t('shell.sign_out')}
-          onPress={() => act(() => client.signOut())}
-        />
-      </ListGroup>
+      {status ? (
+        <ListGroup>
+          <ListRow
+            icon={CloudUpload}
+            label={t('app.uploads')}
+            detail={
+              unsent > 0 ? t('app.uploads_waiting', { count: unsent }) : t('app.uploads_done')
+            }
+            onPress={() => router.push('/uploads')}
+          />
+        </ListGroup>
+      ) : null}
+
+      {warning ? (
+        <Card style={styles.stack}>
+          <Text weight={500} role="alert">
+            {t('app.sign_out_unsent', { count: unsent })}
+          </Text>
+          <View style={styles.actions}>
+            <Button
+              variant="danger"
+              icon={LogOut}
+              label={t('app.sign_out_anyway')}
+              onPress={() => act(() => client.signOut())}
+            />
+            <Button
+              variant="secondary"
+              label={t('app.stay_signed_in')}
+              onPress={() => setWarning(false)}
+            />
+          </View>
+        </Card>
+      ) : (
+        <ListGroup>
+          <ListRow
+            icon={LogOut}
+            tone="danger"
+            label={t('shell.sign_out')}
+            // Unsent records stay on the phone for the next sign-in, but the person should know.
+            onPress={() => (unsent > 0 ? setWarning(true) : act(() => client.signOut()))}
+          />
+        </ListGroup>
+      )}
 
       <Text variant="caption" tone="subtle" style={styles.version}>
         {t('app.version', { version: appVersion })}
@@ -113,4 +153,6 @@ export function MeScreen() {
 
 const styles = StyleSheet.create({
   version: { textAlign: 'center', paddingBottom: spacing.space4 },
+  stack: { gap: spacing.space3 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.space2 },
 });

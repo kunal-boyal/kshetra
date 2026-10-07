@@ -38,6 +38,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@kshetra/api-client": "workspace:*",
     "@kshetra/config": "workspace:*",
     "@nestjs/testing": "^12.1.2",
     "@testcontainers/postgresql": "^12.2.0",

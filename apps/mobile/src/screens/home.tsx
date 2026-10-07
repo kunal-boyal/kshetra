@@ -1,13 +1,48 @@
 import { spacing } from '@kshetra/design-tokens';
-import { Button, EmptyState, Screen, Text } from '@kshetra/ui-mobile';
-import { LayoutDashboard, RotateCw } from 'lucide-react-native';
+import { Button, EmptyState, Screen, SyncBanner, Text } from '@kshetra/ui-mobile';
+import { router } from 'expo-router';
+import { CircleAlert, CloudUpload, LayoutDashboard, RotateCw } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { useConfig, useMe } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
+import { useSyncStatus } from '../sync';
 
 /**
- * Home (spec 8.1): the tenant's name and a greeting. The sync banner, shift card, plan and
+ * What is still on the phone (components/SyncBanner): red once something was refused, else amber
+ * while items wait, and nothing when all is uploaded. It opens the upload queue.
+ */
+function Banner() {
+  const { t } = useLanguage();
+  const status = useSyncStatus();
+  if (!status) return null;
+  const { queued, parked } = status.counts;
+  const open = () => router.push('/uploads');
+  if (parked > 0) {
+    return (
+      <SyncBanner
+        tone="danger"
+        icon={CircleAlert}
+        message={t('sync.refused', { count: parked })}
+        action={t('sync.view')}
+        onPress={open}
+      />
+    );
+  }
+  if (queued === 0) return null;
+  return (
+    <SyncBanner
+      tone="pending"
+      icon={CloudUpload}
+      message={t(status.offline ? 'sync.offline' : 'sync.waiting', { count: queued })}
+      action={t('sync.view')}
+      onPress={open}
+    />
+  );
+}
+
+/**
+ * Home (spec 8.1): the sync banner, the tenant's name and a greeting. The shift card, plan and
  * "My month" tiles arrive with their modules in phase 1.
  */
 export function HomeScreen() {
@@ -21,6 +56,7 @@ export function HomeScreen() {
   );
   return (
     <Screen edges={['top', 'left', 'right']}>
+      <Banner />
       <Text variant="labelSm" tone="muted">
         {session?.tenant.name}
       </Text>

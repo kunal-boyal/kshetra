@@ -119,6 +119,7 @@ export const hi: Record<MessageKey, Message> = {
   'common.loading': 'लोड हो रहा है…',
   'common.offline': 'सर्वर तक नहीं पहुँच सके। अपना कनेक्शन जाँचें, फिर कोशिश करें।',
   'common.retry': 'फिर कोशिश करें',
+  'common.back': 'वापस',
 
   'sync.waiting': {
     one: '{count} आइटम अपलोड होने का इंतज़ार कर रहा है।',
@@ -128,4 +129,44 @@ export const hi: Record<MessageKey, Message> = {
     one: '{count} आइटम अस्वीकार हुआ। कारण जानने के लिए अपलोड कतार खोलें।',
     other: '{count} आइटम अस्वीकार हुए। कारण जानने के लिए अपलोड कतार खोलें।',
   },
+  'sync.offline': {
+    one: 'ऑफ़लाइन। {count} आइटम इस फ़ोन में सहेजा है।',
+    other: 'ऑफ़लाइन। {count} आइटम इस फ़ोन में सहेजे हैं।',
+  },
+  'sync.view': 'देखें',
+
+  'uploads.title': 'अपलोड कतार',
+  'uploads.intro': 'इस फ़ोन में सहेजी गई जानकारी सर्वर तक पहुँचने तक यहाँ रहती है।',
+  'uploads.empty_title': 'सब कुछ अपलोड हो गया है',
+  'uploads.empty_body':
+    'सिग्नल न होने पर आपकी सहेजी जानकारी यहाँ रहती है और सिग्नल लौटते ही अपने आप अपलोड हो जाती है।',
+  'uploads.sync_now': 'अभी सिंक करें',
+  'uploads.last_sync': 'पिछला सिंक {time}',
+  'uploads.never_synced': 'अभी तक सिंक नहीं हुआ',
+  'uploads.offline': 'सिग्नल नहीं है। सिग्नल लौटने पर सब अपने आप अपलोड हो जाएगा।',
+  'uploads.queued': 'इंतज़ार में',
+  'uploads.parked': 'अस्वीकार',
+  'uploads.saved_at': 'सहेजा गया {time}',
+  'uploads.next_try': 'अगली कोशिश {time}',
+  'uploads.discard': 'हटाएँ',
+  'uploads.discard_confirm': 'यह रिकॉर्ड हटाएँ? यह इस फ़ोन से मिट जाएगा और कभी अपलोड नहीं होगा।',
+  'uploads.discard_yes': 'हाँ, हटाएँ',
+  'uploads.discard_no': 'रहने दें',
+  'uploads.item': 'रिकॉर्ड ({kind})',
+  'uploads.DEPENDENCY_DISCARDED':
+    'इस रिकॉर्ड के लिए ज़रूरी जानकारी हटा दी गई, इसलिए यह अपलोड नहीं हो सकता। इसे भी हटा दें।',
+  'uploads.UNKNOWN_KIND': 'ऐप का यह वर्ज़न यह रिकॉर्ड अपलोड नहीं कर सकता। ऐप अपडेट करें।',
+  'app.uploads': 'अपलोड कतार',
+  'app.uploads_waiting': {
+    one: '{count} इंतज़ार में',
+    other: '{count} इंतज़ार में',
+  },
+  'app.uploads_done': 'सब कुछ अपलोड हो गया है',
+  'app.sign_out_unsent': {
+    one: '{count} रिकॉर्ड अपलोड नहीं हुआ है। यह इस फ़ोन में रहेगा और दोबारा साइन इन करने पर अपलोड होगा।',
+    other:
+      '{count} रिकॉर्ड अपलोड नहीं हुए हैं। ये इस फ़ोन में रहेंगे और दोबारा साइन इन करने पर अपलोड होंगे।',
+  },
+  'app.sign_out_anyway': 'फिर भी साइन आउट करें',
+  'app.stay_signed_in': 'साइन इन रहें',
 };

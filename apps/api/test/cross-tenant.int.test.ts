@@ -1,4 +1,4 @@
-import { newId } from '@kshetra/shared';
+import { type DeviceInfo, newId } from '@kshetra/shared';
 import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';
@@ -32,6 +32,8 @@ interface Tenant {
   tenantId: string;
   admin: Person;
   member: Person;
+  /** The phone the member is bound to. */
+  memberDevice: DeviceInfo;
   roleId: string;
   designationId: string;
   /** The tenant's own word for `term.account`, which no other tenant uses. */
@@ -41,6 +43,8 @@ interface Tenant {
 let a: Tenant;
 let b: Tenant;
 let bToken: string;
+/** A cursor tenant A's admin was given by a sync pull. */
+let aCursor: string;
 /** Every ID in tenant A's rows that tenant B doesn't also hold. */
 let aIds: string[];
 let aRows: Record<string, unknown[]>;
@@ -137,7 +141,8 @@ async function tenant(name: string, word: string): Promise<Tenant> {
     phone: memberPhone,
     managerId: adminUser.id,
   });
-  await world.signIn(memberPhone, newDevice());
+  const memberDevice = newDevice();
+  await world.signIn(memberPhone, memberDevice);
   const token = (await world.signIn(adminPhone)).accessToken;
   const role = await send(token, 'POST', '/v1/roles', {
     key: 'cross_role',
@@ -159,6 +164,7 @@ async function tenant(name: string, word: string): Promise<Tenant> {
     tenantId,
     admin: { id: adminUser.id, phone: adminPhone },
     member: { id: memberUser.id, phone: memberPhone },
+    memberDevice,
     roleId: role.json().id,
     designationId: designation.json().id,
     word,
@@ -380,6 +386,32 @@ const FIXTURES: Record<string, Fixture> = {
     run: () =>
       sameAsNowhere((id) => asB('POST', `/v1/users/${id}/sign-out-everywhere`), a.member.id),
   },
+  'GET /v1/sync/pull': {
+    kind: 'own tenant',
+    run: async () => {
+      const pulled = await asB('GET', '/v1/sync/pull?entities=users,territories');
+      expect(pulled.statusCode).toBe(200);
+      holdsNothingOfA(pulled);
+      // A cursor A was given is no more use to B than one made up.
+      const reused = await asB('GET', `/v1/sync/pull?entities=users&cursor=${aCursor}`);
+      const madeUp = await asB('GET', '/v1/sync/pull?entities=users&cursor=bm90IGEgY3Vyc29y');
+      expect(reused.statusCode).toBe(410);
+      expect(errorOf(reused)).toEqual(errorOf(madeUp));
+    },
+  },
+  'POST /v1/devices/heartbeat': {
+    kind: 'write',
+    run: async () => {
+      const { accessToken } = await world.signIn(b.member.phone, b.memberDevice);
+      const beat = await send(accessToken, 'POST', '/v1/devices/heartbeat', {
+        appVersion: '0.1.0',
+        osVersion: '15',
+        queue: { queued: 0, parked: 0, oldestQueuedAt: null },
+        lastSyncAt: null,
+      });
+      expect(beat.statusCode).toBe(204);
+    },
+  },
   'GET /v1/audit': {
     kind: 'own tenant',
     run: async () => {
@@ -396,6 +428,9 @@ beforeAll(async () => {
   a = await tenant('Alpha Agencies', 'Alphastore');
   b = await tenant('Bravo Brands', 'Bravostall');
   bToken = (await world.signIn(b.admin.phone)).accessToken;
+  // A sync cursor of A's, made before A's rows are taken down, since signing in writes some.
+  const aToken = (await world.signIn(a.admin.phone)).accessToken;
+  aCursor = (await send(aToken, 'GET', '/v1/sync/pull?entities=users')).json().cursor;
   aRows = await rowsOf(a.tenantId);
   const theirs = idsIn(await rowsOf(b.tenantId));
   aIds = [...idsIn(aRows)].filter((id) => !theirs.has(id));

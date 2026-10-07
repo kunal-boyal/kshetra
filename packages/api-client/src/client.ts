@@ -3,6 +3,7 @@ import {
   APP_VERSION_HEADER,
   type AppPlatform,
   ConfigBundle,
+  type DeviceHeartbeatBody,
   type DeviceInfo,
   type ErrorCode,
   type ErrorDetail,
@@ -13,6 +14,8 @@ import {
   RefreshResult,
   type Session,
   SignedIn,
+  type SyncEntity,
+  SyncPullResult,
   type TenantSummary,
   WEB_CLIENT,
   WEB_CLIENT_HEADER,
@@ -103,6 +106,28 @@ function toState(tenant: TenantSummary, session: Session, previous?: SessionStat
     accessTokenExpiresAt: session.accessTokenExpiresAt,
     ...(refreshToken ? { refreshToken } : {}),
   };
+}
+
+/**
+ * `tenant:user` as the access token names them. The signature isn't checked: only the server can,
+ * and this only decides whose data the phone shows and whose uploads it sends.
+ */
+export function ownerOf(accessToken: string): string | null {
+  const payload = accessToken.split('.')[1];
+  if (!payload) return null;
+  try {
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    // The claims are ASCII, so the decoded bytes are the JSON's characters.
+    const claims = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))) as {
+      sub?: unknown;
+      tid?: unknown;
+    };
+    return typeof claims.sub === 'string' && typeof claims.tid === 'string'
+      ? `${claims.tid}:${claims.sub}`
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 async function errorFrom(response: Response): Promise<ApiError> {
@@ -373,6 +398,23 @@ export function createClient(options: ClientOptions) {
         etag: response.headers.get('etag') ?? undefined,
         bundle: ConfigBundle.parse(await response.json()),
       };
+    },
+
+    /** `tenant:user` of whoever is signed in, or null; see `ownerOf`. */
+    get owner(): string | null {
+      return session ? ownerOf(session.accessToken) : null;
+    },
+
+    /** The next page of the reference data the phone keeps (spec 11.3). */
+    async syncPull(entities: readonly SyncEntity[], cursor?: string) {
+      const query = new URLSearchParams({ entities: entities.join(',') });
+      if (cursor) query.set('cursor', cursor);
+      return SyncPullResult.parse(await (await cell('GET', `/v1/sync/pull?${query}`)).json());
+    },
+
+    /** The phone's health: permissions, battery optimisation and its upload queue (M3). */
+    async heartbeat(body: DeviceHeartbeatBody): Promise<void> {
+      await cell('POST', '/v1/devices/heartbeat', { body });
     },
 
     /** Any other call to the cell, for the screens that arrive with each module. */

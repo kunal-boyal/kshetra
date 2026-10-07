@@ -101,6 +101,19 @@ export {
 } from './schemas/iam';
 export { ProvisionTenantInput, TenantSlug } from './schemas/provisioning';
 export {
+  DeviceHealth,
+  DeviceHeartbeatBody,
+  SYNC_ENTITIES,
+  SYNC_PAGE_SIZE,
+  SyncEntity,
+  SyncPullQuery,
+  SyncPullResult,
+  SyncTerritoriesPage,
+  SyncTerritory,
+  SyncUser,
+  SyncUsersPage,
+} from './schemas/sync';
+export {
   ConfigBundle,
   SETTING_DEFAULTS,
   TenantSettings,

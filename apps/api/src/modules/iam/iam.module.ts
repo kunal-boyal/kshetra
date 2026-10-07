@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
+import { SyncModule } from '../sync/sync.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { IamAccess } from './access.service';
 import { IamAdmission } from './admission.service';
 import { DesignationsController } from './designations.controller';
 import { DesignationsService } from './designations.service';
+import { DevicesController } from './devices.controller';
+import { DevicesService } from './devices.service';
 import { MeController } from './me.controller';
 import { ReportingTree } from './reporting-tree';
 import { RolesController } from './roles.controller';
@@ -13,6 +16,7 @@ import { Scopes } from './scopes';
 import { IamSetup } from './setup.service';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { UsersSync } from './users.sync';
 
 /**
  * Users, roles, permissions, designations, devices and scopes (spec 9.6). It checks every request
@@ -20,8 +24,14 @@ import { UsersService } from './users.service';
  * directory whenever someone's access to sign in changes.
  */
 @Module({
-  imports: [TerritoriesModule, TenantConfigModule],
-  controllers: [MeController, UsersController, RolesController, DesignationsController],
+  imports: [TerritoriesModule, TenantConfigModule, SyncModule],
+  controllers: [
+    MeController,
+    UsersController,
+    RolesController,
+    DesignationsController,
+    DevicesController,
+  ],
   providers: [
     IamAccess,
     IamAdmission,
@@ -30,6 +40,8 @@ import { UsersService } from './users.service';
     UsersService,
     RolesService,
     DesignationsService,
+    DevicesService,
+    UsersSync,
     IamSetup,
   ],
   exports: [IamAccess, IamAdmission, Scopes, UsersService, DesignationsService, IamSetup],

@@ -7,6 +7,7 @@ import { ConfigBundleModule } from './modules/config-bundle/config-bundle.module
 import { IamModule } from './modules/iam/iam.module';
 import { ProvisioningModule } from './modules/provisioning/provisioning.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
+import { SyncModule } from './modules/sync/sync.module';
 import { TenantConfigModule } from './modules/tenant-config/tenant-config.module';
 import { TerritoriesModule } from './modules/territories/territories.module';
 import { PlanesModule } from './planes.module';
@@ -29,6 +30,7 @@ export const FEATURE_MODULES = [
   AuditModule,
   ProvisioningModule,
   SchedulingModule,
+  SyncModule,
 ];
 
 /** Every controller the API serves: the health checks and each feature module's. */

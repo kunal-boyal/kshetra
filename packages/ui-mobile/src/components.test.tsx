@@ -3,10 +3,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Send } from 'lucide-react-native';
+import { CircleAlert, Send } from 'lucide-react-native';
 import { Button } from './button';
+import { StatusBadge, SyncBanner } from './status';
 import { TextField } from './text-field';
-import { createTheme } from './theme';
+import { createTheme, ThemeProvider } from './theme';
 
 describe('Button', () => {
   it('is a button named by its label, and presses', async () => {
@@ -24,6 +25,48 @@ describe('Button', () => {
     expect(button).toBeDisabled();
     await fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();
+  });
+});
+
+describe('SyncBanner', () => {
+  it('is one button that says what waits and what tapping does', async () => {
+    const onPress = jest.fn();
+    await render(
+      <SyncBanner
+        tone="danger"
+        icon={CircleAlert}
+        message="2 items were refused."
+        action="View"
+        onPress={onPress}
+      />,
+    );
+    await fireEvent.press(screen.getByRole('button', { name: '2 items were refused. View' }));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('inverts in Outdoor: the status ink becomes the fill', async () => {
+    const outdoor = createTheme('outdoor', 'latin');
+    await render(
+      <ThemeProvider name="outdoor" script="latin">
+        <SyncBanner
+          tone="pending"
+          icon={CircleAlert}
+          message="Waiting"
+          action="View"
+          onPress={() => undefined}
+        />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole('button')).toHaveStyle({ backgroundColor: outdoor.colors.pendingFg });
+    expect(screen.getByText('Waiting')).toHaveStyle({ color: outdoor.colors.textInverse });
+  });
+});
+
+describe('StatusBadge', () => {
+  it('always shows the word, in its variant’s ink', async () => {
+    const light = createTheme('light', 'latin');
+    await render(<StatusBadge variant="danger" label="Refused" />);
+    expect(screen.getByText('Refused')).toHaveStyle({ color: light.colors.dangerFg });
   });
 });
 
