@@ -54,6 +54,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-secure-store',
     'expo-localization',
     'expo-sqlite',
+    // Live photos only, never the microphone (spec 12.2, 13.3).
+    [
+      'expo-camera',
+      {
+        cameraPermission: `${name} uses the camera to take photos of your work.`,
+        recordAudioAndroid: false,
+      },
+    ],
     // Where the person stands, only while the app is open: proposing a place's location, and
     // sorting places by distance (M4). Tracking during a shift adds background use (phase 1 step 8).
     [

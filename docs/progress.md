@@ -8,8 +8,8 @@ Last updated: 2026-10-07
 
 - **Phase 0 is complete.** Steps 1 to 11 are merged; the last three were the web shell (#11), the mobile shell (#12) and the cross-tenant contract test with the exit check (#13). Every exit criterion is checked by a test: a person signs in on the web into either seeded tenant and a field user on a phone, the cross-tenant contract test passes over all 27 routes, and both templates validate. The field app has run in a browser standing in for a phone; Kunal's phone comes next.
 - **Decisions D35, D36 and D37** are merged as proposed and wait for Kunal to confirm them; D36's choice of font on Android is decided (D38).
-- **Phase 1 is in progress** (decision D38). Steps 1 and 2 are merged: background work ([kunal-boyal/kshetra#15](https://github.com/kunal-boyal/kshetra/pull/15), decision D39) and offline sync ([kunal-boyal/kshetra#16](https://github.com/kunal-boyal/kshetra/pull/16), decision D40). Step 3, people on the web, is merged too ([kunal-boyal/kshetra#17](https://github.com/kunal-boyal/kshetra/pull/17), decision D41). Step 4, imports and territories, is merged too ([kunal-boyal/kshetra#18](https://github.com/kunal-boyal/kshetra/pull/18), decision D42). Step 5, accounts, is in review as [kunal-boyal/kshetra#19](https://github.com/kunal-boyal/kshetra/pull/19). Its design is decision D43.
-- **Next:** phase 1, step 6: photos.
+- **Phase 1 is in progress** (decision D38). Steps 1 and 2 are merged: background work ([kunal-boyal/kshetra#15](https://github.com/kunal-boyal/kshetra/pull/15), decision D39) and offline sync ([kunal-boyal/kshetra#16](https://github.com/kunal-boyal/kshetra/pull/16), decision D40). Step 3, people on the web, is merged too ([kunal-boyal/kshetra#17](https://github.com/kunal-boyal/kshetra/pull/17), decision D41). Step 4, imports and territories, is merged too ([kunal-boyal/kshetra#18](https://github.com/kunal-boyal/kshetra/pull/18), decision D42). Step 5, accounts, is merged too ([kunal-boyal/kshetra#19](https://github.com/kunal-boyal/kshetra/pull/19), decision D43). Step 6, photos, is in review as [kunal-boyal/kshetra#20](https://github.com/kunal-boyal/kshetra/pull/20). Its design is decision D44.
+- **Next:** phase 1, step 7: forms.
 - **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
 
@@ -54,8 +54,8 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | 2 | Offline sync: pull with cursors and tombstones, the app's SQLite store and push outbox, the upload queue screen, the config bundle offline, the device heartbeat (spec 11.3, D40) | | Done | #16 |
 | 3 | People on the web: users (create, edit, deactivate, transfer, reset device, sign out everywhere), the org chart, device health, roles and designations, custom user fields (M3, M2, D31, D41) | | Done | #17 |
 | 4 | Imports and territories: the import framework, user and territory imports, territory tree screens (M19, M4) | | Done | #18 |
-| 5 | Accounts: types, slots, visibility, geofence, contacts, segments, the account overview and import, the app's offline list, proposals of new accounts and locations, approved by the proposer's manager until phase 2 (M4, D38) | | In review | #19 |
-| 6 | Photos: camera capture, presigned uploads, processing with duplicate checks, signed reads (spec 12.2) | | To do | |
+| 5 | Accounts: types, slots, visibility, geofence, contacts, segments, the account overview and import, the app's offline list, proposals of new accounts and locations, approved by the proposer's manager until phase 2 (M4, D38) | | Done | #19 |
+| 6 | Photos: camera capture, presigned uploads, processing with duplicate checks, signed reads (spec 12.2) | | In review | #20 |
 | 7 | Forms: versioned definitions, the app's renderer for every version 1 field type with drafts, the web form builder, and the item import without prices (spec 5.6, D38) | | To do | |
 | 8 | Shifts and tracking: consent, punch-in and punch-out offline, background location, ingest, pauses, auto-close, compaction, attendance days (M5, spec 12.1) | EAS development builds; two Android phones of different brands | To do | |
 | 9 | Visits and activities: check-in and check-out with the geofence, submissions with evidence and flags, standalone activities (M6) | | To do | |
@@ -72,6 +72,7 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-12 | Phase 1 step 5: accounts, their types, slots and visibility, proposals approved by the proposer's manager, the account import, and the app's offline list (decision D43) | PR #19, merged as `93ed495` |
 | 2026-10-12 | Phase 1 step 4: imports with column mapping and all-or-nothing commits, people and territory imports, the territory tree (decision D42) | PR #18, merged as `0986900` |
 | 2026-10-12 | Phase 1 step 3: people on the web, custom user fields, dated transfers, the organisation chart and history (decision D41) | PR #17, merged as `34e2b08` |
 | 2026-10-07 | Phase 1 step 2: offline sync, the phone's database and outbox, and the device heartbeat (decision D40). GitHub refused writes for a while, so the merge commit was pushed from a checkout with GitHub's own message. | PR #16, merged as `a161935` |
@@ -109,7 +110,9 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | Confirm decision D40 (the mobile sync), merged as proposed in #16. It changed how row versions work, and spec 10.1 and 11.3 with them | Kunal | Before phase 1 builds on it |
 | Confirm decision D41 (people on the web), merged as proposed in #17: custom user fields, transfers, the organisation chart and history | Kunal | Before phase 1 builds on it |
 | Confirm decision D42 (imports and territories), merged as proposed in #18: the object store arriving early, uploads as the request body, all-or-nothing commits, and how names are matched (BR-42) | Kunal | Before phase 1 builds on it |
-| Review decision D43, accounts, in #19: account types in the config bundle, visibility by slots and territories, proposals decided by the proposer's manager through a minimal approvals inbox. Kunal chose the four open points on 2026-10-12 | Kunal | Before #19 merges |
+| Confirm decision D43 (accounts), merged as proposed in #19, with the four points Kunal chose on 2026-10-12 | Kunal | Before phase 1 builds on it |
+| Review decision D44, photos, in #20: uploads straight to storage, processing with sharp, BR-40 duplicates, the stamped copy, CloudFront signed reads | Kunal | Before #20 merges |
+| AWS for photos: a CloudFront key pair (`CLOUDFRONT_*`), S3 lifecycle rules per retention tag, and Noto fonts in the worker image for the stamp (D44) | Kunal | Before the first deployment |
 | Decide how the API's problem and field-error texts reach Hindi readers: today they are English, while the screens around them are translated (D42) | Kunal | Before the pilot |
 | Try the field app on your phone: Expo Go (`pnpm --filter @kshetra/mobile go`, then scan the code), or a development build from EAS, which runs in Expo's cloud on your account and needs your go-ahead | Kunal | Early in phase 1 |
 | Accounts with long lead times: SMS provider with DLT, Google Play and Apple (each needs a D-U-N-S number), AWS | Kunal | Phase 1 |

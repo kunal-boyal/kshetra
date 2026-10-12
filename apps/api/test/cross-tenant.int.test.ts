@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto';
 import { type DeviceInfo, newId } from '@kshetra/shared';
 import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { apiControllers } from '../src/app.module';
+import { type MemoryObjectStore, ObjectStore } from '../src/platform/object-store';
 import { routeRegistry } from '../src/platform/routes';
 import { newDevice, newPhone, startApp, World } from './support';
 
@@ -55,6 +57,8 @@ let aTypeId: string;
 let aAccountId: string;
 let aContactId: string;
 let aApprovalId: string;
+/** A photo A's admin uploaded. */
+let aPhotoId: string;
 /** An account of B's own, under B's territory. */
 let bAccountId: string;
 let bTerritoryId: string;
@@ -627,6 +631,36 @@ const FIXTURES: Record<string, Fixture> = {
         aApprovalId,
       ),
   },
+  'POST /v1/media/presign': {
+    kind: 'write',
+    run: async () => {
+      const presigned = await asB('POST', '/v1/media/presign', {
+        id: newId(),
+        kind: 'evidence',
+        contentType: 'image/jpeg',
+        size: 4,
+        sha256: 'a'.repeat(64),
+      });
+      expect(presigned.statusCode).toBe(200);
+      holdsNothingOfA(presigned);
+    },
+  },
+  'POST /v1/media/:id/confirm': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/media/${id}/confirm`, {
+            capturedAt: new Date().toISOString(),
+            source: 'camera',
+          }),
+        aPhotoId,
+      ),
+  },
+  'GET /v1/media/:id/url': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/media/${id}/url?variant=original`), aPhotoId),
+  },
   'GET /v1/org-chart': {
     kind: 'own tenant',
     run: async () => {
@@ -765,6 +799,22 @@ beforeAll(async () => {
   );
   expect(proposal.statusCode).toBe(201);
   aApprovalId = proposal.json().approvalId;
+  // A photo of A's, uploaded and confirmed as a phone would.
+  aPhotoId = newId();
+  const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+  const presigned = await send(aToken, 'POST', '/v1/media/presign', {
+    id: aPhotoId,
+    kind: 'evidence',
+    contentType: 'image/jpeg',
+    size: photo.byteLength,
+    sha256: createHash('sha256').update(photo).digest('hex'),
+  });
+  (app.get(ObjectStore) as MemoryObjectStore).receive(presigned.json().upload.url, photo);
+  const confirmed = await send(aToken, 'POST', `/v1/media/${aPhotoId}/confirm`, {
+    capturedAt: new Date().toISOString(),
+    source: 'camera',
+  });
+  expect(confirmed.statusCode).toBe(200);
   bTerritoryId = await world.territory(b.tenantId, 'B-ZONE');
   bAccountId = newId();
   expect(

@@ -4,7 +4,7 @@ import type { Config } from '../config';
 import { CONFIG } from './tokens';
 
 /** The queues of spec 12.3. Each arrives with the work that uses it. */
-export const QUEUE_NAMES = ['maintenance', 'imports'] as const;
+export const QUEUE_NAMES = ['maintenance', 'imports', 'media'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
 /**
@@ -19,7 +19,7 @@ export interface JobData {
 export type JobHandler = (data: JobData, job: Job<JobData>) => Promise<void>;
 
 /** How many jobs of a queue one worker process runs at once. */
-const CONCURRENCY: Record<QueueName, number> = { maintenance: 1, imports: 2 };
+const CONCURRENCY: Record<QueueName, number> = { maintenance: 1, imports: 2, media: 2 };
 
 /**
  * Background jobs on BullMQ (spec 12.3). Any process adds jobs; modules register a handler per

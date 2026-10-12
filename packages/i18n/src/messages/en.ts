@@ -732,6 +732,23 @@ export const en = {
   'account.not_saved': 'This could not be saved on the phone. Try again.',
   'uploads.kind_account_propose': 'New place proposed',
   'uploads.kind_account_location': 'Location proposed',
+  'stamp.no_fix': 'No location',
+  'stamp.source_camera': 'Camera',
+  'stamp.source_gallery': 'From the gallery',
+  'stamp.source_generated': 'Made in the app',
+  'uploads.kind_photo': 'Photo',
+  'camera.title': 'Camera',
+  'camera.permission':
+    'Allow the camera to take photos of your work. Photos are taken live, never from the gallery.',
+  'camera.permission_settings': 'The camera is off for this app. Allow it in the phone settings.',
+  'camera.allow': 'Allow the camera',
+  'camera.live': 'Live camera',
+  'camera.preview': 'The photo you took',
+  'camera.shutter': 'Take photo',
+  'camera.retake': 'Retake',
+  'camera.use': 'Use photo',
+  'camera.failed': 'The photo could not be taken. Try again.',
+  'camera.not_saved': 'The photo could not be saved on the phone. Try again.',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;

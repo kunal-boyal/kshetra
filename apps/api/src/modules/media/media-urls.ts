@@ -1,0 +1,39 @@
+import { getSignedUrl } from '@aws-sdk/cloudfront-signer';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Config } from '../../config';
+import { ObjectStore } from '../../platform/object-store';
+import { CONFIG } from '../../platform/tokens';
+
+/** How long a read link lasts (spec 12.2). */
+export const READ_LINK_SECONDS = 5 * 60;
+
+/**
+ * Short-lived links to read a stored object (spec 12.2, step 6): CloudFront signed URLs in AWS,
+ * where the bucket is private behind it; the object store's own presigned links otherwise.
+ */
+@Injectable()
+export class MediaUrls {
+  constructor(
+    @Inject(CONFIG) private readonly config: Config,
+    private readonly objects: ObjectStore,
+  ) {}
+
+  async read(key: string): Promise<{ url: string; expiresAt: string }> {
+    const expires = new Date(Date.now() + READ_LINK_SECONDS * 1000);
+    const {
+      CLOUDFRONT_DOMAIN: domain,
+      CLOUDFRONT_KEY_ID: keyPairId,
+      CLOUDFRONT_PRIVATE_KEY: privateKey,
+    } = this.config;
+    const url =
+      domain && keyPairId && privateKey
+        ? getSignedUrl({
+            url: `https://${domain}/${key}`,
+            keyPairId,
+            privateKey,
+            dateLessThan: expires.toISOString(),
+          })
+        : await this.objects.presignGet(key, READ_LINK_SECONDS);
+    return { url, expiresAt: expires.toISOString() };
+  }
+}
