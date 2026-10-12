@@ -219,3 +219,39 @@ export function checkValues(
   }
   return { values, issues };
 }
+
+/**
+ * New custom values, or changes to stored ones, checked against the fields in use: the values to
+ * store, or the problems at `custom.<key>`. A change checks only the keys it sends, so a field made
+ * required later doesn't block an unrelated edit; `null` clears a value, and stored keys whose
+ * fields were retired are kept.
+ */
+export function checkValueChanges(
+  fields: readonly CustomField[],
+  today: string,
+  current: Record<string, unknown> | null,
+  input: Record<string, unknown>,
+): { values: Record<string, unknown>; issues: ErrorDetail[] } {
+  const changing = new Set(Object.keys(input));
+  const merged = { ...current };
+  for (const [key, value] of Object.entries(input)) {
+    if (value === null) delete merged[key];
+    else merged[key] = value;
+  }
+  // Stored keys whose fields were retired are kept, and not offered to the check.
+  const live = new Set(fields.map((field) => field.key));
+  const offered = Object.fromEntries(
+    Object.entries(merged).filter(([key]) => live.has(key) || changing.has(key)),
+  );
+  const { values, issues } = checkValues(fields, offered, { today }, ['custom']);
+  const relevant = current
+    ? issues.filter((issue) => changing.has(issue.path.slice('custom.'.length).split(/[.[]/)[0]!))
+    : issues;
+  if (relevant.length > 0 || !current) return { values, issues: relevant };
+  const stored = { ...current };
+  for (const key of changing) {
+    if (key in values) stored[key] = values[key];
+    else delete stored[key];
+  }
+  return { values: stored, issues: [] };
+}

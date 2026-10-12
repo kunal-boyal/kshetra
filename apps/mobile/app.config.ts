@@ -54,6 +54,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-secure-store',
     'expo-localization',
     'expo-sqlite',
+    // Where the person stands, only while the app is open: proposing a place's location, and
+    // sorting places by distance (M4). Tracking during a shift adds background use (phase 1 step 8).
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission: `${name} uses your location to sort nearby places and to record where a place is.`,
+        isAndroidBackgroundLocationEnabled: false,
+      },
+    ],
     [
       'expo-splash-screen',
       {

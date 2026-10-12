@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { GeoPoint } from '../geo';
+import { AccountAddress, AccountStatus, ContactResult, LocationStatus } from './accounts';
 import { Key } from './config';
 import { UserStatus } from './iam';
 import { TerritoryResult } from './territories';
@@ -9,7 +11,7 @@ import { TerritoryResult } from './territories';
  * outbox. Each module adds its entities here as it arrives.
  */
 
-export const SYNC_ENTITIES = ['users', 'territories'] as const;
+export const SYNC_ENTITIES = ['users', 'territories', 'accounts', 'contacts'] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
 /** At most this many rows of one entity in one page (spec 11.3). */
@@ -54,6 +56,32 @@ export const SyncUser = z
 export const SyncTerritory = TerritoryResult;
 
 /**
+ * An account as the phone keeps it (spec 5.5): the ones the caller sees, offline included, with
+ * today's slot holders.
+ */
+export const SyncAccount = z
+  .object({
+    id: z.uuid(),
+    type: Key,
+    code: z.string(),
+    name: z.string(),
+    territoryId: z.uuid(),
+    parentId: z.uuid().nullable(),
+    address: AccountAddress,
+    location: GeoPoint.nullable(),
+    geofenceRadiusM: z.int().nullable(),
+    locationStatus: LocationStatus,
+    status: AccountStatus,
+    segments: z.array(Key),
+    custom: z.record(z.string(), z.unknown()),
+    slots: z.array(z.object({ slot: Key, userId: z.uuid() })),
+  })
+  .meta({ id: 'SyncAccount' });
+
+/** A contact person of an account the phone keeps. */
+export const SyncContact = ContactResult;
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -72,11 +100,15 @@ function page<T extends z.ZodType>(row: T) {
 
 export const SyncUsersPage = page(SyncUser);
 export const SyncTerritoriesPage = page(SyncTerritory);
+export const SyncAccountsPage = page(SyncAccount);
+export const SyncContactsPage = page(SyncContact);
 
 export const SyncPullResult = z.object({
   entities: z.object({
     users: SyncUsersPage.optional(),
     territories: SyncTerritoriesPage.optional(),
+    accounts: SyncAccountsPage.optional(),
+    contacts: SyncContactsPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -88,4 +120,6 @@ export type SyncEntity = z.infer<typeof SyncEntity>;
 export type SyncPullQuery = z.output<typeof SyncPullQuery>;
 export type SyncUser = z.infer<typeof SyncUser>;
 export type SyncTerritory = z.infer<typeof SyncTerritory>;
+export type SyncAccount = z.infer<typeof SyncAccount>;
+export type SyncContact = z.infer<typeof SyncContact>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

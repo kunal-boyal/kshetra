@@ -3,11 +3,13 @@ import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import {
   FileSpreadsheet,
   House,
+  Inbox,
   LogOut,
   MapPinned,
   Network,
   Repeat,
   Settings,
+  Store,
   Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -40,6 +42,12 @@ export function AppShell() {
           { to: '/people', icon: Users, label: t('nav.people') },
           { to: '/org-chart', icon: Network, label: t('nav.org_chart') },
         ]
+      : []),
+    ...(access.can('account.view')
+      ? [{ to: '/accounts', icon: Store, label: t('nav.accounts') }]
+      : []),
+    ...(access.can('approval.act') || access.can('account.approve')
+      ? [{ to: '/approvals', icon: Inbox, label: t('nav.approvals') }]
       : []),
     ...(access.can('territory.manage')
       ? [{ to: '/territories', icon: MapPinned, label: t('nav.territories') }]

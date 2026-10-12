@@ -1,4 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { checkValueChanges } from '@kshetra/forms';
 import {
   AppError,
   canGrant,
@@ -14,7 +15,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { designations as designationsTable, roles as rolesTable, users } from '../../db/schema/iam';
 import type { TenantTx } from '../../platform/database';
-import { cellDate, cellText, isEmptyCell } from '../imports/reading';
+import { cellDate, cellText, customValues, isEmptyCell } from '../imports/reading';
 import {
   type ImportContext,
   ImportRefused,
@@ -27,7 +28,7 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 import { DesignationsService } from './designations.service';
 import { RolesService } from './roles.service';
-import { checkCustom, UserFieldsService } from './user-fields.service';
+import { UserFieldsService } from './user-fields.service';
 import { UsersService } from './users.service';
 
 const Email = z.email().max(254);
@@ -269,26 +270,9 @@ export class UsersImport implements ImportTargetSource, OnModuleInit {
           problem(row, 'joining_date', 'Write a date such as 2026-04-01 or 01-04-2026');
         }
       }
-      const custom: Record<string, unknown> = {};
-      for (const field of fields) {
-        const key = `custom.${field.key}`;
-        if (!(key in cells)) continue;
-        if (empty(cells[key])) custom[field.key] = null;
-        else if (field.type === 'yes_no')
-          custom[field.key] = ['yes', 'y', 'true', '1', 'हाँ'].includes(
-            lower(cellText(cells[key])),
-          );
-        else if (field.type === 'multi_select')
-          custom[field.key] = cellText(cells[key])
-            .split(/[,;]/)
-            .map((part) => part.trim())
-            .filter(Boolean);
-        else if (field.type === 'date')
-          custom[field.key] = cellDate(cells[key]) ?? cellText(cells[key]);
-        else custom[field.key] = cellText(cells[key]);
-      }
+      const custom = customValues(fields, cells, emptyValues);
       const existing = existingByCode.get(lower(code));
-      const checked = checkCustom(
+      const checked = checkValueChanges(
         fields,
         today,
         existing ? existing.custom : null,

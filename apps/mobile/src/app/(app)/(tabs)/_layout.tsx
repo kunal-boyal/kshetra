@@ -1,6 +1,6 @@
 import { BottomNav, useTheme } from '@kshetra/ui-mobile';
 import { Tabs } from 'expo-router';
-import { House, type LucideIcon, UserRound } from 'lucide-react-native';
+import { House, type LucideIcon, Store, UserRound } from 'lucide-react-native';
 import { type ComponentProps, useEffect } from 'react';
 import { useConfig } from '../../../data';
 import { useLanguage } from '../../../i18n';
@@ -8,7 +8,7 @@ import { useLanguage } from '../../../i18n';
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 /** Plan, Orders and Team join as their modules arrive, filtered by permissions (spec 8.1). */
-const ICONS: Record<string, LucideIcon> = { index: House, me: UserRound };
+const ICONS: Record<string, LucideIcon> = { index: House, accounts: Store, me: UserRound };
 
 /** The tabs, in the tenant's own words once the config bundle is in. */
 export default function TabsLayout() {
@@ -19,6 +19,8 @@ export default function TabsLayout() {
   useEffect(() => {
     setTerms(config.data?.bundle.terminology);
   }, [config.data, setTerms]);
+  const can = (permission: string) =>
+    (config.data?.bundle.access.permissions ?? []).some((held) => held === permission);
 
   return (
     <Tabs
@@ -26,6 +28,10 @@ export default function TabsLayout() {
       tabBar={(props) => <Nav {...props} />}
     >
       <Tabs.Screen name="index" options={{ title: t('app.home') }} />
+      <Tabs.Screen
+        name="accounts"
+        options={{ title: t('accounts.title'), href: can('account.view') ? undefined : null }}
+      />
       <Tabs.Screen name="me" options={{ title: t('app.me') }} />
     </Tabs>
   );
@@ -36,20 +42,28 @@ function Nav({ state, descriptors, navigation }: TabBarProps) {
   return (
     <BottomNav
       label={t('shell.navigation')}
-      items={state.routes.map((route, index) => ({
-        key: route.key,
-        label: descriptors[route.key]?.options.title ?? route.name,
-        icon: ICONS[route.name] ?? House,
-        active: state.index === index,
-        onPress: () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (state.index !== index && !event.defaultPrevented) navigation.navigate(route.name);
-        },
-      }))}
+      items={state.routes.flatMap((route, index) =>
+        // A tab hidden with `href: null` is for people without its permission.
+        (descriptors[route.key]?.options as { href?: unknown } | undefined)?.href === null
+          ? []
+          : [
+              {
+                key: route.key,
+                label: descriptors[route.key]?.options.title ?? route.name,
+                icon: ICONS[route.name] ?? House,
+                active: state.index === index,
+                onPress: () => {
+                  const event = navigation.emit({
+                    type: 'tabPress',
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
+                  if (state.index !== index && !event.defaultPrevented)
+                    navigation.navigate(route.name);
+                },
+              },
+            ],
+      )}
     />
   );
 }

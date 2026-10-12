@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AccountsModule } from '../accounts/accounts.module';
 import { DirectoryModule } from '../directory/directory.module';
 import { IamModule } from '../iam/iam.module';
 import { ImportsModule } from '../imports/imports.module';
@@ -12,7 +13,14 @@ import { TenantProvisioner } from './provisioner';
  * console will from phase 3.
  */
 @Module({
-  imports: [DirectoryModule, IamModule, TenantConfigModule, TerritoriesModule, ImportsModule],
+  imports: [
+    DirectoryModule,
+    IamModule,
+    TenantConfigModule,
+    TerritoriesModule,
+    ImportsModule,
+    AccountsModule,
+  ],
   providers: [CellSetup, TenantProvisioner],
   exports: [CellSetup, TenantProvisioner],
 })

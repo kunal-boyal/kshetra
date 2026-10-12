@@ -1,13 +1,20 @@
 import type { INestApplicationContext } from '@nestjs/common';
-import { CreateUserBody } from '@kshetra/shared';
+import { CreateUserBody, newId } from '@kshetra/shared';
+import { loadTemplate } from '@kshetra/templates';
 import type { Config } from '../config';
 import { isLocalDatabase } from './bootstrap';
+import { AccountTypesService } from '../modules/accounts/account-types.service';
+import { AccountsService } from '../modules/accounts/accounts.service';
 import { SYSTEM } from '../modules/iam/actor';
+import { People } from '../modules/iam/people';
 import { UsersService } from '../modules/iam/users.service';
 import { DirectoryTenants } from '../modules/directory/tenants';
 import { TenantProvisioner } from '../modules/provisioning/provisioner';
 import { TerritoriesService } from '../modules/territories/territories.service';
+import { TenantConfigService } from '../modules/tenant-config/tenant-config.service';
+import { AccessResolver } from '../platform/auth';
 import { Database } from '../platform/database';
+import { CONFIG } from '../platform/tokens';
 
 /**
  * Two fictional tenants on different templates, for local work and CI (spec 9.4, phase 0 exit
@@ -25,6 +32,18 @@ interface SeedPerson {
   territories?: string[];
 }
 
+interface SeedAccount {
+  code?: string;
+  name: string;
+  type: string;
+  territory: string;
+  /** Who fills each slot, by employee code. */
+  slots: Record<string, string>;
+  parent?: string;
+  location?: { lat: number; lng: number };
+  custom?: Record<string, unknown>;
+}
+
 interface SeedTenant {
   name: string;
   slug: string;
@@ -32,6 +51,7 @@ interface SeedTenant {
   admin: { code: string; name: string; phone: string };
   territories: { code: string; name: string; parent?: string }[];
   people: SeedPerson[];
+  accounts: SeedAccount[];
 }
 
 export const SEED: readonly SeedTenant[] = [
@@ -70,6 +90,31 @@ export const SEED: readonly SeedTenant[] = [
         designation: 'executive',
         manager: 'SUN-003',
         territories: ['N-JAI'],
+      },
+    ],
+    accounts: [
+      {
+        code: 'CUST-001',
+        name: 'Gupta General Store',
+        type: 'customer',
+        territory: 'N-DEL',
+        slots: { executive: 'SUN-004', manager: 'SUN-003' },
+        location: { lat: 28.6448, lng: 77.2167 },
+      },
+      {
+        code: 'CUST-002',
+        name: 'Sharma Kirana',
+        type: 'customer',
+        territory: 'N-DEL',
+        slots: { executive: 'SUN-004' },
+      },
+      {
+        code: 'CUST-003',
+        name: 'Jain Provision Mart',
+        type: 'customer',
+        territory: 'N-JAI',
+        slots: { executive: 'SUN-005', manager: 'SUN-003' },
+        location: { lat: 26.9124, lng: 75.7873 },
       },
     ],
   },
@@ -133,6 +178,32 @@ export const SEED: readonly SeedTenant[] = [
         role: 'viewer',
       },
     ],
+    accounts: [
+      {
+        code: 'DIST-001',
+        name: 'Krishi Seva Kendra',
+        type: 'distributor',
+        territory: 'W-MH-PUN-HDP',
+        slots: { asm: 'HAR-003', tm_so: 'HAR-004', sme: 'HAR-005' },
+        location: { lat: 18.5089, lng: 73.926 },
+        custom: { annual_revenue: '850000.00' },
+      },
+      {
+        code: 'DIST-002',
+        name: 'Baramati Agro Agencies',
+        type: 'distributor',
+        territory: 'W-MH-PUN-BRM',
+        slots: { asm: 'HAR-003', sme: 'HAR-006' },
+        custom: { annual_revenue: '320000.00' },
+      },
+      {
+        name: 'Shree Krishi Bhandar',
+        type: 'retailer',
+        territory: 'W-MH-PUN-HDP',
+        parent: 'DIST-001',
+        slots: { sme: 'HAR-005' },
+      },
+    ],
   },
 ];
 
@@ -170,7 +241,10 @@ export async function seed(app: INestApplicationContext): Promise<SeedReport> {
   const territories = app.get(TerritoriesService);
 
   for (const tenant of SEED) {
-    if (await app.get(DirectoryTenants).bySlug(tenant.slug)) {
+    const existing = await app.get(DirectoryTenants).bySlug(tenant.slug);
+    if (existing) {
+      // Tenants seeded before accounts arrived (phase 1 step 5) catch up.
+      await seedAccounts(app, existing.id, tenant);
       report.existed.push(tenant.slug);
       continue;
     }
@@ -235,7 +309,64 @@ export async function seed(app: INestApplicationContext): Promise<SeedReport> {
       return made;
     });
     report.people.push(...people);
+    await seedAccounts(app, tenantId, tenant);
     report.created.push(tenant.slug);
   }
   return report;
+}
+
+/**
+ * The tenant's account types, if it has none yet, and its seed accounts that don't exist yet,
+ * made as its admin would make them. Running it again changes nothing.
+ */
+async function seedAccounts(
+  app: INestApplicationContext,
+  tenantId: string,
+  tenant: SeedTenant,
+): Promise<void> {
+  const database = app.get(Database);
+  const types = app.get(AccountTypesService);
+  const accounts = app.get(AccountsService);
+  const people = app.get(People);
+  const adminId = await database.forTenant(tenantId, async (tx) => {
+    if ((await types.list(tx, tenantId)).length === 0) {
+      await types.applyTemplate(tx, tenantId, loadTemplate(tenant.template).accountTypes);
+      await app.get(TenantConfigService).touch(tx, tenantId, null);
+    }
+    return (await people.everyone(tx, tenantId)).find((person) => person.code === tenant.admin.code)
+      ?.id;
+  });
+  if (!adminId) return;
+  const access = await app
+    .get(AccessResolver)
+    .onBehalfOf(tenantId, adminId, app.get<Config>(CONFIG).CELL_ID);
+  await database.forTenant(tenantId, async (tx) => {
+    const byCode = new Map((await people.everyone(tx, tenantId)).map((p) => [p.code, p.id]));
+    const nodes = new Map(
+      (await app.get(TerritoriesService).list(tx, tenantId, {})).map((node) => [
+        node.code,
+        node.id,
+      ]),
+    );
+    for (const account of tenant.accounts) {
+      const all = (await accounts.list(tx, access, { limit: 200 })).items;
+      if (all.some((found) => found.name === account.name)) continue;
+      const parent = account.parent
+        ? all.find((found) => found.code === account.parent)
+        : undefined;
+      await accounts.create(tx, access, {
+        id: newId(),
+        type: account.type,
+        ...(account.code ? { code: account.code } : {}),
+        name: account.name,
+        territoryId: nodes.get(account.territory)!,
+        ...(parent ? { parentId: parent.id } : {}),
+        ...(account.location ? { location: account.location } : {}),
+        slots: Object.fromEntries(
+          Object.entries(account.slots).map(([slot, code]) => [slot, byCode.get(code)!]),
+        ),
+        ...(account.custom ? { custom: account.custom } : {}),
+      });
+    }
+  });
 }

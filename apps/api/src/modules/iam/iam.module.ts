@@ -12,6 +12,7 @@ import { DevicesService } from './devices.service';
 import { MeController } from './me.controller';
 import { OrgChartController } from './org-chart.controller';
 import { OrgChartService } from './org-chart.service';
+import { People } from './people';
 import { ReportingTree } from './reporting-tree';
 import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
@@ -49,6 +50,7 @@ import { UsersSync } from './users.sync';
     Scopes,
     ReportingTree,
     UsersService,
+    People,
     RolesService,
     DesignationsService,
     DevicesService,
@@ -59,6 +61,6 @@ import { UsersSync } from './users.sync';
     OrgChartService,
     IamSetup,
   ],
-  exports: [IamAccess, IamAdmission, Scopes, UsersService, DesignationsService, IamSetup],
+  exports: [IamAccess, IamAdmission, Scopes, UsersService, People, DesignationsService, IamSetup],
 })
 export class IamModule {}

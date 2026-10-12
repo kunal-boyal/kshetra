@@ -1,6 +1,11 @@
 export { templateJsonSchema } from './json-schema';
 export { loadTemplate, TEMPLATE_KEYS, TemplateError } from './registry';
-export { AccountType, AssignmentSlot, SegmentRule } from './schema/account-types';
+export {
+  AccountType,
+  AssignmentSlot,
+  checkAccountTypes,
+  SegmentRule,
+} from './schema/account-types';
 export { Catalogue, CatalogueUnit } from './schema/catalogue';
 export { FRACTION_COLUMNS, IMPORT_COLUMNS, Imports, ImportTarget } from './schema/imports';
 export { Designation, GeographyLevel, Role } from './schema/organisation';

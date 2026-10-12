@@ -1,10 +1,16 @@
 import { z } from 'zod';
-import { LocalizedText } from './config';
+import { Key, LocalizedText } from './config';
 
-/** Imports (module M19). Each module adds its target as its import arrives. */
+/**
+ * Imports (module M19). Each module adds its target as its import arrives; accounts import one
+ * type at a time, as `accounts:<type key>` (Appendix B.2).
+ */
 
 export const IMPORT_TARGETS = ['users', 'territories'] as const;
-export const ImportTarget = z.enum(IMPORT_TARGETS).meta({ id: 'ImportTarget' });
+export const AccountsImportTarget = z.templateLiteral(['accounts:', Key]);
+export const ImportTarget = z
+  .union([z.enum(IMPORT_TARGETS), AccountsImportTarget])
+  .meta({ id: 'ImportTarget' });
 
 export const IMPORT_STATUSES = [
   'reading',

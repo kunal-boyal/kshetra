@@ -22,7 +22,7 @@ import { AppState } from 'react-native';
 import { useApp } from './app-state';
 import { sendHeartbeat } from './heartbeat';
 import { openLocalDatabase } from './local-db';
-import { SENDERS } from './outbox-kinds';
+import { senders } from './outbox-kinds';
 
 /** While the app is open, it syncs this often (spec 11.3)... */
 const SYNC_EVERY_MS = 60_000;
@@ -61,7 +61,7 @@ export function SyncProvider({
     void (async () => {
       const db = await openDatabase();
       await migrate(db);
-      const outbox = new Outbox(db, SENDERS);
+      const outbox = new Outbox(db, senders(client));
       const runner = new SyncRunner({
         db,
         client,

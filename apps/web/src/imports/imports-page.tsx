@@ -1,4 +1,4 @@
-import { IMPORT_TARGETS, type ImportSummary, type ImportTarget } from '@kshetra/shared';
+import type { ImportSummary, ImportTarget } from '@kshetra/shared';
 import { Button, type Column, cn, DataTable, EmptyState, Icon, SelectField } from '@kshetra/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { FileSpreadsheet, FileUp, Upload } from 'lucide-react';
@@ -7,7 +7,7 @@ import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { fieldErrors, PageHeader, Section, useDates } from '../people/shared';
-import { TARGET_PERMISSIONS, upload, useImportChanged, useImports } from './data';
+import { upload, useImportChanged, useImportTargets, useImports } from './data';
 import { ImportStatusBadge } from './shared';
 
 /**
@@ -21,7 +21,8 @@ export function ImportsPage() {
   const access = useAccess();
   const dates = useDates(access.timezone);
   const changed = useImportChanged();
-  const targets = IMPORT_TARGETS.filter((target) => access.can(TARGET_PERMISSIONS[target]));
+  const choices = useImportTargets();
+  const targets = choices.allowed.map((choice) => choice.value);
   const [target, setTarget] = useState<ImportTarget | ''>('');
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -68,7 +69,7 @@ export function ImportsPage() {
     {
       key: 'target',
       header: t('imports.col_target'),
-      render: (job) => t(`imports.target_${job.target}`),
+      render: (job) => choices.name(job.target),
     },
     {
       key: 'status',
@@ -106,7 +107,7 @@ export function ImportsPage() {
             <SelectField
               label={t('imports.target')}
               value={chosen}
-              options={targets.map((value) => ({ value, label: t(`imports.target_${value}`) }))}
+              options={choices.allowed}
               onChange={(event) => setTarget(event.target.value as ImportTarget)}
             />
             <FilePicker

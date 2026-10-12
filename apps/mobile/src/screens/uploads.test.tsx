@@ -27,14 +27,14 @@ jest.mock('../outbox-kinds', () => {
   const { ApiError, NetworkError } =
     jest.requireActual<typeof import('@kshetra/api-client')>('@kshetra/api-client');
   return {
-    SENDERS: {
+    senders: () => ({
       note: {
         send: async (payload: { refuse?: boolean; offline?: boolean }) => {
           if (payload.refuse) throw new ApiError(400, 'VALIDATION', 'Bad note.');
           if (payload.offline) throw new NetworkError(new TypeError('Network request failed'));
         },
       },
-    },
+    }),
     itemLabel: (item: { payload: { n: number } }) => `Note ${item.payload.n}`,
   };
 });

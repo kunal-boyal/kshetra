@@ -152,7 +152,8 @@ export const TermValue = z.union([NounForms, z.string()]);
 /** `GET /v1/terminology`: the tenant's overrides, which `PUT` replaces as a whole. */
 export const TerminologyResult = z.object({ overrides: TerminologyOverrides });
 
-export const ConfigBundle = z.object({
+/** The bundle's core; `ConfigBundle` in `@kshetra/forms` adds the configuration with fields. */
+export const CoreConfigBundle = z.object({
   /** Moves on with every change to anything here; the ETag carries it (spec 11.3). */
   version: z.int().min(0),
   settings: TenantSettings,
@@ -176,4 +177,4 @@ export type UpdateSettingsBody = z.output<typeof UpdateSettingsBody>;
 export type TerminologyOverrides = z.output<typeof TerminologyOverrides>;
 export type TermValue = z.output<typeof TermValue>;
 export type TerminologyResult = z.output<typeof TerminologyResult>;
-export type ConfigBundle = z.output<typeof ConfigBundle>;
+export type CoreConfigBundle = z.output<typeof CoreConfigBundle>;

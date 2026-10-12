@@ -134,13 +134,55 @@ export {
   ImportResult,
   ImportStatus,
   ImportSummary,
+  AccountsImportTarget,
   ImportTarget,
   UpdateImportMappingBody,
 } from './schemas/imports';
+export {
+  ACCOUNT_STATUSES,
+  AccountAddress,
+  AccountCode,
+  AccountListQuery,
+  AccountListResult,
+  AccountOverview,
+  AccountResult,
+  AccountSlotHolder,
+  AccountStatus,
+  ContactResult,
+  CreateAccountBody,
+  CreateContactBody,
+  CreateLocationProposalBody,
+  LOCATION_STATUSES,
+  LocationProposalResult,
+  LocationStatus,
+  PROPOSAL_STATUSES,
+  ProposalStatus,
+  SlotChanges,
+  SlotHistoryEntry,
+  UpdateAccountBody,
+  UpdateContactBody,
+} from './schemas/accounts';
+export {
+  APPROVAL_STATUSES,
+  ApprovalDecisionBody,
+  ApprovalInboxQuery,
+  ApprovalInboxResult,
+  ApprovalResult,
+  ApprovalStatus,
+  ApprovalStep,
+  ApprovalSubject,
+  RequestType,
+  STEP_STATUSES,
+  StepStatus,
+} from './schemas/approvals';
 export { ProvisionTenantInput, TenantSlug } from './schemas/provisioning';
 export {
   SYNC_ENTITIES,
   SYNC_PAGE_SIZE,
+  SyncAccount,
+  SyncAccountsPage,
+  SyncContact,
+  SyncContactsPage,
   SyncEntity,
   SyncPullQuery,
   SyncPullResult,
@@ -150,7 +192,7 @@ export {
   SyncUsersPage,
 } from './schemas/sync';
 export {
-  ConfigBundle,
+  CoreConfigBundle,
   SETTING_DEFAULTS,
   TenantSettings,
   TerminologyOverrides,
@@ -166,4 +208,11 @@ export type { TenantStatus } from './tenants';
 export { TERMINOLOGY_KEYS } from './terminology';
 export type { TerminologyKey } from './terminology';
 export { ACCOUNT_REQUEST_TYPES, REQUEST_TYPES } from './workflow';
-export type { RequestType } from './workflow';
+export {
+  distanceMeters,
+  GeoPoint,
+  geofenceRadius,
+  PROPOSAL_ACCURACY_M,
+  PROPOSAL_FIX_MAX_AGE_S,
+  proposalFix,
+} from './geo';

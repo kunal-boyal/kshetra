@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { bigint, pgPolicy, pgRole, pgSchema, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  customType,
+  pgPolicy,
+  pgRole,
+  pgSchema,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 /**
  * Database roles (spec 9.5). They are created outside migrations: by `pnpm db:bootstrap` on local and
@@ -52,3 +60,12 @@ export const rowVersionColumn = () =>
   bigint('row_version', { mode: 'number' })
     .notNull()
     .default(sql`(pg_current_xact_id()::text)::bigint`);
+
+/**
+ * A point on the Earth, `geography(Point, 4326)` (spec 10.1), with a GiST index where it is
+ * searched. Queries write it with `pointSql()` and read it with `latOf()` and `lngOf()`, so no
+ * code parses the database's binary form.
+ */
+export const geographyPoint = customType<{ data: string; driverData: string }>({
+  dataType: () => 'geography(Point, 4326)',
+});

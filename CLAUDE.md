@@ -142,6 +142,14 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - The module that owns some records makes them importable: a class implementing `ImportTargetSource`, registered with `ImportTargets` in `onModuleInit`, as `apps/api/src/modules/territories/territories.import.ts` does. `check` finds every problem without writing; `commit` writes every row in the caller's transaction, checking again first, and throws `ImportRefused` rather than write part of a file. Add the target to `IMPORT_TARGETS` in `packages/shared/src/schemas/imports.ts`, its permission to `TARGET_PERMISSIONS` in `apps/web/src/imports/data.ts`, and its field names to the web's `fieldName` and the strings as `import.field_<target>_<key>`.
 - Match names in files with `matchName` from `@kshetra/shared` (BR-42); it never guesses between two close names.
 
+## Accounts and approvals (decision D43)
+
+- Who sees an account is `AccountsService.reach()`: today's slot holders within the caller's scope, their territories when the scope covers territory, and what they proposed. List, read and sync through it.
+- Account types carry form-engine fields, so their schemas and the full `ConfigBundle` live in `@kshetra/forms`; `@kshetra/shared` has `CoreConfigBundle`. When the bundle gains a part, raise `BUNDLE_SHAPE` in the config-bundle controller so phones fetch it again.
+- A request that needs approval registers its type with `RequestTypes` in the owning module and starts with `ApprovalsService.request()` in the same transaction; its `decided()` applies the outcome in the deciding transaction.
+- Records made on a phone carry their own IDs: wrap the create in `idempotent()` keyed by `<kind>:<id>`, so a resend replays and a changed body is `IDEMPOTENCY_CONFLICT`.
+- Points are `geography(Point, 4326)`: write with `pointSql()`, read with `pointOf()` from `src/platform/geo.ts`.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

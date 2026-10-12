@@ -1,5 +1,6 @@
 import { newId, type ProvisionTenantInput } from '@kshetra/shared';
 import { loadTemplate, TEMPLATE_KEYS } from '@kshetra/templates';
+import { sql } from 'drizzle-orm';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SEED, seed } from '../src/db/seed';
@@ -117,6 +118,14 @@ describe('the seed and the phase 0 exit check (spec 15)', () => {
     expect(first.created.sort()).toEqual(['harit', 'sunrise']);
     const second = await seed(app);
     expect(second).toEqual({ created: [], existed: ['sunrise', 'harit'], people: [] });
+    // Each tenant has its template's account types and its fictional accounts, made once.
+    for (const tenant of SEED) {
+      const tenantId = (await tenantRow(tenant.slug)).id;
+      const accounts = await world.database.forTenant(tenantId, (tx) =>
+        tx.execute<{ code: string }>(sql`select code from cell.accounts order by code`),
+      );
+      expect(accounts.rows).toHaveLength(tenant.accounts.length);
+    }
   });
 
   it('lets a person sign in on the web into either seeded tenant, and a field user on a phone', async () => {

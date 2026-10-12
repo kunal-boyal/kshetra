@@ -10,7 +10,7 @@ import {
   newId,
   type UpdateImportMappingBody,
 } from '@kshetra/shared';
-import { and, desc, eq, inArray, lt } from 'drizzle-orm';
+import { and, desc, eq, inArray, like, lt, or } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { importJobs, importMappings, type PreviewRow } from '../../db/schema/imports';
 import { AuditLog, userActor } from '../../platform/audit';
@@ -116,7 +116,7 @@ export class ImportsService implements OnModuleInit {
 
   /** The import's target, if the caller may import it. */
   private target(access: Access, name: Job['target']) {
-    const target = this.targets.get(name as ImportResultTarget);
+    const target = this.targets.get(name);
     if (!access.permissions.has(target.permission)) {
       throw new AppError('FORBIDDEN', "You don't have access to this.");
     }
@@ -189,18 +189,28 @@ export class ImportsService implements OnModuleInit {
   }
 
   async list(tx: TenantTx, access: Access, query: ImportListQuery): Promise<ImportListResult> {
-    const allowed = (['users', 'territories'] as const).filter((name) =>
-      access.permissions.has(this.targets.get(name).permission),
-    );
-    const targets = query.target ? allowed.filter((name) => name === query.target) : allowed;
-    if (targets.length === 0) return { items: [], nextCursor: null };
+    // A family, such as `accounts`, stands for every target in it.
+    const allowed = this.targets
+      .all()
+      .filter((source) => access.permissions.has(source.permission))
+      .map((source) => source.name);
+    if (query.target && !allowed.includes(query.target.split(':')[0]!)) {
+      return { items: [], nextCursor: null };
+    }
+    if (allowed.length === 0) return { items: [], nextCursor: null };
+    const ofTarget = query.target
+      ? eq(importJobs.target, query.target)
+      : or(
+          inArray(importJobs.target, allowed),
+          ...allowed.map((family) => like(importJobs.target, `${family}:%`)),
+        );
     const rows = await tx
       .select()
       .from(importJobs)
       .where(
         and(
           eq(importJobs.tenantId, access.tenantId),
-          inArray(importJobs.target, targets),
+          ofTarget,
           query.cursor ? lt(importJobs.id, query.cursor) : undefined,
         ),
       )
@@ -256,7 +266,7 @@ export class ImportsService implements OnModuleInit {
       return this.result(tx, changed!);
     }
 
-    const fields = await target.fields(tx, access.tenantId);
+    const fields = await target.fields(tx, access.tenantId, job.target as ImportResultTarget);
     const keys = new Set(fields.map((field) => field.key));
     const mapping = body.mapping ?? job.mapping;
     const problems = Object.entries(mapping).flatMap(([header, field]) => [
@@ -367,7 +377,7 @@ export class ImportsService implements OnModuleInit {
     await this.database.forTenant(tenantId, async (tx) => {
       const job = await this.find(tx, tenantId, id, true);
       if (job.status !== 'reading') return;
-      const target = this.targets.get(job.target as ImportResultTarget);
+      const target = this.targets.get(job.target);
       let sheet;
       try {
         sheet = await this.sheet(tx, job);
@@ -377,17 +387,19 @@ export class ImportsService implements OnModuleInit {
         return;
       }
       const saved = await this.saved(tx, tenantId, job.target);
-      const fields = (await target.fields(tx, tenantId)).map((field) => ({
-        ...field,
-        names: [
-          ...field.names,
-          ...saved.flatMap((entry) =>
-            Object.entries(entry.mapping).flatMap(([header, key]) =>
-              key === field.key ? [header] : [],
+      const fields = (await target.fields(tx, tenantId, job.target as ImportResultTarget)).map(
+        (field) => ({
+          ...field,
+          names: [
+            ...field.names,
+            ...saved.flatMap((entry) =>
+              Object.entries(entry.mapping).flatMap(([header, key]) =>
+                key === field.key ? [header] : [],
+              ),
             ),
-          ),
-        ],
-      }));
+          ],
+        }),
+      );
       const headerIndex = findHeaderRow(sheet.rows, fields);
       const headers = headersOf(sheet.rows[headerIndex] ?? []);
       const job2 = { headerRow: headerIndex + 1, headers, mapping: {} };
@@ -488,7 +500,7 @@ export class ImportsService implements OnModuleInit {
 
   /** The importer's access now, and the rows by field; null after marking the job failed. */
   private async prepare(tenantId: string, job: Job) {
-    const target = this.targets.get(job.target as ImportResultTarget);
+    const target = this.targets.get(job.target);
     let access: Access;
     try {
       access = await this.access.onBehalfOf(tenantId, job.createdBy, this.config.CELL_ID);
@@ -511,7 +523,11 @@ export class ImportsService implements OnModuleInit {
     return {
       target,
       rows: importRows(sheet.rows, job),
-      context: { access, emptyValues: [...new Set(saved.flatMap((entry) => entry.emptyValues))] },
+      context: {
+        access,
+        target: job.target as ImportResultTarget,
+        emptyValues: [...new Set(saved.flatMap((entry) => entry.emptyValues))],
+      },
     };
   }
 
@@ -603,8 +619,8 @@ export class ImportsService implements OnModuleInit {
   }
 
   private async result(tx: TenantTx, job: Job): Promise<ImportResult> {
-    const target = this.targets.get(job.target as ImportResultTarget);
-    const fields = await target.fields(tx, job.tenantId);
+    const target = this.targets.get(job.target);
+    const fields = await target.fields(tx, job.tenantId, job.target as ImportResultTarget);
     return {
       id: job.id,
       target: job.target as ImportResultTarget,

@@ -1,8 +1,8 @@
+import { ConfigBundle } from '@kshetra/forms';
 import {
   APP_PLATFORM_HEADER,
   APP_VERSION_HEADER,
   type AppPlatform,
-  ConfigBundle,
   type DeviceHeartbeatBody,
   type DeviceInfo,
   type ErrorCode,

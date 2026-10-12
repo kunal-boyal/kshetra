@@ -90,6 +90,7 @@ async function mockApi(page: Page) {
             ranked: false,
           },
         ],
+        accountTypes: [],
         access: { role: 'tenant_admin', scope: 'tenant', permissions: ['user.view'] },
       },
     }),

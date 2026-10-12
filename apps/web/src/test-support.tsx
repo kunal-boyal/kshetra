@@ -32,6 +32,8 @@ export function fakeClient(
   pages: Record<string, unknown>,
   writes: Record<string, Answer> = {},
   permissions: readonly TenantPermission[] = [],
+  /** More of the config bundle, such as account types. */
+  bundle: Record<string, unknown> = {},
 ) {
   const request = vi.fn(
     async (method: string, path: string, _schema: unknown, options: RequestOptions = {}) => {
@@ -60,7 +62,9 @@ export function fakeClient(
         settings: SETTING_DEFAULTS,
         terminology: {},
         designations: [],
+        accountTypes: [],
         access: { role: 'tenant_admin', scope: 'tenant', permissions },
+        ...bundle,
       },
     })),
   };

@@ -1165,16 +1165,17 @@ user_transfers(id, tid, user_id, effective_date, changes jsonb, status enum(sche
                reason, created_at, created_by, applied_at, cancelled_at, cancelled_by)   IX(tid, user_id, effective_date)
 
 ── Accounts ──────────────────────────────────────────────────────────────────────
-account_types(id, tid, key, current_version_id, active)                      UQ(tid, key)
-account_type_versions(id, tid, account_type_id, version, definition jsonb, published_at, published_by)
+account_types(id, tid, key, current_version, active, next_number)           UQ(tid, key)
+account_type_versions(tid, account_type_id, version, definition jsonb, published_at, published_by)
+       PK(tid, account_type_id, version)
 accounts(id, tid, type_id, code, name, territory_id, parent_account_id NULL, address jsonb,
          location geography NULL, geofence_radius_m NULL, location_status enum(unverified,verified),
          status enum(pending,active,inactive), segments text[], custom jsonb, row_version)
          UQ(tid, code) · IX(tid, territory_id) · GIST(location) · GIN(name gin_trgm_ops)
 account_slots(tid, account_id, slot_key, user_id, valid_from, valid_to)      IX(tid, user_id)
-contacts(id, tid, account_id, name, role, phone, email, custom jsonb, active)
+contacts(id, tid, account_id, name, role, phone, email, custom jsonb, active, row_version)
 account_location_proposals(id, tid, account_id, proposed_by, point, accuracy, captured_at,
-         workflow_instance_id, status)
+         workflow_instance_id, status enum(pending,approved,rejected,cancelled), created_at, decided_at)
 
 ── Forms and field work ──────────────────────────────────────────────────────────
 forms(id, tid, key, current_version_id, active)                              UQ(tid, key)
@@ -1266,7 +1267,7 @@ expense_claims(id, tid, user_id, policy_version_id, expense_date, description, q
 
 ── Workflow, notifications, integration and operations ──────────────────────────
 workflow_definitions(id, tid, request_type, version, steps jsonb, fallback_role_id, active)
-workflow_instances(id, tid, definition_id, request_type, request_id, requester_id, current_step,
+workflow_instances(id, tid, definition_id NULL, request_type, request_id, requester_id, current_step,
        status enum(pending,approved,rejected,cancelled), version int, created_at, closed_at)
 workflow_steps(instance_id, step_index, approver_ids uuid[],
        status enum(waiting,pending,approved,rejected,skipped), acted_by NULL, acted_at NULL, note, due_at NULL)
@@ -1338,7 +1339,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Sync | `GET /v1/sync/pull?entities=...&cursor=...` |
 | People | `GET /v1/users`, `GET /v1/users/:id`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/users/:id/history`, `POST /v1/users/:id/transfers`, `GET /v1/users/:id/transfers`, `POST /v1/users/:id/transfers/:transferId/cancel`, `GET /v1/org-chart`, `GET /v1/user-fields`, `PUT /v1/user-fields`, `GET /v1/roles`, `POST /v1/roles`, `PATCH /v1/roles/:id`, `GET /v1/designations`, `POST /v1/designations`, `PATCH /v1/designations/:id` |
 | Territories | `GET /v1/territories`, `POST /v1/territories`, `PATCH /v1/territories/:id` |
-| Accounts | `GET /v1/accounts`, `POST /v1/accounts`, `PATCH /v1/accounts/:id`, `GET /v1/accounts/:id/overview`, `POST /v1/accounts/:id/location-proposals`, `GET /v1/account-types`, `POST /v1/account-types/:id/versions` |
+| Accounts | `GET /v1/accounts`, `POST /v1/accounts`, `PATCH /v1/accounts/:id`, `GET /v1/accounts/:id/overview`, `POST /v1/accounts/:id/contacts`, `PATCH /v1/accounts/:id/contacts/:contactId`, `POST /v1/accounts/:id/location-proposals`, `GET /v1/account-types`, `POST /v1/account-types/:id/versions` |
 | Forms | `GET /v1/forms`, `POST /v1/forms`, `POST /v1/forms/:id/versions` (publish) |
 | Field | `POST /v1/shifts`, `POST /v1/shifts/:id/end`, `POST /v1/shifts/:id/pauses`, `POST /v1/locations/batch`, `POST /v1/visits`, `POST /v1/visits/:id/check-out`, `POST /v1/submissions`, `GET /v1/submissions` |
 | Review | `GET /v1/reviews/queue`, `POST /v1/submissions/:id/review`, `POST /v1/reviews/bulk` |
@@ -1351,7 +1352,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Finance | `POST /v1/finance-snapshots`, `POST /v1/ledger-entries`, `GET /v1/accounts/:id/statement` |
 | HR | `GET /v1/attendance?userId&period`, `POST /v1/leave-requests`, `POST /v1/regularisations`, `GET /v1/calendars`, `PUT /v1/calendars`, `PUT /v1/leave-types`, `PUT /v1/payroll-profiles`, `GET /v1/payslips/:userId/:period` |
 | Expenses | `PUT /v1/expense-policies`, `POST /v1/expense-claims`, `POST /v1/expense-claims/:id/receipts`, `POST /v1/expense-claims/:id/paid` |
-| Approvals | `GET /v1/approvals/inbox`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel` |
+| Approvals | `GET /v1/approvals/inbox`, `GET /v1/approvals/:instanceId`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel` |
 | Notifications | `GET /v1/notifications`, `POST /v1/notifications/read`, `PUT /v1/notification-prefs` |
 | Imports and exports | `POST /v1/imports`, `GET /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports/:id` |
 | Integrations | `GET /v1/api-clients`, `POST /v1/api-clients`, `GET /v1/webhooks`, `POST /v1/webhooks`, `POST /v1/webhooks/:id/test`, `GET /v1/webhooks/:id/deliveries`, `POST /v1/bulk/users`, `POST /v1/bulk/accounts`, `POST /v1/bulk/items`, `POST /v1/bulk/ledger-entries`, `POST /v1/bulk/external-metrics` |

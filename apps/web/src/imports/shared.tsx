@@ -35,7 +35,21 @@ const FIELD_KEYS = {
     'joining_date',
   ],
   territories: ['code', 'name', 'parent_code', 'level', 'active'],
-} as const satisfies Record<ImportTarget, readonly string[]>;
+  accounts: [
+    'code',
+    'name',
+    'territory_code',
+    'parent_code',
+    'latitude',
+    'longitude',
+    'geofence_radius',
+    'address',
+    'city',
+    'state',
+    'pin',
+    'active',
+  ],
+} as const satisfies Record<string, readonly string[]>;
 
 /** A field's name in the reader's language: its own label, or the app's word for it. */
 export function fieldName(
@@ -46,7 +60,9 @@ export function fieldName(
   locale: Locale,
 ): string {
   if (field?.label) return field.label[locale];
-  const known = (FIELD_KEYS[target] as readonly string[]).includes(key);
-  // Every known key has a message: `import.field_<target>_<key>`.
-  return known ? t(`import.field_${target}_${key}` as MessageKey) : key;
+  // A family of targets, such as every `accounts:<type>`, shares its fields' names.
+  const family = target.split(':')[0] as keyof typeof FIELD_KEYS;
+  const known = (FIELD_KEYS[family] as readonly string[] | undefined)?.includes(key) ?? false;
+  // Every known key has a message: `import.field_<family>_<key>`.
+  return known ? t(`import.field_${family}_${key}` as MessageKey) : key;
 }

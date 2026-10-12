@@ -19,6 +19,8 @@ export interface TargetField extends ImportField {
 /** What a target needs to know besides the rows. */
 export interface ImportContext {
   access: Access;
+  /** The import's target, such as `accounts:distributor` for a source that imports a family. */
+  target: ImportTarget;
   /** Cell values the tenant's files use for "empty", such as "-". */
   emptyValues: readonly string[];
 }
@@ -30,10 +32,11 @@ export interface ImportContext {
  * throws an `ImportRefused` with the problems rather than write part of the file.
  */
 export interface ImportTargetSource {
-  name: ImportTarget;
+  /** A target, or a family of them: `accounts` imports every `accounts:<type>`. */
+  name: string;
   /** What an import of this target needs, besides `import.run`. */
   permission: TenantPermission;
-  fields(tx: TenantTx, tenantId: string): Promise<TargetField[]>;
+  fields(tx: TenantTx, tenantId: string, target: ImportTarget): Promise<TargetField[]>;
   check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext): Promise<ImportProblem[]>;
   commit(
     tx: TenantTx,
@@ -52,16 +55,22 @@ export class ImportRefused extends Error {
 /** Where modules register what they can import. */
 @Injectable()
 export class ImportTargets {
-  private readonly sources = new Map<ImportTarget, ImportTargetSource>();
+  private readonly sources = new Map<string, ImportTargetSource>();
 
   register(source: ImportTargetSource): void {
     if (this.sources.has(source.name)) throw new Error(`${source.name} is registered already.`);
     this.sources.set(source.name, source);
   }
 
-  get(name: ImportTarget): ImportTargetSource {
-    const source = this.sources.get(name);
-    if (!source) throw new Error(`Nothing imports ${name}.`);
+  /** The source of a target: its own, or its family's. */
+  get(target: string): ImportTargetSource {
+    const source = this.sources.get(target) ?? this.sources.get(target.split(':')[0]!);
+    if (!source) throw new Error(`Nothing imports ${target}.`);
     return source;
+  }
+
+  /** Every registered source, for listing what a person may import. */
+  all(): ImportTargetSource[] {
+    return [...this.sources.values()];
   }
 }
