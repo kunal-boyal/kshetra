@@ -29,6 +29,7 @@ export function PersonPicker({
   help,
   error,
   exclude,
+  designations,
 }: {
   label: string;
   value: PickedPerson | null;
@@ -38,6 +39,8 @@ export function PersonPicker({
   error?: string;
   /** Someone who can't be picked, such as the person being changed. */
   exclude?: string;
+  /** Only people with one of these designations, such as those who may fill a slot. */
+  designations?: readonly string[];
 }) {
   const { client } = useApp();
   const { t } = useLanguage();
@@ -45,17 +48,22 @@ export function PersonPicker({
   const [q, setQ] = useState('');
   const settled = useSettled(q.trim());
   const listId = useId();
+  // One designation narrows the search on the server; several, here.
+  const only = designations?.length === 1 ? `&designation=${designations[0]}` : '';
   const matches = useQuery({
-    queryKey: ['person-picker', settled],
+    queryKey: ['person-picker', settled, only],
     queryFn: () =>
       read(
         client,
-        `/v1/users?status=active&limit=${MATCHES}&q=${encodeURIComponent(settled)}`,
+        `/v1/users?status=active&limit=${MATCHES * 2}&q=${encodeURIComponent(settled)}${only}`,
         UserListResult,
       ),
     enabled: searching && settled !== '',
   });
-  const found = (matches.data?.items ?? []).filter((person) => person.id !== exclude);
+  const found = (matches.data?.items ?? [])
+    .filter((person) => person.id !== exclude)
+    .filter((person) => !designations || designations.includes(person.designation))
+    .slice(0, MATCHES);
 
   function choose(person: PickedPerson | null) {
     onChange(person);

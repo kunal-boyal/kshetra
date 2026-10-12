@@ -8,15 +8,58 @@ import {
   type TenantPermission,
 } from '@kshetra/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import type { WebClient } from '../client';
 import { useApp } from '../context';
-import { read } from '../people/data';
+import { useConfig } from '../data';
+import { useLanguage } from '../i18n';
+import { read, useAccess } from '../people/data';
 
-/** What each import loads, and what it needs besides `import.run` (M19). */
-export const TARGET_PERMISSIONS: Record<ImportTarget, TenantPermission> = {
+/** What each family of imports needs, besides `import.run` (M19). */
+export const TARGET_PERMISSIONS: Record<'users' | 'territories' | 'accounts', TenantPermission> = {
   users: 'user.manage',
   territories: 'territory.manage',
+  accounts: 'account.import',
 };
+
+export interface TargetChoice {
+  value: ImportTarget;
+  label: string;
+}
+
+/**
+ * The targets, in the reader's words: people, territories, and each account type by its own
+ * name (`accounts:<type>`, Appendix B.2). `allowed` holds the ones the person may import.
+ */
+export function useImportTargets() {
+  const { client, queryClient } = useApp();
+  const { t, locale } = useLanguage();
+  const access = useAccess();
+  const config = useConfig(client, queryClient);
+  return useMemo(() => {
+    const types = config.data?.bundle.accountTypes ?? [];
+    const all: TargetChoice[] = [
+      { value: 'users', label: t('imports.target_users') },
+      { value: 'territories', label: t('imports.target_territories') },
+      ...types.map((type) => ({
+        value: `accounts:${type.key}` as const,
+        label: type.name[locale].other,
+      })),
+    ];
+    const family = (target: string) => target.split(':')[0] as keyof typeof TARGET_PERMISSIONS;
+    const activeTypes = new Set(
+      types.filter((type) => type.active).map((type) => `accounts:${type.key}`),
+    );
+    return {
+      allowed: all.filter(
+        (choice) =>
+          access.can(TARGET_PERMISSIONS[family(choice.value)]) &&
+          (family(choice.value) !== 'accounts' || activeTypes.has(choice.value)),
+      ),
+      name: (target: string) => all.find((choice) => choice.value === target)?.label ?? target,
+    };
+  }, [access, config.data, locale, t]);
+}
 
 /** While the worker has the import, the page asks again this often. */
 const BUSY_POLL_MS = 1000;

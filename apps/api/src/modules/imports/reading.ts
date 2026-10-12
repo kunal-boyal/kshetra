@@ -1,3 +1,4 @@
+import type { CustomField } from '@kshetra/forms';
 import { parse } from 'csv-parse/sync';
 import { unzipSync } from 'fflate';
 import readXlsxFile from 'read-excel-file/node';
@@ -155,6 +156,34 @@ export function cellYesNo(cell: Cell | undefined): boolean | null {
   if (['yes', 'y', 'true', '1', 'active', 'हाँ'].includes(text)) return true;
   if (['no', 'n', 'false', '0', 'inactive', 'नहीं'].includes(text)) return false;
   return null;
+}
+
+/**
+ * The custom-field values a row's `custom.<key>` columns hold, as the form engine takes them:
+ * an empty cell is null, which clears a stored value; yes and no become booleans; a multi-select
+ * splits at commas or semicolons; a date may be a date cell. The engine checks the rest.
+ */
+export function customValues(
+  fields: readonly CustomField[],
+  cells: Readonly<Record<string, Cell>>,
+  emptyValues: readonly string[],
+): Record<string, unknown> {
+  const values: Record<string, unknown> = {};
+  for (const field of fields) {
+    const key = `custom.${field.key}`;
+    if (!(key in cells)) continue;
+    const cell = cells[key];
+    if (isEmptyCell(cell, emptyValues)) values[field.key] = null;
+    else if (field.type === 'yes_no') values[field.key] = cellYesNo(cell) ?? cellText(cell);
+    else if (field.type === 'multi_select') {
+      values[field.key] = cellText(cell)
+        .split(/[,;]/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+    } else if (field.type === 'date') values[field.key] = cellDate(cell) ?? cellText(cell);
+    else values[field.key] = cellText(cell);
+  }
+  return values;
 }
 
 /** A field an import can fill. */

@@ -1,4 +1,10 @@
-import type { SyncEntity, SyncTerritory, SyncUser } from '@kshetra/shared';
+import type {
+  SyncAccount,
+  SyncContact,
+  SyncEntity,
+  SyncTerritory,
+  SyncUser,
+} from '@kshetra/shared';
 import type { SqlDatabase, SqlValue } from './sql';
 
 /**
@@ -45,6 +51,37 @@ const MIGRATIONS: readonly string[] = [
      sync_gen INTEGER NOT NULL
    );
    CREATE INDEX ref_territories_parent ON ref_territories (parent_id);`,
+  // Accounts (spec 5.5): the ones the user sees, worked offline, with their contacts.
+  `CREATE TABLE ref_accounts (
+     id TEXT PRIMARY KEY NOT NULL,
+     type TEXT NOT NULL,
+     code TEXT NOT NULL,
+     name TEXT NOT NULL,
+     territory_id TEXT NOT NULL,
+     parent_id TEXT,
+     address TEXT NOT NULL,
+     lat REAL,
+     lng REAL,
+     geofence_radius_m INTEGER,
+     location_status TEXT NOT NULL,
+     status TEXT NOT NULL,
+     segments TEXT NOT NULL,
+     custom TEXT NOT NULL,
+     slots TEXT NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_accounts_type_name ON ref_accounts (type, name);
+   CREATE TABLE ref_contacts (
+     id TEXT PRIMARY KEY NOT NULL,
+     account_id TEXT NOT NULL,
+     name TEXT NOT NULL,
+     role TEXT,
+     phone TEXT,
+     email TEXT,
+     active INTEGER NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_contacts_account ON ref_contacts (account_id);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -119,11 +156,73 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       active: record.active === 1,
     }),
   },
+  accounts: {
+    table: 'ref_accounts',
+    columns: (account) => ({
+      id: account.id,
+      type: account.type,
+      code: account.code,
+      name: account.name,
+      territory_id: account.territoryId,
+      parent_id: account.parentId,
+      address: JSON.stringify(account.address),
+      lat: account.location?.lat ?? null,
+      lng: account.location?.lng ?? null,
+      geofence_radius_m: account.geofenceRadiusM,
+      location_status: account.locationStatus,
+      status: account.status,
+      segments: JSON.stringify(account.segments),
+      custom: JSON.stringify(account.custom),
+      slots: JSON.stringify(account.slots),
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      type: String(record.type),
+      code: String(record.code),
+      name: String(record.name),
+      territoryId: String(record.territory_id),
+      parentId: record.parent_id === null ? null : String(record.parent_id),
+      address: JSON.parse(String(record.address)) as SyncAccount['address'],
+      location:
+        record.lat === null || record.lng === null
+          ? null
+          : { lat: Number(record.lat), lng: Number(record.lng) },
+      geofenceRadiusM: record.geofence_radius_m === null ? null : Number(record.geofence_radius_m),
+      locationStatus: record.location_status === 'verified' ? 'verified' : 'unverified',
+      status: record.status as SyncAccount['status'],
+      segments: JSON.parse(String(record.segments)) as string[],
+      custom: JSON.parse(String(record.custom)) as Record<string, unknown>,
+      slots: JSON.parse(String(record.slots)) as SyncAccount['slots'],
+    }),
+  },
+  contacts: {
+    table: 'ref_contacts',
+    columns: (contact) => ({
+      id: contact.id,
+      account_id: contact.accountId,
+      name: contact.name,
+      role: contact.role,
+      phone: contact.phone,
+      email: contact.email,
+      active: contact.active ? 1 : 0,
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      accountId: String(record.account_id),
+      name: String(record.name),
+      role: record.role === null ? null : String(record.role),
+      phone: record.phone === null ? null : String(record.phone),
+      email: record.email === null ? null : String(record.email),
+      active: record.active === 1,
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
   users: SyncUser;
   territories: SyncTerritory;
+  accounts: SyncAccount;
+  contacts: SyncContact;
 }[Name];
 
 /** Every row the phone holds of one entity. */

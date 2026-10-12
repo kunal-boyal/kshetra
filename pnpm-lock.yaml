@@ -420,6 +420,9 @@ importers:
       '@kshetra/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@kshetra/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
       '@kshetra/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -462,6 +465,9 @@ importers:
       expo-localization:
         specifier: ~57.0.2
         version: 57.0.2(expo@57.0.26)(react@19.2.3)
+      expo-location:
+        specifier: ~57.0.20
+        version: 57.0.20(expo@57.0.26)(supports-color@8.1.1)(typescript@6.0.3)
       expo-network:
         specifier: ~57.0.2
         version: 57.0.2(expo@57.0.26)(react@19.2.3)
@@ -647,6 +653,9 @@ importers:
 
   packages/api-client:
     dependencies:
+      '@kshetra/forms':
+        specifier: workspace:*
+        version: link:../forms
       '@kshetra/shared':
         specifier: workspace:*
         version: link:../shared
@@ -4791,6 +4800,11 @@ packages:
     peerDependencies:
       expo: '*'
       react: '*'
+
+  expo-location@57.0.20:
+    resolution: {integrity: sha512-E9cr7A5eQS91bm3McMx3FiWy7SCorVTPLq9gLFFW+7dfuSqQp5FLNBZQ6NFJaS8tVhCyl2WyKMFh0TAo/+7K9Q==}
+    peerDependencies:
+      expo: '*'
 
   expo-manifests@57.0.2:
     resolution: {integrity: sha512-pPIIcKR73OShwlWMg8H90WRzKUd2krDdKlKAwuQV1FtUwE7H3hQEFw0ePFQY9yFoGMF/77ryYwNKfI5umMcCog==}
@@ -12257,6 +12271,14 @@ snapshots:
       expo: 57.0.26(e8458e78369a71541bab2618dc97f405)
       react: 19.2.3
       rtl-detect: 1.1.2
+
+  expo-location@57.0.20(expo@57.0.26)(supports-color@8.1.1)(typescript@6.0.3):
+    dependencies:
+      '@expo/image-utils': 0.11.5(supports-color@8.1.1)(typescript@6.0.3)
+      expo: 57.0.26(e8458e78369a71541bab2618dc97f405)
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
 
   expo-manifests@57.0.2(expo@57.0.26):
     dependencies:

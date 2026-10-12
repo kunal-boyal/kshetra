@@ -50,6 +50,14 @@ let aTransferId: string;
 /** A territory of A's, and an import A started. */
 let aTerritoryId: string;
 let aImportId: string;
+/** A's account type, an account of it with a contact, and an approval waiting on A's admin. */
+let aTypeId: string;
+let aAccountId: string;
+let aContactId: string;
+let aApprovalId: string;
+/** An account of B's own, under B's territory. */
+let bAccountId: string;
+let bTerritoryId: string;
 /** A day comfortably in the future on every tenant's calendar. */
 const NEXT_MONTH = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
 /** Every ID in tenant A's rows that tenant B doesn't also hold. */
@@ -491,6 +499,134 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('POST', `/v1/imports/${id}/commit`), aImportId),
   },
+  'GET /v1/account-types': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/account-types')),
+  },
+  'POST /v1/account-types/:id/versions': {
+    kind: 'by ID',
+    run: async () => {
+      const [own] = (await asB('GET', '/v1/account-types')).json().items;
+      const definition = Object.fromEntries(
+        Object.entries(own as object).filter(([key]) => key !== 'id' && key !== 'version'),
+      );
+      await sameAsNowhere(
+        (id) => asB('POST', `/v1/account-types/${id}/versions`, { definition }),
+        aTypeId,
+      );
+    },
+  },
+  'GET /v1/accounts': {
+    kind: 'own tenant',
+    run: async () => {
+      holdsNothingOfA(await asB('GET', '/v1/accounts'));
+      holdsNothingOfA(await asB('GET', `/v1/accounts?cursor=${aAccountId}`));
+      holdsNothingOfA(await asB('GET', `/v1/accounts?territoryId=${aTerritoryId}`));
+      holdsNothingOfA(await asB('GET', `/v1/accounts?userId=${a.member.id}`));
+    },
+  },
+  'POST /v1/accounts': {
+    kind: 'write',
+    run: async () => {
+      const account = (overrides: object) => ({
+        id: newId(),
+        type: 'customer',
+        code: `B-${newId().slice(-8)}`,
+        name: 'B shop',
+        territoryId: bTerritoryId,
+        ...overrides,
+      });
+      await sameAsNowhere(
+        (id) => asB('POST', '/v1/accounts', account({ territoryId: id })),
+        aTerritoryId,
+      );
+      await sameAsNowhere(
+        (id) => asB('POST', '/v1/accounts', account({ slots: { manager: id } })),
+        a.member.id,
+      );
+      const created = await asB('POST', '/v1/accounts', account({}));
+      expect(created.statusCode).toBe(201);
+      holdsNothingOfA(created);
+    },
+  },
+  'GET /v1/accounts/:id/overview': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/overview`), aAccountId),
+  },
+  'PATCH /v1/accounts/:id': {
+    kind: 'by ID',
+    run: async () => {
+      await sameAsNowhere(
+        (id) => asB('PATCH', `/v1/accounts/${id}`, { name: 'Taken over' }),
+        aAccountId,
+      );
+      // B's own account, pointed at A's territory or A's people.
+      await sameAsNowhere(
+        (id) => asB('PATCH', `/v1/accounts/${bAccountId}`, { territoryId: id }),
+        aTerritoryId,
+      );
+      await sameAsNowhere(
+        (id) => asB('PATCH', `/v1/accounts/${bAccountId}`, { slots: { holders: { manager: id } } }),
+        a.member.id,
+      );
+    },
+  },
+  'POST /v1/accounts/:id/contacts': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', `/v1/accounts/${id}/contacts`, { id: newId(), name: 'Someone' }),
+        aAccountId,
+      ),
+  },
+  'PATCH /v1/accounts/:id/contacts/:contactId': {
+    kind: 'by ID',
+    run: async () => {
+      await sameAsNowhere(
+        (id) => asB('PATCH', `/v1/accounts/${id}/contacts/${aContactId}`, { name: 'Taken' }),
+        aAccountId,
+      );
+      await sameAsNowhere(
+        (id) => asB('PATCH', `/v1/accounts/${bAccountId}/contacts/${id}`, { name: 'Taken' }),
+        aContactId,
+      );
+    },
+  },
+  'POST /v1/accounts/:id/location-proposals': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/accounts/${id}/location-proposals`, {
+            id: newId(),
+            lat: 12.97,
+            lng: 77.59,
+            accuracy: 10,
+            capturedAt: new Date().toISOString(),
+            proposedAt: new Date().toISOString(),
+          }),
+        aAccountId,
+      ),
+  },
+  'GET /v1/approvals/inbox': {
+    kind: 'own tenant',
+    run: async () => {
+      holdsNothingOfA(await asB('GET', '/v1/approvals/inbox'));
+      holdsNothingOfA(await asB('GET', `/v1/approvals/inbox?cursor=${aApprovalId}`));
+    },
+  },
+  'GET /v1/approvals/:instanceId': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/approvals/${id}`), aApprovalId),
+  },
+  'POST /v1/approvals/:instanceId/decision': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', `/v1/approvals/${id}/decision`, { decision: 'approve', version: 1 }),
+        aApprovalId,
+      ),
+  },
   'GET /v1/org-chart': {
     kind: 'own tenant',
     run: async () => {
@@ -596,6 +732,52 @@ beforeAll(async () => {
   const started = await upload(aToken, 'users', 'Employee code,Name\nA-1,Alpha One');
   expect(started.statusCode).toBe(201);
   aImportId = started.json().id;
+  aTypeId = (await send(aToken, 'GET', '/v1/account-types')).json().items[0].id;
+  aAccountId = newId();
+  const account = await send(aToken, 'POST', '/v1/accounts', {
+    id: aAccountId,
+    type: 'customer',
+    code: 'A-SHOP',
+    name: `${a.word} shop`,
+    territoryId: aTerritoryId,
+    slots: { manager: a.member.id },
+  });
+  expect(account.statusCode).toBe(201);
+  aContactId = newId();
+  await send(aToken, 'POST', `/v1/accounts/${aAccountId}/contacts`, {
+    id: aContactId,
+    name: 'A contact',
+  });
+  // A's member stands at the shop; A's admin, their manager, is asked to decide.
+  const memberToken = (await world.signIn(a.member.phone, a.memberDevice)).accessToken;
+  const proposal = await send(
+    memberToken,
+    'POST',
+    `/v1/accounts/${aAccountId}/location-proposals`,
+    {
+      id: newId(),
+      lat: 12.9716,
+      lng: 77.5946,
+      accuracy: 15,
+      capturedAt: new Date().toISOString(),
+      proposedAt: new Date().toISOString(),
+    },
+  );
+  expect(proposal.statusCode).toBe(201);
+  aApprovalId = proposal.json().approvalId;
+  bTerritoryId = await world.territory(b.tenantId, 'B-ZONE');
+  bAccountId = newId();
+  expect(
+    (
+      await send(bToken, 'POST', '/v1/accounts', {
+        id: bAccountId,
+        type: 'customer',
+        code: 'B-SHOP',
+        name: 'B shop',
+        territoryId: bTerritoryId,
+      })
+    ).statusCode,
+  ).toBe(201);
   aRows = await rowsOf(a.tenantId);
   const theirs = idsIn(await rowsOf(b.tenantId));
   aIds = [...idsIn(aRows)].filter((id) => !theirs.has(id));

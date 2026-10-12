@@ -7,6 +7,10 @@ import {
   redirect,
 } from '@tanstack/react-router';
 import type { WebClient } from './client';
+import { EditAccountPage, NewAccountPage } from './accounts/account-form-page';
+import { AccountPage } from './accounts/account-page';
+import { AccountsPage } from './accounts/accounts-page';
+import { ApprovalsPage } from './accounts/approvals-page';
 import { ImportPage } from './imports/import-page';
 import { ImportsPage } from './imports/imports-page';
 import { AppShell } from './layout/app-shell';
@@ -87,6 +91,49 @@ const orgChart = createRoute({
   path: '/org-chart',
   component: OrgChartPage,
 });
+/** `?type=` picks an account type by key. */
+const typeSearch = (search: Record<string, unknown>): { type?: string } =>
+  typeof search.type === 'string' ? { type: search.type } : {};
+
+const accounts = createRoute({
+  getParentRoute: () => app,
+  path: '/accounts',
+  validateSearch: typeSearch,
+  component: function AccountsRoute() {
+    const { type } = accounts.useSearch();
+    return <AccountsPage {...(type ? { type } : {})} />;
+  },
+});
+const newAccount = createRoute({
+  getParentRoute: () => app,
+  path: '/accounts/new',
+  validateSearch: typeSearch,
+  component: function NewAccountRoute() {
+    const { type } = newAccount.useSearch();
+    return <NewAccountPage {...(type ? { type } : {})} />;
+  },
+});
+const account = createRoute({
+  getParentRoute: () => app,
+  path: '/accounts/$accountId',
+  component: function AccountRoute() {
+    const { accountId } = account.useParams();
+    return <AccountPage key={accountId} accountId={accountId} />;
+  },
+});
+const editAccount = createRoute({
+  getParentRoute: () => app,
+  path: '/accounts/$accountId/edit',
+  component: function EditAccountRoute() {
+    const { accountId } = editAccount.useParams();
+    return <EditAccountPage key={accountId} accountId={accountId} />;
+  },
+});
+const approvals = createRoute({
+  getParentRoute: () => app,
+  path: '/approvals',
+  component: ApprovalsPage,
+});
 const territories = createRoute({
   getParentRoute: () => app,
   path: '/territories',
@@ -140,6 +187,11 @@ const tree = root.addChildren([
     editPerson,
     transfer,
     orgChart,
+    accounts,
+    newAccount,
+    account,
+    editAccount,
+    approvals,
     territories,
     imports,
     oneImport,

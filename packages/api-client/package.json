@@ -16,6 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@kshetra/forms": "workspace:*",
     "@kshetra/shared": "workspace:*",
     "zod": "catalog:"
   },

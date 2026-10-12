@@ -1,12 +1,20 @@
 import { Controller, Get, Headers, Res } from '@nestjs/common';
-import { ConfigBundle, TENANT_PERMISSIONS } from '@kshetra/shared';
+import { ConfigBundle } from '@kshetra/forms';
+import { TENANT_PERMISSIONS } from '@kshetra/shared';
 import { resolveTerminology } from '@kshetra/i18n';
 import type { FastifyReply } from 'fastify';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';
+import { AccountTypesService } from '../accounts/account-types.service';
 import { DesignationsService } from '../iam/designations.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+
+/**
+ * Raised whenever the bundle gains a part, so a phone holding a copy from before fetches it once
+ * more instead of hearing that its copy is current. 2: account types (decision D43).
+ */
+const BUNDLE_SHAPE = 2;
 
 /** True when an `If-None-Match` header names this ETag, weak or strong. */
 function matches(header: string | undefined, etag: string): boolean {
@@ -20,8 +28,8 @@ function matches(header: string | undefined, etag: string): boolean {
 /**
  * `GET /v1/config` (spec 11.2): everything an app needs to speak the tenant's language and show
  * what the caller may do. The ETag carries the config version and the caller's role, so an app
- * that already has this bundle gets a bodiless 304 for the cost of one lookup. Forms, account
- * types, metrics and modules join the bundle as their modules arrive.
+ * that already has this bundle gets a bodiless 304 for the cost of one lookup. Forms, metrics and
+ * modules join the bundle as their modules arrive.
  */
 @Controller('v1')
 export class ConfigBundleController {
@@ -29,6 +37,7 @@ export class ConfigBundleController {
     private readonly database: Database,
     private readonly config: TenantConfigService,
     private readonly designations: DesignationsService,
+    private readonly accountTypes: AccountTypesService,
   ) {}
 
   @Get('config')
@@ -48,7 +57,7 @@ export class ConfigBundleController {
     return this.database.forTenant(access.tenantId, async (tx) => {
       // The version is read first, so the bundle is never older than the ETag it is sent with.
       const version = await this.config.version(tx, access.tenantId);
-      const etag = `"${version}-${access.roleId}"`;
+      const etag = `"${version}-${access.roleId}-${BUNDLE_SHAPE}"`;
       void reply.header('etag', etag).header('cache-control', 'private, no-cache');
       if (matches(ifNoneMatch, etag)) {
         void reply.status(304);
@@ -58,6 +67,9 @@ export class ConfigBundleController {
       const settings = await this.config.settings(tx, access.tenantId);
       const overrides = await this.config.terminology(tx, access.tenantId);
       const designations = await this.designations.list(tx, access.tenantId);
+      const accountTypes = this.accountTypes.views(
+        await this.accountTypes.list(tx, access.tenantId),
+      );
       return {
         version,
         settings,
@@ -70,6 +82,7 @@ export class ConfigBundleController {
           level,
           ranked,
         })),
+        accountTypes,
         access: {
           role: access.roleKey,
           scope: access.scope,

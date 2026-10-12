@@ -133,6 +133,7 @@ async function mockSignedIn(page: Page) {
         },
         terminology: {},
         designations: [],
+        accountTypes: [],
         access: {
           role: 'tenant_admin',
           scope: 'tenant',

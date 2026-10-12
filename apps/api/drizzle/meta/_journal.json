@@ -85,6 +85,20 @@
       "when": 1791397554357,
       "tag": "0011_imports",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791794608568,
+      "tag": "0012_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791794626585,
+      "tag": "0013_account_row_versions",
+      "breakpoints": true
     }
   ]
 }

@@ -23,8 +23,8 @@ export function isLocalDatabase(url: string): boolean {
 }
 
 /**
- * Creates the three roles with the passwords in their connection URLs, and lets the migrator create
- * schemas. Local and CI databases only: in AWS the roles and their secrets come from infrastructure,
+ * Creates the three roles with the passwords in their connection URLs, lets the migrator create
+ * schemas, and installs the PostGIS and pg_trgm extensions (spec 10.1). Local and CI databases only: in AWS the roles and their secrets come from infrastructure,
  * so this refuses any other host (spec section 0, rule 7).
  */
 export async function bootstrapDatabase(urls: BootstrapUrls): Promise<void> {
@@ -61,6 +61,9 @@ export async function bootstrapDatabase(urls: BootstrapUrls): Promise<void> {
     await client.query(
       `grant create on database ${database} to ${client.escapeIdentifier(ROLES.migrator)}`,
     );
+    // PostGIS needs a superuser to install; pg_trgm comes along. In AWS, infrastructure does this.
+    await client.query('create extension if not exists postgis');
+    await client.query('create extension if not exists pg_trgm');
   } finally {
     await client.end();
   }

@@ -229,6 +229,7 @@ async function mockSignedIn(page: Page) {
         settings: SETTINGS,
         terminology: {},
         designations: DESIGNATIONS,
+        accountTypes: [],
         access: {
           role: 'tenant_admin',
           scope: 'tenant',

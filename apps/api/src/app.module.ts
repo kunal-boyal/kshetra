@@ -1,6 +1,7 @@
 import { type DynamicModule, Module, type Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import type { Config } from './config';
+import { AccountsModule } from './modules/accounts/accounts.module';
 import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ConfigBundleModule } from './modules/config-bundle/config-bundle.module';
@@ -12,6 +13,7 @@ import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { TenantConfigModule } from './modules/tenant-config/tenant-config.module';
 import { TerritoriesModule } from './modules/territories/territories.module';
+import { WorkflowModule } from './modules/workflow/workflow.module';
 import { PlanesModule } from './planes.module';
 import { AppVersionGuard } from './platform/app-version';
 import { AccessTokens, AuthGuard } from './platform/auth';
@@ -35,6 +37,8 @@ export const FEATURE_MODULES = [
   SyncModule,
   MediaModule,
   ImportsModule,
+  WorkflowModule,
+  AccountsModule,
 ];
 
 /** Every controller the API serves: the health checks and each feature module's. */

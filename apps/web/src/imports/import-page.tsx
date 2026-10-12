@@ -22,13 +22,14 @@ import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { write } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section } from '../people/shared';
-import { isBusy, useImport, useImportChanged } from './data';
+import { isBusy, useImport, useImportChanged, useImportTargets } from './data';
 import { fieldName, ImportStatusBadge } from './shared';
 
 /** One import, from its columns to its outcome (M19). */
 export function ImportPage({ importId }: { importId: string }) {
   const { t } = useLanguage();
   const job = useImport(importId);
+  const targets = useImportTargets();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const status = job.data?.status;
@@ -56,7 +57,7 @@ export function ImportPage({ importId }: { importId: string }) {
       <PageHeader
         title={view.fileName}
         back={{ to: '/imports', label: t('nav.imports') }}
-        intro={t(`imports.target_${view.target}`)}
+        intro={targets.name(view.target)}
       >
         <ImportStatusBadge status={view.status} />
       </PageHeader>

@@ -76,6 +76,20 @@ export class TerritoriesService {
       .orderBy(asc(territoryLevels.level));
   }
 
+  /** Territories by ID, for other modules' answers; an ID of none is left out. */
+  async byIds(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, TerritoryResult>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select(RESULT)
+      .from(territories)
+      .where(and(eq(territories.tenantId, tenantId), inArray(territories.id, [...new Set(ids)])));
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
   async get(tx: TenantTx, tenantId: string, id: string): Promise<TerritoryResult> {
     const [row] = await tx
       .select(RESULT)
@@ -468,6 +482,29 @@ export class TerritoriesService {
     validFrom: string,
   ): Promise<void> {
     await tx.insert(userTerritories).values({ tenantId, userId, territoryId, validFrom });
+  }
+
+  /**
+   * The territories at or below the ones a user is attached to on `today` (the tenant's date):
+   * where a `territory` scope reaches accounts (spec 5.5). A subquery that selects territory IDs.
+   */
+  territoriesReachedBy(tenantId: string, userId: string, today: string): SQL {
+    return sql`
+      select tree.descendant_id
+        from ${userTerritories} mine
+        join ${territoryClosure} tree
+          on tree.tenant_id = mine.tenant_id and tree.ancestor_id = mine.territory_id
+       where mine.tenant_id = ${tenantId}
+         and mine.user_id = ${userId}
+         and mine.valid_from <= ${today}::date
+         and (mine.valid_to is null or mine.valid_to > ${today}::date)`;
+  }
+
+  /** A territory and everything under it. A subquery that selects territory IDs. */
+  subtree(tenantId: string, territoryId: string): SQL {
+    return sql`
+      select descendant_id from ${territoryClosure}
+       where tenant_id = ${tenantId} and ancestor_id = ${territoryId}`;
   }
 
   /**
