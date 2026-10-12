@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { ApiError, createClient, NetworkError, type SessionState } from './client';
 import { memoryStore } from './stores';
 
@@ -270,5 +271,26 @@ describe('errors', () => {
     expect((server.calls[0]!.init.headers as Record<string, string>)['if-none-match']).toBe(
       '"7-role"',
     );
+  });
+});
+
+describe('files', () => {
+  it('sends a file as the body itself, with its own type and an idempotency key', async () => {
+    const server = fakeServer(() => json(201, { id: 'job' }));
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    const client = createClient({ directoryUrl: '', platform: 'app', store, fetch: server.fetch });
+    const file = new Blob(['Code,Name\nA-1,Asha'], { type: 'text/csv' });
+    await client.request('POST', '/v1/imports?target=users&fileName=a.csv', z.unknown(), {
+      file: { data: file, type: 'text/csv' },
+      idempotencyKey: 'k1',
+    });
+    const [call] = server.calls;
+    expect(call!.url).toBe('https://cell.test/v1/imports?target=users&fileName=a.csv');
+    expect(call!.init.body).toBe(file);
+    expect(call!.init.headers).toMatchObject({
+      'content-type': 'text/csv',
+      'idempotency-key': 'k1',
+    });
   });
 });

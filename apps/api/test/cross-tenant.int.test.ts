@@ -47,6 +47,9 @@ let bToken: string;
 let aCursor: string;
 /** A transfer of A's member, scheduled for next month. */
 let aTransferId: string;
+/** A territory of A's, and an import A started. */
+let aTerritoryId: string;
+let aImportId: string;
 /** A day comfortably in the future on every tenant's calendar. */
 const NEXT_MONTH = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
 /** Every ID in tenant A's rows that tenant B doesn't also hold. */
@@ -102,6 +105,20 @@ function send(token: string | undefined, method: Method, url: string, payload?: 
 }
 
 const asB = (method: Method, url: string, payload?: object) => send(bToken, method, url, payload);
+
+/** An import file, sent as the request body itself (M19). */
+function upload(token: string, target: string, body: string) {
+  return app.inject({
+    method: 'POST',
+    url: `/v1/imports?target=${target}&fileName=people.csv`,
+    headers: {
+      authorization: `Bearer ${token}`,
+      'idempotency-key': newId(),
+      'content-type': 'text/csv',
+    },
+    payload: body,
+  });
+}
 
 const errorOf = (reply: Reply) => {
   const { error } = reply.json() as { error?: { requestId?: string } };
@@ -415,6 +432,65 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(listed);
     },
   },
+  'POST /v1/territories': {
+    kind: 'write',
+    run: async () => {
+      await sameAsNowhere(
+        (id) => asB('POST', '/v1/territories', { code: 'B-UNDER', name: 'Under', parentId: id }),
+        aTerritoryId,
+      );
+      const created = await asB('POST', '/v1/territories', { code: 'B-TOP', name: 'B top' });
+      expect(created.statusCode).toBe(201);
+      holdsNothingOfA(created);
+    },
+  },
+  'PATCH /v1/territories/:id': {
+    kind: 'by ID',
+    run: async () => {
+      await sameAsNowhere(
+        (id) => asB('PATCH', `/v1/territories/${id}`, { name: 'Taken over' }),
+        aTerritoryId,
+      );
+      const own = await world.territory(b.tenantId, 'B-OWN');
+      await sameAsNowhere(
+        (id) => asB('PATCH', `/v1/territories/${own}`, { parentId: id }),
+        aTerritoryId,
+      );
+    },
+  },
+  'POST /v1/imports': {
+    kind: 'write',
+    run: async () => {
+      const uploaded = await upload(bToken, 'users', 'Employee code,Name\nB-1,Bravo One');
+      expect(uploaded.statusCode).toBe(201);
+      holdsNothingOfA(uploaded);
+    },
+  },
+  'GET /v1/imports': {
+    kind: 'own tenant',
+    run: async () => {
+      const listed = await asB('GET', '/v1/imports');
+      expect(listed.statusCode).toBe(200);
+      holdsNothingOfA(listed);
+      holdsNothingOfA(await asB('GET', `/v1/imports?cursor=${aImportId}`));
+    },
+  },
+  'GET /v1/imports/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/imports/${id}`), aImportId),
+  },
+  'PUT /v1/imports/:id/mapping': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/imports/${id}/mapping`, { mapping: { Name: 'name' } }),
+        aImportId,
+      ),
+  },
+  'POST /v1/imports/:id/commit': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/imports/${id}/commit`), aImportId),
+  },
   'GET /v1/org-chart': {
     kind: 'own tenant',
     run: async () => {
@@ -516,6 +592,10 @@ beforeAll(async () => {
   });
   expect(transfer.statusCode).toBe(201);
   aTransferId = transfer.json().id;
+  aTerritoryId = await world.territory(a.tenantId, 'A-ZONE');
+  const started = await upload(aToken, 'users', 'Employee code,Name\nA-1,Alpha One');
+  expect(started.statusCode).toBe(201);
+  aImportId = started.json().id;
   aRows = await rowsOf(a.tenantId);
   const theirs = idsIn(await rowsOf(b.tenantId));
   aIds = [...idsIn(aRows)].filter((id) => !theirs.has(id));

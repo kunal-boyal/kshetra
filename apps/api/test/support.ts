@@ -13,6 +13,8 @@ import { OTP_LIMITS } from '../src/modules/directory/otp.service';
 import { SYSTEM } from '../src/modules/iam/actor';
 import { IamSetup } from '../src/modules/iam/setup.service';
 import { UsersService } from '../src/modules/iam/users.service';
+import { ImportsService } from '../src/modules/imports/imports.service';
+import { templateImports } from '../src/modules/provisioning/cell-setup.service';
 import { TenantConfigService } from '../src/modules/tenant-config/tenant-config.service';
 import { TerritoriesService } from '../src/modules/territories/territories.service';
 import { Database } from '../src/platform/database';
@@ -27,6 +29,7 @@ export function testConfig(overrides: Record<string, string> = {}): Config {
     DIRECTORY_DATABASE_URL: urls.directoryApp,
     REDIS_URL: inject('redisUrl'),
     OTP_PROVIDER: 'memory',
+    OBJECT_STORE: 'memory',
     OTP_PEPPER: 'a-test-pepper-of-16+',
     // Tests run the relay themselves, so nothing retries behind their backs.
     OUTBOX_RELAY: 'false',
@@ -144,11 +147,12 @@ export class World {
 
   async tenant(name: string, status = 'active', template = 'generic'): Promise<string> {
     const tenantId = await this.directory.tenant(name, status);
-    const { terminology, roles, designations, geographyLevels, userFields } =
-      loadTemplate(template);
+    const loaded = loadTemplate(template);
+    const { terminology, roles, designations, geographyLevels, userFields } = loaded;
     await this.database.forTenant(tenantId, async (tx) => {
       await this.app.get(TenantConfigService).applyTemplate(tx, tenantId, { terminology });
       await this.app.get(IamSetup).applyTemplate(tx, tenantId, { roles, designations, userFields });
+      await this.app.get(ImportsService).applyTemplate(tx, tenantId, templateImports(loaded));
       await this.app.get(TerritoriesService).applyLevels(tx, tenantId, geographyLevels);
     });
     return tenantId;

@@ -50,6 +50,8 @@ declare module 'fastify' {
  */
 export abstract class AccessResolver {
   abstract resolve(auth: AuthContext): Promise<Access>;
+  /** Someone's access now, for background work done on their behalf, such as an import. */
+  abstract onBehalfOf(tenantId: string, userId: string, cell: string): Promise<Access>;
 }
 
 export type AccessRule =

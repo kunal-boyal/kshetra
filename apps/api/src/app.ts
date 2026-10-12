@@ -5,6 +5,7 @@ import { ConsoleLogger, Logger, type LoggerService, type LogLevel } from '@nestj
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { MAX_FILE_BYTES } from './modules/imports/reading';
 import type { Config } from './config';
 import { ErrorFilter } from './platform/errors';
 import { genReqId } from './platform/request-id';
@@ -59,6 +60,17 @@ export async function createApp(
   }
 
   const fastify = app.getHttpAdapter().getInstance();
+  // Import files arrive as the request body itself (M19), up to 20 MB; everything else stays
+  // within the 1 MB limit.
+  fastify.addContentTypeParser(
+    [
+      'text/csv',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/octet-stream',
+    ],
+    { parseAs: 'buffer', bodyLimit: MAX_FILE_BYTES },
+    (_request, body, done) => done(null, body),
+  );
   fastify.addHook('onSend', async (request, reply) => {
     void reply.header('x-request-id', request.id);
   });

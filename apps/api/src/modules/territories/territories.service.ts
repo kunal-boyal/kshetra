@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import {
   AppError,
+  type CreateTerritoryBody,
   issueAt,
   newId,
   type LocalizedNoun,
+  type TerritoryLevel,
   type TerritoryListQuery,
   type TerritoryRef,
   type TerritoryResult,
+  todayIn,
+  type UpdateTerritoryBody,
 } from '@kshetra/shared';
 import { and, asc, eq, gt, inArray, isNull, lte, or, type SQL, sql } from 'drizzle-orm';
 import type { z } from 'zod';
@@ -16,7 +20,9 @@ import {
   territoryLevels,
   userTerritories,
 } from '../../db/schema/territories';
+import { type AuditActor, AuditLog } from '../../platform/audit';
 import type { TenantTx } from '../../platform/database';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 export interface NewTerritory {
   code: string;
@@ -29,8 +35,221 @@ export interface NewTerritory {
  * The territory tree (spec 5.4) and its closure, which access checks use to reach everything under
  * a user's territories (spec 4.2). Managing territories over HTTP arrives with module M4.
  */
+const notFound = () => new AppError('NOT_FOUND', 'This was not found.');
+const invalid = (path: string, issue: string) =>
+  new AppError('VALIDATION', 'Check the highlighted fields.', [{ path, issue }]);
+
+const RESULT = {
+  id: territories.id,
+  parentId: territories.parentId,
+  level: territories.level,
+  code: territories.code,
+  name: territories.name,
+  active: territories.active,
+};
+
+/** Whether a database error is the territory code's unique index. */
+function codeTaken(error: unknown): boolean {
+  for (let current = error; current instanceof Error; current = current.cause) {
+    if ('code' in current && current.code === '23505') return true;
+  }
+  return false;
+}
+
 @Injectable()
 export class TerritoriesService {
+  constructor(
+    private readonly audit: AuditLog,
+    private readonly config: TenantConfigService,
+  ) {}
+
+  /** The tenant's geography levels, highest first (spec 5.4). */
+  async levels(tx: TenantTx, tenantId: string): Promise<TerritoryLevel[]> {
+    return tx
+      .select({
+        level: territoryLevels.level,
+        key: territoryLevels.key,
+        name: territoryLevels.name,
+      })
+      .from(territoryLevels)
+      .where(eq(territoryLevels.tenantId, tenantId))
+      .orderBy(asc(territoryLevels.level));
+  }
+
+  async get(tx: TenantTx, tenantId: string, id: string): Promise<TerritoryResult> {
+    const [row] = await tx
+      .select(RESULT)
+      .from(territories)
+      .where(and(eq(territories.tenantId, tenantId), eq(territories.id, id)));
+    if (!row) throw notFound();
+    return row;
+  }
+
+  /** Adds a node under an active parent, or at the top (M4). */
+  async add(
+    tx: TenantTx,
+    tenantId: string,
+    actor: AuditActor,
+    input: CreateTerritoryBody,
+  ): Promise<TerritoryResult> {
+    if (input.parentId) {
+      const parent = await this.get(tx, tenantId, input.parentId).catch(() => null);
+      if (!parent) throw invalid('parentId', 'There is no territory with this ID');
+      if (!parent.active) throw invalid('parentId', 'This territory is switched off');
+    }
+    let id: string;
+    try {
+      id = await tx.transaction((inner) =>
+        this.create(inner, tenantId, input, actor.kind === 'user' ? actor.id : null),
+      );
+    } catch (error) {
+      if (codeTaken(error)) {
+        throw new AppError('CONFLICT', 'Another territory already has this code.', [
+          { path: 'code', issue: 'Another territory has this code' },
+        ]);
+      }
+      throw error;
+    }
+    const created = await this.get(tx, tenantId, id);
+    await this.audit.record(tx, tenantId, actor, {
+      action: 'territory.created',
+      target: { type: 'territory', id },
+      after: created,
+    });
+    return created;
+  }
+
+  /**
+   * Renames, recodes, moves or switches a node off or on (M4). A node moves only to another
+   * parent at the same level, so its own level and everything below it stay as they are. A node
+   * switches off only when nothing under it is on and nobody works in it today; it switches back
+   * on only under a parent that is on.
+   */
+  async change(
+    tx: TenantTx,
+    tenantId: string,
+    actor: AuditActor,
+    id: string,
+    input: UpdateTerritoryBody,
+  ): Promise<TerritoryResult> {
+    const [current] = await tx
+      .select(RESULT)
+      .from(territories)
+      .where(and(eq(territories.tenantId, tenantId), eq(territories.id, id)))
+      .for('update');
+    if (!current) throw notFound();
+
+    const moving = input.parentId !== undefined && input.parentId !== current.parentId;
+    if (moving) {
+      if (current.parentId === null) {
+        throw invalid('parentId', 'A territory at the top level has no parent to change');
+      }
+      const parent = await this.get(tx, tenantId, input.parentId!).catch(() => null);
+      if (!parent) throw invalid('parentId', 'There is no territory with this ID');
+      if (parent.level !== current.level - 1) {
+        throw invalid('parentId', 'Choose a parent at the same level as the current one');
+      }
+      if (!parent.active) throw invalid('parentId', 'This territory is switched off');
+    }
+    if (input.active === false && current.active) {
+      const [child] = await tx
+        .select({ id: territories.id })
+        .from(territories)
+        .where(
+          and(
+            eq(territories.tenantId, tenantId),
+            eq(territories.parentId, id),
+            eq(territories.active, true),
+          ),
+        )
+        .limit(1);
+      if (child) {
+        throw new AppError('CONFLICT', 'Switch off the territories under it first.', [
+          { path: 'active', issue: 'Territories under it are still on' },
+        ]);
+      }
+      const today = todayIn((await this.config.settings(tx, tenantId)).timezone);
+      const [someone] = await tx
+        .select({ userId: userTerritories.userId })
+        .from(userTerritories)
+        .where(
+          and(
+            eq(userTerritories.tenantId, tenantId),
+            eq(userTerritories.territoryId, id),
+            validOn(today),
+          ),
+        )
+        .limit(1);
+      if (someone) {
+        throw new AppError('CONFLICT', 'People work in this territory. Move them first.', [
+          { path: 'active', issue: 'People work in this territory' },
+        ]);
+      }
+    }
+    if (input.active === true && !current.active && current.parentId) {
+      const parent = await this.get(tx, tenantId, current.parentId);
+      if (!parent.active) {
+        throw invalid('active', 'Switch the territory above it on first');
+      }
+    }
+
+    const changes = {
+      ...(input.code !== undefined && input.code !== current.code ? { code: input.code } : {}),
+      ...(input.name !== undefined && input.name !== current.name ? { name: input.name } : {}),
+      ...(moving ? { parentId: input.parentId! } : {}),
+      ...(input.active !== undefined && input.active !== current.active
+        ? { active: input.active }
+        : {}),
+    };
+    if (Object.keys(changes).length === 0) return current;
+    try {
+      await tx.transaction((inner) =>
+        inner
+          .update(territories)
+          .set({
+            ...changes,
+            updatedAt: new Date(),
+            updatedBy: actor.kind === 'user' ? actor.id : null,
+          })
+          .where(and(eq(territories.tenantId, tenantId), eq(territories.id, id))),
+      );
+    } catch (error) {
+      if (codeTaken(error)) {
+        throw new AppError('CONFLICT', 'Another territory already has this code.', [
+          { path: 'code', issue: 'Another territory has this code' },
+        ]);
+      }
+      throw error;
+    }
+    if (moving) await this.moveClosure(tx, tenantId, id, input.parentId!);
+    const after = await this.get(tx, tenantId, id);
+    await this.audit.record(tx, tenantId, actor, {
+      action: 'territory.updated',
+      target: { type: 'territory', id },
+      before: current,
+      after,
+    });
+    return after;
+  }
+
+  /** Re-links a node and everything under it to its new parent's ancestors. */
+  private async moveClosure(tx: TenantTx, tenantId: string, id: string, parentId: string) {
+    // Links from outside the subtree into it go; links within it stay.
+    await tx.execute(sql`
+      delete from ${territoryClosure} link
+       where link.tenant_id = ${tenantId}
+         and link.descendant_id in (select descendant_id from ${territoryClosure}
+                                     where tenant_id = ${tenantId} and ancestor_id = ${id})
+         and link.ancestor_id not in (select descendant_id from ${territoryClosure}
+                                       where tenant_id = ${tenantId} and ancestor_id = ${id})`);
+    await tx.execute(sql`
+      insert into ${territoryClosure} (tenant_id, ancestor_id, descendant_id, depth)
+      select ${tenantId}::uuid, up.ancestor_id, down.descendant_id, up.depth + down.depth + 1
+        from ${territoryClosure} up
+        join ${territoryClosure} down on down.tenant_id = up.tenant_id
+       where up.tenant_id = ${tenantId} and up.descendant_id = ${parentId}
+         and down.ancestor_id = ${id}`);
+  }
   /** The tenant's geography levels, highest first, as its template names them. */
   async applyLevels(
     tx: TenantTx,

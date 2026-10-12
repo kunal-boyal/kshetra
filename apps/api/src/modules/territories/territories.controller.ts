@@ -1,11 +1,31 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { TerritoryListQuery, TerritoryListResult } from '@kshetra/shared';
-import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  CreateTerritoryBody,
+  IdParams,
+  TerritoryListQuery,
+  TerritoryListResult,
+  TerritoryResult,
+  UpdateTerritoryBody,
+} from '@kshetra/shared';
+import { userActor } from '../../platform/audit';
+import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
+import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
+import { pathId } from '../iam/actor';
 import { TerritoriesService } from './territories.service';
 
-/** Territories (spec 11.2). Creating and changing them arrives with step 4 of phase 1. */
+/** Territories (spec 11.2, M4). */
 @Controller('v1/territories')
 export class TerritoriesController {
   constructor(
@@ -16,17 +36,65 @@ export class TerritoriesController {
   @Get()
   @Contract({
     tag: 'Territories',
-    summary: "The tenant's territory tree",
+    summary: "The tenant's territory tree and its levels",
     query: TerritoryListQuery,
     response: TerritoryListResult,
   })
   // Every phone already keeps the whole tree (decision D40), so anyone signed in may read it.
   @SignedIn()
-  async list(@CurrentAccess() access: Access, @Query() query: unknown) {
+  list(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = TerritoryListQuery.parse(query);
-    const items = await this.database.forTenant(access.tenantId, (tx) =>
-      this.territories.list(tx, access.tenantId, input),
+    return this.database.forTenant(access.tenantId, async (tx) => ({
+      items: await this.territories.list(tx, access.tenantId, input),
+      levels: await this.territories.levels(tx, access.tenantId),
+    }));
+  }
+
+  @Post()
+  @Contract({
+    tag: 'Territories',
+    summary: 'Add a territory under another, or at the top',
+    body: CreateTerritoryBody,
+    response: TerritoryResult,
+    idempotencyKey: true,
+  })
+  @Requires('territory.manage')
+  @HttpCode(201)
+  async create(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    const input = CreateTerritoryBody.parse(body);
+    const result = await this.database.forTenant(access.tenantId, (tx) =>
+      idempotent(
+        tx,
+        access.tenantId,
+        requireIdempotencyKey(key),
+        { route: 'POST /v1/territories', by: access.userId, input },
+        async () => ({
+          status: 201,
+          body: await this.territories.add(tx, access.tenantId, userActor(access), input),
+        }),
+      ),
     );
-    return { items };
+    return result.body;
+  }
+
+  @Patch(':id')
+  @Contract({
+    tag: 'Territories',
+    summary: 'Rename, recode, move within its level, or switch off or on',
+    params: IdParams,
+    body: UpdateTerritoryBody,
+    response: TerritoryResult,
+  })
+  @Requires('territory.manage')
+  change(@CurrentAccess() access: Access, @Param('id') id: string, @Body() body: unknown) {
+    const territoryId = pathId(id);
+    const input = UpdateTerritoryBody.parse(body);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.territories.change(tx, access.tenantId, userActor(access), territoryId, input),
+    );
   }
 }

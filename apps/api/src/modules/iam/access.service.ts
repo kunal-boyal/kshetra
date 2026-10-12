@@ -74,4 +74,22 @@ export class IamAccess extends AccessResolver {
       permissions: new Set(user.permissions as TenantPermission[]),
     };
   }
+
+  /**
+   * The access someone holds now, for background work done on their behalf, such as an import
+   * they started: their current role and scope, as a request of theirs would get, with no phone.
+   * Refused, as a request would be, once they or the tenant are no longer active.
+   */
+  async onBehalfOf(tenantId: string, userId: string, cell: string): Promise<Access> {
+    const revision = await this.database.forTenant(tenantId, async (tx) => {
+      const [user] = await tx
+        .select({ authRevision: users.authRevision })
+        .from(users)
+        .where(and(eq(users.tenantId, tenantId), eq(users.id, userId)));
+      return user?.authRevision;
+    });
+    if (revision === undefined) throw revoked();
+    const access = await this.resolve({ userId, tenantId, cell, revision });
+    return access;
+  }
 }

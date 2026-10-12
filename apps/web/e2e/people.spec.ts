@@ -153,6 +153,7 @@ const ANSWERS: Record<string, unknown> = {
     items: [
       { id: DELHI, parentId: null, level: 1, code: 'N-DEL', name: 'Delhi Area', active: true },
     ],
+    levels: [{ level: 1, key: 'region', name: noun('Region', 'Regions') }],
   },
   '/v1/user-fields': {
     fields: [
