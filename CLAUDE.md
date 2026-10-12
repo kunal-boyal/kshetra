@@ -71,7 +71,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - **No industry words in code.** Distributor, retailer, farmer, doctor, beat, outlet, liquidation and similar terms belong in industry templates, seed data and translation strings. Code speaks of accounts, account types, forms, submissions, metrics, routes and plan items.
 - **Tenancy:** every tenant-owned table has `tenant_id` and a row-level security policy from its first migration, indexes led by `tenant_id`, and an entry in the cross-tenant test fixtures. The cross-tenant contract test covers every endpoint.
 - **Business rules** (spec section 7) are pure functions in `packages/shared`, tested with the Appendix D fixtures. The server is authoritative; clients call the same functions only to preview.
-- **Schemas:** each request and response has one zod schema in `packages/shared/src/schemas/<module>`. Controllers never define ad hoc types.
+- **Schemas:** each request and response has one zod schema in `packages/shared/src/schemas/<module>`. Controllers never define ad hoc types. The one exception: a request or response that carries form-engine configuration, such as user fields, keeps its schema in `packages/forms` beside `CustomField`, because `@kshetra/shared` can't depend on that package (decision D41).
 - **Module boundaries:** a module never imports another module's repository. Cross-module calls go through exported services or events.
 - **Idempotency:** every write takes a client-generated UUID or an `Idempotency-Key` header.
 - **Text:** all user-facing text goes through the i18n layer and the terminology resolver, in English and Hindi from the first screen.
@@ -127,6 +127,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Web code calls the API only through `@kshetra/api-client`, which refreshes tokens and turns error responses into `ApiError` with a spec 11.4 code. Show errors with `errorMessage()` from `apps/web/src/i18n.tsx`.
 - Build screens from `@kshetra/ui-web` and the design system's `ks-*` classes; Tailwind is for layout. Text comes from `useLanguage().t`, in English and Hindi.
 - Each screen gets a Vitest test with Testing Library, and each page a Playwright test that runs axe.
+- Lists use `DataTable` with cursor paging (a Load more button, as the API pages). Actions that can't be undone ask first, in place, with `Confirm`. Field errors come from the API's details by path, with `fieldErrors()` in `apps/web/src/people/shared.tsx`. Writes go through `write()` in `apps/web/src/people/data.ts`, which sends a fresh idempotency key.
 
 ## Background work (decision D39)
 

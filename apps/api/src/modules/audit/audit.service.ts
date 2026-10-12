@@ -5,12 +5,14 @@ import {
   type AuditListQuery,
   type AuditListResult,
   AppError,
+  type UserHistoryQuery,
 } from '@kshetra/shared';
 import { and, desc, eq, gte, lt, or, type SQL, sql } from 'drizzle-orm';
 import { auditLog } from '../../db/audit-log';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { Scopes } from '../iam/scopes';
+import { UsersService } from '../iam/users.service';
 
 /** The exact time an entry was written, to the microsecond, so paging never skips or repeats. */
 const exactTime = sql<string>`to_char(${auditLog.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
@@ -44,7 +46,10 @@ function decodeCursor(cursor: string): [string, string] {
  */
 @Injectable()
 export class AuditService {
-  constructor(private readonly scopes: Scopes) {}
+  constructor(
+    private readonly scopes: Scopes,
+    private readonly users: UsersService,
+  ) {}
 
   async list(tx: TenantTx, access: Access, query: AuditListQuery): Promise<AuditListResult> {
     const filters: (SQL | undefined)[] = [
@@ -59,6 +64,37 @@ export class AuditService {
     if (access.scope !== 'tenant') {
       filters.push(sql`${auditLog.actorId} in (${await this.scopes.userIds(tx, access)})`);
     }
+    return this.page(tx, filters, query);
+  }
+
+  /**
+   * What changed about one person, whoever changed it (spec 8.2, user detail): for anyone who may
+   * view users and reaches this one.
+   */
+  async history(
+    tx: TenantTx,
+    access: Access,
+    userId: string,
+    query: UserHistoryQuery,
+  ): Promise<AuditListResult> {
+    // Not found, or out of reach.
+    await this.users.get(tx, access, userId);
+    return this.page(
+      tx,
+      [
+        eq(auditLog.tenantId, access.tenantId),
+        eq(auditLog.targetType, 'user'),
+        eq(auditLog.targetId, userId),
+      ],
+      query,
+    );
+  }
+
+  private async page(
+    tx: TenantTx,
+    filters: (SQL | undefined)[],
+    query: { limit: number; cursor?: string | undefined },
+  ): Promise<AuditListResult> {
     if (query.cursor) {
       const [at, id] = decodeCursor(query.cursor);
       filters.push(

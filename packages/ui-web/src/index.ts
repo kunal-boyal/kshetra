@@ -1,6 +1,10 @@
 export { Button } from './button';
 export type { ButtonProps } from './button';
 export { cn } from './cn';
+export { Confirm, DataTable, StatusBadge } from './data';
+export type { BadgeVariant, Column } from './data';
+export { Checkbox, ChoiceGroup, SelectField, TextAreaField } from './fields';
+export type { CheckboxProps, SelectFieldProps, TextAreaFieldProps } from './fields';
 export { Icon } from './icon';
 export type { IconProps } from './icon';
 export { Card, EmptyState, IconChip, Notice } from './surfaces';

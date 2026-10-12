@@ -1160,6 +1160,9 @@ territory_levels(tid, level, key, name jsonb)                                PK(
 territories(id, tid, level, parent_id, code, name, owner_user_id, active, row_version)  UQ(tid, code)
 territory_closure(tid, ancestor_id, descendant_id, depth)
 user_territories(tid, user_id, territory_id, valid_from, valid_to)
+user_fields(tid PK, fields jsonb, retired jsonb, updated_at, updated_by)
+user_transfers(id, tid, user_id, effective_date, changes jsonb, status enum(scheduled,applied,cancelled,failed),
+               reason, created_at, created_by, applied_at, cancelled_at, cancelled_by)   IX(tid, user_id, effective_date)
 
 ── Accounts ──────────────────────────────────────────────────────────────────────
 account_types(id, tid, key, current_version_id, active)                      UQ(tid, key)
@@ -1330,7 +1333,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Auth (directory) | `POST /auth/v1/otp/request`, `POST /auth/v1/otp/verify`, `POST /auth/v1/select-tenant`, `POST /auth/v1/token/refresh`, `POST /auth/v1/logout`, `POST /auth/v1/switch-tenant`, `GET /auth/v1/jwks`, `POST /auth/v1/totp/verify`, `GET /auth/v1/sso/:tenant/start` |
 | Me and config | `GET /v1/me`, `GET /v1/config` (settings, terminology, modules, effective permissions, current form versions, account types, metrics; ETag), `PATCH /v1/settings`, `GET /v1/terminology`, `PUT /v1/terminology`, `POST /v1/devices/heartbeat`, `PUT /v1/devices/push-token` |
 | Sync | `GET /v1/sync/pull?entities=...&cursor=...` |
-| People | `GET /v1/users`, `GET /v1/users/:id`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/roles`, `POST /v1/roles`, `PATCH /v1/roles/:id`, `GET /v1/designations`, `POST /v1/designations`, `PATCH /v1/designations/:id` |
+| People | `GET /v1/users`, `GET /v1/users/:id`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/users/:id/history`, `POST /v1/users/:id/transfers`, `GET /v1/users/:id/transfers`, `POST /v1/users/:id/transfers/:transferId/cancel`, `GET /v1/org-chart`, `GET /v1/user-fields`, `PUT /v1/user-fields`, `GET /v1/roles`, `POST /v1/roles`, `PATCH /v1/roles/:id`, `GET /v1/designations`, `POST /v1/designations`, `PATCH /v1/designations/:id` |
 | Territories | `GET /v1/territories`, `POST /v1/territories`, `PATCH /v1/territories/:id` |
 | Accounts | `GET /v1/accounts`, `POST /v1/accounts`, `PATCH /v1/accounts/:id`, `GET /v1/accounts/:id/overview`, `POST /v1/accounts/:id/location-proposals`, `GET /v1/account-types`, `POST /v1/account-types/:id/versions` |
 | Forms | `GET /v1/forms`, `POST /v1/forms`, `POST /v1/forms/:id/versions` (publish) |

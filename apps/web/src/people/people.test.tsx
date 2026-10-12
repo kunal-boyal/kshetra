@@ -1,0 +1,439 @@
+import { ApiError } from '@kshetra/api-client';
+import { SETTING_DEFAULTS } from '@kshetra/shared';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import type { WebClient } from '../client';
+import { LanguageProvider } from '../i18n';
+import { createAppRouter } from '../router';
+
+const TENANT = { id: '01a10000-0000-7000-8000-000000000001', name: 'Sunrise Traders', cellUrl: '' };
+const ADMIN = '01a10000-0000-7000-8000-000000000002';
+const PRIYA = '01a10000-0000-7000-8000-000000000003';
+const RAHUL = '01a10000-0000-7000-8000-000000000004';
+const DELHI = '01a10000-0000-7000-8000-000000000010';
+
+const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
+const DESIGNATIONS = [
+  { key: 'head', name: noun('Head', 'Heads'), level: 1, ranked: false },
+  { key: 'manager', name: noun('Manager', 'Managers'), level: 2, ranked: false },
+  { key: 'executive', name: noun('Executive', 'Executives'), level: 3, ranked: true },
+];
+
+function person(id: string, name: string, overrides: Record<string, unknown> = {}) {
+  return {
+    id,
+    code: `SUN-${id.slice(-3)}`,
+    name,
+    phone: '+919000000004',
+    email: null,
+    designation: 'executive',
+    role: 'field_user',
+    managerId: PRIYA,
+    manager: { id: PRIYA, code: 'SUN-003', name: 'Priya Nair' },
+    joiningDate: '2026-04-01',
+    exitDate: null,
+    status: 'active',
+    territories: [{ id: DELHI, code: 'N-DEL', name: 'Delhi Area' }],
+    custom: {},
+    createdAt: '2026-10-06T07:00:00.000Z',
+    updatedAt: '2026-10-06T07:00:00.000Z',
+    device: null,
+    ...overrides,
+  };
+}
+
+const RAHUL_VIEW = person(RAHUL, 'Rahul Verma', {
+  device: {
+    id: '01a10000-0000-7000-8000-000000000020',
+    platform: 'android',
+    model: 'Field phone',
+    osVersion: '15',
+    appVersion: '0.2.0',
+    boundAt: '2026-10-06T07:00:00.000Z',
+    lastSeenAt: '2026-10-07T08:00:00.000Z',
+    health: {
+      appVersion: '0.2.0',
+      osVersion: '15',
+      permissions: {},
+      queue: { queued: 2, parked: 1, oldestQueuedAt: null },
+      lastSyncAt: '2026-10-07T08:00:00.000Z',
+      receivedAt: '2026-10-07T08:00:00.000Z',
+      clockSkewSeconds: 0,
+    },
+  },
+});
+const PRIYA_VIEW = person(PRIYA, 'Priya Nair', {
+  designation: 'manager',
+  role: 'manager',
+  manager: null,
+  managerId: null,
+  territories: [],
+});
+
+type Answer = (body: unknown) => unknown;
+
+/** A signed-in admin's client: GETs answer from `pages`, writes from `writes`, by path. */
+function fakeClient(writes: Record<string, Answer> = {}) {
+  const pages: Record<string, unknown> = {
+    '/v1/users': { items: [PRIYA_VIEW, RAHUL_VIEW], nextCursor: null },
+    [`/v1/users/${RAHUL}`]: RAHUL_VIEW,
+    [`/v1/users/${PRIYA}`]: PRIYA_VIEW,
+    [`/v1/users/${RAHUL}/transfers`]: { items: [] },
+    [`/v1/users/${RAHUL}/history`]: {
+      items: [
+        {
+          id: '01a10000-0000-7000-8000-000000000030',
+          actor: { kind: 'system', id: null },
+          action: 'user.created',
+          target: { type: 'user', id: RAHUL },
+          before: null,
+          after: null,
+          ip: null,
+          deviceId: null,
+          supportGrantId: null,
+          createdAt: '2026-10-06T07:00:00.000Z',
+        },
+      ],
+      nextCursor: null,
+    },
+    '/v1/org-chart': {
+      items: [
+        {
+          id: PRIYA,
+          code: 'SUN-003',
+          name: 'Priya Nair',
+          designation: 'manager',
+          status: 'active',
+          managerId: null,
+          reports: 1,
+          team: { executive: 1 },
+        },
+      ],
+      totals: { manager: 1, executive: 1 },
+    },
+    [`/v1/org-chart?managerId=${PRIYA}`]: {
+      items: [
+        {
+          id: RAHUL,
+          code: 'SUN-004',
+          name: 'Rahul Verma',
+          designation: 'executive',
+          status: 'active',
+          managerId: PRIYA,
+          reports: 0,
+          team: {},
+        },
+      ],
+      totals: { executive: 1 },
+    },
+    '/v1/territories': {
+      items: [
+        { id: DELHI, parentId: null, level: 1, code: 'N-DEL', name: 'Delhi Area', active: true },
+      ],
+    },
+    '/v1/user-fields': {
+      fields: [
+        {
+          key: 'hq',
+          type: 'short_text',
+          label: { en: 'HQ', hi: 'मुख्यालय' },
+          required: false,
+          maxLength: 200,
+        },
+      ],
+      retired: [],
+    },
+    '/v1/roles': {
+      items: [
+        {
+          id: '01a10000-0000-7000-8000-000000000040',
+          key: 'field_user',
+          name: { en: 'Field user', hi: 'फ़ील्ड यूज़र' },
+          scope: 'self',
+          permissions: ['shift.use'],
+          mobileOnly: true,
+          system: true,
+        },
+      ],
+    },
+    '/v1/designations': {
+      items: DESIGNATIONS.map((designation, index) => ({
+        ...designation,
+        id: `01a10000-0000-7000-8000-00000000005${index}`,
+        defaultRole: 'field_user',
+        canHaveReports: designation.level < 3,
+      })),
+    },
+  };
+  const request = vi.fn(
+    async (
+      method: string,
+      path: string,
+      _schema: unknown,
+      options: { body?: unknown; idempotencyKey?: string } = {},
+    ) => {
+      const bare = path.split('?')[0]!;
+      if (method === 'GET') {
+        if (path in pages) return pages[path];
+        if (bare in pages) return pages[bare];
+        throw new ApiError(404, 'NOT_FOUND', `Nothing at ${path}`);
+      }
+      const answer = writes[`${method} ${bare}`];
+      if (!answer) throw new ApiError(404, 'NOT_FOUND', `Nothing at ${method} ${path}`);
+      return answer(options.body);
+    },
+  );
+  return {
+    request,
+    session: { tenant: TENANT, accessToken: 'a1', accessTokenExpiresAt: '' },
+    restore: vi.fn(async () => null),
+    signOut: vi.fn(async () => {}),
+    switchTenant: vi.fn(),
+    me: vi.fn(async () => ({
+      userId: ADMIN,
+      tenantId: TENANT.id,
+      cell: 'local',
+      code: 'SUN-001',
+      name: 'Anita Rao',
+      designation: 'head',
+      role: 'tenant_admin',
+      scope: 'tenant',
+      permissions: [],
+      deviceId: null,
+    })),
+    config: vi.fn(async () => ({
+      status: 'fresh',
+      etag: '"1-role"',
+      bundle: {
+        version: 1,
+        settings: SETTING_DEFAULTS,
+        terminology: {},
+        designations: DESIGNATIONS,
+        access: {
+          role: 'tenant_admin',
+          scope: 'tenant',
+          permissions: [
+            'user.view',
+            'user.manage',
+            'user.reset_device',
+            'user.sign_out_all',
+            'role.manage',
+            'designation.manage',
+            'settings.manage',
+          ],
+        },
+      },
+    })),
+  };
+}
+
+function renderAt(path: string, client: ReturnType<typeof fakeClient>) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createAppRouter({ client: client as unknown as WebClient, queryClient });
+  const memory = createRouter({
+    ...router.options,
+    history: createMemoryHistory({ initialEntries: [path] }),
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <RouterProvider router={memory} />
+      </LanguageProvider>
+    </QueryClientProvider>,
+  );
+  return memory;
+}
+
+const writes = (client: ReturnType<typeof fakeClient>) =>
+  client.request.mock.calls.filter(([method]) => method !== 'GET');
+
+describe('the people table', () => {
+  it('shows each person with their designation, manager, territory and phone, and searches', async () => {
+    const client = fakeClient();
+    renderAt('/people', client);
+    const table = await screen.findByRole('table', { name: 'People in your organisation' });
+    const rahul = within(table).getByRole('row', { name: /Rahul Verma/ });
+    expect(rahul).toHaveTextContent('Executive');
+    expect(rahul).toHaveTextContent('Priya Nair');
+    expect(rahul).toHaveTextContent('Delhi Area');
+    expect(rahul).toHaveTextContent('Field phone');
+    expect(within(table).getByRole('row', { name: /^Priya Nair/ })).toHaveTextContent('No phone');
+
+    const user = userEvent.setup();
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'rah');
+    await waitFor(() =>
+      expect(client.request).toHaveBeenCalledWith(
+        'GET',
+        '/v1/users?q=rah&status=active&limit=50',
+        expect.anything(),
+      ),
+    );
+  });
+});
+
+describe("a person's page", () => {
+  it('shows their phone, and resets it only after asking, warning of unsent records', async () => {
+    const client = fakeClient({ [`POST /v1/users/${RAHUL}/reset-device`]: () => undefined });
+    renderAt(`/people/${RAHUL}`, client);
+    expect(await screen.findByRole('heading', { name: 'Rahul Verma' })).toBeInTheDocument();
+    const phone = screen.getByRole('region', { name: 'Phone' });
+    expect(phone).toHaveTextContent('2 waiting, 1 refused');
+    expect(screen.getByRole('region', { name: 'History' })).toHaveTextContent('Added');
+
+    const user = userEvent.setup();
+    await user.click(within(phone).getByRole('button', { name: 'Reset phone' }));
+    const question = screen.getByRole('group', { name: /Reset Rahul Verma's phone/ });
+    expect(question).toHaveTextContent('3 records not yet uploaded');
+    expect(writes(client)).toEqual([]);
+    await user.click(within(question).getByRole('button', { name: 'Reset phone' }));
+    expect(await screen.findByText('The phone is reset.')).toBeInTheDocument();
+    expect(writes(client)).toEqual([
+      [
+        'POST',
+        `/v1/users/${RAHUL}/reset-device`,
+        expect.anything(),
+        { idempotencyKey: expect.any(String) },
+      ],
+    ]);
+  });
+
+  it('says so when the person is out of reach', async () => {
+    const client = fakeClient();
+    renderAt('/people/01a10000-0000-7000-8000-000000000099', client);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This was not found. It may have been removed.',
+    );
+  });
+});
+
+describe('adding a person', () => {
+  it('sends what was entered, and shows the server’s problems by field', async () => {
+    let tries = 0;
+    const client = fakeClient({
+      'POST /v1/users': () => {
+        tries += 1;
+        if (tries === 1) {
+          throw new ApiError(409, 'CONFLICT', 'Taken.', [
+            { path: 'code', issue: 'Another user has this code' },
+          ]);
+        }
+        return { ...RAHUL_VIEW, id: RAHUL };
+      },
+    });
+    const router = renderAt('/people/new', client);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Code *'), 'SUN-009');
+    await user.type(screen.getByLabelText('Name *'), 'Nisha New');
+    await user.selectOptions(screen.getByLabelText('Designation *'), 'executive');
+    await user.click(screen.getByRole('checkbox', { name: /Delhi Area/ }));
+    await user.type(screen.getByLabelText('HQ'), 'Karnal');
+    await user.click(screen.getByRole('button', { name: 'Add person' }));
+    expect(await screen.findByText('Another user has this code')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add person' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/people/${RAHUL}`));
+    expect(writes(client)[0]![3]).toMatchObject({
+      body: {
+        code: 'SUN-009',
+        name: 'Nisha New',
+        designation: 'executive',
+        managerId: null,
+        territoryIds: [DELHI],
+        custom: { hq: 'Karnal' },
+      },
+    });
+  });
+});
+
+describe('a transfer', () => {
+  it('sends only what changes, from the chosen day', async () => {
+    const client = fakeClient({
+      [`POST /v1/users/${RAHUL}/transfers`]: (body) => ({ id: 't', ...(body as object) }),
+    });
+    const router = renderAt(`/people/${RAHUL}/transfer`, client);
+    const user = userEvent.setup();
+    const from = await screen.findByLabelText('From *');
+    await user.clear(from);
+    await user.type(from, '2030-01-15');
+    await user.click(screen.getByRole('button', { name: 'Transfer' }));
+    expect(await screen.findByText('Choose something to change.')).toBeInTheDocument();
+    expect(writes(client)).toEqual([]);
+
+    await user.selectOptions(screen.getByLabelText('Designation'), 'manager');
+    await user.click(screen.getByRole('button', { name: 'Transfer' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/people/${RAHUL}`));
+    expect(writes(client)[0]![3]).toMatchObject({
+      body: { effectiveDate: '2030-01-15', designation: 'manager' },
+    });
+  });
+});
+
+describe('the organisation chart', () => {
+  it('shows team counts, and opens a level on request', async () => {
+    renderAt('/org-chart', fakeClient());
+    expect(await screen.findByText('1 Manager · 1 Executive')).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: "Show Priya Nair's team" }));
+    expect(await screen.findByRole('link', { name: 'Rahul Verma' })).toBeInTheDocument();
+  });
+});
+
+describe('settings', () => {
+  it('adds a role with the permissions ticked', async () => {
+    const client = fakeClient({ 'POST /v1/roles': (body) => body });
+    renderAt('/settings/roles', client);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Add a role' }));
+    const form = screen.getByRole('form', { name: 'New role' });
+    await user.type(within(form).getByLabelText('Key *'), 'area_lead');
+    await user.type(within(form).getByLabelText('Name in English *'), 'Area lead');
+    await user.type(within(form).getByLabelText('Name in Hindi *'), 'क्षेत्र प्रमुख');
+    await user.selectOptions(within(form).getByLabelText('Whose records it reaches'), 'team');
+    await user.click(within(form).getByRole('checkbox', { name: /View people/ }));
+    await user.click(within(form).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(writes(client)).toHaveLength(1));
+    expect(writes(client)[0]![3]).toMatchObject({
+      body: {
+        key: 'area_lead',
+        name: { en: 'Area lead', hi: 'क्षेत्र प्रमुख' },
+        scope: 'team',
+        mobileOnly: false,
+        permissions: ['user.view'],
+      },
+      idempotencyKey: expect.any(String),
+    });
+  });
+
+  it('saves the people fields as a whole list', async () => {
+    const client = fakeClient({
+      'PUT /v1/user-fields': (body) => ({ ...(body as object), retired: [] }),
+    });
+    renderAt('/settings/people-fields', client);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Add a field' }));
+    const keys = screen.getAllByLabelText('Key *');
+    await user.type(keys[1]!, 'crops');
+    await user.selectOptions(screen.getAllByLabelText('Type')[1]!, 'multi_select');
+    await user.type(screen.getAllByLabelText('Label in English *')[1]!, 'Crops');
+    await user.type(screen.getByLabelText('Choices'), 'paddy | Paddy | धान');
+    await user.click(screen.getByRole('button', { name: 'Save fields' }));
+    expect(await screen.findByText('Saved.')).toBeInTheDocument();
+    expect(writes(client)[0]![3]).toMatchObject({
+      body: {
+        fields: [
+          { key: 'hq', type: 'short_text', label: { en: 'HQ', hi: 'मुख्यालय' } },
+          {
+            key: 'crops',
+            type: 'multi_select',
+            label: { en: 'Crops', hi: 'Crops' },
+            required: false,
+            options: [{ key: 'paddy', label: { en: 'Paddy', hi: 'धान' } }],
+          },
+        ],
+      },
+    });
+  });
+});

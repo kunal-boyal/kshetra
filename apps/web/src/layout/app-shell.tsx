@@ -1,10 +1,11 @@
 import { Button, Icon } from '@kshetra/ui-web';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { House, LogOut, Repeat } from 'lucide-react';
+import { House, LogOut, Network, Repeat, Settings, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
+import { useAccess } from '../people/data';
 import { savedTenants } from '../preferences';
 import { Brand } from './brand';
 import { LanguagePicker, ThemePicker } from './preferences-menu';
@@ -21,6 +22,22 @@ export function AppShell() {
   const [error, setError] = useState<string>();
   const tenant = client.session?.tenant;
   const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
+  const access = useAccess();
+  // Only what the person may use (spec 8.2); each module adds its entry when it arrives.
+  const links = [
+    { to: '/', icon: House, label: t('shell.home') },
+    ...(access.can('user.view')
+      ? [
+          { to: '/people', icon: Users, label: t('nav.people') },
+          { to: '/org-chart', icon: Network, label: t('nav.org_chart') },
+        ]
+      : []),
+    ...(access.can('role.manage') ||
+    access.can('designation.manage') ||
+    access.can('settings.manage')
+      ? [{ to: '/settings', icon: Settings, label: t('nav.settings') }]
+      : []),
+  ];
 
   useEffect(() => {
     setTerms(config.data?.bundle.terminology);
@@ -49,16 +66,21 @@ export function AppShell() {
       >
         <Brand />
         <ul className="flex flex-col gap-1">
-          <li>
-            <Link
-              to="/"
-              className="ks-btn ghost block justify-start"
-              activeProps={{ 'aria-current': 'page', className: 'tonal' }}
-            >
-              <Icon icon={House} />
-              {t('shell.home')}
-            </Link>
-          </li>
+          {links.map((link) => (
+            <li key={link.to}>
+              <Link
+                to={link.to}
+                className="ks-btn ghost block"
+                // The button style centres its content; a menu reads from the start.
+                style={{ justifyContent: 'flex-start' }}
+                activeOptions={{ exact: link.to === '/' }}
+                activeProps={{ 'aria-current': 'page', className: 'tonal' }}
+              >
+                <Icon icon={link.icon} />
+                {link.label}
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
       <div className="flex min-w-0 flex-col">

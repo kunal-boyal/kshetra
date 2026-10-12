@@ -1,7 +1,9 @@
+import type { CustomField } from '@kshetra/forms';
 import {
   DATA_SCOPES,
   type LocalizedNoun,
   type LocalizedText,
+  TRANSFER_STATUSES,
   USER_STATUSES,
 } from '@kshetra/shared';
 import { sql } from 'drizzle-orm';
@@ -31,6 +33,7 @@ import { cell, changeColumns, isolation, rowVersionColumn } from './common';
 export const dataScope = cell.enum('data_scope', DATA_SCOPES);
 export const userStatus = cell.enum('user_status', USER_STATUSES);
 export const devicePlatform = cell.enum('device_platform', ['android', 'ios', 'web']);
+export const transferStatus = cell.enum('transfer_status', TRANSFER_STATUSES);
 
 export const roles = cell
   .table(
@@ -198,6 +201,70 @@ export const devices = cell
       uniqueIndex('devices_tenant_user_key').on(table.tenantId, table.userId, table.deviceKeyHash),
       foreignKey({
         name: 'devices_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * The tenant's custom user fields (spec 5.3): those in use, in order, and the retired ones, whose
+ * keys stay taken with their types. One row per tenant, written when it first defines a field.
+ */
+export const userFields = cell
+  .table(
+    'user_fields',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      fields: jsonb('fields').$type<CustomField[]>().notNull().default([]),
+      retired: jsonb('retired').$type<CustomField[]>().notNull().default([]),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedBy: uuid('updated_by'),
+    },
+    (table) => [primaryKey({ columns: [table.tenantId] }), isolation()],
+  )
+  .enableRLS();
+
+/** What a transfer changes. Managers and territories by ID, designations and roles by key. */
+export interface TransferChanges {
+  managerId?: string | null;
+  designation?: string;
+  role?: string;
+  territoryIds?: string[];
+}
+
+/**
+ * Moves to another manager, designation, role or territories from a date on (M3). A transfer
+ * dated today applies when it is made; a later one waits as `scheduled` until the tenant's day
+ * comes, and its references are checked again then.
+ */
+export const userTransfers = cell
+  .table(
+    'user_transfers',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      userId: uuid('user_id').notNull(),
+      effectiveDate: date('effective_date').notNull(),
+      changes: jsonb('changes').$type<TransferChanges>().notNull(),
+      status: transferStatus('status').notNull().default('scheduled'),
+      reason: text('reason'),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      createdBy: uuid('created_by'),
+      appliedAt: timestamp('applied_at', { withTimezone: true }),
+      cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+      cancelledBy: uuid('cancelled_by'),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      index('user_transfers_tenant_user').on(table.tenantId, table.userId, table.effectiveDate),
+      index('user_transfers_due')
+        .on(table.tenantId, table.effectiveDate)
+        .where(sql`${table.status} = 'scheduled'`),
+      foreignKey({
+        name: 'user_transfers_user_fk',
         columns: [table.tenantId, table.userId],
         foreignColumns: [users.tenantId, users.id],
       }),

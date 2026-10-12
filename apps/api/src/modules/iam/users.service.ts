@@ -4,18 +4,37 @@ import {
   canGrant,
   type CreateUserBody,
   type DataScope,
+  type DeviceHealth,
+  type DeviceSummary,
   type MeResult,
   newId,
   normalisePhone,
   TENANT_PERMISSIONS,
   type TenantPermission,
   type TenantSettings,
+  todayIn,
   type UpdateUserBody,
   type UserListQuery,
   type UserListResult,
   type UserResult,
+  type UserView,
 } from '@kshetra/shared';
-import { and, asc, count, eq, gt, isNull, ne, or, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  ilike,
+  inArray,
+  isNull,
+  like,
+  ne,
+  or,
+  type SQL,
+} from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { designations, devices, roles, users } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
@@ -32,8 +51,10 @@ import {
   uniqueViolation,
 } from './actor';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { TerritoriesService } from '../territories/territories.service';
 import { ReportingTree } from './reporting-tree';
 import { Scopes } from './scopes';
+import { UserFieldsService } from './user-fields.service';
 
 type UserRow = typeof users.$inferSelect;
 
@@ -44,6 +65,8 @@ interface RoleRef {
   permissions: TenantPermission[];
 }
 
+const managers = alias(users, 'managers');
+
 const selection = {
   id: users.id,
   code: users.code,
@@ -53,20 +76,43 @@ const selection = {
   designation: designations.key,
   role: roles.key,
   managerId: users.managerId,
+  managerCode: managers.code,
+  managerName: managers.name,
   joiningDate: users.joiningDate,
   exitDate: users.exitDate,
   status: users.status,
+  custom: users.custom,
   createdAt: users.createdAt,
   updatedAt: users.updatedAt,
 };
 
-type SelectedUser = Omit<UserResult, 'createdAt' | 'updatedAt'> & {
+interface SelectedUser extends Omit<
+  UserResult,
+  'createdAt' | 'updatedAt' | 'manager' | 'territories'
+> {
+  managerCode: string | null;
+  managerName: string | null;
   createdAt: Date;
   updatedAt: Date;
-};
+}
 
-function toResult(row: SelectedUser): UserResult {
-  return { ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString() };
+function toResult(row: SelectedUser, territories: UserResult['territories']): UserResult {
+  const { managerCode, managerName, ...user } = row;
+  return {
+    ...user,
+    manager:
+      row.managerId && managerCode !== null && managerName !== null
+        ? { id: row.managerId, code: managerCode, name: managerName }
+        : null,
+    territories,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+/** `value` anywhere in a column, with the LIKE wildcards in it taken literally. */
+function containing(value: string): string {
+  return `%${value.replace(/[\\%_]/g, '\\$&')}%`;
 }
 
 function parsePhone(raw: string, country: TenantSettings['defaultCountry']): string {
@@ -98,15 +144,30 @@ export class UsersService {
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
     private readonly config: TenantConfigService,
+    private readonly territories: TerritoriesService,
+    private readonly fields: UserFieldsService,
   ) {}
 
   async list(tx: TenantTx, access: Access, query: UserListQuery): Promise<UserListResult> {
+    let search: SQL | undefined;
+    if (query.q) {
+      // A number matches mobile numbers too; it is never logged, as query strings never are.
+      const digits = query.q.replace(/[\s()+-]/g, '');
+      search = or(
+        ilike(users.name, containing(query.q)),
+        ilike(users.code, containing(query.q)),
+        /^\d{3,}$/.test(digits) ? like(users.phoneE164, containing(digits)) : undefined,
+      );
+    }
     const rows = await this.query(tx)
       .where(
         and(
           eq(users.tenantId, access.tenantId),
           await this.scopes.users(tx, access),
           query.status ? eq(users.status, query.status) : undefined,
+          query.designation ? eq(designations.key, query.designation) : undefined,
+          query.managerId ? eq(users.managerId, query.managerId) : undefined,
+          search,
           query.cursor ? gt(users.id, query.cursor) : undefined,
         ),
       )
@@ -114,15 +175,16 @@ export class UsersService {
       .limit(query.limit + 1);
     const page = rows.slice(0, query.limit);
     return {
-      items: page.map(toResult),
+      items: await this.views(tx, access.tenantId, await this.results(tx, access.tenantId, page)),
       nextCursor: rows.length > query.limit ? page[page.length - 1]!.id : null,
     };
   }
 
-  async get(tx: TenantTx, access: Access, id: string): Promise<UserResult> {
+  async get(tx: TenantTx, access: Access, id: string): Promise<UserView> {
     const user = await this.read(tx, access.tenantId, id);
     if (!(await this.scopes.reaches(tx, access, id))) throw outOfScope();
-    return user;
+    const [view] = await this.views(tx, access.tenantId, [user]);
+    return view!;
   }
 
   /** `GET /v1/me`: the caller's own profile and access. */
@@ -169,6 +231,7 @@ export class UsersService {
       await this.tree.lock(tx, tenantId);
       await this.checkManager(tx, tenantId, null, input.managerId);
     }
+    const custom = await this.fields.values(tx, tenantId, null, input.custom);
 
     const id = newId();
     const by = actorId(actor);
@@ -185,11 +248,21 @@ export class UsersService {
         managerId: input.managerId,
         joiningDate: input.joiningDate ?? null,
         exitDate: input.exitDate ?? null,
+        custom,
         createdBy: by,
         updatedBy: by,
       }),
     );
     await this.tree.add(tx, tenantId, id, input.managerId);
+    if (input.territoryIds.length > 0) {
+      await this.territories.replaceAttachments(
+        tx,
+        tenantId,
+        id,
+        input.territoryIds,
+        await this.today(tx, tenantId),
+      );
+    }
     const created = await this.read(tx, tenantId, id);
     await this.audit.record(tx, tenantId, auditActor(actor), {
       action: 'user.created',
@@ -283,6 +356,11 @@ export class UsersService {
       );
     }
 
+    const custom =
+      input.custom === undefined
+        ? current.custom
+        : await this.fields.values(tx, tenantId, current.custom, input.custom);
+
     const changes: Partial<typeof users.$inferInsert> = {
       ...(code !== current.code ? { code } : {}),
       ...(input.name !== undefined && input.name !== current.name ? { name: input.name } : {}),
@@ -298,6 +376,7 @@ export class UsersService {
       ...(joiningDate !== current.joiningDate ? { joiningDate } : {}),
       ...(exitDate !== current.exitDate ? { exitDate } : {}),
       ...(status !== current.status ? { status } : {}),
+      ...(JSON.stringify(custom) !== JSON.stringify(current.custom) ? { custom } : {}),
     };
     const before = await this.read(tx, tenantId, id);
     if (Object.keys(changes).length === 0) return before;
@@ -327,6 +406,48 @@ export class UsersService {
       authRevision,
     });
     return after;
+  }
+
+  /**
+   * Checks a move a transfer will make on a later day, by the rules `update` applies: the actor
+   * may change this person and grant the role, the designation and role exist, and the manager
+   * is active, can have reports, makes no loop and is someone the actor reaches. The day of the
+   * transfer checks everything again.
+   */
+  async checkMove(
+    tx: TenantTx,
+    tenantId: string,
+    actor: Actor,
+    id: string,
+    move: {
+      managerId?: string | null | undefined;
+      designation?: string | undefined;
+      role?: string | undefined;
+    },
+  ): Promise<void> {
+    const current = await this.lock(tx, tenantId, id);
+    if (actor !== SYSTEM) {
+      if (!(await this.scopes.reaches(tx, actor, id))) throw outOfScope();
+      if (!canGrant(actor, await this.roleById(tx, tenantId, current.roleId))) {
+        throw beyondOwnAccess();
+      }
+    }
+    if (move.designation) await this.designation(tx, tenantId, move.designation);
+    if (move.role) {
+      const role = await this.roleByKey(tx, tenantId, move.role);
+      if (actor !== SYSTEM) {
+        if (!canGrant(actor, role)) throw beyondOwnAccess();
+        if (actor.userId === id && role.id !== current.roleId) throw ownRoleOrStatus();
+      }
+    }
+    if (move.managerId !== undefined && move.managerId !== current.managerId) {
+      if (actor !== SYSTEM && actor.scope !== 'tenant') {
+        if (move.managerId === null || !(await this.scopes.reaches(tx, actor, move.managerId))) {
+          throw outOfScope();
+        }
+      }
+      if (move.managerId !== null) await this.checkManager(tx, tenantId, id, move.managerId);
+    }
   }
 
   /**
@@ -491,7 +612,74 @@ export class UsersService {
   private async read(tx: TenantTx, tenantId: string, id: string): Promise<UserResult> {
     const [row] = await this.query(tx).where(and(eq(users.tenantId, tenantId), eq(users.id, id)));
     if (!row) throw notFound();
-    return toResult(row);
+    const [user] = await this.results(tx, tenantId, [row]);
+    return user!;
+  }
+
+  /** "Today" on the tenant's calendar, for attachments. */
+  private async today(tx: TenantTx, tenantId: string): Promise<string> {
+    return todayIn((await this.config.settings(tx, tenantId)).timezone);
+  }
+
+  /** Rows as results, with each user's territories today. */
+  private async results(
+    tx: TenantTx,
+    tenantId: string,
+    rows: readonly SelectedUser[],
+  ): Promise<UserResult[]> {
+    if (rows.length === 0) return [];
+    const attached = await this.territories.attachmentsOf(
+      tx,
+      tenantId,
+      rows.map((row) => row.id),
+      await this.today(tx, tenantId),
+    );
+    return rows.map((row) => toResult(row, attached.get(row.id) ?? []));
+  }
+
+  /** Results with the phone each user is bound to, if any: the one bound last and not reset. */
+  private async views(
+    tx: TenantTx,
+    tenantId: string,
+    results: readonly UserResult[],
+  ): Promise<UserView[]> {
+    if (results.length === 0) return [];
+    const bound = await tx
+      .selectDistinctOn([devices.userId], {
+        userId: devices.userId,
+        id: devices.id,
+        platform: devices.platform,
+        model: devices.model,
+        osVersion: devices.osVersion,
+        appVersion: devices.appVersion,
+        boundAt: devices.boundAt,
+        lastSeenAt: devices.lastSeenAt,
+        health: devices.health,
+      })
+      .from(devices)
+      .where(
+        and(
+          eq(devices.tenantId, tenantId),
+          inArray(
+            devices.userId,
+            results.map((user) => user.id),
+          ),
+          isNull(devices.revokedAt),
+        ),
+      )
+      .orderBy(devices.userId, desc(devices.boundAt));
+    const byUser = new Map(
+      bound.map(({ userId, boundAt, lastSeenAt, health, ...device }): [string, DeviceSummary] => [
+        userId,
+        {
+          ...device,
+          boundAt: boundAt?.toISOString() ?? null,
+          lastSeenAt: lastSeenAt?.toISOString() ?? null,
+          health: (health as DeviceHealth | null) ?? null,
+        },
+      ]),
+    );
+    return results.map((user) => ({ ...user, device: byUser.get(user.id) ?? null }));
   }
 
   private query(tx: TenantTx) {
@@ -503,6 +691,10 @@ export class UsersService {
         and(eq(designations.tenantId, users.tenantId), eq(designations.id, users.designationId)),
       )
       .innerJoin(roles, and(eq(roles.tenantId, users.tenantId), eq(roles.id, users.roleId)))
+      .leftJoin(
+        managers,
+        and(eq(managers.tenantId, users.tenantId), eq(managers.id, users.managerId)),
+      )
       .$dynamic();
   }
 

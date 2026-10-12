@@ -31,6 +31,7 @@ export class CellSetup {
     await this.iam.applyTemplate(tx, tenantId, {
       roles: template.roles,
       designations: template.designations,
+      userFields: template.userFields,
     });
     await this.territories.applyLevels(tx, tenantId, template.geographyLevels);
   }

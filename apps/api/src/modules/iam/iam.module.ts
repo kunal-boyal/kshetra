@@ -9,11 +9,17 @@ import { DesignationsService } from './designations.service';
 import { DevicesController } from './devices.controller';
 import { DevicesService } from './devices.service';
 import { MeController } from './me.controller';
+import { OrgChartController } from './org-chart.controller';
+import { OrgChartService } from './org-chart.service';
 import { ReportingTree } from './reporting-tree';
 import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
 import { Scopes } from './scopes';
 import { IamSetup } from './setup.service';
+import { TransfersController } from './transfers.controller';
+import { TransfersService } from './transfers.service';
+import { UserFieldsController } from './user-fields.controller';
+import { UserFieldsService } from './user-fields.service';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { UsersSync } from './users.sync';
@@ -31,6 +37,9 @@ import { UsersSync } from './users.sync';
     RolesController,
     DesignationsController,
     DevicesController,
+    TransfersController,
+    OrgChartController,
+    UserFieldsController,
   ],
   providers: [
     IamAccess,
@@ -42,6 +51,9 @@ import { UsersSync } from './users.sync';
     DesignationsService,
     DevicesService,
     UsersSync,
+    UserFieldsService,
+    TransfersService,
+    OrgChartService,
     IamSetup,
   ],
   exports: [IamAccess, IamAdmission, Scopes, UsersService, DesignationsService, IamSetup],
