@@ -45,6 +45,10 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | @types/node | 24.19.1 | Matches the Node 24 runtime, not the newest 26.x |
 | @fastify/cookie | 11.1.2 | The web's refresh cookie (decision D35) |
 | @fastify/cors | 11.3.0 | The `CORS_ORIGINS` allowlist (decision D35) |
+| @aws-sdk/client-s3 | 3.1146.0 | Added 2026-10-12: the object store, S3 in AWS and MinIO locally (decision D42) |
+| read-excel-file | 9.3.10 | Added 2026-10-12: reads `.xlsx` imports. Numbers are read as the text in the cell, so codes and mobile numbers keep their leading zeros (decision D42). |
+| csv-parse | 7.0.3 | Added 2026-10-12: reads `.csv` imports |
+| fflate | 0.8.3 | Added 2026-10-12: reads an `.xlsx` file's zip directory to refuse one that unpacks to more than 200 MB before it is opened (decision D42) |
 
 ## Web (`apps/web`, `packages/ui-web`, `packages/api-client`, added 2026-10-06)
 

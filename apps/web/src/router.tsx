@@ -7,6 +7,8 @@ import {
   redirect,
 } from '@tanstack/react-router';
 import type { WebClient } from './client';
+import { ImportPage } from './imports/import-page';
+import { ImportsPage } from './imports/imports-page';
 import { AppShell } from './layout/app-shell';
 import { HomePage } from './pages/home';
 import { SignInPage } from './pages/sign-in';
@@ -19,6 +21,7 @@ import { DesignationsPage } from './settings/designations-page';
 import { RolesPage } from './settings/roles-page';
 import { SettingsLayout } from './settings/settings-layout';
 import { UserFieldsPage } from './settings/user-fields-page';
+import { TerritoriesPage } from './territories/territories-page';
 
 export interface RouterContext {
   client: WebClient;
@@ -84,6 +87,24 @@ const orgChart = createRoute({
   path: '/org-chart',
   component: OrgChartPage,
 });
+const territories = createRoute({
+  getParentRoute: () => app,
+  path: '/territories',
+  component: TerritoriesPage,
+});
+const imports = createRoute({
+  getParentRoute: () => app,
+  path: '/imports',
+  component: ImportsPage,
+});
+const oneImport = createRoute({
+  getParentRoute: () => app,
+  path: '/imports/$importId',
+  component: function ImportRoute() {
+    const { importId } = oneImport.useParams();
+    return <ImportPage key={importId} importId={importId} />;
+  },
+});
 
 const settings = createRoute({
   getParentRoute: () => app,
@@ -119,6 +140,9 @@ const tree = root.addChildren([
     editPerson,
     transfer,
     orgChart,
+    territories,
+    imports,
+    oneImport,
     settings.addChildren([settingsIndex, roles, designations, userFields]),
   ]),
 ]);

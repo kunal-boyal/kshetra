@@ -11,6 +11,7 @@ const base = {
   DIRECTORY_DATABASE_URL: 'postgres://directory_app:x@localhost:5433/kshetra',
   REDIS_URL: 'redis://localhost:6380',
   OTP_PEPPER: 'a-test-pepper-of-16+',
+  OBJECT_STORE: 'memory',
 };
 
 async function keyFor(env: Record<string, string> = {}) {

@@ -7,6 +7,7 @@ const env = {
   DIRECTORY_DATABASE_URL: 'postgres://directory_app:x@127.0.0.1:5433/kshetra',
   REDIS_URL: 'redis://localhost:6380',
   OTP_PEPPER: 'a-local-pepper-of-16+',
+  S3_BUCKET: 'kshetra-local',
 };
 
 describe('the seed', () => {

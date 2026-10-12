@@ -2,6 +2,7 @@ import { type DynamicModule, Global, Module } from '@nestjs/common';
 import type { Config } from '../config';
 import { AuditLog } from './audit';
 import { Database } from './database';
+import { createObjectStore, ObjectStore } from './object-store';
 import { Outbox } from './outbox';
 import { Queues } from './queues';
 import { RateLimiter } from './rate-limit';
@@ -27,6 +28,7 @@ export class PlatformModule {
         OutboxRelay,
         Queues,
         Schedules,
+        { provide: ObjectStore, useFactory: () => createObjectStore(config) },
       ],
       exports: [
         CONFIG,
@@ -38,6 +40,7 @@ export class PlatformModule {
         OutboxRelay,
         Queues,
         Schedules,
+        ObjectStore,
       ],
     };
   }

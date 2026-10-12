@@ -5,6 +5,7 @@ import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { SYSTEM } from '../iam/actor';
 import { IamSetup } from '../iam/setup.service';
+import { ImportsService } from '../imports/imports.service';
 import { UsersService } from '../iam/users.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
@@ -21,6 +22,7 @@ export class CellSetup {
     private readonly config: TenantConfigService,
     private readonly iam: IamSetup,
     private readonly territories: TerritoriesService,
+    private readonly imports: ImportsService,
     private readonly users: UsersService,
     private readonly outbox: Outbox,
   ) {}
@@ -34,6 +36,7 @@ export class CellSetup {
       userFields: template.userFields,
     });
     await this.territories.applyLevels(tx, tenantId, template.geographyLevels);
+    await this.imports.applyTemplate(tx, tenantId, templateImports(template));
   }
 
   /**
@@ -70,4 +73,16 @@ export class CellSetup {
       return admin;
     });
   }
+}
+
+/** A template's import aliases by target: `users`, `items`, and `accounts:<type>` for each type. */
+export function templateImports(template: Template) {
+  const { users, accounts, items } = template.imports;
+  return {
+    ...(users ? { users } : {}),
+    ...(items ? { items } : {}),
+    ...Object.fromEntries(
+      Object.entries(accounts ?? {}).map(([type, target]) => [`accounts:${type}`, target]),
+    ),
+  };
 }

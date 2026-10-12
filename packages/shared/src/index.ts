@@ -114,7 +114,29 @@ export {
   UserStatus,
   UserView,
 } from './schemas/iam';
-export { TerritoryListQuery, TerritoryListResult, TerritoryResult } from './schemas/territories';
+export {
+  CreateTerritoryBody,
+  TerritoryLevel,
+  TerritoryListQuery,
+  TerritoryListResult,
+  TerritoryResult,
+  UpdateTerritoryBody,
+} from './schemas/territories';
+export {
+  CreateImportQuery,
+  IMPORT_STATUSES,
+  IMPORT_TARGETS,
+  ImportFieldInfo,
+  ImportListQuery,
+  ImportListResult,
+  ImportPreviewRow,
+  ImportProblem,
+  ImportResult,
+  ImportStatus,
+  ImportSummary,
+  ImportTarget,
+  UpdateImportMappingBody,
+} from './schemas/imports';
 export { ProvisionTenantInput, TenantSlug } from './schemas/provisioning';
 export {
   SYNC_ENTITIES,
@@ -137,6 +159,8 @@ export {
   UpdateSettingsBody,
   withDefaults,
 } from './schemas/tenant-config';
+export { matchName, nameSimilarity, nameWords, normaliseName } from './names';
+export type { NameMatch } from './names';
 export { isOpenTenant, OPEN_TENANT_STATUSES, TENANT_STATUSES } from './tenants';
 export type { TenantStatus } from './tenants';
 export { TERMINOLOGY_KEYS } from './terminology';

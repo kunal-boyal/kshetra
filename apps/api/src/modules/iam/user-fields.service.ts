@@ -117,32 +117,43 @@ export class UserFieldsService {
   ): Promise<Record<string, unknown>> {
     const { fields } = await this.get(tx, tenantId);
     const { timezone } = await this.config.settings(tx, tenantId);
-    const changing = new Set(Object.keys(input));
-    const merged = { ...current };
-    for (const [key, value] of Object.entries(input)) {
-      if (value === null) delete merged[key];
-      else merged[key] = value;
-    }
-    // Stored keys whose fields were retired are kept, and not offered to the check.
-    const live = new Set(fields.map((field) => field.key));
-    const offered = Object.fromEntries(
-      Object.entries(merged).filter(([key]) => live.has(key) || changing.has(key)),
-    );
-    const { values, issues } = checkValues(fields, offered, { today: todayIn(timezone) }, [
-      'custom',
-    ]);
-    const relevant = current
-      ? issues.filter((issue) => changing.has(issue.path.slice('custom.'.length).split(/[.[]/)[0]!))
-      : issues;
-    if (relevant.length > 0) {
-      throw new AppError('VALIDATION', 'Check the highlighted fields.', relevant);
-    }
-    if (!current) return values;
-    const stored = { ...current };
-    for (const key of changing) {
-      if (key in values) stored[key] = values[key];
-      else delete stored[key];
-    }
-    return stored;
+    const { values, issues } = checkCustom(fields, todayIn(timezone), current, input);
+    if (issues.length > 0)
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', issues);
+    return values;
   }
+}
+
+/**
+ * `values` without the database, for imports that check many people against the same fields:
+ * the values to store, or the problems at `custom.<key>`.
+ */
+export function checkCustom(
+  fields: readonly CustomField[],
+  today: string,
+  current: Record<string, unknown> | null,
+  input: Record<string, unknown>,
+): { values: Record<string, unknown>; issues: ErrorDetail[] } {
+  const changing = new Set(Object.keys(input));
+  const merged = { ...current };
+  for (const [key, value] of Object.entries(input)) {
+    if (value === null) delete merged[key];
+    else merged[key] = value;
+  }
+  // Stored keys whose fields were retired are kept, and not offered to the check.
+  const live = new Set(fields.map((field) => field.key));
+  const offered = Object.fromEntries(
+    Object.entries(merged).filter(([key]) => live.has(key) || changing.has(key)),
+  );
+  const { values, issues } = checkValues(fields, offered, { today }, ['custom']);
+  const relevant = current
+    ? issues.filter((issue) => changing.has(issue.path.slice('custom.'.length).split(/[.[]/)[0]!))
+    : issues;
+  if (relevant.length > 0 || !current) return { values, issues: relevant };
+  const stored = { ...current };
+  for (const key of changing) {
+    if (key in values) stored[key] = values[key];
+    else delete stored[key];
+  }
+  return { values: stored, issues: [] };
 }

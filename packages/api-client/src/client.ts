@@ -90,6 +90,8 @@ export interface ClientOptions {
 
 export interface RequestOptions {
   body?: unknown;
+  /** A file sent as the body itself, such as an import (M19), in place of a JSON `body`. */
+  file?: { data: Blob; type: string };
   /** For creates and actions without a client-generated ID (spec 11.1, BR-46). */
   idempotencyKey?: string;
   headers?: Record<string, string>;
@@ -268,11 +270,19 @@ export function createClient(options: ClientOptions) {
           authorization: `Bearer ${state.accessToken}`,
           'x-device-time': new Date().toISOString(),
           ...appHeaders,
-          ...(request.body === undefined ? {} : { 'content-type': 'application/json' }),
+          ...(request.file
+            ? { 'content-type': request.file.type }
+            : request.body === undefined
+              ? {}
+              : { 'content-type': 'application/json' }),
           ...(request.idempotencyKey ? { 'idempotency-key': request.idempotencyKey } : {}),
           ...request.headers,
         },
-        ...(request.body === undefined ? {} : { body: JSON.stringify(request.body) }),
+        ...(request.file
+          ? { body: request.file.data }
+          : request.body === undefined
+            ? {}
+            : { body: JSON.stringify(request.body) }),
       });
     let state = await current();
     if (!state) throw new ApiError(401, 'UNAUTHENTICATED', 'Sign in to continue.');

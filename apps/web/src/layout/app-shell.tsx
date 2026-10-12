@@ -1,6 +1,15 @@
 import { Button, Icon } from '@kshetra/ui-web';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { House, LogOut, Network, Repeat, Settings, Users } from 'lucide-react';
+import {
+  FileSpreadsheet,
+  House,
+  LogOut,
+  MapPinned,
+  Network,
+  Repeat,
+  Settings,
+  Users,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
@@ -31,6 +40,12 @@ export function AppShell() {
           { to: '/people', icon: Users, label: t('nav.people') },
           { to: '/org-chart', icon: Network, label: t('nav.org_chart') },
         ]
+      : []),
+    ...(access.can('territory.manage')
+      ? [{ to: '/territories', icon: MapPinned, label: t('nav.territories') }]
+      : []),
+    ...(access.can('import.run')
+      ? [{ to: '/imports', icon: FileSpreadsheet, label: t('nav.imports') }]
       : []),
     ...(access.can('role.manage') ||
     access.can('designation.manage') ||

@@ -1275,9 +1275,12 @@ notification_templates(id, tid NULL, event, channel, locale, body, provider_temp
 notifications(id, tid, user_id, event, channel, payload jsonb, status, provider_ref, error, cost_units,
        created_at, sent_at)                                                  PART monthly
 notification_prefs(tid, user_id, category, muted)
-import_jobs(id, tid, target, file_media_id, mapping jsonb, status, total_rows, error_rows, errors jsonb,
-       created_by, created_at, finished_at)
-import_mappings(id, tid, target, name, mapping jsonb)
+import_jobs(id, tid, target, file_media_id, file_name, sheets jsonb, sheet, header_row, headers jsonb,
+       mapping jsonb, status enum(reading,mapping,validating,ready,invalid,committing,committed,failed),
+       total_rows, error_rows, errors jsonb, preview jsonb, created, updated, created_by, created_at,
+       updated_at, finished_at)                                              IX(tid, created_at)
+import_mappings(id, tid, target, name, mapping jsonb, empty_values jsonb, created_by, updated_at)
+       UQ(tid, target, name)
 export_jobs(id, tid, kind, params jsonb, status, file_media_id NULL, error, requested_by, created_at, finished_at)
 api_clients(id, tid, name, client_id UQ, secret_hash, scopes text[], status, last_used_at)
 webhook_subscriptions(id, tid, url, events text[], secret_encrypted, status)
@@ -1350,7 +1353,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Expenses | `PUT /v1/expense-policies`, `POST /v1/expense-claims`, `POST /v1/expense-claims/:id/receipts`, `POST /v1/expense-claims/:id/paid` |
 | Approvals | `GET /v1/approvals/inbox`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel` |
 | Notifications | `GET /v1/notifications`, `POST /v1/notifications/read`, `PUT /v1/notification-prefs` |
-| Imports and exports | `POST /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports/:id` |
+| Imports and exports | `POST /v1/imports`, `GET /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports/:id` |
 | Integrations | `GET /v1/api-clients`, `POST /v1/api-clients`, `GET /v1/webhooks`, `POST /v1/webhooks`, `POST /v1/webhooks/:id/test`, `GET /v1/webhooks/:id/deliveries`, `POST /v1/bulk/users`, `POST /v1/bulk/accounts`, `POST /v1/bulk/items`, `POST /v1/bulk/ledger-entries`, `POST /v1/bulk/external-metrics` |
 | Audit | `GET /v1/audit` |
 | Platform console | `POST /platform/v1/tenants`, `PATCH /platform/v1/tenants/:id`, `GET /platform/v1/usage`, `POST /platform/v1/support-grants`, plus plans, invoices and feature flags |
@@ -2082,7 +2085,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `OUTBOX_RELAY`, `OUTBOX_POLL_MS`, `SCHEDULER_TICK_MS` | Whether a process runs the outbox relay (the worker does by default) and how often it polls; how often the scheduler looks for tenants' scheduled moments |
 | `SYNC_EPOCH` | Carried by every sync cursor; raising it after the cell's database is restored or moved makes every phone take a full copy (decision D40) |
 | `JWT_SIGNING_KEY` (directory), `JWKS_URL` (cells), `OTP_PEPPER`, `COLUMN_ENCRYPTION_KEY_ID` | Token signing and verification, OTP hashing, KMS key for encrypted columns |
-| `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `CLOUDFRONT_DOMAIN`, `CLOUDFRONT_KEY_ID`, `CLOUDFRONT_PRIVATE_KEY` | Media storage and signed reads |
+| `OBJECT_STORE`, `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `CLOUDFRONT_DOMAIN`, `CLOUDFRONT_KEY_ID`, `CLOUDFRONT_PRIVATE_KEY` | Media storage and signed reads. `OBJECT_STORE` is `s3`, or `memory` in tests only. The endpoint and keys are MinIO's locally; in AWS they stay unset, and the task's role signs requests (decision D42). |
 | `OTP_PROVIDER`, `SMS_PROVIDER`, `SMS_API_KEY`, `SMS_TEMPLATE_IDS` | OTP and SMS; `console` is allowed only locally |
 | `WHATSAPP_PROVIDER`, `WHATSAPP_API_KEY`, `WHATSAPP_SENDER_ID` | WhatsApp templates |
 | `FCM_PROJECT_ID`, `FCM_SERVICE_ACCOUNT`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_KEY` or `EXPO_ACCESS_TOKEN` | Push |

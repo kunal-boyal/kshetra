@@ -71,6 +71,18 @@ const schema = z
       .string()
       .regex(/^[A-Za-z0-9._-]{1,64}$/)
       .default('1'),
+    // Where files live (spec 12.2): `s3` is Amazon S3, or MinIO locally; `memory` is for tests.
+    OBJECT_STORE: z.enum(['s3', 'memory']).default('s3'),
+    S3_BUCKET: z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/)
+      .optional(),
+    S3_REGION: z.string().min(1).default('ap-south-1'),
+    // MinIO's address locally; unset in AWS, where the SDK finds S3 itself.
+    S3_ENDPOINT: z.url().optional(),
+    // MinIO's user and password locally; unset in AWS, where the task's role signs requests.
+    S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+    S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
     // PKCS8 PEM of the P-256 key that signs access tokens (ES256), with newlines written as \n.
     // Left unset outside production, the API makes a temporary key at start-up.
     JWT_SIGNING_KEY: z
@@ -108,6 +120,20 @@ const schema = z
           message: 'Use at least 32 characters in production.',
         });
       }
+    }
+    if (config.OBJECT_STORE === 's3' && !config.S3_BUCKET) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['S3_BUCKET'],
+        message: 'Name the bucket files go in.',
+      });
+    }
+    if (config.OBJECT_STORE === 'memory' && config.NODE_ENV !== 'test') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['OBJECT_STORE'],
+        message: 'The memory store is for tests only.',
+      });
     }
     if (config.OTP_PROVIDER === 'memory' && config.NODE_ENV !== 'test') {
       ctx.addIssue({

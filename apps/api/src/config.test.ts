@@ -6,6 +6,7 @@ const required = {
   DIRECTORY_DATABASE_URL: 'postgres://directory_app:x@localhost:5433/kshetra',
   REDIS_URL: 'redis://localhost:6380',
   OTP_PEPPER: 'a-local-pepper-of-16+',
+  S3_BUCKET: 'kshetra-local',
 };
 
 describe('loadConfig', () => {
@@ -88,6 +89,8 @@ describe('loadConfig', () => {
 
   it('keeps the memory code sender to tests', () => {
     expect(() => loadConfig({ ...required, OTP_PROVIDER: 'memory' })).toThrow(/tests only/);
+    expect(() => loadConfig({ ...required, OBJECT_STORE: 'memory' })).toThrow(/tests only/);
+    expect(() => loadConfig({ ...required, S3_BUCKET: undefined })).toThrow(/bucket/);
     expect(loadConfig({ ...required, NODE_ENV: 'test', OTP_PROVIDER: 'memory' }).OTP_PROVIDER).toBe(
       'memory',
     );

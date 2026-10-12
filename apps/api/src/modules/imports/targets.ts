@@ -1,0 +1,67 @@
+import { Injectable } from '@nestjs/common';
+import type { ImportProblem, ImportTarget, TenantPermission } from '@kshetra/shared';
+import type { Access } from '../../platform/auth';
+import type { TenantTx } from '../../platform/database';
+import type { Cell, ImportField } from './reading';
+
+/** One row of the file, by field key once the mapping is applied. */
+export interface ImportRow {
+  /** The row's number in the file, counting from 1, as the person sees it in their sheet. */
+  row: number;
+  cells: Readonly<Record<string, Cell>>;
+}
+
+export interface TargetField extends ImportField {
+  /** A custom field's own label; the apps name the standard fields themselves. */
+  label?: { en: string; hi: string };
+}
+
+/** What a target needs to know besides the rows. */
+export interface ImportContext {
+  access: Access;
+  /** Cell values the tenant's files use for "empty", such as "-". */
+  emptyValues: readonly string[];
+}
+
+/**
+ * Something an import can load (module M19), registered by the module that owns it, so the
+ * imports module never reads another module's tables. `check` finds every problem without
+ * writing; `commit` writes every row in the caller's transaction, checking again first, and
+ * throws an `ImportRefused` with the problems rather than write part of the file.
+ */
+export interface ImportTargetSource {
+  name: ImportTarget;
+  /** What an import of this target needs, besides `import.run`. */
+  permission: TenantPermission;
+  fields(tx: TenantTx, tenantId: string): Promise<TargetField[]>;
+  check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext): Promise<ImportProblem[]>;
+  commit(
+    tx: TenantTx,
+    rows: readonly ImportRow[],
+    context: ImportContext,
+  ): Promise<{ created: number; updated: number }>;
+}
+
+/** Problems found while committing: nothing was written. */
+export class ImportRefused extends Error {
+  constructor(readonly problems: ImportProblem[]) {
+    super('The file has problems; nothing was imported.');
+  }
+}
+
+/** Where modules register what they can import. */
+@Injectable()
+export class ImportTargets {
+  private readonly sources = new Map<ImportTarget, ImportTargetSource>();
+
+  register(source: ImportTargetSource): void {
+    if (this.sources.has(source.name)) throw new Error(`${source.name} is registered already.`);
+    this.sources.set(source.name, source);
+  }
+
+  get(name: ImportTarget): ImportTargetSource {
+    const source = this.sources.get(name);
+    if (!source) throw new Error(`Nothing imports ${name}.`);
+    return source;
+  }
+}

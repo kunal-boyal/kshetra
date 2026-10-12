@@ -5,6 +5,8 @@ import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.
 import { AuditModule } from './modules/audit/audit.module';
 import { ConfigBundleModule } from './modules/config-bundle/config-bundle.module';
 import { IamModule } from './modules/iam/iam.module';
+import { ImportsModule } from './modules/imports/imports.module';
+import { MediaModule } from './modules/media/media.module';
 import { ProvisioningModule } from './modules/provisioning/provisioning.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { SyncModule } from './modules/sync/sync.module';
@@ -31,6 +33,8 @@ export const FEATURE_MODULES = [
   ProvisioningModule,
   SchedulingModule,
   SyncModule,
+  MediaModule,
+  ImportsModule,
 ];
 
 /** Every controller the API serves: the health checks and each feature module's. */
