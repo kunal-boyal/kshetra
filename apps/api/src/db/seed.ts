@@ -6,6 +6,7 @@ import { isLocalDatabase } from './bootstrap';
 import { AccountTypesService } from '../modules/accounts/account-types.service';
 import { AccountsService } from '../modules/accounts/accounts.service';
 import { CatalogueService } from '../modules/catalogue/catalogue.service';
+import { AttendanceService } from '../modules/field/attendance.service';
 import { FormsService } from '../modules/forms/forms.service';
 import { SYSTEM } from '../modules/iam/actor';
 import { People } from '../modules/iam/people';
@@ -346,6 +347,8 @@ async function seedAccounts(
       await app.get(FormsService).applyTemplate(tx, tenantId, template.forms);
       added = true;
     }
+    // The attendance rule (phase 1 step 8); applying it again changes nothing.
+    await app.get(AttendanceService).applyTemplate(tx, tenantId, template.people.attendance);
     if (added) await app.get(TenantConfigService).touch(tx, tenantId, null);
     return (await people.everyone(tx, tenantId)).find((person) => person.code === tenant.admin.code)
       ?.id;

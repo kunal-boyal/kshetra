@@ -1183,14 +1183,15 @@ form_versions(tid, form_id, version, definition jsonb, published_at, published_b
                                                                              PK(tid, form_id, version)
 shifts(id, tid, user_id, device_id, started_at, start_point, start_accuracy, consent_version,
        selfie_media_id NULL, ended_at NULL, end_point NULL, end_accuracy NULL,
-       end_reason enum(punch_out,auto_closed,max_length,admin) NULL, distance_m NULL, received_at)
-       IX(tid, user_id, started_at) · UQ(user_id) WHERE ended_at IS NULL
-shift_pauses(id, tid, shift_id, paused_at, resumed_at NULL, reason)
+       end_reason enum(punch_out,auto_closed,max_length,admin) NULL, distance_m NULL,
+       on_duty_seconds NULL, clock_skew, compacted_at NULL, received_at)
+       IX(tid, user_id, started_at) · UQ(tid, user_id) WHERE ended_at IS NULL
+shift_pauses(id, tid, shift_id, paused_at, resumed_at NULL, reason)  UQ(tid, shift_id) WHERE resumed_at IS NULL
 location_points(tid, id, shift_id, user_id, captured_at, received_at, point, accuracy, speed NULL,
        source enum(foreground,background), battery NULL)
-       PART daily on captured_at · PK(captured_at, id) · IX(shift_id, captured_at)
-shift_trails(shift_id PK, tid, user_id, date, polyline text, point_count, distance_m, gaps jsonb,
-       archived_key)                                                         IX(tid, user_id, date)
+       PART daily on captured_at · PK(tid, captured_at, id) · IX(tid, shift_id, captured_at)
+shift_trails(tid, shift_id, user_id, date, polyline text, point_count, kept_count, distance_m,
+       gaps jsonb, pauses jsonb, archived_key)            PK(tid, shift_id) · IX(tid, user_id, date)
 user_last_position(tid, user_id PK, shift_id, captured_at, point, accuracy, battery)
 visits(id, tid, user_id, shift_id, account_id, plan_item_id NULL, check_in_at, check_in_point,
        check_in_accuracy, distance_m NULL, geofence enum(inside,outside,unknown), check_out_at NULL,
@@ -1261,7 +1262,8 @@ leave_requests(id, tid, user_id, leave_type_id, start_date, end_date, half_day, 
 regularisations(id, tid, user_id, date, requested enum(present,half_day), reason, status,
        workflow_instance_id)                         UQ(tid, user_id, date) WHERE status IN ('pending','approved')
 attendance_days(tid, user_id, date, status, value, first_in, last_out, hours, source jsonb, computed_at)
-       PK(tid, user_id, date) · PART monthly
+       PK(tid, user_id, date) · PART monthly once volumes need it (D47)
+attendance_policies(tid, rule jsonb)                                         PK(tid)
 payroll_profiles(tid, user_id, monthly_gross, updated_by, updated_at)        PK(tid, user_id)
 expense_policies(id, tid, current_version_id, active)
 expense_policy_versions(id, policy_id, version, definition jsonb, valid_from)
@@ -1346,7 +1348,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Territories | `GET /v1/territories`, `POST /v1/territories`, `PATCH /v1/territories/:id` |
 | Accounts | `GET /v1/accounts`, `POST /v1/accounts`, `PATCH /v1/accounts/:id`, `GET /v1/accounts/:id/overview`, `POST /v1/accounts/:id/contacts`, `PATCH /v1/accounts/:id/contacts/:contactId`, `POST /v1/accounts/:id/location-proposals`, `GET /v1/account-types`, `POST /v1/account-types/:id/versions` |
 | Forms | `GET /v1/forms`, `POST /v1/forms`, `POST /v1/forms/:id/versions` (publish), `PATCH /v1/forms/:id` (switch off or on) |
-| Field | `POST /v1/shifts`, `POST /v1/shifts/:id/end`, `POST /v1/shifts/:id/pauses`, `POST /v1/locations/batch`, `POST /v1/visits`, `POST /v1/visits/:id/check-out`, `POST /v1/submissions`, `GET /v1/submissions` |
+| Field | `POST /v1/shifts`, `GET /v1/shifts/current`, `GET /v1/shifts?userId`, `POST /v1/shifts/:id/end`, `POST /v1/shifts/:id/pauses`, `POST /v1/shifts/:id/pauses/:pauseId/resume`, `POST /v1/locations/batch`, `GET /v1/attendance?userId&period` (attendance days from shifts until HR arrives, D47), `POST /v1/visits`, `POST /v1/visits/:id/check-out`, `POST /v1/submissions`, `GET /v1/submissions` |
 | Review | `GET /v1/reviews/queue`, `POST /v1/submissions/:id/review`, `POST /v1/reviews/bulk` |
 | Media | `POST /v1/media/presign`, `POST /v1/media/:id/confirm`, `GET /v1/media/:id/url?variant=` |
 | Planning | `GET /v1/targets`, `PUT /v1/targets`, `POST /v1/targets/lock`, `GET /v1/routes`, `POST /v1/routes`, `POST /v1/plans/generate`, `GET /v1/plan-items`, `POST /v1/plan-items`, `POST /v1/plan-items/:id/cancel`, `PUT /v1/account-plans` |

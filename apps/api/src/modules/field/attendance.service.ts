@@ -1,0 +1,170 @@
+import { Injectable } from '@nestjs/common';
+import { type AttendanceDayResult, type AttendanceRule, dayStatus, todayIn } from '@kshetra/shared';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { attendanceDays, attendancePolicies, shifts } from '../../db/schema/field';
+import type { TenantTx } from '../../platform/database';
+import { People } from '../iam/people';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
+
+const DEFAULT_RULE: AttendanceRule = { rule: 'punch_is_present' };
+
+/** Every date from `from` to `to`, inclusive, as `YYYY-MM-DD`. */
+function dates(from: string, to: string): string[] {
+  const out: string[] = [];
+  for (let day = new Date(`${from}T00:00:00Z`); ; day.setUTCDate(day.getUTCDate() + 1)) {
+    const date = day.toISOString().slice(0, 10);
+    if (date > to) return out;
+    out.push(date);
+  }
+}
+
+/**
+ * Attendance days (BR-23 as shifts decide it in phase 1, decision D47). A day belongs to the
+ * shifts that started on it, on the tenant's clock; its hours are their time on duty, an open
+ * shift counting until now. Shifts are the source: the stored days are what reports read, and
+ * are worked out again whenever a shift starts or ends, and nightly for the day just gone.
+ */
+@Injectable()
+export class AttendanceService {
+  constructor(
+    private readonly config: TenantConfigService,
+    private readonly people: People,
+  ) {}
+
+  async applyTemplate(tx: TenantTx, tenantId: string, rule: AttendanceRule | undefined) {
+    await tx
+      .insert(attendancePolicies)
+      .values({ tenantId, rule: rule ?? DEFAULT_RULE })
+      .onConflictDoNothing();
+  }
+
+  async rule(tx: TenantTx, tenantId: string): Promise<AttendanceRule> {
+    const [row] = await tx
+      .select({ rule: attendancePolicies.rule })
+      .from(attendancePolicies)
+      .where(eq(attendancePolicies.tenantId, tenantId));
+    return row?.rule ?? DEFAULT_RULE;
+  }
+
+  /** People's days from `from` to `to`, worked out from their shifts. */
+  async days(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[] | 'everyone',
+    from: string,
+    to: string,
+    now: Date = new Date(),
+  ): Promise<Map<string, (AttendanceDayResult & { shiftIds: string[] })[]>> {
+    const { timezone } = await this.config.settings(tx, tenantId);
+    const rule = await this.rule(tx, tenantId);
+    const today = todayIn(timezone, now);
+    const employed = await this.people.employment(
+      tx,
+      tenantId,
+      userIds === 'everyone' ? undefined : userIds,
+    );
+    if (employed.length === 0) return new Map();
+    const localDate = sql<string>`to_char(${shifts.startedAt} at time zone ${timezone}, 'YYYY-MM-DD')`;
+    const found = await tx
+      .select({
+        id: shifts.id,
+        userId: shifts.userId,
+        date: localDate,
+        startedAt: shifts.startedAt,
+        endedAt: shifts.endedAt,
+        onDutySeconds: shifts.onDutySeconds,
+      })
+      .from(shifts)
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          inArray(
+            shifts.userId,
+            employed.map((person) => person.id),
+          ),
+          sql`${localDate} between ${from} and ${to}`,
+        ),
+      );
+    const result = new Map<string, (AttendanceDayResult & { shiftIds: string[] })[]>();
+    for (const person of employed) {
+      const mine = found.filter((shift) => shift.userId === person.id);
+      result.set(
+        person.id,
+        dates(from, to).map((date) => {
+          const theirs = mine.filter((shift) => shift.date === date);
+          const seconds = theirs.reduce(
+            (total, shift) =>
+              total +
+              (shift.endedAt
+                ? (shift.onDutySeconds ?? 0)
+                : Math.max(0, (now.getTime() - shift.startedAt.getTime()) / 1_000)),
+            0,
+          );
+          const hours = Math.round((seconds / 3_600) * 100) / 100;
+          const { status, value } = dayStatus({
+            date,
+            today,
+            joiningDate: person.joiningDate,
+            exitDate: person.exitDate,
+            shifts: theirs.length,
+            hours,
+            rule,
+          });
+          const starts = theirs.map((shift) => shift.startedAt.getTime());
+          const ends = theirs.flatMap((shift) => (shift.endedAt ? [shift.endedAt.getTime()] : []));
+          return {
+            date,
+            status,
+            value,
+            hours,
+            firstIn: starts.length > 0 ? new Date(Math.min(...starts)).toISOString() : null,
+            lastOut: ends.length > 0 ? new Date(Math.max(...ends)).toISOString() : null,
+            shiftIds: theirs.map((shift) => shift.id),
+          };
+        }),
+      );
+    }
+    return result;
+  }
+
+  /** Works out and keeps people's days for one date. */
+  async store(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[] | 'everyone',
+    date: string,
+  ): Promise<number> {
+    const found = await this.days(tx, tenantId, userIds, date, date);
+    const rows = [...found].flatMap(([userId, days]) =>
+      days.map((day) => ({
+        tenantId,
+        userId,
+        date: day.date,
+        status: day.status,
+        value: String(day.value),
+        firstIn: day.firstIn ? new Date(day.firstIn) : null,
+        lastOut: day.lastOut ? new Date(day.lastOut) : null,
+        hours: day.hours.toFixed(2),
+        source: { shifts: day.shiftIds },
+        computedAt: new Date(),
+      })),
+    );
+    if (rows.length === 0) return 0;
+    await tx
+      .insert(attendanceDays)
+      .values(rows)
+      .onConflictDoUpdate({
+        target: [attendanceDays.tenantId, attendanceDays.userId, attendanceDays.date],
+        set: {
+          status: sql`excluded.status`,
+          value: sql`excluded.value`,
+          firstIn: sql`excluded.first_in`,
+          lastOut: sql`excluded.last_out`,
+          hours: sql`excluded.hours`,
+          source: sql`excluded.source`,
+          computedAt: sql`excluded.computed_at`,
+        },
+      });
+    return rows.length;
+  }
+}

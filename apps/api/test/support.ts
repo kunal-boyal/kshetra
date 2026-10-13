@@ -15,6 +15,7 @@ import { IamSetup } from '../src/modules/iam/setup.service';
 import { UsersService } from '../src/modules/iam/users.service';
 import { AccountTypesService } from '../src/modules/accounts/account-types.service';
 import { CatalogueService } from '../src/modules/catalogue/catalogue.service';
+import { AttendanceService } from '../src/modules/field/attendance.service';
 import { FormsService } from '../src/modules/forms/forms.service';
 import { ImportsService } from '../src/modules/imports/imports.service';
 import { templateImports } from '../src/modules/provisioning/cell-setup.service';
@@ -161,6 +162,7 @@ export class World {
       await this.app.get(AccountTypesService).applyTemplate(tx, tenantId, accountTypes);
       await this.app.get(CatalogueService).applyTemplate(tx, tenantId, catalogue);
       await this.app.get(FormsService).applyTemplate(tx, tenantId, forms);
+      await this.app.get(AttendanceService).applyTemplate(tx, tenantId, loaded.people.attendance);
     });
     return tenantId;
   }

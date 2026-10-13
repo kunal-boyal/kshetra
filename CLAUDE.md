@@ -156,6 +156,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Records that use photos attach them by ID in the transaction that creates the record, after checking their owner and status (spec 12.2, step 5). Read them only through `GET /v1/media/{id}/url`.
 - In tests the object store is in memory; `MemoryObjectStore.receive(url, bytes)` stands in for the phone's upload and refuses bytes that weren't signed for.
 
+## Shifts and tracking (decision D47)
+
+- Shifts, points, trails and attendance days live in `apps/api/src/modules/field`. The rules are pure functions in `packages/shared/src/tracking.ts`: `pointRejection()` (BR-36), `punchFixIssue()`, `clockSkewed()` (BR-44), `onDutyMs()`, `compactTrail()` and `dayStatus()` (BR-23 as shifts decide it).
+- `cell.location_points` is range-partitioned by day with pg_partman, so Drizzle can't declare it: migration 0018 creates it partitioned. `cell.maintain_location_partitions()` makes the coming days' partitions and gives each one the tenant-isolation policy; the scheduler runs it four times a day. Query points through the parent, always with a `captured_at` range, so only the shift's days are read. Old partitions stay until the archive lands (step 17).
+- A shift's start and end publish `shift.started` and `shift.ended`; their consumers keep the person's attendance day and compact the trail. The nightly job (`field.nightly`, 00:30 on the tenant's clock) closes forgotten shifts, compacts what is left and keeps everyone's day just gone.
+- Live positions go out on Redis (`positions:<tenantId>`) after the ingest commits, for the live map (M17).
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

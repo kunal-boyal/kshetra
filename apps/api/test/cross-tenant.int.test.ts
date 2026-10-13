@@ -61,6 +61,11 @@ let aApprovalId: string;
 let aFormId: string;
 /** A photo A's admin uploaded. */
 let aPhotoId: string;
+/** A shift of A's member, with a point and a pause. */
+let aShiftId: string;
+let aPauseId: string;
+/** B's member, signed in on their bound phone. */
+let bPhoneToken: string;
 /** An account of B's own, under B's territory. */
 let bAccountId: string;
 let bTerritoryId: string;
@@ -119,6 +124,11 @@ function send(token: string | undefined, method: Method, url: string, payload?: 
 }
 
 const asB = (method: Method, url: string, payload?: object) => send(bToken, method, url, payload);
+const asBPhone = (method: Method, url: string, payload?: object) =>
+  send(bPhoneToken, method, url, payload);
+
+/** A real fix, as a punch carries it. */
+const FIX = { location: { lat: 12.9716, lng: 77.5946 }, accuracy: 15, mocked: false };
 
 /** An import file, sent as the request body itself (M19). */
 function upload(token: string, target: string, body: string) {
@@ -696,6 +706,86 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('PATCH', `/v1/forms/${id}`, { active: false }), aFormId),
   },
+  'POST /v1/shifts': {
+    kind: 'write',
+    run: async () => {
+      const started = await asBPhone('POST', '/v1/shifts', {
+        ...FIX,
+        id: newId(),
+        startedAt: new Date().toISOString(),
+        consentVersion: '1',
+      });
+      expect(started.statusCode).toBe(201);
+      holdsNothingOfA(started);
+    },
+  },
+  'GET /v1/shifts/current': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asBPhone('GET', '/v1/shifts/current')),
+  },
+  'GET /v1/shifts': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/shifts?userId=${id}`), a.member.id),
+  },
+  'POST /v1/shifts/:id/end': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', `/v1/shifts/${id}/end`, { ...FIX, endedAt: new Date().toISOString() }),
+        aShiftId,
+      ),
+  },
+  'POST /v1/shifts/:id/pauses': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/shifts/${id}/pauses`, {
+            id: newId(),
+            pausedAt: new Date().toISOString(),
+            reason: 'Lunch',
+          }),
+        aShiftId,
+      ),
+  },
+  'POST /v1/shifts/:id/pauses/:pauseId/resume': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/shifts/${id === aPauseId ? aShiftId : newId()}/pauses/${id}/resume`, {
+            resumedAt: new Date().toISOString(),
+          }),
+        aPauseId,
+      ),
+  },
+  'POST /v1/locations/batch': {
+    kind: 'write',
+    run: async () => {
+      const point = (shiftId: string) => ({
+        id: newId(),
+        shiftId,
+        capturedAt: new Date().toISOString(),
+        location: FIX.location,
+        accuracy: 10,
+        mocked: false,
+        source: 'foreground',
+      });
+      const theirs = await asBPhone('POST', '/v1/locations/batch', { points: [point(aShiftId)] });
+      const nowhere = await asBPhone('POST', '/v1/locations/batch', { points: [point(newId())] });
+      expect(theirs.json().rejected[0].reason).toBe('NOT_YOUR_SHIFT');
+      expect(nowhere.json().rejected[0].reason).toBe('NOT_YOUR_SHIFT');
+      holdsNothingOfA(theirs);
+    },
+  },
+  'GET /v1/attendance': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('GET', `/v1/attendance?userId=${id}&period=${NEXT_MONTH.slice(0, 7)}`),
+        a.member.id,
+      ),
+  },
   'GET /v1/catalogue': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/catalogue')),
@@ -792,6 +882,7 @@ beforeAll(async () => {
   a = await tenant('Alpha Agencies', 'Alphastore');
   b = await tenant('Bravo Brands', 'Bravostall');
   bToken = (await world.signIn(b.admin.phone)).accessToken;
+  bPhoneToken = (await world.signIn(b.member.phone, b.memberDevice)).accessToken;
   // A sync cursor of A's, made before A's rows are taken down, since signing in writes some.
   const aToken = (await world.signIn(a.admin.phone)).accessToken;
   aCursor = (await send(aToken, 'GET', '/v1/sync/pull?entities=users')).json().cursor;
@@ -839,6 +930,36 @@ beforeAll(async () => {
   expect(proposal.statusCode).toBe(201);
   aApprovalId = proposal.json().approvalId;
   aFormId = (await send(aToken, 'GET', '/v1/forms')).json().items[0].id;
+  // A's member on shift: punched in an hour ago, with a point, and tracking paused.
+  aShiftId = newId();
+  const shift = await send(memberToken, 'POST', '/v1/shifts', {
+    ...FIX,
+    id: aShiftId,
+    startedAt: new Date(Date.now() - 3_600_000).toISOString(),
+    consentVersion: '1',
+  });
+  expect(shift.statusCode).toBe(201);
+  const points = await send(memberToken, 'POST', '/v1/locations/batch', {
+    points: [
+      {
+        id: newId(),
+        shiftId: aShiftId,
+        capturedAt: new Date(Date.now() - 1_800_000).toISOString(),
+        location: FIX.location,
+        accuracy: 12,
+        mocked: false,
+        source: 'background',
+      },
+    ],
+  });
+  expect(points.json().accepted).toHaveLength(1);
+  aPauseId = newId();
+  const paused = await send(memberToken, 'POST', `/v1/shifts/${aShiftId}/pauses`, {
+    id: aPauseId,
+    pausedAt: new Date().toISOString(),
+    reason: 'Lunch',
+  });
+  expect(paused.statusCode).toBe(201);
   // A photo of A's, uploaded and confirmed as a phone would.
   aPhotoId = newId();
   const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);

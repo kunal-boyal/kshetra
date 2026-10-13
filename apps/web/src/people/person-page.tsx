@@ -39,6 +39,7 @@ import {
   useDates,
   UserStatusBadge,
 } from './shared';
+import { WorkSection } from './work-section';
 
 type Pending = 'reset' | 'sign_out' | 'deactivate' | null;
 
@@ -292,6 +293,7 @@ function Person({ user }: { user: UserView }) {
         </div>
       </Section>
 
+      <WorkSection userId={user.id} />
       <Transfers user={user} />
       <History userId={user.id} />
     </div>

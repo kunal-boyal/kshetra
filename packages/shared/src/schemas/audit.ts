@@ -40,6 +40,10 @@ export const AUDIT_ACTIONS = [
   'designation.updated',
   'settings.updated',
   'terminology.replaced',
+  'shift.started',
+  'shift.ended',
+  'shift.paused',
+  'shift.resumed',
   'session.signed_in',
   'session.device_refused',
 ] as const;
