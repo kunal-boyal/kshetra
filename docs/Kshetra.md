@@ -1376,7 +1376,8 @@ Storage on the phone (SQLite in WAL mode):
 | `sync_state` | Last cursor per entity and last full refresh time |
 | `outbox` | Ordered queue: `seq`, `id`, `kind`, `payload`, `depends_on`, `attempts`, `next_attempt_at`, `last_error`, `state` (`queued` or `parked`) |
 | `form_entries` | Forms being filled and submitted ones waiting to be sent, each with the form version it was started on, its values, photos and signature strokes, and its state (`draft` or `queued`); a queued entry moves to the outbox once submissions can be sent (D46) |
-| `location_buffer` | Points waiting to upload |
+| `shift_state` | The open shift the background task reads: its ID, start, longest end, interval and open pause (D48) |
+| `location_buffer` | Points waiting to upload; they go once their shift's punch-in has reached the server (D48) |
 | Files | Compressed photos waiting to upload, in app-private storage |
 | Secure store | Tokens and the device key, readable after first unlock so the background task can upload |
 

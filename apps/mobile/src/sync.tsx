@@ -2,6 +2,7 @@ import {
   clearReferenceData,
   FormEntries,
   migrate,
+  Tracking,
   Outbox,
   type OutboxItem,
   type SqlDatabase,
@@ -24,6 +25,7 @@ import { useApp } from './app-state';
 import { sendHeartbeat } from './heartbeat';
 import { openLocalDatabase } from './local-db';
 import { senders } from './outbox-kinds';
+import { flushPoints, stopTracking } from './tracking';
 
 /** While the app is open, it syncs this often (spec 11.3)... */
 const SYNC_EVERY_MS = 60_000;
@@ -36,6 +38,8 @@ interface Sync {
   runner: SyncRunner;
   /** Forms being filled, and those submitted on the phone (spec 5.6). */
   entries: FormEntries;
+  /** The open shift and the points waiting to upload (M5). */
+  tracking: Tracking;
 }
 
 /** The sync once the phone's database is open; null if it could not be opened. */
@@ -65,15 +69,18 @@ export function SyncProvider({
       const db = await openDatabase();
       await migrate(db);
       const outbox = new Outbox(db, senders(client));
+      const tracking = new Tracking(db);
       const runner = new SyncRunner({
         db,
         client,
         outbox,
         entities: SYNC_ENTITIES,
         owner: () => client.owner,
+        // Points go once their shift's punch-in has (spec 12.1).
+        afterPush: (owner) => flushPoints({ db, outbox, tracking }, client, owner),
       });
       await runner.refresh();
-      made = { db, outbox, runner, entries: new FormEntries(db) };
+      made = { db, outbox, runner, entries: new FormEntries(db), tracking };
       if (live) setSync(made);
     })().catch(() => {
       // Without its database the phone still works online; it just keeps nothing offline.
@@ -95,6 +102,8 @@ export function SyncProvider({
     if (!owner) {
       if (lastOwner.current) {
         void clearReferenceData(ready.db).then(() => ready.runner.refresh());
+        // Nobody is tracked once signed out (BR-37); the open shift waits for them on the phone.
+        void stopTracking();
       }
       lastOwner.current = null;
       return;

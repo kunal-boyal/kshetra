@@ -39,6 +39,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     bundleIdentifier: id,
     supportsTablet: false,
+    // Tracking during a shift (spec 12.1). No significant-change monitoring, so a force-quit app
+    // is never relaunched in the background.
+    infoPlist: { UIBackgroundModes: ['location', 'remote-notification'] },
   },
   android: {
     package: id,
@@ -47,6 +50,24 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/adaptive-icon-monochrome.png',
       backgroundColor: JAMUN,
     },
+    // Only what the app uses (spec 12.1): location, the camera and the shift notification.
+    permissions: [
+      'ACCESS_FINE_LOCATION',
+      'ACCESS_COARSE_LOCATION',
+      'ACCESS_BACKGROUND_LOCATION',
+      'FOREGROUND_SERVICE',
+      'FOREGROUND_SERVICE_LOCATION',
+      'POST_NOTIFICATIONS',
+      'CAMERA',
+    ],
+    blockedPermissions: [
+      'RECORD_AUDIO',
+      'READ_EXTERNAL_STORAGE',
+      'WRITE_EXTERNAL_STORAGE',
+      'READ_MEDIA_IMAGES',
+      'READ_MEDIA_VIDEO',
+      'READ_MEDIA_AUDIO',
+    ],
   },
   web: { output: 'single' },
   plugins: [
@@ -62,15 +83,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         recordAudioAndroid: false,
       },
     ],
-    // Where the person stands, only while the app is open: proposing a place's location, and
-    // sorting places by distance (M4). Tracking during a shift adds background use (phase 1 step 8).
+    // Where the person stands: sorting and placing places while the app is open (M4), and the
+    // route of a shift, with the screen off too, from punch-in to punch-out (M5, spec 12.1). A
+    // notification stays while a shift is tracked.
     [
       'expo-location',
       {
         locationWhenInUsePermission: `${name} uses your location to sort nearby places and to record where a place is.`,
-        isAndroidBackgroundLocationEnabled: false,
+        locationAlwaysAndWhenInUsePermission: `${name} records your location while you are on duty, including with the screen off, until you punch out.`,
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
       },
     ],
+    'expo-task-manager',
     [
       'expo-splash-screen',
       {

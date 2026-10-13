@@ -7,6 +7,8 @@ export interface Fix extends GeoPoint {
   /** Metres, as the phone reports it. */
   accuracy: number;
   capturedAt: string;
+  /** Whether the operating system says the fix is mocked (Android only). */
+  mocked: boolean;
 }
 
 export type FixState =
@@ -33,6 +35,7 @@ export async function currentFix(): Promise<FixState> {
         lng: position.coords.longitude,
         accuracy: position.coords.accuracy ?? Number.POSITIVE_INFINITY,
         capturedAt: new Date(position.timestamp).toISOString(),
+        mocked: position.mocked ?? false,
       },
     };
   } catch {

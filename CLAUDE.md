@@ -17,7 +17,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm format`, `pnpm format:check` | Prettier | now |
 | `docker compose up -d` | starts the local services | now |
 | `pnpm dev` | runs the API on http://127.0.0.1:3000 with its worker and scheduler, the web portal on http://127.0.0.1:5173 (which passes `/auth` and `/v1` through to the API), and the field app's Expo dev server | now |
-| `pnpm --filter @kshetra/mobile go` | serves the field app to Expo Go on a phone on the same Wi-Fi; run the API with `HOST=0.0.0.0` | now |
+| `pnpm --filter @kshetra/mobile go` | serves the field app to Expo Go on a phone on the same Wi-Fi; run the API with `HOST=0.0.0.0 pnpm dev`, or set `HOST` in `.env`. Turborepo passes only the variables `turbo.json` lists to a task (`HOST` and `CORS_ORIGINS` for `dev`), so add any other you need there | now |
 | `pnpm --filter @kshetra/mobile web` | runs the field app in a browser, standing in for an Android phone; development only, so add http://localhost:8081 to `CORS_ORIGINS` | now |
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
 | `pnpm test:e2e` | Playwright tests of the web portal, with axe, against a mocked API. Install the browser once with `pnpm --filter @kshetra/web exec playwright install chromium`. | now |
@@ -162,6 +162,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - `cell.location_points` is range-partitioned by day with pg_partman, so Drizzle can't declare it: migration 0018 creates it partitioned. `cell.maintain_location_partitions()` makes the coming days' partitions and gives each one the tenant-isolation policy; the scheduler runs it four times a day. Query points through the parent, always with a `captured_at` range, so only the shift's days are read. Old partitions stay until the archive lands (step 17).
 - A shift's start and end publish `shift.started` and `shift.ended`; their consumers keep the person's attendance day and compact the trail. The nightly job (`field.nightly`, 00:30 on the tenant's clock) closes forgotten shifts, compacts what is left and keeps everyone's day just gone.
 - Live positions go out on Redis (`positions:<tenantId>`) after the ingest commits, for the live map (M17).
+- On the phone (decision D48), `Tracking` in `@kshetra/api-client/sync` keeps the open shift and buffers points, dropping what the server would refuse; points upload only once their shift's punch-in has left the outbox. Punches go through `punchIn()`, `punchOut()`, `pauseShift()` and `resumeShift()` in `apps/mobile/src/tracking.ts`, which save on the phone and queue in one transaction. The background task is defined in `src/background.ts`, imported first by the root layout. Tracking starts only from a punch-in, a resume or "Record again", never by itself (BR-37). Background location needs a development build (`eas build --profile development`, on Kunal's account); Expo Go can't run it.
 
 ## Offline sync (decision D40)
 

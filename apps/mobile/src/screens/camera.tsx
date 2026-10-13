@@ -71,7 +71,7 @@ export function CameraScreen({ kind, request }: { kind: PhotoKind; request: stri
         kind,
         capturedAt: shot.takenAt,
         source: 'camera',
-        fix: fix.current ? { ...fix.current, mocked: false } : null,
+        fix: fix.current,
       });
       addResult(request, prepared.id);
       back();

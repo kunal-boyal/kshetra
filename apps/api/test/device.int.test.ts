@@ -8,9 +8,10 @@ import {
   type OutboxSender,
   type SqlDatabase,
   SyncRunner,
+  Tracking,
 } from '@kshetra/api-client/sync';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { type DeviceInfo, newId } from '@kshetra/shared';
+import { type DeviceInfo, LocationBatchResult, newId, ShiftResult } from '@kshetra/shared';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { devices } from '../src/db/schema/iam';
@@ -51,6 +52,7 @@ class SimulatedPhone {
   constructor(
     readonly device: DeviceInfo,
     senders: Record<string, OutboxSender> = {},
+    afterPush?: (owner: string) => Promise<void>,
   ) {
     this.client = createClient({
       directoryUrl: BASE,
@@ -69,6 +71,7 @@ class SimulatedPhone {
       entities: ['users', 'territories'],
       owner: () => this.client.owner,
       clock: () => this.now,
+      ...(afterPush ? { afterPush } : {}),
     });
   }
 
@@ -240,5 +243,97 @@ describe('a simulated phone', () => {
       .get(Database)
       .forTenant(tenantId, (tx) => tx.select().from(devices).where(eq(devices.userId, person.id)));
     expect(device!.health).toMatchObject({ queue: { queued: 1 } });
+  });
+
+  it('tracks a shift offline and uploads its points once the punch-in has gone (spec 12.1)', async () => {
+    const tenantId = await world.tenant('Simulated Strides');
+    const person = await world.user(tenantId, { name: 'Tara Tracker', designation: 'executive' });
+    const tracking: { store?: Tracking } = {};
+    const phone: SimulatedPhone = await new SimulatedPhone(
+      newDevice(),
+      {
+        'shift.start': {
+          async send(payload) {
+            await phone.client.request('POST', '/v1/shifts', ShiftResult, {
+              body: payload as never,
+            });
+          },
+        },
+      },
+      (owner) =>
+        tracking
+          .store!.flush(
+            owner,
+            async (points) =>
+              (await phone.client.request('POST', '/v1/locations/batch', LocationBatchResult, {
+                body: { points },
+              }))!,
+            async (shiftId) =>
+              !(await phone.outbox.items(owner)).some((item) => item.id === shiftId),
+          )
+          .then(() => undefined),
+    ).start();
+    tracking.store = new Tracking(phone.db);
+    await phone.signIn(person.phone!);
+    const owner = phone.client.owner!;
+
+    // Punched in and walking with no signal: the shift and its points wait on the phone.
+    phone.online = false;
+    const shiftId = newId();
+    const startedAt = Date.now() - 3_600_000;
+    await phone.db.transaction(async (tx) => {
+      await tracking.store!.open(tx, {
+        owner,
+        shiftId,
+        startedAt,
+        endsBy: startedAt + 14 * 3_600_000,
+        intervalSeconds: 60,
+      });
+      await phone.outbox.enqueue(tx, {
+        id: shiftId,
+        owner,
+        kind: 'shift.start',
+        payload: {
+          id: shiftId,
+          startedAt: new Date(startedAt).toISOString(),
+          location: { lat: 28.6315, lng: 77.2167 },
+          accuracy: 15,
+          mocked: false,
+          consentVersion: '2026-10',
+        },
+      });
+    });
+    const recorded = await tracking.store.record(
+      owner,
+      [5, 10, 15].map((minutes) => ({
+        id: newId(),
+        capturedAt: startedAt + minutes * 60_000,
+        lat: 28.6315 + minutes * 0.0001,
+        lng: 77.2167,
+        accuracy: 10,
+        speed: null,
+        mocked: false,
+        battery: 70,
+        source: 'background' as const,
+      })),
+    );
+    expect(recorded.kept).toBe(3);
+    await phone.sync();
+    expect(await tracking.store.waiting(owner)).toBe(3);
+
+    // Signal again, past the retry's wait: the punch-in goes first, then the points.
+    phone.online = true;
+    phone.now += 60_000;
+    await phone.sync();
+    expect(await phone.outbox.items(owner)).toEqual([]);
+    expect(await tracking.store.waiting(owner)).toBe(0);
+    const stored = await app
+      .get(Database)
+      .forTenant(tenantId, (tx) =>
+        tx.execute<{ n: number }>(
+          `select count(*)::int as n from cell.location_points where shift_id = '${shiftId}'`,
+        ),
+      );
+    expect(stored.rows).toEqual([{ n: 3 }]);
   });
 });
