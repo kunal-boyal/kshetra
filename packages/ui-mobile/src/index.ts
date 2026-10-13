@@ -5,7 +5,7 @@ export { Button } from './button';
 export type { ButtonProps, ButtonVariant } from './button';
 export { Icon } from './icon';
 export type { IconProps, IconSize } from './icon';
-export { ChoiceGroup, ListGroup, ListRow } from './lists';
+export { CheckGroup, ChoiceGroup, ListGroup, ListRow } from './lists';
 export type { Choice, ListRowProps } from './lists';
 export { ease, useReducedMotion } from './motion';
 export { Screen } from './screen';

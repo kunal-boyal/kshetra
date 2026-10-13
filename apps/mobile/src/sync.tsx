@@ -1,5 +1,6 @@
 import {
   clearReferenceData,
+  FormEntries,
   migrate,
   Outbox,
   type OutboxItem,
@@ -33,6 +34,8 @@ interface Sync {
   db: SqlDatabase;
   outbox: Outbox;
   runner: SyncRunner;
+  /** Forms being filled, and those submitted on the phone (spec 5.6). */
+  entries: FormEntries;
 }
 
 /** The sync once the phone's database is open; null if it could not be opened. */
@@ -70,7 +73,7 @@ export function SyncProvider({
         owner: () => client.owner,
       });
       await runner.refresh();
-      made = { db, outbox, runner };
+      made = { db, outbox, runner, entries: new FormEntries(db) };
       if (live) setSync(made);
     })().catch(() => {
       // Without its database the phone still works online; it just keeps nothing offline.

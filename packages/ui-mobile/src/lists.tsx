@@ -139,6 +139,71 @@ export function ChoiceGroup<T extends string>({
   );
 }
 
+/** Several choices among a few, as rows with a ticked box on each chosen one. */
+export function CheckGroup<T extends string>({
+  title,
+  choices,
+  value,
+  onChange,
+}: {
+  title: string;
+  choices: readonly Choice<T>[];
+  value: readonly T[];
+  onChange: (value: T[]) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View role="group" aria-label={title}>
+      <ListGroup title={title}>
+        {choices.map((choice) => {
+          const chosen = value.includes(choice.value);
+          return (
+            <Pressable
+              key={choice.value}
+              role="checkbox"
+              aria-checked={chosen}
+              aria-label={choice.label}
+              onPress={() =>
+                onChange(
+                  chosen
+                    ? value.filter((entry) => entry !== choice.value)
+                    : [...value, choice.value],
+                )
+              }
+              style={({ pressed }) => [
+                styles.row,
+                pressed && { backgroundColor: theme.colors.surfaceSunken },
+              ]}
+            >
+              <View
+                style={[
+                  styles.box,
+                  {
+                    borderColor: chosen ? theme.colors.accent : theme.colors.borderStrong,
+                    backgroundColor: chosen ? theme.colors.accent : 'transparent',
+                  },
+                ]}
+              >
+                {chosen ? <Icon icon={Check} size="sm" color={theme.colors.textInverse} /> : null}
+              </View>
+              <View style={styles.texts}>
+                <Text variant="bodyLg" weight={chosen ? 600 : undefined}>
+                  {choice.label}
+                </Text>
+                {choice.detail ? (
+                  <Text variant="bodySm" tone="muted">
+                    {choice.detail}
+                  </Text>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </ListGroup>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   group: { gap: spacing.space2 },
   groupTitle: { paddingHorizontal: spacing.space2 },
@@ -153,4 +218,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.space2,
   },
   texts: { flex: 1, gap: spacing.space05 },
+  box: {
+    width: size.iconMd,
+    height: size.iconMd,
+    borderWidth: 2,
+    borderRadius: radius.radiusXs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

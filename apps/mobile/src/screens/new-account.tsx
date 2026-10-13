@@ -1,5 +1,13 @@
 import { spacing } from '@kshetra/design-tokens';
-import { AccountCode, type CreateAccountBody, newId, type SyncAccount } from '@kshetra/shared';
+import { checkValues, type Values } from '@kshetra/forms';
+import {
+  AccountCode,
+  type CreateAccountBody,
+  newId,
+  type SyncAccount,
+  timeIn,
+  todayIn,
+} from '@kshetra/shared';
 import { Button, ChoiceGroup, Notice, Screen, Text, TextField } from '@kshetra/ui-mobile';
 import { router } from 'expo-router';
 import { ArrowLeft, Crosshair, Send } from 'lucide-react-native';
@@ -8,6 +16,8 @@ import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { proposeAccount } from '../captures';
 import { useConfig } from '../data';
+import { FieldList } from '../forms/fields';
+import { issueText } from '../forms/issues';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
@@ -17,7 +27,7 @@ import { proposableTypes } from './accounts';
 /**
  * Proposing a new account from the field (M4, decision D38): saved on the phone and sent when
  * there is signal; the person's manager decides it. Where it is can be added from a fix, and
- * stays unverified until a location is approved. The type's own fields arrive with forms.
+ * stays unverified until a location is approved. The type's own fields are filled here too.
  */
 export function NewAccountScreen({ typeKey }: { typeKey: string }) {
   const { client } = useApp();
@@ -35,6 +45,7 @@ export function NewAccountScreen({ typeKey }: { typeKey: string }) {
   const [territoryId, setTerritoryId] = useState('');
   const [fix, setFix] = useState<Fix | null>(null);
   const [locating, setLocating] = useState(false);
+  const [custom, setCustom] = useState<Values>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -46,6 +57,12 @@ export function NewAccountScreen({ typeKey }: { typeKey: string }) {
     );
   }
   const manual = type.code.mode === 'manual';
+  const timeZone = bundle?.settings.timezone ?? 'Asia/Kolkata';
+  const fieldIssues = new Map(
+    Object.entries(errors)
+      .filter(([key]) => key.startsWith('custom.'))
+      .map(([key, issue]) => [key.slice('custom.'.length), issue]),
+  );
   const places = (territories ?? []).filter((node) => node.active);
 
   async function locate() {
@@ -66,6 +83,8 @@ export function NewAccountScreen({ typeKey }: { typeKey: string }) {
     if (manual && !AccountCode.safeParse(code.trim()).success)
       found.code = t('account.code_needed');
     if (!territoryId) found.territoryId = t('account.territory_needed');
+    const checked = checkValues(type!.fields, custom, { today: todayIn(timeZone) });
+    for (const issue of checked.issues) found[`custom.${issue.path}`] = issueText(issue.issue, t);
     setErrors(found);
     if (Object.keys(found).length > 0 || !sync || !client.owner || !type) return;
     setBusy(true);
@@ -77,6 +96,7 @@ export function NewAccountScreen({ typeKey }: { typeKey: string }) {
       name: name.trim(),
       territoryId,
       ...(fix ? { location: { lat: fix.lat, lng: fix.lng } } : {}),
+      ...(Object.keys(checked.values).length > 0 ? { custom: checked.values } : {}),
     };
     const preview: SyncAccount = {
       id,
@@ -91,7 +111,7 @@ export function NewAccountScreen({ typeKey }: { typeKey: string }) {
       locationStatus: 'unverified',
       status: 'pending',
       segments: [],
-      custom: {},
+      custom: checked.values,
       slots: [],
     };
     try {
@@ -143,6 +163,25 @@ export function NewAccountScreen({ typeKey }: { typeKey: string }) {
         <Text tone="danger" role="alert">
           {errors.territoryId}
         </Text>
+      ) : null}
+      {type.fields.length > 0 ? (
+        <FieldList
+          fields={type.fields}
+          values={custom}
+          onChange={setCustom}
+          issues={fieldIssues}
+          data={{
+            accounts: [],
+            contacts: [],
+            items: [],
+            units: [],
+            accountId: null,
+            today: todayIn(timeZone),
+            now: timeIn(timeZone),
+            capture: () => undefined,
+            readOnly: false,
+          }}
+        />
       ) : null}
       <View style={styles.stack}>
         <Text variant="labelSm" tone="muted">

@@ -307,21 +307,28 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
       categories.set(lower(name), id);
       return id;
     };
+    // A product moved to another category restamps its items, so phones' copies follow.
+    let moved = false;
     const productId = async (name: string, category: string | null) => {
       const known = productIds.get(lower(name));
       if (known) return known;
       const [found] = await tx
-        .select({ id: products.id })
+        .select({ id: products.id, categoryId: products.categoryId })
         .from(products)
         .where(and(eq(products.tenantId, tenantId), sql`lower(${products.name}) = ${lower(name)}`));
       const id = found?.id ?? newId();
       const category_ = category ? await categoryId(category) : null;
       if (!found) await tx.insert(products).values({ id, tenantId, name, categoryId: category_ });
-      else if (category_) {
+      else if (category_ && category_ !== found.categoryId) {
         await tx
           .update(products)
           .set({ categoryId: category_ })
           .where(and(eq(products.tenantId, tenantId), eq(products.id, id)));
+        await tx
+          .update(items)
+          .set({ updatedAt: new Date(), updatedBy: by })
+          .where(and(eq(items.tenantId, tenantId), eq(items.productId, id)));
+        moved = true;
       }
       productIds.set(lower(name), id);
       return id;
@@ -383,7 +390,7 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
         .where(and(eq(itemUnits.tenantId, tenantId), eq(itemUnits.itemId, id)));
       await tx.insert(itemUnits).values(units.map((unit) => ({ tenantId, itemId: id!, ...unit })));
     }
-    if (created + updated > 0) await this.catalogue.touch(tx, tenantId);
+    if (created + updated > 0 || moved) await this.catalogue.touch(tx, tenantId);
     return { created, updated };
   }
 }
