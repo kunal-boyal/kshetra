@@ -17,7 +17,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm format`, `pnpm format:check` | Prettier | now |
 | `docker compose up -d` | starts the local services | now |
 | `pnpm dev` | runs the API on http://127.0.0.1:3000 with its worker and scheduler, the web portal on http://127.0.0.1:5173 (which passes `/auth` and `/v1` through to the API), and the field app's Expo dev server | now |
-| `pnpm --filter @kshetra/mobile go` | serves the field app to Expo Go on a phone on the same Wi-Fi; run the API with `HOST=0.0.0.0` | now |
+| `pnpm --filter @kshetra/mobile go` | serves the field app to Expo Go on a phone on the same Wi-Fi; run the API with `HOST=0.0.0.0 pnpm dev`, or set `HOST` in `.env`. Turborepo passes only the variables `turbo.json` lists to a task (`HOST` and `CORS_ORIGINS` for `dev`), so add any other you need there | now |
 | `pnpm --filter @kshetra/mobile web` | runs the field app in a browser, standing in for an Android phone; development only, so add http://localhost:8081 to `CORS_ORIGINS` | now |
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
 | `pnpm test:e2e` | Playwright tests of the web portal, with axe, against a mocked API. Install the browser once with `pnpm --filter @kshetra/web exec playwright install chromium`. | now |

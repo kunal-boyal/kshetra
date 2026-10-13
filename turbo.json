@@ -26,7 +26,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["HOST", "CORS_ORIGINS"]
     }
   }
 }
