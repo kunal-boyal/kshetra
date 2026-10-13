@@ -5,6 +5,7 @@ import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { AccountTypesService } from '../accounts/account-types.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
+import { AttendanceService } from '../field/attendance.service';
 import { FormsService } from '../forms/forms.service';
 import { SYSTEM } from '../iam/actor';
 import { IamSetup } from '../iam/setup.service';
@@ -29,6 +30,7 @@ export class CellSetup {
     private readonly accountTypes: AccountTypesService,
     private readonly catalogue: CatalogueService,
     private readonly forms: FormsService,
+    private readonly attendance: AttendanceService,
     private readonly users: UsersService,
     private readonly outbox: Outbox,
   ) {}
@@ -45,6 +47,7 @@ export class CellSetup {
     await this.accountTypes.applyTemplate(tx, tenantId, template.accountTypes);
     await this.catalogue.applyTemplate(tx, tenantId, template.catalogue);
     await this.forms.applyTemplate(tx, tenantId, template.forms);
+    await this.attendance.applyTemplate(tx, tenantId, template.people.attendance);
     await this.imports.applyTemplate(tx, tenantId, templateImports(template));
   }
 

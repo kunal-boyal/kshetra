@@ -127,6 +127,20 @@
       "when": 1791864848832,
       "tag": "0017_import_fractions",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791894228845,
+      "tag": "0018_field",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791894276166,
+      "tag": "0019_location_partitions",
+      "breakpoints": true
     }
   ]
 }

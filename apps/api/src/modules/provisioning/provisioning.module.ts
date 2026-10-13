@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AccountsModule } from '../accounts/accounts.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { FieldModule } from '../field/field.module';
 import { FormsModule } from '../forms/forms.module';
 import { DirectoryModule } from '../directory/directory.module';
 import { IamModule } from '../iam/iam.module';
@@ -24,6 +25,7 @@ import { TenantProvisioner } from './provisioner';
     AccountsModule,
     CatalogueModule,
     FormsModule,
+    FieldModule,
   ],
   providers: [CellSetup, TenantProvisioner],
   exports: [CellSetup, TenantProvisioner],

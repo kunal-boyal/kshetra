@@ -98,6 +98,35 @@ const PRIYA_VIEW = person(PRIYA, 'Priya Nair', {
 
 /** What the cell answers to a GET, by path. */
 const ANSWERS: Record<string, unknown> = {
+  '/v1/shifts': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000c1',
+        userId: RAHUL,
+        startedAt: '2026-10-13T03:30:00.000Z',
+        startLocation: { lat: 28.6315, lng: 77.2167 },
+        startAccuracy: 12,
+        consentVersion: '2026-10',
+        selfieMediaId: null,
+        endedAt: '2026-10-13T12:30:00.000Z',
+        endLocation: { lat: 28.6315, lng: 77.2167 },
+        endAccuracy: 14,
+        endReason: 'auto_closed',
+        distanceM: 18_450,
+        onDutySeconds: 30_600,
+        pauses: [],
+        flags: ['clock_skew'],
+      },
+    ],
+    nextCursor: null,
+  },
+  '/v1/attendance': {
+    userId: RAHUL,
+    period: '2026-10',
+    days: [
+      { date: '2026-10-13', status: 'present', value: 1, firstIn: null, lastOut: null, hours: 8.5 },
+    ],
+  },
   '/v1/users': { items: [PRIYA_VIEW, RAHUL_VIEW], nextCursor: null },
   [`/v1/users/${RAHUL}`]: RAHUL_VIEW,
   [`/v1/users/${PRIYA}`]: PRIYA_VIEW,
@@ -249,6 +278,8 @@ async function mockSignedIn(page: Page) {
     }),
   );
   for (const prefix of [
+    'shifts',
+    'attendance',
     'users',
     'org-chart',
     'territories',

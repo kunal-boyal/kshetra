@@ -50,6 +50,26 @@ export class People {
     return new Map(found.map((person) => [person.id, person]));
   }
 
+  /**
+   * When each person works for the tenant, for attendance days (BR-23): everyone active, or the
+   * people named. Deactivated people keep their past days; they get no new ones.
+   */
+  async employment(
+    tx: TenantTx,
+    tenantId: string,
+    ids?: readonly string[],
+  ): Promise<{ id: string; joiningDate: string | null; exitDate: string | null }[]> {
+    return tx
+      .select({ id: users.id, joiningDate: users.joiningDate, exitDate: users.exitDate })
+      .from(users)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          ids ? inArray(users.id, [...new Set(ids)]) : eq(users.status, 'active'),
+        ),
+      );
+  }
+
   /** Everyone in the tenant, by code, for files that name people (BR-42). */
   async everyone(tx: TenantTx, tenantId: string): Promise<PersonFacts[]> {
     return this.select(tx).where(eq(users.tenantId, tenantId)).orderBy(asc(users.code));

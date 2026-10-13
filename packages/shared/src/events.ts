@@ -25,11 +25,21 @@ export const TenantProvisionedPayload = z.object({
   status: z.enum(['trial', 'active']),
 });
 
+/** A shift started or ended (M5): attendance days, trails and the live map follow it. */
+export const ShiftEventPayload = z.object({
+  shiftId: z.uuid(),
+  userId: z.uuid(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().nullable(),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
   'user.deactivated': UserEventPayload,
   'tenant.provisioned': TenantProvisionedPayload,
+  'shift.started': ShiftEventPayload,
+  'shift.ended': ShiftEventPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

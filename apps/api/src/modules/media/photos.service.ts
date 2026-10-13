@@ -242,6 +242,27 @@ export class PhotosService implements OnModuleInit {
     };
   }
 
+  /**
+   * Checks a photo before a record attaches it by ID (spec 12.2, step 5): the caller's own, of
+   * the kind the record needs, and uploaded; one still on the phone is MEDIA_NOT_READY.
+   */
+  async attachable(tx: TenantTx, access: Access, id: string, kind: PhotoKind): Promise<void> {
+    const row = await this.own(tx, access, id);
+    if (row.kind !== kind) {
+      throw new AppError('VALIDATION', `This photo is not a ${kind} photo.`, [
+        { path: 'mediaId', issue: `Use a ${kind} photo` },
+      ]);
+    }
+    if (row.status === 'rejected') {
+      throw new AppError('VALIDATION', 'This photo could not be used.', [
+        { path: 'mediaId', issue: 'Take the photo again' },
+      ]);
+    }
+    if (row.status === 'pending') {
+      throw new AppError('MEDIA_NOT_READY', 'The photo has not finished uploading.');
+    }
+  }
+
   /** The caller's own photo; another person's is out of scope, another tenant's not found. */
   private async own(tx: TenantTx, access: Access, id: string, lock = false): Promise<Row> {
     const query = tx

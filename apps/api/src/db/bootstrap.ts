@@ -64,6 +64,15 @@ export async function bootstrapDatabase(urls: BootstrapUrls): Promise<void> {
     // PostGIS needs a superuser to install; pg_trgm comes along. In AWS, infrastructure does this.
     await client.query('create extension if not exists postgis');
     await client.query('create extension if not exists pg_trgm');
+    // pg_partman keeps the raw location points in daily partitions (decision D47). It lives in
+    // its own schema, and the migrator, which owns the partitioned tables, runs it.
+    const migrator = client.escapeIdentifier(ROLES.migrator);
+    await client.query('create schema if not exists partman');
+    await client.query('create extension if not exists pg_partman schema partman');
+    await client.query(`grant all on schema partman to ${migrator}`);
+    await client.query(`grant all on all tables in schema partman to ${migrator}`);
+    await client.query(`grant execute on all functions in schema partman to ${migrator}`);
+    await client.query(`grant execute on all procedures in schema partman to ${migrator}`);
   } finally {
     await client.end();
   }

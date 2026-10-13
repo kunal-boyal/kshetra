@@ -82,6 +82,76 @@ function fakeClient(writes: Record<string, Answer> = {}) {
     [`/v1/users/${RAHUL}`]: RAHUL_VIEW,
     [`/v1/users/${PRIYA}`]: PRIYA_VIEW,
     [`/v1/users/${RAHUL}/transfers`]: { items: [] },
+    '/v1/shifts': {
+      items: [
+        {
+          id: '01a10000-0000-7000-8000-0000000000c1',
+          userId: RAHUL,
+          startedAt: '2026-10-13T03:30:00.000Z',
+          startLocation: { lat: 28.6315, lng: 77.2167 },
+          startAccuracy: 12,
+          consentVersion: '2026-10',
+          selfieMediaId: null,
+          endedAt: '2026-10-13T12:30:00.000Z',
+          endLocation: { lat: 28.6315, lng: 77.2167 },
+          endAccuracy: 14,
+          endReason: 'punch_out',
+          distanceM: 18_450,
+          onDutySeconds: 8 * 3_600 + 30 * 60,
+          pauses: [
+            {
+              id: '01a10000-0000-7000-8000-0000000000c2',
+              pausedAt: '2026-10-13T07:30:00.000Z',
+              resumedAt: '2026-10-13T08:00:00.000Z',
+              reason: 'Lunch',
+            },
+          ],
+          flags: ['clock_skew'],
+        },
+        {
+          id: '01a10000-0000-7000-8000-0000000000c3',
+          userId: RAHUL,
+          startedAt: '2026-10-12T03:30:00.000Z',
+          startLocation: { lat: 28.6315, lng: 77.2167 },
+          startAccuracy: 12,
+          consentVersion: '2026-10',
+          selfieMediaId: null,
+          endedAt: '2026-10-12T17:30:00.000Z',
+          endLocation: null,
+          endAccuracy: null,
+          endReason: 'auto_closed',
+          distanceM: null,
+          onDutySeconds: 14 * 3_600,
+          pauses: [],
+          flags: [],
+        },
+      ],
+      nextCursor: null,
+    },
+    '/v1/attendance': {
+      userId: RAHUL,
+      period: '2026-10',
+      days: [
+        {
+          date: '2026-10-12',
+          status: 'present',
+          value: 1,
+          firstIn: null,
+          lastOut: null,
+          hours: 14,
+        },
+        {
+          date: '2026-10-13',
+          status: 'present',
+          value: 1,
+          firstIn: null,
+          lastOut: null,
+          hours: 8.5,
+        },
+        { date: '2026-10-11', status: 'absent', value: 0, firstIn: null, lastOut: null, hours: 0 },
+        { date: '2026-10-31', status: 'future', value: 0, firstIn: null, lastOut: null, hours: 0 },
+      ],
+    },
     [`/v1/users/${RAHUL}/history`]: {
       items: [
         {
@@ -275,6 +345,23 @@ describe('the people table', () => {
 });
 
 describe("a person's page", () => {
+  it('shows their month so far and their shifts, with how each ended', async () => {
+    renderAt(`/people/${RAHUL}`, fakeClient());
+    const work = await screen.findByRole('region', { name: 'Work' });
+    expect(await within(work).findByText('Days present this month')).toBeInTheDocument();
+    expect(work).toHaveTextContent(/Days present this month\s*2/);
+    expect(work).toHaveTextContent(/Days absent\s*1/);
+    expect(work).toHaveTextContent(/Hours on duty\s*22.5/);
+    const table = within(work).getByRole('table', { name: 'Shifts, newest first' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('8 h 30 min');
+    expect(rows[0]).toHaveTextContent('18.5 km');
+    expect(rows[0]).toHaveTextContent('1 pause');
+    expect(rows[0]).toHaveTextContent('Phone clock was off');
+    expect(rows[1]).toHaveTextContent('Closed at night');
+    expect(rows[1]).toHaveTextContent('—');
+  });
+
   it('shows their phone, and resets it only after asking, warning of unsent records', async () => {
     const client = fakeClient({ [`POST /v1/users/${RAHUL}/reset-device`]: () => undefined });
     renderAt(`/people/${RAHUL}`, client);
