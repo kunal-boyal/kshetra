@@ -818,7 +818,7 @@ Navigation adapts to the user's permissions and the tenant's modules. Field user
 | Plan | Calendar strip, plan items per day, route on a map, ad hoc plan items where allowed, approval status of the month's plan |
 | Accounts | Offline search, filters by type and segment, list sorted by distance, account overview, check in, propose a location, propose a new account |
 | Visit | Account header; map card with the geofence and the user's position and a distance pill (green inside, amber outside); forms available for the account type; order button; photos; check out |
-| Form | Rendered from the form version: sections, fields with the right keyboard per type, visibility rules, product-lines table, photo strip with count against minimum and maximum, signature pad, inline validation, save draft, submit. Footnote: "Saved on the phone first and uploaded when there is signal." |
+| Form | Rendered from the form version: sections, fields with the right keyboard per type, visibility rules, product-lines table, photo strip with count against minimum and maximum, signature pad, inline validation, save draft, submit. Footnote: "Saved on the phone first and uploaded when there is signal." The value checks are the server's own (`checkFormValues`), run against the phone's copies of accounts, contacts and the catalogue (D46). |
 | Camera | Full-screen live camera, shutter and retake; no gallery unless the form allows it; each photo stores its time and position |
 | Orders | Account picker (prefilled inside a visit), supplier shown, item search by name or code, unit selector and steppers, line previews, cart summary with taxable value, tax and total, note, attachment, place order; my orders with statuses |
 | Me | Attendance calendar with coloured day tiles and a summary; leave with balances; regularisation; expense claims with a live amount and receipt capture; my requests with step-by-step status; my performance detail |
@@ -1373,6 +1373,7 @@ Storage on the phone (SQLite in WAL mode):
 | Reference tables | What the user may read offline: config bundle, own profile, users in scope (managers), territories, accounts in scope with contacts, catalogue with applicable prices, routes and plan items for the current and next month, own target sets and metric summaries, leave types and balances, expense policies, own recent submissions, orders and requests |
 | `sync_state` | Last cursor per entity and last full refresh time |
 | `outbox` | Ordered queue: `seq`, `id`, `kind`, `payload`, `depends_on`, `attempts`, `next_attempt_at`, `last_error`, `state` (`queued` or `parked`) |
+| `form_entries` | Forms being filled and submitted ones waiting to be sent, each with the form version it was started on, its values, photos and signature strokes, and its state (`draft` or `queued`); a queued entry moves to the outbox once submissions can be sent (D46) |
 | `location_buffer` | Points waiting to upload |
 | Files | Compressed photos waiting to upload, in app-private storage |
 | Secure store | Tokens and the device key, readable after first unlock so the background task can upload |

@@ -15,7 +15,9 @@ export default function AppLayout() {
       <Stack.Screen name="uploads" />
       <Stack.Screen name="accounts/[id]" />
       <Stack.Screen name="accounts/new" />
+      <Stack.Screen name="forms/[id]" />
       <Stack.Screen name="camera" options={{ animation: 'fade' }} />
+      <Stack.Screen name="scan" options={{ animation: 'fade' }} />
     </Stack>
   );
 }

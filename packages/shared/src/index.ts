@@ -184,6 +184,8 @@ export {
   SyncContact,
   SyncContactsPage,
   SyncEntity,
+  SyncItem,
+  SyncItemsPage,
   SyncPullQuery,
   SyncPullResult,
   SyncTerritoriesPage,

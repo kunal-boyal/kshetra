@@ -21,6 +21,7 @@ const VISIT_FORM = {
   accountLink: { mode: 'required', accountTypes: ['shop'] },
   visitSession: true,
   shift: 'required',
+  photos: { min: 1, max: 3, source: 'camera' },
   signature: 'none',
   geofence: 'inherit',
   review: 'manual',
@@ -71,6 +72,25 @@ const PAGES = {
   '/v1/designations': { items: [] },
 };
 const BUNDLE = { accountTypes: [SHOP_TYPE] };
+
+describe('the phone preview', () => {
+  it('shows the form as a phone would, following its conditions, in either language', async () => {
+    const client = fakeClient(PAGES, {}, MANAGE, BUNDLE);
+    renderAt(`/settings/forms/${VISIT}`, client);
+    const phone = await screen.findByRole('region', { name: 'On the phone' });
+    expect(within(phone).getByText('Shop visit')).toBeVisible();
+    expect(within(phone).queryByRole('textbox', { name: 'What is short' })).toBeNull();
+    const user = userEvent.setup();
+    await user.selectOptions(
+      within(phone).getByRole('combobox', { name: 'Stock is fine *' }),
+      'no',
+    );
+    expect(within(phone).getByRole('textbox', { name: 'What is short' })).toBeVisible();
+    expect(within(phone).getByText('Photos *')).toBeVisible();
+    await user.selectOptions(within(phone).getByRole('combobox', { name: 'Language' }), 'hi');
+    expect(within(phone).getByRole('textbox', { name: 'What is short' })).toBeVisible();
+  });
+});
 
 describe('forms', () => {
   it('lists every form with its version, and switches one off', async () => {

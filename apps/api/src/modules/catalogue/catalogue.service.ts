@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { CustomField } from '@kshetra/forms';
 import type { CatalogueResult, CatalogueUnitView, ItemResult, MeasureType } from '@kshetra/shared';
 import type { Catalogue } from '@kshetra/templates';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import {
   catalogueSettings,
   items,
@@ -11,6 +11,7 @@ import {
   products,
 } from '../../db/schema/catalogue';
 import type { TenantTx } from '../../platform/database';
+import type { SyncRowsPage } from '../sync/sync-entities';
 
 export interface CatalogueSettings {
   units: CatalogueUnitView[];
@@ -82,8 +83,21 @@ export class CatalogueService {
   }
 
   async items(tx: TenantTx, tenantId: string): Promise<ItemResult[]> {
-    const rows = await tx
+    return (await this.itemRows(tx, tenantId)).map(({ row }) => row);
+  }
+
+  /**
+   * Items with their row versions, by product and name, or a page of them in (version, ID) order
+   * for the phones (spec 11.3).
+   */
+  async itemRows(
+    tx: TenantTx,
+    tenantId: string,
+    page?: SyncRowsPage,
+  ): Promise<{ version: number; id: string; row: ItemResult }[]> {
+    const query = tx
       .select({
+        version: items.rowVersion,
         id: items.id,
         code: items.code,
         name: items.name,
@@ -113,20 +127,38 @@ export class CatalogueService {
           eq(productCategories.id, products.categoryId),
         ),
       )
-      .where(eq(items.tenantId, tenantId))
-      .orderBy(asc(products.name), asc(items.name));
-    const units = await tx
-      .select({ itemId: itemUnits.itemId, key: itemUnits.unitKey, factor: itemUnits.factor })
-      .from(itemUnits)
-      .where(eq(itemUnits.tenantId, tenantId))
-      .orderBy(asc(itemUnits.factor));
-    return rows.map(({ productId, productName, categoryId, categoryName, ...row }) => ({
-      ...row,
-      product: { id: productId, name: productName },
-      category: categoryId && categoryName ? { id: categoryId, name: categoryName } : null,
-      units: units
-        .filter((unit) => unit.itemId === row.id)
-        .map(({ key, factor }) => ({ key, factor })),
+      .where(
+        and(
+          eq(items.tenantId, tenantId),
+          page ? gte(items.rowVersion, page.since) : undefined,
+          page?.after
+            ? sql`(${items.rowVersion}, ${items.id}) > (${page.after[0]}::bigint, ${page.after[1]}::uuid)`
+            : undefined,
+        ),
+      );
+    const rows = page
+      ? await query.orderBy(asc(items.rowVersion), asc(items.id)).limit(page.limit)
+      : await query.orderBy(asc(products.name), asc(items.name));
+    const ids = rows.map((row) => row.id);
+    const units =
+      ids.length === 0
+        ? []
+        : await tx
+            .select({ itemId: itemUnits.itemId, key: itemUnits.unitKey, factor: itemUnits.factor })
+            .from(itemUnits)
+            .where(and(eq(itemUnits.tenantId, tenantId), inArray(itemUnits.itemId, ids)))
+            .orderBy(asc(itemUnits.factor));
+    return rows.map(({ version, productId, productName, categoryId, categoryName, ...row }) => ({
+      version,
+      id: row.id,
+      row: {
+        ...row,
+        product: { id: productId, name: productName },
+        category: categoryId && categoryName ? { id: categoryId, name: categoryName } : null,
+        units: units
+          .filter((unit) => unit.itemId === row.id)
+          .map(({ key, factor }) => ({ key, factor })),
+      },
     }));
   }
 

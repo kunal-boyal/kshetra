@@ -279,6 +279,65 @@ describe('the catalogue (spec 5.11)', () => {
     expect(await importItems(t, csv(rows))).toMatchObject({ created: 0, updated: 1 });
   });
 
+  it("sends phones the catalogue through the sync, and follows a product's category", async () => {
+    const t = await agri('Sync Agro');
+    const pullItems = async (cursor?: string) =>
+      (
+        await t.sme.get(
+          `/v1/sync/pull?entities=items${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+        )
+      ).json() as {
+        entities: {
+          items: { pass: string; rows: { code: string; category: { name: string } | null }[] };
+        };
+        cursor: string;
+      };
+    const first = await pullItems();
+    expect(first.entities.items).toMatchObject({ pass: 'full', rows: [] });
+
+    const rows = [
+      HEADER,
+      [
+        'NEEM-500',
+        'Neem Shield 500 ML',
+        'Neem Shield',
+        'Bio pesticides',
+        '500 ML',
+        'Pack',
+        '20',
+        'L',
+        '10',
+        '3808',
+        '18',
+        '450',
+        '',
+      ],
+    ];
+    await importItems(t, csv(rows));
+    const second = await pullItems(first.cursor);
+    expect(second.entities.items).toMatchObject({
+      pass: 'changes',
+      rows: [{ code: 'NEEM-500', category: { name: 'Bio pesticides' } }],
+    });
+
+    // Only the product's category changes: the item itself is the same, yet its copy follows.
+    rows[1]![3] = 'Fertilisers';
+    expect(await importItems(t, csv(rows))).toMatchObject({ created: 0, updated: 0 });
+    const third = await pullItems(second.cursor);
+    expect(third.entities.items.rows).toMatchObject([
+      { code: 'NEEM-500', category: { name: 'Fertilisers' } },
+    ]);
+
+    const bundle = (await t.sme.get('/v1/config')).json();
+    expect(bundle.catalogue).toMatchObject({
+      units: [
+        expect.objectContaining({ key: 'pack', base: true }),
+        expect.objectContaining({ key: 'case' }),
+      ],
+      measureTypes: expect.arrayContaining(['kg', 'L']),
+    });
+  });
+
   it('refuses a pack label that disagrees with its measure (BR-16), writing nothing', async () => {
     const t = await agri('Measures Agro');
     const checked = await importItems(

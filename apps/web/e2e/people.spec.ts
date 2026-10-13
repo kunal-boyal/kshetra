@@ -231,6 +231,7 @@ async function mockSignedIn(page: Page) {
         designations: DESIGNATIONS,
         accountTypes: [],
         forms: [],
+        catalogue: { units: [], measureTypes: [] },
         access: {
           role: 'tenant_admin',
           scope: 'tenant',

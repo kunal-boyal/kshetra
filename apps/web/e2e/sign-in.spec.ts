@@ -92,6 +92,7 @@ async function mockApi(page: Page) {
         ],
         accountTypes: [],
         forms: [],
+        catalogue: { units: [], measureTypes: [] },
         access: { role: 'tenant_admin', scope: 'tenant', permissions: ['user.view'] },
       },
     }),

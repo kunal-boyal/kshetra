@@ -49,7 +49,15 @@ const CUSTOMER = {
   active: true,
   parentTypes: [],
   code: { mode: 'manual' },
-  fields: [],
+  fields: [
+    {
+      key: 'owner_name',
+      type: 'short_text',
+      label: text('Owner name'),
+      required: false,
+      maxLength: 100,
+    },
+  ],
   location: { required: false, geofencePolicy: 'advisory', fieldUsersMayPropose: true },
   creation: 'field_users_with_approval',
   slots: [
@@ -266,7 +274,7 @@ describe('accounts on the phone', () => {
     );
   });
 
-  it('proposes a new place, kept on the phone as waiting and sent for approval', async () => {
+  it('proposes a new place with its own fields, kept on the phone as waiting and sent for approval', async () => {
     const db = nodeSqlite();
     const client = await renderPhone({ name: 'new' }, db);
     expect(await screen.findByText('Propose a new Customer')).toBeOnTheScreen();
@@ -276,6 +284,8 @@ describe('accounts on the phone', () => {
     await fireEvent.changeText(screen.getByLabelText(/^Name/), 'Naya Bazaar Store');
     await fireEvent.changeText(screen.getByLabelText(/^Code/), 'C-99');
     await fireEvent.press(await screen.findByRole('radio', { name: /Delhi Market/ }));
+    // The type's own fields are filled here too.
+    await fireEvent.changeText(screen.getByLabelText('Owner name'), '  Meena Shah ');
     await fireEvent.press(screen.getByRole('button', { name: 'Send for approval' }));
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     await waitFor(() =>
@@ -286,6 +296,7 @@ describe('accounts on the phone', () => {
           code: 'C-99',
           name: 'Naya Bazaar Store',
           territoryId: MARKET,
+          custom: { owner_name: 'Meena Shah' },
         },
       }),
     );

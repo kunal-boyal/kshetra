@@ -11,12 +11,21 @@ import {
   Text,
 } from '@kshetra/ui-mobile';
 import { router } from 'expo-router';
-import { ArrowLeft, Crosshair, MapPin, Phone, RotateCw, UserRound } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  ClipboardList,
+  Crosshair,
+  MapPin,
+  Phone,
+  RotateCw,
+  UserRound,
+} from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { proposeLocation } from '../captures';
 import { useConfig } from '../data';
+import { standalone, startEntry } from '../forms/start';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
@@ -32,8 +41,9 @@ type Locating =
 
 /**
  * An account's overview on the phone (spec 8.1): its details, who looks after it and its
- * contacts, from the phone's copy, and, for one without a verified location, proposing where it
- * is from a fresh fix of 50 m or better (M4). Check-in arrives with visits.
+ * contacts, from the phone's copy, the forms linked to its type, and, for one without a verified
+ * location, proposing where it is from a fresh fix of 50 m or better (M4). Check-in arrives with
+ * visits.
  */
 export function AccountScreen({ id }: { id: string }) {
   const { client } = useApp();
@@ -83,6 +93,15 @@ export function AccountScreen({ id }: { id: string }) {
     (type?.location.fieldUsersMayPropose ?? false) &&
     account.status === 'active' &&
     account.locationStatus !== 'verified';
+  // Forms linked to this type, filled here on their own; visit forms open from a visit.
+  const linkedForms =
+    permissions.has('submission.create') && account.status === 'active'
+      ? standalone(bundle?.forms ?? []).filter(
+          (form) =>
+            form.accountLink.mode !== 'none' &&
+            form.accountLink.accountTypes.includes(account.type),
+        )
+      : [];
   const territory = territories?.find((node) => node.id === account.territoryId);
   const person = (userId: string) => users?.find((user) => user.id === userId);
   const address = [
@@ -175,6 +194,29 @@ export function AccountScreen({ id }: { id: string }) {
           />
         </View>
       </Card>
+
+      {linkedForms.length > 0 ? (
+        <ListGroup title={t('account.fill_form')}>
+          {linkedForms.map((form) => (
+            <ListRow
+              key={form.key}
+              icon={ClipboardList}
+              label={form.name[locale].one}
+              onPress={() => {
+                if (!sync || !client.owner) return;
+                startEntry(sync, client.owner, form, account.id).catch(() =>
+                  setError(t('entry.not_saved')),
+                );
+              }}
+            />
+          ))}
+        </ListGroup>
+      ) : null}
+      {error && !mayPropose ? (
+        <Text tone="danger" role="alert">
+          {error}
+        </Text>
+      ) : null}
 
       {mayPropose ? (
         <Card style={styles.card}>

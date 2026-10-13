@@ -1,7 +1,9 @@
 import type {
+  MeasureType,
   SyncAccount,
   SyncContact,
   SyncEntity,
+  SyncItem,
   SyncTerritory,
   SyncUser,
 } from '@kshetra/shared';
@@ -82,6 +84,45 @@ const MIGRATIONS: readonly string[] = [
      sync_gen INTEGER NOT NULL
    );
    CREATE INDEX ref_contacts_account ON ref_contacts (account_id);`,
+  // The catalogue (spec 5.11), and forms being filled: drafts, and entries submitted on the phone
+  // that wait to be sent. Each entry keeps the form version it was started on (spec 5.6).
+  `CREATE TABLE ref_items (
+     id TEXT PRIMARY KEY NOT NULL,
+     code TEXT NOT NULL,
+     name TEXT NOT NULL,
+     product_id TEXT NOT NULL,
+     product_name TEXT NOT NULL,
+     category_id TEXT,
+     category_name TEXT,
+     pack_label TEXT,
+     hsn TEXT,
+     tax_rate TEXT NOT NULL,
+     mrp TEXT,
+     base_unit TEXT NOT NULL,
+     units TEXT NOT NULL,
+     measure_type TEXT,
+     measure_per_base_unit TEXT,
+     custom TEXT NOT NULL,
+     active INTEGER NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_items_product_name ON ref_items (product_name, name);
+   CREATE TABLE form_entries (
+     id TEXT PRIMARY KEY NOT NULL,
+     owner TEXT NOT NULL,
+     form_key TEXT NOT NULL,
+     form_version INTEGER NOT NULL,
+     definition TEXT NOT NULL,
+     account_id TEXT,
+     data TEXT NOT NULL,
+     photos TEXT NOT NULL DEFAULT '[]',
+     signature TEXT,
+     state TEXT NOT NULL DEFAULT 'draft' CHECK (state IN ('draft', 'queued')),
+     started_at INTEGER NOT NULL,
+     updated_at INTEGER NOT NULL,
+     submitted_at INTEGER
+   );
+   CREATE INDEX form_entries_owner_state ON form_entries (owner, state, updated_at);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -216,6 +257,50 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       active: record.active === 1,
     }),
   },
+  items: {
+    table: 'ref_items',
+    columns: (item) => ({
+      id: item.id,
+      code: item.code,
+      name: item.name,
+      product_id: item.product.id,
+      product_name: item.product.name,
+      category_id: item.category?.id ?? null,
+      category_name: item.category?.name ?? null,
+      pack_label: item.packLabel,
+      hsn: item.hsn,
+      tax_rate: item.taxRate,
+      mrp: item.mrp,
+      base_unit: item.baseUnit,
+      units: JSON.stringify(item.units),
+      measure_type: item.measureType,
+      measure_per_base_unit: item.measurePerBaseUnit,
+      custom: JSON.stringify(item.custom),
+      active: item.active ? 1 : 0,
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      code: String(record.code),
+      name: String(record.name),
+      product: { id: String(record.product_id), name: String(record.product_name) },
+      category:
+        record.category_id === null
+          ? null
+          : { id: String(record.category_id), name: String(record.category_name) },
+      packLabel: record.pack_label === null ? null : String(record.pack_label),
+      hsn: record.hsn === null ? null : String(record.hsn),
+      taxRate: String(record.tax_rate),
+      mrp: record.mrp === null ? null : String(record.mrp),
+      baseUnit: String(record.base_unit),
+      units: JSON.parse(String(record.units)) as SyncItem['units'],
+      measureType:
+        record.measure_type === null ? null : (String(record.measure_type) as MeasureType),
+      measurePerBaseUnit:
+        record.measure_per_base_unit === null ? null : String(record.measure_per_base_unit),
+      custom: JSON.parse(String(record.custom)) as Record<string, unknown>,
+      active: record.active === 1,
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -223,6 +308,7 @@ export type RowOf<Name extends SyncEntity> = {
   territories: SyncTerritory;
   accounts: SyncAccount;
   contacts: SyncContact;
+  items: SyncItem;
 }[Name];
 
 /** Every row the phone holds of one entity. */

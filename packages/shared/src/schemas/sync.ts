@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { GeoPoint } from '../geo';
 import { AccountAddress, AccountStatus, ContactResult, LocationStatus } from './accounts';
+import { ItemResult } from './catalogue';
 import { Key } from './config';
 import { UserStatus } from './iam';
 import { TerritoryResult } from './territories';
@@ -11,7 +12,7 @@ import { TerritoryResult } from './territories';
  * outbox. Each module adds its entities here as it arrives.
  */
 
-export const SYNC_ENTITIES = ['users', 'territories', 'accounts', 'contacts'] as const;
+export const SYNC_ENTITIES = ['users', 'territories', 'accounts', 'contacts', 'items'] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
 /** At most this many rows of one entity in one page (spec 11.3). */
@@ -82,6 +83,12 @@ export const SyncAccount = z
 export const SyncContact = ContactResult;
 
 /**
+ * A catalogue item (spec 5.11), for item lines and catalogue choices offline. Every phone keeps
+ * the whole catalogue, inactive items included, so lines already entered still read.
+ */
+export const SyncItem = ItemResult;
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -102,6 +109,7 @@ export const SyncUsersPage = page(SyncUser);
 export const SyncTerritoriesPage = page(SyncTerritory);
 export const SyncAccountsPage = page(SyncAccount);
 export const SyncContactsPage = page(SyncContact);
+export const SyncItemsPage = page(SyncItem);
 
 export const SyncPullResult = z.object({
   entities: z.object({
@@ -109,6 +117,7 @@ export const SyncPullResult = z.object({
     territories: SyncTerritoriesPage.optional(),
     accounts: SyncAccountsPage.optional(),
     contacts: SyncContactsPage.optional(),
+    items: SyncItemsPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -122,4 +131,5 @@ export type SyncUser = z.infer<typeof SyncUser>;
 export type SyncTerritory = z.infer<typeof SyncTerritory>;
 export type SyncAccount = z.infer<typeof SyncAccount>;
 export type SyncContact = z.infer<typeof SyncContact>;
+export type SyncItem = z.infer<typeof SyncItem>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

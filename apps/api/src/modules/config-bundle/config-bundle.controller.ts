@@ -7,6 +7,7 @@ import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';
 import { AccountTypesService } from '../accounts/account-types.service';
+import { CatalogueService } from '../catalogue/catalogue.service';
 import { FormsService } from '../forms/forms.service';
 import { DesignationsService } from '../iam/designations.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
@@ -14,9 +15,9 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 /**
  * Raised whenever the bundle gains a part, so a phone holding a copy from before fetches it once
  * more instead of hearing that its copy is current. 2: account types (decision D43). 3: forms
- * (decision D45).
+ * (decision D45). 4: the catalogue's units (decision D46).
  */
-const BUNDLE_SHAPE = 3;
+const BUNDLE_SHAPE = 4;
 
 /** True when an `If-None-Match` header names this ETag, weak or strong. */
 function matches(header: string | undefined, etag: string): boolean {
@@ -41,6 +42,7 @@ export class ConfigBundleController {
     private readonly designations: DesignationsService,
     private readonly accountTypes: AccountTypesService,
     private readonly forms: FormsService,
+    private readonly catalogue: CatalogueService,
   ) {}
 
   @Get('config')
@@ -74,6 +76,7 @@ export class ConfigBundleController {
         await this.accountTypes.list(tx, access.tenantId),
       );
       const forms = await this.forms.forCaller(tx, access);
+      const { units, measureTypes } = await this.catalogue.settings(tx, access.tenantId);
       return {
         version,
         settings,
@@ -88,6 +91,7 @@ export class ConfigBundleController {
         })),
         accountTypes,
         forms,
+        catalogue: { units, measureTypes },
         access: {
           role: access.roleKey,
           scope: access.scope,
