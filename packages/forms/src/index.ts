@@ -35,10 +35,25 @@ export {
   YesNoField,
 } from './fields';
 export type { AnyField, FieldType } from './fields';
-export { AccountLink, checkFields, checkForm, FormDefinition } from './form';
+export {
+  AccountLink,
+  checkFields,
+  checkForm,
+  FormDefinition,
+  FormListResult,
+  FormView,
+  PublishFormBody,
+  UpdateFormBody,
+} from './form';
 export type { FieldContext, FormContext } from './form';
 export { UpdateUserFieldsBody, UserFieldsResult } from './user-fields';
-export { checkValueChanges, checkValues, conditionHolds } from './values';
-export type { ValueContext, Values } from './values';
+export {
+  checkFormValues,
+  checkValueChanges,
+  checkValues,
+  compilePattern,
+  conditionHolds,
+} from './values';
+export type { FormValueContext, ProductLine, ValueContext, Values } from './values';
 export { accountSegments, checkSlots, primaryAssignee } from './accounts';
 export type { SlotHolder } from './accounts';

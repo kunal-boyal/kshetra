@@ -23,6 +23,8 @@ export interface ImportContext {
   target: ImportTarget;
   /** Cell values the tenant's files use for "empty", such as "-". */
   emptyValues: readonly string[];
+  /** Percentage columns where a value of 1 or less is a fraction (BR-17). */
+  fractions: readonly string[];
 }
 
 /**

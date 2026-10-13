@@ -350,7 +350,14 @@ export class ImportsService implements OnModuleInit {
     tx: TenantTx,
     tenantId: string,
     imports: Readonly<
-      Record<string, { aliases: Record<string, readonly string[]>; emptyValues: readonly string[] }>
+      Record<
+        string,
+        {
+          aliases: Record<string, readonly string[]>;
+          emptyValues: readonly string[];
+          fractions?: readonly string[];
+        }
+      >
     >,
   ): Promise<void> {
     for (const [target, settings] of Object.entries(imports)) {
@@ -366,6 +373,7 @@ export class ImportsService implements OnModuleInit {
         name: 'template',
         mapping,
         emptyValues: [...settings.emptyValues],
+        fractions: [...(settings.fractions ?? [])],
       });
     }
   }
@@ -526,6 +534,7 @@ export class ImportsService implements OnModuleInit {
       context: {
         access,
         target: job.target as ImportResultTarget,
+        fractions: [...new Set(saved.flatMap((entry) => entry.fractions))],
         emptyValues: [...new Set(saved.flatMap((entry) => entry.emptyValues))],
       },
     };
@@ -589,6 +598,7 @@ export class ImportsService implements OnModuleInit {
         name: importMappings.name,
         mapping: importMappings.mapping,
         emptyValues: importMappings.emptyValues,
+        fractions: importMappings.fractions,
       })
       .from(importMappings)
       .where(and(eq(importMappings.tenantId, tenantId), eq(importMappings.target, target)))

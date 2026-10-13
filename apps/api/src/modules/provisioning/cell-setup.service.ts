@@ -4,6 +4,8 @@ import type { Template } from '@kshetra/templates';
 import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { AccountTypesService } from '../accounts/account-types.service';
+import { CatalogueService } from '../catalogue/catalogue.service';
+import { FormsService } from '../forms/forms.service';
 import { SYSTEM } from '../iam/actor';
 import { IamSetup } from '../iam/setup.service';
 import { ImportsService } from '../imports/imports.service';
@@ -13,7 +15,7 @@ import { TerritoriesService } from '../territories/territories.service';
 
 /**
  * A tenant's side of provisioning, in its cell (spec 5.14): the template's words, roles,
- * designations, geography levels and account types, and the first admin, all in one transaction. When the
+ * designations, geography levels, account types, catalogue settings and forms, and the first admin, all in one transaction. When the
  * platform console arrives (module M22), it calls this through the cell's provisioning API.
  */
 @Injectable()
@@ -25,6 +27,8 @@ export class CellSetup {
     private readonly territories: TerritoriesService,
     private readonly imports: ImportsService,
     private readonly accountTypes: AccountTypesService,
+    private readonly catalogue: CatalogueService,
+    private readonly forms: FormsService,
     private readonly users: UsersService,
     private readonly outbox: Outbox,
   ) {}
@@ -39,6 +43,8 @@ export class CellSetup {
     });
     await this.territories.applyLevels(tx, tenantId, template.geographyLevels);
     await this.accountTypes.applyTemplate(tx, tenantId, template.accountTypes);
+    await this.catalogue.applyTemplate(tx, tenantId, template.catalogue);
+    await this.forms.applyTemplate(tx, tenantId, template.forms);
     await this.imports.applyTemplate(tx, tenantId, templateImports(template));
   }
 

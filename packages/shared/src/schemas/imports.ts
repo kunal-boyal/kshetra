@@ -6,7 +6,7 @@ import { Key, LocalizedText } from './config';
  * type at a time, as `accounts:<type key>` (Appendix B.2).
  */
 
-export const IMPORT_TARGETS = ['users', 'territories'] as const;
+export const IMPORT_TARGETS = ['users', 'territories', 'items'] as const;
 export const AccountsImportTarget = z.templateLiteral(['accounts:', Key]);
 export const ImportTarget = z
   .union([z.enum(IMPORT_TARGETS), AccountsImportTarget])

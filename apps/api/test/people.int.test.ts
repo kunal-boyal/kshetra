@@ -101,11 +101,16 @@ describe('custom user fields (spec 5.3)', () => {
     expect(error(retyped)?.details).toEqual([
       { path: 'fields[1].type', issue: '`hq` was a short_text field, and a key keeps its type' },
     ]);
+    // Patterns run in linear time (decision D45), so one RE2 can't run is refused.
     const patterned = await admin.put('/v1/user-fields', {
-      fields: [{ key: 'pin', type: 'short_text', label: text('PIN'), pattern: '^\\d{6}$' }],
+      fields: [{ key: 'pin', type: 'short_text', label: text('PIN'), pattern: '(\\d)\\1' }],
     });
     expect(error(patterned)?.details).toEqual([
-      { path: 'fields[0].pattern', issue: 'Patterns arrive with the form engine' },
+      {
+        path: 'fields[0].pattern',
+        issue:
+          'This pattern is not valid, or uses lookarounds or backreferences, which can be slow',
+      },
     ]);
     const back = await admin.put('/v1/user-fields', {
       fields: [crops, { key: 'hq', type: 'short_text', label: text('Head office') }],

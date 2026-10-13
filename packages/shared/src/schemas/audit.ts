@@ -23,6 +23,8 @@ export const AUDIT_ACTIONS = [
   'import.uploaded',
   'import.committed',
   'account_type.published',
+  'form.published',
+  'form.updated',
   'account.created',
   'account.proposed',
   'account.updated',

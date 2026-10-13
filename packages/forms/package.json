@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@kshetra/shared": "workspace:*",
+    "re2js": "^2.8.6",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -16,12 +16,9 @@ import { type Actor, actorId, auditActor } from './actor';
 
 const NONE: UserFieldsResult = { fields: [], retired: [] };
 
-/** What user fields can't use yet, with why (decision D41). */
+/** What user fields can't use, with why (decision D41); patterns run in linear time (D45). */
 function unsupported(field: CustomField, path: readonly PropertyKey[]): ErrorDetail[] {
   const issues: ErrorDetail[] = [];
-  if (field.type === 'short_text' && field.pattern !== undefined) {
-    issues.push(issueAt([...path, 'pattern'], 'Patterns arrive with the form engine'));
-  }
   if ((field.type === 'single_select' || field.type === 'multi_select') && field.optionsFrom) {
     issues.push(issueAt([...path, 'optionsFrom'], 'User fields offer their own options'));
   }

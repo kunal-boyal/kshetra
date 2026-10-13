@@ -57,7 +57,9 @@ export function AppShell() {
       : []),
     ...(access.can('role.manage') ||
     access.can('designation.manage') ||
-    access.can('settings.manage')
+    access.can('settings.manage') ||
+    access.can('form.manage') ||
+    access.can('catalogue.manage')
       ? [{ to: '/settings', icon: Settings, label: t('nav.settings') }]
       : []),
   ];

@@ -296,7 +296,7 @@ Forms define what a field user records. Each form is versioned: publishing a cha
 
 | Field type | Notes |
 |---|---|
-| Short text, long text | Length limits; optional pattern |
+| Short text, long text | Length limits; optional pattern, matched in linear time, so without lookarounds or backreferences (D45) |
 | Number, currency | Minimum, maximum, decimals; currency uses the tenant currency |
 | Date, time | Relative limits such as "not in the future" |
 | Single select, multi select | Up to 100 options, each with a stable key |
@@ -1178,8 +1178,9 @@ account_location_proposals(id, tid, account_id, proposed_by, point, accuracy, ca
          workflow_instance_id, status enum(pending,approved,rejected,cancelled), created_at, decided_at)
 
 ── Forms and field work ──────────────────────────────────────────────────────────
-forms(id, tid, key, current_version_id, active)                              UQ(tid, key)
-form_versions(id, tid, form_id, version, definition jsonb, published_at, published_by)
+forms(id, tid, key, current_version, active)                                 UQ(tid, key)
+form_versions(tid, form_id, version, definition jsonb, published_at, published_by)
+                                                                             PK(tid, form_id, version)
 shifts(id, tid, user_id, device_id, started_at, start_point, start_accuracy, consent_version,
        selfie_media_id NULL, ended_at NULL, end_point NULL, end_accuracy NULL,
        end_reason enum(punch_out,auto_closed,max_length,admin) NULL, distance_m NULL, received_at)
@@ -1229,11 +1230,13 @@ external_metric_values(tid, user_id NULL, account_id NULL, date, metric_id, valu
 score_snapshots(tid, period, user_id, score NULL, rank NULL, group_key, computed_at)
 
 ── Catalogue, orders and finance ─────────────────────────────────────────────────
+catalogue_settings(tid, units jsonb, measure_types, rounding, item_fields jsonb,
+         rejection_reasons jsonb, version)                                   PK(tid)
 product_categories(id, tid, parent_id, name)
 products(id, tid, category_id, name, custom jsonb)
 items(id, tid, product_id, code, name, pack_label, hsn, tax_rate, mrp, base_unit, measure_type NULL,
       measure_per_base_unit NULL, custom jsonb, active, row_version)         UQ(tid, lower(code))
-item_units(item_id, unit_key, label jsonb, factor, sellable)                 PK(item_id, unit_key)
+item_units(item_id, unit_key, factor, sellable)                              PK(item_id, unit_key)
 price_lists(id, tid, name, priority, applies_to jsonb, valid_from, valid_to, active)
 price_list_items(price_list_id, item_id, price, discount_pct)                PK(price_list_id, item_id)
 orders(id, tid, account_id, supplier_kind enum(company,account), supplier_account_id NULL, user_id,
@@ -1281,7 +1284,8 @@ import_jobs(id, tid, target, file_media_id, file_name, sheets jsonb, sheet, head
        mapping jsonb, status enum(reading,mapping,validating,ready,invalid,committing,committed,failed),
        total_rows, error_rows, errors jsonb, preview jsonb, created, updated, created_by, created_at,
        updated_at, finished_at)                                              IX(tid, created_at)
-import_mappings(id, tid, target, name, mapping jsonb, empty_values jsonb, created_by, updated_at)
+import_mappings(id, tid, target, name, mapping jsonb, empty_values jsonb, fractions jsonb, created_by,
+         updated_at)
        UQ(tid, target, name)
 export_jobs(id, tid, kind, params jsonb, status, file_media_id NULL, error, requested_by, created_at, finished_at)
 api_clients(id, tid, name, client_id UQ, secret_hash, scopes text[], status, last_used_at)
@@ -1341,14 +1345,14 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | People | `GET /v1/users`, `GET /v1/users/:id`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/users/:id/history`, `POST /v1/users/:id/transfers`, `GET /v1/users/:id/transfers`, `POST /v1/users/:id/transfers/:transferId/cancel`, `GET /v1/org-chart`, `GET /v1/user-fields`, `PUT /v1/user-fields`, `GET /v1/roles`, `POST /v1/roles`, `PATCH /v1/roles/:id`, `GET /v1/designations`, `POST /v1/designations`, `PATCH /v1/designations/:id` |
 | Territories | `GET /v1/territories`, `POST /v1/territories`, `PATCH /v1/territories/:id` |
 | Accounts | `GET /v1/accounts`, `POST /v1/accounts`, `PATCH /v1/accounts/:id`, `GET /v1/accounts/:id/overview`, `POST /v1/accounts/:id/contacts`, `PATCH /v1/accounts/:id/contacts/:contactId`, `POST /v1/accounts/:id/location-proposals`, `GET /v1/account-types`, `POST /v1/account-types/:id/versions` |
-| Forms | `GET /v1/forms`, `POST /v1/forms`, `POST /v1/forms/:id/versions` (publish) |
+| Forms | `GET /v1/forms`, `POST /v1/forms`, `POST /v1/forms/:id/versions` (publish), `PATCH /v1/forms/:id` (switch off or on) |
 | Field | `POST /v1/shifts`, `POST /v1/shifts/:id/end`, `POST /v1/shifts/:id/pauses`, `POST /v1/locations/batch`, `POST /v1/visits`, `POST /v1/visits/:id/check-out`, `POST /v1/submissions`, `GET /v1/submissions` |
 | Review | `GET /v1/reviews/queue`, `POST /v1/submissions/:id/review`, `POST /v1/reviews/bulk` |
 | Media | `POST /v1/media/presign`, `POST /v1/media/:id/confirm`, `GET /v1/media/:id/url?variant=` |
 | Planning | `GET /v1/targets`, `PUT /v1/targets`, `POST /v1/targets/lock`, `GET /v1/routes`, `POST /v1/routes`, `POST /v1/plans/generate`, `GET /v1/plan-items`, `POST /v1/plan-items`, `POST /v1/plan-items/:id/cancel`, `PUT /v1/account-plans` |
 | Performance | `GET /v1/performance?period&scope`, `GET /v1/leaderboard?period&group` |
 | Maps | `GET /v1/live`, `GET /v1/live/stream` (server-sent events), `GET /v1/trails?userId&date`, `GET /v1/density?period` |
-| Catalogue | `GET /v1/catalogue` (items, units and the caller's applicable prices; ETag), `PUT /v1/items`, `PUT /v1/price-lists` |
+| Catalogue | `GET /v1/catalogue` (items, units and the caller's applicable prices; ETag), `PUT /v1/items`, `PUT /v1/price-lists`. In phase 1 items arrive only through the item import, without prices; `PUT /v1/items` and price lists come in phase 2 (D38, D45). |
 | Orders | `POST /v1/orders`, `GET /v1/orders`, `GET /v1/orders/:id`, `POST /v1/orders/:id/decision`, `POST /v1/orders/:id/line-decisions`, `POST /v1/orders/:id/fulfilment` |
 | Finance | `POST /v1/finance-snapshots`, `POST /v1/ledger-entries`, `GET /v1/accounts/:id/statement` |
 | HR | `GET /v1/attendance?userId&period`, `POST /v1/leave-requests`, `POST /v1/regularisations`, `GET /v1/calendars`, `PUT /v1/calendars`, `PUT /v1/leave-types`, `PUT /v1/payroll-profiles`, `GET /v1/payslips/:userId/:period` |

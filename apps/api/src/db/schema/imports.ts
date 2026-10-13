@@ -101,6 +101,8 @@ export const importMappings = cell
       // Headers as the importer compares them (lowercase letters and digits) to field keys.
       mapping: jsonb('mapping').$type<Record<string, string>>().notNull(),
       emptyValues: jsonb('empty_values').$type<string[]>().notNull().default([]),
+      /** Percentage columns where a value of 1 or less is a fraction (BR-17). */
+      fractions: jsonb('fractions').$type<string[]>().notNull().default([]),
       createdBy: uuid('created_by'),
       updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     },

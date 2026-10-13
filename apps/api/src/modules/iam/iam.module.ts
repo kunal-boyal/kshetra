@@ -61,6 +61,15 @@ import { UsersSync } from './users.sync';
     OrgChartService,
     IamSetup,
   ],
-  exports: [IamAccess, IamAdmission, Scopes, UsersService, People, DesignationsService, IamSetup],
+  exports: [
+    IamAccess,
+    IamAdmission,
+    Scopes,
+    UsersService,
+    People,
+    RolesService,
+    DesignationsService,
+    IamSetup,
+  ],
 })
 export class IamModule {}

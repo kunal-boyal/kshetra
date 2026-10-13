@@ -294,7 +294,7 @@ describe('a form definition', () => {
       ]),
     ).toEqual([
       'fields[0]: The minimum length is above the maximum',
-      'fields[1].pattern: This is not a valid regular expression',
+      'fields[1].pattern: This pattern is not valid, or uses lookarounds or backreferences, which can be slow',
       'fields[2]: The minimum value is above the maximum',
       'fields[3]: The minimum amount is above the maximum',
       'fields[4]: The minimum date is above the maximum',

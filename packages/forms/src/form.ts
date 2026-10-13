@@ -11,6 +11,7 @@ import {
 import { z } from 'zod';
 import { checkCondition } from './conditions';
 import { type AnyField, FormField, PHOTO_SOURCES } from './fields';
+import { compilePattern } from './values';
 
 type Path = readonly PropertyKey[];
 
@@ -99,12 +100,13 @@ function fieldIssues(field: AnyField, context: FieldContext, path: Path): ErrorD
   switch (field.type) {
     case 'short_text':
       range(field.minLength, field.maxLength, 'length');
-      if (field.pattern !== undefined) {
-        try {
-          new RegExp(field.pattern, 'u');
-        } catch {
-          issues.push(issueAt([...path, 'pattern'], 'This is not a valid regular expression'));
-        }
+      if (field.pattern !== undefined && compilePattern(field.pattern) === null) {
+        issues.push(
+          issueAt(
+            [...path, 'pattern'],
+            'This pattern is not valid, or uses lookarounds or backreferences, which can be slow',
+          ),
+        );
       }
       break;
     case 'long_text':
@@ -294,3 +296,28 @@ export function checkForm(
   );
   return issues;
 }
+
+/** A form as the apps hold it: its current version, and whether it is in use. */
+export const FormView = FormDefinition.extend({
+  id: z.uuid(),
+  version: z.int().min(1),
+  active: z.boolean(),
+}).meta({ id: 'FormView' });
+
+/** `GET /v1/forms`: every form, in use or not, at its current version. */
+export const FormListResult = z.object({ items: z.array(FormView) });
+
+/**
+ * `POST /v1/forms` and `POST /v1/forms/{id}/versions`: a form's first version, or its next. Its
+ * key never changes, and a field keeps its type once a version has used it, so every submission
+ * still reads as it was entered.
+ */
+export const PublishFormBody = z.strictObject({ definition: FormDefinition });
+
+/** `PATCH /v1/forms/{id}`: switch a form off or on; its versions stay. */
+export const UpdateFormBody = z.strictObject({ active: z.boolean() });
+
+export type FormView = z.output<typeof FormView>;
+export type FormListResult = z.output<typeof FormListResult>;
+export type PublishFormBody = z.output<typeof PublishFormBody>;
+export type UpdateFormBody = z.output<typeof UpdateFormBody>;

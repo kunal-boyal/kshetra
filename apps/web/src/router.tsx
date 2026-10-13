@@ -11,6 +11,9 @@ import { EditAccountPage, NewAccountPage } from './accounts/account-form-page';
 import { AccountPage } from './accounts/account-page';
 import { AccountsPage } from './accounts/accounts-page';
 import { ApprovalsPage } from './accounts/approvals-page';
+import { CataloguePage } from './catalogue/catalogue-page';
+import { EditFormPage, NewFormPage } from './forms/form-builder-page';
+import { FormsPage } from './forms/forms-page';
 import { ImportPage } from './imports/import-page';
 import { ImportsPage } from './imports/imports-page';
 import { AppShell } from './layout/app-shell';
@@ -176,6 +179,25 @@ const userFields = createRoute({
   path: '/people-fields',
   component: UserFieldsPage,
 });
+const forms = createRoute({ getParentRoute: () => settings, path: '/forms', component: FormsPage });
+const newForm = createRoute({
+  getParentRoute: () => settings,
+  path: '/forms/new',
+  component: NewFormPage,
+});
+const editForm = createRoute({
+  getParentRoute: () => settings,
+  path: '/forms/$formId',
+  component: function EditFormRoute() {
+    const { formId } = editForm.useParams();
+    return <EditFormPage key={formId} formId={formId} />;
+  },
+});
+const catalogue = createRoute({
+  getParentRoute: () => settings,
+  path: '/catalogue',
+  component: CataloguePage,
+});
 
 const tree = root.addChildren([
   signIn,
@@ -195,7 +217,16 @@ const tree = root.addChildren([
     territories,
     imports,
     oneImport,
-    settings.addChildren([settingsIndex, roles, designations, userFields]),
+    settings.addChildren([
+      settingsIndex,
+      roles,
+      designations,
+      userFields,
+      forms,
+      newForm,
+      editForm,
+      catalogue,
+    ]),
   ]),
 ]);
 
