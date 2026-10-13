@@ -120,7 +120,8 @@ describe('forms', () => {
       BUNDLE,
     );
     renderAt('/settings/forms/new', client);
-    const user = userEvent.setup();
+    // Much typing: no pause between keys.
+    const user = userEvent.setup({ delay: null });
     const basics = await screen.findByRole('region', { name: 'About the form' });
     await user.type(within(basics).getByRole('textbox', { name: 'Key*' }), 'shop_check');
     await user.type(
@@ -188,7 +189,7 @@ describe('forms', () => {
       ],
     });
     expect(await screen.findByRole('heading', { level: 1, name: 'Shop check' })).toBeVisible();
-  });
+  }, 20_000);
 
   it('publishes the next version, and shows refusals on the field they concern', async () => {
     let calls = 0;
