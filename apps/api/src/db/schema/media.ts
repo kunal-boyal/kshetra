@@ -1,5 +1,17 @@
-import { bigint, foreignKey, index, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { cell, isolation } from './common';
+import { MEDIA_SOURCES } from '@kshetra/shared';
+import {
+  bigint,
+  boolean,
+  doublePrecision,
+  foreignKey,
+  index,
+  jsonb,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import { cell, geographyPoint, isolation } from './common';
 import { users } from './iam';
 
 /** What a stored file is for (spec 10.3). Photos and the rest arrive with the media pipeline. */
@@ -14,6 +26,8 @@ export const mediaKind = cell.enum('media_kind', [
   'import_file',
   'export_file',
 ]);
+
+export const mediaSource = cell.enum('media_source', MEDIA_SOURCES);
 
 export const mediaStatus = cell.enum('media_status', [
   'pending',
@@ -45,12 +59,29 @@ export const media = cell
       ownerType: text('owner_type'),
       ownerId: uuid('owner_id'),
       retentionClass: text('retention_class').notNull(),
+      // Photos (spec 12.2): how, when and where taken, and what processing found.
+      source: mediaSource('source'),
+      capturedAt: timestamp('captured_at', { withTimezone: true }),
+      point: geographyPoint('point'),
+      accuracy: doublePrecision('accuracy'),
+      mocked: boolean('mocked'),
+      /** The 64-bit difference hash, as 16 hexadecimal characters (BR-40). */
+      dhash: text('dhash'),
+      duplicateOfId: uuid('duplicate_of_id'),
+      /** Each derived variant's object key, by variant. */
+      derivatives: jsonb('derivatives').$type<Record<string, string>>().notNull().default({}),
+      ocr: jsonb('ocr'),
+      rejectReason: text('reject_reason'),
+      confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+      processedAt: timestamp('processed_at', { withTimezone: true }),
       createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
       primaryKey({ columns: [table.tenantId, table.id] }),
       index('media_tenant_sha256').on(table.tenantId, table.sha256),
       index('media_tenant_owner').on(table.tenantId, table.ownerType, table.ownerId),
+      // Near duplicates are looked for among photos of one kind from the last 90 days (BR-40).
+      index('media_tenant_kind_captured').on(table.tenantId, table.kind, table.capturedAt),
       foreignKey({
         name: 'media_user_fk',
         columns: [table.tenantId, table.userId],

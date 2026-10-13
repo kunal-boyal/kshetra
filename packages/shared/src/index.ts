@@ -216,3 +216,32 @@ export {
   PROPOSAL_FIX_MAX_AGE_S,
   proposalFix,
 } from './geo';
+export {
+  DHASH_HEIGHT,
+  DHASH_WIDTH,
+  differenceHash,
+  DUPLICATE_DISTANCE,
+  DUPLICATE_WINDOW_DAYS,
+  hammingDistance,
+  isJpeg,
+  photoKey,
+  photoRetentionClass,
+} from './media';
+export {
+  ConfirmMediaBody,
+  MAX_PHOTO_BYTES,
+  MEDIA_SOURCES,
+  MEDIA_STATUSES,
+  MEDIA_VARIANTS,
+  MediaFix,
+  MediaResult,
+  MediaSource,
+  MediaStatus,
+  MediaUrlQuery,
+  MediaUrlResult,
+  MediaVariant,
+  PHOTO_KINDS,
+  PhotoKind,
+  PresignMediaBody,
+  PresignMediaResult,
+} from './schemas/media';

@@ -150,6 +150,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Records made on a phone carry their own IDs: wrap the create in `idempotent()` keyed by `<kind>:<id>`, so a resend replays and a changed body is `IDEMPOTENCY_CONFLICT`.
 - Points are `geography(Point, 4326)`: write with `pointSql()`, read with `pointOf()` from `src/platform/geo.ts`.
 
+## Photos (decision D44)
+
+- Photos never pass through the API: the phone uploads straight to storage through `POST /v1/media/presign`'s link, then confirms. Use the `media.upload` outbox kind and `preparePhoto()` and `queuePhoto()` in `apps/mobile/src/photos.ts`; the camera screen (`/camera?kind=&request=`) does both and hands the IDs back through `capture-results.ts`.
+- Records that use photos attach them by ID in the transaction that creates the record, after checking their owner and status (spec 12.2, step 5). Read them only through `GET /v1/media/{id}/url`.
+- In tests the object store is in memory; `MemoryObjectStore.receive(url, bytes)` stands in for the phone's upload and refuses bytes that weren't signed for.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

@@ -8,6 +8,7 @@ import { ConfigBundleModule } from './modules/config-bundle/config-bundle.module
 import { IamModule } from './modules/iam/iam.module';
 import { ImportsModule } from './modules/imports/imports.module';
 import { MediaModule } from './modules/media/media.module';
+import { PhotosModule } from './modules/media/photos.module';
 import { ProvisioningModule } from './modules/provisioning/provisioning.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { SyncModule } from './modules/sync/sync.module';
@@ -36,6 +37,7 @@ export const FEATURE_MODULES = [
   SchedulingModule,
   SyncModule,
   MediaModule,
+  PhotosModule,
   ImportsModule,
   WorkflowModule,
   AccountsModule,

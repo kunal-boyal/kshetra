@@ -49,6 +49,9 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | read-excel-file | 9.3.10 | Added 2026-10-12: reads `.xlsx` imports. Numbers are read as the text in the cell, so codes and mobile numbers keep their leading zeros (decision D42). |
 | csv-parse | 7.0.3 | Added 2026-10-12: reads `.csv` imports |
 | fflate | 0.8.3 | Added 2026-10-12: reads an `.xlsx` file's zip directory to refuse one that unpacks to more than 200 MB before it is opened (decision D42) |
+| sharp | 0.35.5 | Added 2026-10-12: reads photos, makes their thumbnails, stamped copies and difference hashes (decision D44). Its prebuilt binaries need no install script. |
+| @aws-sdk/s3-request-presigner | 3.1146.0 | Added 2026-10-12: upload and read links for photos, matching the S3 client |
+| @aws-sdk/cloudfront-signer | 3.1149.0 | Added 2026-10-12: CloudFront signed read links in AWS (decision D44) |
 
 ## Web (`apps/web`, `packages/ui-web`, `packages/api-client`, added 2026-10-06)
 
@@ -84,6 +87,7 @@ Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes mo
 | expo-splash-screen, expo-status-bar, expo-system-ui, expo-dev-client | 57.0.9, 57.0.1, 57.0.4, 57.0.19 | Start-up, system bars, and the development client of spec 9.2 |
 | expo-sqlite, expo-network, expo-battery | 57.0.3, 57.0.2, 57.0.3 | Added 2026-10-07 for the offline sync (decision D40): the phone's database, the network returning, and battery optimisation for the heartbeat. All three are in Expo Go. expo-sqlite is the 57.0.3 that the installed SDK patch (expo 57.0.26) names: SDK patch 57.0.27 and expo-sqlite 57.0.4 came out on 2026-10-06, inside pnpm's one-day minimum release age, so they move together once it passes. |
 | expo-location | 57.0.20 | Added 2026-10-12 for accounts (decision D43): a fix while the app is open, to sort places by distance and propose where one is. Foreground only; tracking adds background use in step 8. In Expo Go. The SDK patch (expo 57.0.27, expo-sqlite 57.0.4) can now move: do it through the `mobile` catalog, since `expo install --fix` writes a version over the catalog entry and leaves two copies of Expo. |
+| expo-camera, expo-image-manipulator, expo-file-system | 57.0.6, 57.0.21, 57.0.7 | Added 2026-10-12 for photos (decision D44): the live camera without the microphone, resizing, and the app's own storage for photos waiting to upload. All in Expo Go. |
 | react-native-screens, react-native-safe-area-context, react-native-gesture-handler | 4.26.2, 5.7.0, 2.32.0 | For the router |
 | react-native-reanimated, react-native-worklets | 4.5.1, 0.10.1 | The versions Expo Go carries, pinned because the router names them as optional peers and pnpm would otherwise install newer native code |
 | react-native-svg | 15.15.4 | Icons and the mark |

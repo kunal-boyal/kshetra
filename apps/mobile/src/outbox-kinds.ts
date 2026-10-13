@@ -7,6 +7,7 @@ import {
   LocationProposalResult,
 } from '@kshetra/shared';
 import type { MobileClient } from './client';
+import { photoSender } from './photos';
 
 /** A proposed location, with the account it is for. */
 export interface LocationProposalPayload extends CreateLocationProposalBody {
@@ -22,6 +23,7 @@ export function senders(
   client: Pick<MobileClient, 'request'>,
 ): Readonly<Record<string, OutboxSender>> {
   return {
+    'media.upload': photoSender(client),
     'account.propose': {
       async send(payload) {
         await client.request('POST', '/v1/accounts', AccountResult, {
@@ -44,6 +46,7 @@ export function senders(
 }
 
 const LABELS: Readonly<Record<string, MessageKey>> = {
+  'media.upload': 'uploads.kind_photo',
   'account.propose': 'uploads.kind_account_propose',
   'account.location': 'uploads.kind_account_location',
 };

@@ -17,6 +17,8 @@ const schema = z
       .string()
       .regex(/^[a-z][a-z0-9-]{1,30}$/)
       .default('kshetra'),
+    // The product's name where people read it, such as on a photo's stamp (decision D1).
+    PRODUCT_NAME: z.string().trim().min(1).max(40).default('Kshetra'),
     // 127.0.0.1 locally; containers set 0.0.0.0, and so does phone testing on the local network.
     HOST: z.string().min(1).default('127.0.0.1'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -83,6 +85,14 @@ const schema = z
     // MinIO's user and password locally; unset in AWS, where the task's role signs requests.
     S3_ACCESS_KEY_ID: z.string().min(1).optional(),
     S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+    // Photos are read through CloudFront signed URLs in AWS (spec 12.2); without these three,
+    // as locally, reads are presigned by the object store itself.
+    CLOUDFRONT_DOMAIN: z.string().min(1).optional(),
+    CLOUDFRONT_KEY_ID: z.string().min(1).optional(),
+    CLOUDFRONT_PRIVATE_KEY: z
+      .string()
+      .optional()
+      .transform((pem) => (pem ? pem.replace(/\\n/g, '\n') : undefined)),
     // PKCS8 PEM of the P-256 key that signs access tokens (ES256), with newlines written as \n.
     // Left unset outside production, the API makes a temporary key at start-up.
     JWT_SIGNING_KEY: z

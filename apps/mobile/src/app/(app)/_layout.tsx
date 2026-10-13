@@ -15,6 +15,7 @@ export default function AppLayout() {
       <Stack.Screen name="uploads" />
       <Stack.Screen name="accounts/[id]" />
       <Stack.Screen name="accounts/new" />
+      <Stack.Screen name="camera" options={{ animation: 'fade' }} />
     </Stack>
   );
 }

@@ -1201,10 +1201,11 @@ submissions(id, tid, user_id, shift_id NULL, visit_id NULL, account_id NULL, pla
        IX(tid, user_id, captured_at) · IX(tid, status, captured_at) · IX(tid, account_id, captured_at) · GIST(point)
 submission_reviews(id, tid, submission_id, decision, note, reviewer_id, created_at)
 media(id, tid, user_id, kind enum(evidence,field_photo,selfie,attachment,receipt,odometer,signature,
-      import_file,export_file), object_key, content_type, size, sha256,
+      import_file,export_file), object_key, file_name NULL, content_type, size, sha256,
       status enum(pending,uploaded,processed,rejected,deleted), source enum(camera,gallery,generated),
-      captured_at, point, accuracy, dhash NULL, duplicate_of_id NULL, ocr jsonb NULL, derivatives jsonb,
-      owner_type, owner_id NULL, retention_class)
+      captured_at, point, accuracy, mocked, dhash NULL, duplicate_of_id NULL, ocr jsonb NULL,
+      derivatives jsonb, reject_reason NULL, owner_type, owner_id NULL, retention_class,
+      created_at, confirmed_at, processed_at)                        IX(tid, kind, captured_at)
       IX(tid, sha256) · IX(tid, kind, dhash) · IX(tid, owner_type, owner_id)
 
 ── Planning and metrics ──────────────────────────────────────────────────────────
@@ -2078,7 +2079,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 
 | Variable | Purpose |
 |---|---|
-| `NODE_ENV`, `PORT`, `CELL_ID`, `PRODUCT_SLUG` | Runtime basics |
+| `NODE_ENV`, `PORT`, `CELL_ID`, `PRODUCT_SLUG`, `PRODUCT_NAME` | Runtime basics; the name appears on photos' stamps |
 | `CELL_API_URL`, `CELL_REGION` | Where apps reach this cell, as the directory hands it out at sign-in, and its region |
 | `DATABASE_URL`, `DATABASE_REPLICA_URL`, `DATABASE_MIGRATOR_URL`, `DB_POOL_MAX` | Application role, read replica, migration role, pool size |
 | `DIRECTORY_DATABASE_URL` | Directory schema connection, used by the directory module only |
