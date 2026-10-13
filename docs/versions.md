@@ -26,6 +26,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | libphonenumber-js | 1.13.14 | `packages/shared`, for E.164 phone numbers |
 | zod | 4.6.5 | Validation: the API's config and requests, and the configuration schemas in `packages/shared`, `forms`, `metrics` and `templates` |
 | ajv | 8.20.0 | `packages/templates` tests, which check each template against the generated `schema.json` |
+| re2js | 2.8.6 | Added 2026-10-13: `packages/forms`, which matches text fields' patterns in linear time, on the server and in the apps alike (decision D45) |
 
 ## API (`apps/api`, added 2026-10-05)
 

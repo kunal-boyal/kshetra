@@ -99,6 +99,7 @@ describe('the imports page', () => {
     const client = fakeClient({ '/v1/imports': { items: [], nextCursor: null } }, {}, [
       'import.run',
       'territory.manage',
+      'catalogue.manage',
     ]);
     renderAt('/imports', client);
     const what = await screen.findByRole('combobox', { name: 'What to import' });
@@ -106,7 +107,7 @@ describe('the imports page', () => {
       within(what)
         .getAllByRole('option')
         .map((option) => option.textContent),
-    ).toEqual(['Territories']);
+    ).toEqual(['Territories', 'Catalogue items']);
     expect(screen.getByText('No imports yet')).toBeInTheDocument();
   });
 });

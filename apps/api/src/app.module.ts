@@ -2,9 +2,11 @@ import { type DynamicModule, Module, type Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import type { Config } from './config';
 import { AccountsModule } from './modules/accounts/accounts.module';
+import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ConfigBundleModule } from './modules/config-bundle/config-bundle.module';
+import { FormsModule } from './modules/forms/forms.module';
 import { IamModule } from './modules/iam/iam.module';
 import { ImportsModule } from './modules/imports/imports.module';
 import { MediaModule } from './modules/media/media.module';
@@ -41,6 +43,8 @@ export const FEATURE_MODULES = [
   ImportsModule,
   WorkflowModule,
   AccountsModule,
+  CatalogueModule,
+  FormsModule,
 ];
 
 /** Every controller the API serves: the health checks and each feature module's. */

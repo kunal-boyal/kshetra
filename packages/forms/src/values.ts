@@ -1,6 +1,8 @@
 import { type ErrorDetail, issueAt, Money, toMinorUnits } from '@kshetra/shared';
+import { RE2JS } from 're2js';
 import type { Clause, Condition } from './conditions';
-import type { CustomField } from './fields';
+import type { CustomField, FormField, GroupItemField } from './fields';
+import type { FormDefinition } from './form';
 
 /** What checking values needs to know about the moment of capture. */
 export interface ValueContext {
@@ -91,12 +93,29 @@ export function conditionHolds(condition: Condition, values: Values): boolean {
 
 type Checked = { value: unknown } | { issue: string };
 
+const compiled = new Map<string, RE2JS | null>();
+
 /**
- * Text within its lengths. A short text's `pattern` isn't applied yet: a pattern a tenant writes
- * can take the server minutes on a crafted value, so patterns wait for a matcher that runs in
- * linear time, and the places that accept fields refuse them until then (decision D41).
+ * A pattern compiled by RE2, which matches in time linear in the text, whatever the pattern, so a
+ * pattern a tenant writes can't stall the server or the phone (decision D45). Null when RE2 can't
+ * compile it, such as one with backreferences.
  */
-function text(field: { minLength?: number | undefined; maxLength: number }, raw: unknown): Checked {
+export function compilePattern(pattern: string): RE2JS | null {
+  if (!compiled.has(pattern)) {
+    try {
+      compiled.set(pattern, RE2JS.compile(pattern));
+    } catch {
+      compiled.set(pattern, null);
+    }
+  }
+  return compiled.get(pattern)!;
+}
+
+/** Text within its lengths, matching its pattern, if any, as a whole. */
+function text(
+  field: { minLength?: number | undefined; maxLength: number; pattern?: string | undefined },
+  raw: unknown,
+): Checked {
   if (typeof raw !== 'string') return { issue: 'Enter text' };
   const value = raw.trim();
   if (field.minLength !== undefined && value.length < field.minLength) {
@@ -104,6 +123,9 @@ function text(field: { minLength?: number | undefined; maxLength: number }, raw:
   }
   if (value.length > field.maxLength)
     return { issue: `Enter at most ${field.maxLength} characters` };
+  if (field.pattern !== undefined && !compilePattern(field.pattern)?.matcher(value).matches()) {
+    return { issue: 'Enter it in the expected form' };
+  }
   return { value };
 }
 
@@ -254,4 +276,220 @@ export function checkValueChanges(
     else delete stored[key];
   }
   return { values: stored, issues: [] };
+}
+
+/**
+ * What checking a form's values may look up beyond the form. Each lookup is optional: the phone
+ * checks what it knows for feedback, and the server checks everything (spec 5.6).
+ */
+export interface FormValueContext extends ValueContext {
+  /** An account's type key, or null for one the user doesn't see. */
+  accountType?: (id: string) => string | null;
+  /** Whether a contact belongs to the account the form is linked to. */
+  contactAtAccount?: (id: string) => boolean;
+  /** Whether a catalogue item exists and is active. */
+  activeItem?: (id: string) => boolean;
+  /** Whether a catalogue entry may be chosen in a select that offers catalogue entries. */
+  catalogueEntry?: (source: 'catalogue_products' | 'catalogue_items', id: string) => boolean;
+}
+
+/** A product line: an item, how many, and the value column's figure when the field has one. */
+export interface ProductLine {
+  itemId: string;
+  quantity: number;
+  value?: string;
+}
+
+type FieldChecked = { value: unknown } | { issues: ErrorDetail[] };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Quantities keep three decimals (spec 10.1). */
+const QUANTITY_MAX = 1_000_000_000;
+
+function lines(
+  field: Extract<FormField, { type: 'product_lines' }>,
+  raw: unknown,
+  context: FormValueContext,
+  path: readonly PropertyKey[],
+): FieldChecked {
+  if (!Array.isArray(raw)) return { issues: [issueAt(path, 'Add items from the list')] };
+  if (raw.length > field.maxLines) {
+    return { issues: [issueAt(path, `Add at most ${field.maxLines} lines`)] };
+  }
+  const issues: ErrorDetail[] = [];
+  const value: ProductLine[] = [];
+  const seen = new Set<string>();
+  raw.forEach((line: unknown, index) => {
+    const at = (rest: PropertyKey, issue: string) =>
+      issues.push(issueAt([...path, index, rest], issue));
+    const entry = (line ?? {}) as Record<string, unknown>;
+    const itemId = entry.itemId;
+    if (typeof itemId !== 'string' || !UUID.test(itemId)) return at('itemId', 'Choose an item');
+    if (seen.has(itemId)) return at('itemId', 'This item is listed already');
+    seen.add(itemId);
+    if (context.activeItem && !context.activeItem(itemId)) {
+      return at('itemId', 'This item is not in the catalogue');
+    }
+    const quantity = typeof entry.quantity === 'string' ? Number(entry.quantity) : entry.quantity;
+    if (typeof quantity !== 'number' || !Number.isFinite(quantity) || quantity < 0) {
+      return at('quantity', 'Enter a quantity of 0 or more');
+    }
+    if (quantity > QUANTITY_MAX || Number(quantity.toFixed(3)) !== quantity) {
+      return at('quantity', 'Use at most 3 decimal places');
+    }
+    const kept: ProductLine = { itemId, quantity };
+    if (
+      field.valueColumn &&
+      entry.value !== undefined &&
+      entry.value !== null &&
+      entry.value !== ''
+    ) {
+      const amount = typeof entry.value === 'number' ? String(entry.value) : entry.value;
+      if (typeof amount !== 'string' || !Money.safeParse(amount.trim()).success) {
+        return at('value', 'Enter an amount such as 1250 or 1250.50');
+      }
+      kept.value = amount.trim();
+    }
+    value.push(kept);
+  });
+  return issues.length > 0 ? { issues } : { value };
+}
+
+function checkFormField(
+  field: Exclude<FormField | GroupItemField, { type: 'section' } | { type: 'info_text' }>,
+  raw: unknown,
+  outer: Values,
+  context: FormValueContext,
+  path: readonly PropertyKey[],
+): FieldChecked {
+  const one = (checked: Checked): FieldChecked =>
+    'issue' in checked ? { issues: [issueAt(path, checked.issue)] } : checked;
+  switch (field.type) {
+    case 'time':
+      return typeof raw === 'string' && TIME.test(raw)
+        ? { value: raw }
+        : one({ issue: 'Enter a time as HH:MM' });
+    case 'rating':
+      return typeof raw === 'number' && Number.isInteger(raw) && raw >= 1 && raw <= 5
+        ? { value: raw }
+        : one({ issue: 'Choose from 1 to 5' });
+    case 'photo':
+      return typeof raw === 'string' && UUID.test(raw)
+        ? { value: raw }
+        : one({ issue: 'Take a photo' });
+    case 'barcode': {
+      if (typeof raw !== 'string') return one({ issue: 'Scan a code' });
+      const value = raw.trim();
+      return value.length <= 200 ? { value } : one({ issue: 'This code is too long' });
+    }
+    case 'account_picker': {
+      if (typeof raw !== 'string' || !UUID.test(raw)) return one({ issue: 'Choose from the list' });
+      if (context.accountType) {
+        const type = context.accountType(raw);
+        if (type === null) return one({ issue: 'Choose one you can see' });
+        if (!field.accountTypes.includes(type))
+          return one({ issue: 'Choose one of the listed types' });
+      }
+      return { value: raw };
+    }
+    case 'contact_picker':
+      if (typeof raw !== 'string' || !UUID.test(raw)) return one({ issue: 'Choose a contact' });
+      if (context.contactAtAccount && !context.contactAtAccount(raw)) {
+        return one({ issue: 'Choose a contact at the linked place' });
+      }
+      return { value: raw };
+    case 'product_lines':
+      return lines(field, raw, context, path);
+    case 'repeating_group': {
+      if (!Array.isArray(raw)) return one({ issue: 'Add items' });
+      if (raw.length > field.maxItems) return one({ issue: `Add at most ${field.maxItems}` });
+      const issues: ErrorDetail[] = [];
+      const items = raw.map((item: unknown, index) => {
+        const checked = checkFieldList(field.fields, (item ?? {}) as Values, outer, context, [
+          ...path,
+          index,
+        ]);
+        issues.push(...checked.issues);
+        return checked.values;
+      });
+      return issues.length > 0 ? { issues } : { value: items };
+    }
+    case 'single_select':
+    case 'multi_select':
+      if (field.optionsFrom) {
+        const ids = field.type === 'single_select' ? [raw] : Array.isArray(raw) ? raw : [null];
+        const bad = ids.some(
+          (id) =>
+            typeof id !== 'string' ||
+            !UUID.test(id) ||
+            (context.catalogueEntry ? !context.catalogueEntry(field.optionsFrom!, id) : false),
+        );
+        if (bad) return one({ issue: 'Choose from the catalogue' });
+      }
+      return one(check(field, raw, context));
+    default:
+      return one(check(field, raw, context));
+  }
+}
+
+function checkFieldList(
+  fields: readonly (FormField | GroupItemField)[],
+  input: Values,
+  outer: Values,
+  context: FormValueContext,
+  path: readonly PropertyKey[],
+): { values: Values; issues: ErrorDetail[] } {
+  const values: Values = {};
+  const issues: ErrorDetail[] = [];
+  const known = new Set(
+    fields
+      .filter((field) => field.type !== 'section' && field.type !== 'info_text')
+      .map((f) => f.key),
+  );
+  for (const key of Object.keys(input)) {
+    if (!known.has(key)) issues.push(issueAt([...path, key], 'There is no such field'));
+  }
+  // A hidden section hides the fields under it, up to the next section.
+  let sectionShown = true;
+  for (const field of fields) {
+    const seen = { ...outer, ...values };
+    if (field.type === 'section') {
+      sectionShown = !field.visibleWhen || conditionHolds(field.visibleWhen, seen);
+      continue;
+    }
+    if (field.type === 'info_text' || !sectionShown) continue;
+    if (field.visibleWhen && !conditionHolds(field.visibleWhen, seen)) continue;
+    const raw = input[field.key];
+    if (empty(raw)) {
+      if (field.required) {
+        issues.push(
+          issueAt(
+            [...path, field.key],
+            field.type === 'repeating_group' ? 'Add at least one' : 'Fill this in',
+          ),
+        );
+      }
+      continue;
+    }
+    const checked = checkFormField(field, raw, seen, context, [...path, field.key]);
+    if ('issues' in checked) issues.push(...checked.issues);
+    else values[field.key] = checked.value;
+  }
+  return { values, issues };
+}
+
+/**
+ * Checks a submission's values against its form version (spec 5.6), on the phone for feedback and
+ * on the server for good: hidden fields and sections keep no value, required ones must be
+ * filled, and each value must suit its type, limits and pattern, and what it refers to when the
+ * context can look it up. Returns the values as stored, and every problem by path.
+ */
+export function checkFormValues(
+  form: Pick<FormDefinition, 'fields'>,
+  input: Values,
+  context: FormValueContext,
+  path: readonly PropertyKey[] = [],
+): { values: Values; issues: ErrorDetail[] } {
+  return checkFieldList(form.fields, input, {}, context, path);
 }

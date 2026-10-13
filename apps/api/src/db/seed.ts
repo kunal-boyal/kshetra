@@ -5,6 +5,8 @@ import type { Config } from '../config';
 import { isLocalDatabase } from './bootstrap';
 import { AccountTypesService } from '../modules/accounts/account-types.service';
 import { AccountsService } from '../modules/accounts/accounts.service';
+import { CatalogueService } from '../modules/catalogue/catalogue.service';
+import { FormsService } from '../modules/forms/forms.service';
 import { SYSTEM } from '../modules/iam/actor';
 import { People } from '../modules/iam/people';
 import { UsersService } from '../modules/iam/users.service';
@@ -316,8 +318,9 @@ export async function seed(app: INestApplicationContext): Promise<SeedReport> {
 }
 
 /**
- * The tenant's account types, if it has none yet, and its seed accounts that don't exist yet,
- * made as its admin would make them. Running it again changes nothing.
+ * The tenant's account types, catalogue settings and forms, if it has none yet, and its seed
+ * accounts that don't exist yet, made as its admin would make them. Running it again changes
+ * nothing.
  */
 async function seedAccounts(
   app: INestApplicationContext,
@@ -329,10 +332,21 @@ async function seedAccounts(
   const accounts = app.get(AccountsService);
   const people = app.get(People);
   const adminId = await database.forTenant(tenantId, async (tx) => {
+    // Parts a template gained after the tenant was seeded (phase 1 steps 5 and 7).
+    const template = loadTemplate(tenant.template);
+    let added = false;
     if ((await types.list(tx, tenantId)).length === 0) {
-      await types.applyTemplate(tx, tenantId, loadTemplate(tenant.template).accountTypes);
-      await app.get(TenantConfigService).touch(tx, tenantId, null);
+      await types.applyTemplate(tx, tenantId, template.accountTypes);
+      added = true;
     }
+    if ((await app.get(CatalogueService).version(tx, tenantId)) === 0) {
+      await app.get(CatalogueService).applyTemplate(tx, tenantId, template.catalogue);
+    }
+    if ((await app.get(FormsService).list(tx, tenantId)).length === 0) {
+      await app.get(FormsService).applyTemplate(tx, tenantId, template.forms);
+      added = true;
+    }
+    if (added) await app.get(TenantConfigService).touch(tx, tenantId, null);
     return (await people.everyone(tx, tenantId)).find((person) => person.code === tenant.admin.code)
       ?.id;
   });

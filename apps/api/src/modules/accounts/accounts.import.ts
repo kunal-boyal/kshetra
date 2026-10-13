@@ -99,7 +99,7 @@ export class AccountsImport implements ImportTargetSource, OnModuleInit {
       { key: 'latitude', names: ['Latitude', 'Lat'], required: false },
       { key: 'longitude', names: ['Longitude', 'Long', 'Lng'], required: false },
       {
-        key: 'geofence_radius',
+        key: 'geofence_radius_m',
         names: ['Geofence radius (m)', 'Geofence radius', 'Radius'],
         required: false,
       },
@@ -247,12 +247,12 @@ export class AccountsImport implements ImportTargetSource, OnModuleInit {
         if (lat !== null && lng !== null) location = { lat, lng };
       }
       let geofenceRadiusM: number | null | undefined;
-      if ('geofence_radius' in cells) {
-        if (empty(cells.geofence_radius)) geofenceRadiusM = null;
+      if ('geofence_radius_m' in cells) {
+        if (empty(cells.geofence_radius_m)) geofenceRadiusM = null;
         else {
-          const radius = number(cellText(cells.geofence_radius));
+          const radius = number(cellText(cells.geofence_radius_m));
           if (radius === null || !Number.isInteger(radius) || radius < 50 || radius > 5000) {
-            problem(row, 'geofence_radius', 'Write a whole number of metres from 50 to 5,000');
+            problem(row, 'geofence_radius_m', 'Write a whole number of metres from 50 to 5,000');
           } else geofenceRadiusM = radius;
         }
       }

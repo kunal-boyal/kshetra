@@ -16,10 +16,14 @@ import { useLanguage } from '../i18n';
 import { read, useAccess } from '../people/data';
 
 /** What each family of imports needs, besides `import.run` (M19). */
-export const TARGET_PERMISSIONS: Record<'users' | 'territories' | 'accounts', TenantPermission> = {
+export const TARGET_PERMISSIONS: Record<
+  'users' | 'territories' | 'accounts' | 'items',
+  TenantPermission
+> = {
   users: 'user.manage',
   territories: 'territory.manage',
   accounts: 'account.import',
+  items: 'catalogue.manage',
 };
 
 export interface TargetChoice {
@@ -28,8 +32,9 @@ export interface TargetChoice {
 }
 
 /**
- * The targets, in the reader's words: people, territories, and each account type by its own
- * name (`accounts:<type>`, Appendix B.2). `allowed` holds the ones the person may import.
+ * The targets, in the reader's words: people, territories, each account type by its own name
+ * (`accounts:<type>`, Appendix B.2) and the catalogue's items (B.3). `allowed` holds the ones
+ * the person may import.
  */
 export function useImportTargets() {
   const { client, queryClient } = useApp();
@@ -45,6 +50,7 @@ export function useImportTargets() {
         value: `accounts:${type.key}` as const,
         label: type.name[locale].other,
       })),
+      { value: 'items', label: t('imports.target_items') },
     ];
     const family = (target: string) => target.split(':')[0] as keyof typeof TARGET_PERMISSIONS;
     const activeTypes = new Set(

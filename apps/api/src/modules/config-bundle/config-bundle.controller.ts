@@ -7,14 +7,16 @@ import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';
 import { AccountTypesService } from '../accounts/account-types.service';
+import { FormsService } from '../forms/forms.service';
 import { DesignationsService } from '../iam/designations.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 /**
  * Raised whenever the bundle gains a part, so a phone holding a copy from before fetches it once
- * more instead of hearing that its copy is current. 2: account types (decision D43).
+ * more instead of hearing that its copy is current. 2: account types (decision D43). 3: forms
+ * (decision D45).
  */
-const BUNDLE_SHAPE = 2;
+const BUNDLE_SHAPE = 3;
 
 /** True when an `If-None-Match` header names this ETag, weak or strong. */
 function matches(header: string | undefined, etag: string): boolean {
@@ -38,6 +40,7 @@ export class ConfigBundleController {
     private readonly config: TenantConfigService,
     private readonly designations: DesignationsService,
     private readonly accountTypes: AccountTypesService,
+    private readonly forms: FormsService,
   ) {}
 
   @Get('config')
@@ -70,6 +73,7 @@ export class ConfigBundleController {
       const accountTypes = this.accountTypes.views(
         await this.accountTypes.list(tx, access.tenantId),
       );
+      const forms = await this.forms.forCaller(tx, access);
       return {
         version,
         settings,
@@ -83,6 +87,7 @@ export class ConfigBundleController {
           ranked,
         })),
         accountTypes,
+        forms,
         access: {
           role: access.roleKey,
           scope: access.scope,

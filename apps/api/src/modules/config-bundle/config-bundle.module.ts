@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AccountsModule } from '../accounts/accounts.module';
+import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { ConfigBundleController } from './config-bundle.controller';
@@ -9,7 +10,7 @@ import { ConfigBundleController } from './config-bundle.controller';
  * them, so none of them depends on another to build it.
  */
 @Module({
-  imports: [TenantConfigModule, IamModule, AccountsModule],
+  imports: [TenantConfigModule, IamModule, AccountsModule, FormsModule],
   controllers: [ConfigBundleController],
 })
 export class ConfigBundleModule {}

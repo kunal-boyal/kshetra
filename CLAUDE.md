@@ -179,6 +179,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Configuration refers to other configuration by key, never by ID. Keys match `^[a-z][a-z0-9_]{0,39}$` and never change once used.
 - Configuration text is in English and Hindi. Names of countable things carry `one` and `other` forms.
 - Money in configuration is a decimal string; compare amounts with `toMinorUnits`.
+- Forms publish as versions through `FormsService` (decision D45): a form keeps its key, and a field keeps its type once any version used it. Check submitted values with `checkFormValues` from `@kshetra/forms`, on the server and in the apps alike. Compile a configured pattern with `compilePattern` (re2js, linear time), never `new RegExp`.
 - Industry templates live at `packages/templates/<key>/template.json`; see its README. Raise a template's `version` with every change, and keep schema changes additive.
 
 ## Migrations

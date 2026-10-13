@@ -63,6 +63,7 @@ export function fakeClient(
         terminology: {},
         designations: [],
         accountTypes: [],
+        forms: [],
         access: { role: 'tenant_admin', scope: 'tenant', permissions },
         ...bundle,
       },

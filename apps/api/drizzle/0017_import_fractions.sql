@@ -1,0 +1,1 @@
+ALTER TABLE "cell"."import_mappings" ADD COLUMN "fractions" jsonb DEFAULT '[]'::jsonb NOT NULL;

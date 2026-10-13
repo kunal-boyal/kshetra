@@ -2228,6 +2228,8 @@
                 "import.uploaded",
                 "import.committed",
                 "account_type.published",
+                "form.published",
+                "form.updated",
                 "account.created",
                 "account.proposed",
                 "account.updated",
@@ -2364,6 +2366,8 @@
                               "import.uploaded",
                               "import.committed",
                               "account_type.published",
+                              "form.published",
+                              "form.updated",
                               "account.created",
                               "account.proposed",
                               "account.updated",
@@ -2476,6 +2480,110 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalogue": {
+      "get": {
+        "operationId": "CatalogueController.get",
+        "summary": "The catalogue: units and items",
+        "tags": [
+          "Catalogue"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "description": "The ETag of the catalogue the caller holds",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "units": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "$ref": "#/components/schemas/Key"
+                          },
+                          "name": {
+                            "$ref": "#/components/schemas/LocalizedNoun"
+                          },
+                          "base": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name",
+                          "base"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "measureTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "kg",
+                          "L"
+                        ]
+                      }
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Item"
+                      }
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "units",
+                    "measureTypes",
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The catalogue the caller holds is current"
           },
           "default": {
             "description": "An error in the format of spec 11.1, its code from spec 11.4",
@@ -2773,6 +2881,12 @@
                       "items": {
                         "$ref": "#/components/schemas/AccountTypeView"
                       }
+                    },
+                    "forms": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FormView"
+                      }
                     }
                   },
                   "required": [
@@ -2781,7 +2895,8 @@
                     "terminology",
                     "designations",
                     "access",
-                    "accountTypes"
+                    "accountTypes",
+                    "forms"
                   ],
                   "additionalProperties": false
                 }
@@ -3245,6 +3360,270 @@
         "responses": {
           "204": {
             "description": "Success, with no body"
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forms": {
+      "get": {
+        "operationId": "FormsController.list",
+        "summary": "Every form, in use or not, at its current version",
+        "tags": [
+          "Forms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: form.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FormView"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "FormsController.create",
+        "summary": "Add a form, as its first version",
+        "tags": [
+          "Forms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: form.manage",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "definition": {
+                    "$ref": "#/components/schemas/FormDefinition"
+                  }
+                },
+                "required": [
+                  "definition"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forms/{id}": {
+      "patch": {
+        "operationId": "FormsController.update",
+        "summary": "Switch a form off or on",
+        "tags": [
+          "Forms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: form.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "active": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "active"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forms/{id}/versions": {
+      "post": {
+        "operationId": "FormsController.publish",
+        "summary": "Publish a form's next version",
+        "tags": [
+          "Forms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: form.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "definition": {
+                    "$ref": "#/components/schemas/FormDefinition"
+                  }
+                },
+                "required": [
+                  "definition"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormView"
+                }
+              }
+            }
           },
           "default": {
             "description": "An error in the format of spec 11.1, its code from spec 11.4",
@@ -6441,6 +6820,8 @@
                               "import.uploaded",
                               "import.committed",
                               "account_type.published",
+                              "form.published",
+                              "form.updated",
                               "account.created",
                               "account.proposed",
                               "account.updated",
@@ -7141,6 +7522,125 @@
         },
         "additionalProperties": false
       },
+      "AccountPickerField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "account_picker"
+          },
+          "accountTypes": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Key"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type",
+          "accountTypes"
+        ],
+        "additionalProperties": false
+      },
+      "AccountPickerFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "account_picker"
+          },
+          "accountTypes": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Key"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type",
+          "accountTypes"
+        ],
+        "additionalProperties": false
+      },
       "AccountType": {
         "type": "object",
         "properties": {
@@ -7797,6 +8297,107 @@
         ],
         "additionalProperties": false
       },
+      "BarcodeField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "barcode"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "BarcodeFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "barcode"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
       "Clause": {
         "type": "object",
         "properties": {
@@ -7946,6 +8547,107 @@
           "phone",
           "email",
           "active"
+        ],
+        "additionalProperties": false
+      },
+      "ContactPickerField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "contact_picker"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "ContactPickerFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "contact_picker"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
         ],
         "additionalProperties": false
       },
@@ -8559,6 +9261,490 @@
         ],
         "additionalProperties": false
       },
+      "FormDefinition": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedNoun"
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 300,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 300,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "icon": {
+            "$ref": "#/components/schemas/IconName"
+          },
+          "tags": {
+            "default": [],
+            "description": "Reporting tags",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Key"
+            }
+          },
+          "accountLink": {
+            "default": {
+              "mode": "none"
+            },
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "const": "none"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "optional",
+                      "required"
+                    ]
+                  },
+                  "accountTypes": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Key"
+                    }
+                  }
+                },
+                "required": [
+                  "mode",
+                  "accountTypes"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "visitSession": {
+            "default": false,
+            "description": "Whether the form is filled inside a checked-in visit (module M6)",
+            "type": "boolean"
+          },
+          "shift": {
+            "default": "required",
+            "type": "string",
+            "enum": [
+              "required",
+              "allowed_off_shift"
+            ]
+          },
+          "photos": {
+            "description": "Photos of the whole form. Leave out for none.",
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "0 makes photos optional"
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "source": {
+                "default": "camera",
+                "type": "string",
+                "enum": [
+                  "camera",
+                  "camera_and_gallery"
+                ]
+              }
+            },
+            "required": [
+              "min",
+              "max"
+            ],
+            "additionalProperties": false
+          },
+          "signature": {
+            "default": "none",
+            "type": "string",
+            "enum": [
+              "none",
+              "optional",
+              "required"
+            ]
+          },
+          "geofence": {
+            "default": "inherit",
+            "description": "Whether capture must happen inside the account's geofence; inherit follows the account type",
+            "type": "string",
+            "enum": [
+              "inherit",
+              "off",
+              "advisory",
+              "required"
+            ]
+          },
+          "review": {
+            "default": "manual",
+            "description": "Manual review, auto-approval under the tenant's rules, or no review (counts at once)",
+            "type": "string",
+            "enum": [
+              "manual",
+              "auto",
+              "none"
+            ]
+          },
+          "audience": {
+            "description": "Who can use the form. Leave out for everyone who can submit forms.",
+            "type": "object",
+            "properties": {
+              "roles": {
+                "default": [],
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              },
+              "designations": {
+                "default": [],
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "fields": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "icon",
+          "fields"
+        ],
+        "additionalProperties": false
+      },
+      "FormField": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ShortTextFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/LongTextFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/NumberFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/CurrencyFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/DateFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/TimeFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/SingleSelectFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/MultiSelectFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/YesNoFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/RatingFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/PhotoFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/BarcodeFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/AccountPickerFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/ContactPickerFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/ProductLinesFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/InfoTextField"
+          },
+          {
+            "$ref": "#/components/schemas/SectionField"
+          },
+          {
+            "$ref": "#/components/schemas/RepeatingGroupFieldInput"
+          }
+        ]
+      },
+      "FormView": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedNoun"
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 300,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 300,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "icon": {
+            "$ref": "#/components/schemas/IconName"
+          },
+          "tags": {
+            "default": [],
+            "description": "Reporting tags",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Key"
+            }
+          },
+          "accountLink": {
+            "default": {
+              "mode": "none"
+            },
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "const": "none"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "optional",
+                      "required"
+                    ]
+                  },
+                  "accountTypes": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Key"
+                    }
+                  }
+                },
+                "required": [
+                  "mode",
+                  "accountTypes"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "visitSession": {
+            "default": false,
+            "description": "Whether the form is filled inside a checked-in visit (module M6)",
+            "type": "boolean"
+          },
+          "shift": {
+            "default": "required",
+            "type": "string",
+            "enum": [
+              "required",
+              "allowed_off_shift"
+            ]
+          },
+          "photos": {
+            "description": "Photos of the whole form. Leave out for none.",
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "0 makes photos optional"
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "source": {
+                "default": "camera",
+                "type": "string",
+                "enum": [
+                  "camera",
+                  "camera_and_gallery"
+                ]
+              }
+            },
+            "required": [
+              "min",
+              "max",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          "signature": {
+            "default": "none",
+            "type": "string",
+            "enum": [
+              "none",
+              "optional",
+              "required"
+            ]
+          },
+          "geofence": {
+            "default": "inherit",
+            "description": "Whether capture must happen inside the account's geofence; inherit follows the account type",
+            "type": "string",
+            "enum": [
+              "inherit",
+              "off",
+              "advisory",
+              "required"
+            ]
+          },
+          "review": {
+            "default": "manual",
+            "description": "Manual review, auto-approval under the tenant's rules, or no review (counts at once)",
+            "type": "string",
+            "enum": [
+              "manual",
+              "auto",
+              "none"
+            ]
+          },
+          "audience": {
+            "description": "Who can use the form. Leave out for everyone who can submit forms.",
+            "type": "object",
+            "properties": {
+              "roles": {
+                "default": [],
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              },
+              "designations": {
+                "default": [],
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              }
+            },
+            "required": [
+              "roles",
+              "designations"
+            ],
+            "additionalProperties": false
+          },
+          "fields": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "icon",
+          "tags",
+          "accountLink",
+          "visitSession",
+          "shift",
+          "signature",
+          "geofence",
+          "review",
+          "fields",
+          "id",
+          "version",
+          "active"
+        ],
+        "additionalProperties": false
+      },
       "GeoPoint": {
         "type": "object",
         "properties": {
@@ -8864,7 +10050,8 @@
             "type": "string",
             "enum": [
               "users",
-              "territories"
+              "territories",
+              "items"
             ]
           },
           {
@@ -8872,6 +10059,198 @@
             "pattern": "^accounts:[a-z][a-z0-9_]{0,39}$"
           }
         ]
+      },
+      "InfoTextField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "type": {
+            "type": "string",
+            "const": "info_text"
+          },
+          "text": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 1000,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 1000,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "Item": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "packLabel": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hsn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "taxRate": {
+            "type": "string"
+          },
+          "mrp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "baseUnit": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "factor": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "factor"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "measureType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "kg",
+                  "L"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "measurePerBaseUnit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "custom": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "product",
+          "category",
+          "packLabel",
+          "hsn",
+          "taxRate",
+          "mrp",
+          "baseUnit",
+          "units",
+          "measureType",
+          "measurePerBaseUnit",
+          "custom",
+          "active"
+        ],
+        "additionalProperties": false
       },
       "Key": {
         "type": "string",
@@ -9721,6 +11100,593 @@
           "billing.manage"
         ]
       },
+      "PhotoField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "photo"
+          },
+          "source": {
+            "default": "camera",
+            "type": "string",
+            "enum": [
+              "camera",
+              "camera_and_gallery"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type",
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "PhotoFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "photo"
+          },
+          "source": {
+            "default": "camera",
+            "type": "string",
+            "enum": [
+              "camera",
+              "camera_and_gallery"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "ProductLinesField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "product_lines"
+          },
+          "valueColumn": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "maxLines": {
+            "default": 50,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type",
+          "maxLines"
+        ],
+        "additionalProperties": false
+      },
+      "ProductLinesFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "product_lines"
+          },
+          "valueColumn": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "maxLines": {
+            "default": 50,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "RatingField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "rating"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "RatingFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "rating"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "RepeatingGroupField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether at least one item must be added",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "repeating_group"
+          },
+          "fields": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ShortTextField"
+                },
+                {
+                  "$ref": "#/components/schemas/LongTextField"
+                },
+                {
+                  "$ref": "#/components/schemas/NumberField"
+                },
+                {
+                  "$ref": "#/components/schemas/CurrencyField"
+                },
+                {
+                  "$ref": "#/components/schemas/DateField"
+                },
+                {
+                  "$ref": "#/components/schemas/TimeField"
+                },
+                {
+                  "$ref": "#/components/schemas/SingleSelectField"
+                },
+                {
+                  "$ref": "#/components/schemas/MultiSelectField"
+                },
+                {
+                  "$ref": "#/components/schemas/YesNoField"
+                },
+                {
+                  "$ref": "#/components/schemas/RatingField"
+                },
+                {
+                  "$ref": "#/components/schemas/PhotoField"
+                },
+                {
+                  "$ref": "#/components/schemas/BarcodeField"
+                },
+                {
+                  "$ref": "#/components/schemas/AccountPickerField"
+                },
+                {
+                  "$ref": "#/components/schemas/ContactPickerField"
+                },
+                {
+                  "$ref": "#/components/schemas/ProductLinesField"
+                },
+                {
+                  "$ref": "#/components/schemas/InfoTextField"
+                }
+              ]
+            }
+          },
+          "maxItems": {
+            "default": 20,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type",
+          "fields",
+          "maxItems"
+        ],
+        "additionalProperties": false
+      },
+      "RepeatingGroupFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether at least one item must be added",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "repeating_group"
+          },
+          "fields": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ShortTextFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/LongTextFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/NumberFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/CurrencyFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/DateFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/TimeFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/SingleSelectFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/MultiSelectFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/YesNoFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/RatingFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/PhotoFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/BarcodeFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/AccountPickerFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/ContactPickerFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/ProductLinesFieldInput"
+                },
+                {
+                  "$ref": "#/components/schemas/InfoTextField"
+                }
+              ]
+            }
+          },
+          "maxItems": {
+            "default": 20,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type",
+          "fields"
+        ],
+        "additionalProperties": false
+      },
       "Role": {
         "type": "object",
         "properties": {
@@ -9751,6 +11717,31 @@
           "name",
           "scope",
           "permissions"
+        ],
+        "additionalProperties": false
+      },
+      "SectionField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "type": {
+            "type": "string",
+            "const": "section"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "label"
         ],
         "additionalProperties": false
       },
@@ -10337,6 +12328,107 @@
           "code",
           "name",
           "active"
+        ],
+        "additionalProperties": false
+      },
+      "TimeField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "type": {
+            "type": "string",
+            "const": "time"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "TimeFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "required": {
+            "default": false,
+            "description": "Whether the field must be filled. A field hidden by its condition never is.",
+            "type": "boolean"
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "type": {
+            "type": "string",
+            "const": "time"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
         ],
         "additionalProperties": false
       },

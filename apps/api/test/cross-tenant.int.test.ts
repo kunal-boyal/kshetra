@@ -57,6 +57,8 @@ let aTypeId: string;
 let aAccountId: string;
 let aContactId: string;
 let aApprovalId: string;
+/** One of A's forms. */
+let aFormId: string;
 /** A photo A's admin uploaded. */
 let aPhotoId: string;
 /** An account of B's own, under B's territory. */
@@ -661,6 +663,43 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/media/${id}/url?variant=original`), aPhotoId),
   },
+  'GET /v1/forms': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/forms')),
+  },
+  'POST /v1/forms': {
+    kind: 'write',
+    run: async () => {
+      const created = await asB('POST', '/v1/forms', {
+        definition: {
+          key: 'b_survey',
+          name: { en: { one: 'B survey', other: 'B surveys' }, hi: { one: 'B', other: 'B' } },
+          icon: 'clipboard-list',
+          fields: [{ key: 'notes', type: 'long_text', label: named('Notes') }],
+        },
+      });
+      expect(created.statusCode).toBe(201);
+      holdsNothingOfA(created);
+    },
+  },
+  'POST /v1/forms/:id/versions': {
+    kind: 'by ID',
+    run: async () => {
+      const [own] = (await asB('GET', '/v1/forms')).json().items;
+      const definition = Object.fromEntries(
+        Object.entries(own as object).filter(([key]) => !['id', 'version', 'active'].includes(key)),
+      );
+      await sameAsNowhere((id) => asB('POST', `/v1/forms/${id}/versions`, { definition }), aFormId);
+    },
+  },
+  'PATCH /v1/forms/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('PATCH', `/v1/forms/${id}`, { active: false }), aFormId),
+  },
+  'GET /v1/catalogue': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/catalogue')),
+  },
   'GET /v1/org-chart': {
     kind: 'own tenant',
     run: async () => {
@@ -799,6 +838,7 @@ beforeAll(async () => {
   );
   expect(proposal.statusCode).toBe(201);
   aApprovalId = proposal.json().approvalId;
+  aFormId = (await send(aToken, 'GET', '/v1/forms')).json().items[0].id;
   // A photo of A's, uploaded and confirmed as a phone would.
   aPhotoId = newId();
   const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
