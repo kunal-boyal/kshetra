@@ -23,6 +23,11 @@ export interface SyncRunnerOptions {
   entities: readonly SyncEntity[];
   /** `tenant:user` of whoever is signed in, or null when nobody is. */
   owner: () => string | null;
+  /**
+   * Uploads that follow the outbox once it has nothing more to send, such as location points,
+   * whose shifts must reach the server first.
+   */
+  afterPush?: (owner: string) => Promise<void>;
   clock?: () => number;
 }
 
@@ -115,6 +120,7 @@ export class SyncRunner {
           return;
         }
       }
+      if (pushed.status === 'done') await this.options.afterPush?.(owner);
       await pull(this.options.db, this.options.client, this.options.entities, owner, clock);
     } catch (caught) {
       if (caught instanceof NetworkError) offline = true;

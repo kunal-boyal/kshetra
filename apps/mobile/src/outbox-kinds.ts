@@ -4,7 +4,12 @@ import {
   AccountResult,
   type CreateAccountBody,
   type CreateLocationProposalBody,
+  type EndShiftBody,
   LocationProposalResult,
+  type PauseShiftBody,
+  type ResumeShiftBody,
+  ShiftResult,
+  type StartShiftBody,
 } from '@kshetra/shared';
 import type { MobileClient } from './client';
 import { photoSender } from './photos';
@@ -31,6 +36,40 @@ export function senders(
         });
       },
     },
+    // Shifts (M5): the punch-in first; the rest wait for it (`dependsOn`).
+    'shift.start': {
+      async send(payload) {
+        await client.request('POST', '/v1/shifts', ShiftResult, {
+          body: payload as StartShiftBody,
+        });
+      },
+    },
+    'shift.end': {
+      async send(payload) {
+        const { shiftId, ...body } = payload as EndShiftBody & { shiftId: string };
+        await client.request('POST', `/v1/shifts/${shiftId}/end`, ShiftResult, { body });
+      },
+    },
+    'shift.pause': {
+      async send(payload) {
+        const { shiftId, ...body } = payload as PauseShiftBody & { shiftId: string };
+        await client.request('POST', `/v1/shifts/${shiftId}/pauses`, ShiftResult, { body });
+      },
+    },
+    'shift.resume': {
+      async send(payload) {
+        const { shiftId, pauseId, ...body } = payload as ResumeShiftBody & {
+          shiftId: string;
+          pauseId: string;
+        };
+        await client.request(
+          'POST',
+          `/v1/shifts/${shiftId}/pauses/${pauseId}/resume`,
+          ShiftResult,
+          { body },
+        );
+      },
+    },
     'account.location': {
       async send(payload) {
         const { accountId, ...body } = payload as LocationProposalPayload;
@@ -49,6 +88,10 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'media.upload': 'uploads.kind_photo',
   'account.propose': 'uploads.kind_account_propose',
   'account.location': 'uploads.kind_account_location',
+  'shift.start': 'uploads.kind_shift_start',
+  'shift.end': 'uploads.kind_shift_end',
+  'shift.pause': 'uploads.kind_shift_pause',
+  'shift.resume': 'uploads.kind_shift_resume',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;

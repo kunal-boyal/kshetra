@@ -45,6 +45,7 @@
     "expo-sqlite": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
+    "expo-task-manager": "~57.0.21",
     "lucide-react-native": "catalog:mobile",
     "react": "catalog:mobile",
     "react-dom": "catalog:mobile",

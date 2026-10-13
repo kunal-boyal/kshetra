@@ -1,3 +1,5 @@
+// The background location task is defined as the bundle loads (spec 12.1).
+import '../background';
 import { useTheme } from '@kshetra/ui-mobile';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';

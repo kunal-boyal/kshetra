@@ -123,6 +123,30 @@ const MIGRATIONS: readonly string[] = [
      submitted_at INTEGER
    );
    CREATE INDEX form_entries_owner_state ON form_entries (owner, state, updated_at);`,
+  // Tracking (M5, spec 12.1): the open shift the background task reads, and the points waiting
+  // to upload. Each belongs to the person signed in when it was made.
+  `CREATE TABLE shift_state (
+     owner TEXT PRIMARY KEY NOT NULL,
+     shift_id TEXT NOT NULL,
+     started_at INTEGER NOT NULL,
+     ends_by INTEGER NOT NULL,
+     interval_s INTEGER NOT NULL,
+     pause_id TEXT
+   );
+   CREATE TABLE location_buffer (
+     id TEXT PRIMARY KEY NOT NULL,
+     owner TEXT NOT NULL,
+     shift_id TEXT NOT NULL,
+     captured_at INTEGER NOT NULL,
+     lat REAL NOT NULL,
+     lng REAL NOT NULL,
+     accuracy REAL NOT NULL,
+     speed REAL,
+     mocked INTEGER NOT NULL,
+     source TEXT NOT NULL,
+     battery INTEGER
+   );
+   CREATE INDEX location_buffer_owner ON location_buffer (owner, captured_at);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */

@@ -9,6 +9,8 @@ export { CheckGroup, ChoiceGroup, ListGroup, ListRow } from './lists';
 export type { Choice, ListRowProps } from './lists';
 export { ease, useReducedMotion } from './motion';
 export { Screen } from './screen';
+export { ShiftCard } from './shift-card';
+export type { ShiftAction, ShiftCardProps, ShiftCardState } from './shift-card';
 export { StatusBadge, SyncBanner } from './status';
 export type { BadgeVariant } from './status';
 export { Card, EmptyState, IconChip, Notice } from './surfaces';

@@ -1,4 +1,6 @@
 export { EntryClosed, FormEntries } from './entries';
+export { FLUSH_LIMIT, Tracking } from './tracking';
+export type { DropReason, RawPoint, ShiftState } from './tracking';
 export type { EntryChanges, FormEntry } from './entries';
 export { LOCAL_ENTITIES, localRows, migrate } from './local-schema';
 export type { LocalEntity, RowOf } from './local-schema';

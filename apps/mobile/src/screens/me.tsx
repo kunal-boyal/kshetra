@@ -12,10 +12,12 @@ import { useDisplay } from '../look';
 import type { Display } from '../preferences';
 import { savedTenants } from '../preferences';
 import { useSyncStatus } from '../sync';
+import { useShift } from './shift';
 
 /**
  * Me (spec 8.1). For now it holds what the More screen will: the profile, the tenant switcher,
- * language, display, the upload queue and sign-out, which warns about unsent records.
+ * language, display, the upload queue and sign-out, which warns about unsent records and about
+ * recording stopping on duty.
  * Attendance, leave, expenses and requests arrive with their modules.
  */
 export function MeScreen() {
@@ -28,6 +30,8 @@ export function MeScreen() {
   const [warning, setWarning] = useState(false);
   const status = useSyncStatus();
   const unsent = status ? status.counts.queued + status.counts.parked : 0;
+  // Signing out on duty stops recording (BR-37), so it warns first (spec 14.5, step 7).
+  const onDuty = Boolean(useShift().state);
   const tenant = session?.tenant;
   const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
   const designation = config.data?.bundle.designations.find(
@@ -115,9 +119,16 @@ export function MeScreen() {
 
       {warning ? (
         <Card style={styles.stack}>
-          <Text weight={500} role="alert">
-            {t('app.sign_out_unsent', { count: unsent })}
-          </Text>
+          {onDuty ? (
+            <Text weight={500} role="alert">
+              {t('app.sign_out_on_duty')}
+            </Text>
+          ) : null}
+          {unsent > 0 ? (
+            <Text weight={500} role="alert">
+              {t('app.sign_out_unsent', { count: unsent })}
+            </Text>
+          ) : null}
           <View style={styles.actions}>
             <Button
               variant="danger"
@@ -139,7 +150,7 @@ export function MeScreen() {
             tone="danger"
             label={t('shell.sign_out')}
             // Unsent records stay on the phone for the next sign-in, but the person should know.
-            onPress={() => (unsent > 0 ? setWarning(true) : act(() => client.signOut()))}
+            onPress={() => (unsent > 0 || onDuty ? setWarning(true) : act(() => client.signOut()))}
           />
         </ListGroup>
       )}
