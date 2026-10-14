@@ -97,6 +97,37 @@ const ANSWERS: Record<string, unknown> = {
     ],
     nextCursor: null,
   },
+  '/v1/submissions': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000e1',
+        user: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
+        form: {
+          key: 'shop_visit',
+          version: 1,
+          name: {
+            en: { one: 'Shop visit', other: 'Shop visits' },
+            hi: { one: 'दुकान विज़िट', other: 'दुकान विज़िट' },
+          },
+        },
+        account: { id: SHOP, code: 'D-1', name: 'Green Fields Agro' },
+        visitId: null,
+        shiftId: null,
+        capturedAt: '2026-10-13T06:00:00.000Z',
+        receivedAt: '2026-10-13T06:00:05.000Z',
+        location: { lat: 28.6315, lng: 77.2167 },
+        accuracy: 12,
+        distanceM: 40,
+        geofence: 'inside',
+        values: {},
+        photos: ['01a10000-0000-7000-8000-0000000000f1'],
+        signatureMediaId: null,
+        flags: [],
+        status: 'approved',
+      },
+    ],
+    nextCursor: null,
+  },
   [`/v1/accounts/${SHOP}/overview`]: {
     account: SHOP_ACCOUNT,
     contacts: [
@@ -218,7 +249,7 @@ async function mockSignedIn(page: Page) {
       },
     }),
   );
-  for (const prefix of ['accounts', 'territories', 'approvals']) {
+  for (const prefix of ['accounts', 'territories', 'approvals', 'submissions']) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
       return answer

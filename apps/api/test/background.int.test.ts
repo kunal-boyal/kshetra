@@ -44,6 +44,17 @@ beforeAll(async () => {
     'test.nightly',
     async (data) => void ran.push({ kind: 'nightly', ...data }),
   );
+  queues.handle(
+    'maintenance',
+    'test.often',
+    async (data) => void ran.push({ kind: 'often', ...data }),
+  );
+  app.get(Schedules).everyForTenants({
+    name: 'test_often',
+    everyMs: 15 * 60_000,
+    queue: 'maintenance',
+    kind: 'test.often',
+  });
   app.get(Schedules).atTenantTime({
     name: 'test_nightly',
     at: '01:30',
@@ -121,5 +132,24 @@ describe("a moment of the tenant's day", () => {
         .sort(),
     ).toEqual([`${kolkata} 2026-10-06`, `${newYork} 2026-10-05`].sort());
     expect(nightly().some((job) => job.tenantId === closed)).toBe(false);
+  });
+});
+
+describe('work repeated for each tenant', () => {
+  it('runs once per open tenant in each interval, however often the scheduler looks', async () => {
+    const open = await world.directory.tenant('Steady Stores', 'active', CELL);
+    const closed = await world.directory.tenant('Quiet Quarters', 'suspended', CELL);
+    const scheduler = app.get(TenantScheduler);
+    await scheduler.tick(new Date('2026-10-06T10:01:00Z'));
+    await scheduler.tick(new Date('2026-10-06T10:14:00Z'));
+    await scheduler.tick(new Date('2026-10-06T10:16:00Z'));
+    const often = () => ran.filter((job) => job.kind === 'often' && job.tenantId === open);
+    await until(() => often().length >= 2);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(often().map((job) => job.at)).toEqual([
+      '2026-10-06T10:01:00.000Z',
+      '2026-10-06T10:16:00.000Z',
+    ]);
+    expect(ran.some((job) => job.kind === 'often' && job.tenantId === closed)).toBe(false);
   });
 });

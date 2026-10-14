@@ -493,3 +493,44 @@ export function checkFormValues(
 ): { values: Values; issues: ErrorDetail[] } {
   return checkFieldList(form.fields, input, {}, context, path);
 }
+
+/** A photo a submission's values hold, where it sits, and whether its field takes gallery photos. */
+export interface ValuePhoto {
+  id: string;
+  path: (string | number)[];
+  galleryAllowed: boolean;
+}
+
+/**
+ * The photos in checked values (spec 12.2, step 5): each photo field's, those inside repeating
+ * groups included, so the server can check and attach them with the form's own photos.
+ */
+export function photosIn(
+  form: Pick<FormDefinition, 'fields'>,
+  values: Values,
+  path: (string | number)[] = ['values'],
+): ValuePhoto[] {
+  const found: ValuePhoto[] = [];
+  const walk = (
+    fields: readonly (FormField | GroupItemField)[],
+    at: Values,
+    prefix: (string | number)[],
+  ) => {
+    for (const field of fields) {
+      const value = at[field.key];
+      if (field.type === 'photo' && typeof value === 'string') {
+        found.push({
+          id: value,
+          path: [...prefix, field.key],
+          galleryAllowed: field.source === 'camera_and_gallery',
+        });
+      } else if (field.type === 'repeating_group' && Array.isArray(value)) {
+        value.forEach((item, index) =>
+          walk(field.fields, (item ?? {}) as Values, [...prefix, field.key, index]),
+        );
+      }
+    }
+  };
+  walk(form.fields, values, path);
+  return found;
+}

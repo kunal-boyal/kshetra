@@ -93,6 +93,42 @@ export class FormsService {
     );
   }
 
+  /**
+   * The version of a form a submission was filled on (M6), if the caller may fill the form. A
+   * form switched off since still takes what was filled before; one never in use is not found.
+   */
+  async forSubmission(
+    tx: TenantTx,
+    access: Access,
+    key: string,
+    version: number,
+  ): Promise<{ id: string; definition: FormDefinition }> {
+    const [row] = await tx
+      .select({ id: forms.id, definition: formVersions.definition })
+      .from(forms)
+      .innerJoin(
+        formVersions,
+        and(eq(formVersions.tenantId, forms.tenantId), eq(formVersions.formId, forms.id)),
+      )
+      .where(
+        and(
+          eq(forms.tenantId, access.tenantId),
+          eq(forms.key, key),
+          eq(formVersions.version, version),
+        ),
+      );
+    if (!row) throw notFound();
+    const audience = row.definition.audience;
+    if (audience && (audience.roles.length > 0 || audience.designations.length > 0)) {
+      const me = (await this.people.facts(tx, access.tenantId, [access.userId])).get(access.userId);
+      const allowed =
+        audience.roles.includes(access.roleKey) ||
+        (me !== undefined && audience.designations.includes(me.designation));
+      if (!allowed) throw new AppError('FORBIDDEN', 'This form is not for your role.');
+    }
+    return row;
+  }
+
   /** What a form may refer to: the tenant's account types, roles and designations. */
   private async context(tx: TenantTx, tenantId: string): Promise<FormContext> {
     return {

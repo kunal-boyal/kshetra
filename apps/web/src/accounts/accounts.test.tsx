@@ -172,7 +172,40 @@ describe('the accounts table', () => {
 describe("an account's page", () => {
   it('shows its details, who looks after it, and adds a contact person', async () => {
     const client = fakeClient(
-      { [`/v1/accounts/${SHOP}/overview`]: OVERVIEW },
+      {
+        [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+        [`/v1/submissions?accountId=${SHOP}`]: {
+          items: [
+            {
+              id: '01a10000-0000-7000-8000-0000000000e1',
+              user: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
+              form: {
+                key: 'distributor_visit',
+                version: 2,
+                name: {
+                  en: { one: 'Distributor visit', other: 'Distributor visits' },
+                  hi: { one: 'वितरक विज़िट', other: 'वितरक विज़िट' },
+                },
+              },
+              account: { id: SHOP, code: 'D-1', name: 'Green Fields Agro' },
+              visitId: '01a10000-0000-7000-8000-0000000000e2',
+              shiftId: '01a10000-0000-7000-8000-0000000000e3',
+              capturedAt: '2026-10-13T06:00:00.000Z',
+              receivedAt: '2026-10-13T06:00:05.000Z',
+              location: { lat: 28.6315, lng: 77.2167 },
+              accuracy: 12,
+              distanceM: 40,
+              geofence: 'inside',
+              values: {},
+              photos: [],
+              signatureMediaId: null,
+              flags: [],
+              status: 'pending',
+            },
+          ],
+          nextCursor: null,
+        },
+      },
       {
         [`POST /v1/accounts/${SHOP}/contacts`]: ({ body }) => ({
           ...(body as object),
@@ -196,6 +229,11 @@ describe("an account's page", () => {
     expect(screen.getByRole('region', { name: 'Location' })).toHaveTextContent('No location yet');
     const looking = screen.getByRole('region', { name: 'Who looks after it' });
     expect(within(looking).getByRole('row', { name: /ASM Arjun Singh/ })).toHaveTextContent('Now');
+
+    const filled = screen.getByRole('region', { name: 'Forms filled' });
+    const visit = await within(filled).findByRole('row', { name: /Distributor visit/ });
+    expect(within(visit).getByRole('link', { name: 'Suresh Rao' })).toBeInTheDocument();
+    expect(visit).toHaveTextContent('Inside, 40 m');
 
     const user = userEvent.setup();
     const contacts = screen.getByRole('region', { name: 'Contact people' });

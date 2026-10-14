@@ -53,7 +53,8 @@ export {
   checkValues,
   compilePattern,
   conditionHolds,
+  photosIn,
 } from './values';
-export type { FormValueContext, ProductLine, ValueContext, Values } from './values';
+export type { FormValueContext, ProductLine, ValueContext, ValuePhoto, Values } from './values';
 export { accountSegments, checkSlots, primaryAssignee } from './accounts';
 export type { SlotHolder } from './accounts';

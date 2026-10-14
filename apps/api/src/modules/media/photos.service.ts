@@ -19,6 +19,8 @@ import {
   photoRetentionClass,
   type PresignMediaBody,
   type PresignMediaResult,
+  newId,
+  type Signature,
 } from '@kshetra/shared';
 import { and, asc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import sharp, { type Sharp } from 'sharp';
@@ -28,6 +30,7 @@ import type { Access } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { pointOf, pointSql } from '../../platform/geo';
 import { ObjectStore } from '../../platform/object-store';
+import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { CONFIG } from '../../platform/tokens';
 import { notFound, outOfScope } from '../iam/actor';
@@ -84,6 +87,7 @@ export class PhotosService implements OnModuleInit {
     private readonly scopes: Scopes,
     private readonly people: People,
     private readonly settings: TenantConfigService,
+    private readonly outbox: Outbox,
   ) {}
 
   onModuleInit(): void {
@@ -263,6 +267,98 @@ export class PhotosService implements OnModuleInit {
     }
   }
 
+  /** Photos a record names, as BR-32 judges them, with what processing found so far. */
+  async forRecord(tx: TenantTx, tenantId: string, ids: readonly string[]) {
+    if (ids.length === 0) return [];
+    return tx
+      .select({
+        id: media.id,
+        userId: media.userId,
+        kind: media.kind,
+        status: media.status,
+        ownerType: media.ownerType,
+        ownerId: media.ownerId,
+        capturedAt: media.capturedAt,
+        point: pointOf(media.point),
+        source: media.source,
+        duplicateOfId: media.duplicateOfId,
+      })
+      .from(media)
+      .where(and(eq(media.tenantId, tenantId), inArray(media.id, [...ids])))
+      .for('update');
+  }
+
+  /**
+   * Attaches photos to the record that names them (spec 12.2, step 5), in the transaction that
+   * creates it. The caller has checked them first; one held elsewhere stays where it is.
+   */
+  async attach(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+    owner: { type: string; id: string },
+  ): Promise<void> {
+    if (ids.length === 0) return;
+    await tx
+      .update(media)
+      .set({ ownerType: owner.type, ownerId: owner.id })
+      .where(
+        and(
+          eq(media.tenantId, tenantId),
+          inArray(media.id, [...ids]),
+          sql`(${media.ownerId} is null or ${media.ownerId} = ${owner.id})`,
+        ),
+      );
+  }
+
+  /**
+   * Renders a signature drawn on the phone to a JPEG, black strokes on white, and keeps it as a
+   * `signature` item made by the server (`generated`), owned by its record. Returns its ID.
+   */
+  async storeSignature(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    signature: Signature,
+    owner: { type: string; id: string; at: Date },
+  ): Promise<string> {
+    const svg = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${signature.width}" height="${signature.height}" viewBox="0 0 ${signature.width} ${signature.height}">` +
+        `<rect width="100%" height="100%" fill="#ffffff"/>` +
+        signature.strokes
+          .map(
+            (stroke) =>
+              `<path d="${stroke}" fill="none" stroke="#000000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`,
+          )
+          .join('') +
+        `</svg>`,
+    );
+    const bytes = new Uint8Array(await sharp(svg).flatten().jpeg({ quality: 85 }).toBuffer());
+    const id = newId();
+    const { evidencePhotoRetentionMonths } = await this.settings.settings(tx, tenantId);
+    const objectKey = photoKey(tenantId, 'signature', id, 'original', owner.at);
+    await this.objects.put(objectKey, bytes, 'image/jpeg');
+    await tx.insert(media).values({
+      id,
+      tenantId,
+      userId,
+      kind: 'signature',
+      objectKey,
+      contentType: 'image/jpeg',
+      size: bytes.byteLength,
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+      status: 'processed',
+      ownerType: owner.type,
+      ownerId: owner.id,
+      retentionClass: photoRetentionClass(evidencePhotoRetentionMonths),
+      source: 'generated',
+      capturedAt: owner.at,
+      confirmedAt: new Date(),
+      processedAt: new Date(),
+    });
+    return id;
+  }
+
   /** The caller's own photo; another person's is out of scope, another tenant's not found. */
   private async own(tx: TenantTx, access: Access, id: string, lock = false): Promise<Row> {
     const query = tx
@@ -324,10 +420,20 @@ export class PhotosService implements OnModuleInit {
       await this.objects.put(derivatives.stamped, new Uint8Array(stamped), 'image/jpeg');
       await this.database.forTenant(tenantId, async (tx) => {
         const duplicateOfId = await this.duplicateOf(tx, photo, dhash);
-        await tx
+        const [done] = await tx
           .update(media)
           .set({ status: 'processed', dhash, duplicateOfId, derivatives, processedAt: new Date() })
-          .where(and(eq(media.tenantId, tenantId), eq(media.id, id), eq(media.status, 'uploaded')));
+          .where(and(eq(media.tenantId, tenantId), eq(media.id, id), eq(media.status, 'uploaded')))
+          .returning({ ownerType: media.ownerType, ownerId: media.ownerId });
+        // A record that took the photo before processing learns what it found.
+        if (done) {
+          await this.outbox.publish(tx, tenantId, 'media.processed', id, {
+            mediaId: id,
+            ownerType: done.ownerType,
+            ownerId: done.ownerId,
+            duplicateOfId,
+          });
+        }
       });
     } catch (error) {
       const reason =

@@ -33,6 +33,34 @@ export const ShiftEventPayload = z.object({
   endedAt: z.iso.datetime().nullable(),
 });
 
+/** A visit checked in or out (M6): plan items (step 11) and metrics follow it. */
+export const VisitEventPayload = z.object({
+  visitId: z.uuid(),
+  userId: z.uuid(),
+  accountId: z.uuid(),
+  checkInAt: z.iso.datetime(),
+  checkOutAt: z.iso.datetime().nullable(),
+});
+
+/** A submission received (M6): the media worker renders its signature, review and metrics follow. */
+export const SubmissionEventPayload = z.object({
+  submissionId: z.uuid(),
+  userId: z.uuid(),
+  formKey: z.string(),
+  accountId: z.uuid().nullable(),
+  visitId: z.uuid().nullable(),
+  capturedAt: z.iso.datetime(),
+  status: z.enum(['pending', 'approved', 'rejected']),
+});
+
+/** A photo processed (spec 12.2): the record holding it, if any, learns of a duplicate (BR-40). */
+export const MediaProcessedPayload = z.object({
+  mediaId: z.uuid(),
+  ownerType: z.string().nullable(),
+  ownerId: z.uuid().nullable(),
+  duplicateOfId: z.uuid().nullable(),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
@@ -40,6 +68,10 @@ export const EVENT_PAYLOADS = {
   'tenant.provisioned': TenantProvisionedPayload,
   'shift.started': ShiftEventPayload,
   'shift.ended': ShiftEventPayload,
+  'visit.started': VisitEventPayload,
+  'visit.ended': VisitEventPayload,
+  'submission.created': SubmissionEventPayload,
+  'media.processed': MediaProcessedPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

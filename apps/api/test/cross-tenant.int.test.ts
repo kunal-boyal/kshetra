@@ -64,6 +64,9 @@ let aPhotoId: string;
 /** A shift of A's member, with a point and a pause. */
 let aShiftId: string;
 let aPauseId: string;
+/** A visit of A's member at A's account, and a submission made in it. */
+let aVisitId: string;
+let aSubmissionId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
 /** An account of B's own, under B's territory. */
@@ -129,6 +132,18 @@ const asBPhone = (method: Method, url: string, payload?: object) =>
 
 /** A real fix, as a punch carries it. */
 const FIX = { location: { lat: 12.9716, lng: 77.5946 }, accuracy: 15, mocked: false };
+
+/** B's member on shift, so what B sends from the phone is judged past the shift (BR-32). */
+async function bOnShift() {
+  if ((await asBPhone('GET', '/v1/shifts/current')).json().shift) return;
+  const started = await asBPhone('POST', '/v1/shifts', {
+    ...FIX,
+    id: newId(),
+    startedAt: new Date().toISOString(),
+    consentVersion: '1',
+  });
+  expect(started.statusCode).toBe(201);
+}
 
 /** An import file, sent as the request body itself (M19). */
 function upload(token: string, target: string, body: string) {
@@ -786,6 +801,72 @@ const FIXTURES: Record<string, Fixture> = {
         a.member.id,
       ),
   },
+  'POST /v1/visits': {
+    kind: 'by ID',
+    run: async () => {
+      await bOnShift();
+      await sameAsNowhere(
+        (id) =>
+          asBPhone('POST', '/v1/visits', {
+            id: newId(),
+            accountId: id,
+            checkedInAt: new Date().toISOString(),
+            fix: { ...FIX, capturedAt: new Date().toISOString() },
+          }),
+        aAccountId,
+      );
+    },
+  },
+  'GET /v1/visits/current': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asBPhone('GET', '/v1/visits/current')),
+  },
+  'POST /v1/visits/:id/check-out': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asBPhone('POST', `/v1/visits/${id}/check-out`, {
+            checkedOutAt: new Date().toISOString(),
+          }),
+        aVisitId,
+      ),
+  },
+  'POST /v1/submissions': {
+    kind: 'by ID',
+    run: async () => {
+      await bOnShift();
+      const submission = (overrides: object) => ({
+        id: newId(),
+        form: { key: 'meeting', version: 1 },
+        capturedAt: new Date().toISOString(),
+        fix: { ...FIX, capturedAt: new Date().toISOString() },
+        values: { location_name: 'Hall', attendees: 3, topic: 'Stock', outcome: 'Fine' },
+        photos: [],
+        ...overrides,
+      });
+      await sameAsNowhere(
+        (id) => asBPhone('POST', '/v1/submissions', submission({ photos: [id] })),
+        aPhotoId,
+      );
+      await sameAsNowhere(
+        (id) =>
+          asBPhone(
+            'POST',
+            '/v1/submissions',
+            submission({ form: { key: 'customer_visit', version: 1 }, visitId: id }),
+          ),
+        aVisitId,
+      );
+    },
+  },
+  'GET /v1/submissions': {
+    kind: 'by ID',
+    run: async () => {
+      await sameAsNowhere((id) => asB('GET', `/v1/submissions?userId=${id}`), a.member.id);
+      await sameAsNowhere((id) => asB('GET', `/v1/submissions?accountId=${id}`), aAccountId);
+    },
+  },
   'GET /v1/catalogue': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/catalogue')),
@@ -960,6 +1041,35 @@ beforeAll(async () => {
     reason: 'Lunch',
   });
   expect(paused.statusCode).toBe(201);
+  // A's member visits A's shop and fills a form of A's own there.
+  aVisitId = newId();
+  const visit = await send(memberToken, 'POST', '/v1/visits', {
+    id: aVisitId,
+    accountId: aAccountId,
+    checkedInAt: new Date().toISOString(),
+    fix: { ...FIX, capturedAt: new Date().toISOString() },
+  });
+  expect(visit.statusCode).toBe(201);
+  const note = await send(aToken, 'POST', '/v1/forms', {
+    definition: {
+      key: 'zz_note',
+      name: noun(`${a.word} note`),
+      icon: 'notebook-pen',
+      accountLink: { mode: 'optional', accountTypes: ['customer'] },
+      fields: [{ key: 'note', type: 'short_text', label: named('Note'), required: true }],
+    },
+  });
+  expect(note.statusCode).toBe(201);
+  aSubmissionId = newId();
+  const submitted = await send(memberToken, 'POST', '/v1/submissions', {
+    id: aSubmissionId,
+    form: { key: 'zz_note', version: 1 },
+    visitId: aVisitId,
+    capturedAt: new Date().toISOString(),
+    fix: { ...FIX, capturedAt: new Date().toISOString() },
+    values: { note: `${a.word} looked fine` },
+  });
+  expect(submitted.statusCode).toBe(201);
   // A photo of A's, uploaded and confirmed as a phone would.
   aPhotoId = newId();
   const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);

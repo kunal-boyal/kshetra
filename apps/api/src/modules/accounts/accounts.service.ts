@@ -18,6 +18,7 @@ import {
   type CreateLocationProposalBody,
   type ErrorDetail,
   type GeoPoint,
+  geofenceRadius,
   issueAt,
   type LocationProposalResult,
   normalisePhone,
@@ -209,6 +210,85 @@ export class AccountsService {
       );
     if (!seen) throw outOfScope();
     return row;
+  }
+
+  /**
+   * An account as a capture there needs it (M6, BR-33, BR-34): one the caller sees, its type and
+   * status, and the geofence a fix at `point` is judged by: the distance from its verified
+   * location (null without one), its radius, the type's policy and the tenant's accuracy credit.
+   */
+  async forCapture(tx: TenantTx, access: Access, id: string, point: GeoPoint) {
+    const row = await this.find(tx, access, id);
+    const type = (await this.types.list(tx, access.tenantId)).find(
+      (entry) => entry.id === row.typeId,
+    )!;
+    const settings = await this.settings(tx, access.tenantId);
+    const [measured] = await tx
+      .select({
+        distanceM: sql<number | null>`case when ${accounts.locationStatus} = 'verified'
+          and ${accounts.location} is not null
+          then ST_Distance(${accounts.location}, ${pointSql(point)}) end`,
+      })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, access.tenantId), eq(accounts.id, id)));
+    return {
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      type: type.key,
+      status: row.status,
+      contacts: type.definition.contacts,
+      distanceM:
+        measured?.distanceM === null || measured?.distanceM === undefined
+          ? null
+          : Number(measured.distanceM),
+      radiusM: geofenceRadius(
+        row.geofenceRadiusM,
+        type.definition.location.geofenceRadiusM,
+        settings.geofenceRadiusMeters,
+      ),
+      policy: type.definition.location.geofencePolicy,
+      accuracyCapM: settings.geofenceAccuracyCapMeters,
+    };
+  }
+
+  /** The type key of each account in `ids` the caller sees, for what a form's values refer to. */
+  async typesSeen(
+    tx: TenantTx,
+    access: Access,
+    ids: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select({ id: accounts.id, type: accountTypes.key })
+      .from(accounts)
+      .innerJoin(
+        accountTypes,
+        and(eq(accountTypes.tenantId, accounts.tenantId), eq(accountTypes.id, accounts.typeId)),
+      )
+      .where(
+        and(
+          eq(accounts.tenantId, access.tenantId),
+          inArray(accounts.id, [...ids]),
+          await this.reach(tx, access),
+        ),
+      );
+    return new Map(rows.map((row) => [row.id, row.type]));
+  }
+
+  /** The IDs of an account's active contacts. */
+  async activeContactIds(tx: TenantTx, tenantId: string, accountId: string): Promise<Set<string>> {
+    const rows = await tx
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(
+        and(
+          eq(contacts.tenantId, tenantId),
+          eq(contacts.accountId, accountId),
+          eq(contacts.active, true),
+        ),
+      );
+    return new Set(rows.map((row) => row.id));
   }
 
   async get(tx: TenantTx, access: Access, id: string): Promise<AccountResult> {
