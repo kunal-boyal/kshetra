@@ -170,6 +170,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - An account a record is made at comes from `AccountsService.forCapture()`: seen by the caller, with its status, type, distance from its verified location, radius and geofence policy.
 - Records attach their photos with `PhotosService.forRecord()` and `attach()` in the creating transaction. Submissions are immutable; what reviewers should see goes in `flags`.
 - Work repeated for each tenant on an interval uses `Schedules.everyForTenants()`.
+- On the phone (decision D50), `Visits` in `@kshetra/api-client/sync` keeps the open visit; check in and out through `checkIn()` and `checkOut()`, and submit form entries through `submitEntry()`, all in `apps/mobile/src/visits.ts`, which save on the phone and queue in one transaction. `geofenceAt()` previews the server's geofence judgement. A submitted entry waits while its upload is in the outbox.
 
 ## Offline sync (decision D40)
 

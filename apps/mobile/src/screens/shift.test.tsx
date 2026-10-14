@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import type { SessionState } from '@kshetra/api-client';
 import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
-import { migrate, Outbox, type SqlDatabase, Tracking } from '@kshetra/api-client/sync';
+import { migrate, Outbox, type SqlDatabase, Tracking, Visits } from '@kshetra/api-client/sync';
 import { SETTING_DEFAULTS, type SyncPullResult } from '@kshetra/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -218,6 +218,16 @@ describe('the shift on the phone (M5)', () => {
   it('pauses with a reason, resumes, and ends the day, each saved and sent in order', async () => {
     mockTracking = true;
     const db = await freshDatabase(true);
+    // Checked in somewhere: ending the day checks out too, as the server does.
+    await db.transaction((tx) =>
+      new Visits(db).open(tx, {
+        owner: OWNER,
+        visitId: '01a10000-0000-7000-8000-0000000000d9',
+        accountId: '01a10000-0000-7000-8000-000000000080',
+        shiftId: SHIFT,
+        checkedInAt: Date.now(),
+      }),
+    );
     const client = await renderPhone('home', db);
     expect(await screen.findByText('Tracking')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Pause tracking' }));
@@ -239,6 +249,7 @@ describe('the shift on the phone (M5)', () => {
       body: expect.objectContaining({ reason: 'A break' }),
     });
     expect(await new Outbox(db, {}).items(OWNER)).toEqual([]);
+    expect(await new Visits(db).current(OWNER)).toBeNull();
   });
 
   it('says when recording stopped by itself, and how to fix it', async () => {

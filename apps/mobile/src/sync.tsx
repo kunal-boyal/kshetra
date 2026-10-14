@@ -8,6 +8,7 @@ import {
   type SqlDatabase,
   SyncRunner,
   type SyncStatus,
+  Visits,
 } from '@kshetra/api-client/sync';
 import { SYNC_ENTITIES } from '@kshetra/shared';
 import * as Network from 'expo-network';
@@ -40,6 +41,8 @@ interface Sync {
   entries: FormEntries;
   /** The open shift and the points waiting to upload (M5). */
   tracking: Tracking;
+  /** The open visit (M6). */
+  visits: Visits;
 }
 
 /** The sync once the phone's database is open; null if it could not be opened. */
@@ -80,7 +83,7 @@ export function SyncProvider({
         afterPush: (owner) => flushPoints({ db, outbox, tracking }, client, owner),
       });
       await runner.refresh();
-      made = { db, outbox, runner, entries: new FormEntries(db), tracking };
+      made = { db, outbox, runner, entries: new FormEntries(db), tracking, visits: new Visits(db) };
       if (live) setSync(made);
     })().catch(() => {
       // Without its database the phone still works online; it just keeps nothing offline.

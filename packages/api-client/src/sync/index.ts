@@ -1,7 +1,9 @@
-export { EntryClosed, FormEntries } from './entries';
+export { EntryClosed, entryPhotos, FormEntries, signatureOf, submissionBody } from './entries';
 export { FLUSH_LIMIT, Tracking } from './tracking';
 export type { DropReason, RawPoint, ShiftState } from './tracking';
-export type { EntryChanges, FormEntry } from './entries';
+export type { EntryCapture, EntryChanges, FormEntry } from './entries';
+export { VISIT_IDLE_MS, Visits } from './visits';
+export type { VisitState } from './visits';
 export { LOCAL_ENTITIES, localRows, migrate } from './local-schema';
 export type { LocalEntity, RowOf } from './local-schema';
 export { backoff, Outbox, OUTBOX_CODES } from './outbox';
