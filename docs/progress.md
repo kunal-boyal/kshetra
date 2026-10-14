@@ -73,6 +73,8 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | Date | What | Where |
 |---|---|---|
 | 2026-10-14 | Expo SDK 57 patch: expo 57.0.28 and jest-expo 57.0.6 in the `mobile` catalog, and the modules the patch names; `expo install --check` is clean | PR #28 |
+| 2026-10-14 | Phase 1 step 9b: visits and forms on the phone, the geofence judged on the phone first, and 7b's queued entries sent as submissions (decision D50) | PR #27, merged as `2be7aae` |
+| 2026-10-14 | Phase 1 step 9a: visits and submissions on the server and the web, BR-32 evidence checks, flags and signatures drawn on the server (decision D49) | PR #26, merged as `9f24a0d` |
 | 2026-10-14 | Plural forms written out for English and Hindi, as Hermes on Android has no `Intl.PluralRules`; the first run on a phone found it | PR #25 |
 | 2026-10-13 | The first Android development build, on Kunal's Expo account | EAS |
 | 2026-10-13 | Phase 1 step 8b: tracking on the phone: punches offline, the background task and point buffer, the shift card and the help screen (decision D48) | PR #24, merged as `7f5d030` |
@@ -122,7 +124,8 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | Confirm decision D44 (photos), merged as proposed in #20: uploads straight to storage, processing with sharp, BR-40 duplicates, the stamped copy, CloudFront signed reads | Kunal | Before phase 1 builds on it |
 | Confirm decision D46 (forms on the phone), merged as proposed in #22: drafts kept per version, submitted entries held on the phone until step 9 sends them, signatures as SVG strokes, items synced to every phone | Kunal | Before phase 1 builds on it |
 | Confirm decision D48 (tracking on the phone), merged as proposed in #24: punches offline, the consent text, the background task and point buffer, stopping without restarting (BR-37), the help screen | Kunal | Before phase 1 builds on it |
-| A new Android development build for the Expo SDK 57.0.28 patch, which changes native modules (expo-location, expo-sqlite, expo-crypto, expo-dev-client and others): phones on the 2026-10-13 build don't have it until then. It runs in Expo's cloud on your account and needs your go-ahead | Kunal | Before the device protocol |
+| Start the next Android development build once #28 merges (`eas build --profile development --platform android` in `apps/mobile`), so it carries visits (9b) and the Expo SDK 57.0.28 patch, which changes native modules (expo-location, expo-sqlite, expo-crypto, expo-dev-client and others). Approved on 2026-10-14, but the agent's sandbox can't start cloud builds | Kunal | Before the device protocol |
+| Confirm decisions D49 (visits and submissions on the server) and D50 (visits and forms on the phone), merged as proposed in #26 and #27 | Kunal | Before phase 1 builds on them |
 | Run the device protocol (spec 14.5) with the development build on two Android phones of different brands, and report the gaps | Kunal | Before the pilot week |
 | Confirm decision D47 (shifts and tracking on the server), merged as proposed in #23: punch rules, BR-36 ingest, daily partitions kept until the archive, trails, attendance days from shifts | Kunal | Before phase 1 builds on it |
 | AWS for tracking: install pg_partman 5 in the RDS database with the grants db:bootstrap gives locally (D47) | Kunal | Before the first deployment |
