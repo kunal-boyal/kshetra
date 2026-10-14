@@ -1,8 +1,8 @@
 import type { FormEntry } from '@kshetra/api-client/sync';
 import { spacing } from '@kshetra/design-tokens';
 import type { Values } from '@kshetra/forms';
-import { formatDateTime } from '@kshetra/i18n';
-import { timeIn, todayIn } from '@kshetra/shared';
+import { formatDateTime, formatNumber } from '@kshetra/i18n';
+import { punchFixIssue, timeIn, todayIn } from '@kshetra/shared';
 import { Button, Card, Notice, Screen, StatusBadge, Text } from '@kshetra/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Camera, Send, Trash2, X } from 'lucide-react-native';
@@ -17,7 +17,9 @@ import { PickList } from '../forms/pick-list';
 import { SignaturePad } from '../forms/signature-pad';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
-import { useSync } from '../sync';
+import { currentFix } from '../location';
+import { useOutboxItems, useSync } from '../sync';
+import { geofenceAt, submitEntry } from '../visits';
 
 /** Changes are kept on the phone this long after the last keystroke. */
 const SAVE_AFTER_MS = 400;
@@ -93,6 +95,8 @@ function Filling({ entry }: { entry: FormEntry }) {
   const timeZone = bundle?.settings.timezone ?? 'Asia/Kolkata';
   const form = entry.definition;
   const readOnly = entry.state !== 'draft';
+  // A submitted entry waits while its upload is in the outbox.
+  const waiting = useOutboxItems().some((item) => item.id === entry.id);
 
   const [parts, setParts] = useState<EntryParts>({
     values: entry.values,
@@ -190,8 +194,15 @@ function Filling({ entry }: { entry: FormEntry }) {
   // Once a submit has been tried, problems follow the changes.
   const issues = tried ? checkEntry(form, parts, lookups, t).issues : NO_ISSUES;
 
+  /**
+   * Submits the entry (M6): checked as the server will check it, then captured with a fresh fix
+   * on the person's shift, inside the visit when the form needs one or the visit is at the same
+   * account, and inside the geofence when the form or account type requires it. Saved on the
+   * phone and queued to send in one go.
+   */
   async function submit() {
-    if (!sync || !client.owner) return;
+    if (!sync || !client.owner || !bundle) return;
+    const owner = client.owner;
     setTried(true);
     setFailure(undefined);
     const checked = checkEntry(form, parts, lookups, t);
@@ -199,17 +210,67 @@ function Filling({ entry }: { entry: FormEntry }) {
     setBusy(true);
     clearTimeout(timer.current);
     timer.current = undefined;
-    try {
-      await sync.entries.submit(client.owner, entry.id, {
-        values: checked.values,
-        accountId: parts.accountId,
-        photos: [...parts.photos],
-        signature: parts.signature ? [...parts.signature] : null,
-      });
-      router.replace('/forms');
-    } catch {
-      setFailure(t('entry.not_saved'));
+    const fail = (text: string) => {
+      setFailure(text);
       setBusy(false);
+    };
+    try {
+      if (form.shift === 'required' && !(await sync.tracking.current(owner))) {
+        fail(t('entry.need_shift'));
+        return;
+      }
+      const visit = await sync.visits.current(owner);
+      const inVisit = visit !== null && visit.accountId === parts.accountId;
+      if (form.visitSession && !inVisit) {
+        fail(t('entry.need_visit'));
+        return;
+      }
+      const found = await currentFix();
+      if (found.status !== 'ready') {
+        fail(t(found.status === 'denied' ? 'shift.fix_denied' : 'shift.fix_unavailable'));
+        return;
+      }
+      const issue = punchFixIssue(found.fix);
+      if (issue) {
+        fail(t(issue === 'GPS_MOCKED' ? 'shift.fix_mocked' : 'shift.fix_vague'));
+        return;
+      }
+      const account = parts.accountId
+        ? accounts.find((entry) => entry.id === parts.accountId)
+        : undefined;
+      if (account && form.accountLink.mode !== 'none') {
+        const type = bundle.accountTypes?.find((entry) => entry.key === account.type);
+        const fence = geofenceAt(account, type, bundle.settings, found.fix, form);
+        if (fence.policy === 'required' && fence.result === 'outside') {
+          fail(
+            t('entry.too_far', {
+              distance: formatNumber(fence.distanceM ?? 0, { locale }),
+              radius: formatNumber(fence.radiusM, { locale }),
+            }),
+          );
+          return;
+        }
+      }
+      await submitEntry(sync, owner, {
+        id: entry.id,
+        changes: {
+          values: checked.values,
+          accountId: parts.accountId,
+          photos: [...parts.photos],
+          signature: parts.signature ? [...parts.signature] : null,
+        },
+        fix: found.fix,
+        visitId: inVisit ? visit.visitId : null,
+      });
+      await sync.runner.refresh();
+      void sync.runner.sync();
+      if (inVisit) {
+        router.replace({ pathname: '/accounts/[id]', params: { id: visit.accountId } });
+      } else {
+        router.replace('/forms');
+      }
+    } catch {
+      fail(t('entry.not_saved'));
     }
   }
 
@@ -236,7 +297,9 @@ function Filling({ entry }: { entry: FormEntry }) {
       <Text variant="headingXl" role="heading">
         {form.name[locale].one}
       </Text>
-      {readOnly ? (
+      {readOnly && !waiting ? (
+        <StatusBadge variant="success" label={t('entry.state_sent')} />
+      ) : readOnly ? (
         <View style={styles.stack}>
           <StatusBadge variant="waiting" label={t('entry.state_queued')} />
           <Notice>

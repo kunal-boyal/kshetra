@@ -30,6 +30,7 @@ import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
 import { useOutboxItems, useSync } from '../sync';
+import { VisitCard } from './visit';
 
 type Locating =
   | { step: 'idle' }
@@ -42,8 +43,7 @@ type Locating =
 /**
  * An account's overview on the phone (spec 8.1): its details, who looks after it and its
  * contacts, from the phone's copy, the forms linked to its type, and, for one without a verified
- * location, proposing where it is from a fresh fix of 50 m or better (M4). Check-in arrives with
- * visits.
+ * location, proposing where it is from a fresh fix of 50 m or better (M4), and visits there (M6).
  */
 export function AccountScreen({ id }: { id: string }) {
   const { client } = useApp();
@@ -165,6 +165,8 @@ export function AccountScreen({ id }: { id: string }) {
           />
         ) : null}
       </View>
+
+      <VisitCard account={account} type={type} />
 
       <Card style={styles.card}>
         <Text variant="labelSm" tone="muted">

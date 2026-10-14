@@ -1,4 +1,5 @@
-import type { FormDefinition } from '@kshetra/forms';
+import { type FormDefinition, photosIn } from '@kshetra/forms';
+import type { CaptureFix, CreateSubmissionBody, Signature } from '@kshetra/shared';
 import type { SqlDatabase, SqlExecutor, SqlValue } from './sql';
 
 /**
@@ -23,6 +24,17 @@ export interface FormEntry {
   startedAt: number;
   updatedAt: number;
   submittedAt: number | null;
+  /** Set when it is submitted: the visit it was made in, and when and where (M6). */
+  visitId: string | null;
+  capturedAt: number | null;
+  fix: CaptureFix | null;
+}
+
+/** When, where and in which visit an entry was submitted on the phone (M6, BR-32). */
+export interface EntryCapture {
+  capturedAt: number;
+  fix: CaptureFix;
+  visitId: string | null;
 }
 
 /** What a draft holds that the person changes. */
@@ -44,6 +56,9 @@ interface EntryRecord {
   started_at: number;
   updated_at: number;
   submitted_at: number | null;
+  visit_id: string | null;
+  captured_at: number | null;
+  fix: string | null;
 }
 
 function toEntry(record: EntryRecord): FormEntry {
@@ -61,7 +76,53 @@ function toEntry(record: EntryRecord): FormEntry {
     startedAt: record.started_at,
     updatedAt: record.updated_at,
     submittedAt: record.submitted_at,
+    visitId: record.visit_id,
+    capturedAt: record.captured_at,
+    fix: record.fix === null ? null : (JSON.parse(record.fix) as CaptureFix),
   };
+}
+
+/** The pad a signature was drawn on, from its strokes: up to its furthest point, with a margin. */
+export function signatureOf(strokes: readonly string[]): Signature {
+  let width = 0;
+  let height = 0;
+  for (const stroke of strokes) {
+    const numbers = (stroke.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+    for (let index = 0; index + 1 < numbers.length; index += 2) {
+      width = Math.max(width, numbers[index]!);
+      height = Math.max(height, numbers[index + 1]!);
+    }
+  }
+  const size = (value: number) => Math.min(4000, Math.max(50, Math.ceil(value) + 8));
+  return { width: size(width), height: size(height), strokes: [...strokes] };
+}
+
+/**
+ * What a submitted entry sends (`POST /v1/submissions`): its own ID, the version it was filled
+ * on, when and where it was captured, and its photos and signature.
+ */
+export function submissionBody(entry: FormEntry): CreateSubmissionBody {
+  if (entry.capturedAt === null || !entry.fix) {
+    throw new Error(`Form entry ${entry.id} was not captured.`);
+  }
+  return {
+    id: entry.id,
+    form: { key: entry.formKey, version: entry.formVersion },
+    ...(entry.accountId ? { accountId: entry.accountId } : {}),
+    ...(entry.visitId ? { visitId: entry.visitId } : {}),
+    capturedAt: new Date(entry.capturedAt).toISOString(),
+    fix: entry.fix,
+    values: entry.values,
+    photos: entry.photos,
+    ...(entry.signature && entry.signature.length > 0
+      ? { signature: signatureOf(entry.signature) }
+      : {}),
+  };
+}
+
+/** Every photo an entry sends, the form's and its photo fields', which must upload first. */
+export function entryPhotos(entry: FormEntry): string[] {
+  return [...entry.photos, ...photosIn(entry.definition, entry.values).map((photo) => photo.id)];
 }
 
 /** Thrown when a change reaches an entry that is queued, gone, or someone else's. */
@@ -137,16 +198,39 @@ export class FormEntries {
   }
 
   /**
-   * Submits a draft on the phone: its last changes and the move to queued happen together, and
-   * from then on it is read only. Checking its values is the caller's, before this.
+   * Submits a draft on the phone: its last changes, when and where it was captured, and the move
+   * to queued happen together, with `also` (such as queueing its upload) in the same
+   * transaction; from then on it is read only. Checking its values is the caller's, before this.
    */
-  async submit(owner: string, id: string, changes: EntryChanges = {}): Promise<FormEntry> {
+  async submit(
+    owner: string,
+    id: string,
+    changes: EntryChanges = {},
+    capture?: EntryCapture,
+    also?: (tx: SqlExecutor, entry: FormEntry) => Promise<void>,
+  ): Promise<FormEntry> {
     await this.db.transaction(async (tx) => {
       await this.write(tx, owner, id, changes);
       await tx.run(
-        `UPDATE form_entries SET state = 'queued', submitted_at = ? WHERE id = ? AND owner = ?`,
-        [this.clock(), id, owner],
+        `UPDATE form_entries SET state = 'queued', submitted_at = ?, visit_id = ?,
+                                 captured_at = ?, fix = ?
+          WHERE id = ? AND owner = ?`,
+        [
+          this.clock(),
+          capture?.visitId ?? null,
+          capture?.capturedAt ?? null,
+          capture ? JSON.stringify(capture.fix) : null,
+          id,
+          owner,
+        ],
       );
+      if (also) {
+        const record = await tx.get<EntryRecord>(
+          'SELECT * FROM form_entries WHERE id = ? AND owner = ?',
+          [id, owner],
+        );
+        await also(tx, toEntry(record!));
+      }
     });
     return (await this.get(owner, id))!;
   }

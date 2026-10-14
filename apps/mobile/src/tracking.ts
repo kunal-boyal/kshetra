@@ -1,4 +1,10 @@
-import { lastPulledAt, type Outbox, type SqlDatabase, Tracking } from '@kshetra/api-client/sync';
+import {
+  lastPulledAt,
+  type Outbox,
+  type SqlDatabase,
+  Tracking,
+  Visits,
+} from '@kshetra/api-client/sync';
 import {
   type EndShiftBody,
   LocationBatchResult,
@@ -229,7 +235,10 @@ export async function punchIn(sync: Ready, owner: string, input: PunchIn): Promi
   return id;
 }
 
-/** Punch out: tracking stops, the shift closes on the phone and its punch-out is queued. */
+/**
+ * Punch out: tracking stops, the shift and any open visit close on the phone (the server checks
+ * the visit out at the punch-out), and the punch-out is queued.
+ */
 export async function punchOut(sync: Ready, owner: string, fix: Fix): Promise<void> {
   const state = await sync.tracking.current(owner);
   if (!state) return;
@@ -243,6 +252,7 @@ export async function punchOut(sync: Ready, owner: string, fix: Fix): Promise<vo
   };
   await sync.db.transaction(async (tx) => {
     await sync.tracking.close(tx, owner);
+    await new Visits(sync.db).close(tx, owner);
     await sync.outbox.enqueue(tx, {
       id: newId(),
       owner,

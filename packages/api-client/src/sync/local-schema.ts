@@ -147,6 +147,20 @@ const MIGRATIONS: readonly string[] = [
      battery INTEGER
    );
    CREATE INDEX location_buffer_owner ON location_buffer (owner, captured_at);`,
+  // Visits (M6): the open visit, and what a submitted entry was captured with. Entries queued
+  // before submissions could be sent carry no fix, so they go back to drafts to submit again.
+  `CREATE TABLE visit_state (
+     owner TEXT PRIMARY KEY NOT NULL,
+     visit_id TEXT NOT NULL,
+     account_id TEXT NOT NULL,
+     shift_id TEXT NOT NULL,
+     checked_in_at INTEGER NOT NULL,
+     last_activity_at INTEGER NOT NULL
+   );
+   ALTER TABLE form_entries ADD COLUMN visit_id TEXT;
+   ALTER TABLE form_entries ADD COLUMN captured_at INTEGER;
+   ALTER TABLE form_entries ADD COLUMN fix TEXT;
+   UPDATE form_entries SET state = 'draft', submitted_at = NULL WHERE state = 'queued';`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */

@@ -1105,6 +1105,31 @@ export const en = {
   'uploads.kind_shift_end': '{term.punch_out}',
   'uploads.kind_shift_pause': 'Tracking paused',
   'uploads.kind_shift_resume': 'Tracking resumed',
+  'uploads.kind_visit_check_in': 'Check-in',
+  'uploads.kind_visit_check_out': 'Check-out',
+  'uploads.kind_submission': 'Form',
+  'visit.title': 'Visit',
+  'visit.help':
+    'Check in when you reach this {term.account:lower}. Your location is checked against its geofence.',
+  'visit.check_in': 'Check in',
+  'visit.check_out': 'Check out',
+  'visit.in_visit': 'Checked in',
+  'visit.since': 'Checked in at {time}',
+  'visit.in_visit_at': 'In a visit at {name}',
+  'visit.elsewhere': 'You are checked in at {name}. Checking in here checks you out there.',
+  'visit.need_shift': 'Start your day to check in.',
+  'visit.too_far':
+    'You are {distance} m away. Check in within {radius} m of this {term.account:lower}.',
+  'visit.outside':
+    'Checked in {distance} m away, outside the geofence. The visit is marked for review.',
+  'visit.no_location':
+    'This {term.account:lower} has no verified location yet, so the distance is not checked.',
+  'visit.forms': 'Forms for this visit',
+  'entry.need_shift': 'Start your day before submitting this form.',
+  'entry.need_visit': 'Check in at the {term.account:lower} first, then fill this form there.',
+  'entry.too_far': 'You are {distance} m away. This form needs you within {radius} m.',
+  'entry.state_sent': 'Sent',
+  'entry.sent': 'Sent',
   'app.sign_out_on_duty':
     'You are on duty. Signing out stops recording your route; the day stays open until you sign in again and end it.',
   'shift.off_duty': 'Off duty',
