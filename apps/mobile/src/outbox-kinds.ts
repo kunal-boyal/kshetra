@@ -2,7 +2,9 @@ import type { OutboxItem, OutboxSender } from '@kshetra/api-client/sync';
 import type { MessageKey } from '@kshetra/i18n';
 import {
   AccountResult,
+  type CheckOutBody,
   type CreateAccountBody,
+  type CreateSubmissionBody,
   type CreateLocationProposalBody,
   type EndShiftBody,
   LocationProposalResult,
@@ -10,6 +12,9 @@ import {
   type ResumeShiftBody,
   ShiftResult,
   type StartShiftBody,
+  type StartVisitBody,
+  SubmissionResult,
+  VisitResult,
 } from '@kshetra/shared';
 import type { MobileClient } from './client';
 import { photoSender } from './photos';
@@ -21,8 +26,8 @@ export interface LocationProposalPayload extends CreateLocationProposalBody {
 
 /**
  * How each kind of captured record uploads, and its name in the upload queue. Each sends the
- * record's own ID, so an upload sent twice is applied once (BR-46). Shifts, visits, submissions,
- * photos and orders add their kinds as their modules arrive (phase 1).
+ * record's own ID, so an upload sent twice is applied once (BR-46). Orders add their kinds as
+ * their module arrives.
  */
 export function senders(
   client: Pick<MobileClient, 'request'>,
@@ -70,6 +75,28 @@ export function senders(
         );
       },
     },
+    // Visits and submissions (M6): a check-in after its punch-in, a submission after its photos
+    // and its visit's check-in.
+    'visit.check_in': {
+      async send(payload) {
+        await client.request('POST', '/v1/visits', VisitResult, {
+          body: payload as StartVisitBody,
+        });
+      },
+    },
+    'visit.check_out': {
+      async send(payload) {
+        const { visitId, ...body } = payload as CheckOutBody & { visitId: string };
+        await client.request('POST', `/v1/visits/${visitId}/check-out`, VisitResult, { body });
+      },
+    },
+    'submission.create': {
+      async send(payload) {
+        await client.request('POST', '/v1/submissions', SubmissionResult, {
+          body: payload as CreateSubmissionBody,
+        });
+      },
+    },
     'account.location': {
       async send(payload) {
         const { accountId, ...body } = payload as LocationProposalPayload;
@@ -92,6 +119,9 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'shift.end': 'uploads.kind_shift_end',
   'shift.pause': 'uploads.kind_shift_pause',
   'shift.resume': 'uploads.kind_shift_resume',
+  'visit.check_in': 'uploads.kind_visit_check_in',
+  'visit.check_out': 'uploads.kind_visit_check_out',
+  'submission.create': 'uploads.kind_submission',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;

@@ -1099,6 +1099,32 @@ export const hi: Record<MessageKey, Message> = {
   'uploads.kind_shift_end': '{term.punch_out}',
   'uploads.kind_shift_pause': 'ट्रैकिंग रोकी गई',
   'uploads.kind_shift_resume': 'ट्रैकिंग फिर शुरू',
+  'uploads.kind_visit_check_in': 'चेक-इन',
+  'uploads.kind_visit_check_out': 'चेक-आउट',
+  'uploads.kind_submission': 'फ़ॉर्म',
+  'visit.title': 'विज़िट',
+  'visit.help':
+    'इस {term.account:lower} पर पहुँचकर चेक इन करें। आपकी लोकेशन इसके दायरे से मिलाई जाती है।',
+  'visit.check_in': 'चेक इन करें',
+  'visit.check_out': 'चेक आउट करें',
+  'visit.in_visit': 'चेक इन किया',
+  'visit.since': '{time} पर चेक इन किया',
+  'visit.in_visit_at': '{name} पर विज़िट जारी',
+  'visit.elsewhere': 'आप {name} पर चेक इन हैं। यहाँ चेक इन करने से वहाँ से चेक आउट हो जाएगा।',
+  'visit.need_shift': 'चेक इन करने के लिए अपना दिन शुरू करें।',
+  'visit.too_far':
+    'आप {distance} मी दूर हैं। इस {term.account:lower} के {radius} मी के भीतर चेक इन करें।',
+  'visit.outside':
+    '{distance} मी दूर से, दायरे के बाहर चेक इन किया। विज़िट समीक्षा के लिए चिह्नित है।',
+  'visit.no_location':
+    'इस {term.account:lower} की लोकेशन अभी सत्यापित नहीं है, इसलिए दूरी नहीं जाँची जाती।',
+  'visit.forms': 'इस विज़िट के फ़ॉर्म',
+  'entry.need_shift': 'यह फ़ॉर्म भेजने से पहले अपना दिन शुरू करें।',
+  'entry.need_visit': 'पहले {term.account:lower} पर चेक इन करें, फिर वहीं यह फ़ॉर्म भरें।',
+  'entry.too_far':
+    'आप {distance} मी दूर हैं। इस फ़ॉर्म के लिए आपको {radius} मी के भीतर होना चाहिए।',
+  'entry.state_sent': 'भेजा गया',
+  'entry.sent': 'भेजे गए',
   'app.sign_out_on_duty':
     'आप ड्यूटी पर हैं। साइन आउट करने से आपका रास्ता रिकॉर्ड होना रुक जाएगा; दिन तब तक खुला रहेगा जब तक आप फिर साइन इन करके उसे ख़त्म न करें।',
   'shift.off_duty': 'ड्यूटी पर नहीं',

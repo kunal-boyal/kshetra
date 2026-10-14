@@ -1,7 +1,15 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import type { SessionState } from '@kshetra/api-client';
+import { NetworkError, type SessionState } from '@kshetra/api-client';
 import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
-import { FormEntries, migrate, type SqlDatabase } from '@kshetra/api-client/sync';
+import {
+  FormEntries,
+  migrate,
+  Outbox,
+  type SqlDatabase,
+  submissionBody,
+  Tracking,
+  Visits,
+} from '@kshetra/api-client/sync';
 import type { FormView } from '@kshetra/forms';
 import { SETTING_DEFAULTS, type SyncPullResult } from '@kshetra/shared';
 import { QueryClient } from '@tanstack/react-query';
@@ -26,6 +34,19 @@ jest.mock('expo-network', () => ({
   addNetworkStateListener: () => ({ remove: () => undefined }),
 }));
 jest.mock('expo-battery', () => ({ isBatteryOptimizationEnabledAsync: async () => false }));
+// The phone stands at Janpath, New Delhi, known to within 12 m.
+const mockFix = { lat: 28.6261, lng: 77.2186, accuracy: 12, mocked: false };
+jest.mock('expo-location', () => ({
+  Accuracy: { High: 4, Highest: 6 },
+  requestForegroundPermissionsAsync: async () => ({ granted: true }),
+  getBackgroundPermissionsAsync: async () => ({ granted: true }),
+  hasStartedLocationUpdatesAsync: async () => false,
+  getCurrentPositionAsync: async () => ({
+    coords: { latitude: mockFix.lat, longitude: mockFix.lng, accuracy: mockFix.accuracy },
+    timestamp: Date.now(),
+    mocked: mockFix.mocked,
+  }),
+}));
 
 const TENANT = { id: '01a10000-0000-7000-8000-000000000001', name: 'Sunrise Traders', cellUrl: '' };
 const USER = '01a10000-0000-7000-8000-000000000004';
@@ -159,7 +180,8 @@ function pulled(): SyncPullResult {
   };
 }
 
-function fakeClient() {
+/** The phone's client; offline, every upload fails as with no signal, so it stays queued. */
+function fakeClient(offline: boolean) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -172,7 +194,10 @@ function fakeClient() {
     signOut: jest.fn(async () => undefined),
     syncPull: jest.fn(async () => pulled()),
     heartbeat: jest.fn(async () => undefined),
-    request: jest.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({})),
+    request: jest.fn<(...args: unknown[]) => Promise<unknown>>(async (method) => {
+      if (offline && method === 'POST') throw new NetworkError(new Error('No signal.'));
+      return {};
+    }),
     config: jest.fn(async () => ({
       status: 'fresh',
       etag: '"1-role-4"',
@@ -202,8 +227,8 @@ function Shown({ page }: { page: Page }) {
   return page.name === 'list' ? <FormsScreen /> : <FormEntryScreen id={page.id} />;
 }
 
-async function renderPhone(page: Page, db: SqlDatabase) {
-  const fake = fakeClient();
+async function renderPhone(page: Page, db: SqlDatabase, offline = false) {
+  const fake = fakeClient(offline);
   await render(
     <LanguageProvider initial="en">
       <AppProvider
@@ -223,10 +248,49 @@ async function renderPhone(page: Page, db: SqlDatabase) {
   return fake.client;
 }
 
-async function freshDatabase() {
+const SHIFT = '01a10000-0000-7000-8000-0000000000c1';
+
+/** A fresh phone database; on duty since two hours ago unless `onDuty` is false. */
+async function freshDatabase(onDuty = true) {
   const db = nodeSqlite();
   await migrate(db);
+  if (onDuty) {
+    await db.transaction((tx) =>
+      new Tracking(db).open(tx, {
+        owner: OWNER,
+        shiftId: SHIFT,
+        startedAt: Date.now() - 2 * 3_600_000,
+        endsBy: Date.now() + 12 * 3_600_000,
+        intervalSeconds: 120,
+      }),
+    );
+  }
   return db;
+}
+
+/** Submits an entry on the phone as the form screen does, its upload queued unless `sent`. */
+async function submitted(db: SqlDatabase, id: string, sent = false) {
+  const entries = new FormEntries(db);
+  const capture = {
+    capturedAt: Date.now(),
+    fix: {
+      location: { lat: mockFix.lat, lng: mockFix.lng },
+      accuracy: 12,
+      mocked: false,
+      capturedAt: new Date().toISOString(),
+    },
+    visitId: null,
+  };
+  await entries.submit(OWNER, id, { values: { open: true } }, capture, async (tx, entry) => {
+    if (!sent) {
+      await new Outbox(db, {}).enqueue(tx, {
+        id,
+        owner: OWNER,
+        kind: 'submission.create',
+        payload: submissionBody(entry),
+      });
+    }
+  });
 }
 
 describe('forms on the phone', () => {
@@ -245,11 +309,11 @@ describe('forms on the phone', () => {
     });
   });
 
-  it('fills a form as its conditions say, checks it as the server will, and queues it', async () => {
+  it('fills a form as its conditions say, checks it as the server will, and queues its upload', async () => {
     const db = await freshDatabase();
     const entries = new FormEntries(db);
     await entries.start({ id: ENTRY, owner: OWNER, form: CHECK });
-    await renderPhone({ name: 'entry', id: ENTRY }, db);
+    const client = await renderPhone({ name: 'entry', id: ENTRY }, db);
     expect(await screen.findByText('Shop check')).toBeOnTheScreen();
     expect(screen.queryByLabelText(/^Why closed/)).toBeNull();
 
@@ -285,8 +349,25 @@ describe('forms on the phone', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/forms'));
+    // Saved and queued on the phone, then sent with its own ID, when and where it was captured.
+    await waitFor(() =>
+      expect(client.request).toHaveBeenCalledWith('POST', '/v1/submissions', expect.anything(), {
+        body: expect.objectContaining({
+          id: ENTRY,
+          form: { key: 'shop_check', version: 2 },
+          accountId: SHOP,
+          fix: expect.objectContaining({
+            location: { lat: mockFix.lat, lng: mockFix.lng },
+            accuracy: 12,
+            mocked: false,
+          }),
+          signature: { width: 50, height: 50, strokes: ['M10 20 L40 25'] },
+        }),
+      }),
+    );
     expect(await entries.get(OWNER, ENTRY)).toMatchObject({
       state: 'queued',
+      visitId: null,
       accountId: SHOP,
       values: {
         open: false,
@@ -310,29 +391,86 @@ describe('forms on the phone', () => {
     expect((await entries.get(OWNER, ENTRY))?.values).toEqual({ open: true });
   });
 
-  it('shows a submitted entry read only', async () => {
+  it('needs the day started, a visit for a visit form, and a real fix', async () => {
+    const db = await freshDatabase(false);
+    const entries = new FormEntries(db);
+    await entries.start({ id: ENTRY, owner: OWNER, form: VISIT, accountId: SHOP });
+    await renderPhone({ name: 'entry', id: ENTRY }, db, true);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Submit' }));
+    expect(
+      await screen.findByText('Start your day before submitting this form.'),
+    ).toBeOnTheScreen();
+    await db.transaction((tx) =>
+      new Tracking(db).open(tx, {
+        owner: OWNER,
+        shiftId: SHIFT,
+        startedAt: Date.now() - 3_600_000,
+        endsBy: Date.now() + 3_600_000,
+        intervalSeconds: 120,
+      }),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+    expect(
+      await screen.findByText('Check in at the account first, then fill this form there.'),
+    ).toBeOnTheScreen();
+    const visit = '01a10000-0000-7000-8000-0000000000d1';
+    await db.transaction((tx) =>
+      new Visits(db).open(tx, {
+        owner: OWNER,
+        visitId: visit,
+        accountId: SHOP,
+        shiftId: SHIFT,
+        checkedInAt: Date.now(),
+      }),
+    );
+    mockFix.mocked = true;
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+    expect(
+      await screen.findByText('This location is mocked. Turn off any app that fakes it.'),
+    ).toBeOnTheScreen();
+    mockFix.mocked = false;
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/accounts/[id]',
+        params: { id: SHOP },
+      }),
+    );
+    const [upload] = await new Outbox(db, {}).items(OWNER);
+    expect(upload).toMatchObject({
+      id: ENTRY,
+      dependsOn: [visit],
+      payload: { visitId: visit, accountId: SHOP },
+    });
+  });
+
+  it('shows a submitted entry read only, waiting and then sent', async () => {
     const db = await freshDatabase();
     const entries = new FormEntries(db);
     await entries.start({ id: ENTRY, owner: OWNER, form: CHECK, accountId: SHOP });
-    await entries.submit(OWNER, ENTRY, { values: { open: true } });
-    await renderPhone({ name: 'entry', id: ENTRY }, db);
+    await submitted(db, ENTRY);
+    await renderPhone({ name: 'entry', id: ENTRY }, db, true);
     expect(await screen.findByText('Waiting to send')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Submit' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Discard this draft' })).toBeNull();
   });
 
-  it('lists drafts, and what waits to be sent', async () => {
+  it('lists drafts, what waits to be sent, and what was sent', async () => {
     const db = await freshDatabase();
     const entries = new FormEntries(db);
     await entries.start({ id: ENTRY, owner: OWNER, form: CHECK });
     const sent = '01a10000-0000-7000-8000-0000000000e2';
     await entries.start({ id: sent, owner: OWNER, form: CHECK });
-    await entries.submit(OWNER, sent);
-    await renderPhone({ name: 'list' }, db);
+    await submitted(db, sent, true);
+    const waiting = '01a10000-0000-7000-8000-0000000000e3';
+    await entries.start({ id: waiting, owner: OWNER, form: CHECK });
+    await submitted(db, waiting);
+    await renderPhone({ name: 'list' }, db, true);
     expect(await screen.findByText('Drafts')).toBeOnTheScreen();
-    expect(screen.getByText('Waiting to send')).toBeOnTheScreen();
+    expect(await screen.findByText('Waiting to send')).toBeOnTheScreen();
+    expect(screen.getByText('Sent')).toBeOnTheScreen();
     expect(screen.getAllByRole('button', { name: /^Shop check, (Saved|Submitted)/ })).toHaveLength(
-      2,
+      3,
     );
   });
 

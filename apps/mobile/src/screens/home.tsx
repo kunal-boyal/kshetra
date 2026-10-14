@@ -8,6 +8,7 @@ import { useConfig, useMe } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useSyncStatus } from '../sync';
 import { ShiftSection } from './shift';
+import { VisitNow } from './visit';
 
 /**
  * What is still on the phone (components/SyncBanner): red once something was refused, else amber
@@ -43,8 +44,8 @@ function Banner() {
 }
 
 /**
- * Home (spec 8.1): the sync banner, the tenant's name, a greeting and the shift card. The plan
- * and "My month" tiles arrive with their modules in phase 1.
+ * Home (spec 8.1): the sync banner, the tenant's name, a greeting, the shift card and the visit
+ * the person is in. The plan and "My month" tiles arrive with their modules in phase 1.
  */
 export function HomeScreen() {
   const { session } = useApp();
@@ -94,6 +95,7 @@ export function HomeScreen() {
         </View>
       ) : null}
       <ShiftSection />
+      <VisitNow />
       <EmptyState icon={LayoutDashboard} title={t('home.empty_title')}>
         {t('home.empty_body')}
       </EmptyState>

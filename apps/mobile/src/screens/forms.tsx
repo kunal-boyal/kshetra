@@ -3,14 +3,14 @@ import { spacing } from '@kshetra/design-tokens';
 import { formatDateTime } from '@kshetra/i18n';
 import { EmptyState, ListGroup, ListRow, Notice, Screen, Text } from '@kshetra/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
-import { ClipboardList, FilePen, Hourglass } from 'lucide-react-native';
+import { CircleCheck, ClipboardList, FilePen, Hourglass } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { useConfig } from '../data';
 import { standalone, startEntry } from '../forms/start';
 import { useLanguage } from '../i18n';
-import { useSync } from '../sync';
+import { useOutboxItems, useSync } from '../sync';
 
 /** The person's form entries on this phone, read again whenever the screen shows. */
 export function useEntries(): FormEntry[] | undefined {
@@ -36,9 +36,12 @@ export function useEntries(): FormEntry[] | undefined {
   return entries;
 }
 
+/** Sent entries shown, newest first. */
+const SENT_SHOWN = 20;
+
 /**
- * Forms (spec 8.1): the forms the person may fill, their drafts, and what they submitted on the
- * phone that waits to be sent. Forms filled inside a visit open from the visit.
+ * Forms (spec 8.1): the forms the person may fill, their drafts, what they submitted on the
+ * phone that waits to be sent, and what was sent. Forms filled inside a visit open from the visit.
  */
 export function FormsScreen() {
   const { client } = useApp();
@@ -46,12 +49,19 @@ export function FormsScreen() {
   const sync = useSync();
   const config = useConfig();
   const entries = useEntries();
+  const unsent = new Set(useOutboxItems().map((item) => item.id));
   const [failure, setFailure] = useState<string>();
   const bundle = config.data?.bundle;
   const timeZone = bundle?.settings.timezone ?? 'Asia/Kolkata';
   const forms = standalone(bundle?.forms ?? []);
   const drafts = (entries ?? []).filter((entry) => entry.state === 'draft');
-  const queued = (entries ?? []).filter((entry) => entry.state === 'queued');
+  const submitted = (entries ?? []).filter((entry) => entry.state === 'queued');
+  // A submitted entry waits while its upload is in the outbox; once that has gone, it was sent.
+  const queued = submitted.filter((entry) => unsent.has(entry.id));
+  const sent = submitted
+    .filter((entry) => !unsent.has(entry.id))
+    .sort((a, b) => (b.submittedAt ?? 0) - (a.submittedAt ?? 0))
+    .slice(0, SENT_SHOWN);
   const when = (millis: number) => formatDateTime(new Date(millis), { locale, timeZone });
 
   async function start(key: string) {
@@ -121,6 +131,21 @@ export function FormsScreen() {
           </ListGroup>
           <Notice>{t('entry.waiting_note')}</Notice>
         </View>
+      ) : null}
+      {sent.length > 0 ? (
+        <ListGroup title={t('entry.sent')}>
+          {sent.map((entry) => (
+            <ListRow
+              key={entry.id}
+              icon={CircleCheck}
+              label={entry.definition.name[locale].one}
+              detail={t('entry.submitted_at', {
+                when: when(entry.submittedAt ?? entry.updatedAt),
+              })}
+              onPress={() => router.push({ pathname: '/forms/[id]', params: { id: entry.id } })}
+            />
+          ))}
+        </ListGroup>
       ) : null}
     </Screen>
   );

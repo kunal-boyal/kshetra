@@ -2,22 +2,32 @@ import { type Client, createClient, memoryStore } from '@kshetra/api-client';
 import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
 import {
   clearReferenceData,
+  FormEntries,
   localRows,
   migrate,
   Outbox,
   type OutboxSender,
   type SqlDatabase,
+  submissionBody,
   SyncRunner,
   Tracking,
+  Visits,
 } from '@kshetra/api-client/sync';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { type DeviceInfo, LocationBatchResult, newId, ShiftResult } from '@kshetra/shared';
+import {
+  type DeviceInfo,
+  LocationBatchResult,
+  newId,
+  ShiftResult,
+  SubmissionResult,
+  VisitResult,
+} from '@kshetra/shared';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { devices } from '../src/db/schema/iam';
 import { SyncTombstones } from '../src/modules/sync/tombstones';
 import { Database } from '../src/platform/database';
-import { newAddress, newDevice, startApp, testConfig, World } from './support';
+import { newAddress, newDevice, newPhone, startApp, testConfig, World } from './support';
 
 /**
  * A simulated phone (spec 14.4): the app's own sync engine, on Node's SQLite, against the real
@@ -335,5 +345,147 @@ describe('a simulated phone', () => {
         ),
       );
     expect(stored.rows).toEqual([{ n: 3 }]);
+  });
+
+  it('visits a place offline and sends the form filled there, after its punch-in and check-in (M6)', async () => {
+    const tenantId = await world.tenant('Simulated Shops');
+    const adminPhone = newPhone();
+    await world.user(tenantId, { phone: adminPhone, designation: 'head', role: 'tenant_admin' });
+    const person = await world.user(tenantId, { name: 'Vani Visitor', designation: 'executive' });
+    const admin = (await world.signIn(adminPhone)).accessToken;
+    const asAdmin = (url: string, payload: object) =>
+      app.inject({
+        method: 'POST',
+        url,
+        headers: { authorization: `Bearer ${admin}`, 'idempotency-key': newId() },
+        payload,
+      });
+    const HERE = { lat: 28.6315, lng: 77.2167 };
+    const accountId = newId();
+    const made = await asAdmin('/v1/accounts', {
+      id: accountId,
+      type: 'customer',
+      code: 'C-SIM',
+      name: 'Simulated Stores',
+      territoryId: await world.territory(tenantId, 'SIM'),
+      location: HERE,
+      slots: { executive: person.id },
+    });
+    expect(made.statusCode).toBe(201);
+    const published = await asAdmin('/v1/forms', {
+      definition: {
+        key: 'shelf_note',
+        name: { en: { one: 'Shelf note', other: 'Shelf notes' }, hi: { one: 'नोट', other: 'नोट' } },
+        icon: 'notebook-pen',
+        accountLink: { mode: 'required', accountTypes: ['customer'] },
+        visitSession: true,
+        fields: [
+          { key: 'note', type: 'short_text', label: { en: 'Note', hi: 'नोट' }, required: true },
+        ],
+      },
+    });
+    expect(published.statusCode).toBe(201);
+
+    const senders: Record<string, OutboxSender> = {};
+    const phone: SimulatedPhone = await new SimulatedPhone(newDevice(), senders).start();
+    const send = (path: string, schema: Parameters<Client['request']>[2]): OutboxSender => ({
+      async send(payload) {
+        await phone.client.request('POST', path, schema, { body: payload as never });
+      },
+    });
+    senders['shift.start'] = send('/v1/shifts', ShiftResult);
+    senders['visit.check_in'] = send('/v1/visits', VisitResult);
+    senders['submission.create'] = send('/v1/submissions', SubmissionResult);
+    await phone.signIn(person.phone!);
+    const owner = phone.client.owner!;
+    const fix = (at: number) => ({
+      location: HERE,
+      accuracy: 12,
+      mocked: false,
+      capturedAt: new Date(at).toISOString(),
+    });
+
+    // No signal all morning: the punch-in, the check-in and the form wait on the phone.
+    phone.online = false;
+    const shiftId = newId();
+    const startedAt = Date.now() - 2 * 3_600_000;
+    const visitId = newId();
+    const checkedInAt = startedAt + 30 * 60_000;
+    const visits = new Visits(phone.db, () => phone.now);
+    await phone.db.transaction(async (tx) => {
+      await phone.outbox.enqueue(tx, {
+        id: shiftId,
+        owner,
+        kind: 'shift.start',
+        payload: {
+          id: shiftId,
+          startedAt: new Date(startedAt).toISOString(),
+          location: HERE,
+          accuracy: 15,
+          mocked: false,
+          consentVersion: '2026-10',
+        },
+      });
+      await visits.open(tx, { owner, visitId, accountId, shiftId, checkedInAt });
+      await phone.outbox.enqueue(tx, {
+        id: visitId,
+        owner,
+        kind: 'visit.check_in',
+        payload: {
+          id: visitId,
+          accountId,
+          checkedInAt: new Date(checkedInAt).toISOString(),
+          fix: fix(checkedInAt),
+        },
+        dependsOn: [shiftId],
+      });
+    });
+    const entries = new FormEntries(phone.db, () => phone.now);
+    const entryId = newId();
+    const capturedAt = checkedInAt + 10 * 60_000;
+    await entries.start({
+      id: entryId,
+      owner,
+      form: { ...(published.json() as object), version: 1 } as never,
+      accountId,
+    });
+    await entries.submit(
+      owner,
+      entryId,
+      { values: { note: 'Shelf restocked' } },
+      { capturedAt, fix: fix(capturedAt), visitId },
+      async (tx, entry) => {
+        await phone.outbox.enqueue(tx, {
+          id: entry.id,
+          owner,
+          kind: 'submission.create',
+          payload: submissionBody(entry),
+          dependsOn: [visitId],
+        });
+        await visits.touch(tx, owner, visitId, capturedAt);
+      },
+    );
+    await phone.sync();
+    expect((await phone.outbox.items(owner)).map((item) => item.kind)).toEqual([
+      'shift.start',
+      'visit.check_in',
+      'submission.create',
+    ]);
+
+    // Signal at noon: the punch-in, then the check-in, then the form, each judged when it happened.
+    phone.online = true;
+    phone.now += 60_000;
+    await phone.sync();
+    expect(await phone.outbox.items(owner)).toEqual([]);
+    const [stored] = await app
+      .get(Database)
+      .forTenant(tenantId, (tx) =>
+        tx.execute<{ visit_id: string; shift_id: string; captured_at: Date; geofence: string }>(
+          `select visit_id, shift_id, captured_at, geofence from cell.submissions where id = '${entryId}'`,
+        ),
+      )
+      .then((result) => result.rows);
+    expect(stored).toMatchObject({ visit_id: visitId, shift_id: shiftId, geofence: 'inside' });
+    expect(new Date(stored!.captured_at).getTime()).toBe(capturedAt);
   });
 });

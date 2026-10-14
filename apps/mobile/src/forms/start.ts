@@ -3,7 +3,7 @@ import type { FormView } from '@kshetra/forms';
 import { newId } from '@kshetra/shared';
 import { router } from 'expo-router';
 
-/** Forms filled on their own, not inside a visit, which arrives with visits (module M6). */
+/** Forms filled on their own, not inside a visit; visit forms open from the visit (M6). */
 export function standalone(forms: readonly FormView[]): FormView[] {
   return forms.filter((form) => !form.visitSession);
 }
