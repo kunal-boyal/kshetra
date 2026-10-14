@@ -1,17 +1,25 @@
 import { BottomNav, useTheme } from '@kshetra/ui-mobile';
 import { Tabs } from 'expo-router';
-import { ClipboardList, House, type LucideIcon, Store, UserRound } from 'lucide-react-native';
+import {
+  ClipboardList,
+  House,
+  type LucideIcon,
+  Store,
+  UserRound,
+  Users,
+} from 'lucide-react-native';
 import { type ComponentProps, useEffect } from 'react';
 import { useConfig } from '../../../data';
 import { useLanguage } from '../../../i18n';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-/** Plan, Orders and Team join as their modules arrive, filtered by permissions (spec 8.1). */
+/** Plan and Orders join as their modules arrive; Team is for reviewers (spec 8.1). */
 const ICONS: Record<string, LucideIcon> = {
   index: House,
   accounts: Store,
   forms: ClipboardList,
+  team: Users,
   me: UserRound,
 };
 
@@ -40,6 +48,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="forms"
         options={{ title: t('forms.title'), href: can('submission.create') ? undefined : null }}
+      />
+      <Tabs.Screen
+        name="team"
+        options={{ title: t('team.title'), href: can('submission.review') ? undefined : null }}
       />
       <Tabs.Screen name="me" options={{ title: t('app.me') }} />
     </Tabs>

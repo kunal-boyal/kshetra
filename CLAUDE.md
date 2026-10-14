@@ -177,6 +177,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Review lives in `apps/api/src/modules/review` and reaches submissions only through `SubmissionsService` (`reviewRows()`, `forDecision()`, `setStatus()`, `dueForAutoApproval()`). The rules are pure functions in `packages/shared/src/review.ts`: `reviewRefusal()` (own work, notes) and `autoApprovable()` (flags, geofence, `integrityWarning()`).
 - Every decision goes through `ReviewService.record()`: a `submission_reviews` row, the submission's status, an audit entry and the `submission.reviewed` event in one transaction. Consumers of that event (plan items, metrics) must be idempotent.
 - Auto-approval runs every 15 minutes for each tenant (`review.auto_approve`); its switch is the `reviewAutoApproval` setting and its delay is in `review_rules`, through `TenantConfigService.reviewRules()`.
+- On the phone (decision D52), managers review in the Team tab (`src/screens/team.tsx`, `review-item.tsx`) through the hooks in `apps/mobile/src/review.ts`; reviews go straight to the server, never through the outbox.
 
 ## Offline sync (decision D40)
 
