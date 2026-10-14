@@ -578,6 +578,11 @@ export const hi: Record<MessageKey, Message> = {
   'nav.accounts': '{term.account:other}',
   'nav.approvals': 'मंज़ूरियाँ',
   'nav.review': 'समीक्षा',
+  'team.title': 'टीम',
+  'team.to_review': { one: 'समीक्षा के लिए {count}', other: 'समीक्षा के लिए {count}' },
+  'team.flags': { one: '{count} चेतावनी', other: '{count} चेतावनियाँ' },
+  'team.refresh': 'फिर देखें',
+  'team.gone': 'यह अब समीक्षा के लिए बाकी नहीं है।',
   'review.title': 'समीक्षा',
   'review.intro':
     'आपकी टीम के लोगों के भरे फ़ॉर्म। जो ठीक है उसे मंज़ूर करें; जो ठीक नहीं, उसे कारण के साथ अस्वीकार करें।',

@@ -585,6 +585,11 @@ export const en = {
   'nav.accounts': '{term.account:other}',
   'nav.approvals': 'Approvals',
   'nav.review': 'Review',
+  'team.title': 'Team',
+  'team.to_review': { one: '{count} to review', other: '{count} to review' },
+  'team.flags': { one: '{count} flag', other: '{count} flags' },
+  'team.refresh': 'Check again',
+  'team.gone': 'This is no longer waiting for review.',
   'review.title': 'Review',
   'review.intro':
     'Forms filled by the people you look after. Approve what holds up; reject with a reason what does not.',
