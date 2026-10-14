@@ -72,7 +72,7 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 
 | Date | What | Where |
 |---|---|---|
-| 2026-10-14 | Expo SDK 57 patch: expo 57.0.28 and jest-expo 57.0.6 in the `mobile` catalog, and the modules the patch names; `expo install --check` is clean | Branch `chore/expo-57-patches` |
+| 2026-10-14 | Expo SDK 57 patch: expo 57.0.28 and jest-expo 57.0.6 in the `mobile` catalog, and the modules the patch names; `expo install --check` is clean | PR #28 |
 | 2026-10-14 | Plural forms written out for English and Hindi, as Hermes on Android has no `Intl.PluralRules`; the first run on a phone found it | PR #25 |
 | 2026-10-13 | The first Android development build, on Kunal's Expo account | EAS |
 | 2026-10-13 | Phase 1 step 8b: tracking on the phone: punches offline, the background task and point buffer, the shift card and the help screen (decision D48) | PR #24, merged as `7f5d030` |
