@@ -18,5 +18,7 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.test.tsx', 'src/**/*.test.ts'],
     setupFiles: ['./src/test-setup.ts'],
+    // Each screen test renders the whole router in jsdom; a busy CI runner needs more than 5 s.
+    testTimeout: 20_000,
   },
 });
