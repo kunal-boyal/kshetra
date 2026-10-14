@@ -1,4 +1,5 @@
-// The background location task is defined as the bundle loads (spec 12.1).
+// What Hermes lacks comes first, then the background location task (spec 12.1).
+import '../polyfills';
 import '../background';
 import { useTheme } from '@kshetra/ui-mobile';
 import { Stack } from 'expo-router';

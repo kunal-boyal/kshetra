@@ -26,10 +26,17 @@ export interface TranslateOptions {
 
 const PLACEHOLDER = /\{([a-z][A-Za-z0-9_.]*)((?::[a-z]+)*)\}/g;
 
-/** `one` or `other` for a count, by the language's plural rules; `other` without a count. */
-function pluralForm(locale: Locale, count: string | number | undefined): 'one' | 'other' {
+/**
+ * `one` or `other` for a count, by the language's plural rules (Unicode CLDR); `other` without a
+ * count. Written out rather than taken from `Intl.PluralRules`, which Hermes, the JavaScript
+ * engine of the Android app, doesn't have. English: one is exactly 1. Hindi: one is 0 to 1.
+ */
+export function pluralForm(locale: Locale, count: string | number | undefined): 'one' | 'other' {
   if (count === undefined) return 'other';
-  return new Intl.PluralRules(locale).select(Number(count)) === 'one' ? 'one' : 'other';
+  const n = Math.abs(Number(count));
+  if (!Number.isFinite(n)) return 'other';
+  if (locale === 'hi') return n <= 1 ? 'one' : 'other';
+  return n === 1 ? 'one' : 'other';
 }
 
 /** Lowercases capitalised words for use mid-sentence, leaving acronyms such as "SME" alone. */

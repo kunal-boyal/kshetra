@@ -29,7 +29,13 @@ const TimeZone = z
 const Currency = z
   .string()
   .regex(/^[A-Z]{3}$/, 'Use an ISO 4217 code, such as INR')
-  .refine((code) => Intl.supportedValuesOf('currency').includes(code), 'This currency is unknown');
+  // Hermes, on the Android app, has no `supportedValuesOf`; the server checks, and phones trust it.
+  .refine(
+    (code) =>
+      typeof Intl.supportedValuesOf !== 'function' ||
+      Intl.supportedValuesOf('currency').includes(code),
+    'This currency is unknown',
+  );
 
 const Country = z
   .string()

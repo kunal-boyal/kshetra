@@ -51,6 +51,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: JAMUN,
     },
     // Only what the app uses (spec 12.1): location, the camera and the shift notification.
+    // RECEIVE_BOOT_COMPLETED is for expo-task-manager, which hands each batch of points to the
+    // task through a job Android keeps across reboots, and refuses without it (the app crashed on
+    // its first point). It doesn't restart recording after a reboot: that never happens (BR-37).
     permissions: [
       'ACCESS_FINE_LOCATION',
       'ACCESS_COARSE_LOCATION',
@@ -58,6 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'FOREGROUND_SERVICE',
       'FOREGROUND_SERVICE_LOCATION',
       'POST_NOTIFICATIONS',
+      'RECEIVE_BOOT_COMPLETED',
       'CAMERA',
     ],
     blockedPermissions: [

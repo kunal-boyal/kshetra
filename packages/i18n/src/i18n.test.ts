@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from './format';
 import { en, type MessageKey } from './messages/en';
 import { resolveTerminology, TERMINOLOGY_DEFAULTS } from './terminology';
-import { createTranslator, MESSAGES, placeholders, translate } from './translate';
+import { createTranslator, MESSAGES, placeholders, translate, pluralForm } from './translate';
 
 const keys = Object.keys(en) as MessageKey[];
 
@@ -131,5 +131,20 @@ describe('formatting (spec 8.5)', () => {
     expect(formatDateTime('2026-10-05T20:00:00Z', { locale: 'en', timeZone: 'Asia/Kolkata' })).toBe(
       '6 Oct 2026, 1:30 am',
     );
+  });
+});
+
+describe('plural forms without Intl.PluralRules (Hermes)', () => {
+  it('match CLDR, as Node’s Intl.PluralRules has them, in English and Hindi', () => {
+    const counts = [0, 0.5, 1, 1.5, 2, 3, 10, 11, 21, 100, 101, 1_000_000];
+    for (const locale of ['en', 'hi'] as const) {
+      const rules = new Intl.PluralRules(locale);
+      for (const count of counts) {
+        const expected = rules.select(count) === 'one' ? 'one' : 'other';
+        expect(pluralForm(locale, count), `${locale} ${count}`).toBe(expected);
+      }
+    }
+    expect(pluralForm('en', undefined)).toBe('other');
+    expect(pluralForm('en', '1')).toBe('one');
   });
 });
