@@ -11,6 +11,7 @@ import {
   type GeofenceResult,
   issueAt,
   POINT_EARLY_MS,
+  type ReviewQueueQuery,
   type SubmissionFlag,
   type SubmissionListQuery,
   type SubmissionListResult,
@@ -18,7 +19,7 @@ import {
   photoIssues,
   todayIn,
 } from '@kshetra/shared';
-import { and, desc, eq, lt, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, lt, lte, ne, or, type SQL, sql } from 'drizzle-orm';
 import { accounts } from '../../db/schema/accounts';
 import { submissions } from '../../db/schema/field';
 import { forms, formVersions } from '../../db/schema/forms';
@@ -105,6 +106,9 @@ export class SubmissionsService {
         signatureMediaId: submissions.signatureMediaId,
         flags: submissions.flags,
         status: submissions.status,
+        autoApproved: submissions.autoApproved,
+        autoApproveAt: submissions.autoApproveAt,
+        deviceId: submissions.deviceId,
       })
       .from(submissions)
       .innerJoin(
@@ -151,6 +155,7 @@ export class SubmissionsService {
       signatureMediaId: row.signatureMediaId,
       flags: row.flags,
       status: row.status,
+      autoApproved: row.autoApproved,
     } satisfies SubmissionResult;
   }
 
@@ -264,6 +269,15 @@ export class SubmissionsService {
     if (clockSkewed(clockSkewSeconds(deviceTime, new Date(now)))) flags.add('clock_skew');
 
     const status = definition.review === 'none' ? 'approved' : 'pending';
+    // M7: a form reviewed automatically waits the tenant's delay, if nothing needs a person now.
+    const rules = await this.config.reviewRules(tx, tenantId);
+    const autoApproveAt =
+      definition.review === 'auto' &&
+      rules.autoApproval &&
+      flags.size === 0 &&
+      geofence !== 'outside'
+        ? new Date(now + rules.delayHours * 3_600_000)
+        : null;
     await tx.insert(submissions).values({
       id: body.id,
       tenantId,
@@ -286,6 +300,7 @@ export class SubmissionsService {
       geofence,
       flags: [...flags],
       status,
+      autoApproveAt,
     });
     await this.photos.attach(tx, tenantId, photoIds, { type: 'submission', id: body.id });
     await this.audit.record(tx, tenantId, userActor(access), {
@@ -474,6 +489,149 @@ export class SubmissionsService {
       nextCursor:
         found.length > query.limit && last ? `${last.capturedAt.toISOString()}|${last.id}` : null,
     };
+  }
+
+  // Review (M7): the review module reads and decides submissions through these.
+
+  /**
+   * The review queue (M7): submissions of the people the caller's scope reaches, never the
+   * caller's own, by status and the filters asked for, newest first. Each row carries what the
+   * review module adds to it: the device, where it was captured, and when auto-approval is due.
+   */
+  async reviewRows(tx: TenantTx, access: Access, query: ReviewQueueQuery, only?: string) {
+    const tenantId = access.tenantId;
+    const { timezone } = await this.config.settings(tx, tenantId);
+    const day = sql`(${submissions.capturedAt} at time zone ${timezone})::date`;
+    const [cursorAt, cursorId] = query.cursor ? query.cursor.split('|') : [];
+    const found = await this.select(tx)
+      .where(
+        and(
+          eq(submissions.tenantId, tenantId),
+          // One submission, whatever its status, or the queue for a status.
+          only ? eq(submissions.id, only) : eq(submissions.status, query.status),
+          ne(submissions.userId, access.userId),
+          await this.scopes.users(tx, access),
+          query.userId ? eq(submissions.userId, query.userId) : undefined,
+          query.formKey ? eq(forms.key, query.formKey) : undefined,
+          query.accountId ? eq(submissions.accountId, query.accountId) : undefined,
+          query.from ? sql`${day} >= ${query.from}::date` : undefined,
+          query.to ? sql`${day} <= ${query.to}::date` : undefined,
+          query.flag ? sql`${query.flag} = any(${submissions.flags})` : undefined,
+          query.geofence ? eq(submissions.geofence, query.geofence) : undefined,
+          cursorAt && cursorId
+            ? or(
+                lt(submissions.capturedAt, new Date(cursorAt)),
+                and(eq(submissions.capturedAt, new Date(cursorAt)), lt(submissions.id, cursorId)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(submissions.capturedAt), desc(submissions.id))
+      .limit(query.limit + 1);
+    const page = found.slice(0, query.limit);
+    const last = page.at(-1);
+    return {
+      rows: page.map((row) => ({
+        ...SubmissionsService.result(row),
+        deviceId: row.deviceId,
+        autoApproveAt: row.autoApproveAt,
+      })),
+      nextCursor:
+        found.length > query.limit && last ? `${last.capturedAt.toISOString()}|${last.id}` : null,
+    };
+  }
+
+  /**
+   * A submission as a decision on it needs it, locked: another tenant's is not found, and one of
+   * someone the caller's scope doesn't reach is out of scope.
+   */
+  async forDecision(tx: TenantTx, access: Access, id: string) {
+    const [row] = await tx
+      .select({
+        id: submissions.id,
+        userId: submissions.userId,
+        status: submissions.status,
+        flags: submissions.flags,
+        geofence: submissions.geofence,
+        deviceId: submissions.deviceId,
+        formId: submissions.formId,
+        accountId: submissions.accountId,
+        visitId: submissions.visitId,
+        capturedAt: submissions.capturedAt,
+      })
+      .from(submissions)
+      .where(and(eq(submissions.tenantId, access.tenantId), eq(submissions.id, id)))
+      .for('update');
+    if (!row) throw notFound();
+    if (row.userId !== access.userId && !(await this.scopes.reaches(tx, access, row.userId))) {
+      throw outOfScope();
+    }
+    return { ...row, formKey: await this.formKey(tx, access.tenantId, row.formId) };
+  }
+
+  private async formKey(tx: TenantTx, tenantId: string, formId: string): Promise<string> {
+    const [form] = await tx
+      .select({ key: forms.key })
+      .from(forms)
+      .where(and(eq(forms.tenantId, tenantId), eq(forms.id, formId)));
+    return form!.key;
+  }
+
+  /** Records a review's outcome on the submission; auto-approval waits no more either way. */
+  async setStatus(
+    tx: TenantTx,
+    tenantId: string,
+    id: string,
+    status: 'approved' | 'rejected',
+    auto: boolean,
+  ): Promise<void> {
+    await tx
+      .update(submissions)
+      .set({ status, autoApproved: auto, autoApproveAt: null })
+      .where(and(eq(submissions.tenantId, tenantId), eq(submissions.id, id)));
+  }
+
+  /** Pending submissions whose auto-approval is due, locked, oldest first (M7). */
+  async dueForAutoApproval(tx: TenantTx, tenantId: string, now: Date, limit = 500) {
+    const rows = await tx
+      .select({
+        id: submissions.id,
+        userId: submissions.userId,
+        flags: submissions.flags,
+        geofence: submissions.geofence,
+        deviceId: submissions.deviceId,
+        formId: submissions.formId,
+        accountId: submissions.accountId,
+        visitId: submissions.visitId,
+        capturedAt: submissions.capturedAt,
+      })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.tenantId, tenantId),
+          eq(submissions.status, 'pending'),
+          sql`${submissions.autoApproveAt} is not null`,
+          lte(submissions.autoApproveAt, now),
+        ),
+      )
+      .orderBy(asc(submissions.autoApproveAt))
+      .limit(limit)
+      .for('update', { skipLocked: true });
+    const keys = new Map<string, string>();
+    const found = [];
+    for (const row of rows) {
+      if (!keys.has(row.formId)) keys.set(row.formId, await this.formKey(tx, tenantId, row.formId));
+      found.push({ ...row, formKey: keys.get(row.formId)! });
+    }
+    return found;
+  }
+
+  /** Stops a submission that can no longer be approved automatically from waiting for it. */
+  async stopAutoApproval(tx: TenantTx, tenantId: string, id: string): Promise<void> {
+    await tx
+      .update(submissions)
+      .set({ autoApproveAt: null })
+      .where(and(eq(submissions.tenantId, tenantId), eq(submissions.id, id)));
   }
 
   // Work after the commit, on the worker.

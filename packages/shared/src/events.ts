@@ -61,6 +61,22 @@ export const MediaProcessedPayload = z.object({
   duplicateOfId: z.uuid().nullable(),
 });
 
+/**
+ * A submission's status changed by review (M7): metrics recount it (step 12) and its plan item
+ * follows (step 11, BR-35).
+ */
+export const SubmissionReviewedPayload = z.object({
+  submissionId: z.uuid(),
+  userId: z.uuid(),
+  formKey: z.string(),
+  accountId: z.uuid().nullable(),
+  visitId: z.uuid().nullable(),
+  capturedAt: z.iso.datetime(),
+  before: z.enum(['pending', 'approved', 'rejected']),
+  status: z.enum(['approved', 'rejected']),
+  auto: z.boolean(),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
@@ -72,6 +88,7 @@ export const EVENT_PAYLOADS = {
   'visit.ended': VisitEventPayload,
   'submission.created': SubmissionEventPayload,
   'media.processed': MediaProcessedPayload,
+  'submission.reviewed': SubmissionReviewedPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

@@ -8,6 +8,7 @@ export * from './iam';
 export * from './imports';
 export * from './media';
 export * from './platform';
+export * from './review';
 export * from './sync';
 export * from './tenant-config';
 export * from './territories';

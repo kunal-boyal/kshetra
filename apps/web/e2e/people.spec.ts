@@ -125,6 +125,7 @@ const ANSWERS: Record<string, unknown> = {
         signatureMediaId: null,
         flags: ['outside_geofence', 'clock_skew'],
         status: 'pending',
+        autoApproved: false,
       },
     ],
     nextCursor: null,

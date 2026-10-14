@@ -4,6 +4,7 @@ import type { Config } from './config';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { FieldModule } from './modules/field/field.module';
+import { ReviewModule } from './modules/review/review.module';
 import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ConfigBundleModule } from './modules/config-bundle/config-bundle.module';
@@ -47,6 +48,7 @@ export const FEATURE_MODULES = [
   CatalogueModule,
   FormsModule,
   FieldModule,
+  ReviewModule,
 ];
 
 /** Every controller the API serves: the health checks and each feature module's. */

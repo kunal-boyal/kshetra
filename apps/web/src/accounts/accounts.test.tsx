@@ -201,6 +201,7 @@ describe("an account's page", () => {
               signatureMediaId: null,
               flags: [],
               status: 'pending',
+              autoApproved: false,
             },
           ],
           nextCursor: null,

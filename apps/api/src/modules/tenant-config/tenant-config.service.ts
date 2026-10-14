@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import {
+  AUTO_APPROVAL_DELAY_HOURS,
   LOCALES,
+  type ReviewRulesResult,
   type TenantSettings,
   TerminologyOverrides,
   type TermValue,
+  type UpdateReviewRulesBody,
   type UpdateSettingsBody,
   withDefaults,
 } from '@kshetra/shared';
 import { eq, sql } from 'drizzle-orm';
-import { tenantSettings, terminologyOverrides } from '../../db/schema/tenant-config';
+import { reviewRules, tenantSettings, terminologyOverrides } from '../../db/schema/tenant-config';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR } from '../../platform/audit';
 import type { TenantTx } from '../../platform/database';
 
@@ -88,6 +91,50 @@ export class TenantConfigService {
       after: settings,
     });
     return settings;
+  }
+
+  /** The tenant's review rules (M7): the auto-approval switch and how long it waits. */
+  async reviewRules(tx: TenantTx, tenantId: string): Promise<ReviewRulesResult> {
+    const [row] = await tx
+      .select({ rules: reviewRules.rules })
+      .from(reviewRules)
+      .where(eq(reviewRules.tenantId, tenantId));
+    const { reviewAutoApproval } = await this.settings(tx, tenantId);
+    return {
+      autoApproval: reviewAutoApproval,
+      delayHours: row?.rules.delayHours ?? AUTO_APPROVAL_DELAY_HOURS,
+    };
+  }
+
+  /**
+   * Sets the review rules. The delay applies to submissions that arrive from now on; those already
+   * waiting keep the time they were given.
+   */
+  async updateReviewRules(
+    tx: TenantTx,
+    tenantId: string,
+    actor: AuditActor,
+    body: UpdateReviewRulesBody,
+  ): Promise<ReviewRulesResult> {
+    const before = await this.reviewRules(tx, tenantId);
+    if (before.autoApproval !== body.autoApproval) {
+      await this.updateSettings(tx, tenantId, actor, { reviewAutoApproval: body.autoApproval });
+    }
+    await tx
+      .insert(reviewRules)
+      .values({ tenantId, rules: { delayHours: body.delayHours }, updatedBy: actor.id })
+      .onConflictDoUpdate({
+        target: reviewRules.tenantId,
+        set: { rules: { delayHours: body.delayHours }, updatedAt: sql`now()`, updatedBy: actor.id },
+      });
+    const after = { autoApproval: body.autoApproval, delayHours: body.delayHours };
+    await this.audit.record(tx, tenantId, actor, {
+      action: 'review_rules.updated',
+      target: { type: 'tenant', id: tenantId },
+      before,
+      after,
+    });
+    return after;
   }
 
   /** The tenant's own words, by term; terms without one keep the product's. */

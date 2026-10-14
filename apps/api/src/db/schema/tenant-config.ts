@@ -1,4 +1,4 @@
-import type { TenantSettings, TermValue } from '@kshetra/shared';
+import type { ReviewRules, TenantSettings, TermValue } from '@kshetra/shared';
 import { bigint, jsonb, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { cell, isolation } from './common';
 
@@ -32,5 +32,19 @@ export const terminologyOverrides = cell
       value: jsonb('value').$type<TermValue>().notNull(),
     },
     (table) => [primaryKey({ columns: [table.tenantId, table.key, table.locale] }), isolation()],
+  )
+  .enableRLS();
+
+/** The tenant's review rules (M7): how long auto-approval waits. The switch is a setting. */
+export const reviewRules = cell
+  .table(
+    'review_rules',
+    {
+      tenantId: uuid('tenant_id').primaryKey(),
+      rules: jsonb('rules').$type<ReviewRules>().notNull(),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedBy: uuid('updated_by'),
+    },
+    () => [isolation()],
   )
   .enableRLS();

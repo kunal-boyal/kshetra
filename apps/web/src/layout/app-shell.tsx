@@ -1,6 +1,7 @@
 import { Button, Icon } from '@kshetra/ui-web';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import {
+  ClipboardCheck,
   FileSpreadsheet,
   House,
   Inbox,
@@ -48,6 +49,9 @@ export function AppShell() {
       : []),
     ...(access.can('approval.act') || access.can('account.approve')
       ? [{ to: '/approvals', icon: Inbox, label: t('nav.approvals') }]
+      : []),
+    ...(access.can('submission.review')
+      ? [{ to: '/review', icon: ClipboardCheck, label: t('nav.review') }]
       : []),
     ...(access.can('territory.manage')
       ? [{ to: '/territories', icon: MapPinned, label: t('nav.territories') }]

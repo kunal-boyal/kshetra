@@ -172,6 +172,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Work repeated for each tenant on an interval uses `Schedules.everyForTenants()`.
 - On the phone (decision D50), `Visits` in `@kshetra/api-client/sync` keeps the open visit; check in and out through `checkIn()` and `checkOut()`, and submit form entries through `submitEntry()`, all in `apps/mobile/src/visits.ts`, which save on the phone and queue in one transaction. `geofenceAt()` previews the server's geofence judgement. A submitted entry waits while its upload is in the outbox.
 
+## Review (decision D51)
+
+- Review lives in `apps/api/src/modules/review` and reaches submissions only through `SubmissionsService` (`reviewRows()`, `forDecision()`, `setStatus()`, `dueForAutoApproval()`). The rules are pure functions in `packages/shared/src/review.ts`: `reviewRefusal()` (own work, notes) and `autoApprovable()` (flags, geofence, `integrityWarning()`).
+- Every decision goes through `ReviewService.record()`: a `submission_reviews` row, the submission's status, an audit entry and the `submission.reviewed` event in one transaction. Consumers of that event (plan items, metrics) must be idempotent.
+- Auto-approval runs every 15 minutes for each tenant (`review.auto_approve`); its switch is the `reviewAutoApproval` setting and its delay is in `review_rules`, through `TenantConfigService.reviewRules()`.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.
