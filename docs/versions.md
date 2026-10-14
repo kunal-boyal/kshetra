@@ -76,18 +76,18 @@ pnpm installs a release only once it is a day old (`minimumReleaseAge`). Vite 8.
 
 ## Mobile (`apps/mobile`, `packages/ui-mobile`, added 2026-10-06)
 
-Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes most of these versions, and `pnpm exec expo install --check` in `apps/mobile` confirms them. The versions `packages/ui-mobile` shares with the app sit in the `mobile` catalog of `pnpm-workspace.yaml`, so the app loads a single React (decision D36).
+Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes most of these versions, and `pnpm exec expo install --check` in `apps/mobile` confirms them. The versions `packages/ui-mobile` shares with the app sit in the `mobile` catalog of `pnpm-workspace.yaml`, so the app loads a single React (decision D36). Move `expo` and `jest-expo` by editing that catalog, and the other modules with `pnpm exec expo install <package>`: `expo install --fix` writes a version over a catalog entry and leaves two copies of Expo. A patch that changes a native module reaches a phone only in a new development build.
 
 | Package | Version | Notes |
 |---|---|---|
-| expo | 57.0.26 | SDK 57 |
+| expo | 57.0.28 | SDK 57; moved from 57.0.26 on 2026-10-14 through the `mobile` catalog, with the modules the patch names |
 | react-native | 0.86.3 | The New Architecture |
 | react, react-dom | 19.2.3 | The SDK's React; the web stays on 19.3 |
-| expo-router | 57.0.24 | Routes in `src/app` |
-| expo-secure-store, expo-crypto, expo-device, expo-localization, expo-font, expo-constants, expo-linking | 57.0.4, 57.0.3, 57.0.2, 57.0.2, 57.0.4, 57.0.20, 57.0.11 | The session and device key, the phone's details and language, fonts, configuration and links |
-| expo-splash-screen, expo-status-bar, expo-system-ui, expo-dev-client | 57.0.9, 57.0.1, 57.0.4, 57.0.19 | Start-up, system bars, and the development client of spec 9.2 |
-| expo-sqlite, expo-network, expo-battery | 57.0.3, 57.0.2, 57.0.3 | Added 2026-10-07 for the offline sync (decision D40): the phone's database, the network returning, and battery optimisation for the heartbeat. All three are in Expo Go. expo-sqlite is the 57.0.3 that the installed SDK patch (expo 57.0.26) names: SDK patch 57.0.27 and expo-sqlite 57.0.4 came out on 2026-10-06, inside pnpm's one-day minimum release age, so they move together once it passes. |
-| expo-location | 57.0.20 | Added 2026-10-12 for accounts (decision D43): a fix while the app is open, to sort places by distance and propose where one is. Foreground only; tracking adds background use in step 8. In Expo Go. The SDK patch (expo 57.0.27, expo-sqlite 57.0.4) can now move: do it through the `mobile` catalog, since `expo install --fix` writes a version over the catalog entry and leaves two copies of Expo. |
+| expo-router | 57.0.26 | Routes in `src/app` |
+| expo-secure-store, expo-crypto, expo-device, expo-localization, expo-font, expo-constants, expo-linking | 57.0.4, 57.0.4, 57.0.2, 57.0.2, 57.0.4, 57.0.21, 57.0.12 | The session and device key, the phone's details and language, fonts, configuration and links |
+| expo-splash-screen, expo-status-bar, expo-system-ui, expo-dev-client | 57.0.10, 57.0.1, 57.0.4, 57.0.20 | Start-up, system bars, and the development client of spec 9.2 |
+| expo-sqlite, expo-network, expo-battery | 57.0.4, 57.0.2, 57.0.3 | Added 2026-10-07 for the offline sync (decision D40): the phone's database, the network returning, and battery optimisation for the heartbeat. All three are in Expo Go. |
+| expo-location | 57.0.21 | Added 2026-10-12 for accounts (decision D43): a fix while the app is open, to sort places by distance and propose where one is. Foreground only; tracking adds background use in step 8. In Expo Go. |
 | expo-task-manager | 57.0.21 | Added 2026-10-13 for tracking (decision D48): the background location task. Background location needs a development build; Expo Go can't run it. |
 | expo-camera, expo-image-manipulator, expo-file-system | 57.0.6, 57.0.21, 57.0.7 | Added 2026-10-12 for photos (decision D44): the live camera without the microphone, resizing, and the app's own storage for photos waiting to upload. All in Expo Go. |
 | react-native-screens, react-native-safe-area-context, react-native-gesture-handler | 4.26.2, 5.7.0, 2.32.0 | For the router |
@@ -98,7 +98,7 @@ Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes mo
 | @expo-google-fonts/noto-sans, @expo-google-fonts/noto-sans-devanagari | 0.4.2, 0.4.1 | Loaded on iOS and the web target only (D36) |
 | @tanstack/react-query | 5.104.1 | As on the web |
 | jest, @jest/globals | 29.7.0 | Held back from Jest 30.5, because jest-expo 57 runs on Jest 29. Move with jest-expo. |
-| jest-expo | 57.0.5 | The SDK's Jest preset |
+| jest-expo | 57.0.6 | The SDK's Jest preset |
 | @testing-library/react-native | 14.0.1 | Its `render` and `fireEvent` are async |
 | test-renderer | 1.2.0 | Held below 1.3, which renders with React 19.3's reconciler |
 | @react-native/metro-config | 0.86.3 | Pinned to React Native's version for a peer dependency |
