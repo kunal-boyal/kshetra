@@ -44,6 +44,9 @@ export const AUDIT_ACTIONS = [
   'shift.ended',
   'shift.paused',
   'shift.resumed',
+  'visit.checked_in',
+  'visit.checked_out',
+  'submission.created',
   'session.signed_in',
   'session.device_refused',
 ] as const;

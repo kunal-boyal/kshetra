@@ -5,14 +5,16 @@ import {
   type EndShiftBody,
   onDutyMs,
   type PauseShiftBody,
+  POINT_EARLY_MS,
   punchFixIssue,
   type ResumeShiftBody,
   type ShiftListQuery,
   type ShiftListResult,
   type ShiftResult,
+  type ShiftWindow,
   type StartShiftBody,
 } from '@kshetra/shared';
-import { and, asc, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import { shiftPauses, shifts } from '../../db/schema/field';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
@@ -142,6 +144,37 @@ export class ShiftsService {
     if (at < now - syncWindowHours * 3_600_000) {
       throw new AppError('SYNC_WINDOW', 'This was captured too long ago to count.');
     }
+  }
+
+  /**
+   * The person's shift a moment falls in, for judging a record against it (BR-32): the latest
+   * that started by then, give or take the 5 s a punch may lag. Null when none had.
+   */
+  async at(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    moment: number,
+  ): Promise<(ShiftWindow & { id: string }) | null> {
+    const [row] = await tx
+      .select({ id: shifts.id, startedAt: shifts.startedAt, endedAt: shifts.endedAt })
+      .from(shifts)
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          eq(shifts.userId, userId),
+          lte(shifts.startedAt, new Date(moment + POINT_EARLY_MS)),
+        ),
+      )
+      .orderBy(desc(shifts.startedAt))
+      .limit(1);
+    if (!row) return null;
+    return {
+      id: row.id,
+      userId,
+      startedAt: row.startedAt.getTime(),
+      endedAt: row.endedAt?.getTime() ?? null,
+    };
   }
 
   /** The caller's open shift, if any. */

@@ -82,6 +82,29 @@ export class CatalogueService {
       });
   }
 
+  /** Which of `ids` are active items and which are products, for what a form's values refer to. */
+  async known(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<{ items: Set<string>; products: Set<string> }> {
+    if (ids.length === 0) return { items: new Set(), products: new Set() };
+    const foundItems = await tx
+      .select({ id: items.id })
+      .from(items)
+      .where(
+        and(eq(items.tenantId, tenantId), inArray(items.id, [...ids]), eq(items.active, true)),
+      );
+    const foundProducts = await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.tenantId, tenantId), inArray(products.id, [...ids])));
+    return {
+      items: new Set(foundItems.map((row) => row.id)),
+      products: new Set(foundProducts.map((row) => row.id)),
+    };
+  }
+
   async items(tx: TenantTx, tenantId: string): Promise<ItemResult[]> {
     return (await this.itemRows(tx, tenantId)).map(({ row }) => row);
   }

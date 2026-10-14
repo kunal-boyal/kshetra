@@ -1193,13 +1193,16 @@ location_points(tid, id, shift_id, user_id, captured_at, received_at, point, acc
 shift_trails(tid, shift_id, user_id, date, polyline text, point_count, kept_count, distance_m,
        gaps jsonb, pauses jsonb, archived_key)            PK(tid, shift_id) · IX(tid, user_id, date)
 user_last_position(tid, user_id PK, shift_id, captured_at, point, accuracy, battery)
-visits(id, tid, user_id, shift_id, account_id, plan_item_id NULL, check_in_at, check_in_point,
-       check_in_accuracy, distance_m NULL, geofence enum(inside,outside,unknown), check_out_at NULL,
-       check_out_point NULL, end_reason NULL, received_at)                   IX(tid, account_id, check_in_at)
+visits(id, tid, user_id, shift_id, account_id, plan_item_id NULL, device_id NULL, check_in_at,
+       check_in_point, check_in_accuracy, distance_m NULL, geofence enum(inside,outside,unknown),
+       check_out_at NULL, check_out_point NULL, check_out_accuracy NULL,
+       end_reason enum(check_out,next_check_in,punch_out,idle) NULL, clock_skew, received_at)
+       IX(tid, account_id, check_in_at) · IX(tid, user_id, check_in_at) · one open per user
 submissions(id, tid, user_id, shift_id NULL, visit_id NULL, account_id NULL, plan_item_id NULL,
-       form_id, form_version_id, captured_at, received_at, point, accuracy, gps_at, mocked,
-       data jsonb, distance_m NULL, geofence enum NULL, flags text[],
-       status enum(pending,approved,rejected), auto_approved, request_hash, device_id, row_version)
+       form_id, form_version, captured_at, received_at, point, accuracy, gps_at, mocked,
+       data jsonb, photo_ids uuid[], signature_strokes jsonb NULL, signature_media_id NULL,
+       distance_m NULL, geofence enum NULL, flags enum[],
+       status enum(pending,approved,rejected), auto_approved, device_id, row_version)
        IX(tid, user_id, captured_at) · IX(tid, status, captured_at) · IX(tid, account_id, captured_at) · GIST(point)
 submission_reviews(id, tid, submission_id, decision, note, reviewer_id, created_at)
 media(id, tid, user_id, kind enum(evidence,field_photo,selfie,attachment,receipt,odometer,signature,
@@ -1348,7 +1351,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Territories | `GET /v1/territories`, `POST /v1/territories`, `PATCH /v1/territories/:id` |
 | Accounts | `GET /v1/accounts`, `POST /v1/accounts`, `PATCH /v1/accounts/:id`, `GET /v1/accounts/:id/overview`, `POST /v1/accounts/:id/contacts`, `PATCH /v1/accounts/:id/contacts/:contactId`, `POST /v1/accounts/:id/location-proposals`, `GET /v1/account-types`, `POST /v1/account-types/:id/versions` |
 | Forms | `GET /v1/forms`, `POST /v1/forms`, `POST /v1/forms/:id/versions` (publish), `PATCH /v1/forms/:id` (switch off or on) |
-| Field | `POST /v1/shifts`, `GET /v1/shifts/current`, `GET /v1/shifts?userId`, `POST /v1/shifts/:id/end`, `POST /v1/shifts/:id/pauses`, `POST /v1/shifts/:id/pauses/:pauseId/resume`, `POST /v1/locations/batch`, `GET /v1/attendance?userId&period` (attendance days from shifts until HR arrives, D47), `POST /v1/visits`, `POST /v1/visits/:id/check-out`, `POST /v1/submissions`, `GET /v1/submissions` |
+| Field | `POST /v1/shifts`, `GET /v1/shifts/current`, `GET /v1/shifts?userId`, `POST /v1/shifts/:id/end`, `POST /v1/shifts/:id/pauses`, `POST /v1/shifts/:id/pauses/:pauseId/resume`, `POST /v1/locations/batch`, `GET /v1/attendance?userId&period` (attendance days from shifts until HR arrives, D47), `POST /v1/visits`, `GET /v1/visits/current`, `POST /v1/visits/:id/check-out`, `POST /v1/submissions`, `GET /v1/submissions` |
 | Review | `GET /v1/reviews/queue`, `POST /v1/submissions/:id/review`, `POST /v1/reviews/bulk` |
 | Media | `POST /v1/media/presign`, `POST /v1/media/:id/confirm`, `GET /v1/media/:id/url?variant=` |
 | Planning | `GET /v1/targets`, `PUT /v1/targets`, `POST /v1/targets/lock`, `GET /v1/routes`, `POST /v1/routes`, `POST /v1/plans/generate`, `GET /v1/plan-items`, `POST /v1/plan-items`, `POST /v1/plan-items/:id/cancel`, `PUT /v1/account-plans` |

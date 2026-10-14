@@ -164,6 +164,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Live positions go out on Redis (`positions:<tenantId>`) after the ingest commits, for the live map (M17).
 - On the phone (decision D48), `Tracking` in `@kshetra/api-client/sync` keeps the open shift and buffers points, dropping what the server would refuse; points upload only once their shift's punch-in has left the outbox. Punches go through `punchIn()`, `punchOut()`, `pauseShift()` and `resumeShift()` in `apps/mobile/src/tracking.ts`, which save on the phone and queue in one transaction. The background task is defined in `src/background.ts`, imported first by the root layout. Tracking starts only from a punch-in, a resume or "Record again", never by itself (BR-37). Background location needs a development build (`eas build --profile development`, on Kunal's account); Expo Go can't run it.
 
+## Visits and submissions (decision D49)
+
+- Judge any record captured in the field with `evidenceIssues`, `photoIssues` and `geofenceResult` from `@kshetra/shared` (BR-32, BR-33), against the shift `ShiftsService.at()` finds for its capture time; `refuseEvidence()` in `apps/api/src/modules/field/evidence.ts` answers with the first problem's code and lists them all.
+- An account a record is made at comes from `AccountsService.forCapture()`: seen by the caller, with its status, type, distance from its verified location, radius and geofence policy.
+- Records attach their photos with `PhotosService.forRecord()` and `attach()` in the creating transaction. Submissions are immutable; what reviewers should see goes in `flags`.
+- Work repeated for each tenant on an interval uses `Schedules.everyForTenants()`.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

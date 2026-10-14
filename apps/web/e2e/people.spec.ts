@@ -98,6 +98,37 @@ const PRIYA_VIEW = person(PRIYA, 'Priya Nair', {
 
 /** What the cell answers to a GET, by path. */
 const ANSWERS: Record<string, unknown> = {
+  '/v1/submissions': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000e1',
+        user: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
+        form: {
+          key: 'shop_visit',
+          version: 1,
+          name: {
+            en: { one: 'Shop visit', other: 'Shop visits' },
+            hi: { one: 'दुकान विज़िट', other: 'दुकान विज़िट' },
+          },
+        },
+        account: { id: '01a10000-0000-7000-8000-0000000000a1', code: 'C-1', name: 'Sharma Stores' },
+        visitId: null,
+        shiftId: null,
+        capturedAt: '2026-10-13T06:00:00.000Z',
+        receivedAt: '2026-10-13T06:00:05.000Z',
+        location: { lat: 28.6315, lng: 77.2167 },
+        accuracy: 12,
+        distanceM: 640,
+        geofence: 'outside',
+        values: {},
+        photos: ['01a10000-0000-7000-8000-0000000000f1'],
+        signatureMediaId: null,
+        flags: ['outside_geofence', 'clock_skew'],
+        status: 'pending',
+      },
+    ],
+    nextCursor: null,
+  },
   '/v1/shifts': {
     items: [
       {
@@ -279,6 +310,7 @@ async function mockSignedIn(page: Page) {
   );
   for (const prefix of [
     'shifts',
+    'submissions',
     'attendance',
     'users',
     'org-chart',

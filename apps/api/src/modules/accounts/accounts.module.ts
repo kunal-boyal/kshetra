@@ -34,6 +34,6 @@ import { AccountsUpkeep } from './accounts.upkeep';
     AccountsImport,
     AccountsUpkeep,
   ],
-  exports: [AccountTypesService],
+  exports: [AccountTypesService, AccountsService],
 })
 export class AccountsModule {}

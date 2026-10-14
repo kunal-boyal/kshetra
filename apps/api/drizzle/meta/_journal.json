@@ -141,6 +141,20 @@
       "when": 1791894276166,
       "tag": "0019_location_partitions",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791957070043,
+      "tag": "0020_visits",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791957078519,
+      "tag": "0021_submission_row_versions",
+      "breakpoints": true
     }
   ]
 }

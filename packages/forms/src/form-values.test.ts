@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FormDefinition } from './form';
-import { checkFormValues, compilePattern } from './values';
+import { checkFormValues, compilePattern, photosIn } from './values';
 
 const text = (en: string) => ({ en, hi: en });
 const ITEM = '01a10000-0000-7000-8000-000000000101';
@@ -155,5 +155,35 @@ describe('checking a whole form (spec 5.6)', () => {
     expect(Date.now() - started).toBeLessThan(1_000);
     expect(compilePattern('(a)\\1')).toBeNull();
     expect(compilePattern('(?=a)a')).toBeNull();
+  });
+});
+
+describe('the photos in a form', () => {
+  it("finds each photo field's photo, in groups too, with whether it takes gallery photos", () => {
+    const form = FormDefinition.parse({
+      key: 'display_check',
+      name: { en: { one: 'Check', other: 'Checks' }, hi: { one: 'जाँच', other: 'जाँचें' } },
+      icon: 'camera',
+      fields: [
+        { key: 'shelf', type: 'photo', label: text('Shelf') },
+        { key: 'board', type: 'photo', label: text('Board'), source: 'camera_and_gallery' },
+        {
+          key: 'displays',
+          type: 'repeating_group',
+          label: text('Displays'),
+          maxItems: 3,
+          fields: [{ key: 'picture', type: 'photo', label: text('Picture') }],
+        },
+      ],
+    });
+    const OTHER = '01a10000-0000-7000-8000-000000000302';
+    const THIRD = '01a10000-0000-7000-8000-000000000303';
+    expect(
+      photosIn(form, { shelf: PHOTO, board: OTHER, displays: [{}, { picture: THIRD }] }),
+    ).toEqual([
+      { id: PHOTO, path: ['values', 'shelf'], galleryAllowed: false },
+      { id: OTHER, path: ['values', 'board'], galleryAllowed: true },
+      { id: THIRD, path: ['values', 'displays', 1, 'picture'], galleryAllowed: false },
+    ]);
   });
 });

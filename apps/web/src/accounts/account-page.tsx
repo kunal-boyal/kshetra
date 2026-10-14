@@ -23,6 +23,7 @@ import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { customValue } from '../people/custom-fields';
+import { SubmissionsSection } from '../submissions/submissions-section';
 import { useAccess, write } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section, useDates } from '../people/shared';
 import { useAccountOverview, useAccountTypes, useRefreshAccounts } from './data';
@@ -198,6 +199,7 @@ function Account({ overview }: { overview: AccountOverview }) {
 
       <Assignments overview={overview} type={type} />
       {type?.contacts ? <Contacts overview={overview} manages={manages} /> : null}
+      <SubmissionsSection accountId={account.id} />
 
       {overview.locationProposals.length > 0 ? (
         <Section title={t('account.proposals')}>

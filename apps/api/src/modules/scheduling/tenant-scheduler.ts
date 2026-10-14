@@ -11,8 +11,9 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 /**
  * The scheduler process (spec 12.3). It puts the interval schedules on their queues once, then
  * every `SCHEDULER_TICK_MS` looks at each open tenant's clock and adds the jobs of every moment
- * that has come on the tenant's local date. A job's ID is the moment, the tenant and that date, so
- * looking again, or a second scheduler, adds nothing twice.
+ * that has come on the tenant's local date, and of each tenant interval. A job's ID is the work,
+ * the tenant and the date or interval, so looking again, or a second scheduler, adds nothing
+ * twice.
  */
 @Injectable()
 export class TenantScheduler implements OnModuleDestroy {
@@ -38,10 +39,14 @@ export class TenantScheduler implements OnModuleDestroy {
     this.timer = setInterval(() => void this.safeTick(), this.config.SCHEDULER_TICK_MS);
   }
 
-  /** Adds the due moments' jobs for every open tenant on this cell; returns how many came due. */
+  /**
+   * Adds, for every open tenant on this cell, the jobs of the moments that have come on the
+   * tenant's local date and of the tenant intervals; returns how many it added.
+   */
   async tick(now: Date = new Date()): Promise<number> {
     const moments = this.schedules.tenantMoments;
-    if (moments.length === 0) return 0;
+    const intervals = this.schedules.perTenantIntervals;
+    if (moments.length === 0 && intervals.length === 0) return 0;
     let due = 0;
     for (const tenantId of await this.directory.openTenants(this.config.CELL_ID)) {
       const { timezone } = await this.database.forTenant(tenantId, (tx) =>
@@ -56,6 +61,16 @@ export class TenantScheduler implements OnModuleDestroy {
           moment.kind,
           { tenantId, date },
           { jobId: `${moment.name}.${tenantId}.${date}` },
+        );
+        due += 1;
+      }
+      for (const interval of intervals) {
+        const slot = Math.floor(now.getTime() / interval.everyMs);
+        await this.queues.add(
+          interval.queue,
+          interval.kind,
+          { tenantId, at: now.toISOString() },
+          { jobId: `${interval.name}.${tenantId}.${slot}` },
         );
         due += 1;
       }

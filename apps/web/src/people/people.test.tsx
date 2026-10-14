@@ -73,6 +73,30 @@ const PRIYA_VIEW = person(PRIYA, 'Priya Nair', {
   territories: [],
 });
 
+/** A form Rahul filled. */
+function submission(overrides: Record<string, unknown> = {}) {
+  return {
+    id: '01a10000-0000-7000-8000-0000000000e0',
+    user: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
+    form: { key: 'customer_visit', version: 1, name: noun('Customer visit', 'Customer visits') },
+    account: null,
+    visitId: null,
+    shiftId: null,
+    capturedAt: '2026-10-13T06:00:00.000Z',
+    receivedAt: '2026-10-13T06:00:05.000Z',
+    location: { lat: 28.6315, lng: 77.2167 },
+    accuracy: 12,
+    distanceM: null,
+    geofence: null,
+    values: {},
+    photos: [],
+    signatureMediaId: null,
+    flags: [],
+    status: 'pending',
+    ...overrides,
+  };
+}
+
 type Answer = (body: unknown) => unknown;
 
 /** A signed-in admin's client: GETs answer from `pages`, writes from `writes`, by path. */
@@ -125,6 +149,28 @@ function fakeClient(writes: Record<string, Answer> = {}) {
           pauses: [],
           flags: [],
         },
+      ],
+      nextCursor: null,
+    },
+    '/v1/submissions': {
+      items: [
+        submission({
+          id: '01a10000-0000-7000-8000-0000000000e1',
+          account: {
+            id: '01a10000-0000-7000-8000-0000000000a1',
+            code: 'C-1',
+            name: 'Sharma Stores',
+          },
+          geofence: 'outside',
+          distanceM: 640,
+          photos: ['01a10000-0000-7000-8000-0000000000f1', '01a10000-0000-7000-8000-0000000000f2'],
+          flags: ['outside_geofence', 'gallery_photo'],
+        }),
+        submission({
+          id: '01a10000-0000-7000-8000-0000000000e2',
+          form: { key: 'meeting', version: 1, name: noun('Meeting', 'Meetings') },
+          status: 'approved',
+        }),
       ],
       nextCursor: null,
     },
@@ -360,6 +406,23 @@ describe("a person's page", () => {
     expect(rows[0]).toHaveTextContent('Phone clock was off');
     expect(rows[1]).toHaveTextContent('Closed at night');
     expect(rows[1]).toHaveTextContent('—');
+  });
+
+  it('shows the forms they filled, where, and what a reviewer should look at', async () => {
+    renderAt(`/people/${RAHUL}`, fakeClient());
+    const filled = await screen.findByRole('region', { name: 'Forms filled' });
+    const table = await within(filled).findByRole('table', { name: 'Forms filled, newest first' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('Customer visit');
+    expect(within(rows[0]!).getByRole('link', { name: 'Sharma Stores' })).toBeInTheDocument();
+    expect(rows[0]).toHaveTextContent('Outside, 640 m away');
+    expect(rows[0]).toHaveTextContent('Waiting for review');
+    expect(rows[0]).toHaveTextContent('2 photos');
+    expect(rows[0]).toHaveTextContent('Outside the geofence');
+    expect(rows[0]).toHaveTextContent('Photo from the gallery');
+    expect(rows[1]).toHaveTextContent('Meeting');
+    expect(rows[1]).toHaveTextContent('No account');
+    expect(rows[1]).toHaveTextContent('Approved');
   });
 
   it('shows their phone, and resets it only after asking, warning of unsent records', async () => {

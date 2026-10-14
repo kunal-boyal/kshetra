@@ -8,7 +8,9 @@ import { Schedules } from '../../platform/schedules';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { AttendanceService } from './attendance.service';
 import { ShiftsService } from './shifts.service';
+import { SubmissionsService } from './submissions.service';
 import { TrailsService } from './trails.service';
+import { VisitsService } from './visits.service';
 
 const DAY_MS = 24 * 3_600_000;
 
@@ -18,7 +20,11 @@ const DAY_MS = 24 * 3_600_000;
  *   compacted, both from the outbox, so they follow the commit and retry on failure;
  * - nightly on each tenant's clock, shifts left open past the longest a shift may last are
  *   closed, trails not yet compacted are, and everyone's day just gone is kept;
- * - daily across the cell, the coming days' location partitions are made.
+ * - daily across the cell, the coming days' location partitions are made;
+ * - punching out checks out of the open visit, and every 15 minutes visits idle for 4 hours
+ *   check out (M6);
+ * - a submission's signature is drawn into an image, and a photo found to repeat another after
+ *   its submission arrived flags the submission.
  */
 @Injectable()
 export class FieldUpkeep implements OnModuleInit {
@@ -33,6 +39,8 @@ export class FieldUpkeep implements OnModuleInit {
     private readonly shifts: ShiftsService,
     private readonly trails: TrailsService,
     private readonly attendance: AttendanceService,
+    private readonly visits: VisitsService,
+    private readonly submissions: SubmissionsService,
   ) {}
 
   onModuleInit(): void {
@@ -49,6 +57,30 @@ export class FieldUpkeep implements OnModuleInit {
     this.outbox.consume(['shift.ended'], 'field.trail', async (event, tx) => {
       const shift = event.payload as EventPayload<'shift.ended'>;
       await this.trails.compact(tx, event.tenantId, shift.shiftId);
+    });
+    this.outbox.consume(['shift.ended'], 'field.visits', async (event, tx) => {
+      const shift = event.payload as EventPayload<'shift.ended'>;
+      await this.visits.closeForShift(tx, event.tenantId, shift.shiftId, new Date(shift.endedAt!));
+    });
+    this.outbox.consume(['media.processed'], 'field.duplicates', async (event, tx) => {
+      const photo = event.payload as EventPayload<'media.processed'>;
+      if (photo.ownerType === 'submission' && photo.ownerId && photo.duplicateOfId) {
+        await this.submissions.flagDuplicate(tx, event.tenantId, photo.ownerId);
+      }
+    });
+    this.queues.handle('media', 'submission.signature', (data) =>
+      this.submissions.renderSignature(String(data.tenantId), String(data.submissionId)),
+    );
+    this.queues.handle('maintenance', 'field.visits_idle', (data) =>
+      this.database.forTenant(String(data.tenantId), async (tx) => {
+        await this.visits.closeIdle(tx, String(data.tenantId), new Date(String(data.at)));
+      }),
+    );
+    this.schedules.everyForTenants({
+      name: 'visits_idle',
+      everyMs: 15 * 60_000,
+      queue: 'maintenance',
+      kind: 'field.visits_idle',
     });
     this.queues.handle('maintenance', 'field.nightly', (data) =>
       this.nightly(String(data.tenantId), String(data.date)),

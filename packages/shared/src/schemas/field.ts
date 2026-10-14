@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { GeoPoint } from '../geo';
+import { LocalizedNoun } from './config';
 import { PHASE1_DAY_STATUSES, POINT_REJECTIONS } from '../tracking';
 
 /**
@@ -163,3 +164,148 @@ export type LocationBatchResult = z.output<typeof LocationBatchResult>;
 export type AttendanceDayResult = z.output<typeof AttendanceDayResult>;
 export type AttendanceQuery = z.output<typeof AttendanceQuery>;
 export type AttendanceResult = z.output<typeof AttendanceResult>;
+
+/** How a visit ended (M6): checked out, or for the person by the next check-in, punch-out or idling. */
+export const VISIT_END_REASONS = ['check_out', 'next_check_in', 'punch_out', 'idle'] as const;
+export const GEOFENCE_RESULTS = ['inside', 'outside', 'unknown'] as const;
+export const GeofenceResultKey = z.enum(GEOFENCE_RESULTS);
+
+/** A fix the phone took for a record, with when it took it (BR-32 judges its age). */
+export const CaptureFix = PunchFix.extend({ capturedAt: When });
+
+/** `POST /v1/visits`: check in at an account (M6). Replaying the same ID returns the visit. */
+export const StartVisitBody = z.strictObject({
+  id: z.uuid(),
+  accountId: z.uuid(),
+  checkedInAt: When,
+  fix: CaptureFix,
+});
+
+/** `POST /v1/visits/{id}/check-out`: checking out an ended visit returns it as it is. */
+export const CheckOutBody = z.strictObject({
+  checkedOutAt: When,
+  fix: CaptureFix.optional(),
+});
+
+export const VisitResult = z
+  .object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    shiftId: z.uuid(),
+    account: z.object({ id: z.uuid(), code: z.string(), name: z.string() }),
+    checkedInAt: z.iso.datetime(),
+    location: GeoPoint,
+    accuracy: z.number(),
+    /** Metres from the account's verified location; null without one. */
+    distanceM: z.int().nullable(),
+    geofence: GeofenceResultKey,
+    checkedOutAt: z.iso.datetime().nullable(),
+    endReason: z.enum(VISIT_END_REASONS).nullable(),
+    flags: z.array(z.enum(['clock_skew'])),
+  })
+  .meta({ id: 'VisitResult' });
+
+/** `GET /v1/visits/current`: the caller's open visit, so a phone can pick up where it was. */
+export const CurrentVisitResult = z.object({ visit: VisitResult.nullable() });
+
+export const SUBMISSION_STATUSES = ['pending', 'approved', 'rejected'] as const;
+export const SubmissionStatus = z.enum(SUBMISSION_STATUSES);
+
+/** What reviewers see beside a submission (M6, M7). Never a reason to refuse it. */
+export const SUBMISSION_FLAGS = [
+  'outside_geofence',
+  'gallery_photo',
+  'duplicate_photo',
+  'clock_skew',
+] as const;
+export const SubmissionFlag = z.enum(SUBMISSION_FLAGS);
+
+/**
+ * A signature as the pad drew it: the pad's size and each stroke as SVG path data, in moves,
+ * lines and curves only. The server renders it to an image.
+ */
+export const Signature = z.strictObject({
+  width: z.int().min(50).max(4000),
+  height: z.int().min(50).max(4000),
+  strokes: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .max(20_000)
+        .regex(/^[MLQCmlqc0-9.,\s-]+$/, 'Use path moves, lines and curves only'),
+    )
+    .min(1)
+    .max(200),
+});
+
+/**
+ * `POST /v1/submissions`: a form filled in the field (M6), with its own ID, the form version it
+ * was filled on, when and where. Replaying the same ID returns it as it is.
+ */
+export const CreateSubmissionBody = z.strictObject({
+  id: z.uuid(),
+  form: z.strictObject({ key: z.string().min(1).max(40), version: z.int().min(1) }),
+  accountId: z.uuid().optional(),
+  visitId: z.uuid().optional(),
+  capturedAt: When,
+  fix: CaptureFix,
+  values: z.record(z.string(), z.unknown()),
+  /** The form's own photos, by media ID; photo fields hold theirs in `values`. */
+  photos: z.array(z.uuid()).max(10).default([]),
+  signature: Signature.optional(),
+});
+
+export const SubmissionResult = z
+  .object({
+    id: z.uuid(),
+    user: z.object({ id: z.uuid(), code: z.string(), name: z.string() }),
+    form: z.object({ key: z.string(), version: z.int(), name: LocalizedNoun }),
+    account: z.object({ id: z.uuid(), code: z.string(), name: z.string() }).nullable(),
+    visitId: z.uuid().nullable(),
+    shiftId: z.uuid().nullable(),
+    capturedAt: z.iso.datetime(),
+    receivedAt: z.iso.datetime(),
+    location: GeoPoint,
+    accuracy: z.number(),
+    distanceM: z.int().nullable(),
+    geofence: GeofenceResultKey.nullable(),
+    values: z.record(z.string(), z.unknown()),
+    photos: z.array(z.uuid()),
+    /** The rendered signature, once the media worker has made it. */
+    signatureMediaId: z.uuid().nullable(),
+    flags: z.array(SubmissionFlag),
+    status: SubmissionStatus,
+  })
+  .meta({ id: 'SubmissionResult' });
+
+/** `GET /v1/submissions`: a person's or an account's submissions, newest first. */
+export const SubmissionListQuery = z
+  .strictObject({
+    userId: z.uuid().optional(),
+    accountId: z.uuid().optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(30),
+    cursor: z.string().max(200).optional(),
+  })
+  .refine((query) => Boolean(query.userId) !== Boolean(query.accountId), {
+    message: 'Ask for one person or one account',
+    path: ['userId'],
+  });
+
+export const SubmissionListResult = z.object({
+  items: z.array(SubmissionResult),
+  nextCursor: z.string().nullable(),
+});
+
+export type CaptureFix = z.output<typeof CaptureFix>;
+export type StartVisitBody = z.output<typeof StartVisitBody>;
+export type CheckOutBody = z.output<typeof CheckOutBody>;
+export type VisitResult = z.output<typeof VisitResult>;
+export type CurrentVisitResult = z.output<typeof CurrentVisitResult>;
+export type SubmissionStatus = z.output<typeof SubmissionStatus>;
+export type SubmissionFlag = z.output<typeof SubmissionFlag>;
+export type Signature = z.output<typeof Signature>;
+export type CreateSubmissionBody = z.output<typeof CreateSubmissionBody>;
+export type SubmissionResult = z.output<typeof SubmissionResult>;
+export type SubmissionListQuery = z.output<typeof SubmissionListQuery>;
+export type SubmissionListResult = z.output<typeof SubmissionListResult>;
