@@ -179,6 +179,8 @@ export const StartVisitBody = z.strictObject({
   accountId: z.uuid(),
   checkedInAt: When,
   fix: CaptureFix,
+  /** The planned visit this one carries out (M8, BR-35). */
+  planItemId: z.uuid().optional(),
 });
 
 /** `POST /v1/visits/{id}/check-out`: checking out an ended visit returns it as it is. */
@@ -201,6 +203,7 @@ export const VisitResult = z
     geofence: GeofenceResultKey,
     checkedOutAt: z.iso.datetime().nullable(),
     endReason: z.enum(VISIT_END_REASONS).nullable(),
+    planItemId: z.uuid().nullable(),
     flags: z.array(z.enum(['clock_skew'])),
   })
   .meta({ id: 'VisitResult' });

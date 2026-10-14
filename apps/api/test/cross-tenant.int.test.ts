@@ -67,6 +67,9 @@ let aPauseId: string;
 /** A visit of A's member at A's account, and a submission made in it. */
 let aVisitId: string;
 let aSubmissionId: string;
+/** A route and a plan item of A's member. */
+let aRouteId: string;
+let aPlanItemId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
 /** An account of B's own, under B's territory. */
@@ -912,6 +915,77 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(set);
     },
   },
+  'GET /v1/routes': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/routes?userId=${id}`), a.member.id),
+  },
+  'POST /v1/routes': {
+    kind: 'by ID',
+    run: async () => {
+      const route = (overrides: object) => ({
+        id: newId(),
+        userId: b.member.id,
+        name: 'Market road',
+        recurrence: { kind: 'weekdays', days: [1] },
+        accountIds: [bAccountId],
+        ...overrides,
+      });
+      await sameAsNowhere((id) => asB('POST', '/v1/routes', route({ userId: id })), a.member.id);
+      await sameAsNowhere(
+        (id) => asB('POST', '/v1/routes', route({ accountIds: [id] })),
+        aAccountId,
+      );
+    },
+  },
+  'PATCH /v1/routes/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('PATCH', `/v1/routes/${id}`, { name: 'Taken' }), aRouteId),
+  },
+  'POST /v1/plans/generate': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', '/v1/plans/generate', { userId: id, period: NEXT_MONTH.slice(0, 7) }),
+        a.member.id,
+      ),
+  },
+  'POST /v1/plans/submit': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', '/v1/plans/submit', { userId: id, period: NEXT_MONTH.slice(0, 7) }),
+        a.member.id,
+      ),
+  },
+  'GET /v1/plan-items': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('GET', `/v1/plan-items?userId=${id}&period=${NEXT_MONTH.slice(0, 7)}`),
+        a.member.id,
+      ),
+  },
+  'POST /v1/plan-items': {
+    kind: 'by ID',
+    run: async () => {
+      const item = (overrides: object) => ({
+        id: newId(),
+        userId: b.member.id,
+        accountId: bAccountId,
+        date: NEXT_MONTH,
+        ...overrides,
+      });
+      await sameAsNowhere((id) => asB('POST', '/v1/plan-items', item({ userId: id })), a.member.id);
+      await sameAsNowhere(
+        (id) => asB('POST', '/v1/plan-items', item({ accountId: id })),
+        aAccountId,
+      );
+    },
+  },
+  'POST /v1/plan-items/:id/cancel': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/plan-items/${id}/cancel`), aPlanItemId),
+  },
   'GET /v1/catalogue': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/catalogue')),
@@ -1115,6 +1189,25 @@ beforeAll(async () => {
     values: { note: `${a.word} looked fine` },
   });
   expect(submitted.statusCode).toBe(201);
+  // A route and a planned visit for A's member.
+  aRouteId = newId();
+  const route = await send(aToken, 'POST', '/v1/routes', {
+    id: aRouteId,
+    userId: a.member.id,
+    name: `${a.word} round`,
+    recurrence: { kind: 'weekdays', days: [1, 4] },
+    accountIds: [aAccountId],
+  });
+  expect(route.statusCode).toBe(201);
+  aPlanItemId = newId();
+  const planned = await send(aToken, 'POST', '/v1/plan-items', {
+    id: aPlanItemId,
+    userId: a.member.id,
+    accountId: aAccountId,
+    date: NEXT_MONTH,
+    purpose: `${a.word} check`,
+  });
+  expect(planned.statusCode).toBe(201);
   // A photo of A's, uploaded and confirmed as a phone would.
   aPhotoId = newId();
   const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);

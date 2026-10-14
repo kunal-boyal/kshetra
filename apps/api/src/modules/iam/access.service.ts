@@ -23,6 +23,11 @@ export class IamAccess extends AccessResolver {
   }
 
   async resolve(auth: AuthContext): Promise<Access> {
+    return this.load(auth, true);
+  }
+
+  /** Someone's access; `asRequest` refuses a phone-only role without a phone, as a request is. */
+  private async load(auth: AuthContext, asRequest: boolean): Promise<Access> {
     const status = await this.tenants.status(auth.tenantId);
     if (!status) throw revoked();
     if (!isOpenTenant(status)) {
@@ -63,7 +68,7 @@ export class IamAccess extends AccessResolver {
     const { user } = found;
     if (!user || user.status !== 'active' || user.authRevision !== auth.revision) throw revoked();
     if (auth.deviceId && (!found.device || found.device.revokedAt)) throw revoked();
-    if (!auth.deviceId && user.mobileOnly) {
+    if (asRequest && !auth.deviceId && user.mobileOnly) {
       throw new AppError('USE_MOBILE_APP', 'Use the mobile app to continue.');
     }
     return {
@@ -76,9 +81,10 @@ export class IamAccess extends AccessResolver {
   }
 
   /**
-   * The access someone holds now, for background work done on their behalf, such as an import
-   * they started: their current role and scope, as a request of theirs would get, with no phone.
-   * Refused, as a request would be, once they or the tenant are no longer active.
+   * The access someone holds now, for work done on their behalf, such as an import they started
+   * or checking what a person planned for may see: their current role and scope, with no phone.
+   * A phone-only role is no bar, as nobody signs in; it is refused, as a request would be, once
+   * they or the tenant are no longer active.
    */
   async onBehalfOf(tenantId: string, userId: string, cell: string): Promise<Access> {
     const revision = await this.database.forTenant(tenantId, async (tx) => {
@@ -89,7 +95,6 @@ export class IamAccess extends AccessResolver {
       return user?.authRevision;
     });
     if (revision === undefined) throw revoked();
-    const access = await this.resolve({ userId, tenantId, cell, revision });
-    return access;
+    return this.load({ userId, tenantId, cell, revision }, false);
   }
 }

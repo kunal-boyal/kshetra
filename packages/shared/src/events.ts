@@ -77,6 +77,16 @@ export const SubmissionReviewedPayload = z.object({
   auto: z.boolean(),
 });
 
+/** A plan item's status moved (M8, BR-35): plan compliance follows it (step 12). */
+export const PlanItemStatusChangedPayload = z.object({
+  planItemId: z.uuid(),
+  userId: z.uuid(),
+  accountId: z.uuid(),
+  date: z.iso.date(),
+  before: z.enum(['planned', 'visited', 'completed', 'missed', 'cancelled']),
+  status: z.enum(['planned', 'visited', 'completed', 'missed', 'cancelled']),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
@@ -89,6 +99,7 @@ export const EVENT_PAYLOADS = {
   'submission.created': SubmissionEventPayload,
   'media.processed': MediaProcessedPayload,
   'submission.reviewed': SubmissionReviewedPayload,
+  'plan_item.status_changed': PlanItemStatusChangedPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

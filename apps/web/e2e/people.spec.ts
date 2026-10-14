@@ -38,6 +38,7 @@ const SETTINGS = {
   trailRetentionDays: 365,
   evidencePhotoRetentionMonths: 12,
   reviewAutoApproval: false,
+  journeyPlanApproval: false,
   targetUnlockByAdmin: false,
   ordersNeedOpenShift: true,
   ordersAllowedOffline: true,

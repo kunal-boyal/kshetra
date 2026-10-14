@@ -7,6 +7,7 @@ export * from './forms';
 export * from './iam';
 export * from './imports';
 export * from './media';
+export * from './planning';
 export * from './platform';
 export * from './review';
 export * from './sync';

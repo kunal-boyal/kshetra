@@ -179,6 +179,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Auto-approval runs every 15 minutes for each tenant (`review.auto_approve`); its switch is the `reviewAutoApproval` setting and its delay is in `review_rules`, through `TenantConfigService.reviewRules()`.
 - On the phone (decision D52), managers review in the Team tab (`src/screens/team.tsx`, `review-item.tsx`) through the hooks in `apps/mobile/src/review.ts`; reviews go straight to the server, never through the outbox.
 
+## Planning (decision D53)
+
+- Routes, plan items and months of plans live in `apps/api/src/modules/planning`. The rules are pure functions in `packages/shared/src/planning.ts`: `routeDates()` (a route's dates in a month) and `nextPlanStatus()` (BR-35).
+- A plan item references only an account the planned person sees: judge it with that person's own access (`AccessResolver.onBehalfOf`), never the planner's.
+- Plan items move through `PlanningService`: `startVisit()` from a check-in with `planItemId`, `reviewed()` from the `submission.reviewed` and `submission.created` events, `missDayEnded()` nightly. Each change publishes `plan_item.status_changed`.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

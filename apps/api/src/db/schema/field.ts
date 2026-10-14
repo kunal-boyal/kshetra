@@ -267,6 +267,8 @@ export const visits = cell
       userId: uuid('user_id').notNull(),
       shiftId: uuid('shift_id').notNull(),
       accountId: uuid('account_id').notNull(),
+      /** The planned visit it carries out (M8); the planning module keeps the item. */
+      planItemId: uuid('plan_item_id'),
       deviceId: uuid('device_id'),
       checkInAt: at('check_in_at').notNull(),
       checkInPoint: geographyPoint('check_in_point').notNull(),

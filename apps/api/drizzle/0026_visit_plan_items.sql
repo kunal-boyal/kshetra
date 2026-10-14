@@ -1,0 +1,1 @@
+ALTER TABLE "cell"."visits" ADD COLUMN "plan_item_id" uuid;

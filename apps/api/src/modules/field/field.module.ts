@@ -3,6 +3,7 @@ import { AccountsModule } from '../accounts/accounts.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
+import { PlanningModule } from '../planning/planning.module';
 import { PhotosModule } from '../media/photos.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { AttendanceService } from './attendance.service';
@@ -27,6 +28,7 @@ import { VisitsService } from './visits.service';
     AccountsModule,
     FormsModule,
     CatalogueModule,
+    PlanningModule,
   ],
   controllers: [FieldController, VisitsController],
   providers: [
