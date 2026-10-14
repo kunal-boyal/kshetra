@@ -124,6 +124,7 @@ const ANSWERS: Record<string, unknown> = {
         signatureMediaId: null,
         flags: [],
         status: 'approved',
+        autoApproved: false,
       },
     ],
     nextCursor: null,

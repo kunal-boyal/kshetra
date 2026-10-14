@@ -867,6 +867,51 @@ const FIXTURES: Record<string, Fixture> = {
       await sameAsNowhere((id) => asB('GET', `/v1/submissions?accountId=${id}`), aAccountId);
     },
   },
+  'GET /v1/reviews/queue': {
+    kind: 'own tenant',
+    run: async () => {
+      for (const status of ['pending', 'approved', 'rejected']) {
+        holdsNothingOfA(await asB('GET', `/v1/reviews/queue?status=${status}`));
+      }
+      holdsNothingOfA(await asB('GET', `/v1/reviews/queue?userId=${a.member.id}`));
+      holdsNothingOfA(await asB('GET', `/v1/reviews/queue?accountId=${aAccountId}`));
+    },
+  },
+  'POST /v1/submissions/:id/review': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/submissions/${id}/review`, {
+            decision: 'rejected',
+            note: 'Not here',
+          }),
+        aSubmissionId,
+      ),
+  },
+  'POST /v1/reviews/bulk': {
+    kind: 'write',
+    run: async () => {
+      const theirs = await asB('POST', '/v1/reviews/bulk', { ids: [aSubmissionId] });
+      expect(theirs.json()).toEqual({
+        approved: [],
+        skipped: [{ id: aSubmissionId, reason: 'NOT_FOUND' }],
+      });
+      holdsNothingOfA({ ...theirs, body: theirs.body.replace(aSubmissionId, '') } as Reply);
+    },
+  },
+  'GET /v1/review-rules': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/review-rules')),
+  },
+  'PUT /v1/review-rules': {
+    kind: 'write',
+    run: async () => {
+      const set = await asB('PUT', '/v1/review-rules', { autoApproval: false, delayHours: 12 });
+      expect(set.statusCode).toBe(200);
+      holdsNothingOfA(set);
+    },
+  },
   'GET /v1/catalogue': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/catalogue')),

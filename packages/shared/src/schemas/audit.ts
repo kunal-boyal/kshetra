@@ -47,6 +47,8 @@ export const AUDIT_ACTIONS = [
   'visit.checked_in',
   'visit.checked_out',
   'submission.created',
+  'submission.reviewed',
+  'review_rules.updated',
   'session.signed_in',
   'session.device_refused',
 ] as const;

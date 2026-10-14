@@ -62,6 +62,7 @@ import { UsersSync } from './users.sync';
     IamSetup,
   ],
   exports: [
+    DevicesService,
     IamAccess,
     IamAdmission,
     Scopes,

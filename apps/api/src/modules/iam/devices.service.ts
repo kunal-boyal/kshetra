@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AppError, type DeviceHealth, type DeviceHeartbeatBody } from '@kshetra/shared';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { devices } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
@@ -18,6 +18,20 @@ export function clockSkewSeconds(deviceTime: string | undefined, now: Date): num
  */
 @Injectable()
 export class DevicesService {
+  /** Each device's integrity verdict (spec 13.2), null until verdicts are collected. */
+  async verdicts(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, string | null>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select({ id: devices.id, verdict: devices.integrityVerdict })
+      .from(devices)
+      .where(and(eq(devices.tenantId, tenantId), inArray(devices.id, [...ids])));
+    return new Map(rows.map((row) => [row.id, row.verdict]));
+  }
+
   /**
    * Keeps the latest heartbeat of the caller's phone. It replaces the one before, so sending it
    * twice is harmless, and as telemetry rather than a change anyone makes, it isn't audited.

@@ -38,6 +38,6 @@ import { VisitsService } from './visits.service';
     SubmissionsService,
     FieldUpkeep,
   ],
-  exports: [AttendanceService, ShiftsService],
+  exports: [AttendanceService, ShiftsService, SubmissionsService],
 })
 export class FieldModule {}

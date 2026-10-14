@@ -93,6 +93,7 @@ function submission(overrides: Record<string, unknown> = {}) {
     signatureMediaId: null,
     flags: [],
     status: 'pending',
+    autoApproved: false,
     ...overrides,
   };
 }

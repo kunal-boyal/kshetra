@@ -1,12 +1,14 @@
 import { Body, Controller, Get, Patch, Put } from '@nestjs/common';
 import {
+  ReviewRulesResult,
   TenantSettings,
   TerminologyOverrides,
   TerminologyResult,
+  UpdateReviewRulesBody,
   UpdateSettingsBody,
 } from '@kshetra/shared';
 import { userActor } from '../../platform/audit';
-import { type Access, CurrentAccess, Requires } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';
 import { TenantConfigService } from './tenant-config.service';
@@ -34,6 +36,37 @@ export class SettingsController {
     const patch = UpdateSettingsBody.parse(body);
     return this.database.forTenant(access.tenantId, (tx) =>
       this.config.updateSettings(tx, access.tenantId, userActor(access), patch),
+    );
+  }
+
+  @Get('review-rules')
+  @Contract({
+    tag: 'Settings',
+    summary: "The tenant's review rules: auto-approval and its delay",
+    response: ReviewRulesResult,
+  })
+  @RequiresAny('review_rules.manage', 'submission.review')
+  reviewRules(@CurrentAccess() access: Access): Promise<ReviewRulesResult> {
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.config.reviewRules(tx, access.tenantId),
+    );
+  }
+
+  @Put('review-rules')
+  @Contract({
+    tag: 'Settings',
+    summary: "Set the tenant's review rules",
+    body: UpdateReviewRulesBody,
+    response: ReviewRulesResult,
+  })
+  @Requires('review_rules.manage')
+  updateReviewRules(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+  ): Promise<ReviewRulesResult> {
+    const input = UpdateReviewRulesBody.parse(body);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.config.updateReviewRules(tx, access.tenantId, userActor(access), input),
     );
   }
 

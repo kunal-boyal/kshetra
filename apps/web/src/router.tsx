@@ -11,6 +11,7 @@ import { EditAccountPage, NewAccountPage } from './accounts/account-form-page';
 import { AccountPage } from './accounts/account-page';
 import { AccountsPage } from './accounts/accounts-page';
 import { ApprovalsPage } from './accounts/approvals-page';
+import { ReviewPage } from './review/review-page';
 import { CataloguePage } from './catalogue/catalogue-page';
 import { EditFormPage, NewFormPage } from './forms/form-builder-page';
 import { FormsPage } from './forms/forms-page';
@@ -137,6 +138,7 @@ const approvals = createRoute({
   path: '/approvals',
   component: ApprovalsPage,
 });
+const review = createRoute({ getParentRoute: () => app, path: '/review', component: ReviewPage });
 const territories = createRoute({
   getParentRoute: () => app,
   path: '/territories',
@@ -214,6 +216,7 @@ const tree = root.addChildren([
     account,
     editAccount,
     approvals,
+    review,
     territories,
     imports,
     oneImport,

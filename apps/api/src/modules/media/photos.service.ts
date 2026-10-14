@@ -7,6 +7,7 @@ import {
   DHASH_HEIGHT,
   DHASH_WIDTH,
   differenceHash,
+  distanceMeters,
   DUPLICATE_DISTANCE,
   DUPLICATE_WINDOW_DAYS,
   isJpeg,
@@ -18,6 +19,7 @@ import {
   photoKey,
   photoRetentionClass,
   type PresignMediaBody,
+  type GeoPoint,
   type PresignMediaResult,
   newId,
   type Signature,
@@ -286,6 +288,65 @@ export class PhotosService implements OnModuleInit {
       .from(media)
       .where(and(eq(media.tenantId, tenantId), inArray(media.id, [...ids])))
       .for('update');
+  }
+
+  /**
+   * The evidence photos each record holds, as a reviewer weighs them (M7): how each was taken,
+   * when, how far from where its record was captured, and whether it repeats another.
+   */
+  async forReview(
+    tx: TenantTx,
+    tenantId: string,
+    ownerType: string,
+    owners: readonly { id: string; at: GeoPoint }[],
+  ) {
+    const found = new Map<
+      string,
+      {
+        id: string;
+        source: Row['source'];
+        capturedAt: string | null;
+        distanceM: number | null;
+        duplicate: boolean;
+      }[]
+    >();
+    if (owners.length === 0) return found;
+    const places = new Map(owners.map((owner) => [owner.id, owner.at]));
+    const rows = await tx
+      .select({
+        id: media.id,
+        ownerId: media.ownerId,
+        source: media.source,
+        capturedAt: media.capturedAt,
+        point: pointOf(media.point),
+        duplicateOfId: media.duplicateOfId,
+      })
+      .from(media)
+      .where(
+        and(
+          eq(media.tenantId, tenantId),
+          eq(media.ownerType, ownerType),
+          inArray(
+            media.ownerId,
+            owners.map((owner) => owner.id),
+          ),
+          eq(media.kind, 'evidence'),
+        ),
+      )
+      .orderBy(asc(media.capturedAt), asc(media.id));
+    for (const row of rows) {
+      const at = places.get(row.ownerId!)!;
+      const list = found.get(row.ownerId!) ?? [];
+      list.push({
+        id: row.id,
+        source: row.source,
+        capturedAt: row.capturedAt?.toISOString() ?? null,
+        distanceM: row.point ? Math.round(distanceMeters(row.point, at)) : null,
+        duplicate: row.duplicateOfId !== null,
+      });
+      found.set(row.ownerId!, list);
+    }
+    return found;
   }
 
   /**

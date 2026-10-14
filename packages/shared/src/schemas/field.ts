@@ -276,6 +276,8 @@ export const SubmissionResult = z
     signatureMediaId: z.uuid().nullable(),
     flags: z.array(SubmissionFlag),
     status: SubmissionStatus,
+    /** Approved by the tenant's auto-approval, not a person (M7). */
+    autoApproved: z.boolean(),
   })
   .meta({ id: 'SubmissionResult' });
 

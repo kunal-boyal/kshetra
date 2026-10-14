@@ -355,6 +355,8 @@ export const submissions = cell
         .default(sql`'{}'`),
       status: submissionStatus('status').notNull(),
       autoApproved: boolean('auto_approved').notNull().default(false),
+      /** When auto-approval may approve it (M7); null when it never will. */
+      autoApproveAt: at('auto_approve_at'),
       rowVersion: rowVersionColumn(),
     },
     (table) => [
@@ -371,6 +373,9 @@ export const submissions = cell
         table.capturedAt,
       ),
       index('submissions_tenant_visit').on(table.tenantId, table.visitId),
+      index('submissions_tenant_auto_approve')
+        .on(table.tenantId, table.autoApproveAt)
+        .where(sql`${table.status} = 'pending' and ${table.autoApproveAt} is not null`),
       index('submissions_tenant_row_version').on(table.tenantId, table.rowVersion, table.id),
       index('submissions_point').using('gist', table.point),
       foreignKey({
