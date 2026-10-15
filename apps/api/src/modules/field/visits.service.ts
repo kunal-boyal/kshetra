@@ -21,6 +21,7 @@ import { clockSkewSeconds } from '../iam/devices.service';
 import { notFound, outOfScope } from '../iam/actor';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { refuseEvidence, refuseOutsideGeofence } from './evidence';
+import { PlanningService } from '../planning/planning.service';
 import { ShiftsService } from './shifts.service';
 
 /** A visit with no check-in or submission for this long checks out by itself (M6). */
@@ -42,6 +43,7 @@ export class VisitsService {
     private readonly config: TenantConfigService,
     private readonly accounts: AccountsService,
     private readonly shifts: ShiftsService,
+    private readonly planning: PlanningService,
   ) {}
 
   async view(tx: TenantTx, tenantId: string, id: string): Promise<VisitResult> {
@@ -60,6 +62,7 @@ export class VisitsService {
         geofence: visits.geofence,
         checkOutAt: visits.checkOutAt,
         endReason: visits.endReason,
+        planItemId: visits.planItemId,
         clockSkew: visits.clockSkew,
       })
       .from(visits)
@@ -81,6 +84,7 @@ export class VisitsService {
       geofence: row.geofence,
       checkedOutAt: row.checkOutAt?.toISOString() ?? null,
       endReason: row.endReason,
+      planItemId: row.planItemId,
       flags: row.clockSkew ? ['clock_skew'] : [],
     };
   }
@@ -189,6 +193,7 @@ export class VisitsService {
       userId: access.userId,
       shiftId: shift!.id,
       accountId: account.id,
+      planItemId: body.planItemId ?? null,
       deviceId: access.deviceId,
       checkInAt: new Date(at),
       checkInPoint: pointSql(body.fix.location),
@@ -197,6 +202,10 @@ export class VisitsService {
       geofence,
       clockSkew: clockSkewed(clockSkewSeconds(deviceTime, new Date(now))),
     });
+    // BR-34, BR-35: a visit from a plan item must carry out the person's own, at this account.
+    if (body.planItemId) {
+      await this.planning.startVisit(tx, access, body.planItemId, account.id, body.id);
+    }
     await this.audit.record(tx, tenantId, userActor(access), {
       action: 'visit.checked_in',
       target: { type: 'visit', id: body.id },

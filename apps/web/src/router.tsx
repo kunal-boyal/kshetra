@@ -11,6 +11,7 @@ import { EditAccountPage, NewAccountPage } from './accounts/account-form-page';
 import { AccountPage } from './accounts/account-page';
 import { AccountsPage } from './accounts/accounts-page';
 import { ApprovalsPage } from './accounts/approvals-page';
+import { PlanPage } from './planning/plan-page';
 import { ReviewPage } from './review/review-page';
 import { CataloguePage } from './catalogue/catalogue-page';
 import { EditFormPage, NewFormPage } from './forms/form-builder-page';
@@ -88,6 +89,14 @@ const transfer = createRoute({
   component: function TransferRoute() {
     const { userId } = transfer.useParams();
     return <TransferPage key={userId} userId={userId} />;
+  },
+});
+const plan = createRoute({
+  getParentRoute: () => app,
+  path: '/people/$userId/plan',
+  component: function PlanRoute() {
+    const { userId } = plan.useParams();
+    return <PlanPage key={userId} userId={userId} />;
   },
 });
 const orgChart = createRoute({
@@ -210,6 +219,7 @@ const tree = root.addChildren([
     person,
     editPerson,
     transfer,
+    plan,
     orgChart,
     accounts,
     newAccount,

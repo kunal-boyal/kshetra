@@ -84,6 +84,8 @@ export const TenantSettings = z.strictObject({
   trailRetentionDays: range(90, 1095),
   evidencePhotoRetentionMonths: range(3, 60),
   reviewAutoApproval: z.boolean(),
+  /** A person's month of plan items waits for their manager's approval before it counts (M8). */
+  journeyPlanApproval: z.boolean(),
   targetUnlockByAdmin: z.boolean(),
   ordersNeedOpenShift: z.boolean(),
   ordersAllowedOffline: z.boolean(),
@@ -110,6 +112,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   trailRetentionDays: 365,
   evidencePhotoRetentionMonths: 12,
   reviewAutoApproval: false,
+  journeyPlanApproval: false,
   targetUnlockByAdmin: false,
   ordersNeedOpenShift: true,
   ordersAllowedOffline: true,

@@ -162,6 +162,34 @@
       "when": 1791995381385,
       "tag": "0022_review",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791997257172,
+      "tag": "0023_planning",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791997257633,
+      "tag": "0024_plan_item_row_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791997301343,
+      "tag": "0025_plan_month_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791997470110,
+      "tag": "0026_visit_plan_items",
+      "breakpoints": true
     }
   ]
 }

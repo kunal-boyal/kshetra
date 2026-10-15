@@ -4,6 +4,7 @@ import { useQueries } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
   ArrowRightLeft,
+  CalendarDays,
   LogOut,
   Pencil,
   RotateCcw,
@@ -106,6 +107,16 @@ function Person({ user }: { user: UserView }) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={user.name} back={{ to: '/people', label: t('people.title') }}>
+        {access.can('plan_item.manage') || access.can('route.manage') ? (
+          <Button
+            icon={<Icon icon={CalendarDays} />}
+            onClick={() =>
+              void navigate({ to: '/people/$userId/plan', params: { userId: user.id } })
+            }
+          >
+            {t('plan.open')}
+          </Button>
+        ) : null}
         {access.can('user.manage') ? (
           <>
             <Button
