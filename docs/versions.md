@@ -80,11 +80,11 @@ Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes mo
 
 | Package | Version | Notes |
 |---|---|---|
-| expo | 57.0.28 | SDK 57; moved from 57.0.26 on 2026-10-14 through the `mobile` catalog, with the modules the patch names |
+| expo | 57.0.29 | SDK 57; moved from 57.0.26 on 2026-10-14 and from 57.0.28 on 2026-10-16, each time through the `mobile` catalog, with the modules the patch names. expo 57.0.30 and expo-router 57.0.28 came out on 2026-10-15, inside pnpm's one-day minimum release age, so `expo install --check` asks for them until they move together; `EXPO_OFFLINE=1 pnpm exec expo install --check` checks against the installed SDK and is clean |
 | react-native | 0.86.3 | The New Architecture |
 | react, react-dom | 19.2.3 | The SDK's React; the web stays on 19.3 |
-| expo-router | 57.0.26 | Routes in `src/app` |
-| expo-secure-store, expo-crypto, expo-device, expo-localization, expo-font, expo-constants, expo-linking | 57.0.4, 57.0.4, 57.0.2, 57.0.2, 57.0.4, 57.0.21, 57.0.12 | The session and device key, the phone's details and language, fonts, configuration and links |
+| expo-router | 57.0.27 | Routes in `src/app` |
+| expo-secure-store, expo-crypto, expo-device, expo-localization, expo-font, expo-constants, expo-linking | 57.0.4, 57.0.4, 57.0.2, 57.0.2, 57.0.4, 57.0.22, 57.0.13 | The session and device key, the phone's details and language, fonts, configuration and links |
 | expo-splash-screen, expo-status-bar, expo-system-ui, expo-dev-client | 57.0.10, 57.0.1, 57.0.4, 57.0.20 | Start-up, system bars, and the development client of spec 9.2 |
 | expo-sqlite, expo-network, expo-battery | 57.0.4, 57.0.2, 57.0.3 | Added 2026-10-07 for the offline sync (decision D40): the phone's database, the network returning, and battery optimisation for the heartbeat. All three are in Expo Go. |
 | expo-location | 57.0.21 | Added 2026-10-12 for accounts (decision D43): a fix while the app is open, to sort places by distance and propose where one is. Foreground only; tracking adds background use in step 8. In Expo Go. |
