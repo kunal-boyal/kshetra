@@ -4,6 +4,7 @@ import type { Config } from './config';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { FieldModule } from './modules/field/field.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 import { PlanningModule } from './modules/planning/planning.module';
 import { ReviewModule } from './modules/review/review.module';
 import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
@@ -48,6 +49,7 @@ export const FEATURE_MODULES = [
   AccountsModule,
   CatalogueModule,
   FormsModule,
+  MetricsModule,
   PlanningModule,
   FieldModule,
   ReviewModule,

@@ -1,10 +1,9 @@
 import { Condition } from '@kshetra/forms';
-import { Key, LocalizedNoun, ORDER_STATUSES } from '@kshetra/shared';
+import { Key, LocalizedNoun, METRIC_UNITS, ORDER_STATUSES } from '@kshetra/shared';
 import { z } from 'zod';
 
-export const METRIC_UNITS = ['count', 'currency', 'quantity', 'percent', 'duration'] as const;
-
-export type MetricUnit = (typeof METRIC_UNITS)[number];
+export { METRIC_UNITS };
+export type { MetricUnit } from '@kshetra/shared';
 
 const forms = z.array(Key).min(1).max(50).meta({
   description: 'The forms whose approved submissions count (BR-02)',

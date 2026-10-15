@@ -375,3 +375,26 @@ export {
   SubmitPlanResult,
   UpdateRouteBody,
 } from './schemas/planning';
+export { METRIC_UNITS, targetValueIssue, UNLOCK_REASON_MIN, unlockRefusal } from './targets';
+export type { MetricUnit } from './targets';
+export {
+  AccountPlanQuery,
+  AccountPlanResult,
+  CopyTargetsBody,
+  CopyTargetsResult,
+  LockTargetsBody,
+  LockTargetsResult,
+  MetricListResult,
+  MetricView,
+  PutAccountPlanBody,
+  PutTargetsBody,
+  PutTargetsResult,
+  TARGET_SKIP_REASONS,
+  TARGET_STATUSES,
+  TargetListQuery,
+  TargetListResult,
+  TargetSetResult,
+  TargetValue,
+  TargetValues,
+  UnlockTargetBody,
+} from './schemas/targets';

@@ -129,6 +129,22 @@ const ANSWERS: Record<string, unknown> = {
     ],
     nextCursor: null,
   },
+  '/v1/account-plans': {
+    accountId: SHOP,
+    period: new Date().toISOString().slice(0, 7),
+    metrics: [
+      {
+        key: 'visits',
+        name: { en: { one: 'Visit', other: 'Visits' }, hi: { one: 'विज़िट', other: 'विज़िट' } },
+        unit: 'count',
+        direction: 'higher_is_better',
+        targetable: true,
+      },
+    ],
+    values: { visits: '4' },
+    updatedAt: '2026-10-02T07:00:00.000Z',
+    updatedBy: null,
+  },
   [`/v1/accounts/${SHOP}/overview`]: {
     account: SHOP_ACCOUNT,
     contacts: [
@@ -246,12 +262,18 @@ async function mockSignedIn(page: Page) {
         access: {
           role: 'tenant_admin',
           scope: 'tenant',
-          permissions: ['user.view', 'account.view', 'account.manage', 'approval.act'],
+          permissions: [
+            'user.view',
+            'account.view',
+            'account.manage',
+            'approval.act',
+            'account_plan.manage',
+          ],
         },
       },
     }),
   );
-  for (const prefix of ['accounts', 'territories', 'approvals', 'submissions']) {
+  for (const prefix of ['accounts', 'account-plans', 'territories', 'approvals', 'submissions']) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
       return answer
@@ -310,6 +332,7 @@ test('an account and the inbox pass axe in the outdoor theme', async ({ page }) 
   await expect(page.getByRole('region', { name: 'Location', exact: true })).toContainText(
     '28.631500',
   );
+  await expect(page.getByRole('textbox', { name: 'Visits' })).toHaveValue('4');
   await expectAccessible(page);
   await page.goto('/approvals');
   await page.getByRole('button', { name: 'Reject' }).click();

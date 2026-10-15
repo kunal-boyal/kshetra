@@ -276,6 +276,26 @@ export class AccountsService {
     return new Map(rows.map((row) => [row.id, row.type]));
   }
 
+  /** The accounts with these codes that the caller sees, by code (for imports). */
+  async seenByCode(
+    tx: TenantTx,
+    access: Access,
+    codes: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (codes.length === 0) return new Map();
+    const rows = await tx
+      .select({ id: accounts.id, code: accounts.code })
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.tenantId, access.tenantId),
+          inArray(accounts.code, [...codes]),
+          await this.reach(tx, access),
+        ),
+      );
+    return new Map(rows.map((row) => [row.code, row.id]));
+  }
+
   /** The IDs of an account's active contacts. */
   async activeContactIds(tx: TenantTx, tenantId: string, accountId: string): Promise<Set<string>> {
     const rows = await tx

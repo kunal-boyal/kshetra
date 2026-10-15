@@ -17,6 +17,7 @@ import { AccountTypesService } from '../src/modules/accounts/account-types.servi
 import { CatalogueService } from '../src/modules/catalogue/catalogue.service';
 import { AttendanceService } from '../src/modules/field/attendance.service';
 import { FormsService } from '../src/modules/forms/forms.service';
+import { MetricsService } from '../src/modules/metrics/metrics.service';
 import { ImportsService } from '../src/modules/imports/imports.service';
 import { templateImports } from '../src/modules/provisioning/cell-setup.service';
 import { TenantConfigService } from '../src/modules/tenant-config/tenant-config.service';
@@ -163,6 +164,7 @@ export class World {
       await this.app.get(CatalogueService).applyTemplate(tx, tenantId, catalogue);
       await this.app.get(FormsService).applyTemplate(tx, tenantId, forms);
       await this.app.get(AttendanceService).applyTemplate(tx, tenantId, loaded.people.attendance);
+      await this.app.get(MetricsService).applyTemplate(tx, tenantId, loaded.metrics);
     });
     return tenantId;
   }

@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   date,
+  numeric,
   foreignKey,
   index,
   integer,
@@ -26,6 +27,7 @@ import { users } from './iam';
 export const planItemStatus = cell.enum('plan_item_status', PLAN_ITEM_STATUSES);
 export const planItemSource = cell.enum('plan_item_source', ['route', 'adhoc']);
 export const planStatus = cell.enum('plan_status', PLAN_STATUSES);
+export const targetStatus = cell.enum('target_status', ['draft', 'locked']);
 
 const at = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -165,6 +167,86 @@ export const planMonths = cell
         name: 'plan_months_user_fk',
         columns: [table.tenantId, table.userId],
         foreignColumns: [users.tenantId, users.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/** One person's targets for a month (spec 5.8, BR-08): a draft until locked. */
+export const targetSets = cell
+  .table(
+    'target_sets',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      userId: uuid('user_id').notNull(),
+      period: text('period').notNull(),
+      status: targetStatus('status').notNull().default('draft'),
+      lockedAt: at('locked_at'),
+      lockedBy: uuid('locked_by'),
+      /** Moves on with every change, so an edit made on an old copy is refused. */
+      version: integer('version').notNull().default(1),
+      updatedAt: at('updated_at').notNull().defaultNow(),
+      updatedBy: uuid('updated_by'),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('target_sets_tenant_user_period').on(table.tenantId, table.userId, table.period),
+      index('target_sets_tenant_period').on(table.tenantId, table.period),
+      foreignKey({
+        name: 'target_sets_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/** A target set's value for one metric, by the metric's key. */
+export const targetLines = cell
+  .table(
+    'target_lines',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      targetSetId: uuid('target_set_id').notNull(),
+      metricKey: text('metric_key').notNull(),
+      value: numeric('value', { precision: 18, scale: 3 }).notNull(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.targetSetId, table.metricKey] }),
+      foreignKey({
+        name: 'target_lines_set_fk',
+        columns: [table.tenantId, table.targetSetId],
+        foreignColumns: [targetSets.tenantId, targetSets.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/** An account's planned value for one metric in a month (M8): a reference, never a target. */
+export const accountPlans = cell
+  .table(
+    'account_plans',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      accountId: uuid('account_id').notNull(),
+      period: text('period').notNull(),
+      metricKey: text('metric_key').notNull(),
+      value: numeric('value', { precision: 18, scale: 3 }).notNull(),
+      updatedAt: at('updated_at').notNull().defaultNow(),
+      updatedBy: uuid('updated_by'),
+    },
+    (table) => [
+      primaryKey({
+        columns: [table.tenantId, table.accountId, table.period, table.metricKey],
+      }),
+      foreignKey({
+        name: 'account_plans_account_fk',
+        columns: [table.tenantId, table.accountId],
+        foreignColumns: [accounts.tenantId, accounts.id],
       }),
       isolation(),
     ],

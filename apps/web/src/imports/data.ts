@@ -17,13 +17,15 @@ import { read, useAccess } from '../people/data';
 
 /** What each family of imports needs, besides `import.run` (M19). */
 export const TARGET_PERMISSIONS: Record<
-  'users' | 'territories' | 'accounts' | 'items',
+  'users' | 'territories' | 'accounts' | 'items' | 'targets' | 'account_plans',
   TenantPermission
 > = {
   users: 'user.manage',
   territories: 'territory.manage',
   accounts: 'account.import',
   items: 'catalogue.manage',
+  targets: 'target.edit',
+  account_plans: 'account_plan.manage',
 };
 
 export interface TargetChoice {
@@ -33,7 +35,8 @@ export interface TargetChoice {
 
 /**
  * The targets, in the reader's words: people, territories, each account type by its own name
- * (`accounts:<type>`, Appendix B.2) and the catalogue's items (B.3). `allowed` holds the ones
+ * (`accounts:<type>`, Appendix B.2), the catalogue's items (B.3), targets (B.4) and account plans
+ * (B.6). `allowed` holds the ones
  * the person may import.
  */
 export function useImportTargets() {
@@ -51,6 +54,8 @@ export function useImportTargets() {
         label: type.name[locale].other,
       })),
       { value: 'items', label: t('imports.target_items') },
+      { value: 'targets', label: t('imports.target_targets') },
+      { value: 'account_plans', label: t('imports.target_account_plans') },
     ];
     const family = (target: string) => target.split(':')[0] as keyof typeof TARGET_PERMISSIONS;
     const activeTypes = new Set(
