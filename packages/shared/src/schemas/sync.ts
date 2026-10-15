@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { GeoPoint } from '../geo';
 import { AccountAddress, AccountStatus, ContactResult, LocationStatus } from './accounts';
 import { ItemResult } from './catalogue';
+import { PlanItemStatus } from './planning';
 import { Key } from './config';
 import { UserStatus } from './iam';
 import { TerritoryResult } from './territories';
@@ -12,7 +13,14 @@ import { TerritoryResult } from './territories';
  * outbox. Each module adds its entities here as it arrives.
  */
 
-export const SYNC_ENTITIES = ['users', 'territories', 'accounts', 'contacts', 'items'] as const;
+export const SYNC_ENTITIES = [
+  'users',
+  'territories',
+  'accounts',
+  'contacts',
+  'items',
+  'plan_items',
+] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
 /** At most this many rows of one entity in one page (spec 11.3). */
@@ -89,6 +97,23 @@ export const SyncContact = ContactResult;
 export const SyncItem = ItemResult;
 
 /**
+ * The person's own plan items (M8), from yesterday to the end of next month, for today's plan
+ * offline. Where months are approved, only an approved month's items, and the person's own.
+ */
+export const SyncPlanItem = z
+  .object({
+    id: z.uuid(),
+    accountId: z.uuid(),
+    date: z.iso.date(),
+    purpose: z.string().nullable(),
+    note: z.string().nullable(),
+    status: PlanItemStatus,
+    source: z.enum(['route', 'adhoc']),
+    visitId: z.uuid().nullable(),
+  })
+  .meta({ id: 'SyncPlanItem' });
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -110,6 +135,7 @@ export const SyncTerritoriesPage = page(SyncTerritory);
 export const SyncAccountsPage = page(SyncAccount);
 export const SyncContactsPage = page(SyncContact);
 export const SyncItemsPage = page(SyncItem);
+export const SyncPlanItemsPage = page(SyncPlanItem);
 
 export const SyncPullResult = z.object({
   entities: z.object({
@@ -118,6 +144,7 @@ export const SyncPullResult = z.object({
     accounts: SyncAccountsPage.optional(),
     contacts: SyncContactsPage.optional(),
     items: SyncItemsPage.optional(),
+    plan_items: SyncPlanItemsPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -132,4 +159,5 @@ export type SyncTerritory = z.infer<typeof SyncTerritory>;
 export type SyncAccount = z.infer<typeof SyncAccount>;
 export type SyncContact = z.infer<typeof SyncContact>;
 export type SyncItem = z.infer<typeof SyncItem>;
+export type SyncPlanItem = z.infer<typeof SyncPlanItem>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

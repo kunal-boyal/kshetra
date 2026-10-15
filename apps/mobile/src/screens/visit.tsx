@@ -2,10 +2,10 @@ import type { VisitState } from '@kshetra/api-client/sync';
 import { spacing } from '@kshetra/design-tokens';
 import type { AccountType, FormView } from '@kshetra/forms';
 import { formatDateTime, formatNumber } from '@kshetra/i18n';
-import { punchFixIssue, type SyncAccount } from '@kshetra/shared';
+import { punchFixIssue, type SyncAccount, todayIn } from '@kshetra/shared';
 import { Button, Card, ListGroup, ListRow, Notice, StatusBadge, Text } from '@kshetra/ui-mobile';
 import { router } from 'expo-router';
-import { ClipboardList, LogIn, LogOut, MapPin } from 'lucide-react-native';
+import { CalendarPlus, ClipboardList, LogIn, LogOut, MapPin } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
@@ -15,7 +15,8 @@ import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
 import { useSync, useSyncStatus } from '../sync';
-import { checkIn, checkOut, geofenceAt } from '../visits';
+import { checkIn, checkOut, geofenceAt, planVisit } from '../visits';
+import { useTodayPlan } from './today-plan';
 import { useShift } from './shift';
 
 /**
@@ -68,6 +69,7 @@ export function VisitCard({
   const shift = useShift();
   const { visit, refresh } = useVisit();
   const accounts = useLocalRows('accounts');
+  const today = useTodayPlan();
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<Said>({ kind: 'none' });
   const bundle = config.data?.bundle;
@@ -79,6 +81,12 @@ export function VisitCard({
   const here = visit?.accountId === account.id;
   const elsewhere = visit && !here ? accounts?.find((entry) => entry.id === visit.accountId) : null;
   const metres = (value: number) => formatNumber(value, { locale });
+  // Today's planned visit here, which a check-in carries out (M8, BR-35).
+  const planned = today.items.find(
+    (item) =>
+      item.accountId === account.id && (item.status === 'planned' || item.status === 'visited'),
+  );
+  const plannedOnPhone = today.waiting.some((item) => item.accountId === account.id);
   const visitForms: FormView[] = permissions.has('submission.create')
     ? (bundle.forms ?? []).filter(
         (form) =>
@@ -139,7 +147,11 @@ export function VisitCard({
       return;
     }
     await act(async () => {
-      await checkIn(sync!, owner, { accountId: account.id, fix });
+      await checkIn(sync!, owner, {
+        accountId: account.id,
+        fix,
+        ...(planned ? { planItemId: planned.id } : {}),
+      });
     });
     if (fence.result === 'outside' && fence.policy === 'advisory') {
       setSaid({
@@ -149,6 +161,16 @@ export function VisitCard({
     } else if (fence.result === 'unknown' && fence.policy !== 'off') {
       setSaid({ kind: 'note', text: t('visit.no_location') });
     }
+  }
+
+  async function addToToday() {
+    await act(async () => {
+      await planVisit(sync!, owner, {
+        accountId: account.id,
+        date: todayIn(settings.timezone),
+      });
+    });
+    setSaid({ kind: 'note', text: t('today.added') });
   }
 
   async function leave() {
@@ -208,6 +230,14 @@ export function VisitCard({
           ) : (
             <Text tone="muted">{t('visit.help')}</Text>
           )}
+          {planned ? (
+            <Notice>
+              {planned.purpose
+                ? t('today.planned_for', { purpose: planned.purpose })
+                : t('today.planned')}
+              {planned.note ? `\n${planned.note}` : ''}
+            </Notice>
+          ) : null}
           <Button
             variant="primary"
             icon={LogIn}
@@ -215,6 +245,15 @@ export function VisitCard({
             busy={busy}
             onPress={() => void arrive()}
           />
+          {!planned && !plannedOnPhone ? (
+            <Button
+              variant="ghost"
+              icon={CalendarPlus}
+              label={t('today.add')}
+              busy={busy}
+              onPress={() => void addToToday()}
+            />
+          ) : null}
         </>
       )}
       {said.kind === 'error' ? (

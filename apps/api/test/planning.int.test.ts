@@ -349,4 +349,32 @@ describe("a month's plan approved by the manager (M8, journey_plan)", () => {
     // The person's own visits still go in.
     expect((await t.api.asha.post('/v1/plan-items', adhoc(t, { date }))).statusCode).toBe(201);
   });
+
+  describe('plan items on the phone (M8, spec 11.3)', () => {
+    it("keeps the person's own items from yesterday to next month, approved months only where asked", async () => {
+      const t = await tenant('Sync Co');
+      const pull = async () =>
+        (await t.api.asha.get('/v1/sync/pull?entities=plan_items')).json().entities.plan_items
+          .rows as { id: string; date: string; status: string }[];
+      const today = (await t.api.manager.post('/v1/plan-items', adhoc(t))).json();
+      const next = (
+        await t.api.manager.post('/v1/plan-items', adhoc(t, { date: `${nextMonth()}-10` }))
+      ).json();
+      await t.api.manager.post(
+        '/v1/plan-items',
+        adhoc(t, { userId: t.ravi.id, accountId: t.ravisShop }),
+      );
+      expect((await pull()).map((row) => row.id).sort()).toEqual([today.id, next.id].sort());
+      expect((await pull()).find((row) => row.id === today.id)).toMatchObject({
+        date: TODAY(),
+        status: 'planned',
+      });
+
+      // Where months are approved, a month reaches the phone once approved; the person's own
+      // visits always do.
+      await t.api.admin.patch('/v1/settings', { journeyPlanApproval: true });
+      const own = (await t.api.asha.post('/v1/plan-items', adhoc(t))).json();
+      expect((await pull()).map((row) => row.id)).toEqual([own.id]);
+    });
+  });
 });

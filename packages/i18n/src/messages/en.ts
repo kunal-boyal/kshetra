@@ -650,6 +650,13 @@ export const en = {
   'plan.weekday_5': 'Friday',
   'plan.weekday_6': 'Saturday',
   'plan.weekday_7': 'Sunday',
+  'today.title': { one: "Today's plan · {count}", other: "Today's plan · {count}" },
+  'today.empty': 'Nothing planned for today.',
+  'today.waiting': 'Planned on this phone, waiting to send',
+  'today.planned': 'Planned for today.',
+  'today.planned_for': 'Planned for today: {purpose}',
+  'today.add': "Add to today's plan",
+  'today.added': "Added to today's plan.",
   'review.title': 'Review',
   'review.intro':
     'Forms filled by the people you look after. Approve what holds up; reject with a reason what does not.',
@@ -1235,6 +1242,7 @@ export const en = {
   'uploads.kind_shift_resume': 'Tracking resumed',
   'uploads.kind_visit_check_in': 'Check-in',
   'uploads.kind_visit_check_out': 'Check-out',
+  'uploads.kind_plan_item': '{term.plan_item}',
   'uploads.kind_submission': 'Form',
   'visit.title': 'Visit',
   'visit.help':

@@ -4,10 +4,12 @@ import {
   AccountResult,
   type CheckOutBody,
   type CreateAccountBody,
+  type CreatePlanItemBody,
   type CreateSubmissionBody,
   type CreateLocationProposalBody,
   type EndShiftBody,
   LocationProposalResult,
+  PlanItemResult,
   type PauseShiftBody,
   type ResumeShiftBody,
   ShiftResult,
@@ -90,6 +92,13 @@ export function senders(
         await client.request('POST', `/v1/visits/${visitId}/check-out`, VisitResult, { body });
       },
     },
+    'plan_item.create': {
+      async send(payload) {
+        await client.request('POST', '/v1/plan-items', PlanItemResult, {
+          body: payload as CreatePlanItemBody,
+        });
+      },
+    },
     'submission.create': {
       async send(payload) {
         await client.request('POST', '/v1/submissions', SubmissionResult, {
@@ -122,6 +131,7 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'visit.check_in': 'uploads.kind_visit_check_in',
   'visit.check_out': 'uploads.kind_visit_check_out',
   'submission.create': 'uploads.kind_submission',
+  'plan_item.create': 'uploads.kind_plan_item',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;

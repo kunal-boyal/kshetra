@@ -643,6 +643,13 @@ export const hi: Record<MessageKey, Message> = {
   'plan.weekday_5': 'शुक्रवार',
   'plan.weekday_6': 'शनिवार',
   'plan.weekday_7': 'रविवार',
+  'today.title': { one: 'आज की योजना · {count}', other: 'आज की योजना · {count}' },
+  'today.empty': 'आज के लिए कुछ तय नहीं।',
+  'today.waiting': 'इस फ़ोन पर तय, भेजे जाने का इंतज़ार',
+  'today.planned': 'आज के लिए तय।',
+  'today.planned_for': 'आज के लिए तय: {purpose}',
+  'today.add': 'आज की योजना में जोड़ें',
+  'today.added': 'आज की योजना में जोड़ा गया।',
   'review.title': 'समीक्षा',
   'review.intro':
     'आपकी टीम के लोगों के भरे फ़ॉर्म। जो ठीक है उसे मंज़ूर करें; जो ठीक नहीं, उसे कारण के साथ अस्वीकार करें।',
@@ -1229,6 +1236,7 @@ export const hi: Record<MessageKey, Message> = {
   'uploads.kind_shift_resume': 'ट्रैकिंग फिर शुरू',
   'uploads.kind_visit_check_in': 'चेक-इन',
   'uploads.kind_visit_check_out': 'चेक-आउट',
+  'uploads.kind_plan_item': '{term.plan_item}',
   'uploads.kind_submission': 'फ़ॉर्म',
   'visit.title': 'विज़िट',
   'visit.help':

@@ -1,5 +1,6 @@
 import type {
   MeasureType,
+  SyncPlanItem,
   SyncAccount,
   SyncContact,
   SyncEntity,
@@ -161,6 +162,19 @@ const MIGRATIONS: readonly string[] = [
    ALTER TABLE form_entries ADD COLUMN captured_at INTEGER;
    ALTER TABLE form_entries ADD COLUMN fix TEXT;
    UPDATE form_entries SET state = 'draft', submitted_at = NULL WHERE state = 'queued';`,
+  // Plans (M8): the person's own plan items, for today's plan offline.
+  `CREATE TABLE ref_plan_items (
+     id TEXT PRIMARY KEY NOT NULL,
+     account_id TEXT NOT NULL,
+     date TEXT NOT NULL,
+     purpose TEXT,
+     note TEXT,
+     status TEXT NOT NULL,
+     source TEXT NOT NULL,
+     visit_id TEXT,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_plan_items_date ON ref_plan_items (date);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -339,6 +353,29 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       active: record.active === 1,
     }),
   },
+  plan_items: {
+    table: 'ref_plan_items',
+    columns: (item) => ({
+      id: item.id,
+      account_id: item.accountId,
+      date: item.date,
+      purpose: item.purpose,
+      note: item.note,
+      status: item.status,
+      source: item.source,
+      visit_id: item.visitId,
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      accountId: String(record.account_id),
+      date: String(record.date),
+      purpose: record.purpose === null ? null : String(record.purpose),
+      note: record.note === null ? null : String(record.note),
+      status: String(record.status) as SyncPlanItem['status'],
+      source: record.source === 'route' ? 'route' : 'adhoc',
+      visitId: record.visit_id === null ? null : String(record.visit_id),
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -347,6 +384,7 @@ export type RowOf<Name extends SyncEntity> = {
   accounts: SyncAccount;
   contacts: SyncContact;
   items: SyncItem;
+  plan_items: SyncPlanItem;
 }[Name];
 
 /** Every row the phone holds of one entity. */

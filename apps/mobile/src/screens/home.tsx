@@ -8,6 +8,7 @@ import { useConfig, useMe } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useSyncStatus } from '../sync';
 import { ShiftSection } from './shift';
+import { TodayPlan } from './today-plan';
 import { VisitNow } from './visit';
 
 /**
@@ -96,6 +97,7 @@ export function HomeScreen() {
       ) : null}
       <ShiftSection />
       <VisitNow />
+      <TodayPlan />
       <EmptyState icon={LayoutDashboard} title={t('home.empty_title')}>
         {t('home.empty_body')}
       </EmptyState>
