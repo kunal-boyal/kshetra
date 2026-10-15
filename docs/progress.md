@@ -73,7 +73,7 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 
 | Date | What | Where |
 |---|---|---|
-| 2026-10-16 | Expo SDK 57 patch: expo 57.0.29 in the `mobile` catalog, with expo-constants 57.0.22, expo-linking 57.0.13 and expo-router 57.0.27; jest-expo stays at 57.0.6 | Branch `chore/expo-57-patch-2` |
+| 2026-10-16 | Expo SDK 57 patch: expo 57.0.29 in the `mobile` catalog, with expo-constants 57.0.22, expo-linking 57.0.13 and expo-router 57.0.27; jest-expo stays at 57.0.6 | PR #35 |
 | 2026-10-15 | Phase 1 step 11c: targets by month (draft, lock, unlock, copy, import), account plans and their import, metric definitions stored from the template (decision D55) | PR #33, merged as `1e7ad6e` |
 | 2026-10-15 | Phase 1 step 11b: today's plan on the phone, synced as the `plan_items` entity, with visits started from it and visits planned on the phone (decision D54) | PR #32, merged as `e896fbc` |
 | 2026-10-15 | Phase 1 step 11a: routes, plan items and their statuses (BR-35), the month's approval behind a setting, and a person's Plan page on the web (decision D53) | PR #31, merged as `105628e` |
