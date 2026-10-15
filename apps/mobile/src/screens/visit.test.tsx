@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import type { SessionState } from '@kshetra/api-client';
 import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
 import { migrate, type SqlDatabase, Tracking, Visits } from '@kshetra/api-client/sync';
-import { SETTING_DEFAULTS, type SyncPullResult } from '@kshetra/shared';
+import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@kshetra/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AppProvider, useApp } from '../app-state';
@@ -11,6 +11,7 @@ import { LanguageProvider } from '../i18n';
 import { Look } from '../look';
 import { SyncProvider } from '../sync';
 import { AccountScreen } from './account';
+import { TodayPlan } from './today-plan';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
@@ -39,6 +40,8 @@ const MARKET = '01a10000-0000-7000-8000-000000000010';
 const HERE = '01a10000-0000-7000-8000-000000000080';
 const FAR = '01a10000-0000-7000-8000-000000000081';
 const SHIFT = '01a10000-0000-7000-8000-0000000000c1';
+const PLANNED = '01a10000-0000-7000-8000-0000000000d7';
+const TODAY = todayIn('Asia/Kolkata');
 const text = (en: string) => ({ en, hi: en });
 const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
 
@@ -118,6 +121,18 @@ function pulled(): SyncPullResult {
       ]) as SyncPullResult['entities']['accounts'],
       contacts: full([]),
       items: full([]),
+      plan_items: full([
+        {
+          id: PLANNED,
+          accountId: HERE,
+          date: TODAY,
+          purpose: 'Collect payment',
+          note: 'Ask for the cheque',
+          status: 'planned' as const,
+          source: 'route' as const,
+          visitId: null,
+        },
+      ]),
     },
     cursor: 'c1',
     more: false,
@@ -163,7 +178,7 @@ function fakeClient(policy: 'advisory' | 'required') {
 function Shown({ id }: { id: string }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
-  return <AccountScreen id={id} />;
+  return id === 'today' ? <TodayPlan /> : <AccountScreen id={id} />;
 }
 
 async function phone(onDuty: boolean) {
@@ -268,5 +283,48 @@ describe('visits on the phone (M6)', () => {
     await renderAt(HERE, await phone(false));
     expect(await screen.findByText('Start your day to check in.')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Check in' })).toBeNull();
+  });
+
+  it("shows today's plan with each visit's status and purpose", async () => {
+    await renderAt('today', await phone(true));
+    const row = await screen.findByRole('button', { name: /Janpath Mart/ });
+    expect(row).toHaveTextContent(/Planned · Collect payment/);
+  });
+
+  it('carries the planned visit on check-in, and offers no second plan for it', async () => {
+    const db = await phone(true);
+    const client = await renderAt(HERE, db);
+    expect(await screen.findByText(/Planned for today: Collect payment/)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: "Add to today's plan" })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Check in' }));
+    await waitFor(() =>
+      expect(posts(client)).toContainEqual([
+        'POST',
+        '/v1/visits',
+        expect.anything(),
+        { body: expect.objectContaining({ accountId: HERE, planItemId: PLANNED }) },
+      ]),
+    );
+  });
+
+  it("adds a place to today's plan from its screen", async () => {
+    const db = await phone(true);
+    const client = await renderAt(FAR, db);
+    await fireEvent.press(await screen.findByRole('button', { name: "Add to today's plan" }));
+    expect(await screen.findByText("Added to today's plan.")).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(posts(client)).toContainEqual([
+        'POST',
+        '/v1/plan-items',
+        expect.anything(),
+        {
+          body: expect.objectContaining({
+            userId: USER,
+            accountId: FAR,
+            date: TODAY,
+          }),
+        },
+      ]),
+    );
   });
 });

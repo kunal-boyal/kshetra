@@ -13,6 +13,7 @@ import type { AccountType, FormDefinition } from '@kshetra/forms';
 import {
   type CaptureFix,
   type CheckOutBody,
+  type CreatePlanItemBody,
   distanceMeters,
   geofenceRadius,
   geofenceResult,
@@ -106,7 +107,7 @@ export class NotOnShift extends Error {
 export async function checkIn(
   sync: Ready,
   owner: string,
-  input: { accountId: string; fix: Fix },
+  input: { accountId: string; fix: Fix; planItemId?: string },
 ): Promise<string> {
   const shift = await sync.tracking.current(owner);
   if (!shift) throw new NotOnShift();
@@ -117,6 +118,8 @@ export async function checkIn(
     accountId: input.accountId,
     checkedInAt: input.fix.capturedAt,
     fix: captureFix(input.fix),
+    // The planned visit it carries out (M8, BR-35).
+    ...(input.planItemId ? { planItemId: input.planItemId } : {}),
   };
   await sync.db.transaction(async (tx) => {
     await sync.visits.open(tx, {
@@ -184,4 +187,24 @@ export async function submitEntry(
       if (input.visitId) await sync.visits.touch(tx, owner, input.visitId, capturedAt);
     },
   );
+}
+
+/** A visit the person plans for themselves (M8), queued to send. Returns its ID. */
+export async function planVisit(
+  sync: Pick<Ready, 'db' | 'outbox'>,
+  owner: string,
+  input: { accountId: string; date: string },
+): Promise<string> {
+  const id = newId();
+  const body: CreatePlanItemBody = {
+    id,
+    // The owner is `tenant:user`; the plan is the person's own.
+    userId: owner.split(':')[1]!,
+    accountId: input.accountId,
+    date: input.date,
+  };
+  await sync.db.transaction((tx) =>
+    sync.outbox.enqueue(tx, { id, owner, kind: 'plan_item.create', payload: body }),
+  );
+  return id;
 }
