@@ -21,6 +21,7 @@ export default function AppLayout() {
       <Stack.Screen name="scan" options={{ animation: 'fade' }} />
       <Stack.Screen name="punch-in" />
       <Stack.Screen name="tracking-help" />
+      <Stack.Screen name="leaderboard" />
     </Stack>
   );
 }

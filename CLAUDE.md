@@ -187,13 +187,14 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Phones keep their own plan items through the `plan_items` sync entity (`plan-items.sync.ts`, decision D54); Home's Today's plan and the visit card read them with `useTodayPlan()` in `apps/mobile/src/screens/today-plan.tsx`.
 - Targets and account plans (decision D55) live in the same module: `TargetsService` and `AccountPlansService`. They refer to metrics by key; the tenant's metric definitions are stored from its template by `MetricsService.applyTemplate()` and read with `targetable()`. Judge a value with `targetValueIssue()` and an unlock with `unlockRefusal()` from `@kshetra/shared`. Nobody sets their own targets; a locked set changes only after an unlock, which publishes `target.unlocked` as a lock publishes `target.locked`.
 
-## Metrics and performance (decision D56)
+## Metrics and performance (decisions D56 and D57)
 
 - The metric engine lives in `apps/api/src/modules/performance`; definitions stay in `modules/metrics` (`MetricsService.definitions()`, `score()`). `MetricsEngine.recompute(tx, tenantId, userId, date)` rebuilds one person's day from the records the owning modules' `forMetrics()` methods return, through `calculateDayFacts()` in `@kshetra/metrics`. Recomputing is idempotent.
 - Anything that changes a person's day recomputes it: the consumers in `performance.upkeep.ts` follow `submission.created`, `submission.reviewed`, `visit.ended` and `plan_item.status_changed`. A new source of metric values needs its event consumed there and its calculator in `calculate.ts`, added to `COMPUTED_SOURCES`.
 - Values belong to the capturing person and the capture's date on the tenant's clock (BR-03): filter moments with `onLocalDate()` from `src/platform/local-day.ts`.
 - Scores and ranks are `scoreOf()` and `rankByScore()` from `@kshetra/shared` (BR-06, BR-07), computed on read by `PerformanceService` from locked targets; ranking groups are designations marked ranked (D8).
 - The web shows a metric with `MetricTile` in `apps/web/src/performance/shared.tsx`, on the design system's `KpiTile` from `@kshetra/ui-web`, and formats values by unit with `useFigure()`.
+- On the phone (decision D57), My month on Home (`src/screens/my-month.tsx`) reads `useMyMonth()` from `apps/mobile/src/performance.ts`, kept on the phone with when it was read; tiles use `KpiTile` from `@kshetra/ui-mobile` and `useTileParts()`, which shortens values to lakh and crore. The leaderboard (`/leaderboard`) is read online.
 
 ## Offline sync (decision D40)
 

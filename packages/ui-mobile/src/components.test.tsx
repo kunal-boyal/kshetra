@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { CircleAlert, Send } from 'lucide-react-native';
+import { ChartNoAxesColumn, CircleAlert, Send } from 'lucide-react-native';
 import { Button } from './button';
+import { KpiTile } from './kpi';
 import { StatusBadge, SyncBanner } from './status';
 import { TextField } from './text-field';
 import { createTheme, ThemeProvider } from './theme';
@@ -117,5 +118,37 @@ describe('BrandMark', () => {
         .map(([, name, value]) => `${name!.toLowerCase().replace('-', '')}=${value}`)
         .sort();
     expect(values(component)).toEqual(values(svg));
+  });
+});
+
+describe('KpiTile', () => {
+  it('shows the approved figure, its share of the target, and pending work apart', async () => {
+    await render(
+      <KpiTile
+        label="Sales"
+        icon={ChartNoAxesColumn}
+        value="₹8.4 L"
+        progress={{ done: 0.68, pending: 0.09 }}
+        foot="68% of ₹12.4 L"
+        pending="+₹1.1 L pending"
+      />,
+    );
+    expect(screen.getByText('₹8.4 L')).toBeOnTheScreen();
+    expect(screen.getByText('68% of ₹12.4 L')).toBeOnTheScreen();
+    expect(screen.getByText('+₹1.1 L pending')).toBeOnTheScreen();
+  });
+
+  it('leaves the bar empty without a target', async () => {
+    await render(
+      <KpiTile
+        label="Meetings"
+        icon={ChartNoAxesColumn}
+        value="3"
+        progress={null}
+        foot="No target set"
+      />,
+    );
+    expect(screen.getByText('No target set')).toBeOnTheScreen();
+    expect(screen.queryByText(/pending/)).toBeNull();
   });
 });

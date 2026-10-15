@@ -15,7 +15,7 @@ interface CachedBundle {
  * Asks the server, and keeps the answer on the phone. Offline, the kept copy serves, so the app
  * starts without signal (spec 11.3).
  */
-function useKept<T>(key: string, ask: (held: T | null) => Promise<T>) {
+export function useKept<T>(key: string, ask: (held: T | null) => Promise<T>) {
   const { client, queryClient } = useApp();
   const sync = useSync();
   return useQuery({

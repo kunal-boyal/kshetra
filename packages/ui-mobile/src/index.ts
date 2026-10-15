@@ -4,6 +4,8 @@ export { BrandMark } from './brand';
 export { Button } from './button';
 export type { ButtonProps, ButtonVariant } from './button';
 export { Icon } from './icon';
+export { KpiTile } from './kpi';
+export type { KpiTileProps } from './kpi';
 export type { IconProps, IconSize } from './icon';
 export { CheckGroup, ChoiceGroup, ListGroup, ListRow } from './lists';
 export type { Choice, ListRowProps } from './lists';
