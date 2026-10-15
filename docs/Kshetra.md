@@ -1215,12 +1215,14 @@ media(id, tid, user_id, kind enum(evidence,field_photo,selfie,attachment,receipt
       IX(tid, sha256) · IX(tid, kind, dhash) · IX(tid, owner_type, owner_id)
 
 ── Planning and metrics ──────────────────────────────────────────────────────────
-metric_definitions(id, tid, key, version, name jsonb, unit, direction, source jsonb, targetable,
-       visible_roles text[], valid_from, active)
+metric_definitions(tid, key, version, definition jsonb, targetable, active, created_at)
+       PK(tid, key) · definition holds the names, unit, direction, source, filters, scoring and
+       visible roles, as the template has them (D55)
 score_definitions(id, tid, period_type, metrics jsonb, cap, ranking_group_by, valid_from)
-target_sets(id, tid, user_id, period, status enum(draft,locked), locked_at, locked_by, version)
+target_sets(id, tid, user_id, period, status enum(draft,locked), locked_at, locked_by, version,
+       updated_at, updated_by)
        UQ(tid, user_id, period)
-target_lines(target_set_id, metric_id, value)                                PK(target_set_id, metric_id)
+target_lines(tid, target_set_id, metric_key, value)                         PK(tid, target_set_id, metric_key)
 routes(id, tid, user_id, name, recurrence jsonb, active)                     IX(tid, user_id)
 route_accounts(tid, route_id, account_id, seq)                               PK(tid, route_id, account_id)
 plan_items(id, tid, user_id, account_id, date, purpose, note,
@@ -1229,7 +1231,8 @@ plan_items(id, tid, user_id, account_id, date, purpose, note,
        UQ(tid, route_id, account_id, date) where route_id is set
 plan_months(tid, user_id, period, status enum(draft,submitted,approved,rejected), request_id NULL,
        approval_id NULL)                                                     PK(tid, user_id, period)
-account_plans(tid, account_id, period, metric_id, value, updated_by)        PK(tid, account_id, period, metric_id)
+account_plans(tid, account_id, period, metric_key, value, updated_at, updated_by)
+       PK(tid, account_id, period, metric_key)
 metric_facts_daily(tid, user_id, date, metric_id, value, numerator, denominator, computed_at)
        PK(tid, user_id, date, metric_id) · PART monthly on date
 metric_fact_accounts(tid, user_id, period, metric_id, account_id, first_date)
@@ -1358,7 +1361,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Field | `POST /v1/shifts`, `GET /v1/shifts/current`, `GET /v1/shifts?userId`, `POST /v1/shifts/:id/end`, `POST /v1/shifts/:id/pauses`, `POST /v1/shifts/:id/pauses/:pauseId/resume`, `POST /v1/locations/batch`, `GET /v1/attendance?userId&period` (attendance days from shifts until HR arrives, D47), `POST /v1/visits`, `GET /v1/visits/current`, `POST /v1/visits/:id/check-out`, `POST /v1/submissions`, `GET /v1/submissions` |
 | Review | `GET /v1/reviews/queue`, `POST /v1/submissions/:id/review`, `POST /v1/reviews/bulk`, `GET /v1/review-rules`, `PUT /v1/review-rules` |
 | Media | `POST /v1/media/presign`, `POST /v1/media/:id/confirm`, `GET /v1/media/:id/url?variant=` |
-| Planning | `GET /v1/targets`, `PUT /v1/targets`, `POST /v1/targets/lock`, `GET /v1/routes`, `POST /v1/routes`, `PATCH /v1/routes/:id`, `POST /v1/plans/generate`, `POST /v1/plans/submit`, `GET /v1/plan-items`, `POST /v1/plan-items`, `POST /v1/plan-items/:id/cancel`, `PUT /v1/account-plans` |
+| Planning | `GET /v1/metrics`, `GET /v1/targets`, `PUT /v1/targets`, `POST /v1/targets/lock`, `POST /v1/targets/unlock`, `POST /v1/targets/copy`, `GET /v1/routes`, `POST /v1/routes`, `PATCH /v1/routes/:id`, `POST /v1/plans/generate`, `POST /v1/plans/submit`, `GET /v1/plan-items`, `POST /v1/plan-items`, `POST /v1/plan-items/:id/cancel`, `GET /v1/account-plans`, `PUT /v1/account-plans` |
 | Performance | `GET /v1/performance?period&scope`, `GET /v1/leaderboard?period&group` |
 | Maps | `GET /v1/live`, `GET /v1/live/stream` (server-sent events), `GET /v1/trails?userId&date`, `GET /v1/density?period` |
 | Catalogue | `GET /v1/catalogue` (items, units and the caller's applicable prices; ETag), `PUT /v1/items`, `PUT /v1/price-lists`. In phase 1 items arrive only through the item import, without prices; `PUT /v1/items` and price lists come in phase 2 (D38, D45). |

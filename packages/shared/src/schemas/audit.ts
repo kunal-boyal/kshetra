@@ -57,6 +57,10 @@ export const AUDIT_ACTIONS = [
   'plan_item.created',
   'plan_item.cancelled',
   'plan_item.status_changed',
+  'target.updated',
+  'target.locked',
+  'target.unlocked',
+  'account_plan.updated',
   'session.signed_in',
   'session.device_refused',
 ] as const;

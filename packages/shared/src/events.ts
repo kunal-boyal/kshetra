@@ -87,6 +87,13 @@ export const PlanItemStatusChangedPayload = z.object({
   status: z.enum(['planned', 'visited', 'completed', 'missed', 'cancelled']),
 });
 
+/** A person's targets for a month were locked or unlocked (M8, BR-08): scores follow (step 12). */
+export const TargetSetEventPayload = z.object({
+  targetSetId: z.uuid(),
+  userId: z.uuid(),
+  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
@@ -100,6 +107,8 @@ export const EVENT_PAYLOADS = {
   'media.processed': MediaProcessedPayload,
   'submission.reviewed': SubmissionReviewedPayload,
   'plan_item.status_changed': PlanItemStatusChangedPayload,
+  'target.locked': TargetSetEventPayload,
+  'target.unlocked': TargetSetEventPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

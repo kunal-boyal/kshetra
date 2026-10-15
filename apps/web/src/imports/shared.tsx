@@ -65,6 +65,9 @@ const FIELD_KEYS = {
     'mrp',
     'active',
   ],
+  // Their metric columns carry their own labels.
+  targets: ['code', 'period', 'lock'],
+  account_plans: ['account_code', 'period'],
 } as const satisfies Record<string, readonly string[]>;
 
 /** A field's name in the reader's language: its own label, or the app's word for it. */

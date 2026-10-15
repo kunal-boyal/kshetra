@@ -11,6 +11,7 @@ import {
   Repeat,
   Settings,
   Store,
+  Target,
   Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -52,6 +53,9 @@ export function AppShell() {
       : []),
     ...(access.can('submission.review')
       ? [{ to: '/review', icon: ClipboardCheck, label: t('nav.review') }]
+      : []),
+    ...(access.can('target.view')
+      ? [{ to: '/targets', icon: Target, label: t('nav.targets') }]
       : []),
     ...(access.can('territory.manage')
       ? [{ to: '/territories', icon: MapPinned, label: t('nav.territories') }]

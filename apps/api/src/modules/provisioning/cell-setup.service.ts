@@ -10,13 +10,14 @@ import { FormsService } from '../forms/forms.service';
 import { SYSTEM } from '../iam/actor';
 import { IamSetup } from '../iam/setup.service';
 import { ImportsService } from '../imports/imports.service';
+import { MetricsService } from '../metrics/metrics.service';
 import { UsersService } from '../iam/users.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 
 /**
  * A tenant's side of provisioning, in its cell (spec 5.14): the template's words, roles,
- * designations, geography levels, account types, catalogue settings and forms, and the first admin, all in one transaction. When the
+ * designations, geography levels, account types, catalogue settings, forms and metrics, and the first admin, all in one transaction. When the
  * platform console arrives (module M22), it calls this through the cell's provisioning API.
  */
 @Injectable()
@@ -31,6 +32,7 @@ export class CellSetup {
     private readonly catalogue: CatalogueService,
     private readonly forms: FormsService,
     private readonly attendance: AttendanceService,
+    private readonly metrics: MetricsService,
     private readonly users: UsersService,
     private readonly outbox: Outbox,
   ) {}
@@ -47,6 +49,7 @@ export class CellSetup {
     await this.accountTypes.applyTemplate(tx, tenantId, template.accountTypes);
     await this.catalogue.applyTemplate(tx, tenantId, template.catalogue);
     await this.forms.applyTemplate(tx, tenantId, template.forms);
+    await this.metrics.applyTemplate(tx, tenantId, template.metrics);
     await this.attendance.applyTemplate(tx, tenantId, template.people.attendance);
     await this.imports.applyTemplate(tx, tenantId, templateImports(template));
   }

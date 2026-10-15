@@ -75,6 +75,8 @@ let bPhoneToken: string;
 /** An account of B's own, under B's territory. */
 let bAccountId: string;
 let bTerritoryId: string;
+/** A month for targets and account plans. */
+const TARGET_MONTH = '2030-01';
 /** A day comfortably in the future on every tenant's calendar. */
 const NEXT_MONTH = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
 /** Every ID in tenant A's rows that tenant B doesn't also hold. */
@@ -986,6 +988,89 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('POST', `/v1/plan-items/${id}/cancel`), aPlanItemId),
   },
+  'GET /v1/metrics': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/metrics')),
+  },
+  'GET /v1/targets': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', `/v1/targets?period=${TARGET_MONTH}`)),
+  },
+  'PUT /v1/targets': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('PUT', '/v1/targets', {
+            period: TARGET_MONTH,
+            sets: [{ userId: id, values: { visits: '1' }, version: 0 }],
+          }),
+        a.member.id,
+      ),
+  },
+  'POST /v1/targets/lock': {
+    kind: 'write',
+    run: async () => {
+      const lock = (id: string) =>
+        asB('POST', '/v1/targets/lock', { period: TARGET_MONTH, userIds: [id] });
+      const theirs = await lock(a.member.id);
+      const nowhere = newId();
+      expect(theirs.json().skipped).toEqual([{ userId: a.member.id, reason: 'OUT_OF_SCOPE' }]);
+      expect((await lock(nowhere)).json().skipped).toEqual([
+        { userId: nowhere, reason: 'OUT_OF_SCOPE' },
+      ]);
+    },
+  },
+  'POST /v1/targets/unlock': {
+    kind: 'by ID',
+    run: async () => {
+      const unlock = (id: string) =>
+        asB('POST', '/v1/targets/unlock', {
+          userId: id,
+          period: TARGET_MONTH,
+          reason: 'Moved to another territory',
+        });
+      const theirs = await unlock(a.member.id);
+      const nowhere = await unlock(newId());
+      expect(theirs.statusCode).toBe(nowhere.statusCode);
+      expect(errorOf(theirs)).toEqual(errorOf(nowhere));
+    },
+  },
+  'POST /v1/targets/copy': {
+    kind: 'write',
+    run: async () => {
+      const copy = (id: string) =>
+        asB('POST', '/v1/targets/copy', {
+          period: TARGET_MONTH,
+          from: '2029-12',
+          userIds: [id],
+        });
+      expect((await copy(a.member.id)).json().skipped).toEqual([
+        { userId: a.member.id, reason: 'OUT_OF_SCOPE' },
+      ]);
+    },
+  },
+  'GET /v1/account-plans': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('GET', `/v1/account-plans?accountId=${id}&period=${TARGET_MONTH}`),
+        aAccountId,
+      ),
+  },
+  'PUT /v1/account-plans': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('PUT', '/v1/account-plans', {
+            accountId: id,
+            period: TARGET_MONTH,
+            values: { visits: '1' },
+          }),
+        aAccountId,
+      ),
+  },
   'GET /v1/catalogue': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/catalogue')),
@@ -1208,6 +1293,18 @@ beforeAll(async () => {
     purpose: `${a.word} check`,
   });
   expect(planned.statusCode).toBe(201);
+  // Targets and an account plan of A's.
+  const targets = await send(aToken, 'PUT', '/v1/targets', {
+    period: TARGET_MONTH,
+    sets: [{ userId: a.member.id, values: { visits: '40' }, version: 0 }],
+  });
+  expect(targets.statusCode).toBe(200);
+  const accountPlan = await send(aToken, 'PUT', '/v1/account-plans', {
+    accountId: aAccountId,
+    period: TARGET_MONTH,
+    values: { order_value: '500000' },
+  });
+  expect(accountPlan.statusCode).toBe(200);
   // A photo of A's, uploaded and confirmed as a phone would.
   aPhotoId = newId();
   const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);

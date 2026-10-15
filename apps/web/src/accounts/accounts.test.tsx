@@ -259,6 +259,80 @@ describe("an account's page", () => {
   });
 });
 
+describe('the account plan (M8)', () => {
+  const metric = (key: string, one: string, other: string, unit: string) => ({
+    key,
+    name: noun(one, other),
+    unit,
+    direction: 'higher_is_better',
+    targetable: true,
+  });
+  const PLAN = {
+    accountId: SHOP,
+    period: '2026-10',
+    metrics: [
+      metric('visits', 'Visit', 'Visits', 'count'),
+      metric('sales', 'Sale', 'Sales', 'currency'),
+    ],
+    values: { visits: '4' },
+    updatedAt: '2026-10-02T07:00:00.000Z',
+    updatedBy: { id: ASM, name: 'Arjun Singh' },
+  };
+  const pages = {
+    [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+    '/v1/submissions': { items: [], nextCursor: null },
+    '/v1/account-plans': PLAN,
+  };
+
+  it('shows the month’s planned values to those who see the account', async () => {
+    renderAt(`/accounts/${SHOP}`, fakeClient(pages, {}, ['account.view'], BUNDLE));
+    const plan = await screen.findByRole('region', { name: 'Monthly plan' });
+    expect(await within(plan).findByText('Visits')).toBeVisible();
+    expect(plan).toHaveTextContent('4');
+    expect(plan).toHaveTextContent('Last changed by Arjun Singh');
+    expect(within(plan).queryByRole('button', { name: 'Save plan' })).toBeNull();
+  });
+
+  it('saves changed values for those who manage account plans', async () => {
+    const client = fakeClient(
+      pages,
+      {
+        'PUT /v1/account-plans': () => ({ ...PLAN, values: { sales: '25000.50' } }),
+      },
+      ['account.view', 'account_plan.manage'],
+      BUNDLE,
+    );
+    renderAt(`/accounts/${SHOP}`, client);
+    const plan = await screen.findByRole('region', { name: 'Monthly plan' });
+    const user = userEvent.setup();
+    const sales = await within(plan).findByRole('textbox', { name: 'Sales' });
+    await user.type(sales, '25000.505');
+    expect(within(plan).getByRole('button', { name: 'Save plan' })).toBeDisabled();
+    await user.clear(sales);
+    await user.type(sales, '25000.50');
+    await user.clear(within(plan).getByRole('textbox', { name: 'Visits' }));
+    await user.click(within(plan).getByRole('button', { name: 'Save plan' }));
+    await waitFor(() =>
+      expect(writesOf(client)).toEqual([
+        [
+          'PUT',
+          '/v1/account-plans',
+          expect.anything(),
+          {
+            body: {
+              accountId: SHOP,
+              period: expect.stringMatching(/^\d{4}-\d{2}$/),
+              values: { sales: '25000.50', visits: null },
+            },
+            idempotencyKey: expect.any(String),
+          },
+        ],
+      ]),
+    );
+    expect(await within(plan).findByRole('status')).toHaveTextContent('Plan saved.');
+  });
+});
+
 describe('the account form', () => {
   it('adds an account, and shows a required slot the server says is empty', async () => {
     const client = fakeClient(

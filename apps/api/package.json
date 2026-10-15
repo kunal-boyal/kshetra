@@ -27,6 +27,7 @@
     "@fastify/cors": "11.3.0",
     "@kshetra/forms": "workspace:*",
     "@kshetra/i18n": "workspace:*",
+    "@kshetra/metrics": "workspace:*",
     "@kshetra/shared": "workspace:*",
     "@kshetra/templates": "workspace:*",
     "@nestjs/common": "^12.1.2",

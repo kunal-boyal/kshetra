@@ -12,6 +12,7 @@ import { SYSTEM } from '../modules/iam/actor';
 import { People } from '../modules/iam/people';
 import { UsersService } from '../modules/iam/users.service';
 import { DirectoryTenants } from '../modules/directory/tenants';
+import { MetricsService } from '../modules/metrics/metrics.service';
 import { TenantProvisioner } from '../modules/provisioning/provisioner';
 import { TerritoriesService } from '../modules/territories/territories.service';
 import { TenantConfigService } from '../modules/tenant-config/tenant-config.service';
@@ -343,6 +344,8 @@ async function seedAccounts(
     if ((await app.get(CatalogueService).version(tx, tenantId)) === 0) {
       await app.get(CatalogueService).applyTemplate(tx, tenantId, template.catalogue);
     }
+    // Metrics arrived with targets (phase 1 step 11c); storing them again changes nothing.
+    await app.get(MetricsService).applyTemplate(tx, tenantId, template.metrics);
     if ((await app.get(FormsService).list(tx, tenantId)).length === 0) {
       await app.get(FormsService).applyTemplate(tx, tenantId, template.forms);
       added = true;

@@ -179,12 +179,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Auto-approval runs every 15 minutes for each tenant (`review.auto_approve`); its switch is the `reviewAutoApproval` setting and its delay is in `review_rules`, through `TenantConfigService.reviewRules()`.
 - On the phone (decision D52), managers review in the Team tab (`src/screens/team.tsx`, `review-item.tsx`) through the hooks in `apps/mobile/src/review.ts`; reviews go straight to the server, never through the outbox.
 
-## Planning (decision D53)
+## Planning (decisions D53 and D55)
 
 - Routes, plan items and months of plans live in `apps/api/src/modules/planning`. The rules are pure functions in `packages/shared/src/planning.ts`: `routeDates()` (a route's dates in a month) and `nextPlanStatus()` (BR-35).
 - A plan item references only an account the planned person sees: judge it with that person's own access (`AccessResolver.onBehalfOf`), never the planner's.
 - Plan items move through `PlanningService`: `startVisit()` from a check-in with `planItemId`, `reviewed()` from the `submission.reviewed` and `submission.created` events, `missDayEnded()` nightly. Each change publishes `plan_item.status_changed`.
 - Phones keep their own plan items through the `plan_items` sync entity (`plan-items.sync.ts`, decision D54); Home's Today's plan and the visit card read them with `useTodayPlan()` in `apps/mobile/src/screens/today-plan.tsx`.
+- Targets and account plans (decision D55) live in the same module: `TargetsService` and `AccountPlansService`. They refer to metrics by key; the tenant's metric definitions are stored from its template by `MetricsService.applyTemplate()` and read with `targetable()`. Judge a value with `targetValueIssue()` and an unlock with `unlockRefusal()` from `@kshetra/shared`. Nobody sets their own targets; a locked set changes only after an unlock, which publishes `target.unlocked` as a lock publishes `target.locked`.
 
 ## Offline sync (decision D40)
 

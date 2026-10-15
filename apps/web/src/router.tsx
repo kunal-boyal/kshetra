@@ -13,6 +13,7 @@ import { AccountsPage } from './accounts/accounts-page';
 import { ApprovalsPage } from './accounts/approvals-page';
 import { PlanPage } from './planning/plan-page';
 import { ReviewPage } from './review/review-page';
+import { TargetsPage } from './targets/targets-page';
 import { CataloguePage } from './catalogue/catalogue-page';
 import { EditFormPage, NewFormPage } from './forms/form-builder-page';
 import { FormsPage } from './forms/forms-page';
@@ -148,6 +149,11 @@ const approvals = createRoute({
   component: ApprovalsPage,
 });
 const review = createRoute({ getParentRoute: () => app, path: '/review', component: ReviewPage });
+const targets = createRoute({
+  getParentRoute: () => app,
+  path: '/targets',
+  component: TargetsPage,
+});
 const territories = createRoute({
   getParentRoute: () => app,
   path: '/territories',
@@ -227,6 +233,7 @@ const tree = root.addChildren([
     editAccount,
     approvals,
     review,
+    targets,
     territories,
     imports,
     oneImport,
