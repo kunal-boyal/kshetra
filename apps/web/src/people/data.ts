@@ -57,6 +57,7 @@ export function useAccess() {
       can: (permission: TenantPermission) => permissions.has(permission),
       scope: config.data?.bundle.access.scope,
       timezone: config.data?.bundle.settings.timezone ?? 'Asia/Kolkata',
+      currency: config.data?.bundle.settings.currency ?? 'INR',
       designations: config.data?.bundle.designations ?? [],
     };
   }, [config.data]);

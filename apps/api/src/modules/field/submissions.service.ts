@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { checkFormValues, type FormDefinition, photosIn } from '@kshetra/forms';
+import type { DaySubmission } from '@kshetra/metrics';
 import {
   AppError,
   type AttachedPhoto,
@@ -20,7 +21,7 @@ import {
   todayIn,
 } from '@kshetra/shared';
 import { and, asc, desc, eq, lt, lte, ne, or, type SQL, sql } from 'drizzle-orm';
-import { accounts } from '../../db/schema/accounts';
+import { accounts, accountTypes } from '../../db/schema/accounts';
 import { submissions } from '../../db/schema/field';
 import { forms, formVersions } from '../../db/schema/forms';
 import { users } from '../../db/schema/iam';
@@ -28,6 +29,7 @@ import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { pointOf, pointSql } from '../../platform/geo';
+import { onLocalDate } from '../../platform/local-day';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { AccountsService } from '../accounts/accounts.service';
@@ -592,6 +594,57 @@ export class SubmissionsService {
   }
 
   /** Pending submissions whose auto-approval is due, locked, oldest first (M7). */
+  /**
+   * One person's submissions captured on a date on the tenant's clock, for the metric engine
+   * (BR-03): each form's key, status and values, and the account it was made at.
+   */
+  async forMetrics(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    date: string,
+    timezone: string,
+  ): Promise<DaySubmission[]> {
+    const rows = await tx
+      .select({
+        formKey: forms.key,
+        status: submissions.status,
+        data: submissions.data,
+        accountId: accounts.id,
+        typeKey: accountTypes.key,
+        segments: accounts.segments,
+      })
+      .from(submissions)
+      .innerJoin(
+        forms,
+        and(eq(forms.tenantId, submissions.tenantId), eq(forms.id, submissions.formId)),
+      )
+      .leftJoin(
+        accounts,
+        and(eq(accounts.tenantId, submissions.tenantId), eq(accounts.id, submissions.accountId)),
+      )
+      .leftJoin(
+        accountTypes,
+        and(eq(accountTypes.tenantId, accounts.tenantId), eq(accountTypes.id, accounts.typeId)),
+      )
+      .where(
+        and(
+          eq(submissions.tenantId, tenantId),
+          eq(submissions.userId, userId),
+          onLocalDate(submissions.capturedAt, date, timezone),
+        ),
+      );
+    return rows.map((row) => ({
+      formKey: row.formKey,
+      status: row.status,
+      data: row.data,
+      account:
+        row.accountId && row.typeKey
+          ? { id: row.accountId, typeKey: row.typeKey, segments: row.segments ?? [] }
+          : null,
+    }));
+  }
+
   async dueForAutoApproval(tx: TenantTx, tenantId: string, now: Date, limit = 500) {
     const rows = await tx
       .select({

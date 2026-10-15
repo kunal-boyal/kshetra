@@ -1050,6 +1050,23 @@ const FIXTURES: Record<string, Fixture> = {
       ]);
     },
   },
+  'GET /v1/performance': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('GET', `/v1/performance?period=${TARGET_MONTH}&userId=${id}`),
+        a.member.id,
+      ),
+  },
+  'GET /v1/performance/team': {
+    kind: 'own tenant',
+    run: async () =>
+      holdsNothingOfA(await asB('GET', `/v1/performance/team?period=${TARGET_MONTH}`)),
+  },
+  'GET /v1/leaderboard': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', `/v1/leaderboard?period=${TARGET_MONTH}`)),
+  },
   'GET /v1/account-plans': {
     kind: 'by ID',
     run: () =>

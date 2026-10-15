@@ -13,6 +13,9 @@ import { AccountsPage } from './accounts/accounts-page';
 import { ApprovalsPage } from './accounts/approvals-page';
 import { PlanPage } from './planning/plan-page';
 import { ReviewPage } from './review/review-page';
+import { LeaderboardPage } from './performance/leaderboard-page';
+import { PersonPerformancePage } from './performance/person-page';
+import { TeamPerformancePage } from './performance/team-page';
 import { TargetsPage } from './targets/targets-page';
 import { CataloguePage } from './catalogue/catalogue-page';
 import { EditFormPage, NewFormPage } from './forms/form-builder-page';
@@ -154,6 +157,24 @@ const targets = createRoute({
   path: '/targets',
   component: TargetsPage,
 });
+const teamPerformance = createRoute({
+  getParentRoute: () => app,
+  path: '/performance',
+  component: TeamPerformancePage,
+});
+const personPerformance = createRoute({
+  getParentRoute: () => app,
+  path: '/performance/$userId',
+  component: function PersonPerformanceRoute() {
+    const { userId } = personPerformance.useParams();
+    return <PersonPerformancePage key={userId} userId={userId} />;
+  },
+});
+const leaderboard = createRoute({
+  getParentRoute: () => app,
+  path: '/leaderboard',
+  component: LeaderboardPage,
+});
 const territories = createRoute({
   getParentRoute: () => app,
   path: '/territories',
@@ -234,6 +255,9 @@ const tree = root.addChildren([
     approvals,
     review,
     targets,
+    teamPerformance,
+    personPerformance,
+    leaderboard,
     territories,
     imports,
     oneImport,

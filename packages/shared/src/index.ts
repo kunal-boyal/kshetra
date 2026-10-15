@@ -377,6 +377,8 @@ export {
 } from './schemas/planning';
 export { METRIC_UNITS, targetValueIssue, UNLOCK_REASON_MIN, unlockRefusal } from './targets';
 export type { MetricUnit } from './targets';
+export { attainment, monthDates, monthOf, rankByScore, ratioOf, scoreOf } from './performance';
+export type { MetricDirection, RankedRow, ScoredMetric, ScoreInput } from './performance';
 export {
   AccountPlanQuery,
   AccountPlanResult,
@@ -398,3 +400,14 @@ export {
   TargetValues,
   UnlockTargetBody,
 } from './schemas/targets';
+export {
+  Leaderboard,
+  LeaderboardQuery,
+  MetricFigures,
+  PerformanceMetric,
+  PerformanceQuery,
+  PersonPerformance,
+  RankingGroup,
+  TeamPerformance,
+  TeamPerformanceQuery,
+} from './schemas/performance';

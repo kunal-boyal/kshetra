@@ -49,7 +49,7 @@ export class CellSetup {
     await this.accountTypes.applyTemplate(tx, tenantId, template.accountTypes);
     await this.catalogue.applyTemplate(tx, tenantId, template.catalogue);
     await this.forms.applyTemplate(tx, tenantId, template.forms);
-    await this.metrics.applyTemplate(tx, tenantId, template.metrics);
+    await this.metrics.applyTemplate(tx, tenantId, template.metrics, template.score);
     await this.attendance.applyTemplate(tx, tenantId, template.people.attendance);
     await this.imports.applyTemplate(tx, tenantId, templateImports(template));
   }

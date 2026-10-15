@@ -55,7 +55,8 @@ export class TargetsService {
     private readonly outbox: Outbox,
   ) {}
 
-  private async sets(
+  /** These people's target sets for a month, by person: an empty one where none exists. */
+  async sets(
     tx: TenantTx,
     tenantId: string,
     period: string,
