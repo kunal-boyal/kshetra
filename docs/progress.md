@@ -2,7 +2,7 @@
 
 This file tracks where the build stands against the delivery phases in spec section 15. Update it in the same pull request as every step, so it never drifts from the code.
 
-Last updated: 2026-10-15
+Last updated: 2026-10-16
 
 ## Now
 
@@ -73,6 +73,7 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-16 | Expo SDK 57 patch: expo 57.0.29 in the `mobile` catalog, with expo-constants 57.0.22, expo-linking 57.0.13 and expo-router 57.0.27; jest-expo stays at 57.0.6 | PR #35 |
 | 2026-10-15 | Phase 1 step 12a: the metric engine, scores and ranks, and the web's Performance, person's month and Leaderboard pages (decision D56) | PR #34, merged as `2bad298` |
 | 2026-10-15 | Phase 1 step 11c: targets by month (draft, lock, unlock, copy, import), account plans and their import, metric definitions stored from the template (decision D55) | PR #33, merged as `1e7ad6e` |
 | 2026-10-15 | Phase 1 step 11b: today's plan on the phone, synced as the `plan_items` entity, with visits started from it and visits planned on the phone (decision D54) | PR #32, merged as `e896fbc` |
@@ -132,6 +133,7 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | Confirm decision D46 (forms on the phone), merged as proposed in #22: drafts kept per version, submitted entries held on the phone until step 9 sends them, signatures as SVG strokes, items synced to every phone | Kunal | Before phase 1 builds on it |
 | Confirm decision D48 (tracking on the phone), merged as proposed in #24: punches offline, the consent text, the background task and point buffer, stopping without restarting (BR-37), the help screen | Kunal | Before phase 1 builds on it |
 | Install the Android development build Kunal started on 2026-10-14 from `chore/expo-57-patches` (EAS build `c7c41825`), which carries visits (9b) and the Expo SDK 57.0.28 patch, and try visits on a phone; phones on the 2026-10-13 build lack both | Kunal | Before the device protocol |
+| A new Android development build for the Expo SDK 57.0.29 patch, which changes native code (expo-modules-core, expo-constants, expo-asset, @expo/ui): phones on earlier builds don't have it until then. It runs in Expo's cloud on your account and needs your go-ahead | Kunal | Before the device protocol |
 | Confirm decisions D49 (visits and submissions on the server) and D50 (visits and forms on the phone), merged as proposed in #26 and #27 | Kunal | Before phase 1 builds on them |
 | Confirm decisions D51 to D57 (review, review on the phone, journey plans, today's plan on the phone, targets and account plans, the metric engine, My month on the phone), merged or proposed in #29 to #34 and the 12b pull request | Kunal | Before phase 1 builds on them |
 | Run the device protocol (spec 14.5) with the development build on two Android phones of different brands, and report the gaps | Kunal | Before the pilot week |
