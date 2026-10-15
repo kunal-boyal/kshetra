@@ -1,6 +1,7 @@
 import { Button, Icon } from '@kshetra/ui-web';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import {
+  ChartNoAxesColumn,
   ClipboardCheck,
   FileSpreadsheet,
   House,
@@ -12,6 +13,7 @@ import {
   Settings,
   Store,
   Target,
+  Trophy,
   Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -56,6 +58,12 @@ export function AppShell() {
       : []),
     ...(access.can('target.view')
       ? [{ to: '/targets', icon: Target, label: t('nav.targets') }]
+      : []),
+    access.can('performance.view_team')
+      ? { to: '/performance', icon: ChartNoAxesColumn, label: t('nav.performance') }
+      : { to: '/performance/me', icon: ChartNoAxesColumn, label: t('nav.my_performance') },
+    ...(access.can('leaderboard.view')
+      ? [{ to: '/leaderboard', icon: Trophy, label: t('nav.leaderboard') }]
       : []),
     ...(access.can('territory.manage')
       ? [{ to: '/territories', icon: MapPinned, label: t('nav.territories') }]

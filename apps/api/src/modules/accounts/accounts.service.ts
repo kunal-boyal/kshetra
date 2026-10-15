@@ -1041,6 +1041,45 @@ export class AccountsService {
     return [];
   }
 
+  /**
+   * The active accounts these people held a slot of at any time in a date range, for coverage
+   * (spec 5.7): who held which, with its type and segments.
+   */
+  async heldDuring(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    from: string,
+    to: string,
+  ): Promise<{ userId: string; accountId: string; typeKey: string; segments: string[] }[]> {
+    if (userIds.length === 0) return [];
+    return tx
+      .selectDistinct({
+        userId: accountSlots.userId,
+        accountId: accounts.id,
+        typeKey: accountTypes.key,
+        segments: accounts.segments,
+      })
+      .from(accountSlots)
+      .innerJoin(
+        accounts,
+        and(eq(accounts.tenantId, accountSlots.tenantId), eq(accounts.id, accountSlots.accountId)),
+      )
+      .innerJoin(
+        accountTypes,
+        and(eq(accountTypes.tenantId, accounts.tenantId), eq(accountTypes.id, accounts.typeId)),
+      )
+      .where(
+        and(
+          eq(accountSlots.tenantId, tenantId),
+          inArray(accountSlots.userId, [...new Set(userIds)]),
+          eq(accounts.status, 'active'),
+          lte(accountSlots.validFrom, to),
+          or(isNull(accountSlots.validTo), gt(accountSlots.validTo, from)),
+        ),
+      );
+  }
+
   /** Today's holders of an account's slots. */
   async holdersOn(
     tx: TenantTx,

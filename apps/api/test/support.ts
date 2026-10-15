@@ -164,7 +164,7 @@ export class World {
       await this.app.get(CatalogueService).applyTemplate(tx, tenantId, catalogue);
       await this.app.get(FormsService).applyTemplate(tx, tenantId, forms);
       await this.app.get(AttendanceService).applyTemplate(tx, tenantId, loaded.people.attendance);
-      await this.app.get(MetricsService).applyTemplate(tx, tenantId, loaded.metrics);
+      await this.app.get(MetricsService).applyTemplate(tx, tenantId, loaded.metrics, loaded.score);
     });
     return tenantId;
   }

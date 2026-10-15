@@ -345,7 +345,7 @@ async function seedAccounts(
       await app.get(CatalogueService).applyTemplate(tx, tenantId, template.catalogue);
     }
     // Metrics arrived with targets (phase 1 step 11c); storing them again changes nothing.
-    await app.get(MetricsService).applyTemplate(tx, tenantId, template.metrics);
+    await app.get(MetricsService).applyTemplate(tx, tenantId, template.metrics, template.score);
     if ((await app.get(FormsService).list(tx, tenantId)).length === 0) {
       await app.get(FormsService).applyTemplate(tx, tenantId, template.forms);
       added = true;

@@ -187,6 +187,14 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Phones keep their own plan items through the `plan_items` sync entity (`plan-items.sync.ts`, decision D54); Home's Today's plan and the visit card read them with `useTodayPlan()` in `apps/mobile/src/screens/today-plan.tsx`.
 - Targets and account plans (decision D55) live in the same module: `TargetsService` and `AccountPlansService`. They refer to metrics by key; the tenant's metric definitions are stored from its template by `MetricsService.applyTemplate()` and read with `targetable()`. Judge a value with `targetValueIssue()` and an unlock with `unlockRefusal()` from `@kshetra/shared`. Nobody sets their own targets; a locked set changes only after an unlock, which publishes `target.unlocked` as a lock publishes `target.locked`.
 
+## Metrics and performance (decision D56)
+
+- The metric engine lives in `apps/api/src/modules/performance`; definitions stay in `modules/metrics` (`MetricsService.definitions()`, `score()`). `MetricsEngine.recompute(tx, tenantId, userId, date)` rebuilds one person's day from the records the owning modules' `forMetrics()` methods return, through `calculateDayFacts()` in `@kshetra/metrics`. Recomputing is idempotent.
+- Anything that changes a person's day recomputes it: the consumers in `performance.upkeep.ts` follow `submission.created`, `submission.reviewed`, `visit.ended` and `plan_item.status_changed`. A new source of metric values needs its event consumed there and its calculator in `calculate.ts`, added to `COMPUTED_SOURCES`.
+- Values belong to the capturing person and the capture's date on the tenant's clock (BR-03): filter moments with `onLocalDate()` from `src/platform/local-day.ts`.
+- Scores and ranks are `scoreOf()` and `rankByScore()` from `@kshetra/shared` (BR-06, BR-07), computed on read by `PerformanceService` from locked targets; ranking groups are designations marked ranked (D8).
+- The web shows a metric with `MetricTile` in `apps/web/src/performance/shared.tsx`, on the design system's `KpiTile` from `@kshetra/ui-web`, and formats values by unit with `useFigure()`.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

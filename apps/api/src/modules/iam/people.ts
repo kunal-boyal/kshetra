@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { TenantPermission, UserStatus } from '@kshetra/shared';
-import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
+import type { LocalizedNoun, TenantPermission, UserStatus } from '@kshetra/shared';
+import type { z } from 'zod';
+import { and, asc, eq, inArray, ne, type SQL, sql } from 'drizzle-orm';
 import { designations, roles, users } from '../../db/schema/iam';
 import type { TenantTx } from '../../platform/database';
 
@@ -73,6 +74,45 @@ export class People {
   /** Everyone in the tenant, by code, for files that name people (BR-42). */
   async everyone(tx: TenantTx, tenantId: string): Promise<PersonFacts[]> {
     return this.select(tx).where(eq(users.tenantId, tenantId)).orderBy(asc(users.code));
+  }
+
+  /**
+   * The active people a condition on `users` holds for, by name: a caller's reach, from
+   * `Scopes.users()`.
+   */
+  async matching(tx: TenantTx, tenantId: string, condition: SQL): Promise<PersonFacts[]> {
+    return this.select(tx)
+      .where(and(eq(users.tenantId, tenantId), eq(users.status, 'active'), condition))
+      .orderBy(asc(users.name), asc(users.id));
+  }
+
+  /** The ranking groups (D8): one per designation marked ranked, highest level first. */
+  async rankingGroups(
+    tx: TenantTx,
+    tenantId: string,
+  ): Promise<{ key: string; name: z.output<typeof LocalizedNoun> }[]> {
+    return tx
+      .select({ key: designations.key, name: designations.name })
+      .from(designations)
+      .where(and(eq(designations.tenantId, tenantId), eq(designations.ranked, true)))
+      .orderBy(asc(designations.level), asc(designations.key));
+  }
+
+  /** The active people with a designation: one ranking group (D8). */
+  async withDesignation(
+    tx: TenantTx,
+    tenantId: string,
+    designation: string,
+  ): Promise<PersonFacts[]> {
+    return this.select(tx)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          eq(users.status, 'active'),
+          eq(designations.key, designation),
+        ),
+      )
+      .orderBy(asc(users.code));
   }
 
   /**

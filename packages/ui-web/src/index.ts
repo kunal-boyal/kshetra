@@ -6,6 +6,8 @@ export type { BadgeVariant, Column } from './data';
 export { Checkbox, ChoiceGroup, SelectField, TextAreaField } from './fields';
 export type { CheckboxProps, SelectFieldProps, TextAreaFieldProps } from './fields';
 export { Icon } from './icon';
+export { KpiTile } from './kpi';
+export type { KpiTileProps } from './kpi';
 export type { IconProps } from './icon';
 export { Card, EmptyState, IconChip, Notice } from './surfaces';
 export type { CardProps, EmptyStateProps, Hue, IconChipProps } from './surfaces';

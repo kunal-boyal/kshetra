@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { DayVisit } from '@kshetra/metrics';
 import {
   AppError,
   type CheckOutBody,
@@ -9,12 +10,13 @@ import {
   type VisitResult,
 } from '@kshetra/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import { accounts } from '../../db/schema/accounts';
+import { accounts, accountTypes } from '../../db/schema/accounts';
 import { submissions, visits } from '../../db/schema/field';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { pointOf, pointSql } from '../../platform/geo';
+import { onLocalDate } from '../../platform/local-day';
 import { Outbox } from '../../platform/outbox';
 import { AccountsService } from '../accounts/accounts.service';
 import { clockSkewSeconds } from '../iam/devices.service';
@@ -308,6 +310,45 @@ export class VisitsService {
    * Visits with nothing recorded for 4 hours check out 4 hours after their last check-in or
    * submission, `idle` (M6). Returns how many it closed.
    */
+  /** One person's visits checked in on a date on the tenant's clock, for the metric engine. */
+  async forMetrics(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    date: string,
+    timezone: string,
+  ): Promise<DayVisit[]> {
+    const rows = await tx
+      .select({
+        accountId: accounts.id,
+        typeKey: accountTypes.key,
+        segments: accounts.segments,
+        checkInAt: visits.checkInAt,
+        checkOutAt: visits.checkOutAt,
+      })
+      .from(visits)
+      .innerJoin(
+        accounts,
+        and(eq(accounts.tenantId, visits.tenantId), eq(accounts.id, visits.accountId)),
+      )
+      .innerJoin(
+        accountTypes,
+        and(eq(accountTypes.tenantId, accounts.tenantId), eq(accountTypes.id, accounts.typeId)),
+      )
+      .where(
+        and(
+          eq(visits.tenantId, tenantId),
+          eq(visits.userId, userId),
+          onLocalDate(visits.checkInAt, date, timezone),
+        ),
+      );
+    return rows.map((row) => ({
+      account: { id: row.accountId, typeKey: row.typeKey, segments: row.segments },
+      checkInAt: row.checkInAt.toISOString(),
+      checkOutAt: row.checkOutAt?.toISOString() ?? null,
+    }));
+  }
+
   async closeIdle(tx: TenantTx, tenantId: string, now: Date = new Date()): Promise<number> {
     const lastActivity = sql<Date>`greatest(${visits.checkInAt}, (
       select max(s.captured_at) from ${submissions} s

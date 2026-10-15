@@ -543,6 +543,25 @@ export class PlanningService {
     }
   }
 
+  /** One person's plan items for a day, for plan compliance (spec 5.7). */
+  async forMetrics(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    date: string,
+  ): Promise<{ status: PlanItemStatus }[]> {
+    return tx
+      .select({ status: planItems.status })
+      .from(planItems)
+      .where(
+        and(
+          eq(planItems.tenantId, tenantId),
+          eq(planItems.userId, userId),
+          eq(planItems.date, date),
+        ),
+      );
+  }
+
   /** Planned items whose day has ended are missed (BR-35). Returns how many. */
   async missDayEnded(tx: TenantTx, tenantId: string, today: string): Promise<number> {
     const due = await tx
