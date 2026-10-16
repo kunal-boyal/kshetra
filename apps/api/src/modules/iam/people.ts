@@ -86,6 +86,29 @@ export class People {
       .orderBy(asc(users.name), asc(users.id));
   }
 
+  /**
+   * How to reach these people outside the app, for notifications (M16): their number and email,
+   * active people only. Never logged.
+   */
+  async contacts(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, { phone: string | null; email: string | null }>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select({ id: users.id, phone: users.phoneE164, email: users.email })
+      .from(users)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          eq(users.status, 'active'),
+          inArray(users.id, [...new Set(ids)]),
+        ),
+      );
+    return new Map(rows.map((row) => [row.id, { phone: row.phone, email: row.email }]));
+  }
+
   /** The ranking groups (D8): one per designation marked ranked, highest level first. */
   async rankingGroups(
     tx: TenantTx,

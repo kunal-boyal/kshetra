@@ -1,6 +1,7 @@
 import { Button, Icon } from '@kshetra/ui-web';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import {
+  Bell,
   ChartNoAxesColumn,
   ClipboardCheck,
   FileSpreadsheet,
@@ -19,6 +20,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
+import { useUnread } from '../notifications/data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { savedTenants } from '../preferences';
@@ -29,6 +31,22 @@ import { LanguagePicker, ThemePicker } from './preferences-menu';
  * The portal's frame (spec 8.2): navigation on the left, the tenant and the person's choices on
  * top. Navigation shows only what the person may use; each module adds its entry when it arrives.
  */
+/** The inbox, from the header, with how many are unread (M16). */
+function NotificationsLink() {
+  const { t } = useLanguage();
+  const unread = useUnread().data ?? 0;
+  return (
+    <Link
+      to="/notifications"
+      className="ks-btn ghost sm"
+      aria-label={t('notifications.open', { count: unread })}
+    >
+      <Icon icon={Bell} size="sm" />
+      {unread > 0 ? <span aria-hidden="true">{unread > 99 ? '99+' : unread}</span> : null}
+    </Link>
+  );
+}
+
 export function AppShell() {
   const { client, queryClient } = useApp();
   const navigate = useNavigate();
@@ -128,6 +146,7 @@ export function AppShell() {
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-3">
           <p className="heading-md">{tenant?.name}</p>
           <div className="flex flex-wrap items-center gap-2" aria-label={t('shell.account_menu')}>
+            <NotificationsLink />
             <LanguagePicker />
             <ThemePicker />
             {others.map((choice) => (

@@ -13,6 +13,7 @@ import { workflowInstances, workflowSteps } from '../../db/schema/workflow';
 import { type AuditActor, AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
+import { Outbox } from '../../platform/outbox';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
 import { RequestTypes } from './request-types';
@@ -31,6 +32,7 @@ export class ApprovalsService {
     private readonly people: People,
     private readonly types: RequestTypes,
     private readonly audit: AuditLog,
+    private readonly outbox: Outbox,
   ) {}
 
   /**
@@ -82,6 +84,12 @@ export class ApprovalsService {
       action: 'approval.requested',
       target: { type: 'approval', id },
       after: { requestType: type, requestId, approvers },
+    });
+    await this.outbox.publish(tx, tenantId, 'approval.requested', id, {
+      approvalId: id,
+      requestType: type,
+      requesterId,
+      approverIds: approvers,
     });
     return id;
   }
@@ -202,6 +210,13 @@ export class ApprovalsService {
       target: { type: 'approval', id },
       before: { status: instance.status },
       after: { status: outcome, note: body.note ?? null },
+    });
+    await this.outbox.publish(tx, access.tenantId, 'approval.decided', id, {
+      approvalId: id,
+      requestType: instance.requestType,
+      requesterId: instance.requesterId,
+      deciderId: access.userId,
+      outcome,
     });
     const [result] = await this.results(tx, access.tenantId, [closed!]);
     return result!;

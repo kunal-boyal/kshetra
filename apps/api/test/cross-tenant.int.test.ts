@@ -5,6 +5,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { apiControllers } from '../src/app.module';
+import { NotificationDelivery } from '../src/modules/notifications/delivery';
 import { type MemoryObjectStore, ObjectStore } from '../src/platform/object-store';
 import { routeRegistry } from '../src/platform/routes';
 import { newDevice, newPhone, startApp, World } from './support';
@@ -1050,6 +1051,46 @@ const FIXTURES: Record<string, Fixture> = {
       ]);
     },
   },
+  'GET /v1/notifications': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/notifications')),
+  },
+  'POST /v1/notifications/read': {
+    kind: 'write',
+    run: async () => {
+      // A's admin holds a notification: A's request waits for them.
+      const [theirs] = await admin<{ id: string }>(
+        'select id from cell.notifications where tenant_id = $1 limit 1',
+        [a.tenantId],
+      );
+      expect(theirs).toBeDefined();
+      const read = (id: string) => asB('POST', '/v1/notifications/read', { ids: [id] });
+      const mine = await read(theirs!.id);
+      expect(mine.statusCode).toBe(200);
+      expect(mine.json()).toEqual((await read(newId())).json());
+    },
+  },
+  'GET /v1/notification-prefs': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/notification-prefs')),
+  },
+  'PUT /v1/notification-prefs': {
+    kind: 'write',
+    run: async () => {
+      expect((await asB('PUT', '/v1/notification-prefs', { muted: ['plan'] })).statusCode).toBe(
+        200,
+      );
+    },
+  },
+  'PUT /v1/push-tokens': {
+    kind: 'write',
+    run: async () => {
+      const token = `ExponentPushToken[${newId().slice(0, 22)}]`;
+      expect((await asBPhone('PUT', '/v1/push-tokens', { token, locale: 'en' })).statusCode).toBe(
+        204,
+      );
+    },
+  },
   'GET /v1/performance': {
     kind: 'by ID',
     run: () =>
@@ -1351,6 +1392,14 @@ beforeAll(async () => {
       })
     ).statusCode,
   ).toBe(201);
+  // Notifications the seeding raised are delivered now, so no worker changes A's rows later.
+  for (const tenantId of [a.tenantId, b.tenantId]) {
+    const waiting = await admin<{ id: string }>(
+      `select id from cell.notification_deliveries where tenant_id = $1 and status in ('queued', 'held')`,
+      [tenantId],
+    );
+    for (const { id } of waiting) await app.get(NotificationDelivery).deliver(tenantId, id);
+  }
   aRows = await rowsOf(a.tenantId);
   const theirs = idsIn(await rowsOf(b.tenantId));
   aIds = [...idsIn(aRows)].filter((id) => !theirs.has(id));

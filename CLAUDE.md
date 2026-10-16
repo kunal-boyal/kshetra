@@ -196,6 +196,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - The web shows a metric with `MetricTile` in `apps/web/src/performance/shared.tsx`, on the design system's `KpiTile` from `@kshetra/ui-web`, and formats values by unit with `useFigure()`.
 - On the phone (decision D57), My month on Home (`src/screens/my-month.tsx`) reads `useMyMonth()` from `apps/mobile/src/performance.ts`, kept on the phone with when it was read; tiles use `KpiTile` from `@kshetra/ui-mobile` and `useTileParts()`, which shortens values to lakh and crore. The leaderboard (`/leaderboard`) is read online.
 
+## Notifications (decision D58)
+
+- Notifications live in `apps/api/src/modules/notifications`. An event's category, channels in order and urgency are in `NOTIFICATION_KINDS` in `@kshetra/shared`; its text is `notify.*` in the i18n catalogue, chosen by `notificationMessage()` from `@kshetra/i18n`, which the server, the web and the phone all use. A new event needs all three.
+- Notify with `NotificationsService.notify(tx, tenantId, { userId, event, values, link, dedupeKey })` in the transaction of the change, usually from an outbox consumer in `notifications.upkeep.ts`. The `dedupeKey` names the occurrence, so a redelivered event notifies once. Values that differ by language go in as `<name>_en` and `<name>_hi`.
+- Delivery runs on the `notifications` queue (`NotificationDelivery`): push, then the next channel when one can't reach the person. Senders follow `PUSH_PROVIDER`, `SMS_PROVIDER` and `EMAIL_PROVIDER`: console locally, memory in tests (`MemoryPushSender` and friends), refused in production. Never log a number, address or token unmasked: use `maskPhone()`, `maskEmail()` and `maskToken()`.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

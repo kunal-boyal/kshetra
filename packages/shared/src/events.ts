@@ -75,6 +75,9 @@ export const SubmissionReviewedPayload = z.object({
   before: z.enum(['pending', 'approved', 'rejected']),
   status: z.enum(['approved', 'rejected']),
   auto: z.boolean(),
+  /** Who decided, when a person did, and what they wrote: the submitter hears of a rejection. */
+  reviewerId: z.uuid().nullable().optional(),
+  note: z.string().nullable().optional(),
 });
 
 /** A plan item's status moved (M8, BR-35): plan compliance follows it (step 12). */
@@ -94,6 +97,34 @@ export const TargetSetEventPayload = z.object({
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
 });
 
+/** A request now waits for these approvers (M16: they hear of it). */
+export const ApprovalRequestedPayload = z.object({
+  approvalId: z.uuid(),
+  requestType: z.string(),
+  requesterId: z.uuid(),
+  approverIds: z.array(z.uuid()),
+});
+
+/** A request was decided (M16: the requester hears of it). */
+export const ApprovalDecidedPayload = z.object({
+  approvalId: z.uuid(),
+  requestType: z.string(),
+  requesterId: z.uuid(),
+  deciderId: z.uuid(),
+  outcome: z.enum(['approved', 'rejected']),
+});
+
+/** An import finished, committed or failed (M16: the person who started it hears of it). */
+export const ImportFinishedPayload = z.object({
+  importId: z.uuid(),
+  userId: z.uuid(),
+  target: z.string(),
+  fileName: z.string(),
+  status: z.enum(['committed', 'failed']),
+  created: z.int().min(0).nullable(),
+  updated: z.int().min(0).nullable(),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
@@ -109,6 +140,9 @@ export const EVENT_PAYLOADS = {
   'plan_item.status_changed': PlanItemStatusChangedPayload,
   'target.locked': TargetSetEventPayload,
   'target.unlocked': TargetSetEventPayload,
+  'approval.requested': ApprovalRequestedPayload,
+  'approval.decided': ApprovalDecidedPayload,
+  'import.finished': ImportFinishedPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

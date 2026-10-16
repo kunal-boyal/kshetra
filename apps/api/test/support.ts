@@ -35,6 +35,10 @@ export function testConfig(overrides: Record<string, string> = {}): Config {
     REDIS_URL: inject('redisUrl'),
     OTP_PROVIDER: 'memory',
     OBJECT_STORE: 'memory',
+    QUEUE_PREFIX: `test-${process.pid}:bull`,
+    PUSH_PROVIDER: 'memory',
+    SMS_PROVIDER: 'memory',
+    EMAIL_PROVIDER: 'memory',
     OTP_PEPPER: 'a-test-pepper-of-16+',
     // Tests run the relay themselves, so nothing retries behind their backs.
     OUTBOX_RELAY: 'false',

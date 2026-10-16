@@ -224,6 +224,8 @@ This section defines what a tenant can configure. Modules in section 6 read thei
 | Target unlock by admin | Off | When on, an admin may unlock a locked target with a reason (audited) |
 | Orders need an open shift | On | Applies to field users |
 | Orders allowed offline | On | Price-checked on sync (BR-14) |
+| Plan notification time | 08:00 | When field users hear about today's plan (M16) |
+| Quiet hours | 21:00 to 07:00 | Non-urgent push and SMS wait until they end; equal times switch them off (M16) |
 
 ### 5.2 Terminology
 
@@ -1291,8 +1293,12 @@ workflow_steps(instance_id, step_index, approver_ids uuid[],
        status enum(waiting,pending,approved,rejected,skipped), acted_by NULL, acted_at NULL, note, due_at NULL)
        PK(instance_id, step_index)
 notification_templates(id, tid NULL, event, channel, locale, body, provider_template NULL)
-notifications(id, tid, user_id, event, channel, payload jsonb, status, provider_ref, error, cost_units,
-       created_at, sent_at)                                                  PART monthly
+notifications(id, tid, user_id, event, category, values jsonb, link, dedupe_key, inbox, read_at,
+       created_at)                                       UQ(tid, user_id, dedupe_key) · the inbox entry
+notification_deliveries(id, tid, notification_id, channel, status enum(queued,held,sent,failed,skipped),
+       address, provider_ref, error, cost_units, attempts, not_before, created_at, sent_at)
+       · unpartitioned at launch, partitioned monthly when volume needs it (D58)
+push_tokens(tid, device_id, user_id, token, locale, updated_at)              PK(tid, device_id)
 notification_prefs(tid, user_id, category, muted)
 import_jobs(id, tid, target, file_media_id, file_name, sheets jsonb, sheet, header_row, headers jsonb,
        mapping jsonb, status enum(reading,mapping,validating,ready,invalid,committing,committed,failed),
@@ -1372,7 +1378,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | HR | `GET /v1/attendance?userId&period`, `POST /v1/leave-requests`, `POST /v1/regularisations`, `GET /v1/calendars`, `PUT /v1/calendars`, `PUT /v1/leave-types`, `PUT /v1/payroll-profiles`, `GET /v1/payslips/:userId/:period` |
 | Expenses | `PUT /v1/expense-policies`, `POST /v1/expense-claims`, `POST /v1/expense-claims/:id/receipts`, `POST /v1/expense-claims/:id/paid` |
 | Approvals | `GET /v1/approvals/inbox`, `GET /v1/approvals/:instanceId`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel` |
-| Notifications | `GET /v1/notifications`, `POST /v1/notifications/read`, `PUT /v1/notification-prefs` |
+| Notifications | `GET /v1/notifications`, `POST /v1/notifications/read`, `GET /v1/notification-prefs`, `PUT /v1/notification-prefs`, `PUT /v1/push-tokens` |
 | Imports and exports | `POST /v1/imports`, `GET /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports/:id` |
 | Integrations | `GET /v1/api-clients`, `POST /v1/api-clients`, `GET /v1/webhooks`, `POST /v1/webhooks`, `POST /v1/webhooks/:id/test`, `GET /v1/webhooks/:id/deliveries`, `POST /v1/bulk/users`, `POST /v1/bulk/accounts`, `POST /v1/bulk/items`, `POST /v1/bulk/ledger-entries`, `POST /v1/bulk/external-metrics` |
 | Audit | `GET /v1/audit` |

@@ -294,6 +294,8 @@ export class ReviewService implements OnModuleInit {
       before: submission.status,
       status: decision.decision,
       auto: decision.auto,
+      reviewerId: decision.reviewerId,
+      note: decision.note,
     });
   }
 }

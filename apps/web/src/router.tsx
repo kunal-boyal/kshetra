@@ -13,6 +13,7 @@ import { AccountsPage } from './accounts/accounts-page';
 import { ApprovalsPage } from './accounts/approvals-page';
 import { PlanPage } from './planning/plan-page';
 import { ReviewPage } from './review/review-page';
+import { NotificationsPage } from './notifications/notifications-page';
 import { LeaderboardPage } from './performance/leaderboard-page';
 import { PersonPerformancePage } from './performance/person-page';
 import { TeamPerformancePage } from './performance/team-page';
@@ -170,6 +171,11 @@ const personPerformance = createRoute({
     return <PersonPerformancePage key={userId} userId={userId} />;
   },
 });
+const notificationsRoute = createRoute({
+  getParentRoute: () => app,
+  path: '/notifications',
+  component: NotificationsPage,
+});
 const leaderboard = createRoute({
   getParentRoute: () => app,
   path: '/leaderboard',
@@ -258,6 +264,7 @@ const tree = root.addChildren([
     teamPerformance,
     personPerformance,
     leaderboard,
+    notificationsRoute,
     territories,
     imports,
     oneImport,

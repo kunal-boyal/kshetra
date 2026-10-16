@@ -42,6 +42,9 @@ const SETTINGS = {
   targetUnlockByAdmin: false,
   ordersNeedOpenShift: true,
   ordersAllowedOffline: true,
+  planNotificationTime: '08:00',
+  quietHoursStart: '21:00',
+  quietHoursEnd: '07:00',
 };
 
 function person(id: string, name: string, overrides: Record<string, unknown> = {}) {
