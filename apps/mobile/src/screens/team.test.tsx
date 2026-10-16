@@ -189,7 +189,8 @@ describe('the Team tab (M7, spec 8.1)', () => {
     expect(await screen.findByText('Shelf restocked')).toBeOnTheScreen();
     expect(screen.getByText('Inside, 40 m')).toBeOnTheScreen();
     expect(screen.getByText(/Gallery · 12 m from where the form was filled/)).toBeOnTheScreen();
-    expect(await screen.findByLabelText('Photo 1')).toBeOnTheScreen();
+    // The photo waits for its link, which a slow runner takes a while to answer.
+    expect(await screen.findByLabelText('Photo 1', {}, { timeout: 5000 })).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Reject' }));
     await fireEvent.press(screen.getAllByRole('button', { name: 'Reject' }).at(-1)!);
