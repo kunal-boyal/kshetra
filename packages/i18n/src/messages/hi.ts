@@ -1446,4 +1446,11 @@ export const hi: Record<MessageKey, Message> = {
   'leaderboard.you': '(आप)',
   'leaderboard.empty_title': 'इस समूह में कोई नहीं',
   'leaderboard.empty_body': 'इस पद वाले लोग जुड़ने पर यहाँ दिखेंगे।',
+  'performance.score_is': 'स्कोर {score}',
+  'performance.rank_in': '{size} {group} में रैंक {rank}',
+  'performance.attainment_of': '{target} का {percent}',
+  'performance.lakh': '{value} लाख',
+  'performance.crore': '{value} करोड़',
+  'performance.read_at': '{time} तक',
+  'leaderboard.ranked': '{rank}. {name}',
 };

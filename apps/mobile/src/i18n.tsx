@@ -6,7 +6,7 @@ import { saveLocale, savedLocale } from './preferences';
 
 type Params = Readonly<Record<string, string | number>>;
 
-interface Language {
+export interface Language {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   /** The tenant's words for each language, from the config bundle once signed in. */

@@ -1,13 +1,14 @@
 import { spacing } from '@kshetra/design-tokens';
-import { Button, EmptyState, Screen, SyncBanner, Text } from '@kshetra/ui-mobile';
+import { Button, Screen, SyncBanner, Text } from '@kshetra/ui-mobile';
 import { router } from 'expo-router';
-import { CircleAlert, CloudUpload, LayoutDashboard, RotateCw } from 'lucide-react-native';
+import { CircleAlert, CloudUpload, RotateCw } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { useConfig, useMe } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useSyncStatus } from '../sync';
 import { ShiftSection } from './shift';
+import { MyMonth } from './my-month';
 import { TodayPlan } from './today-plan';
 import { VisitNow } from './visit';
 
@@ -45,8 +46,8 @@ function Banner() {
 }
 
 /**
- * Home (spec 8.1): the sync banner, the tenant's name, a greeting, the shift card and the visit
- * the person is in. The plan and "My month" tiles arrive with their modules in phase 1.
+ * Home (spec 8.1): the sync banner, the tenant's name, a greeting, the shift card, the visit the
+ * person is in, today's plan and My month.
  */
 export function HomeScreen() {
   const { session } = useApp();
@@ -98,9 +99,7 @@ export function HomeScreen() {
       <ShiftSection />
       <VisitNow />
       <TodayPlan />
-      <EmptyState icon={LayoutDashboard} title={t('home.empty_title')}>
-        {t('home.empty_body')}
-      </EmptyState>
+      <MyMonth />
     </Screen>
   );
 }

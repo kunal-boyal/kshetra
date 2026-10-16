@@ -1445,6 +1445,13 @@ export const en = {
   'leaderboard.you': '(you)',
   'leaderboard.empty_title': 'No one in this group',
   'leaderboard.empty_body': 'People with this designation show here once they are added.',
+  'performance.score_is': 'Score {score}',
+  'performance.rank_in': 'Rank {rank} of {size} {group}',
+  'performance.attainment_of': '{percent} of {target}',
+  'performance.lakh': '{value} L',
+  'performance.crore': '{value} Cr',
+  'performance.read_at': 'As of {time}',
+  'leaderboard.ranked': '{rank}. {name}',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;
