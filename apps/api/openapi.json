@@ -3063,6 +3063,15 @@
                         },
                         "ordersAllowedOffline": {
                           "type": "boolean"
+                        },
+                        "planNotificationTime": {
+                          "$ref": "#/components/schemas/TimeOfDay"
+                        },
+                        "quietHoursStart": {
+                          "$ref": "#/components/schemas/TimeOfDay"
+                        },
+                        "quietHoursEnd": {
+                          "$ref": "#/components/schemas/TimeOfDay"
                         }
                       },
                       "required": [
@@ -3086,7 +3095,10 @@
                         "journeyPlanApproval",
                         "targetUnlockByAdmin",
                         "ordersNeedOpenShift",
-                        "ordersAllowedOffline"
+                        "ordersAllowedOffline",
+                        "planNotificationTime",
+                        "quietHoursStart",
+                        "quietHoursEnd"
                       ],
                       "additionalProperties": false
                     },
@@ -5214,6 +5226,299 @@
         }
       }
     },
+    "/v1/notification-prefs": {
+      "get": {
+        "operationId": "NotificationsController.prefs",
+        "summary": "What the caller hears about, and what they may mute",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPrefsResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "NotificationsController.putPrefs",
+        "summary": "Replaces the categories the caller mutes; approvals and tracking can’t be",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "muted": {
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "plan",
+                        "approvals",
+                        "review",
+                        "targets",
+                        "tracking",
+                        "imports"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "muted"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPrefsResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController.list",
+        "summary": "The caller's inbox, newest first, with how many are unread",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [
+          {
+            "name": "unread",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NotificationResult"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "unread": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor",
+                    "unread"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/read": {
+      "post": {
+        "operationId": "NotificationsController.read",
+        "summary": "Marks some of the caller’s notifications read, or all",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "ids": {
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
+                      }
+                    },
+                    "required": [
+                      "ids"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "all": {
+                        "type": "boolean",
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "all"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "unread": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "unread"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/org-chart": {
       "get": {
         "operationId": "OrgChartController.level",
@@ -5816,6 +6121,67 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/push-tokens": {
+      "put": {
+        "operationId": "NotificationsController.pushToken",
+        "summary": "Keeps the calling phone's push address and the language it reads",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 300,
+                    "pattern": "^Expo(nent)?PushToken\\[[^\\]]+\\]$"
+                  },
+                  "locale": {
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "hi"
+                    ]
+                  }
+                },
+                "required": [
+                  "token",
+                  "locale"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success, with no body"
           },
           "default": {
             "description": "An error in the format of spec 11.1, its code from spec 11.4",
@@ -6872,6 +7238,15 @@
                   },
                   "ordersAllowedOffline": {
                     "type": "boolean"
+                  },
+                  "planNotificationTime": {
+                    "$ref": "#/components/schemas/TimeOfDay"
+                  },
+                  "quietHoursStart": {
+                    "$ref": "#/components/schemas/TimeOfDay"
+                  },
+                  "quietHoursEnd": {
+                    "$ref": "#/components/schemas/TimeOfDay"
                   }
                 },
                 "additionalProperties": false
@@ -6985,6 +7360,15 @@
                     },
                     "ordersAllowedOffline": {
                       "type": "boolean"
+                    },
+                    "planNotificationTime": {
+                      "$ref": "#/components/schemas/TimeOfDay"
+                    },
+                    "quietHoursStart": {
+                      "$ref": "#/components/schemas/TimeOfDay"
+                    },
+                    "quietHoursEnd": {
+                      "$ref": "#/components/schemas/TimeOfDay"
                     }
                   },
                   "required": [
@@ -7008,7 +7392,10 @@
                     "journeyPlanApproval",
                     "targetUnlockByAdmin",
                     "ordersNeedOpenShift",
-                    "ordersAllowedOffline"
+                    "ordersAllowedOffline",
+                    "planNotificationTime",
+                    "quietHoursStart",
+                    "quietHoursEnd"
                   ],
                   "additionalProperties": false
                 }
@@ -14640,6 +15027,125 @@
         ],
         "additionalProperties": false
       },
+      "NotificationPrefsResult": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "plan",
+                    "approvals",
+                    "review",
+                    "targets",
+                    "tracking",
+                    "imports"
+                  ]
+                },
+                "muted": {
+                  "type": "boolean"
+                },
+                "mutable": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "category",
+                "muted",
+                "mutable"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "categories"
+        ],
+        "additionalProperties": false
+      },
+      "NotificationResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "event": {
+            "type": "string",
+            "enum": [
+              "plan.today",
+              "approval.waiting",
+              "approval.decided",
+              "submission.rejected",
+              "target.locked",
+              "tracking.stopped",
+              "tracking.stopped_report",
+              "import.finished"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "approvals",
+              "review",
+              "targets",
+              "tracking",
+              "imports"
+            ]
+          },
+          "values": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "readAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "category",
+          "values",
+          "link",
+          "readAt",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
       "NumberField": {
         "type": "object",
         "properties": {
@@ -17865,6 +18371,10 @@
           "type"
         ],
         "additionalProperties": false
+      },
+      "TimeOfDay": {
+        "type": "string",
+        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
       },
       "Transfer": {
         "type": "object",

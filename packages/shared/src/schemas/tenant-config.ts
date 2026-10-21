@@ -55,6 +55,12 @@ const BrandColour = z
 
 const range = (min: number, max: number) => z.int().min(min).max(max);
 
+/** A time of day on the tenant's clock, `HH:MM`. */
+export const TimeOfDay = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Write the time as 08:00')
+  .meta({ id: 'TimeOfDay' });
+
 /** The settings of spec 5.1. Every one has a default in `SETTING_DEFAULTS`. */
 export const TenantSettings = z.strictObject({
   timezone: TimeZone,
@@ -89,6 +95,11 @@ export const TenantSettings = z.strictObject({
   targetUnlockByAdmin: z.boolean(),
   ordersNeedOpenShift: z.boolean(),
   ordersAllowedOffline: z.boolean(),
+  /** When field users hear about today's plan, on the tenant's clock (M16). */
+  planNotificationTime: TimeOfDay,
+  /** Non-urgent push and SMS wait from here until `quietHoursEnd` (M16). */
+  quietHoursStart: TimeOfDay,
+  quietHoursEnd: TimeOfDay,
 });
 
 export type TenantSettings = z.output<typeof TenantSettings>;
@@ -116,6 +127,9 @@ export const SETTING_DEFAULTS: TenantSettings = {
   targetUnlockByAdmin: false,
   ordersNeedOpenShift: true,
   ordersAllowedOffline: true,
+  planNotificationTime: '08:00',
+  quietHoursStart: '21:00',
+  quietHoursEnd: '07:00',
 };
 
 /**

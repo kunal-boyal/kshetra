@@ -4,7 +4,7 @@ import type { Config } from '../config';
 import { CONFIG } from './tokens';
 
 /** The queues of spec 12.3. Each arrives with the work that uses it. */
-export const QUEUE_NAMES = ['maintenance', 'imports', 'media'] as const;
+export const QUEUE_NAMES = ['maintenance', 'imports', 'media', 'notifications'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
 /**
@@ -19,7 +19,12 @@ export interface JobData {
 export type JobHandler = (data: JobData, job: Job<JobData>) => Promise<void>;
 
 /** How many jobs of a queue one worker process runs at once. */
-const CONCURRENCY: Record<QueueName, number> = { maintenance: 1, imports: 2, media: 2 };
+const CONCURRENCY: Record<QueueName, number> = {
+  maintenance: 1,
+  imports: 2,
+  media: 2,
+  notifications: 4,
+};
 
 /**
  * Background jobs on BullMQ (spec 12.3). Any process adds jobs; modules register a handler per
@@ -39,7 +44,7 @@ export class Queues implements OnModuleDestroy {
     return {
       // BullMQ's blocking reads need unlimited retries per request.
       connection: { url: this.config.REDIS_URL, maxRetriesPerRequest: null },
-      prefix: `${this.config.PRODUCT_SLUG}:bull`,
+      prefix: this.config.QUEUE_PREFIX ?? `${this.config.PRODUCT_SLUG}:bull`,
     };
   }
 

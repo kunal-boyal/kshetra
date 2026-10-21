@@ -15,7 +15,7 @@ import {
   type StartShiftBody,
 } from '@kshetra/shared';
 import { and, asc, desc, eq, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
-import { shiftPauses, shifts } from '../../db/schema/field';
+import { shiftPauses, shifts, userLastPosition } from '../../db/schema/field';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
@@ -482,6 +482,43 @@ export class ShiftsService {
    * The nightly close (M5): shifts open past the longest a shift may last end at that limit,
    * `auto_closed`. Returns how many it closed.
    */
+  /**
+   * Open shifts, not paused, whose newest point is older than `minutes` (spec 12.1, M16): each
+   * with the moment it went quiet, which names the gap, so it is reported once per gap. A shift
+   * that has sent nothing yet goes quiet from its start or its last resume.
+   */
+  async silent(
+    tx: TenantTx,
+    tenantId: string,
+    now: Date,
+    minutes: number,
+  ): Promise<{ shiftId: string; userId: string; since: Date }[]> {
+    const lastResume = sql<Date | null>`(select max(${shiftPauses.resumedAt}) from ${shiftPauses}
+      where ${shiftPauses.tenantId} = ${shifts.tenantId} and ${shiftPauses.shiftId} = ${shifts.id})`;
+    const since = sql<Date>`greatest(${shifts.startedAt}, coalesce(${userLastPosition.capturedAt}, ${shifts.startedAt}), coalesce(${lastResume}, ${shifts.startedAt}))`;
+    const rows = await tx
+      .select({ shiftId: shifts.id, userId: shifts.userId, since })
+      .from(shifts)
+      .leftJoin(
+        userLastPosition,
+        and(
+          eq(userLastPosition.tenantId, shifts.tenantId),
+          eq(userLastPosition.userId, shifts.userId),
+          eq(userLastPosition.shiftId, shifts.id),
+        ),
+      )
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          isNull(shifts.endedAt),
+          sql`not exists (select 1 from ${shiftPauses} where ${shiftPauses.tenantId} = ${shifts.tenantId}
+            and ${shiftPauses.shiftId} = ${shifts.id} and ${shiftPauses.resumedAt} is null)`,
+          sql`${since} < ${new Date(now.getTime() - minutes * 60_000).toISOString()}`,
+        ),
+      );
+    return rows.map((row) => ({ ...row, since: new Date(row.since) }));
+  }
+
   async autoClose(tx: TenantTx, tenantId: string, now: Date = new Date()): Promise<number> {
     const { maxShiftHours } = await this.config.settings(tx, tenantId);
     const stale = await tx

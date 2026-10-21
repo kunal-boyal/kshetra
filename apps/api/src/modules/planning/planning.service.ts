@@ -562,6 +562,25 @@ export class PlanningService {
       );
   }
 
+  /** Who has plan items on a date, and how many, for the morning notification (M16). */
+  async dueOn(
+    tx: TenantTx,
+    tenantId: string,
+    date: string,
+  ): Promise<{ userId: string; count: number }[]> {
+    return tx
+      .select({ userId: planItems.userId, count: sql<number>`count(*)::int` })
+      .from(planItems)
+      .where(
+        and(
+          eq(planItems.tenantId, tenantId),
+          eq(planItems.date, date),
+          sql`${planItems.status} <> 'cancelled'`,
+        ),
+      )
+      .groupBy(planItems.userId);
+  }
+
   /** Planned items whose day has ended are missed (BR-35). Returns how many. */
   async missDayEnded(tx: TenantTx, tenantId: string, today: string): Promise<number> {
     const due = await tx

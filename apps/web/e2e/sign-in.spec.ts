@@ -81,6 +81,9 @@ async function mockApi(page: Page) {
           targetUnlockByAdmin: false,
           ordersNeedOpenShift: true,
           ordersAllowedOffline: true,
+          planNotificationTime: '08:00',
+          quietHoursStart: '21:00',
+          quietHoursEnd: '07:00',
         },
         terminology: {},
         designations: [

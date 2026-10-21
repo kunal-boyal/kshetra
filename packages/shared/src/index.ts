@@ -199,6 +199,7 @@ export {
   CoreConfigBundle,
   SETTING_DEFAULTS,
   TenantSettings,
+  TimeOfDay,
   TerminologyOverrides,
   TerminologyResult,
   TermValue,
@@ -411,3 +412,34 @@ export {
   TeamPerformance,
   TeamPerformanceQuery,
 } from './schemas/performance';
+export {
+  inQuietHours,
+  minutesUntilQuietEnds,
+  mutable,
+  NOTIFICATION_CATEGORIES,
+  NOTIFICATION_CHANNELS,
+  NOTIFICATION_EVENTS,
+  NOTIFICATION_KINDS,
+  smsSegments,
+  TRACKING_REPORT_MINUTES,
+  TRACKING_SILENCE_MINUTES,
+  UNMUTABLE_CATEGORIES,
+} from './notifications';
+export type {
+  NotificationCategory as NotificationCategoryKey,
+  NotificationChannel,
+  NotificationEvent as NotificationEventKey,
+  NotificationKind,
+} from './notifications';
+export {
+  MarkNotificationsReadBody,
+  MarkNotificationsReadResult,
+  NotificationCategory,
+  NotificationEvent,
+  NotificationListQuery,
+  NotificationListResult,
+  NotificationPrefsResult,
+  NotificationResult,
+  PutNotificationPrefsBody,
+  PutPushTokenBody,
+} from './schemas/notifications';

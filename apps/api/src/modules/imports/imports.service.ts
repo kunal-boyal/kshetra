@@ -16,6 +16,7 @@ import { importJobs, importMappings, type PreviewRow } from '../../db/schema/imp
 import { AuditLog, userActor } from '../../platform/audit';
 import { type Access, AccessResolver } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
+import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { CONFIG } from '../../platform/tokens';
 import { MediaService } from '../media/media.service';
@@ -88,6 +89,7 @@ export class ImportsService implements OnModuleInit {
     private readonly targets: ImportTargets,
     private readonly queues: Queues,
     private readonly audit: AuditLog,
+    private readonly outbox: Outbox,
     private readonly access: AccessResolver,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
@@ -486,6 +488,15 @@ export class ImportsService implements OnModuleInit {
           target: { type: 'import', id },
           after: { target: job.target, ...written },
         });
+        await this.outbox.publish(tx, tenantId, 'import.finished', id, {
+          importId: id,
+          userId: job.createdBy,
+          target: job.target,
+          fileName: job.fileName,
+          status: 'committed',
+          created: written.created,
+          updated: written.updated,
+        });
         return written;
       });
       if (counts) {
@@ -582,6 +593,15 @@ export class ImportsService implements OnModuleInit {
         updatedAt: new Date(),
       })
       .where(and(eq(importJobs.tenantId, job.tenantId), eq(importJobs.id, job.id)));
+    await this.outbox.publish(tx, job.tenantId, 'import.finished', job.id, {
+      importId: job.id,
+      userId: job.createdBy,
+      target: job.target,
+      fileName: job.fileName,
+      status: 'failed',
+      created: null,
+      updated: null,
+    });
   }
 
   private async sheet(tx: TenantTx, job: Job) {

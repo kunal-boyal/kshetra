@@ -51,6 +51,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | csv-parse | 7.0.3 | Added 2026-10-12: reads `.csv` imports |
 | fflate | 0.8.3 | Added 2026-10-12: reads an `.xlsx` file's zip directory to refuse one that unpacks to more than 200 MB before it is opened (decision D42) |
 | sharp | 0.35.5 | Added 2026-10-12: reads photos, makes their thumbnails, stamped copies and difference hashes (decision D44). Its prebuilt binaries need no install script. |
+| nodemailer | 10.1.1 | Added 2026-10-16: sends notification email over SMTP, to Mailpit locally and Amazon SES in AWS (decision D58). It ships its own types. |
 | @aws-sdk/s3-request-presigner | 3.1146.0 | Added 2026-10-12: upload and read links for photos, matching the S3 client |
 | @aws-sdk/cloudfront-signer | 3.1149.0 | Added 2026-10-12: CloudFront signed read links in AWS (decision D44) |
 

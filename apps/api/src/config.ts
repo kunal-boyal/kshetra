@@ -56,8 +56,24 @@ const schema = z
     DB_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
     REDIS_URL: z.url(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    // The Redis key prefix of the job queues; tests give each process its own, so one test file's
+    // workers never take another's jobs.
+    QUEUE_PREFIX: z
+      .string()
+      .regex(/^[A-Za-z0-9:_-]{1,64}$/)
+      .optional(),
     // `console` prints codes locally; `memory` keeps them for tests. Production uses a real sender.
     OTP_PROVIDER: z.enum(['console', 'memory']).default('console'),
+    // How notifications leave the cell (M16, decision D58). `console` prints them locally and
+    // `memory` keeps them for tests; production needs real ones.
+    PUSH_PROVIDER: z.enum(['expo', 'console', 'memory']).default('console'),
+    // An Expo access token, when the project's push security is on.
+    EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
+    SMS_PROVIDER: z.enum(['console', 'memory']).default('console'),
+    EMAIL_PROVIDER: z.enum(['smtp', 'console', 'memory']).default('smtp'),
+    // Mailpit locally; Amazon SES's SMTP endpoint in AWS.
+    SMTP_URL: z.url().default('smtp://127.0.0.1:1025'),
+    MAIL_FROM: z.string().min(3).optional(),
     // The secret one-time codes are hashed with (spec M1, rule 3).
     OTP_PEPPER: z.string().min(16),
     // Whether this process runs the outbox relay, which retries events whose delivery failed. The
@@ -109,6 +125,19 @@ const schema = z
           message: `The ${config.OTP_PROVIDER} provider never sends a real code; production needs a real one.`,
         });
       }
+      for (const [key, value] of [
+        ['PUSH_PROVIDER', config.PUSH_PROVIDER],
+        ['SMS_PROVIDER', config.SMS_PROVIDER],
+        ['EMAIL_PROVIDER', config.EMAIL_PROVIDER],
+      ] as const) {
+        if (value === 'console' || value === 'memory') {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `The ${value} provider never delivers; production needs a real one.`,
+          });
+        }
+      }
       if (!config.JWT_SIGNING_KEY) {
         ctx.addIssue({
           code: 'custom',
@@ -144,6 +173,19 @@ const schema = z
         path: ['OBJECT_STORE'],
         message: 'The memory store is for tests only.',
       });
+    }
+    for (const [key, value] of [
+      ['PUSH_PROVIDER', config.PUSH_PROVIDER],
+      ['SMS_PROVIDER', config.SMS_PROVIDER],
+      ['EMAIL_PROVIDER', config.EMAIL_PROVIDER],
+    ] as const) {
+      if (value === 'memory' && config.NODE_ENV !== 'test') {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message: 'The memory provider is for tests only.',
+        });
+      }
     }
     if (config.OTP_PROVIDER === 'memory' && config.NODE_ENV !== 'test') {
       ctx.addIssue({
