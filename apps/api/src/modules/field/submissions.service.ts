@@ -20,7 +20,7 @@ import {
   photoIssues,
   todayIn,
 } from '@kshetra/shared';
-import { and, asc, desc, eq, gt, lt, lte, ne, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, lt, lte, ne, or, type SQL, sql } from 'drizzle-orm';
 import { accounts, accountTypes } from '../../db/schema/accounts';
 import { submissions } from '../../db/schema/field';
 import { forms, formVersions } from '../../db/schema/forms';
@@ -540,6 +540,63 @@ export class SubmissionsService {
       nextCursor:
         found.length > limit && last ? `${last.capturedAt.toISOString()}|${last.id}` : null,
     };
+  }
+
+  /** The home dashboard's mix (M18): these people's submissions of a month, by form and status. */
+  async mixByForm(tx: TenantTx, tenantId: string, userIds: readonly string[], period: string) {
+    if (userIds.length === 0) return [];
+    const { timezone } = await this.config.settings(tx, tenantId);
+    const month = sql`to_char(${submissions.capturedAt} at time zone ${timezone}, 'YYYY-MM')`;
+    const rows = await tx
+      .select({
+        formId: submissions.formId,
+        status: submissions.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.tenantId, tenantId),
+          inArray(submissions.userId, [...userIds]),
+          sql`${month} = ${period}`,
+        ),
+      )
+      .groupBy(submissions.formId, submissions.status);
+    const formIds = [...new Set(rows.map((row) => row.formId))];
+    // In the forms' own order, so each keeps its colour on every chart.
+    const forms = (await this.forms.list(tx, tenantId)).filter((form) => formIds.includes(form.id));
+    return forms.map((view) => {
+      const formId = view.id;
+      const form = { key: view.key, name: view.name };
+      const count = (status: string) =>
+        rows.find((row) => row.formId === formId && row.status === status)?.count ?? 0;
+      return {
+        form,
+        approved: count('approved'),
+        pending: count('pending'),
+        rejected: count('rejected'),
+      };
+    });
+  }
+
+  /** How many submissions wait for the caller's review: those of their scope, not their own. */
+  async waitingReview(tx: TenantTx, access: Access): Promise<number> {
+    const [row] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(submissions)
+      .innerJoin(
+        users,
+        and(eq(users.tenantId, submissions.tenantId), eq(users.id, submissions.userId)),
+      )
+      .where(
+        and(
+          eq(submissions.tenantId, access.tenantId),
+          eq(submissions.status, 'pending'),
+          ne(submissions.userId, access.userId),
+          await this.scopes.users(tx, access),
+        ),
+      );
+    return row?.count ?? 0;
   }
 
   // Review (M7): the review module reads and decides submissions through these.

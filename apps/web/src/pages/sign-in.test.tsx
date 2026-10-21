@@ -42,6 +42,23 @@ function fakeClient(verify: () => Promise<unknown>) {
     switchTenant: vi.fn(),
     signOut: vi.fn(async () => {}),
     restore: vi.fn(async () => session),
+    // The home reads its dashboard; anything else is not part of signing in.
+    request: vi.fn(async (_method: string, path: string) => {
+      if (path.startsWith('/v1/dashboard')) {
+        return {
+          period: path.slice(-7),
+          view: 'self',
+          people: 1,
+          tiles: [],
+          trend: [],
+          mix: [],
+          leaderboard: null,
+          onDuty: null,
+          waiting: { reviews: null, approvals: null },
+        };
+      }
+      throw new Error(`Nothing at ${path}`);
+    }),
     me: vi.fn(async () => ({
       userId: '01a10000-0000-7000-8000-000000000002',
       tenantId: TENANT.id,

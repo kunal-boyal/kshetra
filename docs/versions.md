@@ -54,6 +54,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | sharp | 0.35.5 | Added 2026-10-12: reads photos, makes their thumbnails, stamped copies and difference hashes (decision D44). Its prebuilt binaries need no install script. |
 | nodemailer | 10.1.1 | Added 2026-10-16: sends notification email over SMTP, to Mailpit locally and Amazon SES in AWS (decision D58). It ships its own types. |
 | @vis.gl/react-google-maps | 1.10.1 | Added 2026-10-21: the web's maps on the Maps JavaScript API, Google's own React library (decision D60). |
+| echarts | 6.1.0 | Added 2026-10-22: the web's charts, as spec 9.1 names, loaded piece by piece from `echarts/core` with the SVG renderer (decision D63). |
 | @aws-sdk/s3-request-presigner | 3.1146.0 | Added 2026-10-12: upload and read links for photos, matching the S3 client |
 | @aws-sdk/cloudfront-signer | 3.1149.0 | Added 2026-10-12: CloudFront signed read links in AWS (decision D44) |
 

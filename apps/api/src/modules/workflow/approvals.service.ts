@@ -115,6 +115,30 @@ export class ApprovalsService {
     return row?.id ?? null;
   }
 
+  /** How many requests wait for the caller's decision, for the home dashboard (M18). */
+  async waitingCount(tx: TenantTx, access: Access): Promise<number> {
+    const [row] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(workflowInstances)
+      .innerJoin(
+        workflowSteps,
+        and(
+          eq(workflowSteps.tenantId, workflowInstances.tenantId),
+          eq(workflowSteps.instanceId, workflowInstances.id),
+          eq(workflowSteps.stepIndex, workflowInstances.currentStep),
+        ),
+      )
+      .where(
+        and(
+          eq(workflowInstances.tenantId, access.tenantId),
+          eq(workflowInstances.status, 'pending'),
+          eq(workflowSteps.status, 'pending'),
+          sql`${access.userId}::uuid = any(${workflowSteps.approverIds})`,
+        ),
+      );
+    return row?.count ?? 0;
+  }
+
   /** What waits for the caller, oldest first. */
   async inbox(
     tx: TenantTx,

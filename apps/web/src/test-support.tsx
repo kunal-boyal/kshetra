@@ -52,6 +52,18 @@ export function fakeClient(
     request,
     session: { tenant: TENANT, accessToken: 'a1', accessTokenExpiresAt: '' },
     restore: vi.fn(async () => null),
+    me: vi.fn(async () => ({
+      userId: ADMIN,
+      tenantId: TENANT.id,
+      cell: 'local',
+      code: 'SUN-001',
+      name: 'Anita Rao',
+      designation: 'head',
+      role: 'tenant_admin',
+      scope: 'tenant',
+      permissions,
+      deviceId: null,
+    })),
     signOut: vi.fn(async () => {}),
     switchTenant: vi.fn(),
     config: vi.fn(async () => ({
