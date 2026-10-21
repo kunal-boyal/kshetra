@@ -1496,4 +1496,5 @@ export const hi: Record<MessageKey, Message> = {
   'notifications.always': 'हमेशा चालू',
   'notifications.prefs_save': 'सहेजें',
   'notifications.prefs_saved': 'सहेजा गया।',
+  'push.channel': 'सूचनाएँ',
 };

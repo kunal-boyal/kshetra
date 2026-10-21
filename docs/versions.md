@@ -81,10 +81,11 @@ Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes mo
 
 | Package | Version | Notes |
 |---|---|---|
-| expo | 57.0.29 | SDK 57; moved from 57.0.26 on 2026-10-14 and from 57.0.28 on 2026-10-16, each time through the `mobile` catalog, with the modules the patch names. expo 57.0.30 and expo-router 57.0.28 came out on 2026-10-15, inside pnpm's one-day minimum release age, so `expo install --check` asks for them until they move together; `EXPO_OFFLINE=1 pnpm exec expo install --check` checks against the installed SDK and is clean |
+| expo | 57.0.30 | SDK 57; moved from 57.0.26 on 2026-10-14, from 57.0.28 on 2026-10-16 and from 57.0.29 on 2026-10-21, each time through the `mobile` catalog, with the modules the patch names. `expo install --check` is clean |
 | react-native | 0.86.3 | The New Architecture |
 | react, react-dom | 19.2.3 | The SDK's React; the web stays on 19.3 |
-| expo-router | 57.0.27 | Routes in `src/app` |
+| expo-router | 57.0.28 | Routes in `src/app` |
+| expo-notifications | 57.0.23 | Added 2026-10-21 for push on the phone (decision D59): permission, the Expo push token, the Android channel and taps. Push needs a development build and the Firebase `google-services.json` in it. |
 | expo-secure-store, expo-crypto, expo-device, expo-localization, expo-font, expo-constants, expo-linking | 57.0.4, 57.0.4, 57.0.2, 57.0.2, 57.0.4, 57.0.22, 57.0.13 | The session and device key, the phone's details and language, fonts, configuration and links |
 | expo-splash-screen, expo-status-bar, expo-system-ui, expo-dev-client | 57.0.10, 57.0.1, 57.0.4, 57.0.20 | Start-up, system bars, and the development client of spec 9.2 |
 | expo-sqlite, expo-network, expo-battery | 57.0.4, 57.0.2, 57.0.3 | Added 2026-10-07 for the offline sync (decision D40): the phone's database, the network returning, and battery optimisation for the heartbeat. All three are in Expo Go. |

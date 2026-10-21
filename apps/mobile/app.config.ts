@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 // Every name and identifier derives from the product slug (spec 0). Decision D1 settles the real
@@ -16,6 +17,12 @@ if (!development && !process.env.EXPO_PUBLIC_DIRECTORY_URL) {
     `A ${variant} build needs EXPO_PUBLIC_DIRECTORY_URL in its EAS environment (spec Appendix F).`,
   );
 }
+
+// Firebase's file for Android push (decision D59): an EAS file variable in cloud builds, or a local
+// copy beside this file. It is never committed; without it the app builds, but push can't register.
+const googleServicesFile =
+  process.env.GOOGLE_SERVICES_JSON ??
+  (existsSync('./google-services.json') ? './google-services.json' : undefined);
 
 // The `bg` token in Light and Dark, and Jamun, which the mark always is (assets/Logos/README.md).
 // Plain values: this file runs in Node before the bundler, so it can't import the tokens.
@@ -45,6 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: id,
+    ...(googleServicesFile ? { googleServicesFile } : {}),
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       monochromeImage: './assets/adaptive-icon-monochrome.png',
@@ -100,6 +108,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-task-manager',
+    // Notifications (M16, decision D59): the white glyph on Jamun, and one default channel.
+    [
+      'expo-notifications',
+      {
+        icon: './assets/notification-icon.png',
+        color: JAMUN,
+        defaultChannel: 'default',
+      },
+    ],
     [
       'expo-splash-screen',
       {
