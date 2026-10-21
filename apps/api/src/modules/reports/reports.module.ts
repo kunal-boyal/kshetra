@@ -7,8 +7,10 @@ import { MediaUrls } from '../media/media-urls';
 import { PerformanceModule } from '../performance/performance.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
+import { WorkflowModule } from '../workflow/workflow.module';
 import { ActivityLogReport } from './activity-log';
 import { AttendanceRegisterReport } from './attendance-register';
+import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
@@ -27,11 +29,13 @@ import { TargetAchievementReport } from './target-achievement';
     TerritoriesModule,
     TenantConfigModule,
     MediaModule,
+    WorkflowModule,
   ],
   controllers: [ReportsController],
   providers: [
     ReportsService,
     ExportsService,
+    DashboardService,
     MediaUrls,
     ActivityLogReport,
     AttendanceRegisterReport,

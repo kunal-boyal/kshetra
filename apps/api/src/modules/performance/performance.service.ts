@@ -3,6 +3,8 @@ import { computed, type MetricDefinition, type ScoreDefinition } from '@kshetra/
 import {
   AppError,
   attainment,
+  DASHBOARD_TILES,
+  type DashboardResult,
   type Leaderboard,
   type MetricFigures,
   monthDates,
@@ -45,6 +47,17 @@ interface Setup {
 }
 
 const DISTINCT = new Set(['distinct_accounts_visited', 'coverage_percent']);
+
+/** Whether a metric's days add up to its month and its people to their team: counts and sums. */
+function additive(definition: MetricDefinition): boolean {
+  const source = definition.source;
+  return !(
+    DISTINCT.has(source.type) ||
+    source.type === 'ratio' ||
+    source.type === 'plan_compliance_percent' ||
+    (source.type === 'visit_duration' && source.aggregate === 'average')
+  );
+}
 
 function text(value: number | null): string | null {
   return value === null ? null : String(Math.round(value * 1000) / 1000);
@@ -489,6 +502,101 @@ export class PerformanceService {
       })),
       totals: this.figures(setup, this.totals(setup, [...values.values()]), targetTotals),
     };
+  }
+
+  /**
+   * The home dashboard's figures (M18, decision D63): the team's when the caller sees a team, else
+   * their own; the tiles are the metrics with a target, or the first ones; each additive tile has a
+   * daily trend of approved and pending; and the top of the caller's leaderboard.
+   */
+  async dashboard(
+    tx: TenantTx,
+    access: Access,
+    period: string,
+  ): Promise<
+    Pick<DashboardResult, 'view' | 'people' | 'tiles' | 'trend' | 'leaderboard'> & { ids: string[] }
+  > {
+    const tenantId = access.tenantId;
+    const setup = await this.setup(tx, tenantId);
+    const team =
+      access.scope !== 'self' && access.permissions.has('performance.view_team')
+        ? (await this.people.matching(tx, tenantId, await this.scopes.users(tx, access))).filter(
+            (person) => person.id !== access.userId,
+          )
+        : [];
+    const view = team.length > 0 ? 'team' : 'self';
+    let figures: Record<string, MetricFigures>;
+    let ids: string[];
+    if (view === 'team') {
+      figures = (await this.figuresFor(tx, tenantId, team, period)).totals;
+      ids = team.map((person) => person.id);
+    } else {
+      const values = (await this.values(tx, tenantId, setup, [access.userId], period)).get(
+        access.userId,
+      )!;
+      const set = (await this.targets.sets(tx, tenantId, period, [access.userId])).get(
+        access.userId,
+      );
+      figures = this.figures(setup, values, set?.values ?? {});
+      ids = [access.userId];
+    }
+    const available = setup.metrics.filter((metric) => metric.available);
+    const targeted = available.filter((metric) => figures[metric.key]?.target != null);
+    const tiles = (targeted.length > 0 ? targeted : available)
+      .slice(0, DASHBOARD_TILES)
+      .map((metric) => ({ metric, figures: figures[metric.key]! }));
+    const trendKeys = tiles
+      .map((tile) => tile.metric.key)
+      .filter((key) => {
+        const definition = setup.byKey.get(key);
+        return definition !== undefined && additive(definition);
+      });
+    const { from, to } = monthDates(period);
+    const days =
+      trendKeys.length && ids.length
+        ? await tx
+            .select({
+              date: metricFactsDaily.date,
+              key: metricFactsDaily.metricKey,
+              value: sql<string>`sum(${metricFactsDaily.value})::text`,
+              pending: sql<string | null>`sum(${metricFactsDaily.pending})::text`,
+            })
+            .from(metricFactsDaily)
+            .where(
+              and(
+                eq(metricFactsDaily.tenantId, tenantId),
+                inArray(metricFactsDaily.userId, ids),
+                between(metricFactsDaily.date, from, to),
+                inArray(metricFactsDaily.metricKey, trendKeys),
+              ),
+            )
+            .groupBy(metricFactsDaily.date, metricFactsDaily.metricKey)
+            .orderBy(asc(metricFactsDaily.date))
+        : [];
+    const trend = trendKeys.map((key) => ({
+      key,
+      days: days
+        .filter((row) => row.key === key)
+        .map((row) => ({
+          date: row.date,
+          actual: Number(row.value),
+          pending: row.pending === null ? null : Number(row.pending),
+        })),
+    }));
+    let leaderboard: DashboardResult['leaderboard'] = null;
+    if (access.permissions.has('leaderboard.view')) {
+      const board = await this.leaderboard(tx, access, period);
+      const group = board.groups.find((entry) => entry.key === board.group);
+      if (group) {
+        const top = board.rows.slice(0, 5);
+        const you = board.rows.find((row) => row.you);
+        leaderboard = {
+          group: { key: group.key, name: group.name },
+          rows: you && !top.includes(you) ? [...top, you] : top,
+        };
+      }
+    }
+    return { view, people: view === 'team' ? team.length : 1, tiles, trend, leaderboard, ids };
   }
 
   /** A ranking group's leaderboard for a month: the caller's own group unless one is named. */

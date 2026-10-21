@@ -256,6 +256,45 @@ describe('reports on screen (M18)', () => {
   });
 });
 
+describe('the home dashboard (M18)', () => {
+  it("shows a manager their team's month, and a field user their own", async () => {
+    const t = await tenant('Home Co');
+    const team = (await t.api.manager.get(`/v1/dashboard?period=${MONTH()}`)).json();
+    expect(team).toMatchObject({
+      period: MONTH(),
+      view: 'team',
+      people: 1,
+      onDuty: 1,
+      waiting: { reviews: 1, approvals: 0 },
+      mix: [
+        {
+          form: { key: 'shop_note', name: { en: { one: 'Shop note' } } },
+          approved: 0,
+          pending: 1,
+          rejected: 0,
+        },
+      ],
+    });
+    expect(team.tiles.length).toBeGreaterThan(0);
+    expect(team.tiles.length).toBeLessThanOrEqual(6);
+    for (const line of team.trend) {
+      expect(team.tiles.map((tile: { metric: { key: string } }) => tile.metric.key)).toContain(
+        line.key,
+      );
+    }
+
+    const own = (await t.api.asha.get(`/v1/dashboard?period=${MONTH()}`)).json();
+    expect(own).toMatchObject({
+      view: 'self',
+      people: 1,
+      onDuty: null,
+      waiting: { reviews: null, approvals: null },
+    });
+    expect(own.mix[0]).toMatchObject({ pending: 1 });
+    expect((await t.api.asha.get('/v1/dashboard?period=2026-13')).statusCode).toBe(400);
+  });
+});
+
 describe('exports (M18)', () => {
   it('writes an XLSX in the background, keeps it a week, and links only its owner to it', async () => {
     const t = await tenant('Excel Co');

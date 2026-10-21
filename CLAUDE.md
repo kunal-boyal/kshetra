@@ -210,11 +210,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - `VITE_` settings come from the root `.env` (`envDir`). Only the vendor keys exist for now; per-tenant keys arrive in step 16.
 - On the phone (decision D61), draw maps only through `apps/mobile/src/maps.tsx` (`PhoneMap`, `Spot`, `Ring`, `Line`) on react-native-maps; `maps.web.tsx` stands in for the web target and `jest.setup.ts` mocks the library, so a map in a test is a view labelled with its name and markers with their titles. Android's key comes from `GOOGLE_MAPS_ANDROID_KEY` in EAS through the config plugin in `app.config.ts`, never committed. Managers' live and trail reads are `useLive()` and `useTrail()` in `src/maps-data.ts`, online only.
 
-## Reports and exports (decision D62)
+## Dashboards, reports and exports (decisions D62 and D63)
 
 - Reports live in `apps/api/src/modules/reports`. A report is a `ReportSource` (`sources.ts`) registered in `ReportsService`: its columns and a page of rows, read through the owning modules' services. Add its key to `REPORT_KEYS` in `packages/shared/src/schemas/reports.ts` and its name to `report.name_<key>` in the strings.
 - `ReportsService` narrows every report to the caller's scope and the filters, for one month on the tenant's clock, and resolves headings and coded values in the requested `locale` with the tenant's terms: cells hold words, numbers, ISO dates and moments.
 - Exports run on the `exports` queue (`ExportsService.run`), as the requester may see at that moment, and are kept for 7 days (`EXPORT_KEEP_DAYS`). Write files only through `toCsv()` and `toXlsx()` in `files.ts`, which keep text from starting a formula (`neutraliseFormula` in `@kshetra/shared`). Only the requester reads an export, every request and download is audited, and BullMQ job IDs never contain `:`.
+
+- The web Home reads `GET /v1/dashboard` (`DashboardService` in the reports module, with `PerformanceService.dashboard()` for tiles, trend and leaderboard). Draw charts only through `Chart` in `apps/web/src/charts/chart.tsx`, which takes colours from the tokens with `token()`, follows the theme, stops motion under reduced motion, and keeps a Show the numbers table beside every chart. Register any ECharts part a chart needs in `echarts.use()` there. Status series use the status `-solid` tokens; pending is hatched as well as coloured.
 
 ## Offline sync (decision D40)
 

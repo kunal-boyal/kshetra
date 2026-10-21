@@ -3357,6 +3357,53 @@
         }
       }
     },
+    "/v1/dashboard": {
+      "get": {
+        "operationId": "ReportsController.home",
+        "summary": "The home dashboard for a month: the caller's or their team's figures",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/density": {
       "get": {
         "operationId": "MapsController.density",
@@ -13462,6 +13509,326 @@
             "$ref": "#/components/schemas/YesNoFieldInput"
           }
         ]
+      },
+      "DashboardResult": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "view": {
+            "type": "string",
+            "enum": [
+              "self",
+              "team"
+            ]
+          },
+          "people": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "tiles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "$ref": "#/components/schemas/PerformanceMetric"
+                },
+                "figures": {
+                  "type": "object",
+                  "properties": {
+                    "actual": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pending": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "target": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "attainment": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "actual",
+                    "pending",
+                    "target",
+                    "attainment"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "metric",
+                "figures"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "days": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      "actual": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "pending": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "date",
+                      "actual",
+                      "pending"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "key",
+                "days"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "mix": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "form": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "$ref": "#/components/schemas/Key"
+                    },
+                    "name": {
+                      "$ref": "#/components/schemas/LocalizedNoun"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "approved": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "pending": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "rejected": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "form",
+                "approved",
+                "pending",
+                "rejected"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "leaderboard": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "group": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "$ref": "#/components/schemas/Key"
+                      },
+                      "name": {
+                        "$ref": "#/components/schemas/LocalizedNoun"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "code",
+                            "name"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "score": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "rank": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "you": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "user",
+                        "score",
+                        "rank",
+                        "you"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "group",
+                  "rows"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "onDuty": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "waiting": {
+            "type": "object",
+            "properties": {
+              "reviews": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "approvals": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "reviews",
+              "approvals"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "period",
+          "view",
+          "people",
+          "tiles",
+          "trend",
+          "mix",
+          "leaderboard",
+          "onDuty",
+          "waiting"
+        ],
+        "additionalProperties": false
       },
       "DataScope": {
         "type": "string",

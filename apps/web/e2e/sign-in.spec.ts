@@ -38,6 +38,22 @@ async function mockApi(page: Page) {
     });
   });
   await page.route('**/auth/v1/logout', (route) => route.fulfill({ status: 204 }));
+  // The home's dashboard, empty: signing in is what these check.
+  await page.route('**/v1/dashboard**', (route) =>
+    route.fulfill({
+      json: {
+        period: new Date().toISOString().slice(0, 7),
+        view: 'self',
+        people: 1,
+        tiles: [],
+        trend: [],
+        mix: [],
+        leaderboard: null,
+        onDuty: null,
+        waiting: { reviews: null, approvals: null },
+      },
+    }),
+  );
   await page.route('**/v1/me', (route) =>
     route.fulfill({
       json: {

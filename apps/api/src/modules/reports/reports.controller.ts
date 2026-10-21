@@ -1,6 +1,8 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import {
   CreateExportBody,
+  DashboardQuery,
+  DashboardResult,
   ExportIdParam,
   ExportListQuery,
   ExportListResult,
@@ -9,17 +11,19 @@ import {
   ReportPage,
   ReportQuery,
 } from '@kshetra/shared';
-import { type Access, CurrentAccess, Requires } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { notFound, pathId } from '../iam/actor';
+import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
 import { ReportsService } from './reports.service';
 
 /**
- * Reports and exports (spec 11.2, M18, decision D62): a report read a page at a time, and the same
- * report as a file made in the background, kept for seven days.
+ * Dashboards, reports and exports (spec 11.2, M18, decisions D62 and D63): the home dashboard, a
+ * report read a page at a time, and the same report as a file made in the background, kept for
+ * seven days.
  */
 @Controller('v1')
 export class ReportsController {
@@ -27,7 +31,23 @@ export class ReportsController {
     private readonly database: Database,
     private readonly reports: ReportsService,
     private readonly exports: ExportsService,
+    private readonly dashboard: DashboardService,
   ) {}
+
+  @Get('dashboard')
+  @Contract({
+    tag: 'Reports',
+    summary: "The home dashboard for a month: the caller's or their team's figures",
+    query: DashboardQuery,
+    response: DashboardResult,
+  })
+  @SignedIn()
+  home(@CurrentAccess() access: Access, @Query() query: unknown) {
+    const input = DashboardQuery.parse(query);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.dashboard.read(tx, access, input.period),
+    );
+  }
 
   @Get('reports/:key')
   @Contract({
