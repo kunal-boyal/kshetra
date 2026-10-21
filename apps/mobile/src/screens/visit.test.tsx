@@ -5,6 +5,7 @@ import { migrate, type SqlDatabase, Tracking, Visits } from '@kshetra/api-client
 import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@kshetra/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { AppProvider, useApp } from '../app-state';
 import type { MobileClient } from '../client';
 import { LanguageProvider } from '../i18n';
@@ -12,6 +13,7 @@ import { Look } from '../look';
 import { SyncProvider } from '../sync';
 import { AccountScreen } from './account';
 import { TodayPlan } from './today-plan';
+import { TodayRouteScreen } from './today-route';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
@@ -178,6 +180,7 @@ function fakeClient(policy: 'advisory' | 'required') {
 function Shown({ id }: { id: string }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
+  if (id === 'route') return <TodayRouteScreen />;
   return id === 'today' ? <TodayPlan /> : <AccountScreen id={id} />;
 }
 
@@ -326,5 +329,36 @@ describe('visits on the phone (M6)', () => {
         },
       ]),
     );
+  });
+});
+
+describe('maps on a visit (M17)', () => {
+  it('shows the place, the geofence and a green pill inside it', async () => {
+    await renderAt(HERE, await phone(true));
+    expect(await screen.findByText('Inside the geofence · 0 m')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Map of Janpath Mart and where you are')).toBeOnTheScreen();
+    expect(screen.getByLabelText('You are here')).toBeOnTheScreen();
+  });
+
+  it('says how far away the phone is, outside the geofence', async () => {
+    await renderAt(FAR, await phone(true));
+    expect(await screen.findByText(/^2,\d{3} m away, outside the geofence$/)).toBeOnTheScreen();
+  });
+
+  it("opens today's route as numbered stops", async () => {
+    await renderAt('today', await phone(true));
+    await fireEvent.press(
+      await screen.findByRole('button', { name: "See today's route on a map" }),
+    );
+    expect(router.push).toHaveBeenCalledWith('/today-route');
+  });
+
+  it("draws today's route, stop by stop, with each stop's status", async () => {
+    await renderAt('route', await phone(true));
+    expect(await screen.findByRole('button', { name: /1\. Janpath Mart/ })).toHaveTextContent(
+      /Planned/,
+    );
+    expect(screen.getByLabelText("Map of today's planned visits, stop by stop")).toBeOnTheScreen();
+    expect(screen.getByLabelText('1. Janpath Mart')).toBeOnTheScreen();
   });
 });

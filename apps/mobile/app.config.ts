@@ -117,6 +117,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         defaultChannel: 'default',
       },
     ],
+    // Maps on the phone (M17, decision D61): Google Maps on Android, with the key EAS supplies
+    // (`GOOGLE_MAPS_ANDROID_KEY`), limited to these apps' certificates. Without it, maps are blank.
+    [
+      'react-native-maps',
+      process.env.GOOGLE_MAPS_ANDROID_KEY
+        ? { androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_KEY }
+        : {},
+    ],
     [
       'expo-splash-screen',
       {

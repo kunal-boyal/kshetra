@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { ApiError, type SessionState } from '@kshetra/api-client';
 import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
 import { migrate } from '@kshetra/api-client/sync';
-import { SETTING_DEFAULTS, type SyncPullResult } from '@kshetra/shared';
+import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@kshetra/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
@@ -11,6 +11,7 @@ import type { MobileClient } from '../client';
 import { LanguageProvider } from '../i18n';
 import { Look } from '../look';
 import { SyncProvider } from '../sync';
+import { PersonDayScreen } from './person-day';
 import { ReviewItemScreen } from './review-item';
 import { TeamScreen } from './team';
 
@@ -66,6 +67,73 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
   };
 }
 
+const READ_AT = new Date().toISOString();
+const before = (minutes: number) => new Date(Date.parse(READ_AT) - minutes * 60_000).toISOString();
+const TODAY = todayIn('Asia/Kolkata');
+const YESTERDAY = new Date(Date.parse(`${TODAY}T00:00:00Z`) - 86_400_000)
+  .toISOString()
+  .slice(0, 10);
+const SHOP = { id: '01a10000-0000-7000-8000-0000000000a1', code: 'C-1', name: 'Sharma Stores' };
+
+const LIVE = {
+  readAt: READ_AT,
+  people: [
+    {
+      user: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
+      shiftId: '01a10000-0000-7000-8000-0000000000c1',
+      onDutySince: before(120),
+      paused: false,
+      position: { lat: 28.6315, lng: 77.2167 },
+      accuracy: 12,
+      battery: 80,
+      seenAt: before(4),
+      visit: { account: SHOP, checkInAt: before(10) },
+    },
+    {
+      user: { id: '01a10000-0000-7000-8000-000000000005', code: 'SUN-005', name: 'Kavya Iyer' },
+      shiftId: '01a10000-0000-7000-8000-0000000000c2',
+      onDutySince: before(90),
+      paused: true,
+      position: { lat: 28.64, lng: 77.22 },
+      accuracy: 20,
+      battery: null,
+      seenAt: before(40),
+      visit: null,
+    },
+  ],
+};
+
+const TRAIL = {
+  user: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
+  date: TODAY,
+  shifts: [
+    {
+      id: '01a10000-0000-7000-8000-0000000000c1',
+      startedAt: before(120),
+      endedAt: null,
+      source: 'points',
+      points: [
+        { lat: 28.6315, lng: 77.2167, at: before(110) },
+        { lat: 28.6355, lng: 77.2167, at: before(60) },
+      ],
+      distanceM: 2400,
+      gaps: [{ from: before(110), to: before(60) }],
+      pauses: [],
+    },
+  ],
+  visits: [
+    {
+      id: '01a10000-0000-7000-8000-0000000000e9',
+      account: SHOP,
+      location: { lat: 28.6315, lng: 77.2167 },
+      checkInAt: before(10),
+      checkOutAt: null,
+      geofence: 'outside',
+      distanceM: 640,
+    },
+  ],
+};
+
 const full = <T,>(rows: T[]) => ({
   pass: 'full' as const,
   first: true,
@@ -74,7 +142,7 @@ const full = <T,>(rows: T[]) => ({
   removed: [],
 });
 
-function fakeClient() {
+function fakeClient(permissions: string[] = ['submission.review']) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -109,6 +177,10 @@ function fakeClient() {
             nextCursor: null,
           };
         }
+        if (method === 'GET' && url === '/v1/live') return LIVE;
+        if (method === 'GET' && url.startsWith('/v1/trails?')) {
+          return url.includes(`date=${YESTERDAY}`) ? { ...TRAIL, shifts: [], visits: [] } : TRAIL;
+        }
         if (method === 'GET' && url.startsWith(`/v1/media/${PHOTO}/url`)) {
           return { url: 'https://objects.test/photo.jpg', expiresAt: '2030-01-01T00:00:00.000Z' };
         }
@@ -135,21 +207,24 @@ function fakeClient() {
         accountTypes: [],
         forms: [],
         catalogue: { units: [], measureTypes: [] },
-        access: { role: 'manager', scope: 'team', permissions: ['submission.review'] },
+        access: { role: 'manager', scope: 'team', permissions },
       },
     })),
   };
   return { client, create: () => client as unknown as MobileClient };
 }
 
-function Shown({ page }: { page: 'team' | 'item' }) {
+type Page = 'team' | 'item' | 'day';
+
+function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
+  if (page === 'day') return <PersonDayScreen userId={RAHUL} />;
   return page === 'team' ? <TeamScreen /> : <ReviewItemScreen id={CLEAN} />;
 }
 
-async function renderPhone(page: 'team' | 'item') {
-  const fake = fakeClient();
+async function renderPhone(page: Page, permissions?: string[]) {
+  const fake = fakeClient(permissions);
   const db = nodeSqlite();
   await migrate(db);
   await render(
@@ -224,5 +299,32 @@ describe('the Team tab (M7, spec 8.1)', () => {
         { body: { decision: 'approved' }, idempotencyKey: expect.any(String) },
       ],
     ]);
+  });
+});
+
+describe('the team on a map (M17)', () => {
+  it('lists who is on duty, flags whoever went quiet, and opens a person’s day', async () => {
+    await renderPhone('team', ['live_map.view', 'trail.view']);
+    const rahul = await screen.findByRole('button', { name: /Rahul Verma/ });
+    expect(rahul).toHaveTextContent(/Seen 4 minutes ago · At Sharma Stores/);
+    expect(screen.getByRole('button', { name: /Kavya Iyer/ })).toHaveTextContent(
+      /Not seen for 15 minutes · Paused/,
+    );
+    expect(screen.getByLabelText('Map of the people on duty')).toBeOnTheScreen();
+    // Without review rights, the queue isn't asked for.
+    expect(screen.queryByText(/to review/)).toBeNull();
+    await fireEvent.press(rahul);
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/day/[id]', params: { id: RAHUL } });
+  });
+
+  it('shows a person’s day with its distance, gaps and visits, a day at a time', async () => {
+    await renderPhone('day', ['live_map.view', 'trail.view']);
+    expect(await screen.findByText('1 shift, 2.4 km, 1 visits.')).toBeOnTheScreen();
+    expect(screen.getByText(/^No location from/)).toBeOnTheScreen();
+    expect(screen.getByText('Sharma Stores')).toBeOnTheScreen();
+    expect(screen.getByText(/ · Outside the geofence$/)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Next day' })).toBeDisabled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous day' }));
+    expect(await screen.findByText('Nothing that day')).toBeOnTheScreen();
   });
 });
