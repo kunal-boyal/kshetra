@@ -125,6 +125,16 @@ export const ImportFinishedPayload = z.object({
   updated: z.int().min(0).nullable(),
 });
 
+/** An export finished, its file ready or the work failed (M18: whoever asked hears of it). */
+export const ExportFinishedPayload = z.object({
+  exportId: z.uuid(),
+  userId: z.uuid(),
+  report: z.string(),
+  period: z.string(),
+  status: z.enum(['ready', 'failed']),
+  rows: z.int().min(0).nullable(),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
@@ -143,6 +153,7 @@ export const EVENT_PAYLOADS = {
   'approval.requested': ApprovalRequestedPayload,
   'approval.decided': ApprovalDecidedPayload,
   'import.finished': ImportFinishedPayload,
+  'export.finished': ExportFinishedPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

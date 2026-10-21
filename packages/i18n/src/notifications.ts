@@ -36,6 +36,10 @@ export function notificationMessage(
       return values.status === 'committed'
         ? { title: 'notify.import_committed_title', body: 'notify.import_committed_body', params }
         : { title: 'notify.import_failed_title', body: 'notify.import_failed_body', params };
+    case 'export.finished':
+      return values.status === 'ready'
+        ? { title: 'notify.export_ready_title', body: 'notify.export_ready_body', params }
+        : { title: 'notify.export_failed_title', body: 'notify.export_failed_body', params };
     case 'plan.today':
       return { title: 'notify.plan_today_title', body: 'notify.plan_today_body', params };
     case 'approval.waiting':

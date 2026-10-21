@@ -317,13 +317,9 @@ describe('scheduled notifications (M16)', () => {
     const t = await tenant('Plan Co');
     await planToday(t);
     const upkeep = app.get(NotificationsUpkeep);
-    const at = (time: string) => {
-      const [h, m] = time.split(':').map(Number) as [number, number];
-      const date = new Date();
-      // Asia/Kolkata is UTC+05:30.
-      date.setUTCHours(h - 5, m - 30, 0, 0);
-      return date;
-    };
+    // A time of today on the tenant's clock: Asia/Kolkata is UTC+05:30, and its today, not UTC's,
+    // as the two dates differ from midnight to 05:30 there.
+    const at = (time: string) => new Date(`${todayIn('Asia/Kolkata')}T${time}:00+05:30`);
     await t.api.admin.patch('/v1/settings', { planNotificationTime: '08:00' });
     expect(await upkeep.morningPlan(t.tenantId, at('07:30'))).toBe(0);
     expect(await upkeep.morningPlan(t.tenantId, at('08:05'))).toBe(1);

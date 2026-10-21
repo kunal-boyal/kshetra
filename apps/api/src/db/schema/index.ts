@@ -6,6 +6,7 @@ export * from './field';
 export * from './forms';
 export * from './iam';
 export * from './imports';
+export * from './reports';
 export * from './media';
 export * from './metrics';
 export * from './planning';

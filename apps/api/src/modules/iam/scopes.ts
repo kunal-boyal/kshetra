@@ -52,6 +52,12 @@ export class Scopes {
     }
   }
 
+  /** A subquery of a manager and everyone below them in the reporting tree, at any depth. */
+  teamOf(tenantId: string, managerId: string): SQL {
+    return sql`select rc.descendant_id from ${reportingClosure} rc
+      where rc.tenant_id = ${tenantId} and rc.ancestor_id = ${managerId}`;
+  }
+
   /** A subquery of the IDs of the users the caller reaches, for other modules' filters. */
   async userIds(tx: TenantTx, access: Access): Promise<SQL> {
     return sql`select ${users.id} from ${users}

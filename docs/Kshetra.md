@@ -1379,7 +1379,8 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Expenses | `PUT /v1/expense-policies`, `POST /v1/expense-claims`, `POST /v1/expense-claims/:id/receipts`, `POST /v1/expense-claims/:id/paid` |
 | Approvals | `GET /v1/approvals/inbox`, `GET /v1/approvals/:instanceId`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel` |
 | Notifications | `GET /v1/notifications`, `POST /v1/notifications/read`, `GET /v1/notification-prefs`, `PUT /v1/notification-prefs`, `PUT /v1/push-tokens` |
-| Imports and exports | `POST /v1/imports`, `GET /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports/:id` |
+| Reports | `GET /v1/reports/:key?period&managerId&territoryId&userId&accountType&form&locale` (decision D62) |
+| Imports and exports | `POST /v1/imports`, `GET /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports`, `GET /v1/exports/:id` |
 | Integrations | `GET /v1/api-clients`, `POST /v1/api-clients`, `GET /v1/webhooks`, `POST /v1/webhooks`, `POST /v1/webhooks/:id/test`, `GET /v1/webhooks/:id/deliveries`, `POST /v1/bulk/users`, `POST /v1/bulk/accounts`, `POST /v1/bulk/items`, `POST /v1/bulk/ledger-entries`, `POST /v1/bulk/external-metrics` |
 | Audit | `GET /v1/audit` |
 | Platform console | `POST /platform/v1/tenants`, `PATCH /platform/v1/tenants/:id`, `GET /platform/v1/usage`, `POST /platform/v1/support-grants`, plus plans, invoices and feature flags |
@@ -1519,7 +1520,7 @@ Events are written to `outbox_events` in the same transaction as the change. Int
 | `order.created`, `order.status_changed` | Workflow, metrics, notifications, webhooks |
 | `expense_claim.created`, `leave_request.created`, `regularisation.created` | Workflow |
 | `workflow.step_pending`, `workflow.completed` | Notifications; the owning module applies the outcome |
-| `import.completed`, `export.completed` | Notifications |
+| `import.finished`, `export.finished` | Notifications |
 | `tenant.provisioned`, `subscription.changed` | Directory and entitlements |
 
 ### 12.5 Metric engine

@@ -20,7 +20,7 @@ import {
   photoIssues,
   todayIn,
 } from '@kshetra/shared';
-import { and, asc, desc, eq, lt, lte, ne, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, lt, lte, ne, or, type SQL, sql } from 'drizzle-orm';
 import { accounts, accountTypes } from '../../db/schema/accounts';
 import { submissions } from '../../db/schema/field';
 import { forms, formVersions } from '../../db/schema/forms';
@@ -490,6 +490,55 @@ export class SubmissionsService {
       items: page.map((row) => SubmissionsService.result(row)),
       nextCursor:
         found.length > query.limit && last ? `${last.capturedAt.toISOString()}|${last.id}` : null,
+    };
+  }
+
+  /**
+   * The activity log (M18): the submissions of the people `userIds` names, captured in a month on
+   * the tenant's clock, oldest first, a page at a time; with each its form's definition, so the
+   * report can lay out the fields.
+   */
+  async forReport(
+    tx: TenantTx,
+    tenantId: string,
+    filter: { userIds: SQL; period: string; accountType?: string; formKey?: string },
+    cursor: string | undefined,
+    limit: number,
+  ) {
+    const { timezone } = await this.config.settings(tx, tenantId);
+    const month = sql`to_char(${submissions.capturedAt} at time zone ${timezone}, 'YYYY-MM')`;
+    const [cursorAt, cursorId] = cursor ? cursor.split('|') : [];
+    const found = await this.select(tx)
+      .where(
+        and(
+          eq(submissions.tenantId, tenantId),
+          sql`${submissions.userId} in (${filter.userIds})`,
+          sql`${month} = ${filter.period}`,
+          filter.formKey ? eq(forms.key, filter.formKey) : undefined,
+          filter.accountType
+            ? sql`exists (select 1 from ${accountTypes} t
+                 where t.tenant_id = ${accounts.tenantId} and t.id = ${accounts.typeId}
+                   and t.key = ${filter.accountType})`
+            : undefined,
+          cursorAt && cursorId
+            ? or(
+                gt(submissions.capturedAt, new Date(cursorAt)),
+                and(eq(submissions.capturedAt, new Date(cursorAt)), gt(submissions.id, cursorId)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(asc(submissions.capturedAt), asc(submissions.id))
+      .limit(limit + 1);
+    const page = found.slice(0, limit);
+    const last = page.at(-1);
+    return {
+      rows: page.map((row) => ({
+        ...SubmissionsService.result(row),
+        definition: row.definition as FormDefinition,
+      })),
+      nextCursor:
+        found.length > limit && last ? `${last.capturedAt.toISOString()}|${last.id}` : null,
     };
   }
 

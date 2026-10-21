@@ -4,7 +4,7 @@ import type { Config } from '../config';
 import { CONFIG } from './tokens';
 
 /** The queues of spec 12.3. Each arrives with the work that uses it. */
-export const QUEUE_NAMES = ['maintenance', 'imports', 'media', 'notifications'] as const;
+export const QUEUE_NAMES = ['maintenance', 'imports', 'media', 'notifications', 'exports'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
 /**
@@ -24,6 +24,8 @@ const CONCURRENCY: Record<QueueName, number> = {
   imports: 2,
   media: 2,
   notifications: 4,
+  // A file holds a month of a report in memory while it is written: two at a time.
+  exports: 2,
 };
 
 /**
