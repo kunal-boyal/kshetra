@@ -27,7 +27,8 @@ import {
 } from '@kshetra/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { CalendarDays, CalendarPlus, Plus, Route, Send, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, CalendarDays, CalendarPlus, Plus, Route, Send, X } from 'lucide-react';
+import { Dot, MapView, Route as RouteLine } from '../maps/map';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
@@ -477,6 +478,14 @@ function Routes({ userId }: { userId: string }) {
 }
 
 /** A route's name, recurrence and ordered accounts. */
+/** A route's stops with one moved up (-1) or down (1). */
+function moveStop(stops: readonly string[], index: number, by: -1 | 1): string[] {
+  const next = [...stops];
+  const [moved] = next.splice(index, 1);
+  next.splice(index + by, 0, moved!);
+  return next;
+}
+
 function RouteForm({
   userId,
   route,
@@ -499,10 +508,18 @@ function RouteForm({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<unknown>();
   const errors = fieldErrors(failure);
-  const placeName = (id: string) =>
-    places.data?.items.find((account) => account.id === id)?.name ??
-    route?.accounts.find((account) => account.id === id)?.name ??
-    id;
+  // The stops with a known place, numbered in route order, for the map (decision D60).
+  const located = stops.flatMap((id, index) => {
+    const at = places.data?.items.find((account) => account.id === id)?.location;
+    return at ? [{ id, at, number: index + 1, name: placeName(id) }] : [];
+  });
+  function placeName(id: string) {
+    return (
+      places.data?.items.find((account) => account.id === id)?.name ??
+      route?.accounts.find((account) => account.id === id)?.name ??
+      id
+    );
+  }
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -584,6 +601,22 @@ function RouteForm({
               </span>
               <Button
                 variant="ghost"
+                icon={<Icon icon={ArrowUp} />}
+                disabled={index === 0}
+                onClick={() => setStops((current) => moveStop(current, index, -1))}
+              >
+                {t('plan.route_up', { name: placeName(id) })}
+              </Button>
+              <Button
+                variant="ghost"
+                icon={<Icon icon={ArrowDown} />}
+                disabled={index === stops.length - 1}
+                onClick={() => setStops((current) => moveStop(current, index, 1))}
+              >
+                {t('plan.route_down', { name: placeName(id) })}
+              </Button>
+              <Button
+                variant="ghost"
                 icon={<Icon icon={X} />}
                 onClick={() => setStops((current) => current.filter((entry) => entry !== id))}
               >
@@ -592,6 +625,14 @@ function RouteForm({
             </li>
           ))}
         </ol>
+      ) : null}
+      {located.length > 0 ? (
+        <MapView label={t('plan.route_map')} fit={located.map((stop) => stop.at)} height={300}>
+          <RouteLine path={located.map((stop) => stop.at)} />
+          {located.map((stop) => (
+            <Dot key={stop.id} at={stop.at} label={String(stop.number)} title={stop.name} />
+          ))}
+        </MapView>
       ) : null}
       {route ? (
         <Checkbox

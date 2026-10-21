@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { compactTrail, TRAIL_ACCURACY_M, todayIn } from '@kshetra/shared';
-import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { locationPoints, shiftPauses, shiftTrails, shifts } from '../../db/schema/field';
 import type { TenantTx } from '../../platform/database';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
@@ -100,6 +100,16 @@ export class TrailsService {
       .set({ distanceM, compactedAt: new Date() })
       .where(and(eq(shifts.tenantId, tenantId), eq(shifts.id, shiftId)));
     return true;
+  }
+
+  /** The compacted trails of some shifts, by shift, for the day replay (M17). */
+  async stored(tx: TenantTx, tenantId: string, shiftIds: readonly string[]) {
+    if (shiftIds.length === 0) return new Map<string, typeof shiftTrails.$inferSelect>();
+    const rows = await tx
+      .select()
+      .from(shiftTrails)
+      .where(and(eq(shiftTrails.tenantId, tenantId), inArray(shiftTrails.shiftId, [...shiftIds])));
+    return new Map(rows.map((row) => [row.shiftId, row]));
   }
 
   /** Every finished shift not compacted yet, for the nightly job. */

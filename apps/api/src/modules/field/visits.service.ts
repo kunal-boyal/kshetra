@@ -9,7 +9,7 @@ import {
   type StartVisitBody,
   type VisitResult,
 } from '@kshetra/shared';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lt, type SQL, sql } from 'drizzle-orm';
 import { accounts, accountTypes } from '../../db/schema/accounts';
 import { submissions, visits } from '../../db/schema/field';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR, userActor } from '../../platform/audit';
@@ -310,6 +310,115 @@ export class VisitsService {
    * Visits with nothing recorded for 4 hours check out 4 hours after their last check-in or
    * submission, `idle` (M6). Returns how many it closed.
    */
+  /** The visits open now among some users, by user, for the live map (M17). */
+  async openFor(tx: TenantTx, tenantId: string, userIds: readonly string[]) {
+    if (userIds.length === 0)
+      return new Map<
+        string,
+        { account: { id: string; code: string; name: string }; checkInAt: Date }
+      >();
+    const rows = await tx
+      .select({
+        userId: visits.userId,
+        checkInAt: visits.checkInAt,
+        accountId: accounts.id,
+        code: accounts.code,
+        name: accounts.name,
+      })
+      .from(visits)
+      .innerJoin(
+        accounts,
+        and(eq(accounts.tenantId, visits.tenantId), eq(accounts.id, visits.accountId)),
+      )
+      .where(
+        and(
+          eq(visits.tenantId, tenantId),
+          isNull(visits.checkOutAt),
+          inArray(visits.userId, [...new Set(userIds)]),
+        ),
+      );
+    return new Map(
+      rows.map((row) => [
+        row.userId,
+        {
+          account: { id: row.accountId, code: row.code, name: row.name },
+          checkInAt: row.checkInAt,
+        },
+      ]),
+    );
+  }
+
+  /** A person's visits checked in on a date on the tenant's clock, for the day replay (M17). */
+  async ofDay(tx: TenantTx, tenantId: string, userId: string, date: string, timezone: string) {
+    return tx
+      .select({
+        id: visits.id,
+        accountId: accounts.id,
+        code: accounts.code,
+        name: accounts.name,
+        location: pointOf(visits.checkInPoint),
+        checkInAt: visits.checkInAt,
+        checkOutAt: visits.checkOutAt,
+        geofence: visits.geofence,
+        distanceM: visits.distanceM,
+      })
+      .from(visits)
+      .innerJoin(
+        accounts,
+        and(eq(accounts.tenantId, visits.tenantId), eq(accounts.id, visits.accountId)),
+      )
+      .where(
+        and(
+          eq(visits.tenantId, tenantId),
+          eq(visits.userId, userId),
+          onLocalDate(visits.checkInAt, date, timezone),
+        ),
+      )
+      .orderBy(asc(visits.checkInAt));
+  }
+
+  /** The accounts anyone checked in at between two moments, for the map's pins (M17). */
+  async accountsVisited(
+    tx: TenantTx,
+    tenantId: string,
+    from: Date,
+    to: Date,
+  ): Promise<Set<string>> {
+    const rows = await tx
+      .selectDistinct({ accountId: visits.accountId })
+      .from(visits)
+      .where(
+        and(eq(visits.tenantId, tenantId), gte(visits.checkInAt, from), lt(visits.checkInAt, to)),
+      );
+    return new Set(rows.map((row) => row.accountId));
+  }
+
+  /**
+   * Check-ins between two moments by some users, counted on a grid of `cell` degrees, each cell at
+   * the mean of its check-ins (M17).
+   */
+  async density(tx: TenantTx, tenantId: string, userIds: SQL, from: Date, to: Date, cell: number) {
+    const lat = sql<number>`ST_Y(${visits.checkInPoint}::geometry)`;
+    const lng = sql<number>`ST_X(${visits.checkInPoint}::geometry)`;
+    const rows = await tx
+      .select({
+        lat: sql<number>`avg(${lat})`,
+        lng: sql<number>`avg(${lng})`,
+        visits: sql<number>`count(*)::int`,
+      })
+      .from(visits)
+      .where(
+        and(
+          eq(visits.tenantId, tenantId),
+          sql`${visits.userId} in (${userIds})`,
+          gte(visits.checkInAt, from),
+          lt(visits.checkInAt, to),
+        ),
+      )
+      .groupBy(sql`floor(${lat} / ${cell}::float8)`, sql`floor(${lng} / ${cell}::float8)`);
+    return rows.map((row) => ({ lat: Number(row.lat), lng: Number(row.lng), visits: row.visits }));
+  }
+
   /** One person's visits checked in on a date on the tenant's clock, for the metric engine. */
   async forMetrics(
     tx: TenantTx,

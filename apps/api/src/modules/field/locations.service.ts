@@ -4,8 +4,9 @@ import {
   type LocationBatchResult,
   type PointRejectionKey,
   pointRejection,
+  TRAIL_ACCURACY_M,
 } from '@kshetra/shared';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { locationPoints, shifts, userLastPosition } from '../../db/schema/field';
 import type { Access } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
@@ -146,5 +147,39 @@ export class LocationsService {
       });
     }
     return { accepted: accepted.map((point) => point.id), rejected };
+  }
+
+  /**
+   * A shift's accurate fixes in time order, for the day replay (M17): accuracy of 100 m or better
+   * (spec 12.1), read through the parent table with the shift's time range, so only its days'
+   * partitions are touched.
+   */
+  async fixes(
+    tx: TenantTx,
+    tenantId: string,
+    shift: { id: string; startedAt: Date; endedAt: Date | null },
+  ): Promise<{ lat: number; lng: number; capturedAt: Date }[]> {
+    const until = shift.endedAt ?? new Date();
+    const rows = await tx
+      .select({
+        lat: sql<number>`ST_Y(${locationPoints.point}::geometry)`,
+        lng: sql<number>`ST_X(${locationPoints.point}::geometry)`,
+        capturedAt: locationPoints.capturedAt,
+      })
+      .from(locationPoints)
+      .where(
+        and(
+          eq(locationPoints.tenantId, tenantId),
+          eq(locationPoints.shiftId, shift.id),
+          sql`${locationPoints.accuracy} <= ${TRAIL_ACCURACY_M}`,
+          sql`${locationPoints.capturedAt} between ${new Date(shift.startedAt.getTime() - 60_000)} and ${new Date(until.getTime() + 120_000)}`,
+        ),
+      )
+      .orderBy(asc(locationPoints.capturedAt));
+    return rows.map((row) => ({
+      lat: Number(row.lat),
+      lng: Number(row.lng),
+      capturedAt: row.capturedAt,
+    }));
   }
 }

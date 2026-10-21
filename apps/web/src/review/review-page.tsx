@@ -21,11 +21,12 @@ import {
   TextField,
 } from '@kshetra/ui-web';
 import { Link } from '@tanstack/react-router';
-import { Check, ClipboardCheck, Pencil, X } from 'lucide-react';
+import { Check, ClipboardCheck, MapPin, Pencil, X } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
+import { Area, Dot, MapView } from '../maps/map';
 import { useAccess, write } from '../people/data';
 import { fieldErrors, PageHeader, Section, useDates } from '../people/shared';
 import {
@@ -266,6 +267,7 @@ function Card({
   const dates = useDates(access.timezone);
   const refresh = useRefreshReview();
   const [noting, setNoting] = useState<'rejected' | 'approved' | null>(null);
+  const [mapped, setMapped] = useState(false);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<unknown>();
@@ -332,6 +334,21 @@ function Card({
               accuracy: Math.round(item.accuracy),
             })}
           </p>
+          <Button
+            variant="ghost"
+            className="self-start"
+            icon={<Icon icon={MapPin} />}
+            aria-expanded={mapped}
+            onClick={() => setMapped((open) => !open)}
+          >
+            {mapped ? t('review.hide_map') : t('review.show_map')}
+          </Button>
+          {mapped ? (
+            <MapView label={t('review.map_label')} fit={[item.location]} height={240}>
+              <Area at={item.location} radius={Math.max(5, item.accuracy)} />
+              <Dot at={item.location} title={t('review.map_point')} />
+            </MapView>
+          ) : null}
         </div>
         {onSelect ? (
           <Checkbox

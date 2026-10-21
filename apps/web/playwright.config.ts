@@ -14,7 +14,8 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:4173', reducedMotion: 'reduce', trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'pnpm build && pnpm preview --strictPort',
+    // No Maps key: maps show their placeholder, so no test ever calls Google.
+    command: 'VITE_GOOGLE_MAPS_API_KEY= pnpm build && pnpm preview --strictPort',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
   },

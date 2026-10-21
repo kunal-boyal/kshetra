@@ -30,3 +30,64 @@ body {
   margin: 0;
   background: var(--bg);
 }
+
+/* A dot on a map (decision D60): its fill is a status or accent token, set by the tone class. */
+.ks-map-dot {
+  --dot: var(--accent);
+  display: grid;
+  place-items: center;
+  min-width: calc(var(--space-1) * 3.5);
+  height: calc(var(--space-1) * 3.5);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--surface);
+  background: var(--dot);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-sm);
+}
+.ks-map-dot.numbered {
+  min-width: calc(var(--space-1) * 5.5);
+  height: calc(var(--space-1) * 5.5);
+  padding: 0 var(--space-1);
+}
+.ks-map-dot.success {
+  --dot: var(--success-solid);
+}
+.ks-map-dot.pending {
+  --dot: var(--pending-solid);
+}
+.ks-map-dot.danger {
+  --dot: var(--danger-solid);
+}
+.ks-map-dot.neutral {
+  --dot: var(--text-subtle);
+}
+/* Account types take the chart series in order; an account not visited this month is hollow. */
+.ks-map-dot.series-1 {
+  --dot: var(--chart-1);
+}
+.ks-map-dot.series-2 {
+  --dot: var(--chart-2);
+}
+.ks-map-dot.series-3 {
+  --dot: var(--chart-3);
+}
+.ks-map-dot.series-4 {
+  --dot: var(--chart-4);
+}
+.ks-map-dot.series-5 {
+  --dot: var(--chart-5);
+}
+.ks-map-dot.series-6 {
+  --dot: var(--chart-6);
+}
+.ks-map-dot.series-7 {
+  --dot: var(--chart-7);
+}
+.ks-map-dot.series-8 {
+  --dot: var(--chart-8);
+}
+.ks-map-dot.hollow {
+  background: var(--surface);
+  border-color: var(--dot);
+  border-width: 3px;
+}

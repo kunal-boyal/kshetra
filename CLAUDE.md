@@ -203,6 +203,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Delivery runs on the `notifications` queue (`NotificationDelivery`): push, then the next channel when one can't reach the person. Senders follow `PUSH_PROVIDER`, `SMS_PROVIDER` and `EMAIL_PROVIDER`: console locally, memory in tests (`MemoryPushSender` and friends), refused in production. Never log a number, address or token unmasked: use `maskPhone()`, `maskEmail()` and `maskToken()`.
 - On the phone (decision D59), `usePushRegistration()` and `useNotificationTaps()` in `apps/mobile/src/push.ts` run in the signed-in layout; a tapped notification opens its link through `openLink()`, and `APP_PATHS` lists the screens it may open. The inbox is `src/screens/notifications.tsx` with the hooks in `src/notifications.ts`. Push needs a development build and Firebase's `google-services.json`, which EAS supplies as the `GOOGLE_SERVICES_JSON` file variable and is never committed. In Jest, mock `expo-notifications` and `expo-device`.
 
+## Maps (decision D60)
+
+- Map reads live in `apps/api/src/modules/maps`: `GET /v1/live`, `/v1/account-pins`, `/v1/trails` and `/v1/density`. They reach shifts, points, trails, visits and accounts only through those modules' services, within the caller's scope. The rules are pure functions in `packages/shared/src/maps.ts`: `isStale()`, `positionAt()`, `pathLengthMeters()` and `decodePolyline()`.
+- The web draws maps only through `apps/web/src/maps/map.tsx` (`MapView`, `Dot`, `Route`, `Area`), on `@vis.gl/react-google-maps`, with colours from the tokens: status tones, and `seriesOf()` for account types, filled once visited. Without `VITE_GOOGLE_MAPS_API_KEY` a map shows a notice, as in Vitest and Playwright; keep whatever a map shows also readable in a list or table beside it.
+- `VITE_` settings come from the root `.env` (`envDir`). Only the vendor keys exist for now; per-tenant keys arrive in step 16.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

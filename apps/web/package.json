@@ -24,6 +24,7 @@
     "@kshetra/ui-web": "workspace:*",
     "@tanstack/react-query": "^5.104.1",
     "@tanstack/react-router": "^1.170.41",
+    "@vis.gl/react-google-maps": "1.10.1",
     "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

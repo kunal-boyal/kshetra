@@ -14,12 +14,13 @@ import {
   type ShiftWindow,
   type StartShiftBody,
 } from '@kshetra/shared';
-import { and, asc, desc, eq, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm';
 import { shiftPauses, shifts, userLastPosition } from '../../db/schema/field';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { pointOf, pointSql } from '../../platform/geo';
+import { onLocalDate } from '../../platform/local-day';
 import { Outbox } from '../../platform/outbox';
 import { clockSkewSeconds } from '../iam/devices.service';
 import { notFound, outOfScope } from '../iam/actor';
@@ -482,6 +483,86 @@ export class ShiftsService {
    * The nightly close (M5): shifts open past the longest a shift may last end at that limit,
    * `auto_closed`. Returns how many it closed.
    */
+  /**
+   * Everyone on duty among some users, for the live map (M17): each open shift, whether it is
+   * paused, and its newest position, if it has one.
+   */
+  async onDuty(tx: TenantTx, tenantId: string, userIds: SQL) {
+    const rows = await tx
+      .select({
+        shiftId: shifts.id,
+        userId: shifts.userId,
+        startedAt: shifts.startedAt,
+        paused: sql<boolean>`exists (select 1 from ${shiftPauses} where ${shiftPauses.tenantId} = ${shifts.tenantId}
+          and ${shiftPauses.shiftId} = ${shifts.id} and ${shiftPauses.resumedAt} is null)`,
+        position: pointOf(userLastPosition.point),
+        accuracy: userLastPosition.accuracy,
+        battery: userLastPosition.battery,
+        seenAt: userLastPosition.capturedAt,
+      })
+      .from(shifts)
+      .leftJoin(
+        userLastPosition,
+        and(
+          eq(userLastPosition.tenantId, shifts.tenantId),
+          eq(userLastPosition.userId, shifts.userId),
+          eq(userLastPosition.shiftId, shifts.id),
+        ),
+      )
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          isNull(shifts.endedAt),
+          sql`${shifts.userId} in (${userIds})`,
+        ),
+      )
+      .orderBy(asc(shifts.startedAt));
+    return rows;
+  }
+
+  /** A person's shifts that started on a date on the tenant's clock, with their pauses (M17). */
+  async ofDay(tx: TenantTx, tenantId: string, userId: string, date: string, timezone: string) {
+    const rows = await tx
+      .select({
+        id: shifts.id,
+        startedAt: shifts.startedAt,
+        endedAt: shifts.endedAt,
+        distanceM: shifts.distanceM,
+      })
+      .from(shifts)
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          eq(shifts.userId, userId),
+          onLocalDate(shifts.startedAt, date, timezone),
+        ),
+      )
+      .orderBy(asc(shifts.startedAt));
+    const pauses = rows.length
+      ? await tx
+          .select({
+            shiftId: shiftPauses.shiftId,
+            from: shiftPauses.pausedAt,
+            to: shiftPauses.resumedAt,
+          })
+          .from(shiftPauses)
+          .where(
+            and(
+              eq(shiftPauses.tenantId, tenantId),
+              inArray(
+                shiftPauses.shiftId,
+                rows.map((row) => row.id),
+              ),
+            ),
+          )
+          .orderBy(asc(shiftPauses.pausedAt))
+      : [];
+    return rows.map((row) => ({
+      ...row,
+      pauses: pauses.filter((pause) => pause.shiftId === row.id),
+    }));
+  }
+
   /**
    * Open shifts, not paused, whose newest point is older than `minutes` (spec 12.1, M16): each
    * with the moment it went quiet, which names the gap, so it is reported once per gap. A shift

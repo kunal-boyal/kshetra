@@ -8,6 +8,7 @@ import {
   LogOut,
   Pencil,
   RotateCcw,
+  Route,
   Smartphone,
   UserCheck,
   UserX,
@@ -115,6 +116,16 @@ function Person({ user }: { user: UserView }) {
             }
           >
             {t('plan.open')}
+          </Button>
+        ) : null}
+        {access.can('trail.view') ? (
+          <Button
+            icon={<Icon icon={Route} />}
+            onClick={() =>
+              void navigate({ to: '/people/$userId/replay', params: { userId: user.id } })
+            }
+          >
+            {t('live.replay')}
           </Button>
         ) : null}
         {access.can('user.manage') ? (

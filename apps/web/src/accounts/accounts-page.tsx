@@ -1,5 +1,6 @@
 import type { AccountStatus, AccountResult } from '@kshetra/shared';
 import {
+  Checkbox,
   Button,
   type Column,
   DataTable,
@@ -15,6 +16,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { customValue } from '../people/custom-fields';
 import { useAccess } from '../people/data';
 import { PageHeader, useSettled } from '../people/shared';
+import { AccountsMap } from './accounts-map';
 import { type AccountFilters, useAccounts, useAccountTypes } from './data';
 import { AccountStatusBadge, segmentName, slotName } from './shared';
 
@@ -34,6 +36,7 @@ export function AccountsPage({ type: chosen }: { type?: string }) {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<AccountStatus | ''>('');
   const [segment, setSegment] = useState('');
+  const [onMap, setOnMap] = useState(false);
   const settled = useSettled(q.trim());
   const filters: AccountFilters = {
     type: type?.key ?? '',
@@ -172,6 +175,13 @@ export function AccountsPage({ type: chosen }: { type?: string }) {
           />
         ) : null}
       </div>
+
+      <Checkbox
+        label={t('accounts.show_map')}
+        checked={onMap}
+        onChange={(event) => setOnMap(event.target.checked)}
+      />
+      {onMap && type ? <AccountsMap type={type.key} name={type.name[locale].other} /> : null}
 
       {accounts.isError ? (
         <p className="ks-help error" role="alert">

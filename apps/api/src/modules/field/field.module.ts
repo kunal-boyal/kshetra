@@ -40,6 +40,13 @@ import { VisitsService } from './visits.service';
     SubmissionsService,
     FieldUpkeep,
   ],
-  exports: [AttendanceService, ShiftsService, SubmissionsService, VisitsService],
+  exports: [
+    AttendanceService,
+    ShiftsService,
+    SubmissionsService,
+    VisitsService,
+    LocationsService,
+    TrailsService,
+  ],
 })
 export class FieldModule {}

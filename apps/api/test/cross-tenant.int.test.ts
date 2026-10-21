@@ -1051,6 +1051,29 @@ const FIXTURES: Record<string, Fixture> = {
       ]);
     },
   },
+  'GET /v1/live': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/live')),
+  },
+  'GET /v1/account-pins': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/account-pins')),
+  },
+  'GET /v1/trails': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('GET', `/v1/trails?userId=${id}&date=${new Date().toISOString().slice(0, 10)}`),
+        a.member.id,
+      ),
+  },
+  'GET /v1/density': {
+    kind: 'own tenant',
+    run: async () =>
+      holdsNothingOfA(
+        await asB('GET', `/v1/density?period=${new Date().toISOString().slice(0, 7)}`),
+      ),
+  },
   'GET /v1/notifications': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/notifications')),
