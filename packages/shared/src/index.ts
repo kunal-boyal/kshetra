@@ -443,3 +443,26 @@ export {
   PutNotificationPrefsBody,
   PutPushTokenBody,
 } from './schemas/notifications';
+export {
+  decodePolyline,
+  DENSITY_CELL_DEG,
+  isStale,
+  LIVE_REFRESH_MS,
+  LIVE_STALE_MINUTES,
+  pathLengthMeters,
+  positionAt,
+} from './maps';
+export type { TimedPoint } from './maps';
+export {
+  AccountPin,
+  AccountPinsQuery,
+  AccountPinsResult,
+  DensityQuery,
+  DensityResult,
+  LivePerson,
+  LiveResult,
+  TrailQuery,
+  TrailResult,
+  TrailShift,
+  TrailVisit,
+} from './schemas/maps';

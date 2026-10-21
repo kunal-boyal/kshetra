@@ -13,6 +13,9 @@ import { AccountsPage } from './accounts/accounts-page';
 import { ApprovalsPage } from './accounts/approvals-page';
 import { PlanPage } from './planning/plan-page';
 import { ReviewPage } from './review/review-page';
+import { DensityPage } from './maps/density-page';
+import { LiveMapPage } from './maps/live-map-page';
+import { ReplayPage } from './maps/replay-page';
 import { NotificationsPage } from './notifications/notifications-page';
 import { LeaderboardPage } from './performance/leaderboard-page';
 import { PersonPerformancePage } from './performance/person-page';
@@ -171,6 +174,24 @@ const personPerformance = createRoute({
     return <PersonPerformancePage key={userId} userId={userId} />;
   },
 });
+const liveMap = createRoute({
+  getParentRoute: () => app,
+  path: '/live-map',
+  component: LiveMapPage,
+});
+const density = createRoute({
+  getParentRoute: () => app,
+  path: '/density',
+  component: DensityPage,
+});
+const replay = createRoute({
+  getParentRoute: () => app,
+  path: '/people/$userId/replay',
+  component: function ReplayRoute() {
+    const { userId } = replay.useParams();
+    return <ReplayPage key={userId} userId={userId} />;
+  },
+});
 const notificationsRoute = createRoute({
   getParentRoute: () => app,
   path: '/notifications',
@@ -265,6 +286,9 @@ const tree = root.addChildren([
     personPerformance,
     leaderboard,
     notificationsRoute,
+    liveMap,
+    density,
+    replay,
     territories,
     imports,
     oneImport,

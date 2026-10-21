@@ -167,6 +167,40 @@ describe('the accounts table', () => {
     );
     expect(await screen.findByRole('heading', { level: 1, name: 'Farmers' })).toBeVisible();
   });
+  it('shows the type’s located accounts on a map when asked', async () => {
+    const pin = (id: string, name: string, type: string, visited: boolean) => ({
+      id,
+      code: `C-${id.slice(-2)}`,
+      name,
+      type,
+      location: { lat: 28.6315, lng: 77.2167 },
+      visited,
+    });
+    const client = fakeClient(
+      {
+        '/v1/accounts': { items: [SHOP_ACCOUNT], nextCursor: null },
+        '/v1/account-pins': {
+          period: '2026-10',
+          items: [
+            pin(SHOP, 'Green Fields Agro', 'distributor', true),
+            pin(DEPOT, 'Beej Bhandar', 'distributor', false),
+            pin('01a10000-0000-7000-8000-0000000000f1', 'Ram Lal', 'farmer', false),
+          ],
+          truncated: false,
+        },
+      },
+      {},
+      MANAGE,
+      BUNDLE,
+    );
+    renderAt('/accounts', client);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('checkbox', { name: 'Show on a map' }));
+    expect(await screen.findByRole('img', { name: 'Distributors on a map' })).toBeVisible();
+    expect(
+      screen.getByText('2 with a known place; filled ones were visited this month.'),
+    ).toBeVisible();
+  });
 });
 
 describe("an account's page", () => {

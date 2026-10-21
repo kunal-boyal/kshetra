@@ -1080,6 +1080,42 @@ export class AccountsService {
       );
   }
 
+  /**
+   * The located accounts the caller sees, for maps (M17): code, name, type and place, up to
+   * `limit`, and whether there were more.
+   */
+  async pins(tx: TenantTx, access: Access, limit: number) {
+    const rows = await tx
+      .select({
+        id: accounts.id,
+        code: accounts.code,
+        name: accounts.name,
+        type: accountTypes.key,
+        location: pointOf(accounts.location),
+      })
+      .from(accounts)
+      .innerJoin(
+        accountTypes,
+        and(eq(accountTypes.tenantId, accounts.tenantId), eq(accountTypes.id, accounts.typeId)),
+      )
+      .where(
+        and(
+          eq(accounts.tenantId, access.tenantId),
+          eq(accounts.status, 'active'),
+          sql`${accounts.location} is not null`,
+          await this.reach(tx, access),
+        ),
+      )
+      .orderBy(asc(accounts.name), asc(accounts.id))
+      .limit(limit + 1);
+    return {
+      items: rows
+        .slice(0, limit)
+        .flatMap((row) => (row.location ? [{ ...row, location: row.location }] : [])),
+      truncated: rows.length > limit,
+    };
+  }
+
   /** Today's holders of an account's slots. */
   async holdersOn(
     tx: TenantTx,

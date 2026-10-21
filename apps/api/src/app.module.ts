@@ -5,6 +5,7 @@ import { AccountsModule } from './modules/accounts/accounts.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { FieldModule } from './modules/field/field.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
+import { MapsModule } from './modules/maps/maps.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PerformanceModule } from './modules/performance/performance.module';
 import { PlanningModule } from './modules/planning/planning.module';
@@ -55,6 +56,7 @@ export const FEATURE_MODULES = [
   PlanningModule,
   PerformanceModule,
   NotificationsModule,
+  MapsModule,
   FieldModule,
   ReviewModule,
 ];

@@ -172,6 +172,18 @@ describe('the review queue', () => {
     expect(second).toHaveTextContent('Phone failed its integrity check');
   });
 
+  it('shows where a form was filled on a map when asked', async () => {
+    renderAt('/review', fakeClient());
+    const [first] = await screen.findAllByRole('article', { name: 'Shop visit, Rahul Verma' });
+    const user = userEvent.setup();
+    const show = within(first!).getByRole('button', { name: 'Show on map' });
+    expect(show).toHaveAttribute('aria-expanded', 'false');
+    await user.click(show);
+    expect(within(first!).getByRole('img', { name: 'Where the form was filled' })).toBeVisible();
+    await user.click(within(first!).getByRole('button', { name: 'Hide map' }));
+    expect(within(first!).queryByRole('img', { name: 'Where the form was filled' })).toBeNull();
+  });
+
   it('approves at once, and rejects only with a reason', async () => {
     const client = fakeClient({
       [`POST /v1/submissions/${CLEAN}/review`]: decided('approved'),

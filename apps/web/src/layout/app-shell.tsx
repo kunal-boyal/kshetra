@@ -8,6 +8,7 @@ import {
   House,
   Inbox,
   LogOut,
+  Map as MapIcon,
   MapPinned,
   Network,
   Repeat,
@@ -73,6 +74,9 @@ export function AppShell() {
       : []),
     ...(access.can('submission.review')
       ? [{ to: '/review', icon: ClipboardCheck, label: t('nav.review') }]
+      : []),
+    ...(access.can('live_map.view')
+      ? [{ to: '/live-map', icon: MapIcon, label: t('nav.live_map') }]
       : []),
     ...(access.can('target.view')
       ? [{ to: '/targets', icon: Target, label: t('nav.targets') }]

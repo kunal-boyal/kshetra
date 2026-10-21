@@ -6,4 +6,8 @@ interface ImportMetaEnv {
   /** Overrides the cell URL the directory hands out; empty for this page's own origin. */
   readonly VITE_CELL_URL?: string;
   readonly VITE_PRODUCT_NAME?: string;
+  /** The web Maps key (decision D60); without it maps show a notice. */
+  readonly VITE_GOOGLE_MAPS_API_KEY?: string;
+  /** A Maps map ID for advanced markers; Google's demo ID by default. */
+  readonly VITE_GOOGLE_MAPS_MAP_ID?: string;
 }

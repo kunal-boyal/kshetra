@@ -108,7 +108,10 @@ function fakeClient(writes: Record<string, Answer> = {}, approval: unknown = nul
       ],
     },
     '/v1/accounts': {
-      items: [account(SHOP, 'Sharma Stores'), account(DEPOT, 'Verma Depot')],
+      items: [
+        { ...account(SHOP, 'Sharma Stores'), location: { lat: 28.6315, lng: 77.2167 } },
+        account(DEPOT, 'Verma Depot'),
+      ],
       nextCursor: null,
     },
   };
@@ -294,6 +297,23 @@ describe("a person's plan (M8)", () => {
         ],
       ]),
     );
+  });
+
+  it('reorders a route’s stops, and maps the ones with a known place', async () => {
+    renderAt(`/people/${RAHUL}/plan`, fakeClient());
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Add a route' }));
+    const form = screen.getByRole('form', { name: 'Add a route' });
+    const add = within(form).getByRole('combobox', { name: /to the route/ });
+    await user.selectOptions(add, 'Verma Depot (C-81)');
+    await user.selectOptions(add, 'Sharma Stores (C-80)');
+    expect(within(form).getByRole('button', { name: 'Move Verma Depot up' })).toBeDisabled();
+    await user.click(within(form).getByRole('button', { name: 'Move Sharma Stores up' }));
+    expect(within(form).getByRole('list', { name: 'Stops, first to last' })).toHaveTextContent(
+      /1\. Sharma Stores.*2\. Verma Depot/,
+    );
+    // Without a Maps key the map says so; it is drawn only once a stop has a known place.
+    expect(within(form).getByRole('img', { name: 'Map of the route, stop by stop' })).toBeVisible();
   });
 
   it('sends a month for approval where the tenant asks for it', async () => {
