@@ -9,6 +9,7 @@ import {
   Inbox,
   LogOut,
   Map as MapIcon,
+  Sheet,
   MapPinned,
   Network,
   Repeat,
@@ -86,6 +87,9 @@ export function AppShell() {
       : { to: '/performance/me', icon: ChartNoAxesColumn, label: t('nav.my_performance') },
     ...(access.can('leaderboard.view')
       ? [{ to: '/leaderboard', icon: Trophy, label: t('nav.leaderboard') }]
+      : []),
+    ...(access.can('report.view')
+      ? [{ to: '/reports', icon: Sheet, label: t('nav.reports') }]
       : []),
     ...(access.can('territory.manage')
       ? [{ to: '/territories', icon: MapPinned, label: t('nav.territories') }]

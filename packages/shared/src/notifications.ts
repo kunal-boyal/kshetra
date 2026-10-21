@@ -53,6 +53,8 @@ export const NOTIFICATION_KINDS = {
   },
   /** An import the person started finished. */
   'import.finished': { category: 'imports', external: ['email'], urgent: false, inbox: true },
+  /** An export the person asked for is ready, or failed. */
+  'export.finished': { category: 'imports', external: [], urgent: false, inbox: true },
 } as const satisfies Record<string, NotificationKind>;
 
 export type NotificationEvent = keyof typeof NOTIFICATION_KINDS;

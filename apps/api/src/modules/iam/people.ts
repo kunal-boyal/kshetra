@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { LocalizedNoun, TenantPermission, UserStatus } from '@kshetra/shared';
 import type { z } from 'zod';
-import { and, asc, eq, inArray, ne, type SQL, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, ne, or, type SQL, sql } from 'drizzle-orm';
 import { designations, roles, users } from '../../db/schema/iam';
 import type { TenantTx } from '../../platform/database';
 
@@ -84,6 +84,22 @@ export class People {
     return this.select(tx)
       .where(and(eq(users.tenantId, tenantId), eq(users.status, 'active'), condition))
       .orderBy(asc(users.name), asc(users.id));
+  }
+
+  /**
+   * The people a report covers (M18): those `ids` selects who were employed on or after `from`, so
+   * a past month keeps whoever left during it; by code.
+   */
+  async among(tx: TenantTx, tenantId: string, ids: SQL, from: string): Promise<PersonFacts[]> {
+    return this.select(tx)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          sql`${users.id} in (${ids})`,
+          or(eq(users.status, 'active'), isNull(users.exitDate), gte(users.exitDate, from)),
+        ),
+      )
+      .orderBy(asc(users.code), asc(users.id));
   }
 
   /**

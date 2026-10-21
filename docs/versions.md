@@ -48,6 +48,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | @fastify/cors | 11.3.0 | The `CORS_ORIGINS` allowlist (decision D35) |
 | @aws-sdk/client-s3 | 3.1146.0 | Added 2026-10-12: the object store, S3 in AWS and MinIO locally (decision D42) |
 | read-excel-file | 9.3.10 | Added 2026-10-12: reads `.xlsx` imports. Numbers are read as the text in the cell, so codes and mobile numbers keep their leading zeros (decision D42). |
+| exceljs | 4.4.0 | Added 2026-10-22: writes `.xlsx` exports with its streaming writer, numbers as numbers and dates as dates (decision D62). 4.4.0 is the current release. |
 | csv-parse | 7.0.3 | Added 2026-10-12: reads `.csv` imports |
 | fflate | 0.8.3 | Added 2026-10-12: reads an `.xlsx` file's zip directory to refuse one that unpacks to more than 200 MB before it is opened (decision D42) |
 | sharp | 0.35.5 | Added 2026-10-12: reads photos, makes their thumbnails, stamped copies and difference hashes (decision D44). Its prebuilt binaries need no install script. |

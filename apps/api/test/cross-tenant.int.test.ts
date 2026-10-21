@@ -71,6 +71,7 @@ let aSubmissionId: string;
 /** A route and a plan item of A's member. */
 let aRouteId: string;
 let aPlanItemId: string;
+let aExportId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
 /** An account of B's own, under B's territory. */
@@ -1074,6 +1075,49 @@ const FIXTURES: Record<string, Fixture> = {
         await asB('GET', `/v1/density?period=${new Date().toISOString().slice(0, 7)}`),
       ),
   },
+  'GET /v1/reports/:key': {
+    kind: 'by ID',
+    run: async () => {
+      const month = new Date().toISOString().slice(0, 7);
+      for (const key of ['activity_log', 'attendance_register', 'target_achievement']) {
+        holdsNothingOfA(await asB('GET', `/v1/reports/${key}?period=${month}`));
+        await sameAsNowhere(
+          (id) => asB('GET', `/v1/reports/${key}?period=${month}&userId=${id}`),
+          a.member.id,
+        );
+        await sameAsNowhere(
+          (id) => asB('GET', `/v1/reports/${key}?period=${month}&managerId=${id}`),
+          a.member.id,
+        );
+        await sameAsNowhere(
+          (id) => asB('GET', `/v1/reports/${key}?period=${month}&territoryId=${id}`),
+          aTerritoryId,
+        );
+      }
+    },
+  },
+  'POST /v1/exports': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', '/v1/exports', {
+            id: newId(),
+            report: 'activity_log',
+            filters: { period: new Date().toISOString().slice(0, 7), userId: id },
+            format: 'xlsx',
+          }),
+        a.member.id,
+      ),
+  },
+  'GET /v1/exports': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/exports')),
+  },
+  'GET /v1/exports/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/exports/${id}`), aExportId),
+  },
   'GET /v1/notifications': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/notifications')),
@@ -1356,6 +1400,14 @@ beforeAll(async () => {
   });
   expect(submitted.statusCode).toBe(201);
   // A route and a planned visit for A's member.
+  aExportId = newId();
+  const asked = await send(aToken, 'POST', '/v1/exports', {
+    id: aExportId,
+    report: 'attendance_register',
+    filters: { period: new Date().toISOString().slice(0, 7) },
+    format: 'csv',
+  });
+  expect(asked.statusCode).toBe(201);
   aRouteId = newId();
   const route = await send(aToken, 'POST', '/v1/routes', {
     id: aRouteId,

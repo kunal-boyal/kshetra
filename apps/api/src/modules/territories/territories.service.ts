@@ -508,6 +508,22 @@ export class TerritoriesService {
   }
 
   /**
+   * The users attached at some time from `from` to `to` (dates) to a territory or any below it, as
+   * reports for a past period count them (spec 4.3). A subquery that selects user IDs.
+   */
+  usersAttachedUnder(tenantId: string, territoryId: string, from: string, to: string): SQL {
+    return sql`
+      select theirs.user_id
+        from ${territoryClosure} tree
+        join ${userTerritories} theirs
+          on theirs.tenant_id = tree.tenant_id and theirs.territory_id = tree.descendant_id
+       where tree.tenant_id = ${tenantId}
+         and tree.ancestor_id = ${territoryId}
+         and theirs.valid_from <= ${to}::date
+         and (theirs.valid_to is null or theirs.valid_to > ${from}::date)`;
+  }
+
+  /**
    * The users attached on `today` (`YYYY-MM-DD`, the tenant's date) to any territory at or below
    * one the given user is attached to on that day: whom a `territory` scope reaches (spec 4.2).
    * A subquery that selects user IDs.

@@ -437,10 +437,23 @@ export class PerformanceService {
   /** The month for everyone the caller's scope reaches, but the caller, with the team's totals. */
   async team(tx: TenantTx, access: Access, period: string): Promise<TeamPerformance> {
     const tenantId = access.tenantId;
-    const setup = await this.setup(tx, tenantId);
     const team = (
       await this.people.matching(tx, tenantId, await this.scopes.users(tx, access))
     ).filter((person) => person.id !== access.userId);
+    return this.figuresFor(tx, tenantId, team, period);
+  }
+
+  /**
+   * Some people's figures, score and rank for a month, with the group's totals: the team view, and
+   * the target against achievement report (M18), which names its people itself.
+   */
+  async figuresFor(
+    tx: TenantTx,
+    tenantId: string,
+    team: readonly PersonFacts[],
+    period: string,
+  ): Promise<TeamPerformance> {
+    const setup = await this.setup(tx, tenantId);
     const ids = team.map((person) => person.id);
     const values = await this.values(tx, tenantId, setup, ids, period);
     const sets = await this.targets.sets(tx, tenantId, period, ids);

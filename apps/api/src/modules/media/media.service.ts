@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { newId } from '@kshetra/shared';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { media } from '../../db/schema/media';
 import type { TenantTx } from '../../platform/database';
 import { ObjectStore } from '../../platform/object-store';
@@ -70,5 +70,28 @@ export class MediaService {
       .where(and(eq(media.tenantId, tenantId), eq(media.id, id)));
     if (!row) throw new Error(`There is no file ${id}.`);
     return { ...row, bytes: await this.objects.get(row.objectKey) };
+  }
+
+  /** Where a stored file is in the object store, to link to it; null for nobody's. */
+  async objectKey(tx: TenantTx, tenantId: string, id: string): Promise<string | null> {
+    const [row] = await tx
+      .select({ objectKey: media.objectKey })
+      .from(media)
+      .where(and(eq(media.tenantId, tenantId), eq(media.id, id), ne(media.status, 'deleted')));
+    return row?.objectKey ?? null;
+  }
+
+  /**
+   * Removes a file whose keeping time is over (retention, spec 10.3): the object goes, and the row
+   * stays, marked deleted, so what referred to it still reads.
+   */
+  async expire(tx: TenantTx, tenantId: string, id: string): Promise<void> {
+    const key = await this.objectKey(tx, tenantId, id);
+    if (key === null) return;
+    await this.objects.delete(key);
+    await tx
+      .update(media)
+      .set({ status: 'deleted' })
+      .where(and(eq(media.tenantId, tenantId), eq(media.id, id)));
   }
 }

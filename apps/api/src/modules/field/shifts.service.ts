@@ -484,6 +484,39 @@ export class ShiftsService {
    * `auto_closed`. Returns how many it closed.
    */
   /**
+   * Distance and pauses of some shifts, for the attendance register (M18): the distance the shift
+   * kept when it ended, and its pauses, an open one counting until the shift ended or now.
+   */
+  async reportFacts(
+    tx: TenantTx,
+    tenantId: string,
+    shiftIds: readonly string[],
+  ): Promise<Map<string, { distanceM: number | null; pauses: number; pausedSeconds: number }>> {
+    if (shiftIds.length === 0) return new Map();
+    const rows = await tx
+      .select({
+        id: shifts.id,
+        distanceM: shifts.distanceM,
+        pauses: sql<number>`count(${shiftPauses.id})::int`,
+        pausedSeconds: sql<number>`coalesce(sum(extract(epoch from
+          coalesce(${shiftPauses.resumedAt}, ${shifts.endedAt}, now()) - ${shiftPauses.pausedAt})), 0)::int`,
+      })
+      .from(shifts)
+      .leftJoin(
+        shiftPauses,
+        and(eq(shiftPauses.tenantId, shifts.tenantId), eq(shiftPauses.shiftId, shifts.id)),
+      )
+      .where(and(eq(shifts.tenantId, tenantId), inArray(shifts.id, [...shiftIds])))
+      .groupBy(shifts.id, shifts.distanceM);
+    return new Map(
+      rows.map((row) => [
+        row.id,
+        { distanceM: row.distanceM, pauses: row.pauses, pausedSeconds: row.pausedSeconds },
+      ]),
+    );
+  }
+
+  /**
    * Everyone on duty among some users, for the live map (M17): each open shift, whether it is
    * paused, and its newest position, if it has one.
    */

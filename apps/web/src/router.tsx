@@ -35,6 +35,7 @@ import { EditPersonPage, NewPersonPage } from './people/person-form-page';
 import { PersonPage } from './people/person-page';
 import { TransferPage } from './people/transfer-page';
 import { DesignationsPage } from './settings/designations-page';
+import { ReportsPage } from './reports/reports-page';
 import { RolesPage } from './settings/roles-page';
 import { SettingsLayout } from './settings/settings-layout';
 import { UserFieldsPage } from './settings/user-fields-page';
@@ -179,6 +180,11 @@ const liveMap = createRoute({
   path: '/live-map',
   component: LiveMapPage,
 });
+const reports = createRoute({
+  getParentRoute: () => app,
+  path: '/reports',
+  component: ReportsPage,
+});
 const density = createRoute({
   getParentRoute: () => app,
   path: '/density',
@@ -289,6 +295,7 @@ const tree = root.addChildren([
     liveMap,
     density,
     replay,
+    reports,
     territories,
     imports,
     oneImport,

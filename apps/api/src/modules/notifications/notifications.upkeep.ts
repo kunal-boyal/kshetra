@@ -1,6 +1,9 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { resolveTerminology, translate } from '@kshetra/i18n';
 import {
   type EventPayload,
+  type Locale,
+  type ReportKey,
   TRACKING_REPORT_MINUTES,
   TRACKING_SILENCE_MINUTES,
   timeIn,
@@ -30,7 +33,7 @@ const minutesOf = (time: string) => {
  * Turns what happens into notifications (M16, decision D58):
  * - a submission rejected by a person tells its submitter;
  * - a request waiting tells its approvers, and its decision tells the requester;
- * - targets locked tell their person; an import finished tells who started it;
+ * - targets locked tell their person; an import or export finished tells who started it;
  * - each tenant's plan time tells field users with plan items today;
  * - every 5 minutes, a shift quiet for 20 minutes tells its person, and at 40 their manager.
  * Every notification names its occurrence, so an event delivered twice notifies once.
@@ -187,6 +190,28 @@ export class NotificationsUpkeep implements OnModuleInit {
         },
         link: `/imports/${finished.importId}`,
         dedupeKey: `import:${finished.importId}`,
+      });
+    });
+
+    this.outbox.consume(['export.finished'], 'notifications.exports', async (event, tx) => {
+      const finished = event.payload as EventPayload<'export.finished'>;
+      const terms = await this.config.terminology(tx, event.tenantId);
+      const name = (locale: Locale) =>
+        translate(`report.name_${finished.report as ReportKey}`, {
+          locale,
+          terms: resolveTerminology(terms, locale),
+        });
+      await this.notifications.notify(tx, event.tenantId, {
+        userId: finished.userId,
+        event: 'export.finished',
+        values: {
+          status: finished.status,
+          report_en: name('en'),
+          report_hi: name('hi'),
+          month: finished.period,
+        },
+        link: '/reports',
+        dedupeKey: `export:${finished.exportId}`,
       });
     });
 
