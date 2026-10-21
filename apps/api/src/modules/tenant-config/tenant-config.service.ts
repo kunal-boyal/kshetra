@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  deriveAccent,
   AUTO_APPROVAL_DELAY_HOURS,
   LOCALES,
   type ReviewRulesResult,
@@ -7,7 +8,6 @@ import {
   TerminologyOverrides,
   type TermValue,
   type UpdateReviewRulesBody,
-  type UpdateSettingsBody,
   withDefaults,
 } from '@kshetra/shared';
 import { eq, sql } from 'drizzle-orm';
@@ -61,7 +61,7 @@ export class TenantConfigService {
     tx: TenantTx,
     tenantId: string,
     actor: AuditActor,
-    patch: UpdateSettingsBody,
+    patch: Partial<TenantSettings>,
   ): Promise<TenantSettings> {
     const actorId = actor.id;
     const [row] = await tx
@@ -84,11 +84,16 @@ export class TenantConfigService {
           updatedBy: actorId,
         },
       });
+    // A new brand colour notes which derived tokens had to move to pass (tenant-theming.md).
+    const accentAdjusted =
+      patch.brandColour && patch.brandColour !== before.brandColour
+        ? deriveAccent(patch.brandColour).adjusted
+        : undefined;
     await this.audit.record(tx, tenantId, actor, {
       action: 'settings.updated',
       target: { type: 'tenant', id: tenantId },
       before,
-      after: settings,
+      after: accentAdjusted ? { ...settings, accentAdjusted } : settings,
     });
     return settings;
   }

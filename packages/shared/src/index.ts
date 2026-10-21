@@ -196,13 +196,18 @@ export {
   SyncUsersPage,
 } from './schemas/sync';
 export {
+  BundleSettings,
   CoreConfigBundle,
+  LOGO_MAX_BYTES,
+  LOGO_TYPES,
+  OrganisationResult,
   SETTING_DEFAULTS,
   TenantSettings,
-  TimeOfDay,
   TerminologyOverrides,
   TerminologyResult,
   TermValue,
+  TimeOfDay,
+  UpdateOrganisationBody,
   UpdateSettingsBody,
   withDefaults,
 } from './schemas/tenant-config';
@@ -486,6 +491,7 @@ export {
   ExportStatus,
   REPORT_COLUMN_KINDS,
   REPORT_KEYS,
+  REPORT_MODULE,
   ReportCell,
   ReportColumn,
   ReportColumnKind,
@@ -496,3 +502,22 @@ export {
   ReportQuery,
 } from './schemas/reports';
 export { DASHBOARD_TILES, DashboardQuery, DashboardResult } from './schemas/dashboard';
+export {
+  ACCENT_THEMES,
+  collidesWithStatus,
+  deriveAccent,
+  fromOklch,
+  nearestPassingShade,
+  toOklch,
+} from './accent';
+export type { AccentPalette, AccentTheme } from './accent';
+export {
+  AVAILABLE_MODULES,
+  closedByModules,
+  effectivePermissions,
+  MODULE_KEYS,
+  MODULE_PERMISSIONS,
+  moduleOf,
+  SWITCHABLE_MODULES,
+} from './modules';
+export type { ModuleKey, SwitchableModule } from './modules';

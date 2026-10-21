@@ -4,6 +4,7 @@ import {
   type ExportResult,
   type ExportStatus,
   REPORT_KEYS,
+  REPORT_MODULE,
   type ReportCell,
   type ReportColumn,
   type ReportFilters,
@@ -150,6 +151,12 @@ export function ReportsPage() {
   const rows = pages.flatMap((entry) => entry.rows);
   const cell = useCell();
   const canExport = access.can('export.create');
+  // A report of a switched-off module isn't offered (spec 5.13).
+  const off = bundle?.settings.modulesOff ?? [];
+  const offered = REPORT_KEYS.filter((key) => {
+    const module = REPORT_MODULE[key];
+    return !module || !off.includes(module);
+  });
   const personOptions = (people.data?.pages.flatMap((entry) => entry.items) ?? []).map(
     (person) => ({ value: person.id, label: `${person.name} (${person.code})` }),
   );
@@ -186,7 +193,7 @@ export function ReportsPage() {
         <SelectField
           label={t('report.choose')}
           value={report}
-          options={REPORT_KEYS.map((key) => ({ value: key, label: t(`report.name_${key}`) }))}
+          options={offered.map((key) => ({ value: key, label: t(`report.name_${key}`) }))}
           onChange={(event) => {
             setReport(event.target.value as ReportKey);
             set({ form: undefined, accountType: undefined });

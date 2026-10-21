@@ -218,6 +218,13 @@
       "when": 1792613580598,
       "tag": "0030_exports",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792619274040,
+      "tag": "0031_logo_media",
+      "breakpoints": true
     }
   ]
 }

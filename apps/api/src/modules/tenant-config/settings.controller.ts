@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Patch, Put } from '@nestjs/common';
 import {
+  AppError,
   ReviewRulesResult,
   TenantSettings,
   TerminologyOverrides,
@@ -34,6 +35,10 @@ export class SettingsController {
   @Requires('settings.manage')
   updateSettings(@CurrentAccess() access: Access, @Body() body: unknown): Promise<TenantSettings> {
     const patch = UpdateSettingsBody.parse(body);
+    // Switching modules is its own permission (spec Appendix E).
+    if (patch.modulesOff && !access.permissions.has('module.manage')) {
+      throw new AppError('FORBIDDEN', 'You cannot switch modules on or off.');
+    }
     return this.database.forTenant(access.tenantId, (tx) =>
       this.config.updateSettings(tx, access.tenantId, userActor(access), patch),
     );

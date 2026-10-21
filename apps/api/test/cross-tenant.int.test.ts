@@ -3,6 +3,7 @@ import { type DeviceInfo, newId } from '@kshetra/shared';
 import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';
+import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { apiControllers } from '../src/app.module';
 import { NotificationDelivery } from '../src/modules/notifications/delivery';
@@ -24,7 +25,7 @@ let app: NestFastifyApplication;
 let world: World;
 
 type Reply = Awaited<ReturnType<NestFastifyApplication['inject']>>;
-type Method = 'GET' | 'POST' | 'PATCH' | 'PUT';
+type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 interface Person {
   id: string;
@@ -342,6 +343,44 @@ const FIXTURES: Record<string, Fixture> = {
       expect((await asB('PATCH', '/v1/settings', { geofenceRadiusMeters: 400 })).statusCode).toBe(
         200,
       );
+    },
+  },
+  'GET /v1/organisation': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/organisation')),
+  },
+  'PATCH /v1/organisation': {
+    kind: 'write',
+    run: async () => {
+      const renamed = await asB('PATCH', '/v1/organisation', { name: `${b.word} Traders` });
+      expect(renamed.statusCode).toBe(200);
+      holdsNothingOfA(renamed);
+    },
+  },
+  'PUT /v1/organisation/logo': {
+    kind: 'write',
+    run: async () => {
+      const logo = await sharp({
+        create: { width: 64, height: 64, channels: 3, background: '#0f6e6e' },
+      })
+        .png()
+        .toBuffer();
+      const set = await app.inject({
+        method: 'PUT',
+        url: '/v1/organisation/logo',
+        headers: { authorization: `Bearer ${bToken}`, 'content-type': 'image/png' },
+        payload: logo,
+      });
+      expect(set.statusCode).toBe(200);
+      holdsNothingOfA(set);
+    },
+  },
+  'DELETE /v1/organisation/logo': {
+    kind: 'write',
+    run: async () => {
+      const removed = await asB('DELETE', '/v1/organisation/logo');
+      expect(removed.statusCode).toBe(200);
+      holdsNothingOfA(removed);
     },
   },
   'GET /v1/terminology': {

@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { AppError, isOpenTenant, type TenantPermission } from '@kshetra/shared';
+import {
+  AppError,
+  effectivePermissions,
+  isOpenTenant,
+  type TenantPermission,
+} from '@kshetra/shared';
 import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
 import { type Access, AccessResolver, type AuthContext } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { TenantDirectory } from '../../platform/planes';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 const revoked = () => new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
 
@@ -18,6 +24,7 @@ export class IamAccess extends AccessResolver {
   constructor(
     private readonly database: Database,
     private readonly tenants: TenantDirectory,
+    private readonly config: TenantConfigService,
   ) {
     super();
   }
@@ -51,7 +58,8 @@ export class IamAccess extends AccessResolver {
         .from(users)
         .innerJoin(roles, and(eq(roles.tenantId, users.tenantId), eq(roles.id, users.roleId)))
         .where(and(eq(users.tenantId, auth.tenantId), eq(users.id, auth.userId)));
-      if (!user || !auth.deviceId) return { user };
+      const { modulesOff } = await this.config.settings(tx, auth.tenantId);
+      if (!user || !auth.deviceId) return { user, modulesOff };
       const [device] = await tx
         .select({ revokedAt: devices.revokedAt })
         .from(devices)
@@ -62,7 +70,7 @@ export class IamAccess extends AccessResolver {
             eq(devices.userId, auth.userId),
           ),
         );
-      return { user, device };
+      return { user, device, modulesOff };
     });
 
     const { user } = found;
@@ -76,7 +84,8 @@ export class IamAccess extends AccessResolver {
       roleId: user.roleId,
       roleKey: user.roleKey,
       scope: user.scope,
-      permissions: new Set(user.permissions as TenantPermission[]),
+      permissions: effectivePermissions(user.permissions as TenantPermission[], found.modulesOff),
+      modulesOff: found.modulesOff,
     };
   }
 

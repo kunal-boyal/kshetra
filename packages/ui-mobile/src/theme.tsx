@@ -60,11 +60,22 @@ function textStyle(
   };
 }
 
-export function createTheme(name: ThemeName, script: Script, faces?: FontFaces): Theme {
+/** The six tenant tokens a brand colour sets (tenant-theming.md); the rest stay the product's. */
+export type AccentColors = Pick<
+  Colors,
+  'accent' | 'accentHover' | 'accentSubtle' | 'accentSoft' | 'accentSubtleFg' | 'onAccent'
+>;
+
+export function createTheme(
+  name: ThemeName,
+  script: Script,
+  faces?: FontFaces,
+  accent?: AccentColors,
+): Theme {
   const cache = new Map<string, TextStyle>();
   return {
     name,
-    colors: colors[name],
+    colors: accent ? { ...colors[name], ...accent, focusRing: accent.accent } : colors[name],
     shadows: shadows[name],
     script,
     text: (style, weight) => {
@@ -89,14 +100,20 @@ export function ThemeProvider({
   name,
   script,
   faces,
+  accent,
   children,
 }: {
   name: ThemeName;
   script: Script;
   faces?: FontFaces;
+  /** The tenant's accent in this theme, derived from its brand colour; none keeps the product's. */
+  accent?: AccentColors;
   children: ReactNode;
 }) {
-  const theme = useMemo(() => createTheme(name, script, faces), [name, script, faces]);
+  const theme = useMemo(
+    () => createTheme(name, script, faces, accent),
+    [name, script, faces, accent],
+  );
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }
 

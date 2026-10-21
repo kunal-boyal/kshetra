@@ -218,6 +218,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 - The web Home reads `GET /v1/dashboard` (`DashboardService` in the reports module, with `PerformanceService.dashboard()` for tiles, trend and leaderboard). Draw charts only through `Chart` in `apps/web/src/charts/chart.tsx`, which takes colours from the tokens with `token()`, follows the theme, stops motion under reduced motion, and keeps a Show the numbers table beside every chart. Register any ECharts part a chart needs in `echarts.use()` there. Status series use the status `-solid` tokens; pending is hatched as well as coloured.
 
+## Tenant administration (decision D64)
+
+- Settings are `TenantSettings`; the apps read them from the bundle through `BundleSettings`, which drops settings they don't know and fills missing ones with defaults, so settings may only ever be added. The display name is the directory's (`TenantDirectory.rename()`), the logo a `logo` media file behind `/v1/organisation/logo`.
+- A tenant's accent comes only from `deriveAccent()` in `@kshetra/shared`, as `packages/design-tokens/tenant-theming.md` sets out: on the web through `applyBrand()` in `apps/web/src/brand.ts`, on the phone through `Look` (`src/look.tsx`) and `ThemeProvider`'s `accent`. Never hard-code a tenant colour.
+- Modules: put a new module's permissions in `MODULE_PERMISSIONS` and its reports in `REPORT_MODULE` (`@kshetra/shared`). Switched off, IAM strips their permissions and the guard answers `MODULE_DISABLED`; mark a route whose permissions are Core's but which belongs to a module with `@InModule()`. Screens of a module read `settings.modulesOff` from the bundle to hide themselves.
+
 ## Offline sync (decision D40)
 
 - Phones keep reference data through `GET /v1/sync/pull`. The module that owns a syncable table registers its entity with `SyncEntities`, as `apps/api/src/modules/iam/users.sync.ts` does: rows in `(row_version, id)` order, and a scope string that changes whenever rows can enter or leave the caller's reach without changing themselves. Add the entity to `SYNC_ENTITIES` with its row schema in `packages/shared/src/schemas/sync.ts`, and its local table, in a new local migration, in `packages/api-client/src/sync/local-schema.ts`. Raise the entity's `version` whenever its row changes shape.

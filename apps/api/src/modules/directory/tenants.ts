@@ -36,6 +36,18 @@ export class DirectoryTenants extends TenantDirectory {
     return tenant?.status;
   }
 
+  async displayName(tenantId: string): Promise<string | undefined> {
+    const [tenant] = await this.database.db
+      .select({ name: tenants.name })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId));
+    return tenant?.name;
+  }
+
+  async rename(tenantId: string, name: string): Promise<void> {
+    await this.database.db.update(tenants).set({ name }).where(eq(tenants.id, tenantId));
+  }
+
   async openTenants(cellName: string): Promise<string[]> {
     const rows = await this.database.db
       .select({ id: tenants.id })

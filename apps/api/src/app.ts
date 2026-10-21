@@ -5,6 +5,7 @@ import { ConsoleLogger, Logger, type LoggerService, type LogLevel } from '@nestj
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { LOGO_MAX_BYTES } from '@kshetra/shared';
 import { MAX_FILE_BYTES } from './modules/imports/reading';
 import type { Config } from './config';
 import { ErrorFilter } from './platform/errors';
@@ -69,6 +70,12 @@ export async function createApp(
       'application/octet-stream',
     ],
     { parseAs: 'buffer', bodyLimit: MAX_FILE_BYTES },
+    (_request, body, done) => done(null, body),
+  );
+  // A logo arrives as the body too (M2, decision D64): an image of at most 2 MB.
+  fastify.addContentTypeParser(
+    ['image/png', 'image/jpeg', 'image/webp'],
+    { parseAs: 'buffer', bodyLimit: LOGO_MAX_BYTES },
     (_request, body, done) => done(null, body),
   );
   fastify.addHook('onSend', async (request, reply) => {

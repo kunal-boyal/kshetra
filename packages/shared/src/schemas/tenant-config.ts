@@ -2,6 +2,7 @@ import { type CountryCode, isSupportedCountry } from 'libphonenumber-js';
 import { z } from 'zod';
 import { DataScope, Permission } from './common';
 import { contrastRatio, HEX_COLOUR } from '../colour';
+import { SWITCHABLE_MODULES } from '../modules';
 import { TERMINOLOGY_KEYS, type TerminologyKey } from '../terminology';
 import { Key, LOCALES, LocalizedNoun, localizedText, NounForms } from './config';
 
@@ -55,6 +56,22 @@ const BrandColour = z
 
 const range = (min: number, max: number) => z.int().min(min).max(max);
 
+/** India's GSTIN: state code, PAN, entity number, Z, check character (spec 5.1). */
+const Gstin = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(
+    /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/,
+    'Use a 15-character GSTIN, such as 07ABCDE1234F1Z5',
+  );
+
+/** A Google Maps JavaScript API key: browser keys are public, limited by website (decision D64). */
+const MapsKey = z
+  .string()
+  .trim()
+  .regex(/^AIza[0-9A-Za-z_-]{35}$/, 'Use a Google Maps API key');
+
 /** A time of day on the tenant's clock, `HH:MM`. */
 export const TimeOfDay = z
   .string()
@@ -63,6 +80,18 @@ export const TimeOfDay = z
 
 /** The settings of spec 5.1. Every one has a default in `SETTING_DEFAULTS`. */
 export const TenantSettings = z.strictObject({
+  /** Legal details print on PDFs and exports (spec 5.1); the display name is the directory's. */
+  legalName: z.string().trim().min(1).max(200).nullable(),
+  address: z.string().trim().min(1).max(500).nullable(),
+  taxId: Gstin.nullable(),
+  /** The logo's stored file; set through `PUT /v1/organisation/logo`, never directly. */
+  logoMediaId: z.uuid().nullable(),
+  /** The tenant's own key for maps on the web; null uses the vendor's (decision D60). */
+  mapsWebKey: MapsKey.nullable(),
+  /** Modules the tenant switched off (spec 5.13); Core never is. */
+  modulesOff: z
+    .array(z.enum(SWITCHABLE_MODULES))
+    .refine((list) => new Set(list).size === list.length, 'List each module once'),
   timezone: TimeZone,
   currency: Currency,
   defaultCountry: Country.meta({
@@ -106,6 +135,12 @@ export type TenantSettings = z.output<typeof TenantSettings>;
 
 /** The defaults of spec 5.1, which a tenant has until it changes them. */
 export const SETTING_DEFAULTS: TenantSettings = {
+  legalName: null,
+  address: null,
+  taxId: null,
+  logoMediaId: null,
+  mapsWebKey: null,
+  modulesOff: [],
   timezone: 'Asia/Kolkata',
   currency: 'INR',
   defaultCountry: 'IN',
@@ -141,10 +176,9 @@ export function withDefaults(stored: Partial<TenantSettings>): TenantSettings {
 }
 
 /** `PATCH /v1/settings`: send only what changes. */
-export const UpdateSettingsBody = TenantSettings.partial().refine(
-  (body) => Object.keys(body).length > 0,
-  'Send at least one setting to change',
-);
+export const UpdateSettingsBody = TenantSettings.omit({ logoMediaId: true })
+  .partial()
+  .refine((body) => Object.keys(body).length > 0, 'Send at least one setting to change');
 
 const TermLabel = localizedText(40);
 
@@ -175,11 +209,22 @@ export const TermValue = z.union([NounForms, z.string()]);
 /** `GET /v1/terminology`: the tenant's overrides, which `PUT` replaces as a whole. */
 export const TerminologyResult = z.object({ overrides: TerminologyOverrides });
 
+/**
+ * Settings as the apps read them from the bundle. A setting a newer server added is dropped and one
+ * it lacks takes its default, so an app already on a phone keeps working when settings are added
+ * (spec 14.3: settings only ever grow). Changes stay strict: `UpdateSettingsBody`.
+ */
+export const BundleSettings = z.preprocess(
+  (value) =>
+    value !== null && typeof value === 'object' ? { ...SETTING_DEFAULTS, ...value } : value,
+  z.object(TenantSettings.shape),
+);
+
 /** The bundle's core; `ConfigBundle` in `@kshetra/forms` adds the configuration with fields. */
 export const CoreConfigBundle = z.object({
   /** Moves on with every change to anything here; the ETag carries it (spec 11.3). */
   version: z.int().min(0),
-  settings: TenantSettings,
+  settings: BundleSettings,
   /** Every term resolved for each of the tenant's languages: their word, else the product's. */
   terminology: z.partialRecord(
     z.enum(LOCALES),
@@ -201,3 +246,24 @@ export type TerminologyOverrides = z.output<typeof TerminologyOverrides>;
 export type TermValue = z.output<typeof TermValue>;
 export type TerminologyResult = z.output<typeof TerminologyResult>;
 export type CoreConfigBundle = z.output<typeof CoreConfigBundle>;
+
+/** The largest logo accepted, before it is resized (decision D64). */
+export const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+/** Logo files the server takes; SVG is refused, as it can carry script. */
+export const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
+
+/** `GET /v1/organisation`: the display name, and a short-lived link to the logo. */
+export const OrganisationResult = z
+  .object({
+    name: z.string(),
+    logo: z.object({ url: z.string(), expiresAt: z.iso.datetime() }).nullable(),
+  })
+  .meta({ id: 'OrganisationResult' });
+
+/** `PATCH /v1/organisation`: a new display name. */
+export const UpdateOrganisationBody = z.strictObject({
+  name: z.string().trim().min(2).max(120),
+});
+
+export type OrganisationResult = z.infer<typeof OrganisationResult>;
+export type UpdateOrganisationBody = z.output<typeof UpdateOrganisationBody>;

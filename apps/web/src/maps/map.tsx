@@ -10,20 +10,26 @@ import {
 } from '@vis.gl/react-google-maps';
 import { MapPinOff } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo } from 'react';
+import { useApp } from '../context';
+import { useConfig } from '../data';
 import { useLanguage } from '../i18n';
 
 /**
- * Maps on the web (M17, decision D60), on the Maps JavaScript API through Google's React library.
- * The key comes from `VITE_GOOGLE_MAPS_API_KEY`; without one, as in tests, a map shows a notice
- * and the lists beside it still work.
+ * Maps on the web (M17, decisions D60 and D64), on the Maps JavaScript API through Google's React
+ * library. The key is the tenant's own, else `VITE_GOOGLE_MAPS_API_KEY`; without one, as in tests,
+ * a map shows a notice and the lists beside it still work.
  */
 
-const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
+const VENDOR_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
 // Advanced markers need a map ID; Google's demo ID serves development (decision D60).
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID';
 
-/** Whether maps can draw: a key is configured. */
-export const mapsEnabled = KEY.length > 0;
+/** The tenant's own key when it set one (decision D64), else the vendor's; empty for none. */
+function useMapsKey(): string {
+  const { client, queryClient } = useApp();
+  const config = useConfig(client, queryClient);
+  return config.data?.bundle.settings.mapsWebKey ?? VENDOR_KEY;
+}
 
 /** A design token's colour, as Google's drawing options need a plain value. */
 export function token(name: string): string {
@@ -101,7 +107,8 @@ export function MapView({
   const { t } = useLanguage();
   const centre = useMemo(() => centreOf(fit), [fit]);
   const zoom = useMemo(() => zoomFor(fit), [fit]);
-  if (!mapsEnabled) {
+  const key = useMapsKey();
+  if (!key) {
     return (
       <div
         role="img"
@@ -115,7 +122,7 @@ export function MapView({
   }
   return (
     <section aria-label={label} className="overflow-hidden rounded-[var(--radius-lg)]">
-      <APIProvider apiKey={KEY}>
+      <APIProvider apiKey={key}>
         <GoogleMap
           mapId={MAP_ID}
           defaultCenter={centre}
