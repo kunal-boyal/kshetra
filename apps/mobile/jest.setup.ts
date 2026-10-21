@@ -16,3 +16,28 @@ jest.mock('./src/storage', () => {
 });
 jest.mock('./src/fonts', () => ({ useAppFonts: () => ({ ready: true }) }));
 jest.mock('expo-system-ui', () => ({ setBackgroundColorAsync: async () => undefined }));
+
+// Maps draw natively; in tests a map is a view with its label, and a marker one with its title.
+jest.mock('react-native-maps', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const { createElement } = jest.requireActual<typeof import('react')>('react');
+  const MapView = (props: { accessibilityLabel?: string; children?: unknown }) =>
+    createElement(
+      View,
+      { accessibilityLabel: props.accessibilityLabel, role: 'img' },
+      props.children,
+    );
+  return {
+    __esModule: true,
+    default: MapView,
+    PROVIDER_GOOGLE: 'google',
+    Marker: (props: { title?: string; children?: unknown }) =>
+      createElement(
+        View,
+        { accessibilityLabel: props.title, testID: 'map-marker' },
+        props.children,
+      ),
+    Circle: () => null,
+    Polyline: () => null,
+  };
+});

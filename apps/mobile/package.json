@@ -52,6 +52,7 @@
     "react-dom": "catalog:mobile",
     "react-native": "catalog:mobile",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-maps": "1.27.2",
     "react-native-reanimated": "catalog:mobile",
     "react-native-safe-area-context": "catalog:mobile",
     "react-native-screens": "~4.26.0",

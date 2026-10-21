@@ -14,7 +14,7 @@ import { useLanguage } from '../../../i18n';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-/** Plan and Orders join as their modules arrive; Team is for reviewers (spec 8.1). */
+/** Plan and Orders join as their modules arrive; Team is for those who review or watch the live map (spec 8.1). */
 const ICONS: Record<string, LucideIcon> = {
   index: House,
   accounts: Store,
@@ -51,7 +51,10 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="team"
-        options={{ title: t('team.title'), href: can('submission.review') ? undefined : null }}
+        options={{
+          title: t('team.title'),
+          href: can('submission.review') || can('live_map.view') ? undefined : null,
+        }}
       />
       <Tabs.Screen name="me" options={{ title: t('app.me') }} />
     </Tabs>

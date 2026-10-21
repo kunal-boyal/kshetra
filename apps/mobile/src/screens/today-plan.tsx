@@ -2,7 +2,13 @@ import type { SyncPlanItem } from '@kshetra/shared';
 import { todayIn } from '@kshetra/shared';
 import { ListGroup, ListRow, Text } from '@kshetra/ui-mobile';
 import { router } from 'expo-router';
-import { CalendarCheck, CalendarClock, CalendarX, Hourglass } from 'lucide-react-native';
+import {
+  CalendarCheck,
+  CalendarClock,
+  CalendarX,
+  Hourglass,
+  Map as MapIcon,
+} from 'lucide-react-native';
 import { useConfig } from '../data';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
@@ -78,6 +84,13 @@ export function TodayPlan() {
           onPress={() => open(item.accountId)}
         />
       ))}
+      {items.length > 0 ? (
+        <ListRow
+          icon={MapIcon}
+          label={t('route.open')}
+          onPress={() => router.push('/today-route')}
+        />
+      ) : null}
     </ListGroup>
   );
 }

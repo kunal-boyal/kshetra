@@ -18,6 +18,7 @@ import { useSync, useSyncStatus } from '../sync';
 import { checkIn, checkOut, geofenceAt, planVisit } from '../visits';
 import { useTodayPlan } from './today-plan';
 import { useShift } from './shift';
+import { VisitMap } from './visit-map';
 
 /**
  * The person's open visit on this phone, read again whenever the sync's status moves (every
@@ -187,6 +188,7 @@ export function VisitCard({
         </Text>
         {here ? <StatusBadge variant="success" label={t('visit.in_visit')} /> : null}
       </View>
+      {account.location ? <VisitMap account={account} type={type} /> : null}
       {here ? (
         <>
           <Text tone="muted">
