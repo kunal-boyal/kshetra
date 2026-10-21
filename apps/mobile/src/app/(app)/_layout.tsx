@@ -1,12 +1,16 @@
 import { useTheme } from '@kshetra/ui-mobile';
 import { Stack } from 'expo-router';
+import { useNotificationTaps, usePushRegistration } from '../../push';
 
 /**
  * The signed-in app: the tabs, and the screens that open full screen above them (spec 8.1),
- * such as the upload queue and an account.
+ * such as the upload queue and an account. Signed in, the phone registers for push, and a tapped
+ * notification opens where it leads (decision D59).
  */
 export default function AppLayout() {
   const theme = useTheme();
+  usePushRegistration();
+  useNotificationTaps();
   return (
     <Stack
       screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.bg } }}
@@ -22,6 +26,7 @@ export default function AppLayout() {
       <Stack.Screen name="punch-in" />
       <Stack.Screen name="tracking-help" />
       <Stack.Screen name="leaderboard" />
+      <Stack.Screen name="notifications" />
     </Stack>
   );
 }

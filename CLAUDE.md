@@ -196,11 +196,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - The web shows a metric with `MetricTile` in `apps/web/src/performance/shared.tsx`, on the design system's `KpiTile` from `@kshetra/ui-web`, and formats values by unit with `useFigure()`.
 - On the phone (decision D57), My month on Home (`src/screens/my-month.tsx`) reads `useMyMonth()` from `apps/mobile/src/performance.ts`, kept on the phone with when it was read; tiles use `KpiTile` from `@kshetra/ui-mobile` and `useTileParts()`, which shortens values to lakh and crore. The leaderboard (`/leaderboard`) is read online.
 
-## Notifications (decision D58)
+## Notifications (decisions D58 and D59)
 
 - Notifications live in `apps/api/src/modules/notifications`. An event's category, channels in order and urgency are in `NOTIFICATION_KINDS` in `@kshetra/shared`; its text is `notify.*` in the i18n catalogue, chosen by `notificationMessage()` from `@kshetra/i18n`, which the server, the web and the phone all use. A new event needs all three.
 - Notify with `NotificationsService.notify(tx, tenantId, { userId, event, values, link, dedupeKey })` in the transaction of the change, usually from an outbox consumer in `notifications.upkeep.ts`. The `dedupeKey` names the occurrence, so a redelivered event notifies once. Values that differ by language go in as `<name>_en` and `<name>_hi`.
 - Delivery runs on the `notifications` queue (`NotificationDelivery`): push, then the next channel when one can't reach the person. Senders follow `PUSH_PROVIDER`, `SMS_PROVIDER` and `EMAIL_PROVIDER`: console locally, memory in tests (`MemoryPushSender` and friends), refused in production. Never log a number, address or token unmasked: use `maskPhone()`, `maskEmail()` and `maskToken()`.
+- On the phone (decision D59), `usePushRegistration()` and `useNotificationTaps()` in `apps/mobile/src/push.ts` run in the signed-in layout; a tapped notification opens its link through `openLink()`, and `APP_PATHS` lists the screens it may open. The inbox is `src/screens/notifications.tsx` with the hooks in `src/notifications.ts`. Push needs a development build and Firebase's `google-services.json`, which EAS supplies as the `GOOGLE_SERVICES_JSON` file variable and is never committed. In Jest, mock `expo-notifications` and `expo-device`.
 
 ## Offline sync (decision D40)
 

@@ -4,6 +4,7 @@ import {
   APP_VERSION_HEADER,
   type AppPlatform,
   type DeviceHeartbeatBody,
+  type PutPushTokenBody,
   type DeviceInfo,
   type ErrorCode,
   type ErrorDetail,
@@ -425,6 +426,11 @@ export function createClient(options: ClientOptions) {
     /** The phone's health: permissions, battery optimisation and its upload queue (M3). */
     async heartbeat(body: DeviceHeartbeatBody): Promise<void> {
       await cell('POST', '/v1/devices/heartbeat', { body });
+    },
+
+    /** This phone's push address and language, for notifications (M16, decision D59). */
+    async registerPush(body: PutPushTokenBody, idempotencyKey: string): Promise<void> {
+      await cell('PUT', '/v1/push-tokens', { body, idempotencyKey });
     },
 
     /** Any other call to the cell, for the screens that arrive with each module. */

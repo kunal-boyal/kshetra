@@ -1498,6 +1498,7 @@ export const en = {
   'notifications.always': 'Always on',
   'notifications.prefs_save': 'Save',
   'notifications.prefs_saved': 'Saved.',
+  'push.channel': 'Notifications',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;

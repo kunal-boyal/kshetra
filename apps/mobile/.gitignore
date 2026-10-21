@@ -15,6 +15,9 @@ web-build/
 *.key
 *.mobileprovision
 *.keystore
+# Firebase's files for push: EAS supplies them as file variables (decision D59).
+google-services.json
+GoogleService-Info.plist
 
 # Local settings.
 .env*.local
