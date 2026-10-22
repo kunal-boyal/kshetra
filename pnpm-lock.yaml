@@ -314,21 +314,6 @@ importers:
       '@fastify/cors':
         specifier: 11.3.0
         version: 11.3.0
-      '@kshetra/forms':
-        specifier: workspace:*
-        version: link:../../packages/forms
-      '@kshetra/i18n':
-        specifier: workspace:*
-        version: link:../../packages/i18n
-      '@kshetra/metrics':
-        specifier: workspace:*
-        version: link:../../packages/metrics
-      '@kshetra/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
-      '@kshetra/templates':
-        specifier: workspace:*
-        version: link:../../packages/templates
       '@nestjs/common':
         specifier: ^12.1.2
         version: 12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -387,6 +372,21 @@ importers:
       '@kshetra/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@kshetra/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
+      '@kshetra/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@kshetra/metrics':
+        specifier: workspace:*
+        version: link:../../packages/metrics
+      '@kshetra/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@kshetra/templates':
+        specifier: workspace:*
+        version: link:../../packages/templates
       '@nestjs/testing':
         specifier: ^12.1.2
         version: 12.1.2(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.1.2(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))

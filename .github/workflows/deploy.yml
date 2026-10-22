@@ -1,0 +1,48 @@
+# Deploys main (spec 14.3, decision D67): staging first, then production, each from the same
+# commit. Off until the repository variable DEPLOY_ENABLED is true, which is set once AWS is
+# connected (docs/runbooks/deploy.md). Production waits for its GitHub environment's reviewers.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The commit to deploy; an older one rolls back (docs/runbooks/rollback.md)
+        required: false
+      environment:
+        description: Deploy to staging only, or on to production as well
+        type: choice
+        options: [staging, production]
+        default: production
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: staging
+      ref: ${{ inputs.ref || github.event.workflow_run.head_sha || github.sha }}
+    secrets: inherit
+
+  production:
+    needs: staging
+    if: github.event_name != 'workflow_dispatch' || inputs.environment == 'production'
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: production
+      ref: ${{ inputs.ref || github.event.workflow_run.head_sha || github.sha }}
+    secrets: inherit

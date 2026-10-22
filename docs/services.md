@@ -19,19 +19,20 @@ This file lists every service Kshetra uses: where it runs, why, and when it arri
 
 ## Production on AWS (from phase 1)
 
-The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderabad). Everything is built by Terraform from `infra/terraform`, never by hand. It's needed from phase 1, when the development cell is built.
+The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderabad). Everything is built by Terraform from `infra/` (decision D67), never by hand; staging and production each have their own account. Setting one up: `docs/runbooks/deploy.md`. The pilot starts on the lean cell: a single-zone database, one Valkey node, one API task and one worker.
 
 | Service | What it does |
 |---|---|
-| RDS for PostgreSQL | The database: Multi-AZ, a read replica, 14 days of point-in-time recovery, and daily snapshots copied to Hyderabad |
-| ElastiCache (Redis-compatible) | Queues and cache, with replication and failover |
+| RDS for PostgreSQL | The database, with 14 days of point-in-time recovery. Multi-AZ, a read replica and snapshots copied to Hyderabad come with the production cell's sizes. |
+| ElastiCache for Valkey (Redis-compatible) | Queues, rate limits and live positions; replication and failover with two or more nodes |
 | S3 | Stores media and exports. Versioning and lifecycle rules delete files by retention class. Also hosts the web apps. |
 | CloudFront | Serves media through short-lived signed URLs, and serves the web apps |
 | SES | Sends email (directory plane) |
-| ECS on Fargate | Runs the `api`, `worker`, `scheduler` and one-off `migrate` containers |
+| ECS on Fargate | Runs the `api`, `worker`, `scheduler` and one-off `migrate` and `bootstrap` tasks, all from one image (`apps/api/Dockerfile`) |
 | ECR | Stores the container images, one per commit |
 | Application Load Balancer, ACM, WAF | HTTPS entry point, certificates and web firewall |
-| Secrets Manager, KMS | Holds secrets and the keys for encrypted columns, outside the code |
+| Secrets Manager, KMS | Holds secrets, one JSON secret per cell, and the keys for encrypted columns, outside the code |
+| IAM with GitHub's OIDC | The deploy role GitHub Actions takes, so no AWS keys are stored in GitHub |
 | CloudWatch, OpenTelemetry collector | Logs, alarms and traces |
 | VPC, NAT gateway, VPC endpoints | The private network the services run in |
 
@@ -43,7 +44,7 @@ The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderab
 
 | Provider | What for | Needed from | Settings (Appendix F) |
 |---|---|---|---|
-| SMS provider (MSG91 or equivalent), with DLT registration | OTP sign-in codes and SMS notifications | Before the pilot. Locally, codes and SMS notifications print to the console (decision D58). | `OTP_PROVIDER`, `SMS_PROVIDER`, `SMS_API_KEY`, `SMS_TEMPLATE_IDS` |
+| MSG91, with DLT registration (decision D67) | OTP sign-in codes and SMS notifications, each through a DLT-approved template | Before the pilot: DLT registration needs the legal entity (D1). Locally, codes and SMS notifications print to the console (decision D58). | `OTP_PROVIDER=msg91`, `SMS_PROVIDER=msg91`, `MSG91_AUTH_KEY`, `MSG91_OTP_TEMPLATE_ID`, `MSG91_OTP_VARIABLE`, `MSG91_SENDER`, `MSG91_SMS_TEMPLATES` |
 | Expo push, with Firebase Cloud Messaging (Android) and Apple Push (iPhones) behind it (decision D58) | Push notifications | Before the pilot: a Firebase project for Android; APNs with the Apple account. Locally, push prints to the console. | `PUSH_PROVIDER`, `EXPO_ACCESS_TOKEN`; the Firebase key is uploaded to Expo with `eas credentials` |
 | Google Maps Platform (decisions D13, D60) | Maps, routes, the live map, day replay and visit density | In use since 2026-10-21, in Google Cloud project `kshetra-e3874` with billing: a web key limited to the Maps JavaScript API and the portal's origins, and an Android key limited to the Maps SDK and both apps' certificates. Add the production origin to the web key, and a budget alert, before the pilot. | `VITE_GOOGLE_MAPS_API_KEY`, `VITE_GOOGLE_MAPS_MAP_ID`, `GOOGLE_MAPS_ANDROID_KEY` |
 | Sentry | Errors and crashes from every app | Once the apps run outside a laptop | `SENTRY_DSN`, `VITE_SENTRY_DSN`, `EXPO_PUBLIC_SENTRY_DSN` |
@@ -56,12 +57,12 @@ The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderab
 
 | Service | What for | Status |
 |---|---|---|
-| GitHub | The private repository; GitHub Actions runs CI on every pull request (`.github/workflows/ci.yml`) | In use |
+| GitHub | The private repository; GitHub Actions runs CI on every pull request (`.github/workflows/ci.yml`), and deploys `main` once AWS is connected (`deploy.yml`, decision D67) | In use; deploys off until `DEPLOY_ENABLED` |
 | npm registry | JavaScript packages | In use |
-| Docker Hub | The PostgreSQL, Redis and Mailpit images | In use |
+| Docker Hub | The PostgreSQL, Redis and Mailpit images, the API image's `node:24-bookworm-slim` base, and `hashicorp/terraform` for checking Terraform locally | In use |
 | Chainguard registry | The MinIO image (decision D21) | In use |
 | claude.ai | The design-system artifact, kept in step with `packages/design-tokens` | In use |
-| Expo EAS (Build and Update) | Builds the mobile app and ships JavaScript updates | Later in phase 0 |
+| Expo EAS (Build and Update) | Builds the mobile app and ships JavaScript updates | Build in use on Kunal's account; Update needs `expo-updates` in a new build (step 17c) |
 | Google Play Console | Closed testing in phase 1, public release in phase 3 | Phase 1 |
 | Apple App Store Connect | TestFlight and release | Phase 3, or earlier for iPhone testing |
 

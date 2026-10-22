@@ -124,6 +124,17 @@ pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-work
 | Mailpit | 1.31.4 | `axllent/mailpit:v1.31`: SMTP on 1025, inbox at http://localhost:8025 |
 | MinIO (stands in for S3) | RELEASE.2026-09-22T19-25-18Z | Chainguard's `cgr.dev/chainguard/minio:latest`, built from MinIO's source (decision D21). The free tier floats on `latest`, so record the version when it changes: `docker compose exec minio minio --version`. API on 9000, console at http://localhost:9001, region `ap-south-1`. |
 
+## Deployment (decision D67)
+
+| Tool | Version | Notes |
+|---|---|---|
+| Container base | `node:24-bookworm-slim` | `apps/api/Dockerfile`: one image for the API, worker, scheduler, migrate and bootstrap |
+| Terraform | 1.17.0 | `infra/`; CI pins it in `hashicorp/setup-terraform` |
+| AWS provider | 6.70.0 | Locked in each environment's `.terraform.lock.hcl` for Linux and macOS on both architectures |
+| Amazon RDS for PostgreSQL | 18 (current minor) | With PostGIS, pg_trgm and pg_partman, which RDS ships at 5.4 against 5.5 locally |
+| Amazon ElastiCache | Valkey 8.1 | Redis-compatible, for BullMQ, rate limits and live positions |
+| MSG91 | Flow API v5 | One-time codes and SMS notifications through DLT templates; no SDK, `fetch` only |
+
 ## CI (GitHub Actions)
 
 | Action | Version |
@@ -131,3 +142,8 @@ pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-work
 | actions/checkout | v7 |
 | pnpm/action-setup | v6 |
 | actions/setup-node | v7 |
+| aws-actions/configure-aws-credentials | v6 |
+| aws-actions/amazon-ecr-login | v2 |
+| docker/setup-buildx-action | v4 |
+| docker/build-push-action | v7 |
+| hashicorp/setup-terraform | v4 |

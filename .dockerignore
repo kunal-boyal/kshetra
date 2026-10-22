@@ -1,0 +1,19 @@
+# Only what the API image builds from goes to Docker (apps/api/Dockerfile).
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/.turbo
+**/.expo
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+.git
+.claude
+.env
+.env.*
+!.env.example
+infra
+docs
+apps/mobile/android
+apps/mobile/ios

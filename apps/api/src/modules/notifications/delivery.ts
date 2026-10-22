@@ -202,6 +202,11 @@ export class NotificationDelivery {
             phone: address,
             text: `${text.title}: ${text.body}`,
             segments: smsSegments(`${text.title}: ${text.body}`),
+            event: notification.event,
+            locale,
+            values: Object.fromEntries(
+              Object.entries(notification.values).map(([name, value]) => [name, String(value)]),
+            ),
           })
         : await this.email.send({ to: address, subject: text.title, text: text.body });
     if (!result.ok && !result.permanent) return { transient: result.error ?? 'Delivery failed' };

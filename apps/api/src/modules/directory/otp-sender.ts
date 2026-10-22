@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { maskPhone } from '@kshetra/shared';
+import { type Msg91Settings, sendFlow } from '../../platform/msg91';
 
 export interface OtpMessage {
   phone: string;
@@ -7,8 +8,8 @@ export interface OtpMessage {
 }
 
 /**
- * Delivers one-time codes. A real SMS provider with DLT templates joins in phase 1, with WhatsApp
- * as the fallback (M1); a second provider behind this interface covers an outage (spec 14.6).
+ * Delivers one-time codes: by MSG91 in production (decision D67), with WhatsApp as the fallback
+ * later (M1); a second provider behind this interface covers an outage (spec 14.6).
  */
 export abstract class OtpSender {
   abstract send(message: OtpMessage): Promise<void>;
@@ -36,5 +37,22 @@ export class MemoryOtpSender extends OtpSender {
   /** The newest code sent to `phone`, if any. */
   lastCode(phone: string): string | undefined {
     return this.sent.findLast((message) => message.phone === phone)?.code;
+  }
+}
+
+/** Sends the code in the DLT template MSG91 holds for one-time codes (decision D67). */
+export class Msg91OtpSender extends OtpSender {
+  constructor(
+    private readonly settings: Msg91Settings,
+    private readonly templateId: string,
+    private readonly variable: string,
+  ) {
+    super();
+  }
+
+  async send({ phone, code }: OtpMessage): Promise<void> {
+    const result = await sendFlow(this.settings, this.templateId, phone, { [this.variable]: code });
+    // The caller logs this; it names neither the number nor the code.
+    if (!result.ok) throw new Error(result.error ?? 'MSG91 did not send the code');
   }
 }

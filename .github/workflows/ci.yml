@@ -53,3 +53,35 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @kshetra/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+
+  image:
+    # The cell's container image builds (decision D67); deploys push it, pull requests only build.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  infra:
+    # Terraform is formatted and valid for every environment, and the deploy scripts pass
+    # ShellCheck; nothing is planned or applied here (decision D67).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.0
+      - run: terraform fmt -recursive -check infra
+      - run: |
+          for environment in infra/environments/*/; do
+            terraform -chdir="$environment" init -backend=false -input=false
+            terraform -chdir="$environment" validate
+          done
+      - run: shellcheck infra/scripts/*.sh

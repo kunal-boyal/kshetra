@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars (git-ignored), fill in, then terraform plan. No secrets go here: they
+# go in the cell's Secrets Manager secret (docs/runbooks/deploy.md).
+api_domain           = "api.production.example.com"
+web_domain           = "app.production.example.com"
+media_domain         = "media.production.example.com"
+route53_zone_id      = null
+media_public_key_pem = <<-PEM
+  -----BEGIN PUBLIC KEY-----
+  ...
+  -----END PUBLIC KEY-----
+PEM
+alarm_email = "alerts@example.com"
+environment = {
+  MSG91_OTP_TEMPLATE_ID = "<MSG91 template ID of the DLT-approved OTP template>"
+  MSG91_SENDER          = "<six-letter DLT sender ID>"
+  MSG91_SMS_TEMPLATES   = "{}"
+  MAIL_FROM             = "Kshetra <no-reply@example.com>"
+}

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { maskPhone } from '@kshetra/shared';
 import { createTransport, type Transporter } from 'nodemailer';
 import type { Config } from '../../config';
+import { type Msg91Settings, msg91Settings, sendFlow } from '../../platform/msg91';
 
 /**
  * How notifications leave the cell (M16, decision D58), one sender per channel. Each answers per
@@ -35,6 +36,10 @@ export interface SmsMessage {
   phone: string;
   text: string;
   segments: number;
+  /** The notification's event, language and values, for senders that send by template. */
+  event: string;
+  locale: string;
+  values: Readonly<Record<string, string>>;
 }
 
 export abstract class SmsSender {
@@ -216,7 +221,33 @@ export function pushSender(config: Config): PushSender {
   return config.PUSH_PROVIDER === 'memory' ? new MemoryPushSender() : new ConsolePushSender();
 }
 
+/**
+ * Sends each event in the DLT template registered for it (decision D67), with the notification's
+ * values as the template's variables. An event without a template in the reader's language, or
+ * in English, fails at once, so delivery moves on to the next channel.
+ */
+export class Msg91SmsSender extends SmsSender {
+  constructor(
+    private readonly settings: Msg91Settings,
+    private readonly templates: Readonly<Record<string, Readonly<Record<string, string>>>>,
+  ) {
+    super();
+  }
+
+  async send({ phone, event, locale, values, segments }: SmsMessage): Promise<SendResult> {
+    const templateId = this.templates[event]?.[locale] ?? this.templates[event]?.en;
+    if (!templateId) {
+      return { ok: false, permanent: true, error: `No DLT template for ${event}` };
+    }
+    const result = await sendFlow(this.settings, templateId, phone, values);
+    return result.ok ? { ...result, costUnits: segments } : result;
+  }
+}
+
 export function smsSender(config: Config): SmsSender {
+  if (config.SMS_PROVIDER === 'msg91') {
+    return new Msg91SmsSender(msg91Settings(config), config.MSG91_SMS_TEMPLATES);
+  }
   return config.SMS_PROVIDER === 'memory' ? new MemorySmsSender() : new ConsoleSmsSender();
 }
 

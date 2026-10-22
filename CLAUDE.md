@@ -29,6 +29,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
 | `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin; `--file <path>` instead of `--template` starts it from another tenant's exported configuration | now |
 | `pnpm openapi` | regenerates `apps/api/openapi.json` from the route registry; a test fails while it is out of date | now |
+| `docker build -f apps/api/Dockerfile .` | builds the cell's container image (decision D67) | now |
 
 Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
 - PostgreSQL 18 with PostGIS, pg_partman and pg_trgm, on port 5433 by default (`POSTGRES_PORT`)
@@ -265,6 +266,14 @@ Migrations are append-only and backward compatible. They follow expand and contr
 - **End to end:** Playwright (with axe) for the web apps, Maestro for mobile.
 - **Load:** k6.
 - **Merging:** a pull request merges only with typecheck, lint, unit, integration and end-to-end tests green.
+
+## Deployment (decision D67)
+
+- One image, `apps/api/Dockerfile`, runs every cell process: the API by default, and `node dist/worker.mjs`, `dist/scheduler.mjs`, `dist/migrate.mjs` and `dist/bootstrap.mjs`. Build it from the root: `docker build -f apps/api/Dockerfile .`. The API bundles the workspace packages, so they stay in its `devDependencies`; a new npm package the API imports at runtime goes in `dependencies`.
+- `infra/` holds the Terraform: `environments/staging` and `environments/production` compose `modules/environment` (network, ECR, certificates, the cell, the web portal, the GitHub deploy role). Change sizes in an environment, not in the modules. CI runs `terraform fmt -check` and `validate`; nothing is applied from CI.
+- A new setting reaches AWS in `modules/cell/services.tf`: a plain value in the processes' environment, or a key of the cell's secret in `secret_keys`. Production refuses console and memory providers, so a new provider needs its real sender before it can be switched on.
+- `.github/workflows/deploy.yml` deploys main after CI, staging then production, once `DEPLOY_ENABLED` is true. Setting up, deploying, rolling back and a failed migration: `docs/runbooks/`.
+- SMS in India goes through DLT templates only: one-time codes and SMS notifications are sent by MSG91 in templates (`MSG91_OTP_TEMPLATE_ID`, `MSG91_SMS_TEMPLATES` by event and language), never as free text. A new event that should reach people by SMS needs its approved template added there.
 
 ## Design system
 

@@ -24,14 +24,17 @@ export function isLocalDatabase(url: string): boolean {
 
 /**
  * Creates the three roles with the passwords in their connection URLs, lets the migrator create
- * schemas, and installs the PostGIS and pg_trgm extensions (spec 10.1). Local and CI databases only: in AWS the roles and their secrets come from infrastructure,
- * so this refuses any other host (spec section 0, rule 7).
+ * schemas, and installs the PostGIS, pg_trgm and pg_partman extensions (spec 10.1). It runs
+ * against a database on this machine, or against the one host `confirmHost` names: a cell's
+ * database in AWS, once, as a one-off task with the passwords from its secret (decision D67).
+ * Nothing here deletes data, and seeds and resets stay local (spec section 0, rule 7).
  */
-export async function bootstrapDatabase(urls: BootstrapUrls): Promise<void> {
+export async function bootstrapDatabase(urls: BootstrapUrls, confirmHost?: string): Promise<void> {
   for (const url of Object.values(urls)) {
-    if (!isLocalDatabase(url)) {
+    const host = new URL(url).hostname;
+    if (!isLocalDatabase(url) && host !== confirmHost) {
       throw new Error(
-        `Bootstrap only runs against a database on this machine, not ${new URL(url).hostname}.`,
+        `Bootstrap runs against a database on this machine, or the host BOOTSTRAP_CONFIRM_HOST names; not ${host}.`,
       );
     }
   }
