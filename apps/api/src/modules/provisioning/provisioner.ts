@@ -6,7 +6,7 @@ import {
   type ProvisionTenantInput,
   type UserResult,
 } from '@kshetra/shared';
-import { loadTemplate, type Template, TemplateError } from '@kshetra/templates';
+import { loadTemplate, type Template, TemplateError, validateTemplate } from '@kshetra/templates';
 import type { Config } from '../../config';
 import { CONFIG } from '../../platform/tokens';
 import { DirectoryTenants } from '../directory/tenants';
@@ -34,8 +34,12 @@ export class TenantProvisioner {
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
-  async provision(input: ProvisionTenantInput): Promise<ProvisionedTenant> {
-    const template = this.template(input.template);
+  /**
+   * Creates the tenant from the template named in `input`, or from `file`: a configuration file
+   * another tenant exported (decision D66), checked as a template is.
+   */
+  async provision(input: ProvisionTenantInput, file?: unknown): Promise<ProvisionedTenant> {
+    const template = file === undefined ? this.template(input.template) : this.fromFile(file);
     // Checked before anything is written, so a typo creates nothing.
     if (!normalisePhone(input.admin.phone)) {
       throw new AppError('VALIDATION', 'Check the highlighted fields.', [
@@ -65,6 +69,18 @@ export class TenantProvisioner {
     });
     const admin = await this.cell.provision(tenantId, template, input);
     return { tenantId, slug: input.slug, admin };
+  }
+
+  private fromFile(file: unknown): Template {
+    const checked = validateTemplate(file);
+    if (!checked.ok) {
+      throw new AppError(
+        'VALIDATION',
+        'The configuration file has problems.',
+        checked.issues.map(({ path, issue }) => ({ path: path ? `file.${path}` : 'file', issue })),
+      );
+    }
+    return checked.template;
   }
 
   private template(key: string): Template {

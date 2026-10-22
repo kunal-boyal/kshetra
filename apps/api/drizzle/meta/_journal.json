@@ -225,6 +225,13 @@
       "when": 1792619274040,
       "tag": "0031_logo_media",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792641442389,
+      "tag": "0032_held_configuration",
+      "breakpoints": true
     }
   ]
 }

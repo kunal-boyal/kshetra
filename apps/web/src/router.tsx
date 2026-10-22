@@ -34,6 +34,7 @@ import { PeoplePage } from './people/people-page';
 import { EditPersonPage, NewPersonPage } from './people/person-form-page';
 import { PersonPage } from './people/person-page';
 import { TransferPage } from './people/transfer-page';
+import { ConfigurationPage } from './settings/configuration-page';
 import { DesignationsPage } from './settings/designations-page';
 import { LevelsPage } from './settings/levels-page';
 import { MetricEditorPage } from './settings/metric-editor-page';
@@ -312,6 +313,11 @@ const editAccountType = createRoute({
     return <TypeEditorPage key={typeId} typeId={typeId} />;
   },
 });
+const configuration = createRoute({
+  getParentRoute: () => settings,
+  path: '/configuration',
+  component: ConfigurationPage,
+});
 const territoryLevels = createRoute({
   getParentRoute: () => settings,
   path: '/territory-levels',
@@ -385,6 +391,7 @@ const tree = root.addChildren([
       metrics,
       newMetric,
       editMetric,
+      configuration,
     ]),
   ]),
 ]);

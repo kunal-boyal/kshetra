@@ -72,6 +72,8 @@ export const AUDIT_ACTIONS = [
   'metric.created',
   'metric.updated',
   'score.updated',
+  'configuration.exported',
+  'configuration.imported',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

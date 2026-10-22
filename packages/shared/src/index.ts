@@ -203,6 +203,7 @@ export {
   LOGO_MAX_BYTES,
   LOGO_TYPES,
   OrganisationResult,
+  PortableSettings,
   SETTING_DEFAULTS,
   TenantSettings,
   TerminologyOverrides,
@@ -213,6 +214,12 @@ export {
   UpdateSettingsBody,
   withDefaults,
 } from './schemas/tenant-config';
+export {
+  CONFIGURATION_CHANGES,
+  CONFIGURATION_SECTIONS,
+  ConfigurationChange,
+  ConfigurationPlan,
+} from './schemas/configuration';
 export { matchName, nameSimilarity, nameWords, normaliseName } from './names';
 export type { NameMatch } from './names';
 export { isOpenTenant, OPEN_TENANT_STATUSES, TENANT_STATUSES } from './tenants';

@@ -1380,6 +1380,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Expenses | `PUT /v1/expense-policies`, `POST /v1/expense-claims`, `POST /v1/expense-claims/:id/receipts`, `POST /v1/expense-claims/:id/paid` |
 | Approvals | `GET /v1/approvals/inbox`, `GET /v1/approvals/:instanceId`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel` |
 | Notifications | `GET /v1/notifications`, `POST /v1/notifications/read`, `GET /v1/notification-prefs`, `PUT /v1/notification-prefs`, `PUT /v1/push-tokens` |
+| Configuration | `GET /v1/configuration/export`, `POST /v1/configuration/import/preview`, `POST /v1/configuration/import` (the configuration as an industry template; an import adds and updates, never removes; decision D66) |
 | Reports | `GET /v1/dashboard?period` (the home dashboard, decision D63), `GET /v1/reports/:key?period&managerId&territoryId&userId&accountType&form&locale` (decision D62) |
 | Imports and exports | `POST /v1/imports`, `GET /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports`, `GET /v1/exports/:id` |
 | Integrations | `GET /v1/api-clients`, `POST /v1/api-clients`, `GET /v1/webhooks`, `POST /v1/webhooks`, `POST /v1/webhooks/:id/test`, `GET /v1/webhooks/:id/deliveries`, `POST /v1/bulk/users`, `POST /v1/bulk/accounts`, `POST /v1/bulk/items`, `POST /v1/bulk/ledger-entries`, `POST /v1/bulk/external-metrics` |

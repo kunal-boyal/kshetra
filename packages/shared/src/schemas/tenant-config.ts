@@ -175,6 +175,23 @@ export function withDefaults(stored: Partial<TenantSettings>): TenantSettings {
   return TenantSettings.parse({ ...SETTING_DEFAULTS, ...stored });
 }
 
+/**
+ * The settings a configuration file carries (M2, decision D66): the working rules. The tenant's
+ * identity and secrets stay behind: its names, address, GSTIN, logo, brand colour and Maps key.
+ */
+export const PortableSettings = TenantSettings.omit({
+  legalName: true,
+  address: true,
+  taxId: true,
+  logoMediaId: true,
+  mapsWebKey: true,
+  brandColour: true,
+})
+  .partial()
+  .meta({ id: 'PortableSettings' });
+
+export type PortableSettings = z.output<typeof PortableSettings>;
+
 /** `PATCH /v1/settings`: send only what changes. */
 export const UpdateSettingsBody = TenantSettings.omit({ logoMediaId: true })
   .partial()

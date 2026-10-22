@@ -1,11 +1,13 @@
-// `pnpm provision`: creates a tenant from an industry template (spec 5.14), with its first admin.
+// `pnpm provision`: creates a tenant from an industry template (spec 5.14), or from a configuration
+// file another tenant exported (decision D66), with its first admin.
+import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { maskPhone, ProvisionTenantInput } from '@kshetra/shared';
 import { z } from 'zod';
 import { createCommandContext, report } from './context';
 import { TenantProvisioner } from './modules/provisioning/provisioner';
 
-const USAGE = `Usage: pnpm provision --name <name> --slug <slug> --template <generic|agri>
+const USAGE = `Usage: pnpm provision --name <name> --slug <slug> (--template <generic|agri> | --file <path>)
                       --admin-name <name> --admin-phone <number>
                       [--admin-code <code>] [--admin-email <email>] [--status trial|active]`;
 
@@ -14,6 +16,7 @@ const { values } = parseArgs({
     name: { type: 'string' },
     slug: { type: 'string' },
     template: { type: 'string' },
+    file: { type: 'string' },
     status: { type: 'string' },
     'admin-name': { type: 'string' },
     'admin-phone': { type: 'string' },
@@ -27,10 +30,22 @@ if (values.help) {
   process.exit(0);
 }
 
+let file: unknown;
+if (values.file) {
+  try {
+    file = JSON.parse(readFileSync(values.file, 'utf8'));
+  } catch (error) {
+    console.error(`Could not read ${values.file} as JSON: ${(error as Error).message}`);
+    process.exit(1);
+  }
+}
+
 const parsed = ProvisionTenantInput.safeParse({
   name: values.name,
   slug: values.slug,
-  template: values.template,
+  template:
+    values.template ??
+    (typeof file === 'object' && file !== null ? (file as { key?: unknown }).key : undefined),
   ...(values.status ? { status: values.status } : {}),
   admin: {
     name: values['admin-name'],
@@ -47,10 +62,9 @@ if (!parsed.success) {
 
 const { app } = await createCommandContext();
 try {
-  const tenant = await app.get(TenantProvisioner).provision(parsed.data);
-  console.log(
-    `Tenant ${tenant.slug} is ready (${tenant.tenantId}), from the ${parsed.data.template} template.`,
-  );
+  const tenant = await app.get(TenantProvisioner).provision(parsed.data, file);
+  const source = values.file ?? `the ${parsed.data.template} template`;
+  console.log(`Tenant ${tenant.slug} is ready (${tenant.tenantId}), from ${source}.`);
   console.log(
     `Its first admin, ${tenant.admin.name}, signs in with ${maskPhone(tenant.admin.phone!)}.`,
   );

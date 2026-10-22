@@ -4,6 +4,7 @@ import {
   Key,
   LocalizedText,
   localizedText,
+  PortableSettings,
   SYSTEM_ROLES,
   TerminologyOverrides,
 } from '@kshetra/shared';
@@ -46,6 +47,10 @@ export const TemplateSchema = z
     people: People,
     catalogue: Catalogue.optional(),
     imports: Imports.default({}),
+    settings: PortableSettings.optional().meta({
+      description:
+        "Working rules to set, as in spec 5.1. A configuration export carries them; the tenant's names, address, GSTIN, logo, brand colour and Maps key never travel (decision D66).",
+    }),
   })
   .meta({
     title: 'Industry template',

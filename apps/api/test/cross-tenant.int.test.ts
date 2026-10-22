@@ -665,6 +665,30 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(saved);
     },
   },
+  'GET /v1/configuration/export': {
+    kind: 'own tenant',
+    run: async () => {
+      holdsNothingOfA(await asB('GET', '/v1/configuration/export'));
+    },
+  },
+  'POST /v1/configuration/import/preview': {
+    kind: 'write',
+    run: async () => {
+      const template = (await asB('GET', '/v1/configuration/export')).json();
+      const plan = await asB('POST', '/v1/configuration/import/preview', { template });
+      expect(plan.statusCode).toBe(200);
+      holdsNothingOfA(plan);
+    },
+  },
+  'POST /v1/configuration/import': {
+    kind: 'write',
+    run: async () => {
+      const template = (await asB('GET', '/v1/configuration/export')).json();
+      const imported = await asB('POST', '/v1/configuration/import', { template });
+      expect(imported.statusCode).toBe(200);
+      holdsNothingOfA(imported);
+    },
+  },
   'GET /v1/accounts': {
     kind: 'own tenant',
     run: async () => {

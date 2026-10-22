@@ -10,9 +10,10 @@ import {
   newId,
   type UpdateImportMappingBody,
 } from '@kshetra/shared';
-import { and, desc, eq, inArray, like, lt, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, like, lt, or } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { importJobs, importMappings, type PreviewRow } from '../../db/schema/imports';
+import { canonicalJson } from '../../platform/canonical-json';
 import { AuditLog, userActor } from '../../platform/audit';
 import { type Access, AccessResolver } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
@@ -378,6 +379,86 @@ export class ImportsService implements OnModuleInit {
         fractions: [...(settings.fractions ?? [])],
       });
     }
+  }
+
+  /**
+   * The aliases saved from a template or an import of configuration, by target (`users`, `items`,
+   * `accounts:<type>`), as a template's `imports` holds them (M2, decision D66).
+   */
+  async templateAliases(
+    tx: TenantTx,
+    tenantId: string,
+  ): Promise<
+    Record<
+      string,
+      { aliases: Record<string, string[]>; emptyValues: string[]; fractions: string[] }
+    >
+  > {
+    const rows = await tx
+      .select({
+        target: importMappings.target,
+        mapping: importMappings.mapping,
+        emptyValues: importMappings.emptyValues,
+        fractions: importMappings.fractions,
+      })
+      .from(importMappings)
+      .where(and(eq(importMappings.tenantId, tenantId), eq(importMappings.name, 'template')))
+      .orderBy(asc(importMappings.target));
+    return Object.fromEntries(
+      rows.map((row) => {
+        const aliases: Record<string, string[]> = {};
+        for (const [header, field] of Object.entries(row.mapping)) {
+          (aliases[field] ??= []).push(header);
+        }
+        return [row.target, { aliases, emptyValues: row.emptyValues, fractions: row.fractions }];
+      }),
+    );
+  }
+
+  /** Replaces one target's template aliases from a configuration file; says what changed. */
+  async importAliases(
+    tx: TenantTx,
+    tenantId: string,
+    target: string,
+    settings: {
+      aliases: Record<string, readonly string[]>;
+      emptyValues: readonly string[];
+      fractions?: readonly string[];
+    },
+  ): Promise<'add' | 'update' | 'same'> {
+    const mapping = Object.fromEntries(
+      Object.entries(settings.aliases).flatMap(([field, aliases]) =>
+        aliases.map((alias) => [alias, field] as const),
+      ),
+    );
+    const next = {
+      mapping,
+      emptyValues: [...settings.emptyValues],
+      fractions: [...(settings.fractions ?? [])],
+    };
+    const [current] = await tx
+      .select({
+        mapping: importMappings.mapping,
+        emptyValues: importMappings.emptyValues,
+        fractions: importMappings.fractions,
+      })
+      .from(importMappings)
+      .where(
+        and(
+          eq(importMappings.tenantId, tenantId),
+          eq(importMappings.target, target),
+          eq(importMappings.name, 'template'),
+        ),
+      );
+    if (current && canonicalJson(current) === canonicalJson(next)) return 'same';
+    await tx
+      .insert(importMappings)
+      .values({ id: newId(), tenantId, target, name: 'template', ...next })
+      .onConflictDoUpdate({
+        target: [importMappings.tenantId, importMappings.target, importMappings.name],
+        set: { ...next, updatedAt: new Date() },
+      });
+    return current ? 'update' : 'add';
   }
 
   // The worker's side.

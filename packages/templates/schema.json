@@ -170,6 +170,10 @@
     "imports": {
       "default": {},
       "$ref": "#/$defs/Imports"
+    },
+    "settings": {
+      "description": "Working rules to set, as in spec 5.1. A configuration export carries them; the tenant's names, address, GSTIN, logo, brand colour and Maps key never travel (decision D66).",
+      "$ref": "#/$defs/PortableSettings"
     }
   },
   "required": [
@@ -3266,6 +3270,133 @@
         }
       },
       "additionalProperties": false
+    },
+    "PortableSettings": {
+      "type": "object",
+      "properties": {
+        "modulesOff": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "leave_attendance",
+              "orders",
+              "account_finance",
+              "expenses",
+              "payroll_inputs",
+              "integrations",
+              "sso",
+              "advanced_analytics"
+            ]
+          }
+        },
+        "timezone": {
+          "type": "string",
+          "pattern": "^(?:UTC|[A-Z][A-Za-z_]+(?:\\/[A-Z][A-Za-z0-9_+-]*){1,2})$"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "defaultCountry": {
+          "description": "The country numbers without a country code belong to",
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "languages": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "en",
+              "hi"
+            ]
+          }
+        },
+        "financialYearStartMonth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "gpsIntervalSeconds": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 900
+        },
+        "geofenceRadiusMeters": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "geofenceAccuracyCapMeters": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500,
+          "description": "The most GPS accuracy that counts toward being inside a geofence (BR-33)"
+        },
+        "syncWindowHours": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 168
+        },
+        "maxShiftHours": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 24
+        },
+        "attendanceSelfie": {
+          "type": "boolean"
+        },
+        "deviceBinding": {
+          "type": "boolean",
+          "description": "One phone per user until a manager or an admin resets it (BR-38)"
+        },
+        "rawLocationRetentionDays": {
+          "type": "integer",
+          "minimum": 7,
+          "maximum": 90
+        },
+        "trailRetentionDays": {
+          "type": "integer",
+          "minimum": 90,
+          "maximum": 1095
+        },
+        "evidencePhotoRetentionMonths": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 60
+        },
+        "reviewAutoApproval": {
+          "type": "boolean"
+        },
+        "journeyPlanApproval": {
+          "type": "boolean"
+        },
+        "targetUnlockByAdmin": {
+          "type": "boolean"
+        },
+        "ordersNeedOpenShift": {
+          "type": "boolean"
+        },
+        "ordersAllowedOffline": {
+          "type": "boolean"
+        },
+        "planNotificationTime": {
+          "$ref": "#/$defs/TimeOfDay"
+        },
+        "quietHoursStart": {
+          "$ref": "#/$defs/TimeOfDay"
+        },
+        "quietHoursEnd": {
+          "$ref": "#/$defs/TimeOfDay"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TimeOfDay": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
     }
   }
 }

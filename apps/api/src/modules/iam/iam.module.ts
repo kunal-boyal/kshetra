@@ -70,6 +70,7 @@ import { UsersSync } from './users.sync';
     People,
     RolesService,
     DesignationsService,
+    UserFieldsService,
     IamSetup,
   ],
 })

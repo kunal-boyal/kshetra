@@ -8,6 +8,7 @@ import { MetricsModule } from './modules/metrics/metrics.module';
 import { MapsModule } from './modules/maps/maps.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ConfigurationModule } from './modules/configuration/configuration.module';
 import { PerformanceModule } from './modules/performance/performance.module';
 import { PlanningModule } from './modules/planning/planning.module';
 import { ReviewModule } from './modules/review/review.module';
@@ -56,6 +57,7 @@ export const FEATURE_MODULES = [
   MetricsModule,
   PlanningModule,
   PerformanceModule,
+  ConfigurationModule,
   NotificationsModule,
   MapsModule,
   ReportsModule,

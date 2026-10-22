@@ -52,4 +52,6 @@ export abstract class TenantDirectory {
   abstract displayName(tenantId: string): Promise<string | undefined>;
   /** Renames the tenant (M2); people see it at their next sign-in or token refresh. */
   abstract rename(tenantId: string, name: string): Promise<void>;
+  /** The template the tenant started from, and its version (spec 5.14). */
+  abstract template(tenantId: string): Promise<{ key: string; version: number } | undefined>;
 }
