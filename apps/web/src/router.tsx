@@ -35,9 +35,13 @@ import { EditPersonPage, NewPersonPage } from './people/person-form-page';
 import { PersonPage } from './people/person-page';
 import { TransferPage } from './people/transfer-page';
 import { DesignationsPage } from './settings/designations-page';
+import { ModulesPage } from './settings/modules-page';
+import { OrganisationPage } from './settings/organisation-page';
 import { ReportsPage } from './reports/reports-page';
 import { RolesPage } from './settings/roles-page';
+import { RulesPage } from './settings/rules-page';
 import { SettingsLayout } from './settings/settings-layout';
+import { TerminologyPage } from './settings/terminology-page';
 import { UserFieldsPage } from './settings/user-fields-page';
 import { TerritoriesPage } from './territories/territories-page';
 
@@ -236,8 +240,24 @@ const settingsIndex = createRoute({
   getParentRoute: () => settings,
   path: '/',
   beforeLoad: () => {
-    throw redirect({ to: '/settings/designations' });
+    throw redirect({ to: '/settings/organisation' });
   },
+});
+const organisation = createRoute({
+  getParentRoute: () => settings,
+  path: '/organisation',
+  component: OrganisationPage,
+});
+const rules = createRoute({ getParentRoute: () => settings, path: '/rules', component: RulesPage });
+const terminology = createRoute({
+  getParentRoute: () => settings,
+  path: '/terminology',
+  component: TerminologyPage,
+});
+const modules = createRoute({
+  getParentRoute: () => settings,
+  path: '/modules',
+  component: ModulesPage,
 });
 const roles = createRoute({ getParentRoute: () => settings, path: '/roles', component: RolesPage });
 const designations = createRoute({
@@ -300,6 +320,10 @@ const tree = root.addChildren([
     imports,
     oneImport,
     settings.addChildren([
+      organisation,
+      rules,
+      terminology,
+      modules,
       settingsIndex,
       roles,
       designations,

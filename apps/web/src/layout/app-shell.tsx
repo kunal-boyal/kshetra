@@ -21,7 +21,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../context';
+import { applyBrand } from '../brand';
 import { useConfig } from '../data';
+import { useOrganisation } from '../settings/data';
 import { useUnread } from '../notifications/data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
@@ -54,6 +56,7 @@ export function AppShell() {
   const navigate = useNavigate();
   const { t, setTerms } = useLanguage();
   const config = useConfig(client, queryClient);
+  const organisation = useOrganisation();
   const [error, setError] = useState<string>();
   const tenant = client.session?.tenant;
   const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
@@ -100,6 +103,8 @@ export function AppShell() {
     ...(access.can('role.manage') ||
     access.can('designation.manage') ||
     access.can('settings.manage') ||
+    access.can('terminology.manage') ||
+    access.can('module.manage') ||
     access.can('form.manage') ||
     access.can('catalogue.manage')
       ? [{ to: '/settings', icon: Settings, label: t('nav.settings') }]
@@ -109,6 +114,12 @@ export function AppShell() {
   useEffect(() => {
     setTerms(config.data?.bundle.terminology);
   }, [config.data, setTerms]);
+
+  // The tenant's accent, from its brand colour, once the config has it (decision D64).
+  const brandColour = config.data?.bundle.settings.brandColour;
+  useEffect(() => {
+    if (brandColour !== undefined) applyBrand(brandColour);
+  }, [brandColour]);
 
   /** Runs a menu action; when it fails, the person is still signed in and sees why. */
   function act(work: () => Promise<void>) {
@@ -152,7 +163,16 @@ export function AppShell() {
       </nav>
       <div className="flex min-w-0 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-3">
-          <p className="heading-md">{tenant?.name}</p>
+          <p className="heading-md flex items-center gap-3">
+            {organisation.data?.logo ? (
+              <img
+                src={organisation.data.logo.url}
+                alt=""
+                className="h-8 w-auto max-w-[8rem] object-contain"
+              />
+            ) : null}
+            {organisation.data?.name || tenant?.name}
+          </p>
           <div className="flex flex-wrap items-center gap-2" aria-label={t('shell.account_menu')}>
             <NotificationsLink />
             <LanguagePicker />

@@ -8,6 +8,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { webClient } from './client';
 import { LanguageProvider } from './i18n';
+import { applyBrand, applySavedBrand } from './brand';
 import { applyLocale, applyTheme, forgetTenants, savedLocale, savedTheme } from './preferences';
 import { createAppRouter } from './router';
 import { PRODUCT_NAME } from './layout/brand';
@@ -15,6 +16,7 @@ import { PRODUCT_NAME } from './layout/brand';
 // Language and theme apply before the first paint, so nothing flashes.
 applyLocale(savedLocale());
 applyTheme(savedTheme());
+applySavedBrand();
 document.title = PRODUCT_NAME;
 
 const queryClient = new QueryClient({
@@ -24,6 +26,7 @@ const queryClient = new QueryClient({
 const client = webClient(() => {
   queryClient.clear();
   forgetTenants();
+  applyBrand(null);
   void router.navigate({ to: '/sign-in' });
 });
 const router = createAppRouter({ client, queryClient });

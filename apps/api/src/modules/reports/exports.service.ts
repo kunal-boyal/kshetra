@@ -117,7 +117,7 @@ export class ExportsService implements OnModuleInit {
 
   /** Records an export and queues it, after checking the filters reach only what the caller may see. */
   async create(tx: TenantTx, access: Access, body: CreateExportBody): Promise<ExportResult> {
-    await this.reports.check(tx, access, body.filters);
+    await this.reports.check(tx, access, body.report, body.filters);
     const [job] = await tx
       .insert(exportJobs)
       .values({

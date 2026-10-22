@@ -2601,7 +2601,9 @@
                 "session.signed_in",
                 "session.device_refused",
                 "export.created",
-                "export.downloaded"
+                "export.downloaded",
+                "organisation.renamed",
+                "organisation.logo_changed"
               ]
             }
           },
@@ -2762,7 +2764,9 @@
                               "session.signed_in",
                               "session.device_refused",
                               "export.created",
-                              "export.downloaded"
+                              "export.downloaded",
+                              "organisation.renamed",
+                              "organisation.logo_changed"
                             ]
                           },
                           "target": {
@@ -3016,6 +3020,80 @@
                     "settings": {
                       "type": "object",
                       "properties": {
+                        "legalName": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "address": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 500
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "taxId": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^\\d{2}[A-Z]{5}\\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "logoMediaId": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "mapsWebKey": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^AIza[0-9A-Za-z_-]{35}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "modulesOff": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "leave_attendance",
+                              "orders",
+                              "account_finance",
+                              "expenses",
+                              "payroll_inputs",
+                              "integrations",
+                              "sso",
+                              "advanced_analytics"
+                            ]
+                          }
+                        },
                         "timezone": {
                           "type": "string",
                           "pattern": "^(?:UTC|[A-Z][A-Za-z_]+(?:\\/[A-Z][A-Za-z0-9_+-]*){1,2})$"
@@ -3126,6 +3204,12 @@
                         }
                       },
                       "required": [
+                        "legalName",
+                        "address",
+                        "taxId",
+                        "logoMediaId",
+                        "mapsWebKey",
+                        "modulesOff",
                         "timezone",
                         "currency",
                         "defaultCountry",
@@ -5998,6 +6082,185 @@
         }
       }
     },
+    "/v1/organisation": {
+      "get": {
+        "operationId": "OrganisationController.read",
+        "summary": "The organisation's display name and logo",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "OrganisationController.rename",
+        "summary": "Rename the organisation, as people see it",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: settings.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organisation/logo": {
+      "delete": {
+        "operationId": "OrganisationController.removeLogo",
+        "summary": "Remove the logo",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: settings.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "OrganisationController.setLogo",
+        "summary": "Replace the logo with a PNG, JPEG or WebP image sent as the body",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: settings.manage",
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": false,
+            "description": "image/png, image/jpeg or image/webp",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/performance": {
       "get": {
         "operationId": "PerformanceController.person",
@@ -7674,6 +7937,68 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "legalName": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "address": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "taxId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{2}[A-Z]{5}\\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "mapsWebKey": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^AIza[0-9A-Za-z_-]{35}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "modulesOff": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "leave_attendance",
+                        "orders",
+                        "account_finance",
+                        "expenses",
+                        "payroll_inputs",
+                        "integrations",
+                        "sso",
+                        "advanced_analytics"
+                      ]
+                    }
+                  },
                   "timezone": {
                     "type": "string",
                     "pattern": "^(?:UTC|[A-Z][A-Za-z_]+(?:\\/[A-Z][A-Za-z0-9_+-]*){1,2})$"
@@ -7801,6 +8126,80 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "legalName": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "address": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "taxId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{2}[A-Z]{5}\\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "logoMediaId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "mapsWebKey": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^AIza[0-9A-Za-z_-]{35}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "modulesOff": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "leave_attendance",
+                          "orders",
+                          "account_finance",
+                          "expenses",
+                          "payroll_inputs",
+                          "integrations",
+                          "sso",
+                          "advanced_analytics"
+                        ]
+                      }
+                    },
                     "timezone": {
                       "type": "string",
                       "pattern": "^(?:UTC|[A-Z][A-Za-z_]+(?:\\/[A-Z][A-Za-z0-9_+-]*){1,2})$"
@@ -7911,6 +8310,12 @@
                     }
                   },
                   "required": [
+                    "legalName",
+                    "address",
+                    "taxId",
+                    "logoMediaId",
+                    "mapsWebKey",
+                    "modulesOff",
                     "timezone",
                     "currency",
                     "defaultCountry",
@@ -11157,7 +11562,9 @@
                               "session.signed_in",
                               "session.device_refused",
                               "export.created",
-                              "export.downloaded"
+                              "export.downloaded",
+                              "organisation.renamed",
+                              "organisation.logo_changed"
                             ]
                           },
                           "target": {
@@ -16619,6 +17026,44 @@
         "required": [
           "key",
           "label"
+        ],
+        "additionalProperties": false
+      },
+      "OrganisationResult": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "logo": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "url",
+                  "expiresAt"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "logo"
         ],
         "additionalProperties": false
       },

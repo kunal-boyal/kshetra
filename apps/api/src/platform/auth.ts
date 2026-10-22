@@ -8,7 +8,14 @@ import {
   SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AccessClaims, AppError, type DataScope, type TenantPermission } from '@kshetra/shared';
+import {
+  AccessClaims,
+  AppError,
+  closedByModules,
+  type DataScope,
+  type SwitchableModule,
+  type TenantPermission,
+} from '@kshetra/shared';
 import type { FastifyRequest } from 'fastify';
 import { createLocalJWKSet, errors, type JSONWebKeySet, jwtVerify } from 'jose';
 import type { Config } from '../config';
@@ -35,7 +42,9 @@ export interface Access extends AuthContext {
   roleId: string;
   roleKey: string;
   scope: DataScope;
+  /** The role's permissions, less those of modules the tenant switched off (spec 5.13). */
   permissions: ReadonlySet<TenantPermission>;
+  modulesOff: readonly SwitchableModule[];
 }
 
 declare module 'fastify' {
@@ -79,6 +88,25 @@ export const Requires = (...permissions: [TenantPermission, ...TenantPermission[
 /** Callers whose role holds at least one of these permissions. */
 export const RequiresAny = (...permissions: [TenantPermission, ...TenantPermission[]]) =>
   SetMetadata(ACCESS_RULE, { kind: 'any', permissions } satisfies AccessRule);
+
+const MODULE = 'module';
+
+/**
+ * A route that belongs to a switchable module (spec 5.13): while the tenant has it off, the route
+ * answers `MODULE_DISABLED`. Routes whose permissions all belong to switched-off modules answer it
+ * without this.
+ */
+export const InModule = (module: SwitchableModule) => SetMetadata(MODULE, module);
+
+/** The module a handler or its controller belongs to, read without a running app. */
+export function moduleOfRoute(handler: object, controller: object): SwitchableModule | undefined {
+  return (Reflect.getMetadata(MODULE, handler) ?? Reflect.getMetadata(MODULE, controller)) as
+    SwitchableModule | undefined;
+}
+
+/** The answer for a module the tenant switched off (M2). */
+export const moduleDisabled = () =>
+  new AppError('MODULE_DISABLED', 'Your organisation has switched this part of the product off.');
 
 /** The access rule a route declares on its handler or its controller, or undefined for none. */
 export function accessRule(
@@ -190,11 +218,20 @@ export class AuthGuard implements CanActivate {
     });
     request.access = access;
 
+    const module = this.reflector.getAllAndOverride<SwitchableModule | undefined>(MODULE, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (module && access.modulesOff.includes(module)) throw moduleDisabled();
     if (rule.kind === 'signed_in') return true;
     const held = (permission: TenantPermission) => access.permissions.has(permission);
     const allowed =
       rule.kind === 'all' ? rule.permissions.every(held) : rule.permissions.some(held);
-    if (!allowed) throw new AppError('FORBIDDEN', 'You do not have access to this.');
+    if (!allowed) {
+      // What the route needs comes only from modules that are off: say so, not "no access".
+      if (closedByModules(rule.permissions, access.modulesOff)) throw moduleDisabled();
+      throw new AppError('FORBIDDEN', 'You do not have access to this.');
+    }
     return true;
   }
 }

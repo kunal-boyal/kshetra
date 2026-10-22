@@ -65,6 +65,8 @@ export const AUDIT_ACTIONS = [
   'session.device_refused',
   'export.created',
   'export.downloaded',
+  'organisation.renamed',
+  'organisation.logo_changed',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

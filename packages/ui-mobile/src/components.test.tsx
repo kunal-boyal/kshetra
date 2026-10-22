@@ -152,3 +152,19 @@ describe('KpiTile', () => {
     expect(screen.queryByText(/pending/)).toBeNull();
   });
 });
+
+describe('the tenant accent (tenant-theming.md)', () => {
+  it('replaces the six accent colours and the focus ring, and nothing else', () => {
+    const accent = {
+      accent: '#0f6e6e',
+      accentHover: '#0a5a5a',
+      accentSubtle: '#eaf6f5',
+      accentSoft: '#cdeae7',
+      accentSubtleFg: '#0d4a49',
+      onAccent: '#ffffff',
+    };
+    const product = createTheme('light', 'latin');
+    const branded = createTheme('light', 'latin', undefined, accent);
+    expect(branded.colors).toEqual({ ...product.colors, ...accent, focusRing: '#0f6e6e' });
+  });
+});

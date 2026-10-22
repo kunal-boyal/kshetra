@@ -45,6 +45,23 @@ export function saveDisplay(display: Display): void {
   write('display', display);
 }
 
+/** The tenant's brand colour, kept so the next launch is branded before the config loads. */
+export function savedBrand(): string | null {
+  const saved = read('brand');
+  return saved && /^#[0-9a-f]{6}$/i.test(saved) ? saved : null;
+}
+
+export function saveBrand(hex: string | null): void {
+  if (hex) write('brand', hex);
+  else {
+    try {
+      storage.remove('brand');
+    } catch {
+      // Nothing was kept.
+    }
+  }
+}
+
 export interface TenantChoice {
   id: string;
   name: string;

@@ -48,4 +48,8 @@ export abstract class TenantDirectory {
   abstract status(tenantId: string): Promise<TenantStatus | undefined>;
   /** The open tenants on a cell, for work the cell schedules for each of them (spec 12.3). */
   abstract openTenants(cellName: string): Promise<string[]>;
+  /** The tenant's display name, as sign-in shows it. */
+  abstract displayName(tenantId: string): Promise<string | undefined>;
+  /** Renames the tenant (M2); people see it at their next sign-in or token refresh. */
+  abstract rename(tenantId: string, name: string): Promise<void>;
 }

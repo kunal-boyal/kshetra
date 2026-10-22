@@ -8,9 +8,10 @@ import {
   type ReportKey,
   type ReportPage,
   type ReportQuery,
+  REPORT_MODULE,
 } from '@kshetra/shared';
 import { type SQL, sql } from 'drizzle-orm';
-import type { Access } from '../../platform/auth';
+import { type Access, moduleDisabled } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
@@ -88,8 +89,12 @@ export class ReportsService {
     );
   }
 
-  /** Checks the filters before an export is queued: named people and places must be reachable. */
-  async check(tx: TenantTx, access: Access, filters: ReportFilters): Promise<void> {
+  /**
+   * Checks an export before it is queued: its report's module is on, and the people and places
+   * its filters name are reachable.
+   */
+  async check(tx: TenantTx, access: Access, key: ReportKey, filters: ReportFilters): Promise<void> {
+    this.source(access, key);
     await this.whose(tx, access, filters);
   }
 
@@ -114,7 +119,10 @@ export class ReportsService {
     };
   }
 
-  private source(key: ReportKey): ReportSource {
+  /** A report, unless its module is switched off for the caller's tenant (spec 5.13). */
+  private source(access: Access, key: ReportKey): ReportSource {
+    const module = REPORT_MODULE[key];
+    if (module && access.modulesOff.includes(module)) throw moduleDisabled();
     return this.sources.get(key)!;
   }
 
@@ -141,7 +149,7 @@ export class ReportsService {
     query: ReportQuery,
   ): Promise<ReportPage> {
     const { cursor, limit, locale, ...filters } = query;
-    const source = this.source(key);
+    const source = this.source(access, key);
     const context = await this.context(tx, access, filters, locale);
     const columns = await this.columns(tx, source, context);
     const found = await source.page(tx, context, cursor, limit);
@@ -171,7 +179,7 @@ export class ReportsService {
     rows: ReportRow[];
     truncated: boolean;
   }> {
-    const source = this.source(key);
+    const source = this.source(access, key);
     const context = await this.context(tx, access, filters, locale);
     const columns = await this.columns(tx, source, context);
     const rows: ReportRow[] = [];

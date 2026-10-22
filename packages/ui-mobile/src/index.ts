@@ -22,4 +22,13 @@ export type { TextProps, Tone } from './text';
 export { TextField } from './text-field';
 export type { TextFieldProps } from './text-field';
 export { createTheme, ThemeProvider, useTheme } from './theme';
-export type { Colors, FontFaces, Script, Theme, ThemeName, TypeStyleName, Weight } from './theme';
+export type {
+  AccentColors,
+  Colors,
+  FontFaces,
+  Script,
+  Theme,
+  ThemeName,
+  TypeStyleName,
+  Weight,
+} from './theme';

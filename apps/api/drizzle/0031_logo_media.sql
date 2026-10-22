@@ -1,0 +1,1 @@
+ALTER TYPE "cell"."media_kind" ADD VALUE 'logo';
