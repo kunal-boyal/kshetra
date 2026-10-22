@@ -62,14 +62,45 @@ const schema = z
       .string()
       .regex(/^[A-Za-z0-9:_-]{1,64}$/)
       .optional(),
-    // `console` prints codes locally; `memory` keeps them for tests. Production uses a real sender.
-    OTP_PROVIDER: z.enum(['console', 'memory']).default('console'),
+    // `console` prints codes locally; `memory` keeps them for tests. Production sends them by
+    // MSG91 (decision D67).
+    OTP_PROVIDER: z.enum(['msg91', 'console', 'memory']).default('console'),
     // How notifications leave the cell (M16, decision D58). `console` prints them locally and
     // `memory` keeps them for tests; production needs real ones.
     PUSH_PROVIDER: z.enum(['expo', 'console', 'memory']).default('console'),
     // An Expo access token, when the project's push security is on.
     EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
-    SMS_PROVIDER: z.enum(['console', 'memory']).default('console'),
+    SMS_PROVIDER: z.enum(['msg91', 'console', 'memory']).default('console'),
+    // MSG91 (decision D67): every SMS goes through a DLT-registered template.
+    MSG91_AUTH_KEY: z.string().min(1).optional(),
+    MSG91_BASE_URL: z.url().default('https://control.msg91.com'),
+    // The DLT sender ID; left unset, each template's own sender is used.
+    MSG91_SENDER: z
+      .string()
+      .regex(/^[A-Z]{6}$/)
+      .optional(),
+    MSG91_OTP_TEMPLATE_ID: z.string().min(1).optional(),
+    // The name of the code's variable in the OTP template.
+    MSG91_OTP_VARIABLE: z.string().min(1).default('otp'),
+    // Templates for SMS notifications by event and language, as JSON:
+    // {"visit.missed": {"en": "<template id>", "hi": "<template id>"}}. An event without one goes
+    // to the next channel instead.
+    MSG91_SMS_TEMPLATES: z
+      .string()
+      .default('{}')
+      .transform((text, ctx) => {
+        try {
+          return z
+            .record(z.string(), z.record(z.string(), z.string().min(1)))
+            .parse(JSON.parse(text));
+        } catch {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Use JSON: {"<event>": {"en": "<template id>", "hi": "<template id>"}}',
+          });
+          return z.NEVER;
+        }
+      }),
     EMAIL_PROVIDER: z.enum(['smtp', 'console', 'memory']).default('smtp'),
     // Mailpit locally; Amazon SES's SMTP endpoint in AWS.
     SMTP_URL: z.url().default('smtp://127.0.0.1:1025'),
@@ -159,6 +190,23 @@ const schema = z
           message: 'Use at least 32 characters in production.',
         });
       }
+    }
+    if (
+      (config.OTP_PROVIDER === 'msg91' || config.SMS_PROVIDER === 'msg91') &&
+      !config.MSG91_AUTH_KEY
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MSG91_AUTH_KEY'],
+        message: 'MSG91 needs its auth key.',
+      });
+    }
+    if (config.OTP_PROVIDER === 'msg91' && !config.MSG91_OTP_TEMPLATE_ID) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MSG91_OTP_TEMPLATE_ID'],
+        message: 'Name the DLT template one-time codes go out in.',
+      });
     }
     if (config.OBJECT_STORE === 's3' && !config.S3_BUCKET) {
       ctx.addIssue({

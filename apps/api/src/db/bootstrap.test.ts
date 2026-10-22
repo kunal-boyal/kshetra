@@ -22,6 +22,18 @@ describe('bootstrapDatabase', () => {
         cellApp: remote,
         directoryApp: remote,
       }),
-    ).rejects.toThrow(/only runs against a database on this machine/);
+    ).rejects.toThrow(/runs against a database on this machine, or the host/);
+  });
+
+  it('runs against a remote database only when its host is named, and only that one', async () => {
+    const urls = {
+      admin: 'postgres://postgres:x@cell-1.example.com:5432/kshetra',
+      migrator: 'postgres://migrator:x@cell-1.example.com:5432/kshetra',
+      cellApp: 'postgres://cell_app:x@cell-1.example.com:5432/kshetra',
+      directoryApp: 'postgres://directory_app:x@cell-2.example.com:5432/kshetra',
+    };
+    await expect(bootstrapDatabase(urls, 'cell-1.example.com')).rejects.toThrow(
+      /not cell-2\.example\.com/,
+    );
   });
 });

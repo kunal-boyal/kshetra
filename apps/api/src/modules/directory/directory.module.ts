@@ -6,7 +6,8 @@ import { AuthController } from './auth.controller';
 import { DirectoryDatabase } from './directory.database';
 import { DirectoryMembers } from './members';
 import { OtpService } from './otp.service';
-import { ConsoleOtpSender, MemoryOtpSender, OtpSender } from './otp-sender';
+import { msg91Settings } from '../../platform/msg91';
+import { ConsoleOtpSender, MemoryOtpSender, Msg91OtpSender, OtpSender } from './otp-sender';
 import { SessionsService } from './sessions.service';
 import { SigningKey } from './signing-key';
 import { DirectoryTenants } from './tenants';
@@ -37,8 +38,16 @@ export class DirectoryHealth {
     {
       provide: OtpSender,
       inject: [CONFIG],
-      useFactory: (config: Config) =>
-        config.OTP_PROVIDER === 'memory' ? new MemoryOtpSender() : new ConsoleOtpSender(),
+      useFactory: (config: Config) => {
+        if (config.OTP_PROVIDER === 'msg91') {
+          return new Msg91OtpSender(
+            msg91Settings(config),
+            config.MSG91_OTP_TEMPLATE_ID!,
+            config.MSG91_OTP_VARIABLE,
+          );
+        }
+        return config.OTP_PROVIDER === 'memory' ? new MemoryOtpSender() : new ConsoleOtpSender();
+      },
     },
     OtpService,
     SessionsService,

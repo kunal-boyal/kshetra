@@ -87,6 +87,31 @@ describe('loadConfig', () => {
     expect(() => loadConfig(production)).toThrow(/CELL_API_URL/);
   });
 
+  it('takes MSG91 with its key, its OTP template and the templates of notifications', () => {
+    const msg91 = { ...required, OTP_PROVIDER: 'msg91', SMS_PROVIDER: 'msg91' };
+    expect(() => loadConfig(msg91)).toThrow(/MSG91_AUTH_KEY/);
+    expect(() => loadConfig({ ...msg91, MSG91_AUTH_KEY: 'key' })).toThrow(/MSG91_OTP_TEMPLATE_ID/);
+    const config = loadConfig({
+      ...msg91,
+      MSG91_AUTH_KEY: 'key',
+      MSG91_OTP_TEMPLATE_ID: 'otp-tpl',
+      MSG91_SMS_TEMPLATES: '{"visit.missed": {"en": "sms-en"}}',
+    });
+    expect(config).toMatchObject({
+      MSG91_BASE_URL: 'https://control.msg91.com',
+      MSG91_OTP_VARIABLE: 'otp',
+      MSG91_SMS_TEMPLATES: { 'visit.missed': { en: 'sms-en' } },
+    });
+    expect(() =>
+      loadConfig({
+        ...msg91,
+        MSG91_AUTH_KEY: 'key',
+        MSG91_OTP_TEMPLATE_ID: 'x',
+        MSG91_SMS_TEMPLATES: '[',
+      }),
+    ).toThrow(/MSG91_SMS_TEMPLATES/);
+  });
+
   it('keeps the memory code sender to tests', () => {
     expect(() => loadConfig({ ...required, OTP_PROVIDER: 'memory' })).toThrow(/tests only/);
     expect(() => loadConfig({ ...required, OBJECT_STORE: 'memory' })).toThrow(/tests only/);

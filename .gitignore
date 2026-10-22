@@ -28,6 +28,7 @@ playwright-report/
 *.tfstate
 *.tfstate.*
 *.tfvars
+backend.hcl
 !*.tfvars.example
 
 # Logs and OS files
