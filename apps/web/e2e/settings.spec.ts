@@ -12,8 +12,91 @@ const TENANT = {
 const later = () => new Date(Date.now() + 15 * 60_000).toISOString();
 
 /** What the cell answers to a GET, by path. */
+const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
+const TYPE_ID = '01a10000-0000-7000-8000-000000000301';
 const ANSWERS: Record<string, unknown> = {
   '/v1/organisation': { name: 'Sunrise Traders', logo: null },
+  '/v1/account-types': {
+    items: [
+      {
+        id: TYPE_ID,
+        version: 1,
+        key: 'customer',
+        name: noun('Customer', 'Customers'),
+        icon: 'store',
+        active: true,
+        parentTypes: [],
+        code: { mode: 'auto', prefix: 'C' },
+        fields: [
+          { key: 'gst_number', type: 'short_text', label: { en: 'GST number', hi: 'GST नंबर' } },
+        ],
+        location: { required: true, geofencePolicy: 'advisory', fieldUsersMayPropose: true },
+        creation: 'admins',
+        slots: [
+          {
+            key: 'executive',
+            name: { en: 'Executive', hi: 'एग्ज़ीक्यूटिव' },
+            designations: ['executive'],
+            required: false,
+            priority: 1,
+          },
+        ],
+        segmentRules: [
+          {
+            segment: 'registered',
+            name: { en: 'Registered', hi: 'पंजीकृत' },
+            when: { match: 'all', clauses: [{ field: 'gst_number', op: 'is_not_empty' }] },
+          },
+        ],
+        visitFrequencyNorms: [{ segment: 'registered', visitsPerMonth: 4 }],
+        contacts: true,
+      },
+    ],
+  },
+  '/v1/designations': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-000000000051',
+        key: 'executive',
+        name: noun('Executive', 'Executives'),
+        level: 3,
+        ranked: true,
+        defaultRole: 'field_user',
+        canHaveReports: false,
+      },
+    ],
+  },
+  '/v1/roles': { items: [{ key: 'manager', name: { en: 'Manager', hi: 'मैनेजर' } }] },
+  '/v1/forms': { items: [] },
+  '/v1/territories': {
+    items: [],
+    levels: [
+      { level: 1, key: 'region', name: noun('Region', 'Regions') },
+      { level: 2, key: 'area', name: noun('Area', 'Areas') },
+    ],
+  },
+  '/v1/metric-definitions': {
+    metrics: [
+      {
+        active: true,
+        version: 1,
+        definition: {
+          key: 'visits',
+          name: noun('Visit', 'Visits'),
+          unit: 'count',
+          direction: 'higher_is_better',
+          targetable: true,
+          source: { type: 'plan_compliance_percent' },
+        },
+      },
+    ],
+    score: {
+      periodType: 'month',
+      cap: 1,
+      rankingGroupBy: 'designation',
+      metrics: [{ metric: 'visits', weight: 100 }],
+    },
+  },
   '/v1/terminology': {
     overrides: {
       'term.account': {
@@ -77,12 +160,27 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
         access: {
           role: 'tenant_admin',
           scope: 'tenant',
-          permissions: ['settings.manage', 'terminology.manage', 'module.manage'],
+          permissions: [
+            'settings.manage',
+            'terminology.manage',
+            'module.manage',
+            'territory.manage',
+            'metric.manage',
+          ],
         },
       },
     }),
   );
-  for (const prefix of ['organisation', 'terminology']) {
+  for (const prefix of [
+    'organisation',
+    'terminology',
+    'account-types',
+    'designations',
+    'roles',
+    'forms',
+    'territories',
+    'metric-definitions',
+  ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
       return answer
@@ -108,7 +206,19 @@ async function expectAccessible(page: Page) {
   expect(found).toEqual([]);
 }
 
-for (const path of ['organisation', 'rules', 'terminology', 'modules']) {
+for (const path of [
+  'organisation',
+  'rules',
+  'terminology',
+  'modules',
+  'account-types',
+  'account-types/new',
+  `account-types/${TYPE_ID}`,
+  'territory-levels',
+  'metrics',
+  'metrics/visits',
+  'metrics/new',
+]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {
       await mockSignedIn(page);

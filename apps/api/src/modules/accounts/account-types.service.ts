@@ -113,6 +113,62 @@ export class AccountTypesService {
   }
 
   /**
+   * A new type at version 1 (M2): its key unused by any type, and the definition checked against
+   * the tenant's designations and its other types, as a template's are.
+   */
+  async create(
+    tx: TenantTx,
+    tenantId: string,
+    actor: AuditActor,
+    actorId: string | null,
+    id: string,
+    definition: AccountType,
+  ): Promise<AccountTypeView> {
+    const types = await this.list(tx, tenantId);
+    if (types.some((type) => type.key === definition.key)) {
+      throw invalid([
+        issueAt(['definition', 'key'], `There is a type \`${definition.key}\` already`),
+      ]);
+    }
+    const issues: ErrorDetail[] = [];
+    const designations = new Set(
+      (await this.designations.list(tx, tenantId)).map((designation) => designation.key),
+    );
+    const all = [...types.map((type) => type.definition), definition];
+    const index = all.length - 1;
+    issues.push(
+      ...checkAccountTypes(all, designations, ['types']).flatMap((issue) =>
+        issue.path.startsWith(`types[${index}]`)
+          ? [{ ...issue, path: issue.path.replace(`types[${index}]`, 'definition') }]
+          : [],
+      ),
+    );
+    if (issues.length > 0) throw invalid(issues);
+    await tx.insert(accountTypes).values({
+      id,
+      tenantId,
+      key: definition.key,
+      currentVersion: 1,
+      active: definition.active,
+      createdBy: actorId,
+      updatedBy: actorId,
+    });
+    await tx
+      .insert(accountTypeVersions)
+      .values({ tenantId, accountTypeId: id, version: 1, definition, publishedBy: actorId });
+    await this.config.touch(tx, tenantId, actorId);
+    await this.audit.record(tx, tenantId, actor, {
+      action: 'account_type.created',
+      target: { type: 'account_type', id },
+      after: { version: 1, definition },
+    });
+    const [view] = this.views([
+      { id, key: definition.key, active: definition.active, version: 1, definition },
+    ]);
+    return view!;
+  }
+
+  /**
    * Publishes the next version of a type. Its key never changes; a field keeps its type once any
    * version has used it, so stored values keep their meaning; a slot someone fills can't go.
    */

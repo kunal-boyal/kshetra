@@ -4,7 +4,8 @@ import { useAccess } from '../people/data';
 
 /**
  * Settings (spec 8.2, M2): the organisation, its rules, words and modules, then its roles,
- * designations, people fields, forms and catalogue.
+ * designations, people fields, forms and catalogue, and the account types, territory levels and
+ * metrics they work with.
  */
 export function SettingsLayout() {
   const { t } = useLanguage();
@@ -30,6 +31,15 @@ export function SettingsLayout() {
     ...(access.can('form.manage') ? [{ to: '/settings/forms', label: t('nav.forms') }] : []),
     ...(access.can('catalogue.manage')
       ? [{ to: '/settings/catalogue', label: t('nav.catalogue') }]
+      : []),
+    ...(access.can('settings.manage')
+      ? [{ to: '/settings/account-types', label: t('types.title') }]
+      : []),
+    ...(access.can('territory.manage')
+      ? [{ to: '/settings/territory-levels', label: t('levels.title') }]
+      : []),
+    ...(access.can('metric.manage')
+      ? [{ to: '/settings/metrics', label: t('metrics.title') }]
       : []),
   ];
   return (

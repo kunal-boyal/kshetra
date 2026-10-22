@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common';
 import {
   AppError,
   type CreateTerritoryBody,
+  type ErrorDetail,
   issueAt,
   newId,
   type LocalizedNoun,
+  repeats,
   type TerritoryLevel,
   type TerritoryListQuery,
   type TerritoryRef,
@@ -273,6 +275,60 @@ export class TerritoriesService {
     await tx
       .insert(territoryLevels)
       .values(levels.map((level, index) => ({ tenantId, level: index + 1, ...level })));
+  }
+
+  /**
+   * Renames the levels and adds new ones at the bottom (M2, spec 5.4). A level keeps its place and
+   * key once added, as territories sit at it by number; none is ever taken away.
+   */
+  async updateLevels(
+    tx: TenantTx,
+    tenantId: string,
+    actor: AuditActor,
+    actorId: string | null,
+    levels: readonly { key: string; name: z.output<typeof LocalizedNoun> }[],
+  ): Promise<TerritoryLevel[]> {
+    const before = await this.levels(tx, tenantId);
+    const issues: ErrorDetail[] = [];
+    if (levels.length < before.length) {
+      issues.push(
+        issueAt(['levels'], `Keep all ${before.length} levels: a level stays once added`),
+      );
+    }
+    before.forEach((level, index) => {
+      const next = levels[index];
+      if (next && next.key !== level.key) {
+        issues.push(
+          issueAt(['levels', index, 'key'], `Level ${index + 1} keeps its key \`${level.key}\``),
+        );
+      }
+    });
+    const keys = levels.map((level) => level.key);
+    repeats(keys).forEach((index) =>
+      issues.push(issueAt(['levels', index, 'key'], `\`${keys[index]}\` appears more than once`)),
+    );
+    if (issues.length > 0) {
+      throw new AppError('VALIDATION', 'These levels could not be saved.', issues);
+    }
+    for (const [index, level] of levels.entries()) {
+      if (index < before.length) {
+        await tx
+          .update(territoryLevels)
+          .set({ name: level.name })
+          .where(and(eq(territoryLevels.tenantId, tenantId), eq(territoryLevels.level, index + 1)));
+      } else {
+        await tx.insert(territoryLevels).values({ tenantId, level: index + 1, ...level });
+      }
+    }
+    await this.config.touch(tx, tenantId, actorId);
+    const after = await this.levels(tx, tenantId);
+    await this.audit.record(tx, tenantId, actor, {
+      action: 'territory_levels.updated',
+      target: { type: 'tenant', id: tenantId },
+      before,
+      after,
+    });
+    return after;
   }
 
   /** Adds a node one level below its parent, and its closure rows. */

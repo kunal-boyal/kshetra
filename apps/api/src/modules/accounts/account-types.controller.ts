@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Post } from '@nestjs/common';
-import { AccountTypeListResult, AccountTypeView, PublishAccountTypeBody } from '@kshetra/forms';
+import {
+  AccountTypeListResult,
+  AccountTypeView,
+  CreateAccountTypeBody,
+  PublishAccountTypeBody,
+} from '@kshetra/forms';
 import { IdParams } from '@kshetra/shared';
 import { userActor } from '../../platform/audit';
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
@@ -9,7 +14,7 @@ import { Contract } from '../../platform/routes';
 import { pathId } from '../iam/actor';
 import { AccountTypesService } from './account-types.service';
 
-/** Account types (spec 5.5, 11.2). */
+/** Account types (spec 5.5, 11.2): read by every app, added and versioned by admins (M2). */
 @Controller('v1/account-types')
 export class AccountTypesController {
   constructor(
@@ -29,6 +34,39 @@ export class AccountTypesController {
     return this.database.forTenant(access.tenantId, async (tx) => ({
       items: this.types.views(await this.types.list(tx, access.tenantId)),
     }));
+  }
+
+  @Post()
+  @Contract({
+    tag: 'Accounts',
+    summary: 'Add an account type, at version 1',
+    body: CreateAccountTypeBody,
+    response: AccountTypeView,
+  })
+  @Requires('settings.manage')
+  @HttpCode(201)
+  async create(@CurrentAccess() access: Access, @Body() body: unknown) {
+    const input = CreateAccountTypeBody.parse(body);
+    const result = await this.database.forTenant(access.tenantId, (tx) =>
+      idempotent(
+        tx,
+        access.tenantId,
+        `account_type:${input.id}`,
+        { route: 'POST /v1/account-types', by: access.userId, input },
+        async () => ({
+          status: 201,
+          body: await this.types.create(
+            tx,
+            access.tenantId,
+            userActor(access),
+            access.userId,
+            input.id,
+            input.definition,
+          ),
+        }),
+      ),
+    );
+    return result.body;
   }
 
   @Post(':id/versions')

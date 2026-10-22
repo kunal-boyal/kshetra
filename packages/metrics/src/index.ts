@@ -18,3 +18,12 @@ export type {
   DaySubmission,
   DayVisit,
 } from './calculate';
+export {
+  CreateMetricBody,
+  MetricDefinitionsResult,
+  MetricEntry,
+  MetricKeyParam,
+  RECOMPUTE_MAX_DAYS,
+  UpdateMetricBody,
+  UpdateScoreBody,
+} from './admin';

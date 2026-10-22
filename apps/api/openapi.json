@@ -1168,6 +1168,67 @@
             }
           }
         }
+      },
+      "post": {
+        "operationId": "AccountTypesController.create",
+        "summary": "Add an account type, at version 1",
+        "tags": [
+          "Accounts"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: settings.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "definition": {
+                    "$ref": "#/components/schemas/AccountType"
+                  }
+                },
+                "required": [
+                  "id",
+                  "definition"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountTypeView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/account-types/{id}/versions": {
@@ -2603,7 +2664,12 @@
                 "export.created",
                 "export.downloaded",
                 "organisation.renamed",
-                "organisation.logo_changed"
+                "organisation.logo_changed",
+                "account_type.created",
+                "territory_levels.updated",
+                "metric.created",
+                "metric.updated",
+                "score.updated"
               ]
             }
           },
@@ -2766,7 +2832,12 @@
                               "export.created",
                               "export.downloaded",
                               "organisation.renamed",
-                              "organisation.logo_changed"
+                              "organisation.logo_changed",
+                              "account_type.created",
+                              "territory_levels.updated",
+                              "metric.created",
+                              "metric.updated",
+                              "score.updated"
                             ]
                           },
                           "target": {
@@ -5665,6 +5736,44 @@
         }
       }
     },
+    "/v1/metric-definitions": {
+      "get": {
+        "operationId": "MetricsAdminController.read",
+        "summary": "Every metric with its whole definition, and the score",
+        "tags": [
+          "Planning"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: metric.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricDefinitionsResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/metrics": {
       "get": {
         "operationId": "MetricsController.list",
@@ -5698,6 +5807,160 @@
                     "items"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "MetricsAdminController.create",
+        "summary": "Add a metric, worked out from the first of this month",
+        "tags": [
+          "Planning"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: metric.manage",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "definition": {
+                    "$ref": "#/components/schemas/MetricDefinitionInput"
+                  }
+                },
+                "required": [
+                  "definition"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricDefinitionsResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/{key}": {
+      "put": {
+        "operationId": "MetricsAdminController.update",
+        "summary": "Change a metric, or retire it, and work out people's facts again from a date",
+        "tags": [
+          "Planning"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: metric.manage",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "definition": {
+                    "$ref": "#/components/schemas/MetricDefinitionInput"
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  }
+                },
+                "required": [
+                  "definition",
+                  "active",
+                  "from"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricDefinitionsResult"
                 }
               }
             }
@@ -7899,6 +8162,63 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RouteResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/score": {
+      "put": {
+        "operationId": "MetricsAdminController.updateScore",
+        "summary": "Change the score's metrics and weights",
+        "tags": [
+          "Planning"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: metric.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "definition": {
+                    "$ref": "#/components/schemas/ScoreDefinitionInput"
+                  }
+                },
+                "required": [
+                  "definition"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricDefinitionsResult"
                 }
               }
             }
@@ -10454,6 +10774,112 @@
         }
       }
     },
+    "/v1/territories/levels": {
+      "put": {
+        "operationId": "TerritoriesController.updateLevels",
+        "summary": "Rename the levels, or add new ones at the bottom",
+        "tags": [
+          "Territories"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: territory.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "levels": {
+                    "minItems": 1,
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "$ref": "#/components/schemas/Key"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/LocalizedNoun"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "levels"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "levels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "level": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "$ref": "#/components/schemas/LocalizedNoun"
+                          }
+                        },
+                        "required": [
+                          "level",
+                          "key",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "levels"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/trails": {
       "get": {
         "operationId": "MapsController.trail",
@@ -11564,7 +11990,12 @@
                               "export.created",
                               "export.downloaded",
                               "organisation.renamed",
-                              "organisation.logo_changed"
+                              "organisation.logo_changed",
+                              "account_type.created",
+                              "territory_levels.updated",
+                              "metric.created",
+                              "metric.updated",
+                              "score.updated"
                             ]
                           },
                           "target": {
@@ -16563,6 +16994,607 @@
         ],
         "additionalProperties": false
       },
+      "MetricDefinition": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedNoun"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "count",
+              "currency",
+              "quantity",
+              "percent",
+              "duration"
+            ]
+          },
+          "direction": {
+            "default": "higher_is_better",
+            "type": "string",
+            "enum": [
+              "higher_is_better",
+              "lower_is_better"
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/MetricSource"
+          },
+          "targetable": {
+            "default": true,
+            "description": "Whether it can carry a target",
+            "type": "boolean"
+          },
+          "visibleRoles": {
+            "description": "The roles that can see it. Leave out for every role.",
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Key"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "unit",
+          "direction",
+          "source",
+          "targetable"
+        ],
+        "additionalProperties": false
+      },
+      "MetricDefinitionInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedNoun"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "count",
+              "currency",
+              "quantity",
+              "percent",
+              "duration"
+            ]
+          },
+          "direction": {
+            "default": "higher_is_better",
+            "type": "string",
+            "enum": [
+              "higher_is_better",
+              "lower_is_better"
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/MetricSource"
+          },
+          "targetable": {
+            "default": true,
+            "description": "Whether it can carry a target",
+            "type": "boolean"
+          },
+          "visibleRoles": {
+            "description": "The roles that can see it. Leave out for every role.",
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Key"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "unit",
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "MetricDefinitionsResult": {
+        "type": "object",
+        "properties": {
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "definition": {
+                  "$ref": "#/components/schemas/MetricDefinition"
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "definition",
+                "active",
+                "version"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoreDefinition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "metrics",
+          "score"
+        ],
+        "additionalProperties": false
+      },
+      "MetricSource": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "submission_count"
+              },
+              "forms": {
+                "minItems": 1,
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "description": "The forms whose approved submissions count (BR-02)"
+              },
+              "where": {
+                "description": "Count only submissions whose fields match this",
+                "$ref": "#/components/schemas/ConditionInput"
+              }
+            },
+            "required": [
+              "type",
+              "forms"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "submission_field_sum"
+              },
+              "forms": {
+                "minItems": 1,
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "description": "The forms whose approved submissions count (BR-02)"
+              },
+              "field": {
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "type",
+              "forms",
+              "field"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "product_line_sum"
+              },
+              "forms": {
+                "minItems": 1,
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "description": "The forms whose approved submissions count (BR-02)"
+              },
+              "field": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "column": {
+                "type": "string",
+                "enum": [
+                  "quantity",
+                  "value"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "forms",
+              "field",
+              "column"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "distinct_accounts_visited"
+              },
+              "forms": {
+                "minItems": 1,
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "description": "The forms whose approved submissions count (BR-02)"
+              },
+              "accountTypes": {
+                "description": "Count only accounts of these types. Leave out for every type.",
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              },
+              "segment": {
+                "description": "Count only accounts in this segment",
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "type",
+              "forms"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "coverage_percent"
+              },
+              "forms": {
+                "minItems": 1,
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "description": "The forms whose approved submissions count (BR-02)"
+              },
+              "accountTypes": {
+                "description": "Count only accounts of these types. Leave out for every type.",
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              },
+              "segment": {
+                "description": "Count only accounts in this segment",
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "type",
+              "forms"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "frequency_compliance_percent"
+              },
+              "forms": {
+                "minItems": 1,
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "description": "The forms whose approved submissions count (BR-02)"
+              },
+              "accountTypes": {
+                "description": "Count only accounts of these types. Leave out for every type.",
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "forms"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "plan_compliance_percent"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "visit_duration"
+              },
+              "aggregate": {
+                "type": "string",
+                "enum": [
+                  "sum",
+                  "average"
+                ]
+              },
+              "accountTypes": {
+                "description": "Count only accounts of these types. Leave out for every type.",
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "aggregate"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "order_value"
+              },
+              "statuses": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "submitted",
+                    "accepted",
+                    "partially_accepted",
+                    "rejected",
+                    "fulfilled",
+                    "partially_fulfilled",
+                    "cancelled"
+                  ]
+                },
+                "description": "Count orders in these statuses (BR-19)"
+              },
+              "amount": {
+                "type": "string",
+                "enum": [
+                  "before_tax",
+                  "after_tax"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "statuses",
+              "amount"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "order_quantity"
+              },
+              "statuses": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "submitted",
+                    "accepted",
+                    "partially_accepted",
+                    "rejected",
+                    "fulfilled",
+                    "partially_fulfilled",
+                    "cancelled"
+                  ]
+                },
+                "description": "Count orders in these statuses (BR-19)"
+              },
+              "measure": {
+                "type": "string",
+                "enum": [
+                  "base_units",
+                  "kg",
+                  "L"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "statuses",
+              "measure"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "productive_visits"
+              },
+              "accountTypes": {
+                "description": "Count only accounts of these types. Leave out for every type.",
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "order_lines"
+              },
+              "statuses": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "submitted",
+                    "accepted",
+                    "partially_accepted",
+                    "rejected",
+                    "fulfilled",
+                    "partially_fulfilled",
+                    "cancelled"
+                  ]
+                },
+                "description": "Count orders in these statuses (BR-19)"
+              }
+            },
+            "required": [
+              "type",
+              "statuses"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "active_days"
+              },
+              "forms": {
+                "minItems": 1,
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "description": "The forms whose approved submissions count (BR-02)"
+              }
+            },
+            "required": [
+              "type",
+              "forms"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "new_accounts"
+              },
+              "accountType": {
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "type",
+              "accountType"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "external"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false,
+            "description": "Values loaded by import or the API, such as secondary sales from an ERP"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "ratio"
+              },
+              "numerator": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "denominator": {
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "type",
+              "numerator",
+              "denominator"
+            ],
+            "additionalProperties": false,
+            "description": "One metric divided by another, from summed parts (BR-04); times 100 when the unit is percent"
+          }
+        ]
+      },
       "MetricView": {
         "type": "object",
         "properties": {
@@ -18772,6 +19804,121 @@
           "recurrence",
           "accounts",
           "active"
+        ],
+        "additionalProperties": false
+      },
+      "ScoreDefinition": {
+        "type": "object",
+        "properties": {
+          "periodType": {
+            "default": "month",
+            "type": "string",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ]
+          },
+          "cap": {
+            "default": 1,
+            "description": "The highest attainment one metric can contribute: 1 is 100%",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2
+          },
+          "rankingGroupBy": {
+            "default": "designation",
+            "description": "Users are ranked within groups; designations decide who is ranked (D8)",
+            "type": "string",
+            "enum": [
+              "designation"
+            ]
+          },
+          "metrics": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "weight": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "metric",
+                "weight"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "periodType",
+          "cap",
+          "rankingGroupBy",
+          "metrics"
+        ],
+        "additionalProperties": false
+      },
+      "ScoreDefinitionInput": {
+        "type": "object",
+        "properties": {
+          "periodType": {
+            "default": "month",
+            "type": "string",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ]
+          },
+          "cap": {
+            "default": 1,
+            "description": "The highest attainment one metric can contribute: 1 is 100%",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2
+          },
+          "rankingGroupBy": {
+            "default": "designation",
+            "description": "Users are ranked within groups; designations decide who is ranked (D8)",
+            "type": "string",
+            "enum": [
+              "designation"
+            ]
+          },
+          "metrics": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "weight": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "metric",
+                "weight"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "metrics"
         ],
         "additionalProperties": false
       },

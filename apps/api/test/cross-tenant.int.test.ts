@@ -593,6 +593,78 @@ const FIXTURES: Record<string, Fixture> = {
       );
     },
   },
+  'POST /v1/account-types': {
+    kind: 'write',
+    run: async () => {
+      const [own] = (await asB('GET', '/v1/account-types')).json().items;
+      const definition = Object.fromEntries(
+        Object.entries(own as object).filter(([key]) => key !== 'id' && key !== 'version'),
+      );
+      const made = await asB('POST', '/v1/account-types', {
+        id: newId(),
+        definition: { ...definition, key: 'b_extra' },
+      });
+      expect(made.statusCode).toBe(201);
+      holdsNothingOfA(made);
+    },
+  },
+  'PUT /v1/territories/levels': {
+    kind: 'write',
+    run: async () => {
+      const { levels } = (await asB('GET', '/v1/territories')).json();
+      const saved = await asB('PUT', '/v1/territories/levels', {
+        levels: levels.map((level: { key: string; name: unknown }) => ({
+          key: level.key,
+          name: level.name,
+        })),
+      });
+      expect(saved.statusCode).toBe(200);
+      holdsNothingOfA(saved);
+    },
+  },
+  'GET /v1/metric-definitions': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/metric-definitions')),
+  },
+  'POST /v1/metrics': {
+    kind: 'write',
+    run: async () => {
+      const made = await asB('POST', '/v1/metrics', {
+        definition: {
+          key: 'b_plan',
+          name: noun('Plan done'),
+          unit: 'percent',
+          source: { type: 'plan_compliance_percent' },
+        },
+      });
+      expect(made.statusCode).toBe(201);
+      holdsNothingOfA(made);
+    },
+  },
+  'PUT /v1/metrics/:key': {
+    kind: 'write',
+    run: async () => {
+      const { metrics } = (await asB('GET', '/v1/metric-definitions')).json();
+      const [first] = metrics;
+      const changed = await asB('PUT', `/v1/metrics/${first.definition.key}`, {
+        definition: first.definition,
+        active: true,
+        from: new Date().toISOString().slice(0, 10),
+      });
+      expect(changed.statusCode).toBe(200);
+      holdsNothingOfA(changed);
+    },
+  },
+  'PUT /v1/score': {
+    kind: 'write',
+    run: async () => {
+      const { score } = (await asB('GET', '/v1/metric-definitions')).json();
+      if (!score) return;
+      const saved = await asB('PUT', '/v1/score', { definition: score });
+      expect(saved.statusCode).toBe(200);
+      holdsNothingOfA(saved);
+    },
+  },
   'GET /v1/accounts': {
     kind: 'own tenant',
     run: async () => {

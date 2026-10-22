@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import type { MetricDefinition, ScoreDefinition } from '@kshetra/metrics';
+import type { MetricDefinition, MetricEntry, ScoreDefinition } from '@kshetra/metrics';
 import type { MetricView } from '@kshetra/shared';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { metricDefinitions, scoreDefinitions } from '../../db/schema/metrics';
 import type { TenantTx } from '../../platform/database';
 
 /**
- * The tenant's metrics (spec 5.7) and score definition (5.8): each as the tenant's template gave
- * it, metrics by key. The metric engine computes from them (decision D56); changing them comes with
- * tenant administration (step 16, decision D55).
+ * The tenant's metrics (spec 5.7) and score definition (5.8): from its template at first, then as
+ * its admins change them (decision D65), metrics by key. The metric engine computes from them
+ * (decision D56). The writes here store what the performance module has checked.
  */
 @Injectable()
 export class MetricsService {
@@ -75,5 +75,59 @@ export class MetricsService {
   /** The metrics that carry targets and account plans. */
   async targetable(tx: TenantTx, tenantId: string): Promise<MetricView[]> {
     return (await this.list(tx, tenantId)).filter((metric) => metric.targetable);
+  }
+
+  /** Every metric, retired ones too, with its version, for those who edit them. */
+  async entries(tx: TenantTx, tenantId: string): Promise<MetricEntry[]> {
+    const rows = await tx
+      .select({
+        definition: metricDefinitions.definition,
+        active: metricDefinitions.active,
+        version: metricDefinitions.version,
+      })
+      .from(metricDefinitions)
+      .where(eq(metricDefinitions.tenantId, tenantId))
+      .orderBy(asc(metricDefinitions.key));
+    return rows;
+  }
+
+  async insert(tx: TenantTx, tenantId: string, definition: MetricDefinition): Promise<void> {
+    await tx.insert(metricDefinitions).values({
+      tenantId,
+      key: definition.key,
+      definition,
+      targetable: definition.targetable,
+    });
+  }
+
+  /** A metric's next version: its definition, and whether it is still in use. */
+  async replace(
+    tx: TenantTx,
+    tenantId: string,
+    definition: MetricDefinition,
+    active: boolean,
+  ): Promise<void> {
+    await tx
+      .update(metricDefinitions)
+      .set({
+        definition,
+        active,
+        targetable: definition.targetable,
+        version: sql`${metricDefinitions.version} + 1`,
+      })
+      .where(
+        and(eq(metricDefinitions.tenantId, tenantId), eq(metricDefinitions.key, definition.key)),
+      );
+  }
+
+  /** The score's next version, or its first. */
+  async saveScore(tx: TenantTx, tenantId: string, definition: ScoreDefinition): Promise<void> {
+    await tx
+      .insert(scoreDefinitions)
+      .values({ tenantId, definition })
+      .onConflictDoUpdate({
+        target: scoreDefinitions.tenantId,
+        set: { definition, version: sql`${scoreDefinitions.version} + 1` },
+      });
   }
 }

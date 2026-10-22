@@ -7,15 +7,18 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
   CreateTerritoryBody,
   IdParams,
   TerritoryListQuery,
+  TerritoryLevelsResult,
   TerritoryListResult,
   TerritoryResult,
   UpdateTerritoryBody,
+  UpdateTerritoryLevelsBody,
 } from '@kshetra/shared';
 import { userActor } from '../../platform/audit';
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
@@ -79,6 +82,28 @@ export class TerritoriesController {
       ),
     );
     return result.body;
+  }
+
+  @Put('levels')
+  @Contract({
+    tag: 'Territories',
+    summary: 'Rename the levels, or add new ones at the bottom',
+    body: UpdateTerritoryLevelsBody,
+    response: TerritoryLevelsResult,
+  })
+  @Requires('territory.manage')
+  async updateLevels(@CurrentAccess() access: Access, @Body() body: unknown) {
+    const input = UpdateTerritoryLevelsBody.parse(body);
+    const levels = await this.database.forTenant(access.tenantId, (tx) =>
+      this.territories.updateLevels(
+        tx,
+        access.tenantId,
+        userActor(access),
+        access.userId,
+        input.levels,
+      ),
+    );
+    return { levels };
   }
 
   @Patch(':id')

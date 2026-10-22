@@ -35,6 +35,9 @@ import { EditPersonPage, NewPersonPage } from './people/person-form-page';
 import { PersonPage } from './people/person-page';
 import { TransferPage } from './people/transfer-page';
 import { DesignationsPage } from './settings/designations-page';
+import { LevelsPage } from './settings/levels-page';
+import { MetricEditorPage } from './settings/metric-editor-page';
+import { MetricsPage } from './settings/metrics-page';
 import { ModulesPage } from './settings/modules-page';
 import { OrganisationPage } from './settings/organisation-page';
 import { ReportsPage } from './reports/reports-page';
@@ -42,6 +45,8 @@ import { RolesPage } from './settings/roles-page';
 import { RulesPage } from './settings/rules-page';
 import { SettingsLayout } from './settings/settings-layout';
 import { TerminologyPage } from './settings/terminology-page';
+import { TypeEditorPage } from './settings/type-editor-page';
+import { TypesPage } from './settings/types-page';
 import { UserFieldsPage } from './settings/user-fields-page';
 import { TerritoriesPage } from './territories/territories-page';
 
@@ -289,6 +294,47 @@ const catalogue = createRoute({
   path: '/catalogue',
   component: CataloguePage,
 });
+const accountTypes = createRoute({
+  getParentRoute: () => settings,
+  path: '/account-types',
+  component: TypesPage,
+});
+const newAccountType = createRoute({
+  getParentRoute: () => settings,
+  path: '/account-types/new',
+  component: () => <TypeEditorPage />,
+});
+const editAccountType = createRoute({
+  getParentRoute: () => settings,
+  path: '/account-types/$typeId',
+  component: function EditTypeRoute() {
+    const { typeId } = editAccountType.useParams();
+    return <TypeEditorPage key={typeId} typeId={typeId} />;
+  },
+});
+const territoryLevels = createRoute({
+  getParentRoute: () => settings,
+  path: '/territory-levels',
+  component: LevelsPage,
+});
+const metrics = createRoute({
+  getParentRoute: () => settings,
+  path: '/metrics',
+  component: MetricsPage,
+});
+const newMetric = createRoute({
+  getParentRoute: () => settings,
+  path: '/metrics/new',
+  component: () => <MetricEditorPage />,
+});
+const editMetric = createRoute({
+  getParentRoute: () => settings,
+  path: '/metrics/$metricKey',
+  component: function EditMetricRoute() {
+    const { metricKey } = editMetric.useParams();
+    return <MetricEditorPage key={metricKey} metricKey={metricKey} />;
+  },
+});
 
 const tree = root.addChildren([
   signIn,
@@ -332,6 +378,13 @@ const tree = root.addChildren([
       newForm,
       editForm,
       catalogue,
+      accountTypes,
+      newAccountType,
+      editAccountType,
+      territoryLevels,
+      metrics,
+      newMetric,
+      editMetric,
     ]),
   ]),
 ]);

@@ -106,7 +106,9 @@ export function AppShell() {
     access.can('terminology.manage') ||
     access.can('module.manage') ||
     access.can('form.manage') ||
-    access.can('catalogue.manage')
+    access.can('catalogue.manage') ||
+    access.can('territory.manage') ||
+    access.can('metric.manage')
       ? [{ to: '/settings', icon: Settings, label: t('nav.settings') }]
       : []),
   ];

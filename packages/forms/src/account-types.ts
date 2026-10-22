@@ -100,6 +100,10 @@ export const AccountTypeListResult = z.object({ items: z.array(AccountTypeView) 
  */
 export const PublishAccountTypeBody = z.strictObject({ definition: AccountType });
 
+/** `POST /v1/account-types`: a new type, with its own ID, at version 1 (M2). */
+export const CreateAccountTypeBody = z.strictObject({ id: z.uuid(), definition: AccountType });
+
 export type AccountTypeView = z.output<typeof AccountTypeView>;
+export type CreateAccountTypeBody = z.output<typeof CreateAccountTypeBody>;
 export type AccountTypeListResult = z.output<typeof AccountTypeListResult>;
 export type PublishAccountTypeBody = z.output<typeof PublishAccountTypeBody>;

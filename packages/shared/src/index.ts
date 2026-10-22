@@ -121,6 +121,8 @@ export {
   TerritoryListResult,
   TerritoryResult,
   UpdateTerritoryBody,
+  TerritoryLevelsResult,
+  UpdateTerritoryLevelsBody,
 } from './schemas/territories';
 export {
   CreateImportQuery,
