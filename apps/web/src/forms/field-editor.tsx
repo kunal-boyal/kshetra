@@ -606,7 +606,7 @@ function ClauseValue({
 }
 
 /** "Show when …": clauses on earlier fields, all or any of which must hold (spec 5.6). */
-function ConditionEditor({
+export function ConditionEditor({
   condition,
   earlier,
   onChange,

@@ -2,6 +2,7 @@ export {
   AccountType,
   AccountTypeListResult,
   AccountTypeView,
+  CreateAccountTypeBody,
   AssignmentSlot,
   PublishAccountTypeBody,
   SegmentRule,

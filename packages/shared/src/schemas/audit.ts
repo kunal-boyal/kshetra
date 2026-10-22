@@ -67,6 +67,11 @@ export const AUDIT_ACTIONS = [
   'export.downloaded',
   'organisation.renamed',
   'organisation.logo_changed',
+  'account_type.created',
+  'territory_levels.updated',
+  'metric.created',
+  'metric.updated',
+  'score.updated',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

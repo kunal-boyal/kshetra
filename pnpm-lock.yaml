@@ -610,6 +610,9 @@ importers:
       '@kshetra/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@kshetra/metrics':
+        specifier: workspace:*
+        version: link:../../packages/metrics
       '@kshetra/shared':
         specifier: workspace:*
         version: link:../../packages/shared

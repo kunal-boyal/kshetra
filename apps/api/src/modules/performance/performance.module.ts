@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { AccountsModule } from '../accounts/accounts.module';
 import { FieldModule } from '../field/field.module';
+import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { PlanningModule } from '../planning/planning.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
+import { MetricsAdmin } from './metrics-admin';
+import { MetricsAdminController } from './metrics-admin.controller';
 import { MetricsEngine } from './metrics-engine';
 import { PerformanceController } from './performance.controller';
 import { PerformanceService } from './performance.service';
@@ -19,12 +22,13 @@ import { PerformanceUpkeep } from './performance.upkeep';
     IamModule,
     AccountsModule,
     FieldModule,
+    FormsModule,
     PlanningModule,
     MetricsModule,
     TenantConfigModule,
   ],
-  controllers: [PerformanceController],
-  providers: [MetricsEngine, PerformanceService, PerformanceUpkeep],
+  controllers: [PerformanceController, MetricsAdminController],
+  providers: [MetricsEngine, PerformanceService, PerformanceUpkeep, MetricsAdmin],
   exports: [MetricsEngine, PerformanceService],
 })
 export class PerformanceModule {}

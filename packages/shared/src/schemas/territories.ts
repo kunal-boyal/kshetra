@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LocalizedNoun } from './config';
+import { Key, LocalizedNoun } from './config';
 
 /** Geography (spec 5.4, module M4). Managing territories arrives with step 4 of phase 1. */
 
@@ -58,7 +58,21 @@ export const UpdateTerritoryBody = z
   .refine((body) => Object.keys(body).length > 0, 'Send at least one field to change');
 
 export type TerritoryResult = z.infer<typeof TerritoryResult>;
+/**
+ * `PUT /v1/territories/levels`: the levels, highest first (M2, spec 5.4). Levels keep their
+ * place and key once added; new ones go at the bottom, and none is taken away.
+ */
+export const UpdateTerritoryLevelsBody = z.strictObject({
+  levels: z
+    .array(z.strictObject({ key: Key, name: LocalizedNoun }))
+    .min(1)
+    .max(6),
+});
+
+export const TerritoryLevelsResult = z.object({ levels: z.array(TerritoryLevel) });
+
 export type TerritoryLevel = z.infer<typeof TerritoryLevel>;
+export type UpdateTerritoryLevelsBody = z.output<typeof UpdateTerritoryLevelsBody>;
 export type CreateTerritoryBody = z.output<typeof CreateTerritoryBody>;
 export type UpdateTerritoryBody = z.infer<typeof UpdateTerritoryBody>;
 export type TerritoryListQuery = z.output<typeof TerritoryListQuery>;

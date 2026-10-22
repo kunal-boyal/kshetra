@@ -15,12 +15,19 @@ function dayBefore(date: string): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 }
 
+/** The day after a `YYYY-MM-DD`. */
+function dayAfter(date: string): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+}
+
 /**
  * Keeps the metric engine's facts current (spec 12.5, decision D56):
  * - a submission received or reviewed, a visit ended or a plan item moved recomputes the
  *   person's day it belongs to (BR-03), in the consumer's transaction;
  * - just after midnight on each tenant's clock, everyone's day just gone is recomputed, so plan
- *   items falling due are counted, and the month's scores and ranks are kept for history.
+ *   items falling due are counted, and the month's scores and ranks are kept for history;
+ * - a metric definition changed recomputes everyone's days from the date its change names
+ *   (decision D65), a day per transaction, on the maintenance queue.
  */
 @Injectable()
 export class PerformanceUpkeep implements OnModuleInit {
@@ -53,6 +60,20 @@ export class PerformanceUpkeep implements OnModuleInit {
     });
   }
 
+  /** Everyone's days from `from` to today, one day per transaction, after a metric changed. */
+  async recomputeFrom(tenantId: string, from: string): Promise<void> {
+    const today = await this.database.forTenant(tenantId, async (tx) =>
+      todayIn((await this.config.settings(tx, tenantId)).timezone),
+    );
+    for (let date = from; date <= today; date = dayAfter(date)) {
+      await this.database.forTenant(tenantId, async (tx) => {
+        for (const person of await this.people.matching(tx, tenantId, sql`true`)) {
+          await this.engine.recompute(tx, tenantId, person.id, date);
+        }
+      });
+    }
+  }
+
   onModuleInit(): void {
     this.outbox.consume(
       ['submission.created', 'submission.reviewed'],
@@ -70,6 +91,21 @@ export class PerformanceUpkeep implements OnModuleInit {
       const payload = event.payload as EventPayload<'plan_item.status_changed'>;
       await this.engine.recompute(tx, event.tenantId, payload.userId, payload.date);
     });
+    this.outbox.consume(['metrics.changed'], 'performance.metrics', async (event, tx) => {
+      const { from } = event.payload as EventPayload<'metrics.changed'>;
+      // One job per change; a redelivered event adds nothing more.
+      this.database.afterCommit(tx, () =>
+        this.queues.add(
+          'maintenance',
+          'performance.recompute',
+          { tenantId: event.tenantId, from },
+          { jobId: `performance.recompute.${event.id}` },
+        ),
+      );
+    });
+    this.queues.handle('maintenance', 'performance.recompute', (data) =>
+      this.recomputeFrom(String(data.tenantId), String(data.from)),
+    );
     this.queues.handle('maintenance', 'performance.nightly', (data) =>
       this.nightly(String(data.tenantId)),
     );

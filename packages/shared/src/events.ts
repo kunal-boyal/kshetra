@@ -135,6 +135,15 @@ export const ExportFinishedPayload = z.object({
   rows: z.int().min(0).nullable(),
 });
 
+/**
+ * Metric definitions changed (M2): people's facts from `from`, a date on the tenant's clock, are
+ * worked out again.
+ */
+export const MetricsChangedPayload = z.object({
+  from: z.iso.date(),
+  keys: z.array(z.string()),
+});
+
 export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
@@ -154,6 +163,7 @@ export const EVENT_PAYLOADS = {
   'approval.decided': ApprovalDecidedPayload,
   'import.finished': ImportFinishedPayload,
   'export.finished': ExportFinishedPayload,
+  'metrics.changed': MetricsChangedPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;
