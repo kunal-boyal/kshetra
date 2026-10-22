@@ -1,6 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import type { CustomField } from '@kshetra/forms';
-import type { CatalogueResult, CatalogueUnitView, ItemResult, MeasureType } from '@kshetra/shared';
+import {
+  AppError,
+  type CatalogueResult,
+  type CatalogueUnitView,
+  type ErrorDetail,
+  issueAt,
+  type ItemResult,
+  type MeasureType,
+} from '@kshetra/shared';
 import type { Catalogue } from '@kshetra/templates';
 import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import {
@@ -10,6 +18,7 @@ import {
   productCategories,
   products,
 } from '../../db/schema/catalogue';
+import { canonicalJson } from '../../platform/canonical-json';
 import type { TenantTx } from '../../platform/database';
 import type { SyncRowsPage } from '../sync/sync-entities';
 
@@ -65,6 +74,86 @@ export class CatalogueService {
       .from(catalogueSettings)
       .where(eq(catalogueSettings.tenantId, tenantId));
     return row ? { ...row, measureTypes: row.measureTypes as MeasureType[] } : DEFAULT_SETTINGS;
+  }
+
+  /** The settings as a template's `catalogue` holds them (M2, decision D66). */
+  async section(tx: TenantTx, tenantId: string): Promise<Catalogue | undefined> {
+    const [row] = await tx
+      .select()
+      .from(catalogueSettings)
+      .where(eq(catalogueSettings.tenantId, tenantId));
+    if (!row) return undefined;
+    return {
+      units: row.units.map(({ key, name, base }) => ({ key, name, base })),
+      measureTypes: row.measureTypes as MeasureType[],
+      rounding: row.rounding as Catalogue['rounding'],
+      itemFields: row.itemFields,
+      rejectionReasons: row.rejectionReasons as Catalogue['rejectionReasons'],
+    };
+  }
+
+  /**
+   * Adds and updates settings from a configuration file (M2, decision D66), removing none: units,
+   * item fields and rejection reasons by key, and the measures together. The base unit stays, as
+   * items' factors refer to it, and an item field keeps its type. Says whether anything changed.
+   */
+  async importSection(
+    tx: TenantTx,
+    tenantId: string,
+    catalogue: Catalogue,
+  ): Promise<'same' | 'update'> {
+    const current = (await this.section(tx, tenantId)) ?? {
+      ...DEFAULT_SETTINGS,
+      rounding: 'per_unit_first' as const,
+      rejectionReasons: [],
+    };
+    const issues: ErrorDetail[] = [];
+    const base = current.units.find((unit) => unit.base)?.key;
+    catalogue.units.forEach((unit, index) => {
+      if (unit.base && unit.key !== base) {
+        issues.push(
+          issueAt(
+            ['catalogue', 'units', index, 'base'],
+            `The base unit stays \`${base}\`, as items' units refer to it`,
+          ),
+        );
+      }
+    });
+    const types = new Map(current.itemFields.map((field) => [field.key, field.type]));
+    catalogue.itemFields.forEach((field, index) => {
+      const type = types.get(field.key);
+      if (type && type !== field.type) {
+        issues.push(
+          issueAt(
+            ['catalogue', 'itemFields', index, 'type'],
+            `\`${field.key}\` was a ${type} field, and a key keeps its type`,
+          ),
+        );
+      }
+    });
+    if (issues.length > 0)
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', issues);
+    const merged = <T extends { key: string }>(mine: readonly T[], theirs: readonly T[]) => [
+      ...mine.map((entry) => theirs.find((other) => other.key === entry.key) ?? entry),
+      ...theirs.filter((other) => !mine.some((entry) => entry.key === other.key)),
+    ];
+    const next = {
+      units: merged(current.units, catalogue.units).map((unit) => ({
+        ...unit,
+        base: unit.key === base,
+      })),
+      measureTypes: [...new Set([...current.measureTypes, ...catalogue.measureTypes])],
+      rounding: catalogue.rounding,
+      itemFields: merged(current.itemFields, catalogue.itemFields),
+      rejectionReasons: merged(current.rejectionReasons, catalogue.rejectionReasons),
+    };
+    if (canonicalJson(next) === canonicalJson(current)) return 'same';
+    await tx
+      .insert(catalogueSettings)
+      .values({ tenantId, ...next })
+      .onConflictDoUpdate({ target: catalogueSettings.tenantId, set: next });
+    await this.touch(tx, tenantId);
+    return 'update';
   }
 
   async version(tx: TenantTx, tenantId: string): Promise<number> {

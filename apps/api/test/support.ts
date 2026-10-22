@@ -11,16 +11,8 @@ import { type Config, loadConfig } from '../src/config';
 import { MemoryOtpSender, OtpSender } from '../src/modules/directory/otp-sender';
 import { OTP_LIMITS } from '../src/modules/directory/otp.service';
 import { SYSTEM } from '../src/modules/iam/actor';
-import { IamSetup } from '../src/modules/iam/setup.service';
 import { UsersService } from '../src/modules/iam/users.service';
-import { AccountTypesService } from '../src/modules/accounts/account-types.service';
-import { CatalogueService } from '../src/modules/catalogue/catalogue.service';
-import { AttendanceService } from '../src/modules/field/attendance.service';
-import { FormsService } from '../src/modules/forms/forms.service';
-import { MetricsService } from '../src/modules/metrics/metrics.service';
-import { ImportsService } from '../src/modules/imports/imports.service';
-import { templateImports } from '../src/modules/provisioning/cell-setup.service';
-import { TenantConfigService } from '../src/modules/tenant-config/tenant-config.service';
+import { CellSetup } from '../src/modules/provisioning/cell-setup.service';
 import { TerritoriesService } from '../src/modules/territories/territories.service';
 import { Database } from '../src/platform/database';
 import { RedisClient } from '../src/platform/redis';
@@ -157,19 +149,9 @@ export class World {
   async tenant(name: string, status = 'active', template = 'generic'): Promise<string> {
     const tenantId = await this.directory.tenant(name, status);
     const loaded = loadTemplate(template);
-    const { terminology, roles, designations, geographyLevels, userFields, accountTypes } = loaded;
-    const { catalogue, forms } = loaded;
-    await this.database.forTenant(tenantId, async (tx) => {
-      await this.app.get(TenantConfigService).applyTemplate(tx, tenantId, { terminology });
-      await this.app.get(IamSetup).applyTemplate(tx, tenantId, { roles, designations, userFields });
-      await this.app.get(ImportsService).applyTemplate(tx, tenantId, templateImports(loaded));
-      await this.app.get(TerritoriesService).applyLevels(tx, tenantId, geographyLevels);
-      await this.app.get(AccountTypesService).applyTemplate(tx, tenantId, accountTypes);
-      await this.app.get(CatalogueService).applyTemplate(tx, tenantId, catalogue);
-      await this.app.get(FormsService).applyTemplate(tx, tenantId, forms);
-      await this.app.get(AttendanceService).applyTemplate(tx, tenantId, loaded.people.attendance);
-      await this.app.get(MetricsService).applyTemplate(tx, tenantId, loaded.metrics, loaded.score);
-    });
+    await this.database.forTenant(tenantId, (tx) =>
+      this.app.get(CellSetup).applyTemplate(tx, tenantId, loaded),
+    );
     return tenantId;
   }
 

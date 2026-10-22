@@ -37,6 +37,18 @@ describe('the organisation (M2)', () => {
     });
   });
 
+  it('says when a logo is too big, before sending it', async () => {
+    const client = fakeClient({ '/v1/organisation': ORGANISATION }, {}, ADMIN);
+    renderAt('/settings/organisation', client);
+    const user = userEvent.setup();
+    const big = new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'logo.png', { type: 'image/png' });
+    await user.upload(await screen.findByLabelText('Add a logo'), big);
+    expect(
+      await screen.findByText('This image is larger than 2 MB. Choose a smaller one.'),
+    ).toBeVisible();
+    expect(writesOf(client)).toEqual([]);
+  });
+
   it('refuses a brand colour too light for white text, and offers a darker shade', async () => {
     const client = fakeClient(
       { '/v1/organisation': ORGANISATION },

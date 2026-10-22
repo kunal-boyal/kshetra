@@ -17,7 +17,9 @@ import { fieldErrors, PageHeader, Section } from '../people/shared';
 import { useAdmin, useOrganisation } from './data';
 
 /** What a save says: done, or why not, under its own section. */
-type Said = { ok: true } | { ok: false; error: unknown } | undefined;
+/** What a change came to: saved, refused by the API, or stopped here with our own words. */
+type Said =
+  { ok: true } | { ok: false; error: unknown } | { ok: false; message: string } | undefined;
 
 function Outcome({ said }: { said: Said }) {
   const { t } = useLanguage();
@@ -28,7 +30,7 @@ function Outcome({ said }: { said: Said }) {
     </p>
   ) : (
     <p className="ks-help error" role="alert">
-      {errorMessage(said.error, t)}
+      {'message' in said ? said.message : errorMessage(said.error, t)}
     </p>
   );
 }
@@ -56,7 +58,7 @@ function Details() {
     address: settings.address ?? '',
     taxId: settings.taxId ?? '',
   };
-  const errors = said && !said.ok ? fieldErrors(said.error) : {};
+  const errors = said && 'error' in said ? fieldErrors(said.error) : {};
   const set = (change: Partial<typeof value>) => setDraft({ ...value, ...change });
 
   async function save(event: FormEvent) {
@@ -174,7 +176,7 @@ function Logo() {
             event.target.value = '';
             if (!file) return;
             if (file.size > LOGO_MAX_BYTES) {
-              setSaid({ ok: false, error: new Error(t('admin.logo_too_big')) });
+              setSaid({ ok: false, message: t('admin.logo_too_big') });
               return;
             }
             void run(() => admin.setLogo(file));

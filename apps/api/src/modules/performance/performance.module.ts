@@ -29,6 +29,6 @@ import { PerformanceUpkeep } from './performance.upkeep';
   ],
   controllers: [PerformanceController, MetricsAdminController],
   providers: [MetricsEngine, PerformanceService, PerformanceUpkeep, MetricsAdmin],
-  exports: [MetricsEngine, PerformanceService],
+  exports: [MetricsAdmin, MetricsEngine, PerformanceService],
 })
 export class PerformanceModule {}

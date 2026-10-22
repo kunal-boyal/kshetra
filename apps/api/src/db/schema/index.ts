@@ -1,6 +1,7 @@
 export * from './accounts';
 export * from './catalogue';
 export * from './common';
+export * from './configuration';
 export * from './directory';
 export * from './field';
 export * from './forms';

@@ -27,7 +27,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm --filter @kshetra/api db:generate` | writes a migration for a schema change | now |
 | `pnpm --filter @kshetra/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
 | `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
-| `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin | now |
+| `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin; `--file <path>` instead of `--template` starts it from another tenant's exported configuration | now |
 | `pnpm openapi` | regenerates `apps/api/openapi.json` from the route registry; a test fails while it is out of date | now |
 
 Local services run in Docker Compose. Every port binds to 127.0.0.1, so only this machine can reach them:
@@ -224,6 +224,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - A tenant's accent comes only from `deriveAccent()` in `@kshetra/shared`, as `packages/design-tokens/tenant-theming.md` sets out: on the web through `applyBrand()` in `apps/web/src/brand.ts`, on the phone through `Look` (`src/look.tsx`) and `ThemeProvider`'s `accent`. Never hard-code a tenant colour.
 - Modules: put a new module's permissions in `MODULE_PERMISSIONS` and its reports in `REPORT_MODULE` (`@kshetra/shared`). Switched off, IAM strips their permissions and the guard answers `MODULE_DISABLED`; mark a route whose permissions are Core's but which belongs to a module with `@InModule()`. Screens of a module read `settings.modulesOff` from the bundle to hide themselves.
 - Configuration screens (decision D65) change configuration through the same checks as templates: `checkAccountTypes` for account types, `checkMetrics` and `checkScore` (`MetricsAdmin` in the performance module) for metrics and the score. Keys never change; a metric keeps its unit, a territory level its place. A metric change publishes `metrics.changed`, and `performance.recompute` rebuilds people's days from its `from` date. On the web, custom fields are edited with `CustomFieldsEditor` (`apps/web/src/settings/custom-fields-editor.tsx`) and conditions with `ConditionEditor` from the form builder.
+- Configuration export and import (decision D66) use the template format: `ConfigurationService` in `apps/api/src/modules/configuration` exports through each module's reads and imports through each module's own create, update and publish, adding and updating but never removing. A new kind of configuration needs its section in the template schema, in the export, and an import step in `apply()`, with its entry in `CONFIGURATION_SECTIONS`. Configuration no module uses yet waits in `HeldConfiguration`.
 
 ## Offline sync (decision D40)
 

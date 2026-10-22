@@ -38,6 +38,14 @@ export class AttendanceService {
       .onConflictDoNothing();
   }
 
+  /** Replaces the rule (M2, decision D66); attendance days follow it from their next upkeep. */
+  async setRule(tx: TenantTx, tenantId: string, rule: AttendanceRule): Promise<void> {
+    await tx
+      .insert(attendancePolicies)
+      .values({ tenantId, rule })
+      .onConflictDoUpdate({ target: attendancePolicies.tenantId, set: { rule } });
+  }
+
   async rule(tx: TenantTx, tenantId: string): Promise<AttendanceRule> {
     const [row] = await tx
       .select({ rule: attendancePolicies.rule })

@@ -166,6 +166,10 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'module.manage',
             'territory.manage',
             'metric.manage',
+            'role.manage',
+            'designation.manage',
+            'form.manage',
+            'catalogue.manage',
           ],
         },
       },
@@ -218,6 +222,7 @@ for (const path of [
   'metrics',
   'metrics/visits',
   'metrics/new',
+  'configuration',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {
@@ -241,5 +246,33 @@ test("takes the tenant's accent from its brand colour", async ({ page }) => {
   await expect.poll(accent).toBe('#0f6e6e');
   await page.getByRole('combobox', { name: 'Theme' }).selectOption('dark');
   await expect.poll(accent).not.toBe('#0f6e6e');
+  await expectAccessible(page);
+});
+
+test('shows what a configuration file would change, accessibly', async ({ page }) => {
+  await mockSignedIn(page);
+  await page.route('**/v1/configuration/import/preview', (route) =>
+    route.fulfill({
+      json: {
+        changes: [
+          { section: 'accountTypes', key: 'partner', change: 'add' },
+          { section: 'geographyLevels', key: 'region', change: 'update' },
+          { section: 'roles', key: 'tenant_admin', change: 'kept' },
+          { section: 'forms', key: 'meeting', change: 'same' },
+        ],
+        issues: [],
+      },
+    }),
+  );
+  await page.goto('/settings/configuration');
+  await page.getByLabel('Choose a file').setInputFiles({
+    name: 'staging.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ key: 'generic', version: 1 })),
+  });
+  await expect(page.getByRole('table', { name: 'What the import does' })).toBeVisible();
+  await page.getByRole('checkbox', { name: /entries that are the same/ }).check();
+  await page.getByRole('button', { name: 'Import the file' }).click();
+  await expect(page.getByRole('group', { name: 'Add 1 and change 1?' })).toBeVisible();
   await expectAccessible(page);
 });
