@@ -26,6 +26,19 @@ export class ConsoleOtpSender extends OtpSender {
   }
 }
 
+/**
+ * A demo cell's sender (decision D70): sends nothing, as its people sign in with DEMO_CODES. Any
+ * other number there gets a code nobody receives, so it can't sign in.
+ */
+@Injectable()
+export class NoOtpSender extends OtpSender {
+  private readonly logger = new Logger('OTP');
+
+  async send({ phone }: OtpMessage): Promise<void> {
+    this.logger.warn(`No code was sent to ${maskPhone(phone)}: this cell sends none.`);
+  }
+}
+
 /** Tests only: keeps every code so a test can sign in. */
 @Injectable()
 export class MemoryOtpSender extends OtpSender {

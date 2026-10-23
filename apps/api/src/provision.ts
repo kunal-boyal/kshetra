@@ -9,7 +9,9 @@ import { TenantProvisioner } from './modules/provisioning/provisioner';
 
 const USAGE = `Usage: pnpm provision --name <name> --slug <slug> (--template <generic|agri> | --file <path>)
                       --admin-name <name> --admin-phone <number>
-                      [--admin-code <code>] [--admin-email <email>] [--status trial|active]`;
+                      [--admin-code <code>] [--admin-email <email>] [--status trial|active]
+                      [--demo]   a tenant for showing the product: its people may sign in with
+                                 the fixed codes in DEMO_CODES (decision D70)`;
 
 const { values } = parseArgs({
   options: {
@@ -22,6 +24,7 @@ const { values } = parseArgs({
     'admin-phone': { type: 'string' },
     'admin-code': { type: 'string' },
     'admin-email': { type: 'string' },
+    demo: { type: 'boolean', default: false },
     help: { type: 'boolean' },
   },
 });
@@ -62,9 +65,13 @@ if (!parsed.success) {
 
 const { app } = await createCommandContext();
 try {
-  const tenant = await app.get(TenantProvisioner).provision(parsed.data, file);
+  const tenant = await app
+    .get(TenantProvisioner)
+    .provision(parsed.data, file, { demo: values.demo ?? false });
   const source = values.file ?? `the ${parsed.data.template} template`;
-  console.log(`Tenant ${tenant.slug} is ready (${tenant.tenantId}), from ${source}.`);
+  console.log(
+    `${values.demo ? 'Demo tenant' : 'Tenant'} ${tenant.slug} is ready (${tenant.tenantId}), from ${source}.`,
+  );
   console.log(
     `Its first admin, ${tenant.admin.name}, signs in with ${maskPhone(tenant.admin.phone!)}.`,
   );

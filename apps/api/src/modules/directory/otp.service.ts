@@ -7,9 +7,9 @@ import {
   type OtpRequestResult,
   type OtpVerifyResult,
 } from '@thelamp/shared';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { Config } from '../../config';
-import { identities, otpChallenges } from '../../db/schema/directory';
+import { identities, otpChallenges, tenants } from '../../db/schema/directory';
 import { type RateLimit, RateLimiter } from '../../platform/rate-limit';
 import { CONFIG } from '../../platform/tokens';
 import { DirectoryDatabase } from './directory.database';
@@ -61,23 +61,38 @@ export class OtpService {
       this.database.db,
       eq(identities.phoneE164, phone),
     ).limit(1);
+    const demoCode = registered ? await this.demoCode(phone) : undefined;
     const id = newId();
-    const code = newCode();
+    const code = demoCode ?? newCode();
     await this.database.db.insert(otpChallenges).values({
       id,
       identityKey: phone,
       codeHmac: codeHmac(this.config.OTP_PEPPER, id, code),
-      channel: registered ? 'sms' : 'none',
+      channel: !registered ? 'none' : demoCode ? 'demo' : 'sms',
       expiresAt: new Date(Date.now() + OTP.ttlSeconds * 1000),
       ip: address,
     });
-    if (registered) {
+    if (registered && !demoCode) {
       // Not awaited, so a known number answers no slower than an unknown one.
       this.sender
         .send({ phone, code })
         .catch((error: Error) => this.logger.error(`Sending a code failed: ${error.message}`));
     }
     return { expiresInSeconds: OTP.ttlSeconds };
+  }
+
+  /**
+   * A number's fixed demo code (decision D70), when DEMO_CODES names it and every tenant the number
+   * signs in to is a demo tenant; otherwise a real code is sent as usual.
+   */
+  private async demoCode(phone: string): Promise<string | undefined> {
+    const code = this.config.DEMO_CODES.get(phone);
+    if (!code) return undefined;
+    const [real] = await activeMemberships(
+      this.database.db,
+      and(eq(identities.phoneE164, phone), eq(tenants.demo, false)),
+    ).limit(1);
+    return real ? undefined : code;
   }
 
   async verify(

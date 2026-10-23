@@ -19,6 +19,8 @@ export interface NewTenant {
   cellName: string;
   templateKey: string;
   templateVersion: number;
+  /** A tenant for showing the product, whose people may sign in with demo codes (D70). */
+  demo?: boolean;
 }
 
 /** The tenant registry and cells (spec 9.3, 10.3). */
@@ -108,6 +110,7 @@ export class DirectoryTenants extends TenantDirectory {
         cellId: cell.id,
         templateKey: tenant.templateKey,
         templateVersion: tenant.templateVersion,
+        demo: tenant.demo ?? false,
       })
       .onConflictDoNothing({ target: tenants.slug })
       .returning({ id: tenants.id });

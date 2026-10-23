@@ -115,6 +115,39 @@ describe('loadConfig', () => {
     ).toThrow(/MSG91_SMS_TEMPLATES/);
   });
 
+  it('reads demo codes, and lets only a demo cell run without real senders (decision D70)', () => {
+    const codes = loadConfig({
+      ...required,
+      DEMO_CODES: JSON.stringify({ '98000 00001': '482913' }),
+    }).DEMO_CODES;
+    expect([...codes]).toEqual([['+919800000001', '482913']]);
+    expect(() => loadConfig({ ...required, DEMO_CODES: '{"+919800000001": "48291"}' })).toThrow(
+      /six digits/,
+    );
+    expect(() => loadConfig({ ...required, DEMO_CODES: '{"12": "482913"}' })).toThrow(
+      /not a valid mobile number/,
+    );
+    expect(() => loadConfig({ ...required, DEMO_CODES: '["+919800000001"]' })).toThrow(/JSON/);
+    expect(() => loadConfig({ ...required, OTP_PROVIDER: 'none' })).toThrow(/demo cell/);
+
+    const demo = {
+      ...required,
+      NODE_ENV: 'production',
+      CELL_PURPOSE: 'demo',
+      CELL_API_URL: 'https://api.demo.example.com',
+      OTP_PEPPER: 'a-production-pepper-of-32-characters',
+      JWT_SIGNING_KEY: 'a key',
+      OTP_PROVIDER: 'none',
+      PUSH_PROVIDER: 'console',
+      SMS_PROVIDER: 'console',
+      EMAIL_PROVIDER: 'console',
+    };
+    expect(loadConfig(demo)).toMatchObject({ CELL_PURPOSE: 'demo', OTP_PROVIDER: 'none' });
+    // A live cell still needs real senders, and no cell prints codes in production.
+    expect(() => loadConfig({ ...demo, CELL_PURPOSE: 'live' })).toThrow(/OTP_PROVIDER/);
+    expect(() => loadConfig({ ...demo, OTP_PROVIDER: 'console' })).toThrow(/OTP_PROVIDER/);
+  });
+
   it('keeps the memory code sender to tests', () => {
     expect(() => loadConfig({ ...required, OTP_PROVIDER: 'memory' })).toThrow(/tests only/);
     expect(() => loadConfig({ ...required, OBJECT_STORE: 'memory' })).toThrow(/tests only/);

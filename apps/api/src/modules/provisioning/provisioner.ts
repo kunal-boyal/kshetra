@@ -38,7 +38,11 @@ export class TenantProvisioner {
    * Creates the tenant from the template named in `input`, or from `file`: a configuration file
    * another tenant exported (decision D66), checked as a template is.
    */
-  async provision(input: ProvisionTenantInput, file?: unknown): Promise<ProvisionedTenant> {
+  async provision(
+    input: ProvisionTenantInput,
+    file?: unknown,
+    options: { demo?: boolean } = {},
+  ): Promise<ProvisionedTenant> {
     const template = file === undefined ? this.template(input.template) : this.fromFile(file);
     // Checked before anything is written, so a typo creates nothing.
     if (!normalisePhone(input.admin.phone)) {
@@ -66,6 +70,7 @@ export class TenantProvisioner {
       cellName: this.config.CELL_ID,
       templateKey: template.key,
       templateVersion: template.version,
+      demo: options.demo ?? false,
     });
     const admin = await this.cell.provision(tenantId, template, input);
     return { tenantId, slug: input.slug, admin };
