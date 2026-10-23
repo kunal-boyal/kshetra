@@ -5,8 +5,8 @@ import {
   type CustomField,
   type UpdateUserFieldsBody,
   type UserFieldsResult,
-} from '@kshetra/forms';
-import { AppError, type ErrorDetail, issueAt, todayIn } from '@kshetra/shared';
+} from '@thelamp/forms';
+import { AppError, type ErrorDetail, issueAt, todayIn } from '@thelamp/shared';
 import { eq } from 'drizzle-orm';
 import { userFields } from '../../db/schema/iam';
 import { AuditLog } from '../../platform/audit';

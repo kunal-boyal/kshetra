@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/tokens-tool",
+  "name": "@thelamp/tokens-tool",
   "version": "0.0.0",
   "private": true,
   "description": "Generates tokens.css and tokens.ts from packages/design-tokens/tokens.json, and checks the tokens",
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",

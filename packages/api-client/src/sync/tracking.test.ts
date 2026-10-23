@@ -1,4 +1,4 @@
-import type { LocationPointBody } from '@kshetra/shared';
+import type { LocationPointBody } from '@thelamp/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { migrate } from './local-schema';
 import { nodeSqlite } from './node-sqlite';

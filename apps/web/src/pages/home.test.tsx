@@ -1,4 +1,4 @@
-import { SETTING_DEFAULTS, todayIn } from '@kshetra/shared';
+import { SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';

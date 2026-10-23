@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { CustomField } from '@kshetra/forms';
-import type { DesignationDefinition, RoleDefinition } from '@kshetra/shared';
+import type { CustomField } from '@thelamp/forms';
+import type { DesignationDefinition, RoleDefinition } from '@thelamp/shared';
 import type { TenantTx } from '../../platform/database';
 import { SYSTEM } from './actor';
 import { DesignationsService } from './designations.service';

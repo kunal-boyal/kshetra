@@ -64,7 +64,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Build the web portal
-        run: pnpm --filter @kshetra/web build
+        run: pnpm --filter @thelamp/web build
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ vars.VITE_GOOGLE_MAPS_API_KEY }}
       - name: Publish the web portal

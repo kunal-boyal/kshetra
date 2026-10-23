@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import { AppError, newId } from '@kshetra/shared';
+import { AppError, newId } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
 import { type AuditActor, AuditLog } from '../../platform/audit';

@@ -1,4 +1,4 @@
-import type { AppPlatform, DeviceInfo } from '@kshetra/shared';
+import type { AppPlatform, DeviceInfo } from '@thelamp/shared';
 import Constants from 'expo-constants';
 import { getRandomBytes } from 'expo-crypto';
 import * as Device from 'expo-device';

@@ -1,4 +1,4 @@
-import { type ErrorDetail, issueAt, Money, toMinorUnits } from '@kshetra/shared';
+import { type ErrorDetail, issueAt, Money, toMinorUnits } from '@thelamp/shared';
 import { RE2JS } from 're2js';
 import type { Clause, Condition } from './conditions';
 import type { CustomField, FormField, GroupItemField } from './fields';

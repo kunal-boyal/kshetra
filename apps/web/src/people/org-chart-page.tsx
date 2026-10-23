@@ -1,5 +1,5 @@
-import type { OrgChartNode } from '@kshetra/shared';
-import { Button, Icon } from '@kshetra/ui-web';
+import type { OrgChartNode } from '@thelamp/shared';
+import { Button, Icon } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';

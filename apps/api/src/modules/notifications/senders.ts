@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { maskPhone } from '@kshetra/shared';
+import { maskPhone } from '@thelamp/shared';
 import { createTransport, type Transporter } from 'nodemailer';
 import type { Config } from '../../config';
 import { type Msg91Settings, msg91Settings, sendFlow } from '../../platform/msg91';

@@ -1,4 +1,4 @@
-import type { Locale } from '@kshetra/shared';
+import type { Locale } from '@thelamp/shared';
 import { useState } from 'react';
 import { useLanguage } from '../i18n';
 import { applyTheme, savedTheme, type Theme } from '../preferences';

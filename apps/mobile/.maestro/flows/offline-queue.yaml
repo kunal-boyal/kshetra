@@ -1,6 +1,6 @@
 # Without signal, work waits on the phone and uploads once signal returns (spec 11.3, 3.2): here
 # a pause, saved and queued on the phone.
-appId: com.kshetra.app.e2e
+appId: com.thelamp.app.e2e
 name: offline-queue
 # Signal comes back whether the flow passes or fails, so the phone is never left offline.
 onFlowComplete:

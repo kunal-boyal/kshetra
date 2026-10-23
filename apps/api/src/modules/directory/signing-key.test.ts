@@ -1,5 +1,5 @@
 import { generateKeyPairSync } from 'node:crypto';
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../../config';
 import { AccessTokens } from '../../platform/auth';

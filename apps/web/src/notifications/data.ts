@@ -1,4 +1,4 @@
-import { NotificationListResult, NotificationPrefsResult } from '@kshetra/shared';
+import { NotificationListResult, NotificationPrefsResult } from '@thelamp/shared';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';

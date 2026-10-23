@@ -1,6 +1,6 @@
-import type { AccountTypeView } from '@kshetra/forms';
-import type { AccountStatus, Locale, LocationStatus } from '@kshetra/shared';
-import { type BadgeVariant, StatusBadge } from '@kshetra/ui-web';
+import type { AccountTypeView } from '@thelamp/forms';
+import type { AccountStatus, Locale, LocationStatus } from '@thelamp/shared';
+import { type BadgeVariant, StatusBadge } from '@thelamp/ui-web';
 import { useLanguage } from '../i18n';
 
 const STATUS_VARIANTS: Record<AccountStatus, BadgeVariant> = {

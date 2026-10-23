@@ -1,5 +1,5 @@
-import { type FormView, FormView as FormViewSchema } from '@kshetra/forms';
-import { Button, type Column, DataTable, EmptyState, Icon, StatusBadge } from '@kshetra/ui-web';
+import { type FormView, FormView as FormViewSchema } from '@thelamp/forms';
+import { Button, type Column, DataTable, EmptyState, Icon, StatusBadge } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ClipboardList, Plus } from 'lucide-react';
 import { useState } from 'react';

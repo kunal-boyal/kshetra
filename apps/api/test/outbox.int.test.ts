@@ -1,4 +1,4 @@
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { and, eq } from 'drizzle-orm';
 import pg from 'pg';

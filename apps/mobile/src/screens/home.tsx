@@ -1,5 +1,5 @@
-import { spacing } from '@kshetra/design-tokens';
-import { Button, Screen, SyncBanner, Text } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import { Button, Screen, SyncBanner, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { Bell, BellDot, CircleAlert, CloudUpload, RotateCw } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';

@@ -12,7 +12,7 @@ import {
   type ErrorCode,
   type ErrorDetail,
   formatPath,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 

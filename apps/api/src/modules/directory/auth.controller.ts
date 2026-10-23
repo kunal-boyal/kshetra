@@ -26,7 +26,7 @@ import {
   SwitchTenantBody,
   WEB_CLIENT,
   WEB_CLIENT_HEADER,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from '../../config';
 import { Public } from '../../platform/auth';

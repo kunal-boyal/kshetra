@@ -1,5 +1,5 @@
-import { formatMoney, formatNumber } from '@kshetra/i18n';
-import { CatalogueResult, type ItemResult } from '@kshetra/shared';
+import { formatMoney, formatNumber } from '@thelamp/i18n';
+import { CatalogueResult, type ItemResult } from '@thelamp/shared';
 import {
   Button,
   type Column,
@@ -8,7 +8,7 @@ import {
   Icon,
   StatusBadge,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { FileSpreadsheet, Package, Search } from 'lucide-react';

@@ -8,7 +8,7 @@ import {
   pathLengthMeters,
   todayIn,
   type TrailResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { localMonth } from '../../platform/local-day';

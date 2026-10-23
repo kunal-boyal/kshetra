@@ -1,6 +1,6 @@
-import { spacing } from '@kshetra/design-tokens';
-import { punchFixIssue } from '@kshetra/shared';
-import { Button, Card, Notice, Screen, Text } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import { punchFixIssue } from '@thelamp/shared';
+import { Button, Card, Notice, Screen, Text } from '@thelamp/ui-mobile';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Camera, Check, Crosshair, MapPin } from 'lucide-react-native';

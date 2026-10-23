@@ -1,4 +1,4 @@
-import { UserFieldsResult } from '@kshetra/forms';
+import { UserFieldsResult } from '@thelamp/forms';
 import {
   AuditListResult,
   DesignationListResult,
@@ -10,7 +10,7 @@ import {
   TransferListResult,
   UserListResult,
   UserView,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { z } from 'zod';

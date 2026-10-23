@@ -1,6 +1,6 @@
-import { spacing } from '@kshetra/design-tokens';
-import type { MessageKey } from '@kshetra/i18n';
-import { Button, Card, ListGroup, ListRow, Screen, StatusBadge, Text } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import type { MessageKey } from '@thelamp/i18n';
+import { Button, Card, ListGroup, ListRow, Screen, StatusBadge, Text } from '@thelamp/ui-mobile';
 import * as Battery from 'expo-battery';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';

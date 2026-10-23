@@ -1,4 +1,4 @@
-import { colors, shadows, typeStyles } from '@kshetra/design-tokens';
+import { colors, shadows, typeStyles } from '@thelamp/design-tokens';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 import { Platform, type TextStyle } from 'react-native';
 

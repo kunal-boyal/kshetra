@@ -1,5 +1,5 @@
-import { ApiError, NetworkError } from '@kshetra/api-client';
-import { SETTING_DEFAULTS } from '@kshetra/shared';
+import { ApiError, NetworkError } from '@thelamp/api-client';
+import { SETTING_DEFAULTS } from '@thelamp/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';

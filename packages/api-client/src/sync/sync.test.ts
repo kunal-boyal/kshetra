@@ -1,4 +1,4 @@
-import type { SyncEntity, SyncPullResult, SyncTerritory, SyncUser } from '@kshetra/shared';
+import type { SyncEntity, SyncPullResult, SyncTerritory, SyncUser } from '@thelamp/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, NetworkError } from '../client';
 import { localRows, migrate } from './local-schema';

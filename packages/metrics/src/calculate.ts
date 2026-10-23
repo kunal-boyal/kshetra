@@ -1,4 +1,4 @@
-import { conditionHolds } from '@kshetra/forms';
+import { conditionHolds } from '@thelamp/forms';
 import type { MetricDefinition, MetricSourceType } from './definition';
 
 /**

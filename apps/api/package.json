@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/api",
+  "name": "@thelamp/api",
   "version": "0.0.0",
   "private": true,
   "description": "The cell API: HTTP entrypoint, migrations and, later, workers and the scheduler",
@@ -47,13 +47,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@kshetra/api-client": "workspace:*",
-    "@kshetra/config": "workspace:*",
-    "@kshetra/forms": "workspace:*",
-    "@kshetra/i18n": "workspace:*",
-    "@kshetra/metrics": "workspace:*",
-    "@kshetra/shared": "workspace:*",
-    "@kshetra/templates": "workspace:*",
+    "@thelamp/api-client": "workspace:*",
+    "@thelamp/config": "workspace:*",
+    "@thelamp/forms": "workspace:*",
+    "@thelamp/i18n": "workspace:*",
+    "@thelamp/metrics": "workspace:*",
+    "@thelamp/shared": "workspace:*",
+    "@thelamp/templates": "workspace:*",
     "@nestjs/testing": "^12.1.2",
     "@testcontainers/postgresql": "^12.2.0",
     "@testcontainers/redis": "^12.2.0",

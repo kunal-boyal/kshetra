@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import type { SessionState } from '@kshetra/api-client';
-import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
-import { migrate, Outbox, type SqlDatabase } from '@kshetra/api-client/sync';
-import { SETTING_DEFAULTS, type SyncPullResult } from '@kshetra/shared';
+import type { SessionState } from '@thelamp/api-client';
+import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
+import { migrate, Outbox, type SqlDatabase } from '@thelamp/api-client/sync';
+import { SETTING_DEFAULTS, type SyncPullResult } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
@@ -25,7 +25,7 @@ jest.mock('expo-battery', () => ({ isBatteryOptimizationEnabledAsync: async () =
 // Notes stand in for captured records: the server refuses some, and some find no network.
 jest.mock('../outbox-kinds', () => {
   const { ApiError, NetworkError } =
-    jest.requireActual<typeof import('@kshetra/api-client')>('@kshetra/api-client');
+    jest.requireActual<typeof import('@thelamp/api-client')>('@thelamp/api-client');
   return {
     senders: () => ({
       note: {

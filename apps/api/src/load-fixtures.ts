@@ -1,12 +1,12 @@
-// `pnpm --filter @kshetra/api load:fixtures`: a fictional tenant for the k6 load tests (spec 14.4,
+// `pnpm --filter @thelamp/api load:fixtures`: a fictional tenant for the k6 load tests (spec 14.4,
 // decision D68), with a manager and field users already signed in on their own devices, written
 // to a file the k6 scripts read. Local databases only, as the seed is.
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
-import { FormDefinition } from '@kshetra/forms';
-import { CreateUserBody, todayIn } from '@kshetra/shared';
+import { FormDefinition } from '@thelamp/forms';
+import { CreateUserBody, todayIn } from '@thelamp/shared';
 import { createCommandContext, report } from './context';
 import { isLocalDatabase } from './db/bootstrap';
 import { SessionsService } from './modules/directory/sessions.service';

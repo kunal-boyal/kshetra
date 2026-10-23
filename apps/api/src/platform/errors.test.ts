@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { AppError } from '@kshetra/shared';
+import { AppError } from '@thelamp/shared';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { toErrorResponse } from './errors';

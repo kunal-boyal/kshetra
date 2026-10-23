@@ -10,7 +10,7 @@ import {
   NotoSansDevanagari_600SemiBold,
   NotoSansDevanagari_700Bold,
 } from '@expo-google-fonts/noto-sans-devanagari';
-import type { FontFaces } from '@kshetra/ui-mobile';
+import type { FontFaces } from '@thelamp/ui-mobile';
 import { useFonts } from 'expo-font';
 
 const FACES: FontFaces = {

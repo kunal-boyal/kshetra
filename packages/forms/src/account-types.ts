@@ -1,4 +1,4 @@
-import { IconName, Key, LocalizedNoun, LocalizedText } from '@kshetra/shared';
+import { IconName, Key, LocalizedNoun, LocalizedText } from '@thelamp/shared';
 import { z } from 'zod';
 import { Condition } from './conditions';
 import { CustomField } from './fields';
@@ -6,7 +6,7 @@ import { CustomField } from './fields';
 /**
  * Account types (spec 5.5). They live beside the fields they carry, so the config bundle, the apps
  * and the templates share one definition (decision D43); the checks that need a whole template,
- * such as designations that exist, stay in `@kshetra/templates`.
+ * such as designations that exist, stay in `@thelamp/templates`.
  */
 
 /** A named slot on an account that a user fills, such as the regional manager (spec 5.5). */

@@ -16,7 +16,7 @@ import {
   type PutNotificationPrefsBody,
   type PutPushTokenBody,
   timeIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import {
   notificationDeliveries,

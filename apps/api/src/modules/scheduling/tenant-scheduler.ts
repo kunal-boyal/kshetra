@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
-import { momentDue } from '@kshetra/shared';
+import { momentDue } from '@thelamp/shared';
 import type { Config } from '../../config';
 import { Database } from '../../platform/database';
 import { TenantDirectory } from '../../platform/planes';

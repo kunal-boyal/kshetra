@@ -1,4 +1,4 @@
-import { APPROVAL_STATUSES, REQUEST_TYPES, STEP_STATUSES } from '@kshetra/shared';
+import { APPROVAL_STATUSES, REQUEST_TYPES, STEP_STATUSES } from '@thelamp/shared';
 import { foreignKey, index, integer, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { cell, isolation } from './common';
 import { users } from './iam';

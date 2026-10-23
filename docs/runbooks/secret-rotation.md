@@ -1,6 +1,6 @@
 # Secret rotation
 
-Every secret lives in the cell's Secrets Manager secret, `kshetra-<environment>-cell1/app`, one key per setting (decision D67). Rotate on a schedule, when someone with access leaves, and at once on any suspicion of a leak.
+Every secret lives in the cell's Secrets Manager secret, `thelamp-<environment>-cell1/app`, one key per setting (decision D67). Rotate on a schedule, when someone with access leaves, and at once on any suspicion of a leak.
 
 | Key | How | Effect on people |
 |---|---|---|

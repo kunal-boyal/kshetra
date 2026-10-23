@@ -1,5 +1,5 @@
-import { todayIn } from '@kshetra/shared';
-import { EmptyState, Icon, TextField } from '@kshetra/ui-web';
+import { todayIn } from '@thelamp/shared';
+import { EmptyState, Icon, TextField } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { Users } from 'lucide-react';
 import { useState } from 'react';

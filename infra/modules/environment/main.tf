@@ -3,7 +3,7 @@
 # a second cell exists (phases 0 to 2, decision D23), so its tables share the cell's database.
 
 locals {
-  tags = merge({ Product = "kshetra", Environment = var.github_environment }, var.tags)
+  tags = merge({ Product = "thelamp", Environment = var.github_environment }, var.tags)
 }
 
 module "network" {

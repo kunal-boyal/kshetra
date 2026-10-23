@@ -1,4 +1,4 @@
-import { BottomNav, useTheme } from '@kshetra/ui-mobile';
+import { BottomNav, useTheme } from '@thelamp/ui-mobile';
 import { Tabs } from 'expo-router';
 import {
   ClipboardList,

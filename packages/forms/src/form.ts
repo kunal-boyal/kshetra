@@ -7,7 +7,7 @@ import {
   LocalizedNoun,
   repeats,
   toMinorUnits,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { z } from 'zod';
 import { checkCondition } from './conditions';
 import { type AnyField, FormField, PHOTO_SOURCES } from './fields';

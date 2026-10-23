@@ -9,7 +9,7 @@ import {
   type TermValue,
   type UpdateReviewRulesBody,
   withDefaults,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { eq, sql } from 'drizzle-orm';
 import { reviewRules, tenantSettings, terminologyOverrides } from '../../db/schema/tenant-config';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR } from '../../platform/audit';

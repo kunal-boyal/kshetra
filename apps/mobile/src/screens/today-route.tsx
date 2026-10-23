@@ -1,4 +1,4 @@
-import { Button, EmptyState, ListGroup, ListRow, Screen, Text } from '@kshetra/ui-mobile';
+import { Button, EmptyState, ListGroup, ListRow, Screen, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ArrowLeft, MapPinOff, Route } from 'lucide-react-native';
 import { useLanguage } from '../i18n';

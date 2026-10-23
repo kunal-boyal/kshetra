@@ -1,9 +1,9 @@
 {
   "about": "The product's name and identifiers (decision D1). Change them only with `pnpm rename`, which rewrites the repository to match. See tools/rename/README.md.",
-  "name": "Kshetra",
-  "slug": "kshetra",
-  "scope": "kshetra",
-  "appId": "com.kshetra.app",
+  "name": "The Lamp",
+  "slug": "thelamp",
+  "scope": "thelamp",
+  "appId": "com.thelamp.app",
   "launched": false,
   "external": {
     "expoProject": "kshetra",

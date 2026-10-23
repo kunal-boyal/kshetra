@@ -1,5 +1,5 @@
 variable "name" {
-  description = "The environment's prefix, such as kshetra-staging."
+  description = "The environment's prefix, such as thelamp-staging."
   type        = string
 }
 

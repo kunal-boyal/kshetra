@@ -1,4 +1,4 @@
-import { PhotoKind } from '@kshetra/shared';
+import { PhotoKind } from '@thelamp/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { CameraScreen } from '../../screens/camera';
 

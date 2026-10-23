@@ -1,5 +1,5 @@
 {
-  "name": "kshetra",
+  "name": "thelamp",
   "private": true,
   "description": "Multi-tenant field-force SaaS. Specification: docs/spec.md",
   "type": "module",
@@ -15,18 +15,18 @@
     "test": "turbo run test",
     "test:int": "turbo run test:int",
     "test:e2e": "turbo run test:e2e",
-    "db:bootstrap": "pnpm --filter @kshetra/api db:bootstrap",
-    "db:migrate": "pnpm --filter @kshetra/api db:migrate",
-    "db:seed": "pnpm --filter @kshetra/api db:seed",
-    "provision": "pnpm --filter @kshetra/api provision",
-    "openapi": "pnpm --filter @kshetra/api openapi",
-    "tokens": "pnpm --filter @kshetra/tokens-tool build",
+    "db:bootstrap": "pnpm --filter @thelamp/api db:bootstrap",
+    "db:migrate": "pnpm --filter @thelamp/api db:migrate",
+    "db:seed": "pnpm --filter @thelamp/api db:seed",
+    "provision": "pnpm --filter @thelamp/api provision",
+    "openapi": "pnpm --filter @thelamp/api openapi",
+    "tokens": "pnpm --filter @thelamp/tokens-tool build",
     "rename": "node tools/rename/src/cli.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "prettier": "catalog:",
     "turbo": "catalog:"
   }

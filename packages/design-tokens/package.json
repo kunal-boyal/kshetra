@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/design-tokens",
+  "name": "@thelamp/design-tokens",
   "version": "0.0.0",
   "private": true,
   "description": "The design system: tokens.json with the generated tokens.css and tokens.ts, the brand book, component guides and logos",

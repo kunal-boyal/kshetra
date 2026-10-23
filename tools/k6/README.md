@@ -4,7 +4,7 @@ k6 scripts for the loads in spec 14.4 (decision D68). They run against a cell, l
 
 ```bash
 docker compose up -d && pnpm dev                       # the API, its worker and scheduler; it builds the generator too
-pnpm --filter @kshetra/api load:fixtures --users 200   # writes tools/k6/.fixtures/local.json
+pnpm --filter @thelamp/api load:fixtures --users 200   # writes tools/k6/.fixtures/local.json
 k6 run -e DEVICES=200 -e DURATION=10m tools/k6/locations.js
 ```
 

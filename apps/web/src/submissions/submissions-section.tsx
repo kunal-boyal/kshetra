@@ -1,6 +1,6 @@
-import { formatNumber } from '@kshetra/i18n';
-import { type SubmissionResult, SubmissionListResult } from '@kshetra/shared';
-import { type Column, DataTable, EmptyState, Icon, StatusBadge } from '@kshetra/ui-web';
+import { formatNumber } from '@thelamp/i18n';
+import { type SubmissionResult, SubmissionListResult } from '@thelamp/shared';
+import { type Column, DataTable, EmptyState, Icon, StatusBadge } from '@thelamp/ui-web';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { ClipboardList } from 'lucide-react';
 import { Link } from '@tanstack/react-router';

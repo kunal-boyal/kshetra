@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AppError, LOGO_TYPES, type OrganisationResult } from '@kshetra/shared';
+import { AppError, LOGO_TYPES, type OrganisationResult } from '@thelamp/shared';
 import sharp from 'sharp';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';

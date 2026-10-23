@@ -1,4 +1,4 @@
-import { TerritoryListResult, TerritoryResult } from '@kshetra/shared';
+import { TerritoryListResult, TerritoryResult } from '@thelamp/shared';
 import {
   Button,
   Checkbox,
@@ -9,7 +9,7 @@ import {
   SelectField,
   StatusBadge,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { FileSpreadsheet, MapPinned, Pencil, Plus, Power } from 'lucide-react';

@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { AuditListQuery, AuditListResult } from '@kshetra/shared';
+import { AuditListQuery, AuditListResult } from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

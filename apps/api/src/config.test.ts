@@ -13,7 +13,7 @@ describe('loadConfig', () => {
   it('fills defaults around the required settings', () => {
     expect(loadConfig(required)).toMatchObject({
       NODE_ENV: 'development',
-      PRODUCT_SLUG: 'kshetra',
+      PRODUCT_SLUG: 'thelamp',
       HOST: '127.0.0.1',
       PORT: 3000,
       TRUST_PROXY: false,

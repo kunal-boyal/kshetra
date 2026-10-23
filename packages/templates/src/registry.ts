@@ -1,4 +1,4 @@
-import type { ErrorDetail } from '@kshetra/shared';
+import type { ErrorDetail } from '@thelamp/shared';
 import agri from '../agri/template.json' with { type: 'json' };
 import generic from '../generic/template.json' with { type: 'json' };
 import type { Template } from './schema/template';

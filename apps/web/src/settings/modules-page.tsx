@@ -1,5 +1,5 @@
-import { AVAILABLE_MODULES, MODULE_KEYS, type SwitchableModule } from '@kshetra/shared';
-import { Button, Checkbox, Icon, StatusBadge } from '@kshetra/ui-web';
+import { AVAILABLE_MODULES, MODULE_KEYS, type SwitchableModule } from '@thelamp/shared';
+import { Button, Checkbox, Icon, StatusBadge } from '@thelamp/ui-web';
 import { Save } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../context';

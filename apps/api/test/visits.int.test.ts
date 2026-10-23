@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

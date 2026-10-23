@@ -1,4 +1,4 @@
-import { AUDIT_ACTOR_KINDS } from '@kshetra/shared';
+import { AUDIT_ACTOR_KINDS } from '@thelamp/shared';
 import { jsonb, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { cell } from './schema/common';
 

@@ -1,4 +1,4 @@
-import { MediaUrlResult, ReviewQueueResult, ReviewRulesResult } from '@kshetra/shared';
+import { MediaUrlResult, ReviewQueueResult, ReviewRulesResult } from '@thelamp/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';

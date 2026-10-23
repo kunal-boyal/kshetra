@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { checkFormValues, type FormDefinition, photosIn } from '@kshetra/forms';
-import type { DaySubmission } from '@kshetra/metrics';
+import { checkFormValues, type FormDefinition, photosIn } from '@thelamp/forms';
+import type { DaySubmission } from '@thelamp/metrics';
 import {
   AppError,
   type AttachedPhoto,
@@ -19,7 +19,7 @@ import {
   type SubmissionResult,
   photoIssues,
   todayIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, desc, eq, gt, inArray, lt, lte, ne, or, type SQL, sql } from 'drizzle-orm';
 import { accounts, accountTypes } from '../../db/schema/accounts';
 import { submissions } from '../../db/schema/field';

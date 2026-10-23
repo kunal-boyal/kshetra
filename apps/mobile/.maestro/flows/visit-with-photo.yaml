@@ -1,5 +1,5 @@
 # A visit: check in at the place, fill its form with a photo, check out (M6, M7, spec 12.2).
-appId: com.kshetra.app.e2e
+appId: com.thelamp.app.e2e
 name: visit-with-photo
 ---
 - launchApp:

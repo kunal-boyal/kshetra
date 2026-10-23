@@ -7,12 +7,12 @@ RDS keeps 14 days of point-in-time recovery for each cell's database (spec 14.6,
 3. **Restore** to a new instance in the same subnet group, security group and parameter group:
    ```bash
    aws rds restore-db-instance-to-point-in-time \
-     --source-db-instance-identifier kshetra-<environment>-cell1 \
-     --target-db-instance-identifier kshetra-<environment>-cell1-restored \
+     --source-db-instance-identifier thelamp-<environment>-cell1 \
+     --target-db-instance-identifier thelamp-<environment>-cell1-restored \
      --restore-time <UTC time> \
-     --db-subnet-group-name kshetra-<environment>-cell1 \
+     --db-subnet-group-name thelamp-<environment>-cell1 \
      --vpc-security-group-ids <database security group> \
-     --db-parameter-group-name kshetra-<environment>-cell1-postgres18
+     --db-parameter-group-name thelamp-<environment>-cell1-postgres18
    ```
 4. **Point the cell at it:** in the cell's secret, change the host in `DATABASE_URL`, `DIRECTORY_DATABASE_URL`, `DATABASE_MIGRATOR_URL` and `DATABASE_BOOTSTRAP_URL`. Then, in Terraform, import the restored instance in place of the old one (or rename it to the old identifier after the old one is renamed aside), so later applies keep managing it.
 5. **Raise `SYNC_EPOCH`** in the environment's settings: every phone's sync cursor is refused with `SYNC_RESET`, and each phone takes a full copy again, so none keeps rows the restore removed (decision D40).

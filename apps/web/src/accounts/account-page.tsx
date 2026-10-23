@@ -1,4 +1,4 @@
-import type { AccountTypeView } from '@kshetra/forms';
+import type { AccountTypeView } from '@thelamp/forms';
 import {
   type AccountOverview,
   AccountResult,
@@ -6,7 +6,7 @@ import {
   ContactResult as ContactSchema,
   geofenceRadius,
   newId,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   Button,
   type Column,
@@ -15,7 +15,7 @@ import {
   Notice,
   StatusBadge,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Inbox, Pencil, Power, UserPlus, UserX } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';

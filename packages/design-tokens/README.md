@@ -1,4 +1,4 @@
-Kshetra is the shared design language for a multi-tenant field-force product: one Android-first mobile app, one tenant web portal and one vendor console, rebranded per tenant at runtime and used in Hindi, English and regional languages. Tenants supply the accent colour and the vocabulary. The system supplies everything else: neutrals, a pastel palette, fixed status colours, honest labels, a type scale that holds Devanagari, density modes for phone and desk, soft shapes, icons and calm motion, and an Outdoor theme for work in direct sun.
+The Lamp is the shared design language for a multi-tenant field-force product: one Android-first mobile app, one tenant web portal and one vendor console, rebranded per tenant at runtime and used in Hindi, English and regional languages. Tenants supply the accent colour and the vocabulary. The system supplies everything else: neutrals, a pastel palette, fixed status colours, honest labels, a type scale that holds Devanagari, density modes for phone and desk, soft shapes, icons and calm motion, and an Outdoor theme for work in direct sun.
 
 ## Principles
 

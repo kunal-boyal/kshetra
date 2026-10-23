@@ -1,4 +1,4 @@
-// `pnpm --filter @kshetra/api e2e:fixtures`: a fictional tenant for one run of the Maestro flows
+// `pnpm --filter @thelamp/api e2e:fixtures`: a fictional tenant for one run of the Maestro flows
 // (spec 14.4, decision D68): a field user nobody has signed in yet, and a place of theirs near the
 // emulator's location. It writes the flows' settings to a file Maestro reads with --env. Local
 // databases only, as the seed is; seeded people are never signed in on a test device.
@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
-import { CreateAccountBody, CreateUserBody, newId } from '@kshetra/shared';
+import { CreateAccountBody, CreateUserBody, newId } from '@thelamp/shared';
 import { createCommandContext, report } from './context';
 import { isLocalDatabase } from './db/bootstrap';
 import { AccountsService } from './modules/accounts/accounts.service';

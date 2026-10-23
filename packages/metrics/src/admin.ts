@@ -3,7 +3,7 @@ import { MetricDefinition, ScoreDefinition } from './definition';
 
 /**
  * Editing metrics and the score (M2, spec 5.7, 5.8, decision D65). Metric definitions carry form
- * conditions, so their requests live here beside the definitions, not in `@kshetra/shared`.
+ * conditions, so their requests live here beside the definitions, not in `@thelamp/shared`.
  */
 
 /** How far back a change may recompute: about three months of days. */

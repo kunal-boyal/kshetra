@@ -1,18 +1,18 @@
-import { radius, size, spacing } from '@kshetra/design-tokens';
+import { radius, size, spacing } from '@thelamp/design-tokens';
 import {
   conditionHolds,
   type FormField,
   type GroupItemField,
   type ProductLine,
   type Values,
-} from '@kshetra/forms';
+} from '@thelamp/forms';
 import type {
   CatalogueUnitView,
   Locale,
   SyncAccount,
   SyncContact,
   SyncItem,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   Button,
   Card,
@@ -23,7 +23,7 @@ import {
   Text,
   TextField,
   useTheme,
-} from '@kshetra/ui-mobile';
+} from '@thelamp/ui-mobile';
 import { Camera, Clock, Minus, Plus, ScanLine, Star, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';

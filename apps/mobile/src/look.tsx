@@ -1,6 +1,6 @@
-import { colors } from '@kshetra/design-tokens';
-import { deriveAccent } from '@kshetra/shared';
-import { type AccentColors, type ThemeName, ThemeProvider } from '@kshetra/ui-mobile';
+import { colors } from '@thelamp/design-tokens';
+import { deriveAccent } from '@thelamp/shared';
+import { type AccentColors, type ThemeName, ThemeProvider } from '@thelamp/ui-mobile';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';

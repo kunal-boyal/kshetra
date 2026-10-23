@@ -1,11 +1,11 @@
-import { notificationMessage } from '@kshetra/i18n';
+import { notificationMessage } from '@thelamp/i18n';
 import {
   MarkNotificationsReadResult,
   type NotificationCategoryKey,
   type NotificationResult,
   NotificationPrefsResult,
-} from '@kshetra/shared';
-import { Button, EmptyState, Icon } from '@kshetra/ui-web';
+} from '@thelamp/shared';
+import { Button, EmptyState, Icon } from '@thelamp/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Bell, CheckCheck, Save } from 'lucide-react';

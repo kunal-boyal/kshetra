@@ -1,5 +1,5 @@
-import type { FormDefinition, FormField, GroupItemField } from '@kshetra/forms';
-import type { ErrorDetail } from '@kshetra/shared';
+import type { FormDefinition, FormField, GroupItemField } from '@thelamp/forms';
+import type { ErrorDetail } from '@thelamp/shared';
 
 export type AnyFormField = FormField | GroupItemField;
 export type FieldType = FormField['type'];

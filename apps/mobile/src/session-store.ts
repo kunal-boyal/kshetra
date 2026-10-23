@@ -1,4 +1,4 @@
-import type { SessionState, SessionStore } from '@kshetra/api-client';
+import type { SessionState, SessionStore } from '@thelamp/api-client';
 import { storage } from './storage';
 
 const KEY = 'session';

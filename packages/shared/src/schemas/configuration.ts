@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Configuration export and import (M2, decision D66). The file itself is an industry template, so
- * its schema lives in `@kshetra/templates`; what an import would do is described here, where the
+ * its schema lives in `@thelamp/templates`; what an import would do is described here, where the
  * web can read it.
  */
 

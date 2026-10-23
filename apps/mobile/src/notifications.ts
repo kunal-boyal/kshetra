@@ -4,7 +4,7 @@ import {
   type NotificationCategoryKey,
   NotificationPrefsResult,
   newId,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useApp } from './app-state';
 

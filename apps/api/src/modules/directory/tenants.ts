@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AppError, newId, OPEN_TENANT_STATUSES, type TenantStatus } from '@kshetra/shared';
+import { AppError, newId, OPEN_TENANT_STATUSES, type TenantStatus } from '@thelamp/shared';
 import { and, eq, inArray } from 'drizzle-orm';
 import { cells, tenants } from '../../db/schema/directory';
 import { TenantDirectory } from '../../platform/planes';

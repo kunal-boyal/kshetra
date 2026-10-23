@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/api-client",
+  "name": "@thelamp/api-client",
   "version": "0.0.0",
   "private": true,
   "description": "The typed client the web and mobile apps use: sign-in, sessions with refresh, the cell's API, and the phone's sync engine",
@@ -16,12 +16,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@kshetra/forms": "workspace:*",
-    "@kshetra/shared": "workspace:*",
+    "@thelamp/forms": "workspace:*",
+    "@thelamp/shared": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",

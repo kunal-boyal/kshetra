@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import { checkFormValues, type FormField } from '@kshetra/forms';
-import { translate } from '@kshetra/i18n';
+import { checkFormValues, type FormField } from '@thelamp/forms';
+import { translate } from '@thelamp/i18n';
 import { issueText } from './issues';
 
 const t = (key: Parameters<typeof translate>[0], params?: Record<string, string | number>) =>

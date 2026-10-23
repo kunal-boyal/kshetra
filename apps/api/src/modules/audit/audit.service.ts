@@ -6,7 +6,7 @@ import {
   type AuditListResult,
   AppError,
   type UserHistoryQuery,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, desc, eq, gte, lt, or, type SQL, sql } from 'drizzle-orm';
 import { auditLog } from '../../db/audit-log';
 import type { Access } from '../../platform/auth';

@@ -1,5 +1,5 @@
-import { type AnyField, type Condition, operatorsFor } from '@kshetra/forms';
-import { type ErrorDetail, type Locale, newId } from '@kshetra/shared';
+import { type AnyField, type Condition, operatorsFor } from '@thelamp/forms';
+import { type ErrorDetail, type Locale, newId } from '@thelamp/shared';
 import {
   Button,
   Checkbox,
@@ -8,7 +8,7 @@ import {
   SelectField,
   TextAreaField,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useLanguage } from '../i18n';

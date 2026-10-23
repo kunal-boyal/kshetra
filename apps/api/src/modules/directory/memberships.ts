@@ -1,4 +1,4 @@
-import { OPEN_TENANT_STATUSES } from '@kshetra/shared';
+import { OPEN_TENANT_STATUSES } from '@thelamp/shared';
 import { and, eq, inArray, type SQL } from 'drizzle-orm';
 import { cells, identities, memberships, tenants } from '../../db/schema/directory';
 import type { DirectoryDb, DirectoryTx } from './directory.database';

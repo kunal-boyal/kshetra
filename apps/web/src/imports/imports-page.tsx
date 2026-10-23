@@ -1,5 +1,5 @@
-import type { ImportSummary, ImportTarget } from '@kshetra/shared';
-import { Button, type Column, cn, DataTable, EmptyState, Icon, SelectField } from '@kshetra/ui-web';
+import type { ImportSummary, ImportTarget } from '@thelamp/shared';
+import { Button, type Column, cn, DataTable, EmptyState, Icon, SelectField } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { FileSpreadsheet, FileUp, Upload } from 'lucide-react';
 import { type FormEvent, useId, useState } from 'react';

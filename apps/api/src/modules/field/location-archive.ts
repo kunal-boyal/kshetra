@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { daysBefore, locationRetention, todayIn } from '@kshetra/shared';
+import { daysBefore, locationRetention, todayIn } from '@thelamp/shared';
 import { and, asc, eq, gte, isNotNull, isNull, lt, max, min, sql } from 'drizzle-orm';
 import { parquetWriteBuffer } from 'hyparquet-writer';
 import { locationArchives, locationPoints, shiftTrails } from '../../db/schema/field';

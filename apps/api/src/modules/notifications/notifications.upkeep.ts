@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { resolveTerminology, translate } from '@kshetra/i18n';
+import { resolveTerminology, translate } from '@thelamp/i18n';
 import {
   type EventPayload,
   type Locale,
@@ -8,7 +8,7 @@ import {
   TRACKING_SILENCE_MINUTES,
   timeIn,
   todayIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { Database } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';

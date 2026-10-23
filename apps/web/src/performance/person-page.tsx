@@ -1,6 +1,6 @@
-import { formatDate } from '@kshetra/i18n';
-import { todayIn } from '@kshetra/shared';
-import { Card, Notice, TextField } from '@kshetra/ui-web';
+import { formatDate } from '@thelamp/i18n';
+import { todayIn } from '@thelamp/shared';
+import { Card, Notice, TextField } from '@thelamp/ui-web';
 import { useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';

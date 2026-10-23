@@ -1,5 +1,5 @@
-import { todayIn } from '@kshetra/shared';
-import { EmptyState, Icon, Notice, SelectField, TextField } from '@kshetra/ui-web';
+import { todayIn } from '@thelamp/shared';
+import { EmptyState, Icon, Notice, SelectField, TextField } from '@thelamp/ui-web';
 import { Trophy } from 'lucide-react';
 import { useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';

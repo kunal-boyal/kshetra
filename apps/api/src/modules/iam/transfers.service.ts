@@ -6,7 +6,7 @@ import {
   todayIn,
   type TransferResult,
   type UpdateUserBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, desc, eq, lte } from 'drizzle-orm';
 import { type TransferChanges, userTransfers } from '../../db/schema/iam';
 import { AuditLog } from '../../platform/audit';

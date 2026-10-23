@@ -13,7 +13,7 @@ import {
   type ReviewQueueResult,
   reviewRefusal,
   REVIEW_NOTE_MIN,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { submissionReviews } from '../../db/schema/review';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR, userActor } from '../../platform/audit';

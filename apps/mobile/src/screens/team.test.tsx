@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { ApiError, type SessionState } from '@kshetra/api-client';
-import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
-import { migrate } from '@kshetra/api-client/sync';
-import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@kshetra/shared';
+import { ApiError, type SessionState } from '@thelamp/api-client';
+import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
+import { migrate } from '@thelamp/api-client/sync';
+import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';

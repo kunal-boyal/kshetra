@@ -4,7 +4,7 @@ import {
   type ReviewDecision,
   ReviewItem,
   ReviewQueueResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useApp } from './app-state';
 

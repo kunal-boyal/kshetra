@@ -1,4 +1,4 @@
-import type { GeoPoint } from '@kshetra/shared';
+import type { GeoPoint } from '@thelamp/shared';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useState } from 'react';
 

@@ -4,7 +4,7 @@ import {
   AppError,
   type PutAccountPlanBody,
   type TargetValues,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, desc, eq } from 'drizzle-orm';
 import { accountPlans } from '../../db/schema/planning';
 import { AuditLog, userActor } from '../../platform/audit';

@@ -1,4 +1,4 @@
-import type { LocalizedNoun } from '@kshetra/shared';
+import type { LocalizedNoun } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,

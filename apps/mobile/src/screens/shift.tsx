@@ -1,8 +1,8 @@
-import type { ShiftState } from '@kshetra/api-client/sync';
-import { spacing } from '@kshetra/design-tokens';
-import { formatDateTime } from '@kshetra/i18n';
-import { punchFixIssue } from '@kshetra/shared';
-import { Button, Card, ChoiceGroup, ShiftCard, type ShiftAction, Text } from '@kshetra/ui-mobile';
+import type { ShiftState } from '@thelamp/api-client/sync';
+import { spacing } from '@thelamp/design-tokens';
+import { formatDateTime } from '@thelamp/i18n';
+import { punchFixIssue } from '@thelamp/shared';
+import { Button, Card, ChoiceGroup, ShiftCard, type ShiftAction, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { LogOut, Pause, Play, Power } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';

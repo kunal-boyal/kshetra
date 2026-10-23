@@ -1,4 +1,4 @@
-import type { Locale, NotificationEventKey } from '@kshetra/shared';
+import type { Locale, NotificationEventKey } from '@thelamp/shared';
 import type { MessageKey } from './messages/en';
 
 /**

@@ -1,4 +1,4 @@
-import { formatNumber } from '@kshetra/i18n';
+import { formatNumber } from '@thelamp/i18n';
 import {
   type ExportFormat,
   type ExportResult,
@@ -10,7 +10,7 @@ import {
   type ReportFilters,
   type ReportKey,
   todayIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   type BadgeVariant,
   Button,
@@ -22,7 +22,7 @@ import {
   SelectField,
   StatusBadge,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { Download, FileSpreadsheet, FileText, Sheet } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../context';

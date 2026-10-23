@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type SyncPlanItem, todayIn } from '@kshetra/shared';
+import { type SyncPlanItem, todayIn } from '@thelamp/shared';
 import { and, asc, eq, gte, lte, or, sql } from 'drizzle-orm';
 import { planItems, planMonths } from '../../db/schema/planning';
 import type { Access } from '../../platform/auth';

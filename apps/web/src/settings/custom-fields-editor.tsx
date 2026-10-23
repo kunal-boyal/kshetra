@@ -1,5 +1,5 @@
-import type { CustomField } from '@kshetra/forms';
-import { Button, Checkbox, Icon, SelectField, TextAreaField, TextField } from '@kshetra/ui-web';
+import type { CustomField } from '@thelamp/forms';
+import { Button, Checkbox, Icon, SelectField, TextAreaField, TextField } from '@thelamp/ui-web';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useLanguage } from '../i18n';
 

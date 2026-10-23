@@ -1,4 +1,4 @@
 {
-  "extends": "@kshetra/config/tsconfig/base.json",
+  "extends": "@thelamp/config/tsconfig/base.json",
   "include": ["src"]
 }

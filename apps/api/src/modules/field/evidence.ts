@@ -1,4 +1,4 @@
-import { AppError, type EvidenceIssue } from '@kshetra/shared';
+import { AppError, type EvidenceIssue } from '@thelamp/shared';
 
 const MESSAGES: Record<EvidenceIssue['code'], string> = {
   GPS_MOCKED: 'This location is mocked. Turn off any app that fakes it.',

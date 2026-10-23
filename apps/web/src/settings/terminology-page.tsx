@@ -1,12 +1,12 @@
-import { TERMINOLOGY_DEFAULTS } from '@kshetra/i18n';
+import { TERMINOLOGY_DEFAULTS } from '@thelamp/i18n';
 import {
   LOCALES,
   type Locale,
   TERMINOLOGY_KEYS,
   type TerminologyKey,
   type TerminologyOverrides,
-} from '@kshetra/shared';
-import { Button, Icon, TextField } from '@kshetra/ui-web';
+} from '@thelamp/shared';
+import { Button, Icon, TextField } from '@thelamp/ui-web';
 import { Save } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';

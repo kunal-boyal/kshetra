@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EVENT_PAYLOADS, type EventPayload, type EventType, newId } from '@kshetra/shared';
+import { EVENT_PAYLOADS, type EventPayload, type EventType, newId } from '@thelamp/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { outboxEvents } from '../db/schema/platform';
 import { Database, type TenantTx } from './database';

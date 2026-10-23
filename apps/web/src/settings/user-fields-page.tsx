@@ -1,5 +1,5 @@
-import { type CustomField, UserFieldsResult } from '@kshetra/forms';
-import { Button, Icon, Notice } from '@kshetra/ui-web';
+import { type CustomField, UserFieldsResult } from '@thelamp/forms';
+import { Button, Icon, Notice } from '@thelamp/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
 import { Save, Undo2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

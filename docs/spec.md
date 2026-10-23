@@ -1,8 +1,8 @@
-# Kshetra: product and build specification for a field-force SaaS
+# The Lamp: product and build specification for a field-force SaaS
 
 | | |
 |---|---|
-| Working name | Kshetra (placeholder). Every name, package scope and identifier derives from one `PRODUCT_SLUG` value so the product can be renamed in one place. |
+| Name | The Lamp (decision D1), on the domain thelamp.in. Every name, package scope and identifier comes from `product.json`, and `pnpm rename` renames the product in one pull request; the slug and app ID are fixed once the app is in a store. |
 | What this is | Product requirements and technical design for a multi-tenant, industry-configurable field-force management product, written so a coding agent (Claude Code) can start the project from an empty repository |
 | Date | 3 October 2026 |
 | Owner | Kunal |
@@ -44,7 +44,7 @@ This file is the source of truth for scope and behaviour. If code and spec disag
 
 ### 1.1 What it is
 
-Kshetra is a multi-tenant SaaS for companies that depend on a field team: sales officers, territory managers, medical representatives, merchandisers, dealer development staff or service agents who visit channel partners and end customers every day. The product records field work where it happens (time, GPS, photos and structured form data), converts approved work into achievement against targets, routes orders, expense claims and leave through approval chains, and gives managers a live view of their teams.
+The Lamp is a multi-tenant SaaS for companies that depend on a field team: sales officers, territory managers, medical representatives, merchandisers, dealer development staff or service agents who visit channel partners and end customers every day. The product records field work where it happens (time, GPS, photos and structured form data), converts approved work into achievement against targets, routes orders, expense claims and leave through approval chains, and gives managers a live view of their teams.
 
 A single codebase serves every industry. Each customer company (a tenant) is created from an industry template that seeds account types, activity forms, metrics, designations, approval chains and terminology. The tenant's administrator can change all of it later without a release. Templates for agri inputs, pharma, FMCG and building materials ship first, alongside a neutral generic template (Appendix A).
 
@@ -977,7 +977,7 @@ In phases 0–2 the directory runs as a module inside the same deployable, with 
 ### 9.4 Repository layout
 
 ```text
-kshetra/
+thelamp/
 ├── apps/
 │   ├── api/                # NestJS. Entrypoints: main.ts (HTTP), worker.ts, scheduler.ts, migrate.ts, provision.ts, seed.ts
 │   │   ├── src/modules/    # one folder per module (9.6)

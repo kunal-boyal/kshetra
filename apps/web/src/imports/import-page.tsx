@@ -3,7 +3,7 @@ import {
   type ImportProblem,
   ImportResult,
   type ImportResult as ImportView,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   Button,
   type Column,
@@ -13,7 +13,7 @@ import {
   Notice,
   SelectField,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { CircleCheck, Columns3, Info, LoaderCircle, Upload } from 'lucide-react';

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import { and, eq, ne } from 'drizzle-orm';
 import { identities, memberships } from '../../db/schema/directory';
 import { type MemberState, MembershipSync } from '../../platform/planes';

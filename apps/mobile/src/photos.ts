@@ -1,5 +1,5 @@
-import { ApiError, NetworkError } from '@kshetra/api-client';
-import type { Outbox, OutboxSender, SqlDatabase, SyncRunner } from '@kshetra/api-client/sync';
+import { ApiError, NetworkError } from '@thelamp/api-client';
+import type { Outbox, OutboxSender, SqlDatabase, SyncRunner } from '@thelamp/api-client/sync';
 import {
   type MediaFix,
   MediaResult,
@@ -7,7 +7,7 @@ import {
   newId,
   type PhotoKind,
   PresignMediaResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import * as Crypto from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';

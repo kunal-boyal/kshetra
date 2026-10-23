@@ -4,7 +4,7 @@ import {
   CONFIGURATION_SECTIONS,
   type TenantPermission,
   todayIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   Button,
   Checkbox,
@@ -14,7 +14,7 @@ import {
   Icon,
   Notice,
   StatusBadge,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
 import { Download, FileUp, Upload } from 'lucide-react';
 import { useId, useState } from 'react';

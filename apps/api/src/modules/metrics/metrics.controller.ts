@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { MetricListResult } from '@kshetra/shared';
+import { MetricListResult } from '@thelamp/shared';
 import { type Access, CurrentAccess, RequiresAny } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

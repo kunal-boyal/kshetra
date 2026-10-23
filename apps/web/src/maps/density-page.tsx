@@ -1,5 +1,5 @@
-import { DENSITY_CELL_DEG, todayIn } from '@kshetra/shared';
-import { TextField } from '@kshetra/ui-web';
+import { DENSITY_CELL_DEG, todayIn } from '@thelamp/shared';
+import { TextField } from '@thelamp/ui-web';
 import { useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';

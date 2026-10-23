@@ -1,5 +1,5 @@
-import type { FormView } from '@kshetra/forms';
-import { formatNumber } from '@kshetra/i18n';
+import type { FormView } from '@thelamp/forms';
+import { formatNumber } from '@thelamp/i18n';
 import {
   BulkReviewResult,
   GEOFENCE_RESULTS,
@@ -8,7 +8,7 @@ import {
   ReviewRulesResult,
   SUBMISSION_FLAGS,
   type ReviewPhoto,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   Button,
   Checkbox,
@@ -19,7 +19,7 @@ import {
   StatusBadge,
   TextAreaField,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { Check, ClipboardCheck, MapPin, Pencil, X } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

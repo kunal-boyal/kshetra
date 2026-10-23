@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { AnyField, FormDefinition } from '@kshetra/forms';
-import type { Locale, ReportCell, ReportColumnKind } from '@kshetra/shared';
+import type { AnyField, FormDefinition } from '@thelamp/forms';
+import type { Locale, ReportCell, ReportColumnKind } from '@thelamp/shared';
 import type { TenantTx } from '../../platform/database';
 import { SubmissionsService } from '../field/submissions.service';
 import { FormsService } from '../forms/forms.service';

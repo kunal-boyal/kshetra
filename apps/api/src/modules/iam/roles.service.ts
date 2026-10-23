@@ -8,7 +8,7 @@ import {
   SYSTEM_ROLES,
   type TenantPermission,
   type UpdateRoleBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq } from 'drizzle-orm';
 import { roles } from '../../db/schema/iam';
 import { AuditLog, userActor } from '../../platform/audit';

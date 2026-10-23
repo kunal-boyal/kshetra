@@ -1,4 +1,4 @@
-import { size as sizes } from '@kshetra/design-tokens';
+import { size as sizes } from '@thelamp/design-tokens';
 import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from './theme';
 

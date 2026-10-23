@@ -1,6 +1,6 @@
-import { radius, spacing } from '@kshetra/design-tokens';
-import { formatDateTime, formatNumber } from '@kshetra/i18n';
-import { REVIEW_NOTE_MIN, type ReviewItem, type ReviewPhoto } from '@kshetra/shared';
+import { radius, spacing } from '@thelamp/design-tokens';
+import { formatDateTime, formatNumber } from '@thelamp/i18n';
+import { REVIEW_NOTE_MIN, type ReviewItem, type ReviewPhoto } from '@thelamp/shared';
 import {
   Button,
   Card,
@@ -11,8 +11,8 @@ import {
   StatusBadge,
   Text,
   TextField,
-} from '@kshetra/ui-mobile';
-import { ApiError } from '@kshetra/api-client';
+} from '@thelamp/ui-mobile';
+import { ApiError } from '@thelamp/api-client';
 import { router } from 'expo-router';
 import { ArrowLeft, Check, Image as ImageIcon, X } from 'lucide-react-native';
 import { useState } from 'react';

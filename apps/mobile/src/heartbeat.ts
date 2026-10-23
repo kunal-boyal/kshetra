@@ -1,4 +1,4 @@
-import type { SyncStatus } from '@kshetra/api-client/sync';
+import type { SyncStatus } from '@thelamp/api-client/sync';
 import * as Battery from 'expo-battery';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';

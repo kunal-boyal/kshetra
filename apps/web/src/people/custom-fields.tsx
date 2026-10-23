@@ -1,5 +1,5 @@
-import { conditionHolds, type CustomField } from '@kshetra/forms';
-import { Checkbox, ChoiceGroup, SelectField, TextAreaField, TextField } from '@kshetra/ui-web';
+import { conditionHolds, type CustomField } from '@thelamp/forms';
+import { Checkbox, ChoiceGroup, SelectField, TextAreaField, TextField } from '@thelamp/ui-web';
 import { useLanguage } from '../i18n';
 
 export type Values = Record<string, unknown>;

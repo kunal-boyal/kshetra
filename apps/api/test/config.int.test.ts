@@ -1,5 +1,5 @@
-import { newId, SETTING_DEFAULTS, todayIn } from '@kshetra/shared';
-import { loadTemplate } from '@kshetra/templates';
+import { newId, SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
+import { loadTemplate } from '@thelamp/templates';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { newDevice, newPhone, type NewUser, startApp, World } from './support';

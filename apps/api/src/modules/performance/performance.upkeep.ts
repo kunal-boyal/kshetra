@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type EventPayload, monthOf, todayIn } from '@kshetra/shared';
+import { type EventPayload, monthOf, todayIn } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';

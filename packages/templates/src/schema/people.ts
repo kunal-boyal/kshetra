@@ -6,7 +6,7 @@ import {
   Money,
   repeats,
   toMinorUnits,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { z } from 'zod';
 import { repeatedKeys } from './organisation';
 

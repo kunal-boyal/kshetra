@@ -1,6 +1,6 @@
-import { spacing } from '@kshetra/design-tokens';
-import type { PhotoKind } from '@kshetra/shared';
-import { Button, Screen, Text, useTheme } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import type { PhotoKind } from '@thelamp/shared';
+import { Button, Screen, Text, useTheme } from '@thelamp/ui-mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { ArrowLeft, Camera, Check, RotateCcw } from 'lucide-react-native';

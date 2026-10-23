@@ -5,7 +5,7 @@ import {
   type PointRejectionKey,
   pointRejection,
   TRAIL_ACCURACY_M,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { locationPoints, shifts, userLastPosition } from '../../db/schema/field';
 import type { Access } from '../../platform/auth';

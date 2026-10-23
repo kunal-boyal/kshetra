@@ -6,7 +6,7 @@ import { Key } from './config';
 /**
  * Accounts (spec 5.5, module M4): every outside party the field team works with, of a type the
  * tenant configures. The type's definition carries form-engine fields, so its schemas live in
- * `@kshetra/forms` (decision D43); these carry only values.
+ * `@thelamp/forms` (decision D43); these carry only values.
  */
 
 export const ACCOUNT_STATUSES = ['pending', 'active', 'inactive'] as const;

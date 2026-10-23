@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type EventPayload, todayIn } from '@kshetra/shared';
+import { type EventPayload, todayIn } from '@thelamp/shared';
 import { Database } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';

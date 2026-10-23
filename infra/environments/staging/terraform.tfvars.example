@@ -14,5 +14,5 @@ environment = {
   MSG91_OTP_TEMPLATE_ID = "<MSG91 template ID of the DLT-approved OTP template>"
   MSG91_SENDER          = "<six-letter DLT sender ID>"
   MSG91_SMS_TEMPLATES   = "{}"
-  MAIL_FROM             = "Kshetra <no-reply@example.com>"
+  MAIL_FROM             = "The Lamp <no-reply@example.com>"
 }

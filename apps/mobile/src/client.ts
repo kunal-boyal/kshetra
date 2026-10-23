@@ -1,4 +1,4 @@
-import { createClient } from '@kshetra/api-client';
+import { createClient } from '@thelamp/api-client';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { appPlatform, appVersion, deviceInfo } from './device';

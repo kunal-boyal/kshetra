@@ -2,7 +2,7 @@ import {
   type MetricDefinition,
   MetricDefinitionsResult,
   type ScoreDefinition,
-} from '@kshetra/metrics';
+} from '@thelamp/metrics';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read, write } from '../people/data';

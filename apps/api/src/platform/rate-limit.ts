@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import { AppError } from '@kshetra/shared';
+import { AppError } from '@thelamp/shared';
 import { RedisClient } from './redis';
 
 /** At most `max` hits per `windowSeconds` for one subject, such as a phone number or an address. */

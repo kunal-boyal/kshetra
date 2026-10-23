@@ -1,5 +1,5 @@
-import type { AuditEntry, TransferResult, UserView } from '@kshetra/shared';
-import { Button, Confirm, Icon, Notice } from '@kshetra/ui-web';
+import type { AuditEntry, TransferResult, UserView } from '@thelamp/shared';
+import { Button, Confirm, Icon, Notice } from '@thelamp/ui-web';
 import { useQueries } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
@@ -14,7 +14,7 @@ import {
   UserX,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
-import { UserResult, UserView as UserViewSchema } from '@kshetra/shared';
+import { UserResult, UserView as UserViewSchema } from '@thelamp/shared';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { customValue } from './custom-fields';

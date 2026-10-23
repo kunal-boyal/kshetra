@@ -13,7 +13,7 @@ import {
   type ShiftResult,
   type ShiftWindow,
   type StartShiftBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, desc, eq, inArray, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm';
 import { shiftPauses, shifts, userLastPosition } from '../../db/schema/field';
 import { AuditLog, userActor } from '../../platform/audit';

@@ -25,4 +25,4 @@ The master's purple encodes as #562d7d, a hair off the `accent` default (#5b2b82
   - It is white on transparent, so it disappears on a light tile; view it on a dark ground.
   - Android tints it with the notification's colour; set that to Jamun, #5b2b82.
   - Expo's notification icon must be a 96 × 96 all-white PNG with transparency, exported from this SVG.
-- **Beside the name:** set "Kshetra" in `heading-md` in `text`, `space-2` from the mark. The mark carries no wordmark, so it survives a rename of the placeholder product name (spec D1).
+- **Beside the name:** set "The Lamp" in `heading-md` in `text`, `space-2` from the mark. The mark carries no wordmark, so it survives a rename of the placeholder product name (spec D1).

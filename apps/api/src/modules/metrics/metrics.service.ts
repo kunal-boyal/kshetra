@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { MetricDefinition, MetricEntry, ScoreDefinition } from '@kshetra/metrics';
-import type { MetricView } from '@kshetra/shared';
+import type { MetricDefinition, MetricEntry, ScoreDefinition } from '@thelamp/metrics';
+import type { MetricView } from '@thelamp/shared';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { metricDefinitions, scoreDefinitions } from '../../db/schema/metrics';
 import type { TenantTx } from '../../platform/database';

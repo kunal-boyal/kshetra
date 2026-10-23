@@ -1,4 +1,4 @@
-import type { FormDefinition } from '@kshetra/forms';
+import type { FormDefinition } from '@thelamp/forms';
 import {
   boolean,
   foreignKey,

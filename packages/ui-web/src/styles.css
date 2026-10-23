@@ -1,4 +1,4 @@
 /* The design system's tokens and reference components (packages/design-tokens). Components in
    this package render its `ks-` classes, so they follow every theme, density and language. */
-@import '@kshetra/design-tokens/tokens.css';
-@import '@kshetra/design-tokens/bundle.css';
+@import '@thelamp/design-tokens/tokens.css';
+@import '@thelamp/design-tokens/bundle.css';

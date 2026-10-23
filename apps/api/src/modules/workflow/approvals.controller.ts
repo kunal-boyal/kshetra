@@ -4,7 +4,7 @@ import {
   ApprovalInboxQuery,
   ApprovalInboxResult,
   ApprovalResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { z } from 'zod';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';

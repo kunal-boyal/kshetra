@@ -1,6 +1,6 @@
-import { ApiError } from '@kshetra/api-client';
-import { spacing } from '@kshetra/design-tokens';
-import { BrandMark, Button, ListGroup, ListRow, Screen, Text, TextField } from '@kshetra/ui-mobile';
+import { ApiError } from '@thelamp/api-client';
+import { spacing } from '@thelamp/design-tokens';
+import { BrandMark, Button, ListGroup, ListRow, Screen, Text, TextField } from '@thelamp/ui-mobile';
 import { ArrowLeft, Building2, Languages, LogIn, RotateCw, Send } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';

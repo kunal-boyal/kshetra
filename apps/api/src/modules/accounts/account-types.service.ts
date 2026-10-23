@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { AccountType, AccountTypeView, CustomField } from '@kshetra/forms';
-import { AppError, type ErrorDetail, issueAt, newId } from '@kshetra/shared';
-import { checkAccountTypes } from '@kshetra/templates';
+import type { AccountType, AccountTypeView, CustomField } from '@thelamp/forms';
+import { AppError, type ErrorDetail, issueAt, newId } from '@thelamp/shared';
+import { checkAccountTypes } from '@thelamp/templates';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import {
   accounts,

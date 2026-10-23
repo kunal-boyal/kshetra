@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { computed, type MetricDefinition, type ScoreDefinition } from '@kshetra/metrics';
+import { computed, type MetricDefinition, type ScoreDefinition } from '@thelamp/metrics';
 import {
   AppError,
   attainment,
@@ -14,7 +14,7 @@ import {
   ratioOf,
   scoreOf,
   type TeamPerformance,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, between, eq, inArray, sql } from 'drizzle-orm';
 import { metricFactAccounts, metricFactsDaily, scoreSnapshots } from '../../db/schema/metrics';
 import type { Access } from '../../platform/auth';

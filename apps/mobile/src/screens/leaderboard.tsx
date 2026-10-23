@@ -1,4 +1,4 @@
-import { spacing } from '@kshetra/design-tokens';
+import { spacing } from '@thelamp/design-tokens';
 import {
   Button,
   ChoiceGroup,
@@ -8,7 +8,7 @@ import {
   Notice,
   Screen,
   Text,
-} from '@kshetra/ui-mobile';
+} from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ArrowLeft, Medal, RotateCw, Trophy, User } from 'lucide-react-native';
 import { useState } from 'react';

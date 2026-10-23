@@ -5,7 +5,7 @@ import {
   Key,
   REQUEST_TYPES,
   repeats,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { z } from 'zod';
 
 type Path = readonly PropertyKey[];

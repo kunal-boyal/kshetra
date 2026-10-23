@@ -1,4 +1,4 @@
-import type { SessionState } from '@kshetra/api-client';
+import type { SessionState } from '@thelamp/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createContext,

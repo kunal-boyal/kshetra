@@ -1,4 +1,4 @@
-import { EXPORT_STATUSES, type ReportFilters } from '@kshetra/shared';
+import { EXPORT_STATUSES, type ReportFilters } from '@thelamp/shared';
 import {
   foreignKey,
   index,

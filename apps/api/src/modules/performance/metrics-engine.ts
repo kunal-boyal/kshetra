@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { calculateDayFacts } from '@kshetra/metrics';
-import { todayIn } from '@kshetra/shared';
+import { calculateDayFacts } from '@thelamp/metrics';
+import { todayIn } from '@thelamp/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { metricFactAccounts, metricFactsDaily } from '../../db/schema/metrics';
 import type { TenantTx } from '../../platform/database';

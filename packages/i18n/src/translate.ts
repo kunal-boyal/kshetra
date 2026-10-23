@@ -1,4 +1,4 @@
-import type { Locale, TerminologyKey, TermValue } from '@kshetra/shared';
+import type { Locale, TerminologyKey, TermValue } from '@thelamp/shared';
 import { localeTag } from './format';
 import { en, type MessageKey } from './messages/en';
 import { hi } from './messages/hi';

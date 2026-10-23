@@ -1,4 +1,4 @@
-import { ErrorResponse } from '@kshetra/shared';
+import { ErrorResponse } from '@thelamp/shared';
 import { z } from 'zod';
 import type { RegisteredRoute } from './routes';
 
@@ -99,8 +99,8 @@ function access(route: RegisteredRoute) {
   };
 }
 
-/** "Kshetra API", from the product's display name (decision D1). */
-export function apiTitle(name = 'Kshetra'): string {
+/** "The Lamp API", from the product's display name (decision D1). */
+export function apiTitle(name = 'The Lamp'): string {
   return `${name} API`;
 }
 

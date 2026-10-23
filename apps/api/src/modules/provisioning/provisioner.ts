@@ -5,8 +5,8 @@ import {
   normalisePhone,
   type ProvisionTenantInput,
   type UserResult,
-} from '@kshetra/shared';
-import { loadTemplate, type Template, TemplateError, validateTemplate } from '@kshetra/templates';
+} from '@thelamp/shared';
+import { loadTemplate, type Template, TemplateError, validateTemplate } from '@thelamp/templates';
 import type { Config } from '../../config';
 import { CONFIG } from '../../platform/tokens';
 import { DirectoryTenants } from '../directory/tenants';

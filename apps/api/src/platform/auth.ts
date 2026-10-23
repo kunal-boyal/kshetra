@@ -15,7 +15,7 @@ import {
   type DataScope,
   type SwitchableModule,
   type TenantPermission,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { FastifyRequest } from 'fastify';
 import { createLocalJWKSet, errors, type JSONWebKeySet, jwtVerify } from 'jose';
 import type { Config } from '../config';

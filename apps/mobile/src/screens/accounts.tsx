@@ -1,7 +1,7 @@
-import { spacing } from '@kshetra/design-tokens';
-import type { AccountTypeView } from '@kshetra/forms';
-import { formatNumber } from '@kshetra/i18n';
-import { distanceMeters, type SyncAccount } from '@kshetra/shared';
+import { spacing } from '@thelamp/design-tokens';
+import type { AccountTypeView } from '@thelamp/forms';
+import { formatNumber } from '@thelamp/i18n';
+import { distanceMeters, type SyncAccount } from '@thelamp/shared';
 import {
   Button,
   ChoiceGroup,
@@ -12,7 +12,7 @@ import {
   Screen,
   Text,
   TextField,
-} from '@kshetra/ui-mobile';
+} from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { MapPin, Plus, Store } from 'lucide-react-native';
 import { useMemo, useState } from 'react';

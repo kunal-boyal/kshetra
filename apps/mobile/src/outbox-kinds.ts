@@ -1,5 +1,5 @@
-import type { OutboxItem, OutboxSender } from '@kshetra/api-client/sync';
-import type { MessageKey } from '@kshetra/i18n';
+import type { OutboxItem, OutboxSender } from '@thelamp/api-client/sync';
+import type { MessageKey } from '@thelamp/i18n';
 import {
   AccountResult,
   type CheckOutBody,
@@ -17,7 +17,7 @@ import {
   type StartVisitBody,
   SubmissionResult,
   VisitResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { MobileClient } from './client';
 import { photoSender } from './photos';
 

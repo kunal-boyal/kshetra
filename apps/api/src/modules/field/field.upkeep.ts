@@ -1,5 +1,5 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { type EventPayload, LOCATION_PARTITION_KEEP_DAYS, todayIn } from '@kshetra/shared';
+import { type EventPayload, LOCATION_PARTITION_KEEP_DAYS, todayIn } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import { Database } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';

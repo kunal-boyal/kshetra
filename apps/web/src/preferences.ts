@@ -1,4 +1,4 @@
-import type { Locale } from '@kshetra/shared';
+import type { Locale } from '@thelamp/shared';
 
 /**
  * What one viewer chooses for this browser: their language and theme. Kept in local storage,

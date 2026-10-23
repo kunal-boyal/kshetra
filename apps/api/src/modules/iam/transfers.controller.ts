@@ -5,7 +5,7 @@ import {
   TransferListResult,
   TransferParams,
   TransferResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';

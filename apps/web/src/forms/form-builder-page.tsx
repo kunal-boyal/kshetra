@@ -1,5 +1,5 @@
-import { ApiError } from '@kshetra/api-client';
-import { type FormDefinition, type FormField, FormView } from '@kshetra/forms';
+import { ApiError } from '@thelamp/api-client';
+import { type FormDefinition, type FormField, FormView } from '@thelamp/forms';
 import {
   Button,
   Checkbox,
@@ -8,7 +8,7 @@ import {
   Notice,
   SelectField,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
 import { Send } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

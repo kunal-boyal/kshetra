@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { compactTrail, TRAIL_ACCURACY_M, todayIn } from '@kshetra/shared';
+import { compactTrail, TRAIL_ACCURACY_M, todayIn } from '@thelamp/shared';
 import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { locationPoints, shiftPauses, shiftTrails, shifts } from '../../db/schema/field';
 import type { TenantTx } from '../../platform/database';

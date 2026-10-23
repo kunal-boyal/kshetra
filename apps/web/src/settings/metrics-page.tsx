@@ -1,4 +1,4 @@
-import type { MetricEntry, ScoreDefinition } from '@kshetra/metrics';
+import type { MetricEntry, ScoreDefinition } from '@thelamp/metrics';
 import {
   Button,
   type Column,
@@ -9,7 +9,7 @@ import {
   SelectField,
   StatusBadge,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { Gauge, Plus, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

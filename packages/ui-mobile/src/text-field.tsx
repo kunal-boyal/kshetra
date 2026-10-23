@@ -1,4 +1,4 @@
-import { radius, size, spacing } from '@kshetra/design-tokens';
+import { radius, size, spacing } from '@thelamp/design-tokens';
 import { forwardRef, useState } from 'react';
 import { StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
 import { Text } from './text';

@@ -1,4 +1,4 @@
-import { isId } from '@kshetra/shared';
+import { isId } from '@thelamp/shared';
 import { describe, expect, it } from 'vitest';
 import { requestIdFor } from './request-id';
 

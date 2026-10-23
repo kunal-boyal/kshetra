@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { type MessageKey, resolveTerminology, translate } from '@kshetra/i18n';
+import { type MessageKey, resolveTerminology, translate } from '@thelamp/i18n';
 import {
   EXPORT_MAX_ROWS,
   type Locale,
@@ -9,7 +9,7 @@ import {
   type ReportPage,
   type ReportQuery,
   REPORT_MODULE,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { type SQL, sql } from 'drizzle-orm';
 import { type Access, moduleDisabled } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';

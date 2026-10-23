@@ -1,4 +1,4 @@
-import { PLAN_ITEM_STATUSES, PLAN_STATUSES, type RouteRecurrence } from '@kshetra/shared';
+import { PLAN_ITEM_STATUSES, PLAN_STATUSES, type RouteRecurrence } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,

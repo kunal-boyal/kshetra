@@ -36,7 +36,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | reflect-metadata | 0.2.2 | Decorator metadata for NestJS dependency injection |
 | rxjs | 7.8.2 | Peer dependency of NestJS |
 | drizzle-orm | 0.45.3 | The latest stable release. 1.0 is still a release candidate; move to it once it's stable. |
-| drizzle-kit | 0.31.11 | Generates migrations (`pnpm --filter @kshetra/api db:generate`) |
+| drizzle-kit | 0.31.11 | Generates migrations (`pnpm --filter @thelamp/api db:generate`) |
 | pg | 8.23.1 | The PostgreSQL driver, with @types/pg 8.23.1 |
 | tsdown | 0.23.0 | Bundles the API and its workspace packages |
 | testcontainers, @testcontainers/postgresql, @testcontainers/redis | 12.2.0 | Integration tests against `infra/docker/postgres` and Redis |
@@ -76,7 +76,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | @axe-core/playwright | 4.13.0 | Accessibility checks in the end-to-end tests |
 | jsdom | 30.1.2 | The DOM for component tests |
 | @testing-library/react | 16.3.3 | With @testing-library/jest-dom 7.0.1 and @testing-library/user-event 14.6.7 |
-| eslint-plugin-react-hooks | 7.1.1 | In the `@kshetra/config/eslint-react` preset |
+| eslint-plugin-react-hooks | 7.1.1 | In the `@thelamp/config/eslint-react` preset |
 
 pnpm installs a release only once it is a day old (`minimumReleaseAge`). Vite 8.3.3 and @vitejs/plugin-react 6.1.2 were the current stable releases but younger than that when they were added, so `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` admits those exact versions. Remove the entries when either package is next upgraded.
 

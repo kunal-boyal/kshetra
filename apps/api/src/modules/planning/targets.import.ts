@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type ImportProblem, Period, targetValueIssue, type TargetValues } from '@kshetra/shared';
+import { type ImportProblem, Period, targetValueIssue, type TargetValues } from '@thelamp/shared';
 import type { TenantTx } from '../../platform/database';
 import { People } from '../iam/people';
 import { cellText, cellYesNo, isEmptyCell } from '../imports/reading';

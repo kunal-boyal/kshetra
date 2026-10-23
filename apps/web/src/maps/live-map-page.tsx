@@ -1,6 +1,6 @@
-import { formatNumber } from '@kshetra/i18n';
-import { isStale, type LivePerson } from '@kshetra/shared';
-import { Checkbox, EmptyState, Icon, StatusBadge } from '@kshetra/ui-web';
+import { formatNumber } from '@thelamp/i18n';
+import { isStale, type LivePerson } from '@thelamp/shared';
+import { Checkbox, EmptyState, Icon, StatusBadge } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { Grid3x3, Route as RouteIcon, Users } from 'lucide-react';
 import { useState } from 'react';

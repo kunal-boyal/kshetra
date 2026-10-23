@@ -2,7 +2,7 @@
 // file another tenant exported (decision D66), with its first admin.
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { maskPhone, ProvisionTenantInput } from '@kshetra/shared';
+import { maskPhone, ProvisionTenantInput } from '@thelamp/shared';
 import { z } from 'zod';
 import { createCommandContext, report } from './context';
 import { TenantProvisioner } from './modules/provisioning/provisioner';

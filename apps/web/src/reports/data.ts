@@ -8,7 +8,7 @@ import {
   type ReportFilters,
   type ReportKey,
   ReportPage,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { WebClient } from '../client';
 import { useApp } from '../context';

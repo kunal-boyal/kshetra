@@ -7,7 +7,7 @@ import {
   TerminologyResult,
   UpdateReviewRulesBody,
   UpdateSettingsBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { userActor } from '../../platform/audit';
 import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
 import { Database } from '../../platform/database';

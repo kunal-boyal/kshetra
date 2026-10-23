@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { checkValueChanges } from '@kshetra/forms';
+import { checkValueChanges } from '@thelamp/forms';
 import {
   AccountCode,
   type AccountAddress,
@@ -9,7 +9,7 @@ import {
   type ImportTarget,
   matchName,
   newId,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { accounts, accountTypes } from '../../db/schema/accounts';
 import type { Access } from '../../platform/auth';

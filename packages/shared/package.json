@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/shared",
+  "name": "@thelamp/shared",
   "version": "0.0.0",
   "private": true,
   "description": "Types, schemas, error codes and business rules shared by the API, web and mobile",
@@ -19,7 +19,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

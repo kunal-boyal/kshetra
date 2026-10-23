@@ -1,4 +1,4 @@
-import { Key, LocalizedText, localizedText, Money } from '@kshetra/shared';
+import { Key, LocalizedText, localizedText, Money } from '@thelamp/shared';
 import { z } from 'zod';
 import { Condition } from './conditions';
 

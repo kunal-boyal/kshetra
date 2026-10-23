@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { formatDateTime, translate } from '@kshetra/i18n';
+import { formatDateTime, translate } from '@thelamp/i18n';
 import {
   AppError,
   type ConfirmMediaBody,
@@ -23,7 +23,7 @@ import {
   type PresignMediaResult,
   newId,
   type Signature,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, gte, inArray, like, ne, sql } from 'drizzle-orm';
 import sharp, { type Sharp } from 'sharp';
 import type { Config } from '../../config';

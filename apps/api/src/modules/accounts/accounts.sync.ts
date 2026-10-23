@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import type { SyncAccount, SyncContact } from '@kshetra/shared';
+import type { SyncAccount, SyncContact } from '@thelamp/shared';
 import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { accounts, accountSlots, accountTypes, contacts } from '../../db/schema/accounts';
 import type { Access } from '../../platform/auth';

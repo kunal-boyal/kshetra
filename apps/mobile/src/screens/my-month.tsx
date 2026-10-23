@@ -1,7 +1,7 @@
-import { spacing } from '@kshetra/design-tokens';
-import { formatDateTime } from '@kshetra/i18n';
-import type { PerformanceMetric } from '@kshetra/shared';
-import { Button, KpiTile, ListGroup, Notice, StatusBadge, Text } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import { formatDateTime } from '@thelamp/i18n';
+import type { PerformanceMetric } from '@thelamp/shared';
+import { Button, KpiTile, ListGroup, Notice, StatusBadge, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ChartNoAxesColumn, RotateCw, Trophy } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';

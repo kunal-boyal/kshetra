@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
-import { UpdateUserFieldsBody, UserFieldsResult } from '@kshetra/forms';
+import { UpdateUserFieldsBody, UserFieldsResult } from '@thelamp/forms';
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

@@ -1,5 +1,5 @@
-import { localRows, type RowOf } from '@kshetra/api-client/sync';
-import type { SyncEntity } from '@kshetra/shared';
+import { localRows, type RowOf } from '@thelamp/api-client/sync';
+import type { SyncEntity } from '@thelamp/shared';
 import { useEffect, useState } from 'react';
 import { useSync, useSyncStatus } from './sync';
 

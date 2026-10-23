@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { OrgChartQuery, OrgChartResult } from '@kshetra/shared';
+import { OrgChartQuery, OrgChartResult } from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

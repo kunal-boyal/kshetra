@@ -1,4 +1,4 @@
-import { APP_VERSION } from '@kshetra/shared';
+import { APP_VERSION } from '@thelamp/shared';
 import { z } from 'zod';
 
 // A store version such as 1.4.0; an empty value in .env counts as unset.
@@ -16,9 +16,9 @@ const schema = z
     PRODUCT_SLUG: z
       .string()
       .regex(/^[a-z][a-z0-9-]{1,30}$/)
-      .default('kshetra'),
+      .default('thelamp'),
     // The product's name where people read it, such as on a photo's stamp (decision D1).
-    PRODUCT_NAME: z.string().trim().min(1).max(40).default('Kshetra'),
+    PRODUCT_NAME: z.string().trim().min(1).max(40).default('The Lamp'),
     // 127.0.0.1 locally; containers set 0.0.0.0, and so does phone testing on the local network.
     HOST: z.string().min(1).default('127.0.0.1'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),

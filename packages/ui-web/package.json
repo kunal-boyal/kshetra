@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/ui-web",
+  "name": "@thelamp/ui-web",
   "version": "0.0.0",
   "private": true,
   "description": "React components for the web apps, over the design system's tokens and reference CSS",
@@ -17,14 +17,14 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@kshetra/design-tokens": "workspace:*",
+    "@thelamp/design-tokens": "workspace:*",
     "lucide-react": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "@testing-library/jest-dom": "catalog:",
     "@testing-library/react": "catalog:",
     "@types/react": "catalog:",

@@ -1,11 +1,11 @@
 import 'reflect-metadata';
 import fastifyCookie from '@fastify/cookie';
-import { APP_PLATFORM_HEADER, APP_VERSION_HEADER, WEB_CLIENT_HEADER } from '@kshetra/shared';
+import { APP_PLATFORM_HEADER, APP_VERSION_HEADER, WEB_CLIENT_HEADER } from '@thelamp/shared';
 import { ConsoleLogger, Logger, type LoggerService, type LogLevel } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
-import { LOGO_MAX_BYTES } from '@kshetra/shared';
+import { LOGO_MAX_BYTES } from '@thelamp/shared';
 import { MAX_FILE_BYTES } from './modules/imports/reading';
 import type { Config } from './config';
 import { ErrorFilter } from './platform/errors';

@@ -1,4 +1,4 @@
 # Copy to backend.hcl (git-ignored as it names the account's bucket), then:
 #   terraform init -backend-config=backend.hcl
-bucket = "kshetra-production-terraform-state-<account id>"
+bucket = "thelamp-production-terraform-state-<account id>"
 region = "ap-south-1"

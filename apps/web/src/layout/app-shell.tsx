@@ -1,4 +1,4 @@
-import { Button, Icon } from '@kshetra/ui-web';
+import { Button, Icon } from '@thelamp/ui-web';
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import {
   Bell,

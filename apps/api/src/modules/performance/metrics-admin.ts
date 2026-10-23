@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { FormDefinition } from '@kshetra/forms';
+import type { FormDefinition } from '@thelamp/forms';
 import {
   checkMetrics,
   checkScore,
@@ -9,8 +9,8 @@ import {
   RECOMPUTE_MAX_DAYS,
   type ScoreDefinition,
   type UpdateMetricBody,
-} from '@kshetra/metrics';
-import { AppError, type ErrorDetail, issueAt, todayIn } from '@kshetra/shared';
+} from '@thelamp/metrics';
+import { AppError, type ErrorDetail, issueAt, todayIn } from '@thelamp/shared';
 import { type AuditActor, AuditLog } from '../../platform/audit';
 import type { TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { DayVisit } from '@kshetra/metrics';
+import type { DayVisit } from '@thelamp/metrics';
 import {
   AppError,
   type CheckOutBody,
@@ -8,7 +8,7 @@ import {
   geofenceResult,
   type StartVisitBody,
   type VisitResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, gte, inArray, isNull, lt, type SQL, sql } from 'drizzle-orm';
 import { accounts, accountTypes } from '../../db/schema/accounts';
 import { submissions, visits } from '../../db/schema/field';

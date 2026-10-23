@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { LocalizedNoun, TenantPermission, UserStatus } from '@kshetra/shared';
+import type { LocalizedNoun, TenantPermission, UserStatus } from '@thelamp/shared';
 import type { z } from 'zod';
 import { and, asc, eq, gte, inArray, isNull, ne, or, type SQL, sql } from 'drizzle-orm';
 import { designations, roles, users } from '../../db/schema/iam';

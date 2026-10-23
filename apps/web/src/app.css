@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import '@kshetra/ui-web/styles.css';
+@import '@thelamp/ui-web/styles.css';
 
 /* Tailwind scans the shared components too. */
 @source '../../../packages/ui-web/src';

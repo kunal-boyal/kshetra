@@ -11,7 +11,7 @@ import {
   RouteResult as RouteSchema,
   SubmitPlanResult,
   todayIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   Button,
   Checkbox,
@@ -24,7 +24,7 @@ import {
   StatusBadge,
   TextAreaField,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ArrowDown, ArrowUp, CalendarDays, CalendarPlus, Plus, Route, Send, X } from 'lucide-react';

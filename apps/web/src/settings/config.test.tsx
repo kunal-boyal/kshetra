@@ -1,4 +1,4 @@
-import { todayIn } from '@kshetra/shared';
+import { todayIn } from '@thelamp/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';

@@ -1,5 +1,5 @@
-import { type TerritoryLevel, TerritoryLevelsResult, TerritoryListResult } from '@kshetra/shared';
-import { Button, Icon, Notice, TextField } from '@kshetra/ui-web';
+import { type TerritoryLevel, TerritoryLevelsResult, TerritoryListResult } from '@thelamp/shared';
+import { Button, Icon, Notice, TextField } from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

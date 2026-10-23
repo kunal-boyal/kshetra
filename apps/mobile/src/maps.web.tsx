@@ -1,5 +1,5 @@
-import type { GeoPoint } from '@kshetra/shared';
-import { Notice } from '@kshetra/ui-mobile';
+import type { GeoPoint } from '@thelamp/shared';
+import { Notice } from '@thelamp/ui-mobile';
 import type { ReactNode } from 'react';
 import { useLanguage } from './i18n';
 

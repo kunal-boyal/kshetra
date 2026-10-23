@@ -1,4 +1,4 @@
-import { MEDIA_SOURCES } from '@kshetra/shared';
+import { MEDIA_SOURCES } from '@thelamp/shared';
 import {
   bigint,
   boolean,

@@ -18,7 +18,7 @@ import {
   type SubmitPlanResult,
   todayIn,
   type UpdateRouteBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { accounts } from '../../db/schema/accounts';

@@ -4,7 +4,7 @@ import {
   type TerminologyKey,
   type TerminologyOverrides,
   type TermValue,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 
 /** The product's own words for each term (spec 5.2), until a template or the tenant changes them. */
 export const TERMINOLOGY_DEFAULTS: Readonly<Record<Locale, Record<TerminologyKey, TermValue>>> = {

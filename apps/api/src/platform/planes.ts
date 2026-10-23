@@ -1,4 +1,4 @@
-import type { DeviceInfo, TenantStatus } from '@kshetra/shared';
+import type { DeviceInfo, TenantStatus } from '@thelamp/shared';
 
 /**
  * The seams between the directory plane and a cell (spec 9.3). In phases 0 to 2 both run in one

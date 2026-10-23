@@ -1,8 +1,8 @@
-import { OUTBOX_CODES, type OutboxItem } from '@kshetra/api-client/sync';
-import { spacing } from '@kshetra/design-tokens';
-import { formatDateTime } from '@kshetra/i18n';
-import { isErrorCode } from '@kshetra/shared';
-import { Button, Card, EmptyState, Notice, Screen, StatusBadge, Text } from '@kshetra/ui-mobile';
+import { OUTBOX_CODES, type OutboxItem } from '@thelamp/api-client/sync';
+import { spacing } from '@thelamp/design-tokens';
+import { formatDateTime } from '@thelamp/i18n';
+import { isErrorCode } from '@thelamp/shared';
+import { Button, Card, EmptyState, Notice, Screen, StatusBadge, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ArrowLeft, CloudCheck, RefreshCw, RotateCw, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';

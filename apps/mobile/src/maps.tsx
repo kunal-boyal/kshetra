@@ -1,6 +1,6 @@
-import { radius, spacing } from '@kshetra/design-tokens';
-import type { GeoPoint } from '@kshetra/shared';
-import { type Colors, Text, useTheme } from '@kshetra/ui-mobile';
+import { radius, spacing } from '@thelamp/design-tokens';
+import type { GeoPoint } from '@thelamp/shared';
+import { type Colors, Text, useTheme } from '@thelamp/ui-mobile';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';

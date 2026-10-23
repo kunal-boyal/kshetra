@@ -1,5 +1,5 @@
-import { checkFormValues, type FormDefinition, type Values } from '@kshetra/forms';
-import type { MessageKey } from '@kshetra/i18n';
+import { checkFormValues, type FormDefinition, type Values } from '@thelamp/forms';
+import type { MessageKey } from '@thelamp/i18n';
 import type { EntryData } from './fields';
 import { issueText } from './issues';
 

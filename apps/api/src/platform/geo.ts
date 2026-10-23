@@ -1,4 +1,4 @@
-import type { GeoPoint } from '@kshetra/shared';
+import type { GeoPoint } from '@thelamp/shared';
 import { type AnyColumn, type SQL, sql } from 'drizzle-orm';
 
 /**

@@ -1,12 +1,12 @@
-import { formatMoney, formatNumber } from '@kshetra/i18n';
+import { formatMoney, formatNumber } from '@thelamp/i18n';
 import {
   Leaderboard,
   type MetricFigures,
   type PerformanceMetric,
   PersonPerformance,
   TeamPerformance,
-} from '@kshetra/shared';
-import { Icon, KpiTile, StatusBadge } from '@kshetra/ui-web';
+} from '@thelamp/shared';
+import { Icon, KpiTile, StatusBadge } from '@thelamp/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { ChartNoAxesColumn } from 'lucide-react';
 import { useApp } from '../context';

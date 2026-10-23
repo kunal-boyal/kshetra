@@ -1,4 +1,4 @@
-import type { MessageKey } from '@kshetra/i18n';
+import type { MessageKey } from '@thelamp/i18n';
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;
 

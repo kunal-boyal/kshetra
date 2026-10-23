@@ -1,5 +1,5 @@
-import { CustomField, FormDefinition } from '@kshetra/forms';
-import { MetricDefinition, ScoreDefinition } from '@kshetra/metrics';
+import { CustomField, FormDefinition } from '@thelamp/forms';
+import { MetricDefinition, ScoreDefinition } from '@thelamp/metrics';
 import {
   Key,
   LocalizedText,
@@ -7,7 +7,7 @@ import {
   PortableSettings,
   SYSTEM_ROLES,
   TerminologyOverrides,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { z } from 'zod';
 import { AccountType } from './account-types';
 import { Catalogue } from './catalogue';

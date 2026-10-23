@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { todayIn } from '@kshetra/shared';
+import { todayIn } from '@thelamp/shared';
 import { and, eq, or, type SQL, sql } from 'drizzle-orm';
 import { reportingClosure, users } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';

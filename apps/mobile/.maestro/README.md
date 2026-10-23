@@ -11,7 +11,7 @@ Once: Android's command-line tools, JDK 17 and Maestro, and for an emulator its 
 ```bash
 # In .env: OTP_PROVIDER=mailpit, and for an emulator CELL_API_URL=http://10.0.2.2:3000
 docker compose up -d && pnpm dev
-pnpm --filter @kshetra/api e2e:fixtures              # on a phone on a cable: --near none
+pnpm --filter @thelamp/api e2e:fixtures              # on a phone on a cable: --near none
 cd apps/mobile
 # An emulator reaches the API at 10.0.2.2; a phone on a cable at 127.0.0.1, through adb.
 export APP_VARIANT=e2e EXPO_PUBLIC_DIRECTORY_URL=http://10.0.2.2:3000
@@ -21,7 +21,7 @@ git checkout -- package.json                          # prebuild rewrites the sc
 .maestro/run.sh android/app/build/outputs/apk/release/app-release.apk
 ```
 
-The `e2e` build (`com.kshetra.app.e2e`) installs beside the others and is the only one allowed to reach an API over plain HTTP. Make new fixtures before each run: a run signs the fixture's person in on that phone. After changing `EXPO_PUBLIC_DIRECTORY_URL`, delete `android/app/build/generated/assets` and Metro's cache (`$TMPDIR/metro-cache`), or the old address stays in the bundle.
+The `e2e` build (`com.thelamp.app.e2e`) installs beside the others and is the only one allowed to reach an API over plain HTTP. Make new fixtures before each run: a run signs the fixture's person in on that phone. After changing `EXPO_PUBLIC_DIRECTORY_URL`, delete `android/app/build/generated/assets` and Metro's cache (`$TMPDIR/metro-cache`), or the old address stays in the bundle.
 
 On a real phone, the flows use its own GPS (the app refuses mocked locations), so the place is made without a location (`--near none`) and starting the day needs a fix near a window. A phone on a cable reaches the API through adb, which airplane mode can't cut, so the offline flow skips its check that work waits.
 

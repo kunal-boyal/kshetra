@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { ApiError, NetworkError, type SessionState } from '@kshetra/api-client';
-import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
-import { migrate, Outbox } from '@kshetra/api-client/sync';
-import { SETTING_DEFAULTS } from '@kshetra/shared';
+import { ApiError, NetworkError, type SessionState } from '@thelamp/api-client';
+import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
+import { migrate, Outbox } from '@thelamp/api-client/sync';
+import { SETTING_DEFAULTS } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';

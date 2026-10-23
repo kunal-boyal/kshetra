@@ -1,4 +1,4 @@
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ImportsService } from '../src/modules/imports/imports.service';

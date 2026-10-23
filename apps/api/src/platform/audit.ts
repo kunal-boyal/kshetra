@@ -1,5 +1,5 @@
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
-import { type AuditAction, type AuditActorKind, newId } from '@kshetra/shared';
+import { type AuditAction, type AuditActorKind, newId } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import { auditLog } from '../db/audit-log';
 import type { Access } from './auth';

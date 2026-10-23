@@ -1,5 +1,5 @@
-import { newId, type ProvisionTenantInput } from '@kshetra/shared';
-import { loadTemplate, TEMPLATE_KEYS } from '@kshetra/templates';
+import { newId, type ProvisionTenantInput } from '@thelamp/shared';
+import { loadTemplate, TEMPLATE_KEYS } from '@thelamp/templates';
 import { sql } from 'drizzle-orm';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

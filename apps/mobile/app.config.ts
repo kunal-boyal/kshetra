@@ -4,9 +4,9 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 // The product's names (decision D1), which `pnpm rename` keeps in step with product.json. The app
 // ID is fixed once the first store build is uploaded; the Expo project keeps the name it was
 // registered under.
-const slug = process.env.PRODUCT_SLUG ?? 'kshetra';
-const name = process.env.PRODUCT_NAME ?? 'Kshetra';
-const APP_ID = 'com.kshetra.app';
+const slug = process.env.PRODUCT_SLUG ?? 'thelamp';
+const name = process.env.PRODUCT_NAME ?? 'The Lamp';
+const APP_ID = 'com.thelamp.app';
 const EXPO_PROJECT = 'kshetra';
 
 // EAS build profiles set the variant (spec 14.3). Development builds carry the dev client and a

@@ -1,8 +1,8 @@
-import { spacing } from '@kshetra/design-tokens';
-import type { AccountType } from '@kshetra/forms';
-import { formatNumber } from '@kshetra/i18n';
-import { geofenceRadius, type SyncAccount } from '@kshetra/shared';
-import { Button, StatusBadge, Text } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import type { AccountType } from '@thelamp/forms';
+import { formatNumber } from '@thelamp/i18n';
+import { geofenceRadius, type SyncAccount } from '@thelamp/shared';
+import { Button, StatusBadge, Text } from '@thelamp/ui-mobile';
 import { LocateFixed } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useConfig } from '../data';

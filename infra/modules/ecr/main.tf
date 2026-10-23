@@ -1,7 +1,7 @@
 # The image repository (spec 14.3): one image per commit, tagged with its SHA, never overwritten.
 
 variable "name" {
-  description = "The repository's name, such as kshetra-api."
+  description = "The repository's name, such as thelamp-api."
   type        = string
 }
 

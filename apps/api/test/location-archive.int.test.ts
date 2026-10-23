@@ -4,7 +4,7 @@ import {
   newId,
   SETTING_DEFAULTS,
   todayIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { parquetReadObjects } from 'hyparquet';
 import pg from 'pg';

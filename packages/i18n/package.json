@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/i18n",
+  "name": "@thelamp/i18n",
   "version": "0.0.0",
   "private": true,
   "description": "English and Hindi strings, the terminology resolver and locale formatting, shared by the API, web and mobile",
@@ -14,10 +14,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@kshetra/shared": "workspace:*"
+    "@thelamp/shared": "workspace:*"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

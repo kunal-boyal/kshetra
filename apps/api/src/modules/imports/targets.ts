@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ImportProblem, ImportTarget, TenantPermission } from '@kshetra/shared';
+import type { ImportProblem, ImportTarget, TenantPermission } from '@thelamp/shared';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import type { Cell, ImportField } from './reading';

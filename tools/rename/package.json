@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/rename-tool",
+  "name": "@thelamp/rename-tool",
   "version": "0.0.0",
   "private": true,
   "description": "Renames the product across the repository from product.json (decision D1)",
@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",

@@ -13,7 +13,7 @@ const OPTIONS: SecureStore.SecureStoreOptions = {
 };
 
 // Keys may hold letters, digits, dots, dashes and underscores.
-const prefix = `${Constants.expoConfig?.slug ?? 'kshetra'}.`;
+const prefix = `${Constants.expoConfig?.slug ?? 'thelamp'}.`;
 
 export const storage = {
   /** Read synchronously, so choices apply before the first frame. */

@@ -5,7 +5,7 @@ import {
   PERMISSIONS_BY_AREA,
   RoleResult,
   type TenantPermission,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   Button,
   Checkbox,
@@ -16,7 +16,7 @@ import {
   SelectField,
   StatusBadge,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Save } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

@@ -1,11 +1,11 @@
-import { type FormatContext, formatMoney, formatNumber } from '@kshetra/i18n';
+import { type FormatContext, formatMoney, formatNumber } from '@thelamp/i18n';
 import {
   Leaderboard,
   type MetricFigures,
   type PerformanceMetric,
   PersonPerformance,
   todayIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './app-state';
 import { useConfig, useKept } from './data';

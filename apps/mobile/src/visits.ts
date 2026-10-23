@@ -8,8 +8,8 @@ import {
   submissionBody,
   type Tracking,
   type Visits,
-} from '@kshetra/api-client/sync';
-import type { AccountType, FormDefinition } from '@kshetra/forms';
+} from '@thelamp/api-client/sync';
+import type { AccountType, FormDefinition } from '@thelamp/forms';
 import {
   type CaptureFix,
   type CheckOutBody,
@@ -22,7 +22,7 @@ import {
   type StartVisitBody,
   type SyncAccount,
   type TenantSettings,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { Fix } from './location';
 
 /**

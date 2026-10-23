@@ -1,7 +1,7 @@
-import { NetworkError } from '@kshetra/api-client';
-import { readCache, writeCache } from '@kshetra/api-client/sync';
-import type { ConfigBundle } from '@kshetra/forms';
-import type { MeResult } from '@kshetra/shared';
+import { NetworkError } from '@thelamp/api-client';
+import { readCache, writeCache } from '@thelamp/api-client/sync';
+import type { ConfigBundle } from '@thelamp/forms';
+import type { MeResult } from '@thelamp/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './app-state';
 import { useSync } from './sync';

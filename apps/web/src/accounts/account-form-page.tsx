@@ -1,6 +1,6 @@
-import type { AccountTypeView } from '@kshetra/forms';
-import { AccountListResult, AccountResult, newId, todayIn } from '@kshetra/shared';
-import { Button, Icon, SelectField, TextField } from '@kshetra/ui-web';
+import type { AccountTypeView } from '@thelamp/forms';
+import { AccountListResult, AccountResult, newId, todayIn } from '@thelamp/shared';
+import { Button, Icon, SelectField, TextField } from '@thelamp/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Save } from 'lucide-react';

@@ -1,4 +1,4 @@
-import type { MetricDefinition, ScoreDefinition } from '@kshetra/metrics';
+import type { MetricDefinition, ScoreDefinition } from '@thelamp/metrics';
 import {
   boolean,
   date,

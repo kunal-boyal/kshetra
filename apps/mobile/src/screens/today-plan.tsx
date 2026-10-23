@@ -1,6 +1,6 @@
-import type { SyncPlanItem } from '@kshetra/shared';
-import { todayIn } from '@kshetra/shared';
-import { ListGroup, ListRow, Text } from '@kshetra/ui-mobile';
+import type { SyncPlanItem } from '@thelamp/shared';
+import { todayIn } from '@thelamp/shared';
+import { ListGroup, ListRow, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import {
   CalendarCheck,

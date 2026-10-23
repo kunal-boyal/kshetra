@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { OrgChartQuery, OrgChartResult } from '@kshetra/shared';
+import type { OrgChartQuery, OrgChartResult } from '@thelamp/shared';
 import { and, asc, count, eq, gt, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
 import { designations, reportingClosure, users } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';

@@ -1,5 +1,5 @@
-import type { GeoPoint } from '@kshetra/shared';
-import { Icon, Notice } from '@kshetra/ui-web';
+import type { GeoPoint } from '@thelamp/shared';
+import { Icon, Notice } from '@thelamp/ui-web';
 import {
   AdvancedMarker,
   APIProvider,
