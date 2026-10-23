@@ -15,15 +15,14 @@
     "test": "jest"
   },
   "dependencies": {
-    "@expo-google-fonts/noto-sans": "^0.4.2",
-    "@expo-google-fonts/noto-sans-devanagari": "^0.4.1",
+    "@expo-google-fonts/mukta": "^0.4.1",
+    "@tanstack/react-query": "^5.104.1",
     "@thelamp/api-client": "workspace:*",
     "@thelamp/design-tokens": "workspace:*",
     "@thelamp/forms": "workspace:*",
     "@thelamp/i18n": "workspace:*",
     "@thelamp/shared": "workspace:*",
     "@thelamp/ui-mobile": "workspace:*",
-    "@tanstack/react-query": "^5.104.1",
     "expo": "catalog:mobile",
     "expo-application": "~57.0.3",
     "expo-battery": "~57.0.3",
@@ -63,9 +62,9 @@
   },
   "devDependencies": {
     "@jest/globals": "catalog:mobile",
-    "@thelamp/config": "workspace:*",
     "@react-native/metro-config": "catalog:mobile",
     "@testing-library/react-native": "catalog:mobile",
+    "@thelamp/config": "workspace:*",
     "@types/react": "catalog:mobile",
     "eslint": "catalog:",
     "jest": "catalog:mobile",

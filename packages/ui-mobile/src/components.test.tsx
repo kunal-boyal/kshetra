@@ -114,7 +114,7 @@ describe('BrandMark', () => {
     );
     const component = readFileSync(join(__dirname, 'brand.tsx'), 'utf8');
     const values = (text: string) =>
-      [...text.matchAll(/\b(r|fill|stroke|stroke-?[wW]idth|viewBox)="([^"]+)"/g)]
+      [...text.matchAll(/\b(d|r|fill|stroke|stroke-?[wW]idth|viewBox)="([^"]+)"/g)]
         .map(([, name, value]) => `${name!.toLowerCase().replace('-', '')}=${value}`)
         .sort();
     expect(values(component)).toEqual(values(svg));

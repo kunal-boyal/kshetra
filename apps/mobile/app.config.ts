@@ -30,11 +30,12 @@ const googleServicesFile =
   process.env.GOOGLE_SERVICES_JSON ??
   (existsSync('./google-services.json') ? './google-services.json' : undefined);
 
-// The `bg` token in Light and Dark, and Jamun, which the mark always is (assets/Logos/README.md).
-// Plain values: this file runs in Node before the bundler, so it can't import the tokens.
-const GROUND = '#f7f6f3';
-const DARK_GROUND = '#121110';
-const JAMUN = '#5b2b82';
+// The `bg` token in Light and Dark, and Forest (`brand-forest`), which the mark always is
+// (assets/Logos/README.md). Plain values: this file runs in Node before the bundler, so it can't
+// import the tokens.
+const GROUND = '#f3f5f1';
+const DARK_GROUND = '#0f1411';
+const FOREST = '#1e5a3a';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -62,7 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       monochromeImage: './assets/adaptive-icon-monochrome.png',
-      backgroundColor: JAMUN,
+      backgroundColor: FOREST,
     },
     // Only what the app uses (spec 12.1): location, the camera and the shift notification.
     // RECEIVE_BOOT_COMPLETED is for expo-task-manager, which hands each batch of points to the
@@ -114,12 +115,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-task-manager',
-    // Notifications (M16, decision D59): the white glyph on Jamun, and one default channel.
+    // Notifications (M16, decision D59): the white glyph on Forest, and one default channel.
     [
       'expo-notifications',
       {
         icon: './assets/notification-icon.png',
-        color: JAMUN,
+        color: FOREST,
         defaultChannel: 'default',
       },
     ],

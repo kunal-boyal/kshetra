@@ -1,6 +1,6 @@
 # Button
 
-Buttons trigger an action; the accent-filled primary marks the one thing this view exists to do. Every button is a pill (`radius-full`) and scales to 97% when pressed (`duration-instant`).
+Buttons trigger an action; the accent-filled primary marks the one thing this view exists to do. Every button has sturdy corners (`radius-md`, as inputs, decision D72), a 600 weight, and scales to 97% when pressed (`duration-instant`).
 
 ## Variants
 - `primary` — `accent` fill, `on-accent` text. One per view (per sheet on mobile). Approve, Submit, Start day, Place order.

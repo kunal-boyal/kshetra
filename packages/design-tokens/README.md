@@ -1,4 +1,6 @@
-The Lamp is the shared design language for a multi-tenant field-force product: one Android-first mobile app, one tenant web portal and one vendor console, rebranded per tenant at runtime and used in Hindi, English and regional languages. Tenants supply the accent colour and the vocabulary. The system supplies everything else: neutrals, a pastel palette, fixed status colours, honest labels, a type scale that holds Devanagari, density modes for phone and desk, soft shapes, icons and calm motion, and an Outdoor theme for work in direct sun.
+The Lamp is the shared design language for a multi-tenant field-force product: one Android-first mobile app, one tenant web portal and one vendor console, rebranded per tenant at runtime and used in Hindi, English and regional languages. Tenants supply the accent colour and the vocabulary. The system supplies everything else: neutrals, a pastel palette, fixed status colours, honest labels, a type scale that holds Devanagari, density modes for phone and desk, sturdy shapes, icons and calm motion, and an Outdoor theme for work in direct sun.
+
+The look is **Field** (decision D72): forest green and harvest gold from the farms and markets field teams work in, on neutrals with a faint green bias, set in Mukta, with a map pin that holds a flame for a mark. The name is the idea: a lamp shows what was in the dark, here the work a manager can't see.
 
 ## Principles
 
@@ -37,9 +39,11 @@ The Lamp is the shared design language for a multi-tenant field-force product: o
 
 ### Colour
 
-- **Ground:** use `bg` for the page, `surface` for cards and tables, `surface-sunken` for wells and table headers, and `surface-raised` (always with a shadow token) for menus and sheets. The neutrals are warm stone, never blue-grey.
+- **Ground:** use `bg` for the page, `surface` for cards and tables, `surface-sunken` for wells and table headers, and `surface-raised` (always with a shadow token) for menus and sheets. The neutrals carry a faint green bias, like morning light over a field; never blue-grey, never warm stone.
 - **Text:** use `text` for content, `text-muted` for help and meta, and `text-subtle` only for placeholders and timestamps. All three pass 4.5:1 on every surface in Light and Dark, and 8:1 in Outdoor.
-- **Accent:** `accent` fills the one primary action per view, the selected tab, the active nav item and links. Set text on it in `on-accent`. Use `accent-subtle` with `accent-subtle-fg` for selected rows and chips, and `accent-soft` for the active tab pill and the hover of tonal buttons. The product default is Jamun (#5b2b82). Tenants override it (see Tenant theming).
+- **Accent:** `accent` fills the one primary action per view, the selected tab, the active nav item and links. Set text on it in `on-accent`. Use `accent-subtle` with `accent-subtle-fg` for selected rows and chips, and `accent-soft` for the active tab pill and the hover of tonal buttons. The product default is Forest (#1e5a3a). Tenants override it (see Tenant theming).
+- **Brand:** `brand-forest` and `brand-gold` are the product's own colours, the same in every theme and for every tenant: the mark, the sign-in panel and nothing else. Text on `brand-forest` is `on-brand`. Gold is never text, never a status and never an accent.
+- **Approved is not the accent.** `success` is a fresher, yellower green than Forest, so an approved badge never reads as a button. Keep the two apart: never use `success` tokens for actions or `accent` for an outcome.
 - **Pastels:** eight soft hues give each kind of thing an identity at a glance: `sky`, `peach`, `mint`, `lilac`, `butter`, `rose`, `sage` and `sand`, in that order.
   - Each hue has three tokens. `pastel-<hue>-bg` tints a card or a soft chip, `pastel-<hue>-fill` fills icon chips, avatars and chart bars, and `pastel-<hue>-fg` is the ink for icons, initials and text on either.
   - Account types, forms and metrics take hues in their configured order, so a thing keeps its colour on every screen and in every chart. People take a hue from their user ID.
@@ -92,7 +96,8 @@ The accent stays the tenant's, darkened only as far as Outdoor's 7:1 rule needs 
 
 ### Type
 
-- **One family, many scripts:** Noto Sans. It covers Latin, Devanagari and every regional script on the roadmap (Gujarati, Bengali, Gurmukhi, Telugu, Tamil, Kannada) with matched metrics. Android already ships it for Devanagari and the regional scripts, so phones download nothing for them; Latin text on Android uses the phone's own face unless the app bundles Noto Sans (decision D36). Load Latin and Devanagari from Google Fonts on web. Add each script's Noto subset only when that language is enabled.
+- **One family, two scripts:** Mukta, drawn by Ek Type for Latin and Devanagari together, so English and Hindi share weight, height and rhythm on one line. Both apps bundle its 400, 500, 600 and 700 weights (decision D72): `@fontsource/mukta` on the web, `@expo-google-fonts/mukta` on the phone, Android included. Noto Sans and Noto Sans Devanagari follow in the stack as fallbacks, and Noto's subsets will carry the regional scripts on the roadmap (Gujarati, Bengali, Gurmukhi, Telugu, Tamil, Kannada) when those languages arrive.
+- **Weight:** headings 600, figures and the brand 700, body 400, controls 600. Mukta reads lighter than Noto at the same weight, so labels that were 500 are 600.
 - **Scale:** `display` → `heading-xl` → `heading-lg` → `heading-md` for structure. Body copy uses `body-lg` on mobile and `body-md` on web. Use `label-*` for controls and badges, and `metric-*` / `numeric` for figures.
 - **Figures:** every number uses `font-variant-numeric: tabular-nums`. Right-align numbers in tables.
 - **Indic scripts:** under `:lang(hi)` and other Indic locales, add 4 px of line-height to every style. Matras and conjuncts clip otherwise. Never set Indic text below 13 px. `bundle.css` applies both through `--ks-lead` and `--ks-min`, so a component written in Latin stays correct in Hindi. Badges, flags and pills grow taller instead of clipping.
@@ -109,16 +114,16 @@ The accent stays the tenant's, darkened only as far as Outdoor's 7:1 rule needs 
 
 ### Shape and depth
 
-- **Nothing is square.** The smallest corner is `radius-xs` (6 px), and corners grow with the surface:
+- **Sturdy, slightly rounded.** Corners are small and grow with the surface, from `radius-xs` (4 px) to `radius-xl` (16 px); only chips, badges and avatars are pills:
 
 | Radius | Used for |
 |---|---|
 | `radius-xs` | checkboxes, chart bar ends, photo tags |
 | `radius-sm` | menu items, tooltips, 32 px icon chips |
-| `radius-md` | inputs, notices, photo tiles, map boxes, icon chips |
+| `radius-md` | buttons, inputs, notices, photo tiles, map boxes, icon chips, navigation items |
 | `radius-lg` | cards, KPI tiles, tables, list groups, inset banners, menus |
 | `radius-xl` | sheets, dialogs, the bottom tab bar, empty states, tinted cards, 72 px icon chips |
-| `radius-full` | buttons, badges, chips, pills, avatars, progress tracks, dots |
+| `radius-full` | badges, chips, pills, avatars, progress tracks, dots |
 
 - Photos and maps inside a card take `radius-md` and sit inside its padding, never against its edge.
 - **Soft depth:** surfaces rest on soft, wide shadows with a faint `border` edge, never a hard outline:
@@ -199,10 +204,10 @@ Motion says what just happened and where things went. Feedback is quick, arrival
 | Flags | `triangle-alert` (advisory), `shield-alert` (integrity), `clock-alert` (clock skew) |
 
 - **Empty states** carry a 72 px icon chip, a sentence and at most one action. No emoji anywhere in the product UI, and no illustrations: icons, colour and shape carry the friendliness.
-- **Logo:** the product mark, a Jamun square holding three geofence rings and a pin.
+- **Logo:** the product mark, a map pin holding a harvest-gold flame on a Forest square: light where your team is.
   - At 96 px and larger, use `assets/Logos/mark.webp`. Below that, use `mark-small.svg`.
-  - Android's tracking notification uses the white `notification-glyph.svg`.
-  - The mark is always Jamun whatever the tenant's accent, and never sits on an `accent` fill.
+  - Android's tracking notification uses the white `notification-glyph.svg`: the pin with the flame cut out.
+  - The mark is always Forest and gold whatever the tenant's accent, and never sits on an `accent` fill.
   - The tenant's logo replaces it in the app bar and on PDFs.
   - The Logos group's notes hold the full rules.
 

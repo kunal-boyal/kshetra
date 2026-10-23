@@ -7,6 +7,7 @@ import {
   LOGO_TYPES,
   nearestPassingShade,
 } from '@thelamp/shared';
+import { colors } from '@thelamp/design-tokens';
 import { Button, Icon, Notice, TextAreaField, TextField } from '@thelamp/ui-web';
 import { ImageUp, Palette, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, useId, useState } from 'react';
@@ -237,7 +238,7 @@ function BrandColour() {
           label={t('admin.brand_hex')}
           className="max-w-[12rem]"
           value={value}
-          placeholder="#5b2b82"
+          placeholder={colors.light.accent}
           {...(valid && !passes ? { error: t('admin.brand_too_light') } : {})}
           onChange={(event) => setDraft(event.target.value.trim())}
         />
@@ -245,7 +246,8 @@ function BrandColour() {
           type="color"
           aria-label={t('admin.brand_pick')}
           className="h-10 w-14 cursor-pointer rounded-[var(--radius-sm)] border border-[var(--border)]"
-          value={valid ? value : '#5b2b82'}
+          // The product's own accent until the tenant picks one.
+          value={valid ? value : colors.light.accent}
           onChange={(event) => setDraft(event.target.value)}
         />
         {shade ? (
