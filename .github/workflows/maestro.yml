@@ -27,6 +27,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
+      # The runner's disk can't hold the app build, the services and an emulator image together
+      # (the first run stopped with "No space left on device"); tools this job never uses make room.
+      # The Android NDK stays, as the app's native modules build with it.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc /usr/local/share/boost \
+            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell \
+            /usr/local/julia* /opt/az /usr/local/lib/android/sdk/system-images
+          df -h /
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
@@ -71,6 +80,9 @@ jobs:
           git checkout -- package.json
           cd android
           ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon
+          # Only the APK is needed from here on.
+          rm -rf app/build/intermediates app/build/tmp build
+          df -h /
 
       - name: Install Maestro
         run: |
