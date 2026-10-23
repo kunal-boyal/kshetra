@@ -36,6 +36,10 @@ output "database_address" {
   value = module.cell.database_address
 }
 
+output "database_name" {
+  value = module.cell.database_name
+}
+
 output "database_master_secret_arn" {
   value = module.cell.database_master_secret_arn
 }

@@ -55,8 +55,8 @@ Terraform creates the secret `thelamp-<environment>-cell1/app` (output `secret_a
 
 | Key | Value |
 |---|---|
-| `DATABASE_BOOTSTRAP_URL` | The RDS master user: `postgres://postgres:<password>@<database_address>:5432/kshetra?sslmode=verify-full`. Its password is in the secret RDS keeps (output `database_master_secret_arn`). |
-| `DATABASE_MIGRATOR_URL` | `postgres://migrator:<new password>@<database_address>:5432/thelamp?sslmode=verify-full` |
+| `DATABASE_BOOTSTRAP_URL` | The RDS master user: `postgres://postgres:<password>@<database_address>:5432/<database_name>?sslmode=verify-full`, with both from `terraform output`. Its password is in the secret RDS keeps (output `database_master_secret_arn`). |
+| `DATABASE_MIGRATOR_URL` | `postgres://migrator:<new password>@<database_address>:5432/<database_name>?sslmode=verify-full` |
 | `DATABASE_URL` | `postgres://cell_app:<new password>@…` as above |
 | `DIRECTORY_DATABASE_URL` | `postgres://directory_app:<new password>@…` as above |
 | `OTP_PEPPER` | 48 random characters: `openssl rand -base64 36` |

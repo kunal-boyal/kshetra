@@ -101,6 +101,10 @@ output "database_address" {
   value = module.environment.database_address
 }
 
+output "database_name" {
+  value = module.environment.database_name
+}
+
 output "database_master_secret_arn" {
   value = module.environment.database_master_secret_arn
 }
