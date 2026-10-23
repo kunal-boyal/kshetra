@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { DataScope, Permission } from './common';
 import { contrastRatio, HEX_COLOUR } from '../colour';
 import { SWITCHABLE_MODULES } from '../modules';
+import { RAW_LOCATION_RETENTION_DAYS_MAX, SYNC_WINDOW_HOURS_MAX } from '../retention';
 import { TERMINOLOGY_KEYS, type TerminologyKey } from '../terminology';
 import { Key, LOCALES, LocalizedNoun, localizedText, NounForms } from './config';
 
@@ -109,13 +110,13 @@ export const TenantSettings = z.strictObject({
   geofenceAccuracyCapMeters: range(0, 500).meta({
     description: 'The most GPS accuracy that counts toward being inside a geofence (BR-33)',
   }),
-  syncWindowHours: range(24, 168),
+  syncWindowHours: range(24, SYNC_WINDOW_HOURS_MAX),
   maxShiftHours: range(8, 24),
   attendanceSelfie: z.boolean(),
   deviceBinding: z.boolean().meta({
     description: 'One phone per user until a manager or an admin resets it (BR-38)',
   }),
-  rawLocationRetentionDays: range(7, 90),
+  rawLocationRetentionDays: range(7, RAW_LOCATION_RETENTION_DAYS_MAX),
   trailRetentionDays: range(90, 1095),
   evidencePhotoRetentionMonths: range(3, 60),
   reviewAutoApproval: z.boolean(),

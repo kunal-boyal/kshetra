@@ -338,6 +338,9 @@ importers:
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
+      hyparquet-writer:
+        specifier: ^0.17.0
+        version: 0.17.0
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0(supports-color@8.1.1)
@@ -411,6 +414,9 @@ importers:
       fastify:
         specifier: ^5.12.5
         version: 5.12.5
+      hyparquet:
+        specifier: ^1.31.5
+        version: 1.31.5
       testcontainers:
         specifier: ^12.2.0
         version: 12.2.0(supports-color@8.1.1)
@@ -5703,6 +5709,12 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  hyparquet-writer@0.17.0:
+    resolution: {integrity: sha512-GZ4QeopztjSli/Sz1dSOP/TrSKtwG2ydP2yuPMxeiZnho+PCXF7x+wx8OIVtpQn8rcv559IH1EJMHnTbv0sn+Q==}
+
+  hyparquet@1.31.5:
+    resolution: {integrity: sha512-KPVfaxW8xOiO2/4fjeiBfFNEXhGVw9tfcb9ha2iNZdJ3J/yBjEwIeAnTyyuhllFFTb9YO9wg0DfRAOnm6KCvBg==}
 
   hyphenate-style-name@1.1.0:
     resolution: {integrity: sha512-WDC/ui2VVRrz3jOVi+XtjqkDjiVjTtFaAGiW37k6b+ohyQ5wYDOGkvCZa8+H0nx3gyvv0+BST9xuOgIyGQ00gw==}
@@ -14240,6 +14252,12 @@ snapshots:
       - supports-color
 
   human-signals@2.1.0: {}
+
+  hyparquet-writer@0.17.0:
+    dependencies:
+      hyparquet: 1.31.5
+
+  hyparquet@1.31.5: {}
 
   hyphenate-style-name@1.1.0: {}
 

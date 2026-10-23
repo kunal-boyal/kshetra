@@ -1,5 +1,5 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { type EventPayload, todayIn } from '@kshetra/shared';
+import { type EventPayload, LOCATION_PARTITION_KEEP_DAYS, todayIn } from '@kshetra/shared';
 import { sql } from 'drizzle-orm';
 import { Database } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
@@ -7,6 +7,7 @@ import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { AttendanceService } from './attendance.service';
+import { LocationArchive } from './location-archive';
 import { ShiftsService } from './shifts.service';
 import { SubmissionsService } from './submissions.service';
 import { TrailsService } from './trails.service';
@@ -19,8 +20,10 @@ const DAY_MS = 24 * 3_600_000;
  * - a shift that starts or ends works out its person's day again, and an ended shift's trail is
  *   compacted, both from the outbox, so they follow the commit and retry on failure;
  * - nightly on each tenant's clock, shifts left open past the longest a shift may last are
- *   closed, trails not yet compacted are, and everyone's day just gone is kept;
- * - daily across the cell, the coming days' location partitions are made;
+ *   closed, trails not yet compacted are, everyone's day just gone is kept, and raw points and
+ *   trails follow the tenant's retention (BR-41, `LocationArchive`);
+ * - four times a day across the cell, the coming days' location partitions are made and old
+ *   ones dropped once empty;
  * - punching out checks out of the open visit, and every 15 minutes visits idle for 4 hours
  *   check out (M6);
  * - a submission's signature is drawn into an image, and a photo found to repeat another after
@@ -41,6 +44,7 @@ export class FieldUpkeep implements OnModuleInit {
     private readonly attendance: AttendanceService,
     private readonly visits: VisitsService,
     private readonly submissions: SubmissionsService,
+    private readonly archive: LocationArchive,
   ) {}
 
   onModuleInit(): void {
@@ -91,7 +95,9 @@ export class FieldUpkeep implements OnModuleInit {
       queue: 'maintenance',
       kind: 'field.nightly',
     });
-    this.queues.handle('maintenance', 'field.partitions', () => this.partitions());
+    this.queues.handle('maintenance', 'field.partitions', async () => {
+      await this.partitions();
+    });
     this.schedules.every({
       id: 'field.partitions',
       everyMs: DAY_MS / 4,
@@ -121,10 +127,26 @@ export class FieldUpkeep implements OnModuleInit {
         `Tenant ${tenantId}: ${closed} shifts closed, ${pending.length} trails compacted, ${days} days kept.`,
       );
     }
+    const kept = await this.archive.run(tenantId, date);
+    if (kept.archived + kept.purged + kept.trails + kept.expired > 0) {
+      this.logger.log(
+        `Tenant ${tenantId}: ${kept.archived} days archived, ${kept.purged} points, ${kept.trails} trails and ${kept.expired} archive files removed.`,
+      );
+    }
   }
 
-  /** Makes the coming days' partitions, each under tenant isolation (decision D47). */
-  async partitions(): Promise<void> {
+  /**
+   * Makes the coming days' partitions, each under tenant isolation (decision D47), and drops
+   * old ones every tenant has emptied (decision D69).
+   */
+  async partitions(now = new Date()): Promise<number> {
     await this.database.db.execute(sql`select cell.maintain_location_partitions()`);
+    const before = new Date(now.getTime() - LOCATION_PARTITION_KEEP_DAYS * DAY_MS);
+    const result = await this.database.db.execute<{ dropped: number }>(
+      sql`select cell.drop_empty_location_partitions(${before.toISOString()}::timestamptz) as dropped`,
+    );
+    const dropped = Number(result.rows[0]?.dropped ?? 0);
+    if (dropped > 0) this.logger.log(`${dropped} empty location partitions dropped.`);
+    return dropped;
   }
 }

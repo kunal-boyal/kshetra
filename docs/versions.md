@@ -57,6 +57,8 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | echarts | 6.1.0 | Added 2026-10-22: the web's charts, as spec 9.1 names, loaded piece by piece from `echarts/core` with the SVG renderer (decision D63). |
 | @aws-sdk/s3-request-presigner | 3.1146.0 | Added 2026-10-12: upload and read links for photos, matching the S3 client |
 | @aws-sdk/cloudfront-signer | 3.1149.0 | Added 2026-10-12: CloudFront signed read links in AWS (decision D44) |
+| hyparquet-writer | 0.17.0 | Added 2026-10-23: writes the raw location archive as Snappy-compressed Parquet, in plain JavaScript with no native parts (decision D69) |
+| hyparquet | 1.31.5 | Added 2026-10-23, for tests only: reads the archive back, from the same authors as the writer |
 
 ## Web (`apps/web`, `packages/ui-web`, `packages/api-client`, added 2026-10-06)
 

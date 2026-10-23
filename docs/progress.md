@@ -2,7 +2,7 @@
 
 This file tracks where the build stands against the delivery phases in spec section 15. Update it in the same pull request as every step, so it never drifts from the code.
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Now
 
@@ -15,6 +15,7 @@ Last updated: 2026-10-22
 - **Step 15, dashboards, reports and exports,** comes in two pull requests (decision D62): 15a, the activity log, the attendance register and target against achievement, on screen and as XLSX or CSV exports kept for seven days, is merged ([kunal-boyal/kshetra#41](https://github.com/kunal-boyal/kshetra/pull/41)); 15b, the role-based home dashboard on the web (decision D63), is merged too ([kunal-boyal/kshetra#42](https://github.com/kunal-boyal/kshetra/pull/42)).
 - **Step 16, tenant administration,** comes in three pull requests (decision D64): 16a, settings, branding, terminology and modules, is merged ([kunal-boyal/kshetra#43](https://github.com/kunal-boyal/kshetra/pull/43)); 16b, the configuration screens for account types, territory levels, and metrics and the score (decision D65), is merged ([kunal-boyal/kshetra#44](https://github.com/kunal-boyal/kshetra/pull/44)); 16c, configuration export and import as JSON in the template format (decision D66), is merged too ([kunal-boyal/kshetra#45](https://github.com/kunal-boyal/kshetra/pull/45)). The workflows screen waits for the workflow engine in phase 2.
 - **Step 17, pilot readiness,** comes in three pull requests (decision D67), built now and switched on when the accounts exist: 17a, the container image, Terraform for a lean cell, the deploy workflow (off until `DEPLOY_ENABLED`) and MSG91 for codes and SMS, is merged ([kunal-boyal/kshetra#46](https://github.com/kunal-boyal/kshetra/pull/46)); 17b, Maestro in CI on main and nightly, k6 load scripts and the remaining runbooks (decision D68), is in review: all four flows pass on Kunal's Nothing Phone (2a), and running them there found and fixed three faults in the field app (a location fix that could wait forever indoors, photos that could fail to save, and the camera's buttons under Android 15's navigation bar); 17c, staging on AWS, Play internal testing, the device protocol and the pilot week, waits on the AWS and Play Console accounts, DLT registration and D1.
+- **Before phase 2,** Kunal chose on 2026-10-23 to finish every pending item first, and to be asked before phase 2 starts. The raw location archive and retention of locations, trails and evidence photos (decision D69) is in review: each tenant's raw points go to the object store as Parquet once settled, leave the database after the raw retention, trails and archive files go after the trail retention, empty partitions are dropped, and a new nightly job removes evidence photos with their stamped copies after their keeping time, which step 17a's Terraform had wrongly said the app already did. `docs/decision-summary.md` lists D35 to D69 in a line each, for Kunal to confirm.
 - **Next:** 17c, once the accounts exist; the device protocol (spec 14.5) on two Android phones of different brands still waits on Kunal.
 - **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
 - **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
@@ -71,8 +72,9 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | 13 | Notifications: push, in-app, SMS fallback, email, the morning plan, tracking-stopped alerts, preferences and quiet hours (M16, D58). In two pull requests: 13a, the server and the web; 13b, push and the inbox on the app. | An SMS provider with DLT and a Firebase project, before the pilot; a development build for 13b | Done; the SMS provider waits for the pilot | #37, #38 |
 | 14 | Maps: live map, day replay, visit density (M17, D60). In two pull requests: 14a, the server and the web; 14b, maps on the app. | Google Maps API keys (done 2026-10-21); a development build for 14b | Done; trying the 14b build on a phone waits on Kunal | #39, #40 |
 | 15 | Dashboards, reports and exports: home dashboards, the activity log, the attendance register, target against achievement, export jobs (M18, D62). In two pull requests: 15a, reports and exports; 15b, the home dashboards. | | Done | #41, #42 |
-| 16 | Tenant administration: settings, terminology and modules screens, branding with the derived accent, configuration export and import (M2, D64). In three pull requests: 16a settings, branding, terminology and modules; 16b configuration screens; 16c configuration export and import. | | In progress: 16a merged (#43), 16b merged (#44), 16c in review | |
+| 16 | Tenant administration: settings, terminology and modules screens, branding with the derived accent, configuration export and import (M2, D64). In three pull requests: 16a settings, branding, terminology and modules; 16b configuration screens; 16c configuration export and import. | | Done | #43, #44, #45 |
 | 17 | Pilot readiness and the pilot week: a deployed cell on AWS, the delivery pipeline, Play internal testing, Maestro in CI, the device protocol, the pilot week (spec 14, 15) | AWS and Play Console accounts; D1 and D2 | In progress: 17a merged (#46), 17b in review | |
+| 18 | Before phase 2: the raw location archive as Parquet, location and trail retention, dropping empty partitions, evidence photo retention (BR-41, D69) | | In review | |
 
 ## Done
 
@@ -150,7 +152,7 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | Confirm decision D48 (tracking on the phone), merged as proposed in #24: punches offline, the consent text, the background task and point buffer, stopping without restarting (BR-37), the help screen | Kunal | Before phase 1 builds on it |
 | Confirm decisions D49 (visits and submissions on the server) and D50 (visits and forms on the phone), merged as proposed in #26 and #27 | Kunal | Before phase 1 builds on them |
 | Confirm decisions D51 to D57 (review, review on the phone, journey plans, today's plan on the phone, targets and account plans, the metric engine, My month on the phone), merged or proposed in #29 to #34 and #36 | Kunal | Before phase 1 builds on them |
-| Confirm decisions D58 to D68 (notifications, push and the inbox on the phone, maps on the web and the phone, reports and exports, the home dashboard, tenant administration, the configuration screens, configuration export and import, pilot readiness), merged or proposed in #37 to #46 and 17b | Kunal | Before phase 1 builds on them |
+| Confirm decisions D58 to D69 (notifications, push and the inbox on the phone, maps on the web and the phone, reports and exports, the home dashboard, tenant administration, the configuration screens, configuration export and import, pilot readiness, the location archive and retention), merged or proposed in #37 to #46, 17b and the archive; `docs/decision-summary.md` has each in a line | Kunal | Before phase 2 |
 | Try the maps on the phone with development build `fc9e6268` (14b): the visit card's map and distance pill, today's route, and Team's on duty now | Kunal | Before the device protocol |
 | Maps before the pilot: the production origin on the web key, a budget alert in `kshetra-e3874`, and the Firebase file (`GOOGLE_SERVICES_JSON`) on EAS for preview and production | Kunal | Before the pilot |
 | Run the device protocol (spec 14.5) with the development build on two Android phones of different brands, and report the gaps | Kunal | Before the pilot week |
@@ -159,9 +161,9 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | Domains for the API, the web portal and media (D1), with Route 53 or another DNS provider | Kunal | Step 17c |
 | MSG91: an account, DLT registration of the entity, the sender ID and templates (the one-time code, and any SMS notifications), and Amazon SES out of its sandbox for email (D67) | Kunal | Step 17c |
 | EAS Update: add `expo-updates` and make a new development and preview build, then the Deploy workflow's update step (D67) | Team, with Kunal's go-ahead for the builds | Step 17c |
-| The raw-point archive to the object store as Parquet, and dropping partitions past the hot retention (D47) | Team | Step 17 |
 | Confirm decision D45 (forms and the catalogue), merged as proposed in #21: versions that keep keys and field types, the forms in the config bundle by audience, linear-time patterns, the catalogue and the item import without prices, BR-17 fractions read exactly | Kunal | Before phase 1 builds on it |
-| AWS for photos: the CloudFront signing key (in `docs/runbooks/deploy.md`); the image now carries the Noto fonts the stamp needs, and the app removes files whose retention is over (D44, D67) | Kunal | Step 17c |
+| AWS for photos: the CloudFront signing key (in `docs/runbooks/deploy.md`); the image now carries the Noto fonts the stamp needs, and the app removes files whose retention is over (D44, D67, D69) | Kunal | Step 17c |
+| Retention for the rest of BR-41: notifications, import files and the audit log, by their own settings (D69) | Team | Phase 3 |
 | People policies (leave, regularisation, expenses) and notification templates: their screens arrive with those modules in phase 2 (D64) | Team | Phase 2 |
 | Plans and entitlements decide which modules a tenant may use; until billing arrives every module is allowed (D64) | Team | Phase 3 |
 | Quarters or years as target and score periods: months only for now; metric and score editing, with facts recomputed from the change's date, arrives in 16b (D55, D56, D65) | Team | Phase 2 |

@@ -4,11 +4,13 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
 import { PlanningModule } from '../planning/planning.module';
+import { MediaModule } from '../media/media.module';
 import { PhotosModule } from '../media/photos.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { AttendanceService } from './attendance.service';
 import { FieldController } from './field.controller';
 import { FieldUpkeep } from './field.upkeep';
+import { LocationArchive } from './location-archive';
 import { LocationsService } from './locations.service';
 import { ShiftsService } from './shifts.service';
 import { SubmissionsService } from './submissions.service';
@@ -23,6 +25,7 @@ import { VisitsService } from './visits.service';
 @Module({
   imports: [
     IamModule,
+    MediaModule,
     PhotosModule,
     TenantConfigModule,
     AccountsModule,
@@ -39,6 +42,7 @@ import { VisitsService } from './visits.service';
     VisitsService,
     SubmissionsService,
     FieldUpkeep,
+    LocationArchive,
   ],
   exports: [
     AttendanceService,

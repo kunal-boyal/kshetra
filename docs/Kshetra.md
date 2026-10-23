@@ -1325,7 +1325,7 @@ audit_log(id, tid, actor_id, actor_kind enum(user,platform,system,api_client), a
 
 | Table | Strategy |
 |---|---|
-| `location_points` | Daily range partitions managed by pg_partman. Raw points live for the tenant's hot retention (35 days by default). A nightly job compacts each finished shift into `shift_trails` (accuracy-filtered, simplified polyline plus statistics), writes the tenant's raw points for that day to S3 as compressed Parquet, and partitions past the longest hot retention are dropped whole. The primary key `(captured_at, id)` keeps replays idempotent inside a partition. Sizing: a cell with 20,000 on-duty users stores about 11 million points a day, roughly 3 GB with indexes, so 35 days of hot data is about 100 GB. |
+| `location_points` | Daily range partitions managed by pg_partman. Raw points live for the tenant's hot retention (35 days by default). A nightly job compacts each finished shift into `shift_trails` (accuracy-filtered, simplified polyline plus statistics), writes the tenant's raw points of each settled day to S3 as compressed Parquet, deletes each tenant's archived points after its own hot retention, and drops a day's partition once it is empty and past the longest hot retention (decision D69). The primary key `(captured_at, id)` keeps replays idempotent inside a partition. Sizing: a cell with 20,000 on-duty users stores about 11 million points a day, roughly 3 GB with indexes, so 35 days of hot data is about 100 GB. |
 | `submissions` | Unpartitioned at launch, with indexes led by `tenant_id`. Partition by month on `captured_at` once a cell passes about 200 million rows, and move idempotency checks to `idempotency_keys` at that point. |
 | `metric_facts_daily`, `attendance_days` | Monthly partitions. Dashboards and registers read only these tables. |
 | `audit_log`, `notifications`, `webhook_deliveries` | Monthly partitions; retention by dropping partitions. |
@@ -1488,7 +1488,7 @@ Platform requirements:
 5. Submissions, orders and claims reference media IDs. The server attaches media in the same transaction that creates the record, after checking owner, status and that the media is not attached elsewhere.
 6. Reads go through `GET /v1/media/:id/url`, which checks scope and returns a CloudFront signed URL valid for 5 minutes for the requested variant (original, stamped or thumbnail).
 
-Object keys follow `t/{tenantId}/{kind}/{yyyy}/{mm}/{mediaId}/{variant}.jpg`. Each object is tagged with its retention class; S3 lifecycle rules per class (for example `evidence-12m`, `evidence-24m`, `export-7d`) delete expired objects, and the retention job marks the rows deleted.
+Object keys follow `t/{tenantId}/{kind}/{yyyy}/{mm}/{mediaId}/{variant}.jpg`. Each object records its retention class (for example `evidence-12m`, `export_file`); a nightly retention job per tenant deletes expired objects with their derivatives and marks the rows deleted, and the bucket's lifecycle rules only tidy what is left behind (decision D69).
 
 ### 12.3 Background jobs
 
