@@ -232,6 +232,20 @@
       "when": 1792641442389,
       "tag": "0032_held_configuration",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792742502778,
+      "tag": "0033_location_archives",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792742525229,
+      "tag": "0034_location_partition_drops",
+      "breakpoints": true
     }
   ]
 }

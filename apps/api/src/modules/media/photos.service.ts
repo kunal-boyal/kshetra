@@ -24,16 +24,18 @@ import {
   newId,
   type Signature,
 } from '@kshetra/shared';
-import { and, asc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, like, ne, sql } from 'drizzle-orm';
 import sharp, { type Sharp } from 'sharp';
 import type { Config } from '../../config';
 import { media } from '../../db/schema/media';
+import { AuditLog, SYSTEM_ACTOR } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { pointOf, pointSql } from '../../platform/geo';
 import { ObjectStore } from '../../platform/object-store';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
+import { Schedules } from '../../platform/schedules';
 import { CONFIG } from '../../platform/tokens';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
@@ -46,6 +48,8 @@ const UPLOAD_LINK_SECONDS = 10 * 60;
 /** The thumbnail's long side, in pixels. */
 const THUMBNAIL_PX = 320;
 const JPEG_QUALITY = 70;
+/** Photos expired in one transaction. */
+const EXPIRE_BATCH = 200;
 
 type Row = typeof media.$inferSelect;
 
@@ -90,12 +94,75 @@ export class PhotosService implements OnModuleInit {
     private readonly people: People,
     private readonly settings: TenantConfigService,
     private readonly outbox: Outbox,
+    private readonly schedules: Schedules,
+    private readonly audit: AuditLog,
   ) {}
 
   onModuleInit(): void {
     this.queues.handle('media', 'media.process', (data) =>
       this.process(String(data.tenantId), String(data.mediaId)),
     );
+    this.queues.handle('maintenance', 'media.retention', async (data) => {
+      await this.expireEvidence(String(data.tenantId));
+    });
+    this.schedules.atTenantTime({
+      name: 'media',
+      at: '01:00',
+      queue: 'maintenance',
+      kind: 'media.retention',
+    });
+  }
+
+  /**
+   * Evidence retention (BR-41, decision D69): photos and signatures past the keeping time they
+   * were captured under lose their files, the original and every derivative, and their rows are
+   * marked deleted, so the records that show them say the photo was removed.
+   */
+  async expireEvidence(tenantId: string, now = new Date()): Promise<number> {
+    let expired = 0;
+    for (;;) {
+      const done = await this.database.forTenant(tenantId, async (tx) => {
+        const due = await tx
+          .select({ id: media.id, objectKey: media.objectKey, derivatives: media.derivatives })
+          .from(media)
+          .where(
+            and(
+              eq(media.tenantId, tenantId),
+              ne(media.status, 'deleted'),
+              like(media.retentionClass, 'evidence-%'),
+              sql`coalesce(${media.capturedAt}, ${media.createdAt}) < ${now.toISOString()}::timestamptz - make_interval(months => substring(${media.retentionClass} from '^evidence-([0-9]+)m$')::int)`,
+            ),
+          )
+          .limit(EXPIRE_BATCH);
+        for (const row of due) {
+          for (const key of [row.objectKey, ...Object.values(row.derivatives)]) {
+            await this.objects.delete(key);
+          }
+        }
+        if (due.length > 0) {
+          await tx
+            .update(media)
+            .set({ status: 'deleted' })
+            .where(
+              and(
+                eq(media.tenantId, tenantId),
+                inArray(
+                  media.id,
+                  due.map((row) => row.id),
+                ),
+              ),
+            );
+          await this.audit.record(tx, tenantId, SYSTEM_ACTOR, {
+            action: 'retention.applied',
+            target: { type: 'media', id: null },
+            after: { class: 'evidence', deleted: due.length },
+          });
+        }
+        return due.length;
+      });
+      expired += done;
+      if (done < EXPIRE_BATCH) return expired;
+    }
   }
 
   /** Step 2: registers a photo the phone made, and says where to upload it. */
@@ -222,6 +289,9 @@ export class PhotosService implements OnModuleInit {
       !(row.userId && (await this.scopes.reaches(tx, access, row.userId)))
     ) {
       throw outOfScope();
+    }
+    if (row.status === 'deleted') {
+      throw new AppError('NOT_FOUND', 'This photo was removed when its keeping time ended.');
     }
     const key = variant === 'original' ? row.objectKey : row.derivatives[variant];
     const ready = variant === 'original' ? row.status !== 'pending' : row.status === 'processed';

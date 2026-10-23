@@ -82,13 +82,18 @@ export class MediaService {
   }
 
   /**
-   * Removes a file whose keeping time is over (retention, spec 10.3): the object goes, and the row
-   * stays, marked deleted, so what referred to it still reads.
+   * Removes a file whose keeping time is over (retention, spec 10.3): the object and any
+   * derivatives go, and the row stays, marked deleted, so what referred to it still reads.
    */
   async expire(tx: TenantTx, tenantId: string, id: string): Promise<void> {
-    const key = await this.objectKey(tx, tenantId, id);
-    if (key === null) return;
-    await this.objects.delete(key);
+    const [row] = await tx
+      .select({ objectKey: media.objectKey, derivatives: media.derivatives })
+      .from(media)
+      .where(and(eq(media.tenantId, tenantId), eq(media.id, id), ne(media.status, 'deleted')));
+    if (!row) return;
+    for (const key of [row.objectKey, ...Object.values(row.derivatives)]) {
+      await this.objects.delete(key);
+    }
     await tx
       .update(media)
       .set({ status: 'deleted' })

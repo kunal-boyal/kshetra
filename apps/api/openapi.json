@@ -2671,7 +2671,9 @@
                 "metric.updated",
                 "score.updated",
                 "configuration.exported",
-                "configuration.imported"
+                "configuration.imported",
+                "locations.archived",
+                "retention.applied"
               ]
             }
           },
@@ -2841,7 +2843,9 @@
                               "metric.updated",
                               "score.updated",
                               "configuration.exported",
-                              "configuration.imported"
+                              "configuration.imported",
+                              "locations.archived",
+                              "retention.applied"
                             ]
                           },
                           "target": {
@@ -12373,7 +12377,9 @@
                               "metric.updated",
                               "score.updated",
                               "configuration.exported",
-                              "configuration.imported"
+                              "configuration.imported",
+                              "locations.archived",
+                              "retention.applied"
                             ]
                           },
                           "target": {

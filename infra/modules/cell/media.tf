@@ -1,6 +1,8 @@
-# Photos, imports, exports and logos (spec 12.2): a private, versioned bucket. Phones upload by
-# presigned URL straight to S3; reads go through CloudFront with signed URLs. Retention is the
-# app's: it removes files whose keeping time is over; these rules only tidy what is left behind.
+# Photos, imports, exports, logos and location archives (spec 12.2): a private, versioned bucket.
+# Phones upload by presigned URL straight to S3; reads go through CloudFront with signed URLs.
+# Retention is the app's (decision D69): nightly jobs remove evidence photos with their stamped
+# copies, location archives and exports once each tenant's keeping time is over, and mark their
+# rows deleted. These rules only tidy what is left behind.
 
 resource "aws_s3_bucket" "media" {
   bucket = "${var.name}-media"

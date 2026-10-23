@@ -175,7 +175,7 @@ export const shiftTrails = cell
       distanceM: integer('distance_m').notNull(),
       gaps: jsonb('gaps').$type<{ from: string; to: string }[]>().notNull(),
       pauses: jsonb('pauses').$type<{ from: string; to: string | null }[]>().notNull(),
-      /** Where the day's raw points were archived; null until the archive lands (step 17). */
+      /** Unused: raw points are archived by tenant and day in `location_archives` (D69). */
       archivedKey: text('archived_key'),
       createdAt: at('created_at').notNull().defaultNow(),
     },
@@ -186,6 +186,38 @@ export const shiftTrails = cell
         name: 'shift_trails_shift_fk',
         columns: [table.tenantId, table.shiftId],
         foreignColumns: [shifts.tenantId, shifts.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * The tenant's raw points of one day on its clock, archived to the object store as Parquet
+ * (spec 10.3, BR-41, decision D69): one row a part, each part a file of up to 200,000 points.
+ * A day without points has one part with no file, so it isn't looked at again. Once every part of
+ * a day is stored, its points may leave the database (`purged_at`); the files are kept as long as
+ * trails, then expired.
+ */
+export const locationArchives = cell
+  .table(
+    'location_archives',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      date: date('date').notNull(),
+      part: smallint('part').notNull(),
+      mediaId: uuid('media_id'),
+      points: integer('points').notNull(),
+      createdAt: at('created_at').notNull().defaultNow(),
+      purgedAt: at('purged_at'),
+      expiredAt: at('expired_at'),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.date, table.part] }),
+      foreignKey({
+        name: 'location_archives_media_fk',
+        columns: [table.tenantId, table.mediaId],
+        foreignColumns: [media.tenantId, media.id],
       }),
       isolation(),
     ],

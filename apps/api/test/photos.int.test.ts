@@ -254,6 +254,43 @@ describe('reading photos', () => {
   });
 });
 
+describe('evidence retention (BR-41, decision D69)', () => {
+  it('removes a photo and its derivatives once its keeping time is over, and says so when read', async () => {
+    const t = await team('Photo Retention');
+    const id = await upload(t.api.asha, await jpeg(6));
+    await process(t, id);
+    const [row] = await world.database
+      .forTenant(t.tenantId, (tx) =>
+        tx.execute<{ object_key: string; derivatives: Record<string, string> }>(
+          `select object_key, derivatives from cell.media where id = '${id}'`,
+        ),
+      )
+      .then((found) => found.rows);
+    const keys = [row!.object_key, ...Object.values(row!.derivatives)];
+    expect(keys).toHaveLength(3);
+
+    // Kept for the tenant's 12 months, then gone, as many times as the job runs.
+    const photos = app.get(PhotosService);
+    const inMonths = (months: number) => {
+      const at = new Date();
+      at.setUTCMonth(at.getUTCMonth() + months);
+      return at;
+    };
+    expect(await photos.expireEvidence(t.tenantId, inMonths(11))).toBe(0);
+    expect(await photos.expireEvidence(t.tenantId, inMonths(13))).toBe(1);
+    expect(await photos.expireEvidence(t.tenantId, inMonths(13))).toBe(0);
+    for (const key of keys) expect(await store.size(key)).toBeNull();
+    expect((await result(t, id)).status).toBe('deleted');
+    const read = await t.api.asha.get(`/v1/media/${id}/url`);
+    expect(read.json().error).toMatchObject({
+      code: 'NOT_FOUND',
+      message: 'This photo was removed when its keeping time ended.',
+    });
+    // Someone outside the photo's scope still learns nothing about it.
+    expect((await t.api.ravi.get(`/v1/media/${id}/url`)).json().error.code).toBe('OUT_OF_SCOPE');
+  });
+});
+
 describe('the media worker', () => {
   it('processes a photo once it is confirmed', async () => {
     const t = await team('Photo Worker');

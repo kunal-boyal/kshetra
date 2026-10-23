@@ -74,6 +74,8 @@ export const AUDIT_ACTIONS = [
   'score.updated',
   'configuration.exported',
   'configuration.imported',
+  'locations.archived',
+  'retention.applied',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

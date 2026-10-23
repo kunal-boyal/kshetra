@@ -162,10 +162,18 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 ## Shifts and tracking (decision D47)
 
 - Shifts, points, trails and attendance days live in `apps/api/src/modules/field`. The rules are pure functions in `packages/shared/src/tracking.ts`: `pointRejection()` (BR-36), `punchFixIssue()`, `clockSkewed()` (BR-44), `onDutyMs()`, `compactTrail()` and `dayStatus()` (BR-23 as shifts decide it).
-- `cell.location_points` is range-partitioned by day with pg_partman, so Drizzle can't declare it: migration 0018 creates it partitioned. `cell.maintain_location_partitions()` makes the coming days' partitions and gives each one the tenant-isolation policy; the scheduler runs it four times a day. Query points through the parent, always with a `captured_at` range, so only the shift's days are read. Old partitions stay until the archive lands (step 17).
+- `cell.location_points` is range-partitioned by day with pg_partman, so Drizzle can't declare it: migration 0018 creates it partitioned. `cell.maintain_location_partitions()` makes the coming days' partitions and gives each one the tenant-isolation policy; the scheduler runs it four times a day. Query points through the parent, always with a `captured_at` range, so only the shift's days are read. Old partitions are dropped once empty (decision D69).
 - A shift's start and end publish `shift.started` and `shift.ended`; their consumers keep the person's attendance day and compact the trail. The nightly job (`field.nightly`, 00:30 on the tenant's clock) closes forgotten shifts, compacts what is left and keeps everyone's day just gone.
 - Live positions go out on Redis (`positions:<tenantId>`) after the ingest commits, for the live map (M17).
 - On the phone (decision D48), `Tracking` in `@kshetra/api-client/sync` keeps the open shift and buffers points, dropping what the server would refuse; points upload only once their shift's punch-in has left the outbox. Punches go through `punchIn()`, `punchOut()`, `pauseShift()` and `resumeShift()` in `apps/mobile/src/tracking.ts`, which save on the phone and queue in one transaction. The background task is defined in `src/background.ts`, imported first by the root layout. Tracking starts only from a punch-in, a resume or "Record again", never by itself (BR-37). Background location needs a development build (`eas build --profile development`, on Kunal's account); Expo Go can't run it.
+
+## Retention (decision D69)
+
+- BR-41's rules are pure functions in `packages/shared/src/retention.ts`: `locationRetention()` says which of a tenant's days are archived, purged and expired. A day is archived only after `LOCATION_SETTLE_DAYS`, the longest sync window and a day, so no phone can still send points for it.
+- `LocationArchive` (`apps/api/src/modules/field/location-archive.ts`) runs in `field.nightly`: each settled day's raw points go to the object store as Parquet (`location_archive` media, recorded in `cell.location_archives`), an archived day's points are deleted after the raw retention, and trails and archive files after the trail retention. Never delete points of a day that isn't archived.
+- `cell.drop_empty_location_partitions()` runs with the partitions job and drops only empty partitions older than `LOCATION_PARTITION_KEEP_DAYS`.
+- Evidence photos and signatures expire in `PhotosService.expireEvidence()` (`media.retention`, nightly per tenant) by the keeping time they were captured under; `MediaService.expire()` removes a file with its derivatives and marks the row deleted. Retention is the app's; the bucket's lifecycle rules only tidy.
+- Audit archiving as `locations.archived` and every deletion run as `retention.applied`.
 
 ## Visits and submissions (decision D49)
 
