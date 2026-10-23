@@ -5,7 +5,8 @@
 #   infra/scripts/demo.sh apply                 creates or updates the instance, bucket and images' registry
 #   infra/scripts/demo.sh deploy                builds this commit's images for ARM, pushes them, and
 #                                               bootstraps, migrates and restarts the demo with them
-#   infra/scripts/demo.sh provision <args...>   makes a demo tenant: pnpm provision's arguments, plus --demo
+#   infra/scripts/demo.sh provision <args...>   makes a demo tenant: pnpm provision's arguments, plus --demo;
+#                                               --logo takes a file on this machine
 #   infra/scripts/demo.sh content --tenant <slug> [--days 26]
 #                                               fills a new demo tenant with weeks of fictional work
 #   infra/scripts/demo.sh pause                 stops the instance between demos (the disk and address remain)
@@ -89,11 +90,30 @@ docker compose ps --format '{{.Service}} {{.State}}'"
 }
 
 provision() {
-  local args=""
-  for arg in "$@"; do args+=" $(printf '%q' "$arg")"; done
+  local args="" bucket="" key="" logo="" next=""
+  for arg in "$@"; do
+    if [[ "$next" == logo ]]; then
+      # The logo reaches the instance through the demo's own bucket, and leaves it again.
+      logo="$arg"
+      bucket="$(output media_bucket)"
+      key="incoming/$(basename "$logo")"
+      aws s3 cp "$logo" "s3://$bucket/$key" >/dev/null
+      args+=" $(printf '%q' "/incoming/$(basename "$logo")")"
+      next=""
+      continue
+    fi
+    [[ "$arg" == --logo ]] && next=logo
+    args+=" $(printf '%q' "$arg")"
+  done
+  local fetch=":"
+  [[ -z "$key" ]] || fetch="aws s3 cp --region ap-south-1 s3://$bucket/$key incoming/ >/dev/null"
   on_box "set -euo pipefail
 cd /opt/thelamp
-docker compose run --rm api node dist/provision.mjs --demo$args"
+mkdir -p incoming
+$fetch
+docker compose run --rm -v /opt/thelamp/incoming:/incoming:ro api node dist/provision.mjs --demo$args
+rm -f incoming/*"
+  if [[ -n "$key" ]]; then aws s3 rm "s3://$bucket/$key" >/dev/null; fi
 }
 
 content() {
@@ -134,5 +154,5 @@ case "${1:-}" in
   pause) pause ;;
   resume) resume ;;
   status) status ;;
-  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' && exit 1 ;;
+  *) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' && exit 1 ;;
 esac

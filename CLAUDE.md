@@ -31,7 +31,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm --filter @thelamp/api db:generate` | writes a migration for a schema change | now |
 | `pnpm --filter @thelamp/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
 | `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
-| `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin; `--file <path>` instead of `--template` starts it from another tenant's exported configuration | now |
+| `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin; `--file <path>` instead of `--template` starts it from another tenant's exported configuration; `--logo` and `--brand-colour` set its branding as Settings would; `--demo` makes a demo tenant (D70) | now |
 | `pnpm openapi` | regenerates `apps/api/openapi.json` from the route registry; a test fails while it is out of date | now |
 | `docker build -f apps/api/Dockerfile .` | builds the cell's container image (decision D67) | now |
 

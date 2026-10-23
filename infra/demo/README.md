@@ -29,6 +29,8 @@ From the repository root, with Docker running:
    infra/scripts/demo.sh provision --name "Demo Agro" --slug demo-agro --template agri --status active --admin-name "Demo Admin" --admin-phone +919800000001
    ```
 
+   A prospect's own branding goes in at the same time: `--logo <file on this machine>` (PNG, JPEG or WebP) and `--brand-colour '#486A38'`, checked as Settings checks them.
+
 7. Fill it with a few weeks of fictional work, so every screen has something to show (about half an hour on the instance):
 
    ```bash
