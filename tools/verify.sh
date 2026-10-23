@@ -15,9 +15,10 @@ step 'Types'
 pnpm typecheck
 step 'Lint'
 pnpm lint
-# One package at a time: run together, the web and phone suites time out on a laptop.
+# One package at a time, on two workers each: run wider, the web and phone suites time out on a
+# busy laptop.
 step 'Unit tests'
-pnpm turbo run test --concurrency=1 --filter='!@thelamp/mobile' --filter='!@thelamp/ui-mobile'
+pnpm turbo run test --concurrency=1 --filter='!@thelamp/mobile' --filter='!@thelamp/ui-mobile' -- --maxWorkers=2
 step 'Phone unit tests'
 pnpm --filter @thelamp/ui-mobile test
 pnpm --filter @thelamp/mobile test
