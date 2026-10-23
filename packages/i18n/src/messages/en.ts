@@ -1163,7 +1163,7 @@ export const en = {
     "Switched off, it can't be ordered or chosen in new forms, but past records keep it.",
   'prices.title': 'Price lists',
   'prices.intro':
-    'Who pays what. The most specific list that applies to an account prices each item; between lists equally specific, the higher priority wins.',
+    'Who pays what. The most specific list that applies to a {term.account:lower} prices each item; between lists equally specific, the higher priority wins.',
   'prices.add_list': 'Add a price list',
   'prices.new_list': 'New price list',
   'prices.caption': 'Price lists',
