@@ -207,6 +207,10 @@ export const priceListItems = cell
   .table(
     'price_list_items',
     {
+      /** For the phones' sync, which keys rows by one UUID. */
+      id: uuid('id')
+        .notNull()
+        .default(sql`uuidv7()`),
       tenantId: uuid('tenant_id').notNull(),
       priceListId: uuid('price_list_id').notNull(),
       itemId: uuid('item_id').notNull(),
@@ -218,6 +222,7 @@ export const priceListItems = cell
     },
     (table) => [
       primaryKey({ columns: [table.tenantId, table.priceListId, table.itemId] }),
+      uniqueIndex('price_list_items_tenant_id').on(table.tenantId, table.id),
       index('price_list_items_tenant_item').on(table.tenantId, table.itemId),
       index('price_list_items_tenant_row_version').on(table.tenantId, table.rowVersion),
       foreignKey({

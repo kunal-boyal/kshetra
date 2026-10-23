@@ -245,6 +245,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Pricing is pure functions in `packages/shared/src/pricing.ts`: `priceLine()` (BR-10 to BR-12, by the catalogue's `rounding`), `orderTotals()` and `orderSizeIssue()` (BR-13), `quoteDifferences()` (BR-14), `expectedPriceIssue()` (BR-17), and `applicableLists()` with `priceFor()` for which list prices an item at an account. Amounts are decimal strings; compute with these functions or `scaled()` and `unscaled()`, never `Number`.
 - Items and price lists live in `apps/api/src/modules/catalogue`: `ItemsService` (`PUT /v1/items/{id}`, and `product()` for products and categories by name) and `PriceListsService` (lists, entries at the list's version, `forAccount()` for what an account pays). Every change audits and calls `CatalogueService.touch()`. A removed price keeps its row with `removed_at`.
 - The web edits items at Settings → Catalogue and lists at Settings → Price lists (`apps/web/src/catalogue/`).
+- Phones keep price lists and prices as the `price_lists` and `prices` sync entities (`price-lists.sync.ts`): every list but those for single accounts the person doesn't see, with a scope that hashes the visible lists, so any change to which lists apply re-sends both. On the phone, `useAccountPrices()` in `apps/mobile/src/prices.ts` works out an account's prices with `applicableLists()` and `priceFor()`; the prices screen is `/prices/<accountId>`.
 
 ## Tenant administration (decision D64)
 

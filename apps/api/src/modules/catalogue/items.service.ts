@@ -45,9 +45,12 @@ export class ItemsService {
         ),
       );
     if (found) return found.id;
-    const id = newId();
-    await tx.insert(productCategories).values({ id, tenantId, name: name.trim() });
-    return id;
+    // Another request may be adding it too: whichever commits first makes it.
+    await tx
+      .insert(productCategories)
+      .values({ id: newId(), tenantId, name: name.trim() })
+      .onConflictDoNothing();
+    return this.category(tx, tenantId, name);
   }
 
   /**
@@ -67,9 +70,15 @@ export class ItemsService {
       .where(and(eq(products.tenantId, tenantId), sql`lower(${products.name}) = ${lower(name)}`));
     const categoryId = categoryName ? await this.category(tx, tenantId, categoryName) : null;
     if (!found) {
+      // Another request may be adding it too: whichever commits first makes it.
       const id = newId();
-      await tx.insert(products).values({ id, tenantId, name: name.trim(), categoryId });
-      return { id, moved: false };
+      const made = await tx
+        .insert(products)
+        .values({ id, tenantId, name: name.trim(), categoryId })
+        .onConflictDoNothing()
+        .returning({ id: products.id });
+      if (made.length > 0) return { id, moved: false };
+      return this.product(tx, tenantId, by, name, categoryName);
     }
     if (!categoryId || categoryId === found.categoryId) return { id: found.id, moved: false };
     await tx
