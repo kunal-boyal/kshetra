@@ -3990,13 +3990,34 @@
                             "per_unit_first",
                             "end"
                           ]
+                        },
+                        "rejectionReasons": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "$ref": "#/components/schemas/Key"
+                              },
+                              "name": {
+                                "$ref": "#/components/schemas/LocalizedText"
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          }
                         }
                       },
                       "required": [
                         "units",
                         "measureTypes",
                         "itemFields",
-                        "rounding"
+                        "rounding",
+                        "rejectionReasons"
                       ],
                       "additionalProperties": false
                     }
