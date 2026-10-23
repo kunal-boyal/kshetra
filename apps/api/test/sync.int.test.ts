@@ -306,7 +306,7 @@ describe('SYNC_RESET', () => {
   it('refuses an entity nobody provides, and a page too big', async () => {
     const t = await team('Strict Sugar');
     const token = await t.token(t.admin.phone);
-    expect((await pull(token, 'users,orders')).status).toBe(400);
+    expect((await pull(token, 'users,expenses')).status).toBe(400);
     expect((await pull(token, 'users', undefined, 501)).status).toBe(400);
   });
 });

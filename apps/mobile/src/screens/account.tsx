@@ -1,4 +1,5 @@
 import { spacing } from '@thelamp/design-tokens';
+import { formatDateTime, formatMoney } from '@thelamp/i18n';
 import { newId, PROPOSAL_ACCURACY_M, proposalFix } from '@thelamp/shared';
 import {
   Button,
@@ -17,7 +18,9 @@ import {
   Crosshair,
   MapPin,
   Phone,
+  CloudUpload,
   RotateCw,
+  ShoppingCart,
   Tag,
   UserRound,
 } from 'lucide-react-native';
@@ -57,6 +60,7 @@ export function AccountScreen({ id }: { id: string }) {
   const users = useLocalRows('users');
   const territories = useLocalRows('territories');
   const priceLists = useLocalRows('price_lists');
+  const orders = useLocalRows('orders');
   const waiting = useOutboxItems();
   const [locating, setLocating] = useState<Locating>({ step: 'idle' });
   const [error, setError] = useState<string>();
@@ -106,6 +110,19 @@ export function AccountScreen({ id }: { id: string }) {
         )
       : [];
   const territory = territories?.find((node) => node.id === account.territoryId);
+  const timeZone = bundle?.settings.timezone ?? 'Asia/Kolkata';
+  const money = (amount: string) =>
+    formatMoney(amount as `${number}`, { locale, currency: bundle?.settings.currency ?? 'INR' });
+  // The orders taken here, newest first, and those still on the phone.
+  const ordersHere = (orders ?? [])
+    .filter((entry) => entry.accountId === account.id)
+    .sort((a, b) => b.placedAt.localeCompare(a.placedAt))
+    .slice(0, 10);
+  const queuedHere = waiting.filter(
+    (item) =>
+      item.kind === 'order.place' &&
+      (item.payload as { accountId?: string }).accountId === account.id,
+  );
   const person = (userId: string) => users?.find((user) => user.id === userId);
   const address = [
     account.address.line,
@@ -202,6 +219,15 @@ export function AccountScreen({ id }: { id: string }) {
 
       {(priceLists?.length ?? 0) > 0 ? (
         <ListGroup title={t('prices.title')}>
+          {permissions.has('order.create') && account.status === 'active' ? (
+            <ListRow
+              icon={ShoppingCart}
+              label={t('orders.take')}
+              onPress={() =>
+                router.push({ pathname: '/order/[accountId]', params: { accountId: account.id } })
+              }
+            />
+          ) : null}
           <ListRow
             icon={Tag}
             label={t('prices.see')}
@@ -209,6 +235,26 @@ export function AccountScreen({ id }: { id: string }) {
               router.push({ pathname: '/prices/[accountId]', params: { accountId: account.id } })
             }
           />
+        </ListGroup>
+      ) : null}
+      {ordersHere.length > 0 || queuedHere.length > 0 ? (
+        <ListGroup title={t('orders.here')}>
+          {queuedHere.map((item) => (
+            <ListRow
+              key={item.id}
+              icon={CloudUpload}
+              label={t('orders.waiting_to_send')}
+              detail={formatDateTime(new Date(item.createdAt), { locale, timeZone })}
+            />
+          ))}
+          {ordersHere.map((entry) => (
+            <ListRow
+              key={entry.id}
+              icon={ShoppingCart}
+              label={`${t(`orders.status_${entry.status}`)} · ${money(entry.total)}`}
+              detail={formatDateTime(new Date(entry.placedAt), { locale, timeZone })}
+            />
+          ))}
         </ListGroup>
       ) : null}
       {linkedForms.length > 0 ? (

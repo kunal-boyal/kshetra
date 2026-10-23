@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import type { SessionState } from '@thelamp/api-client';
 import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
-import { migrate, type SqlDatabase } from '@thelamp/api-client/sync';
+import { migrate, Outbox, type SqlDatabase, Visits } from '@thelamp/api-client/sync';
 import { SETTING_DEFAULTS, type SyncPullResult } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -14,6 +14,8 @@ import { SyncProvider } from '../sync';
 import { AccountScreen } from './account';
 import { AccountsScreen } from './accounts';
 import { NewAccountScreen } from './new-account';
+import { repriceRefused } from '../orders';
+import { OrderScreen } from './order';
 import { PricesScreen } from './prices';
 
 jest.mock('expo-router', () => ({
@@ -35,6 +37,7 @@ jest.mock('expo-location', () => ({
 
 const TENANT = { id: '01a10000-0000-7000-8000-000000000001', name: 'Sunrise Traders', cellUrl: '' };
 const USER = '01a10000-0000-7000-8000-000000000004';
+const OWNER = `01a10000-0000-7000-8000-000000000001:${USER}`;
 const MARKET = '01a10000-0000-7000-8000-000000000010';
 const NEAR = '01a10000-0000-7000-8000-000000000080';
 const FAR = '01a10000-0000-7000-8000-000000000081';
@@ -238,7 +241,12 @@ function fakeClient() {
         access: {
           role: 'field_user',
           scope: 'self',
-          permissions: ['account.view', 'account.propose', 'account.propose_location'],
+          permissions: [
+            'account.view',
+            'account.propose',
+            'account.propose_location',
+            'order.create',
+          ],
         },
       },
     })),
@@ -250,7 +258,8 @@ type Page =
   | { name: 'list' }
   | { name: 'account'; id: string }
   | { name: 'new' }
-  | { name: 'prices'; id: string };
+  | { name: 'prices'; id: string }
+  | { name: 'order'; id: string };
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
@@ -258,6 +267,7 @@ function Shown({ page }: { page: Page }) {
   if (page.name === 'list') return <AccountsScreen />;
   if (page.name === 'new') return <NewAccountScreen typeKey="customer" />;
   if (page.name === 'prices') return <PricesScreen accountId={page.id} />;
+  if (page.name === 'order') return <OrderScreen accountId={page.id} />;
   return <AccountScreen id={page.id} />;
 }
 
@@ -392,5 +402,103 @@ describe('prices on the phone (spec 5.11, D77)', () => {
     await renderPhone({ name: 'prices', id: FAR });
     expect(await screen.findByText('Neem spray · ₹60.00')).toBeOnTheScreen();
     expect(screen.getByText('SPRAY-1 · Standard')).toBeOnTheScreen();
+  });
+});
+
+describe('orders on the phone (M10, D78)', () => {
+  it('opens a new order from the account', async () => {
+    await renderPhone({ name: 'account', id: NEAR });
+    await fireEvent.press(await screen.findByRole('button', { name: 'New order' }));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/order/[accountId]',
+      params: { accountId: NEAR },
+    });
+  });
+
+  it('prices the cart as the server will and sends what it showed, with a fix', async () => {
+    const client = await renderPhone({ name: 'order', id: NEAR });
+    await fireEvent.press(await screen.findByRole('button', { name: /Hybrid seed · ₹360.00/ }));
+    await fireEvent.changeText(screen.getByLabelText('Quantity'), '24');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    // FX-07: 24 packs at 360.00 with 18% tax.
+    expect(await screen.findByText('Hybrid seed · ₹10,195.20')).toBeOnTheScreen();
+    expect(screen.getByText('CGST: ₹777.60')).toBeOnTheScreen();
+    const place = screen.getByRole('button', { name: 'Place the order' });
+    await waitFor(() => expect(place).toBeEnabled());
+    await fireEvent.press(place);
+    await waitFor(() =>
+      expect(
+        client.request.mock.calls.some(
+          ([method, path]) => method === 'POST' && path === '/v1/orders',
+        ),
+      ).toBe(true),
+    );
+    const [, , , options] = client.request.mock.calls.find(([, path]) => path === '/v1/orders')!;
+    expect((options as { body: unknown }).body).toMatchObject({
+      accountId: NEAR,
+      visitId: null,
+      lines: [
+        {
+          itemId: SEED,
+          unitKey: 'pack',
+          quantity: '24',
+          quoted: {
+            listId: STANDARD,
+            price: '400.00',
+            discount: '10.0000',
+            taxRate: '18.0000',
+            factor: '1.000',
+          },
+        },
+      ],
+      fix: { location: { lat: 28.6315, lng: 77.2167 }, accuracy: 12 },
+    });
+  });
+
+  it('prices a refused order again from what the phone keeps now', async () => {
+    const db = nodeSqlite();
+    await renderPhone({ name: 'prices', id: NEAR }, db);
+    await screen.findByText('Neem spray · ₹55.00');
+    const outbox = new Outbox(db, {});
+    const body = {
+      id: '01a10000-0000-7000-8000-0000000000f9',
+      accountId: NEAR,
+      visitId: null,
+      lines: [
+        {
+          itemId: SPRAY,
+          unitKey: 'pack',
+          quantity: '1',
+          quoted: { listId: STANDARD, price: '60.00', discount: '0', taxRate: '18', factor: '1' },
+        },
+      ],
+      note: null,
+      photos: [],
+      fix: null,
+      placedAt: new Date().toISOString(),
+    };
+    await outbox.enqueue(db, { id: body.id, owner: OWNER, kind: 'order.place', payload: body });
+    await db.run(
+      "UPDATE outbox SET state = 'parked', last_error_code = 'PRICE_CHANGED' WHERE id = ?",
+      [body.id],
+    );
+    expect(
+      await repriceRefused(
+        { db, outbox, visits: new Visits(db) },
+        body.id,
+        body,
+        'per_unit_first',
+        '2026-10-24',
+      ),
+    ).toBe(true);
+    const [item] = await outbox.items(OWNER);
+    expect(item).toMatchObject({ state: 'queued', lastErrorCode: null });
+    expect((item!.payload as typeof body).lines[0]!.quoted).toEqual({
+      listId: JANPATH_LIST,
+      price: '55.00',
+      discount: '0.0000',
+      taxRate: '18.0000',
+      factor: '1.000',
+    });
   });
 });

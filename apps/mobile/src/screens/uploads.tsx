@@ -1,14 +1,15 @@
 import { OUTBOX_CODES, type OutboxItem } from '@thelamp/api-client/sync';
 import { spacing } from '@thelamp/design-tokens';
 import { formatDateTime } from '@thelamp/i18n';
-import { isErrorCode } from '@thelamp/shared';
+import { isErrorCode, type PlaceOrderBody, todayIn } from '@thelamp/shared';
 import { Button, Card, EmptyState, Notice, Screen, StatusBadge, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
-import { ArrowLeft, CloudCheck, RefreshCw, RotateCw, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, CloudCheck, RefreshCw, RotateCw, Tag, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useConfig } from '../data';
 import { useLanguage } from '../i18n';
+import { repriceRefused } from '../orders';
 import { itemLabel } from '../outbox-kinds';
 import { useOutboxItems, useSync, useSyncStatus } from '../sync';
 
@@ -36,6 +37,7 @@ export function UploadsScreen() {
   const items = useOutboxItems();
   const config = useConfig();
   const [confirming, setConfirming] = useState<string>();
+  const [unpriced, setUnpriced] = useState<string>();
   const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';
   const when = (millis: number) => formatDateTime(new Date(millis), { locale, timeZone });
 
@@ -102,6 +104,11 @@ export function UploadsScreen() {
                   {why}
                 </Text>
               ) : null}
+              {unpriced === item.id ? (
+                <Text variant="bodySm" tone="danger" role="alert">
+                  {t('uploads.nothing_to_price')}
+                </Text>
+              ) : null}
               {!parked && item.nextAttemptAt ? (
                 <Text variant="bodySm" tone="muted">
                   {t('uploads.next_try', { time: when(item.nextAttemptAt) })}
@@ -128,17 +135,40 @@ export function UploadsScreen() {
                 </View>
               ) : parked ? (
                 <View style={styles.actions}>
-                  <Button
-                    variant="tonal"
-                    icon={RotateCw}
-                    label={t('common.retry')}
-                    onPress={() =>
-                      void act(async (ready) => {
-                        await ready.outbox.retry(item.id);
-                        void ready.runner.sync();
-                      })
-                    }
-                  />
+                  {item.kind === 'order.place' && item.lastErrorCode === 'PRICE_CHANGED' ? (
+                    <Button
+                      variant="tonal"
+                      icon={Tag}
+                      label={t('uploads.price_again')}
+                      onPress={() =>
+                        void act(async (ready) => {
+                          // Prices as they are now, then the order goes again under its ID.
+                          await ready.runner.sync();
+                          const priced = await repriceRefused(
+                            ready,
+                            item.id,
+                            item.payload as PlaceOrderBody,
+                            config.data?.bundle.catalogue.rounding ?? 'per_unit_first',
+                            todayIn(timeZone),
+                          );
+                          if (!priced) setUnpriced(item.id);
+                          else void ready.runner.sync();
+                        })
+                      }
+                    />
+                  ) : (
+                    <Button
+                      variant="tonal"
+                      icon={RotateCw}
+                      label={t('common.retry')}
+                      onPress={() =>
+                        void act(async (ready) => {
+                          await ready.outbox.retry(item.id);
+                          void ready.runner.sync();
+                        })
+                      }
+                    />
+                  )}
                   <Button
                     variant="ghost"
                     icon={Trash2}
