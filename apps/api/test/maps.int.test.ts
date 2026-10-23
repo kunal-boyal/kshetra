@@ -250,7 +250,8 @@ describe('the day replay (M17)', () => {
 
   it("shows a person's day only to those whose scope reaches them", async () => {
     const t = await tenant('Reach Co');
-    const day = `date=${TODAY()}`;
+    // The shift's own day: started an hour ago, it falls on yesterday just after midnight.
+    const day = `date=${todayIn('Asia/Kolkata', new Date(t.start))}`;
     expect(
       (await t.api.manager.get(`/v1/trails?userId=${t.ravi.id}&${day}`)).json().error.code,
     ).toBe('OUT_OF_SCOPE');
