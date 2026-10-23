@@ -274,6 +274,46 @@ describe('approval chains (spec 5.9, BR-31)', () => {
     );
   });
 
+  it('counts the inbox by type, approves many at once, and lists what each person asked for', async () => {
+    const t = await tenant('Bulk Co');
+    await t.chain([{ approver: { type: 'nearest_designation', designation: 'head' } }]);
+    const first = await t.submit('asha');
+    const second = await t.submit('ravi');
+    const inbox = (await t.api.head.get('/v1/approvals/inbox')).json();
+    expect(inbox.counts).toEqual({ journey_plan: 2 });
+    expect(inbox.items.every((item: { bulk: boolean }) => item.bulk)).toBe(true);
+    const versions = new Map<string, number>(
+      inbox.items.map((item: { id: string; version: number }) => [item.id, item.version]),
+    );
+
+    const bulk = await t.api.head.post('/v1/approvals/decisions', {
+      items: [
+        { id: first, version: versions.get(first) },
+        { id: second, version: versions.get(second)! + 1 },
+      ],
+    });
+    expect(bulk.statusCode, bulk.body).toBe(200);
+    const [done, stale] = bulk.json().results;
+    expect(done).toMatchObject({ id: first, error: null, approval: { status: 'approved' } });
+    expect(stale).toMatchObject({ id: second, approval: null, error: { code: 'CONFLICT' } });
+    expect((await t.api.head.get('/v1/approvals/inbox')).json().counts).toEqual({
+      journey_plan: 1,
+    });
+
+    // Nobody approves in bulk what they could not approve one at a time.
+    const outsider = await t.api.manager.post('/v1/approvals/decisions', {
+      items: [{ id: second, version: versions.get(second) }],
+    });
+    expect(outsider.json().results[0].error.code).toBe('NOT_CURRENT_APPROVER');
+
+    const mine = (await t.api.asha.get('/v1/approvals/mine')).json();
+    expect(mine.items.map((item: { id: string }) => item.id)).toEqual([first]);
+    expect(mine.items[0]).toMatchObject({ status: 'approved', cancellable: false });
+    const waiting = (await t.api.ravi.get('/v1/approvals/mine?status=pending')).json();
+    expect(waiting.items.map((item: { id: string }) => item.id)).toEqual([second]);
+    expect((await t.api.ravi.get('/v1/approvals/mine?status=approved')).json().items).toEqual([]);
+  });
+
   it('goes to the fallback role when no step remains, and escalates a step nobody can take', async () => {
     const t = await tenant('Fallback Co');
     await t.chain([{ approver: { type: 'nearest_designation', designation: 'manager' } }]);

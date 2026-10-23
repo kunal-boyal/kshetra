@@ -57,6 +57,7 @@ export class PlanningUpkeep implements OnModuleInit {
     this.types.register({
       type: 'journey_plan',
       fallbackPermission: 'plan_item.manage',
+      bulk: true,
       subjects: (tx, tenantId, ids) => this.planning.subjects(tx, tenantId, ids),
       // A withdrawn month goes back to draft, as a rejected one does.
       decided: (tx, by, id, outcome) =>

@@ -788,6 +788,26 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(await asB('GET', `/v1/approvals/inbox?cursor=${aApprovalId}`));
     },
   },
+  'GET /v1/approvals/mine': {
+    kind: 'own tenant',
+    run: async () => {
+      holdsNothingOfA(await asB('GET', '/v1/approvals/mine'));
+      holdsNothingOfA(await asB('GET', `/v1/approvals/mine?cursor=${aApprovalId}`));
+    },
+  },
+  'POST /v1/approvals/decisions': {
+    kind: 'by ID',
+    run: async () => {
+      // Each item answers on its own, so A's request must answer as one that doesn't exist.
+      const decide = (id: string) =>
+        asB('POST', '/v1/approvals/decisions', { items: [{ id, version: 1 }] });
+      const theirs = await decide(aApprovalId);
+      const nowhere = await decide(newId());
+      expect(theirs.statusCode).toBe(200);
+      expect(theirs.json().results[0].error).toEqual(nowhere.json().results[0].error);
+      expect(theirs.json().results[0].error.code).toBe('NOT_FOUND');
+    },
+  },
   'GET /v1/approvals/:instanceId': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/approvals/${id}`), aApprovalId),

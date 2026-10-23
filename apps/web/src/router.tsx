@@ -10,7 +10,7 @@ import type { WebClient } from './client';
 import { EditAccountPage, NewAccountPage } from './accounts/account-form-page';
 import { AccountPage } from './accounts/account-page';
 import { AccountsPage } from './accounts/accounts-page';
-import { ApprovalsPage } from './accounts/approvals-page';
+import { ApprovalsPage, approvalsSearch } from './approvals/approvals-page';
 import { PlanPage } from './planning/plan-page';
 import { ReviewPage } from './review/review-page';
 import { DensityPage } from './maps/density-page';
@@ -165,7 +165,11 @@ const editAccount = createRoute({
 const approvals = createRoute({
   getParentRoute: () => app,
   path: '/approvals',
-  component: ApprovalsPage,
+  validateSearch: approvalsSearch,
+  component: function ApprovalsRoute() {
+    const { view, type } = approvals.useSearch();
+    return <ApprovalsPage {...(view ? { view } : {})} {...(type ? { type } : {})} />;
+  },
 });
 const review = createRoute({ getParentRoute: () => app, path: '/review', component: ReviewPage });
 const targets = createRoute({

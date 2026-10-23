@@ -11,6 +11,7 @@ import type { MobileClient } from '../client';
 import { LanguageProvider } from '../i18n';
 import { Look } from '../look';
 import { SyncProvider } from '../sync';
+import { ApprovalItemScreen } from './approval-item';
 import { PersonDayScreen } from './person-day';
 import { ReviewItemScreen } from './review-item';
 import { TeamScreen } from './team';
@@ -29,6 +30,7 @@ const RAHUL = '01a10000-0000-7000-8000-000000000004';
 const CLEAN = '01a10000-0000-7000-8000-0000000000e1';
 const FLAGGED = '01a10000-0000-7000-8000-0000000000e2';
 const PHOTO = '01a10000-0000-7000-8000-0000000000f1';
+const REQUEST = '01a10000-0000-7000-8000-0000000000d1';
 const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
 
 function item(id: string, overrides: Record<string, unknown> = {}) {
@@ -66,6 +68,44 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+const APPROVAL = {
+  id: REQUEST,
+  requestType: 'new_account',
+  requestId: '01a10000-0000-7000-8000-0000000000a2',
+  subject: { title: 'Gupta Kirana (C-2)', accountId: '01a10000-0000-7000-8000-0000000000a2' },
+  requester: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
+  status: 'pending',
+  version: 2,
+  steps: [
+    {
+      index: 0,
+      approvers: [{ id: MANAGER, code: 'SUN-003', name: 'Meena Shah' }],
+      status: 'skipped',
+      actedBy: null,
+      actedAt: null,
+      note: null,
+      skipReason: 'repeated',
+      escalated: false,
+      fallback: false,
+    },
+    {
+      index: 1,
+      approvers: [{ id: MANAGER, code: 'SUN-003', name: 'Meena Shah' }],
+      status: 'pending',
+      actedBy: null,
+      actedAt: null,
+      note: null,
+      skipReason: null,
+      escalated: true,
+      fallback: false,
+    },
+  ],
+  cancellable: true,
+  bulk: true,
+  createdAt: '2026-10-13T05:00:00.000Z',
+  closedAt: null,
+};
 
 const READ_AT = new Date().toISOString();
 const before = (minutes: number) => new Date(Date.parse(READ_AT) - minutes * 60_000).toISOString();
@@ -177,6 +217,13 @@ function fakeClient(permissions: string[] = ['submission.review']) {
             nextCursor: null,
           };
         }
+        if (method === 'GET' && url.startsWith('/v1/approvals/inbox')) {
+          return { items: [APPROVAL], nextCursor: null, counts: { new_account: 1 } };
+        }
+        if (method === 'POST' && url === `/v1/approvals/${REQUEST}/decision`) {
+          const body = (options as { body: { decision: string } }).body;
+          return { ...APPROVAL, status: body.decision === 'approve' ? 'approved' : 'rejected' };
+        }
         if (method === 'GET' && url === '/v1/live') return LIVE;
         if (method === 'GET' && url.startsWith('/v1/trails?')) {
           return url.includes(`date=${YESTERDAY}`) ? { ...TRAIL, shifts: [], visits: [] } : TRAIL;
@@ -214,12 +261,13 @@ function fakeClient(permissions: string[] = ['submission.review']) {
   return { client, create: () => client as unknown as MobileClient };
 }
 
-type Page = 'team' | 'item' | 'day';
+type Page = 'team' | 'item' | 'day' | 'approval';
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
   if (page === 'day') return <PersonDayScreen userId={RAHUL} />;
+  if (page === 'approval') return <ApprovalItemScreen id={REQUEST} />;
   return page === 'team' ? <TeamScreen /> : <ReviewItemScreen id={CLEAN} />;
 }
 
@@ -299,6 +347,44 @@ describe('the Team tab (M7, spec 8.1)', () => {
         { body: { decision: 'approved' }, idempotencyKey: expect.any(String) },
       ],
     ]);
+  });
+});
+
+describe('approvals in the Team tab (M15, D76)', () => {
+  it('lists the requests waiting for the manager, and opens one', async () => {
+    await renderPhone('team', ['approval.act']);
+    expect(await screen.findByText('1 request to decide')).toBeOnTheScreen();
+    expect(screen.queryByText(/to review/)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: /New accounts? · Rahul Verma/ }));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/approvals/[id]',
+      params: { id: REQUEST },
+    });
+  });
+
+  it('shows the chain, rejects only with a reason, and approves at the version it saw', async () => {
+    const client = await renderPhone('approval', ['approval.act']);
+    expect(await screen.findByText('Gupta Kirana (C-2)')).toBeOnTheScreen();
+    expect(screen.getByText('Approved by the same person at an earlier step')).toBeOnTheScreen();
+    expect(screen.getByText('Waiting for Meena Shah')).toBeOnTheScreen();
+    expect(screen.getByText('Escalated')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Reject' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Reject' }));
+    expect(
+      await screen.findByText('At least 3 characters. The person who asked sees this.'),
+    ).toBeOnTheScreen();
+    const decisions = () =>
+      client.request.mock.calls.filter(([, path]) => String(path).endsWith('/decision'));
+    expect(decisions()).toEqual([]);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Approve' }));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/team'));
+    expect(decisions()[0]?.[3]).toEqual({
+      body: { decision: 'approve', version: 2 },
+      idempotencyKey: expect.any(String),
+    });
   });
 });
 

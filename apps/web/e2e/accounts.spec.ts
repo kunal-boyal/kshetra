@@ -15,6 +15,8 @@ const MARKET = '01a10000-0000-7000-8000-000000000010';
 const ASM = '01a10000-0000-7000-8000-000000000003';
 const SME = '01a10000-0000-7000-8000-000000000004';
 const APPROVAL = '01a10000-0000-7000-8000-000000000090';
+const SECOND_APPROVAL = '01a10000-0000-7000-8000-000000000091';
+const MY_APPROVAL = '01a10000-0000-7000-8000-000000000092';
 const later = () => new Date(Date.now() + 15 * 60_000).toISOString();
 const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
 const text = (en: string) => ({ en, hi: en });
@@ -203,10 +205,69 @@ const ANSWERS: Record<string, unknown> = {
         requester: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
         status: 'pending',
         version: 1,
-        steps: [],
+        steps: [
+          {
+            index: 0,
+            approvers: [{ id: ASM, code: 'SUN-003', name: 'Meena Shah' }],
+            status: 'pending',
+            actedBy: null,
+            actedAt: null,
+            note: null,
+            skipReason: null,
+            escalated: false,
+            fallback: false,
+          },
+        ],
         cancellable: false,
+        bulk: true,
         createdAt: '2026-10-12T05:00:00.000Z',
         closedAt: null,
+      },
+      {
+        id: SECOND_APPROVAL,
+        requestType: 'new_account',
+        requestId: SHOP,
+        subject: { title: 'Kisan Seva (D-82)', accountId: SHOP },
+        requester: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
+        status: 'pending',
+        version: 1,
+        steps: [],
+        cancellable: false,
+        bulk: true,
+        createdAt: '2026-10-12T06:00:00.000Z',
+        closedAt: null,
+      },
+    ],
+    nextCursor: null,
+    counts: { new_account: 2 },
+  },
+  '/v1/approvals/mine': {
+    items: [
+      {
+        id: MY_APPROVAL,
+        requestType: 'new_account',
+        requestId: SHOP,
+        subject: { title: 'Krishi Kendra (D-83)', accountId: SHOP },
+        requester: { id: ASM, code: 'SUN-003', name: 'Meena Shah' },
+        status: 'approved',
+        version: 2,
+        steps: [
+          {
+            index: 0,
+            approvers: [{ id: SME, code: 'SUN-001', name: 'Anita Rao' }],
+            status: 'approved',
+            actedBy: { id: SME, code: 'SUN-001', name: 'Anita Rao' },
+            actedAt: '2026-10-12T07:00:00.000Z',
+            note: 'Fine',
+            skipReason: null,
+            escalated: false,
+            fallback: false,
+          },
+        ],
+        cancellable: false,
+        bulk: true,
+        createdAt: '2026-10-12T05:00:00.000Z',
+        closedAt: '2026-10-12T07:00:00.000Z',
       },
     ],
     nextCursor: null,
@@ -316,7 +377,8 @@ const PAGES = [
     heading: 'Edit Green Fields Agro',
     shows: 'Changes to these apply from',
   },
-  { path: '/approvals', heading: 'Approvals', shows: 'Beej Bhandar (D-81)' },
+  { path: '/approvals', heading: 'Approvals', shows: 'Waiting for Meena Shah' },
+  { path: '/approvals?view=mine', heading: 'Approvals', shows: 'Approved by Anita Rao' },
 ];
 
 for (const { path, heading, shows } of PAGES) {
@@ -339,7 +401,7 @@ test('an account and the inbox pass axe in the outdoor theme', async ({ page }) 
   await expect(page.getByRole('textbox', { name: 'Visits' })).toHaveValue('4');
   await expectAccessible(page);
   await page.goto('/approvals');
-  await page.getByRole('button', { name: 'Reject' }).click();
+  await page.getByRole('button', { name: 'Reject' }).first().click();
   await expect(page.getByRole('textbox', { name: /Why are you rejecting it/ })).toBeVisible();
   await expectAccessible(page);
 });

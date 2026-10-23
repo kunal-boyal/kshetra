@@ -217,10 +217,12 @@ describe('the inbox on the phone (M16)', () => {
     expect(await screen.findByText('Saved.')).toBeOnTheScreen();
   });
 
-  it('opens a link the app has, and the inbox for any other', () => {
+  it('opens a link the app has, approvals in the Team tab, and the inbox for any other', () => {
     openLink('/');
     expect(router.push).toHaveBeenLastCalledWith('/');
     openLink('/approvals');
+    expect(router.push).toHaveBeenLastCalledWith('/team');
+    openLink('/reports');
     expect(router.push).toHaveBeenLastCalledWith('/notifications');
     openLink(null);
     expect(router.push).toHaveBeenLastCalledWith('/notifications');

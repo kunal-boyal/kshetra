@@ -9,7 +9,6 @@ const DEPOT = '01a10000-0000-7000-8000-000000000081';
 const MARKET = '01a10000-0000-7000-8000-000000000010';
 const ASM = '01a10000-0000-7000-8000-000000000003';
 const SME = '01a10000-0000-7000-8000-000000000004';
-const APPROVAL = '01a10000-0000-7000-8000-000000000090';
 const text = (en: string) => ({ en, hi: en });
 
 const DISTRIBUTOR = {
@@ -417,68 +416,5 @@ describe('the account form', () => {
       },
       idempotencyKey: expect.any(String),
     });
-  });
-});
-
-describe('the approvals inbox', () => {
-  const REQUEST = {
-    id: APPROVAL,
-    requestType: 'new_account',
-    requestId: DEPOT,
-    subject: { title: 'Beej Bhandar (D-81)', accountId: DEPOT },
-    requester: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
-    status: 'pending',
-    version: 1,
-    steps: [],
-    cancellable: false,
-    createdAt: '2026-10-12T05:00:00.000Z',
-    closedAt: null,
-  };
-
-  it('approves with the version it saw, and rejects only with a reason', async () => {
-    const client = fakeClient(
-      { '/v1/approvals/inbox': { items: [REQUEST], nextCursor: null } },
-      {
-        [`POST /v1/approvals/${APPROVAL}/decision`]: ({ body }) => {
-          const { decision, note } = body as { decision: string; note?: string };
-          if (decision === 'reject' && (note?.length ?? 0) < 3) {
-            throw new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
-              { path: 'note', issue: 'Say why, in at least 3 characters' },
-            ]);
-          }
-          return {
-            ...REQUEST,
-            status: decision === 'approve' ? 'approved' : 'rejected',
-            version: 2,
-          };
-        },
-      },
-      ['approval.act', 'account.view'],
-      BUNDLE,
-    );
-    renderAt('/approvals', client);
-    const request = await screen.findByRole('article', { name: 'Beej Bhandar (D-81)' });
-    expect(request).toHaveTextContent('New account');
-    expect(request).toHaveTextContent('Asked by Suresh Rao');
-
-    const user = userEvent.setup();
-    await user.click(within(request).getByRole('button', { name: 'Reject' }));
-    await user.type(
-      within(request).getByRole('textbox', { name: /Why are you rejecting it/ }),
-      'no',
-    );
-    await user.click(within(request).getByRole('button', { name: 'Reject' }));
-    expect(await within(request).findByText('Say why, in at least 3 characters')).toBeVisible();
-
-    await user.click(within(request).getByRole('button', { name: 'Cancel' }));
-    await user.click(within(request).getByRole('button', { name: 'Approve' }));
-    await waitFor(() =>
-      expect(writesOf(client).at(-1)).toEqual([
-        'POST',
-        `/v1/approvals/${APPROVAL}/decision`,
-        expect.anything(),
-        { body: { decision: 'approve', version: 1 }, idempotencyKey: expect.any(String) },
-      ]),
-    );
   });
 });

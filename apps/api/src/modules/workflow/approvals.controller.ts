@@ -3,7 +3,11 @@ import {
   ApprovalDecisionBody,
   ApprovalInboxQuery,
   ApprovalInboxResult,
+  ApprovalMineQuery,
+  ApprovalMineResult,
   ApprovalResult,
+  BulkApprovalBody,
+  BulkApprovalResult,
 } from '@thelamp/shared';
 import { z } from 'zod';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
@@ -39,6 +43,47 @@ export class ApprovalsController {
     return this.database.forTenant(access.tenantId, (tx) =>
       this.approvals.inbox(tx, access, input),
     );
+  }
+
+  @Get('mine')
+  @Contract({
+    tag: 'Approvals',
+    summary: "The caller's own requests and where each stands",
+    query: ApprovalMineQuery,
+    response: ApprovalMineResult,
+  })
+  @SignedIn()
+  mine(@CurrentAccess() access: Access, @Query() query: unknown) {
+    const input = ApprovalMineQuery.parse(query);
+    return this.database.forTenant(access.tenantId, (tx) => this.approvals.mine(tx, access, input));
+  }
+
+  @Post('decisions')
+  @Contract({
+    tag: 'Approvals',
+    summary: 'Approve several requests at once, where their types allow it',
+    body: BulkApprovalBody,
+    response: BulkApprovalResult,
+    idempotencyKey: true,
+  })
+  @SignedIn()
+  @HttpCode(200)
+  async approveMany(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    const input = BulkApprovalBody.parse(body);
+    const result = await this.database.forTenant(access.tenantId, (tx) =>
+      idempotent(
+        tx,
+        access.tenantId,
+        requireIdempotencyKey(key),
+        { route: 'POST /v1/approvals/decisions', by: access.userId, input },
+        async () => ({ status: 200, body: await this.approvals.approveMany(tx, access, input) }),
+      ),
+    );
+    return result.body;
   }
 
   @Get(':instanceId')
