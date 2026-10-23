@@ -1,0 +1,55 @@
+# Without signal, work waits on the phone and uploads once signal returns (spec 11.3, 3.2): here
+# a pause, saved and queued on the phone.
+appId: com.kshetra.app.e2e
+name: offline-queue
+# Signal comes back whether the flow passes or fails, so the phone is never left offline.
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+# launchApp force-stops the app unless told not to, which also ends tracking (BR-37).
+- launchApp:
+    stopApp: false
+# The visit ended on the place's page, above the tabs; Android's back key leaves it. Tabs are
+# found by their test IDs, as Android's own navigation buttons are named Back and Home too.
+- repeat:
+    while:
+      notVisible:
+        id: tab-home
+    times: 3
+    commands:
+      - waitForAnimationToEnd
+      - back
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 15000
+- tapOn:
+    id: tab-home
+- extendedWaitUntil:
+    visible: Pause tracking
+    timeout: 15000
+- setAirplaneMode: enabled
+# Switching it brings up the system's settings; the app comes back to the front, still running.
+- launchApp:
+    stopApp: false
+# Pausing needs no location fix, so it works offline indoors too; ending the day records one.
+- tapOn: Pause tracking
+- tapOn: A break
+- extendedWaitUntil:
+    visible: Paused
+    timeout: 15000
+- tapOn:
+    id: tab-me
+- tapOn: Upload queue.*
+- runFlow:
+    when:
+      true: ${EMULATOR == 'true'}
+    commands:
+      - assertVisible: Waiting
+- setAirplaneMode: disabled
+- launchApp:
+    stopApp: false
+- tapOn: Sync now
+- extendedWaitUntil:
+    visible: Everything has uploaded
+    timeout: 90000

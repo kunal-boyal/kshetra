@@ -73,6 +73,8 @@ function Nav({ state, descriptors, navigation }: TabBarProps) {
           : [
               {
                 key: route.key,
+                // tab-home, tab-accounts and so on, for the Maestro flows (decision D68).
+                testID: `tab-${route.name === 'index' ? 'home' : route.name}`,
                 label: descriptors[route.key]?.options.title ?? route.name,
                 icon: ICONS[route.name] ?? House,
                 active: state.index === index,

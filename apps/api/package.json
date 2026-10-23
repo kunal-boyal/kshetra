@@ -11,6 +11,8 @@
     "db:bootstrap": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/bootstrap.mjs",
     "db:migrate": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/migrate.mjs",
     "db:seed": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/seed.mjs",
+    "load:fixtures": "node --env-file-if-exists=../../.env dist/load-fixtures.mjs",
+    "e2e:fixtures": "node --env-file-if-exists=../../.env dist/e2e-fixtures.mjs",
     "db:generate": "drizzle-kit generate",
     "provision": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/provision.mjs",
     "openapi": "tsdown --log-level warn && node dist/openapi.mjs",

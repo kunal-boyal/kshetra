@@ -62,9 +62,9 @@ const schema = z
       .string()
       .regex(/^[A-Za-z0-9:_-]{1,64}$/)
       .optional(),
-    // `console` prints codes locally; `memory` keeps them for tests. Production sends them by
-    // MSG91 (decision D67).
-    OTP_PROVIDER: z.enum(['msg91', 'console', 'memory']).default('console'),
+    // `console` prints codes locally; `mailpit` mails them to the local inbox, where Maestro reads
+    // them (decision D68); `memory` keeps them for tests. Production sends them by MSG91 (D67).
+    OTP_PROVIDER: z.enum(['msg91', 'console', 'mailpit', 'memory']).default('console'),
     // How notifications leave the cell (M16, decision D58). `console` prints them locally and
     // `memory` keeps them for tests; production needs real ones.
     PUSH_PROVIDER: z.enum(['expo', 'console', 'memory']).default('console'),
@@ -149,7 +149,7 @@ const schema = z
   })
   .superRefine((config, ctx) => {
     if (config.NODE_ENV === 'production') {
-      if (config.OTP_PROVIDER === 'console' || config.OTP_PROVIDER === 'memory') {
+      if (['console', 'mailpit', 'memory'].includes(config.OTP_PROVIDER)) {
         ctx.addIssue({
           code: 'custom',
           path: ['OTP_PROVIDER'],

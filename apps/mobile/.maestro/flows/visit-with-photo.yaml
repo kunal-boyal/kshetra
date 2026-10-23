@@ -1,0 +1,63 @@
+# A visit: check in at the place, fill its form with a photo, check out (M6, M7, spec 12.2).
+appId: com.kshetra.app.e2e
+name: visit-with-photo
+---
+- launchApp:
+    stopApp: false
+- tapOn:
+    id: tab-accounts
+- tapOn: ${ACCOUNT}
+# A place with a location shows its map above the visit's buttons, so they may be below the fold.
+- scrollUntilVisible:
+    element: Check in
+    centerElement: true
+- tapOn: Check in
+- scrollUntilVisible:
+    element: Checked in.*
+    timeout: 30000
+- scrollUntilVisible:
+    element: Customer visit
+- tapOn: Customer visit
+# Form inputs are found by their field's key (testID field-<key>). The multi-line field goes
+# first and a single-line one last, as Enter there closes the keyboard: with it open, scrolls start
+# on the keyboard, and hideKeyboard presses Back on Android, which can close the form instead.
+- tapOn: Follow-up
+- scrollUntilVisible:
+    element:
+      id: field-outcome
+    centerElement: true
+- tapOn:
+    id: field-outcome
+- inputText: Showed the new range
+- scrollUntilVisible:
+    element:
+      id: field-person_met
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: field-person_met
+- inputText: Ravi Kumar
+- pressKey: Enter
+- scrollUntilVisible:
+    element: Take a photo
+- tapOn: Take a photo
+- extendedWaitUntil:
+    visible: Take photo
+    timeout: 20000
+- tapOn: Take photo
+- extendedWaitUntil:
+    visible: Use photo
+    timeout: 20000
+- tapOn: Use photo
+- scrollUntilVisible:
+    element: Submit
+- tapOn: Submit
+- scrollUntilVisible:
+    element: Check out
+    timeout: 30000
+    centerElement: true
+- tapOn: Check out
+# Check-out waits for a fix first (up to 20 s indoors); Check in returns once the visit has ended.
+- scrollUntilVisible:
+    element: Check in
+    timeout: 45000

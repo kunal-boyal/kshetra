@@ -34,3 +34,8 @@ backend.hcl
 # Logs and OS files
 *.log
 .DS_Store
+
+# k6 load-test sessions (tools/k6/README.md)
+tools/k6/.fixtures/
+# Maestro run settings (apps/mobile/.maestro/README.md)
+apps/mobile/.maestro/.env

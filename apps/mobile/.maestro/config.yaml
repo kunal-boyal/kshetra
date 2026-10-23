@@ -1,0 +1,11 @@
+# The flows run in this order, as one field user's day: only the first clears the app, as a second
+# sign-in on a cleared app would be a new phone, which device binding refuses (decision D68).
+flows:
+  - flows/*
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - sign-in
+    - start-day
+    - visit-with-photo
+    - offline-queue

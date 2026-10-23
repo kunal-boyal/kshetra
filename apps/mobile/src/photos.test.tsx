@@ -42,13 +42,18 @@ jest.mock('expo-file-system', () => {
     get exists() {
       return mockFiles.has(this.uri);
     }
-    move(to: File) {
+    // As in expo-file-system 57, a move finishes later: reading the destination before awaiting it
+    // finds nothing, as it did on a phone (decision D68).
+    async move(to: File) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
       mockFiles.set(to.uri, mockFiles.get(this.uri)!);
       mockFiles.delete(this.uri);
       this.uri = to.uri;
     }
     async bytes() {
-      return mockFiles.get(this.uri)!;
+      const bytes = mockFiles.get(this.uri);
+      if (!bytes) throw new Error(`ENOENT: ${this.uri}`);
+      return bytes;
     }
     delete() {
       mockFiles.delete(this.uri);

@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { ArrowLeft, Camera, Check, RotateCcw } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../app-state';
 import { addResult } from '../capture-results';
 import { useLanguage } from '../i18n';
@@ -35,6 +36,7 @@ export function CameraScreen({ kind, request }: { kind: PhotoKind; request: stri
   const fix = useRef<Fix | null>(null);
   const [shot, setShot] = useState<Shot | null>(null);
   const [busy, setBusy] = useState(false);
+  const insets = useSafeAreaInsets();
   const [error, setError] = useState<string>();
 
   // Where the phone is, taken while the person frames the picture (BR-32 checks its age later).
@@ -121,7 +123,16 @@ export function CameraScreen({ kind, request }: { kind: PhotoKind; request: stri
           accessibilityLabel={t('camera.live')}
         />
       )}
-      <View style={[styles.bar, { backgroundColor: theme.colors.surface }]}>
+      {/* Drawn edge to edge, so the bar keeps clear of Android's navigation buttons itself. */}
+      <View
+        style={[
+          styles.bar,
+          {
+            backgroundColor: theme.colors.surface,
+            paddingBottom: spacing.space4 + insets.bottom,
+          },
+        ]}
+      >
         {error ? (
           <Text tone="danger" role="alert">
             {error}

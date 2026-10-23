@@ -59,7 +59,7 @@ The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderab
 |---|---|---|
 | GitHub | The private repository; GitHub Actions runs CI on every pull request (`.github/workflows/ci.yml`), and deploys `main` once AWS is connected (`deploy.yml`, decision D67) | In use; deploys off until `DEPLOY_ENABLED` |
 | npm registry | JavaScript packages | In use |
-| Docker Hub | The PostgreSQL, Redis and Mailpit images, the API image's `node:24-bookworm-slim` base, and `hashicorp/terraform` for checking Terraform locally | In use |
+| Docker Hub | The PostgreSQL, Redis and Mailpit images (Mailpit also takes local sign-in codes for Maestro, decision D68), the API image's `node:24-bookworm-slim` base, and `hashicorp/terraform` for checking Terraform locally | In use |
 | Chainguard registry | The MinIO image (decision D21) | In use |
 | claude.ai | The design-system artifact, kept in step with `packages/design-tokens` | In use |
 | Expo EAS (Build and Update) | Builds the mobile app and ships JavaScript updates | Build in use on Kunal's account; Update needs `expo-updates` in a new build (step 17c) |

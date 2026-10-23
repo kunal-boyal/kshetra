@@ -7,7 +7,13 @@ import { DirectoryDatabase } from './directory.database';
 import { DirectoryMembers } from './members';
 import { OtpService } from './otp.service';
 import { msg91Settings } from '../../platform/msg91';
-import { ConsoleOtpSender, MemoryOtpSender, Msg91OtpSender, OtpSender } from './otp-sender';
+import {
+  ConsoleOtpSender,
+  MailpitOtpSender,
+  MemoryOtpSender,
+  Msg91OtpSender,
+  OtpSender,
+} from './otp-sender';
 import { SessionsService } from './sessions.service';
 import { SigningKey } from './signing-key';
 import { DirectoryTenants } from './tenants';
@@ -46,6 +52,7 @@ export class DirectoryHealth {
             config.MSG91_OTP_VARIABLE,
           );
         }
+        if (config.OTP_PROVIDER === 'mailpit') return new MailpitOtpSender(config.SMTP_URL);
         return config.OTP_PROVIDER === 'memory' ? new MemoryOtpSender() : new ConsoleOtpSender();
       },
     },
