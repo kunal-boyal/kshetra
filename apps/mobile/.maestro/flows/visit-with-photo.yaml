@@ -4,13 +4,6 @@ name: visit-with-photo
 ---
 - launchApp:
     stopApp: false
-- runFlow:
-    when:
-      true: ${EMULATOR == 'true'}
-    commands:
-      - setLocation:
-          latitude: ${LAT}
-          longitude: ${LNG}
 - tapOn:
     id: tab-accounts
 - tapOn: ${ACCOUNT}

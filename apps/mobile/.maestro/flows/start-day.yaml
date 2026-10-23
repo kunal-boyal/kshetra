@@ -4,13 +4,6 @@ name: start-day
 ---
 - launchApp:
     stopApp: false
-- runFlow:
-    when:
-      true: ${EMULATOR == 'true'}
-    commands:
-      - setLocation:
-          latitude: ${LAT}
-          longitude: ${LNG}
 - tapOn: Start day
 - extendedWaitUntil:
     visible: Before you start the day
