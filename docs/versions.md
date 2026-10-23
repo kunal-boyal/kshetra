@@ -141,6 +141,18 @@ pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-work
 | Maestro | 2.11.0 locally, the latest release in CI | The field app's flows (decision D68); installed from its release zip locally and its installer in CI |
 | Android emulator | API 35 (Android 15) | Locally arm64-v8a, in CI x86_64 through `reactivecircus/android-emulator-runner` |
 | JDK | 17 (Temurin in CI, Homebrew's `openjdk@17` locally) | For Gradle and Maestro |
+| AWS CLI | 2.38.5 (Homebrew) | Added 2026-10-23: `aws login` with the sandbox's `kunal-admin`, and `infra/scripts/demo.sh` |
+| Terraform on the Mac | 1.17.0 (`hashicorp/tap`) | Added 2026-10-23; Homebrew's own formula is frozen at 1.5 |
+
+## The demo (decision D70)
+
+| Piece | Version | Notes |
+|---|---|---|
+| Caddy | 2.11.7 | `infra/demo/edge.Dockerfile`: HTTPS with Let's Encrypt and the web portal |
+| Docker Compose | 5.6.1 | Installed on the instance by `infra/demo/user-data.sh` |
+| Amazon Linux | 2023, ARM | The instance's image, from AWS's public SSM parameter |
+| Redis | 8.10 | As locally |
+| random and tls providers | 3.9.1 and 4.4.2 | The demo's generated passwords and signing key |
 
 ## CI (GitHub Actions)
 

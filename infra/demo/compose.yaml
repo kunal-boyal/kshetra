@@ -1,0 +1,79 @@
+# The demo's processes on one instance (decision D70). demo.sh copies this file to /opt/thelamp
+# beside settings.env (from SSM) and .env (REGISTRY, TAG and DOMAIN), then starts it.
+name: thelamp-demo
+
+x-app: &app
+  image: ${REGISTRY}/thelamp-demo/api:${TAG}
+  env_file: settings.env
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: ${REGISTRY}/thelamp-demo/postgres:${TAG}
+    env_file: settings.env
+    environment:
+      POSTGRES_DB: thelamp
+    # Small enough to share 2 GB with the rest.
+    command: ['postgres', '-c', 'shared_buffers=128MB', '-c', 'max_connections=80']
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d thelamp']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:8.10
+    # BullMQ needs every job kept, so Redis never evicts; append-only survives restarts.
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    <<: *app
+    command: ['node', 'dist/main.mjs']
+
+  worker:
+    <<: *app
+    command: ['node', 'dist/worker.mjs']
+    environment:
+      OUTBOX_RELAY: 'true'
+
+  scheduler:
+    <<: *app
+    command: ['node', 'dist/scheduler.mjs']
+
+  # Caddy: HTTPS for the domain from Let's Encrypt, the web portal, and /v1 and /auth to the API.
+  edge:
+    image: ${REGISTRY}/thelamp-demo/edge:${TAG}
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
+  redis-data:
+  caddy-data:
+  caddy-config:

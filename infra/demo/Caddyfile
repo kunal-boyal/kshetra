@@ -1,0 +1,23 @@
+# The demo's front door (decision D70): the portal and its API share one origin, as CloudFront
+# makes them share one in the cell (decision D67), so the refresh cookie stays first-party.
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	@api path /v1/* /auth/* /health /ready
+	handle @api {
+		reverse_proxy api:3000
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
