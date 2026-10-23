@@ -1,7 +1,16 @@
 import { spacing } from '@thelamp/design-tokens';
 import { formatDateTime } from '@thelamp/i18n';
 import type { ApprovalResult, ApprovalStep } from '@thelamp/shared';
-import { Button, Card, ListGroup, ListRow, Screen, Text, TextField } from '@thelamp/ui-mobile';
+import {
+  Button,
+  Card,
+  ListGroup,
+  ListRow,
+  Notice,
+  Screen,
+  Text,
+  TextField,
+} from '@thelamp/ui-mobile';
 import { ApiError } from '@thelamp/api-client';
 import { router } from 'expo-router';
 import { ArrowLeft, Check, Circle, Clock, Redo2, Send, X } from 'lucide-react-native';
@@ -101,55 +110,60 @@ function Deciding({ item }: { item: ApprovalResult }) {
         </ListGroup>
       ) : null}
 
-      <Card style={styles.stack}>
-        {rejecting ? (
-          <TextField
-            label={t('approvals.why')}
-            required
-            multiline
-            value={note}
-            onChangeText={setNote}
-            {...(noteError ? { error: noteError } : { help: t('approvals.why_help') })}
-          />
-        ) : null}
-        {failure ? (
-          <Text tone="danger" role="alert">
-            {failure}
-          </Text>
-        ) : null}
-        {rejecting ? (
-          <View style={styles.row}>
-            <Button
-              variant="danger"
-              icon={X}
-              label={t('approvals.reject')}
-              busy={busy}
-              onPress={() => void send('reject')}
+      {item.page ? (
+        // Decided on its own screen, which asks for more than a note (decision D78).
+        <Notice>{t('approvals.decide_in_portal')}</Notice>
+      ) : (
+        <Card style={styles.stack}>
+          {rejecting ? (
+            <TextField
+              label={t('approvals.why')}
+              required
+              multiline
+              value={note}
+              onChangeText={setNote}
+              {...(noteError ? { error: noteError } : { help: t('approvals.why_help') })}
             />
-            <Button
-              variant="ghost"
-              label={t('common.cancel')}
-              onPress={() => setRejecting(false)}
-            />
-          </View>
-        ) : (
-          <View style={styles.row}>
-            <Button
-              variant="primary"
-              icon={Check}
-              label={t('approvals.approve')}
-              busy={busy}
-              onPress={() => void send('approve')}
-            />
-            <Button
-              variant="secondary"
-              icon={X}
-              label={t('approvals.reject')}
-              onPress={() => setRejecting(true)}
-            />
-          </View>
-        )}
-      </Card>
+          ) : null}
+          {failure ? (
+            <Text tone="danger" role="alert">
+              {failure}
+            </Text>
+          ) : null}
+          {rejecting ? (
+            <View style={styles.row}>
+              <Button
+                variant="danger"
+                icon={X}
+                label={t('approvals.reject')}
+                busy={busy}
+                onPress={() => void send('reject')}
+              />
+              <Button
+                variant="ghost"
+                label={t('common.cancel')}
+                onPress={() => setRejecting(false)}
+              />
+            </View>
+          ) : (
+            <View style={styles.row}>
+              <Button
+                variant="primary"
+                icon={Check}
+                label={t('approvals.approve')}
+                busy={busy}
+                onPress={() => void send('approve')}
+              />
+              <Button
+                variant="secondary"
+                icon={X}
+                label={t('approvals.reject')}
+                onPress={() => setRejecting(true)}
+              />
+            </View>
+          )}
+        </Card>
+      )}
     </Screen>
   );
 }

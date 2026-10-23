@@ -18,3 +18,4 @@ export * from './tenant-config';
 export * from './territories';
 export * from './workflow';
 export * from './notifications';
+export * from './orders';

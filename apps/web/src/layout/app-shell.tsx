@@ -10,6 +10,7 @@ import {
   LogOut,
   Map as MapIcon,
   Sheet,
+  ShoppingCart,
   MapPinned,
   Network,
   Repeat,
@@ -95,6 +96,11 @@ export function AppShell() {
           to: '/approvals',
           icon: Inbox,
           label: t('nav.approvals'),
+        }),
+        ...only(access.can('order.view') || access.can('order.create'), {
+          to: '/orders',
+          icon: ShoppingCart,
+          label: t('nav.orders'),
         }),
         ...only(access.can('live_map.view'), {
           to: '/live-map',

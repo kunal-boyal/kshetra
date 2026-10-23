@@ -84,6 +84,11 @@ export const AUDIT_ACTIONS = [
   'price_list.created',
   'price_list.updated',
   'price_list.prices_changed',
+  'order.placed',
+  'order.decided',
+  'order.lines_decided',
+  'order.fulfilled',
+  'order.cancelled',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

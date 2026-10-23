@@ -23,6 +23,9 @@ import { TeamPerformancePage } from './performance/team-page';
 import { TargetsPage } from './targets/targets-page';
 import { CataloguePage } from './catalogue/catalogue-page';
 import { ItemEditorPage } from './catalogue/item-editor-page';
+import { OrderDeskPage } from './orders/order-desk-page';
+import { OrderPage } from './orders/order-page';
+import { OrdersPage } from './orders/orders-page';
 import { PriceListPage } from './catalogue/price-list-page';
 import { PriceListsPage } from './catalogue/price-lists-page';
 import { EditFormPage, NewFormPage } from './forms/form-builder-page';
@@ -175,6 +178,24 @@ const approvals = createRoute({
   },
 });
 const review = createRoute({ getParentRoute: () => app, path: '/review', component: ReviewPage });
+const ordersRoute = createRoute({
+  getParentRoute: () => app,
+  path: '/orders',
+  component: OrdersPage,
+});
+const newOrder = createRoute({
+  getParentRoute: () => app,
+  path: '/orders/new',
+  component: OrderDeskPage,
+});
+const order = createRoute({
+  getParentRoute: () => app,
+  path: '/orders/$orderId',
+  component: function OrderRoute() {
+    const { orderId } = order.useParams();
+    return <OrderPage key={orderId} orderId={orderId} />;
+  },
+});
 const targets = createRoute({
   getParentRoute: () => app,
   path: '/targets',
@@ -403,6 +424,9 @@ const tree = root.addChildren([
     editAccount,
     approvals,
     review,
+    ordersRoute,
+    newOrder,
+    order,
     targets,
     teamPerformance,
     personPerformance,

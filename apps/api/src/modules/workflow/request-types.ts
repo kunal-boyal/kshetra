@@ -19,6 +19,12 @@ export interface RequestTypeSource {
   fallbackPermission: TenantPermission;
   /** Whether many requests of this type may be approved in one go from the inbox (M15). */
   bulk?: boolean;
+  /**
+   * Decided only on the owning module's own page, which asks for more than a note, such as an
+   * order's configured rejection reason (decision D78): the portal's path for a request. The inbox
+   * links there instead.
+   */
+  ownPage?: (requestId: string) => string;
   /** What each request is about, for the inbox, by request ID. */
   subjects(
     tx: TenantTx,

@@ -75,6 +75,7 @@ let aPlanItemId: string;
 let aExportId: string;
 let aItemId: string;
 let aPriceListId: string;
+let aOrderId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
 /** An account of B's own, under B's territory. */
@@ -1469,6 +1470,78 @@ const FIXTURES: Record<string, Fixture> = {
       );
     },
   },
+  'POST /v1/orders': {
+    kind: 'write',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', '/v1/orders', {
+            id: newId(),
+            accountId: id,
+            lines: [
+              {
+                itemId: newId(),
+                unitKey: 'piece',
+                quantity: '1',
+                quoted: {
+                  listId: newId(),
+                  price: '1',
+                  discount: '0',
+                  taxRate: '0',
+                  factor: '1',
+                },
+              },
+            ],
+            placedAt: new Date().toISOString(),
+          }),
+        aAccountId,
+      ),
+  },
+  'GET /v1/orders': {
+    kind: 'own tenant',
+    run: async () => {
+      holdsNothingOfA(await asB('GET', '/v1/orders'));
+      holdsNothingOfA(await asB('GET', `/v1/orders?accountId=${aAccountId}`));
+      holdsNothingOfA(await asB('GET', `/v1/orders?cursor=${aOrderId}`));
+    },
+  },
+  'GET /v1/orders/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/orders/${id}`), aOrderId),
+  },
+  'POST /v1/orders/:id/decision': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', `/v1/orders/${id}/decision`, { decision: 'accept', version: 1 }),
+        aOrderId,
+      ),
+  },
+  'POST /v1/orders/:id/line-decisions': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/orders/${id}/line-decisions`, {
+            lines: [{ lineId: newId(), decision: 'accepted' }],
+            version: 1,
+          }),
+        aOrderId,
+      ),
+  },
+  'POST /v1/orders/:id/fulfilment': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/orders/${id}/fulfilment`, {
+            action: 'cancel',
+            note: 'Not wanted',
+            version: 1,
+          }),
+        aOrderId,
+      ),
+  },
   'GET /v1/accounts/:id/prices': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/prices`), aAccountId),
@@ -1619,6 +1692,28 @@ beforeAll(async () => {
     version: 1,
   });
   expect(priced.statusCode).toBe(200);
+  aOrderId = newId();
+  const ordered = await send(aToken, 'POST', '/v1/orders', {
+    id: aOrderId,
+    accountId: aAccountId,
+    lines: [
+      {
+        itemId: aItemId,
+        unitKey: 'piece',
+        quantity: '2',
+        quoted: {
+          listId: aPriceListId,
+          price: '100.00',
+          discount: '0',
+          taxRate: '18',
+          factor: '1',
+        },
+      },
+    ],
+    note: `${a.word} order`,
+    placedAt: new Date().toISOString(),
+  });
+  expect(ordered.statusCode, ordered.body).toBe(201);
   aContactId = newId();
   await send(aToken, 'POST', `/v1/accounts/${aAccountId}/contacts`, {
     id: aContactId,

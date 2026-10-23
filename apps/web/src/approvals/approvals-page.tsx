@@ -17,8 +17,8 @@ import {
   StatusBadge,
   TextAreaField,
 } from '@thelamp/ui-web';
-import { Link } from '@tanstack/react-router';
-import { Check, CircleCheck, Inbox, Send, Undo2, X } from 'lucide-react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { ArrowRight, Check, CircleCheck, Inbox, Send, Undo2, X } from 'lucide-react';
 import { useState } from 'react';
 import type { MessageKey } from '@thelamp/i18n';
 import { errorMessage, useLanguage } from '../i18n';
@@ -277,6 +277,7 @@ function Request({
   onChoose?: (on: boolean) => void;
 }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const decisions = useDecisions();
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState('');
@@ -325,7 +326,16 @@ function Request({
         />
       ) : null}
       <div className="flex flex-wrap gap-2">
-        {rejecting ? (
+        {item.page ? (
+          // Decided on its own page, which asks for more than a note (decision D78).
+          <Button
+            variant="primary"
+            icon={<Icon icon={ArrowRight} />}
+            onClick={() => void navigate({ to: item.page as never })}
+          >
+            {t('approvals.open_to_decide')}
+          </Button>
+        ) : rejecting ? (
           <>
             <Button
               variant="danger"

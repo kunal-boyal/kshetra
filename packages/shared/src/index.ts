@@ -33,8 +33,32 @@ export { EVENT_PAYLOADS, EVENT_TYPES, TenantProvisionedPayload, UserEventPayload
 export type { EventPayload, EventType } from './events';
 export { isId, newId } from './ids';
 export { maskPhone, normalisePhone } from './phone';
-export { ORDER_STATUSES } from './orders';
-export type { OrderStatus } from './orders';
+export {
+  cancellable,
+  DEFAULT_REJECTION_REASONS,
+  gstHalves,
+  LINE_DECISIONS,
+  ORDER_STATUSES,
+  statusAfterFulfilment,
+  statusFromLines,
+  SUPPLIER_KINDS,
+} from './orders';
+export type { LineDecision, OrderStatus, SupplierKind } from './orders';
+export {
+  FulfilmentBody,
+  LineDecision as LineDecisionSchema,
+  LineDecisionsBody,
+  OrderDecisionBody,
+  OrderLineResult,
+  OrderListQuery,
+  OrderListResult,
+  OrderQuantity,
+  OrderResult,
+  OrderStatus as OrderStatusSchema,
+  OrderSummary,
+  PlaceOrderBody,
+  RejectionReason,
+} from './schemas/orders';
 export {
   IconName,
   Key,

@@ -247,6 +247,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - The web edits items at Settings → Catalogue and lists at Settings → Price lists (`apps/web/src/catalogue/`).
 - Phones keep price lists and prices as the `price_lists` and `prices` sync entities (`price-lists.sync.ts`): every list but those for single accounts the person doesn't see, with a scope that hashes the visible lists, so any change to which lists apply re-sends both. On the phone, `useAccountPrices()` in `apps/mobile/src/prices.ts` works out an account's prices with `applicableLists()` and `priceFor()`; the prices screen is `/prices/<accountId>`.
 
+## Orders (decision D78)
+
+- Orders live in `apps/api/src/modules/orders`. `OrdersService.place()` prices every line with `applicableLists()`, `priceFor()` and `priceLine()` on the day the order was placed, refuses with `PRICE_CHANGED` what the device showed otherwise (`quoteDifferences()`), and keeps each line's item as it was (BR-15). The status rules are `statusFromLines()` and `statusAfterFulfilment()` in `packages/shared/src/orders.ts` (BR-19); GST halves are `gstHalves()`.
+- An order's approval is decided on its own page: `ownPage` on its `RequestTypes` registration makes the inbox link there (`page`) and the generic decision refuse it. Decide through `OrdersService.decide()` and `decideLines()`, which call `ApprovalsService.decide(..., owner = true)`; `ApprovalsService.waiting()` says whether the step decides by line. Account finance provides `over_credit` through `OrderCredit.provide()`.
+- The web's orders are `apps/web/src/orders/`: the register, an order's page and the order desk.
+
 ## Tenant administration (decision D64)
 
 - Settings are `TenantSettings`; the apps read them from the bundle through `BundleSettings`, which drops settings they don't know and fills missing ones with defaults, so settings may only ever be added. The display name is the directory's (`TenantDirectory.rename()`), the logo a `logo` media file behind `/v1/organisation/logo`.

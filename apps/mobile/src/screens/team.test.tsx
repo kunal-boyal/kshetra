@@ -103,6 +103,7 @@ const APPROVAL = {
   ],
   cancellable: true,
   bulk: true,
+  page: null,
   createdAt: '2026-10-13T05:00:00.000Z',
   closedAt: null,
 };

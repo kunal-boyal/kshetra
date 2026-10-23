@@ -3,6 +3,7 @@ import {
   CoreConfigBundle,
   MEASURE_TYPES,
   PRICE_ROUNDINGS,
+  RejectionReason,
 } from '@thelamp/shared';
 import { z } from 'zod';
 import { AccountTypeView } from './account-types';
@@ -27,6 +28,8 @@ export const ConfigBundle = CoreConfigBundle.extend({
     measureTypes: z.array(z.enum(MEASURE_TYPES)),
     itemFields: z.array(CustomField).default([]),
     rounding: z.enum(PRICE_ROUNDINGS).default('per_unit_first'),
+    /** Why an order or a line is rejected; the defaults when empty (decision D78). */
+    rejectionReasons: z.array(RejectionReason).default([]),
   }),
 });
 

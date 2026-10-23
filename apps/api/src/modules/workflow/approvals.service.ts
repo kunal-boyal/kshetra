@@ -302,6 +302,40 @@ export class ApprovalsService {
   }
 
   /** One request, for its requester and the people asked to decide it. */
+  /**
+   * A request as the module that owns it shows it, without checking who asks: that module has
+   * decided already who may see the request itself.
+   */
+  async forOwner(tx: TenantTx, tenantId: string, id: string): Promise<ApprovalResult> {
+    const [result] = await this.results(tx, tenantId, [await this.find(tx, tenantId, id)]);
+    return result!;
+  }
+
+  /**
+   * Where a request waits: its version, the people who may decide the current step, and whether
+   * that step decides an order line by line (decision D74); null once it has ended.
+   */
+  async waiting(
+    tx: TenantTx,
+    tenantId: string,
+    id: string,
+  ): Promise<{ version: number; approverIds: string[]; lineDecisions: boolean } | null> {
+    const instance = await this.find(tx, tenantId, id);
+    if (instance.status !== 'pending') return null;
+    const step = (await this.steps(tx, tenantId, [id])).find(
+      (entry) => entry.stepIndex === instance.currentStep,
+    );
+    if (!step) return null;
+    const definition = instance.definitionId
+      ? await this.chains.byId(tx, tenantId, instance.definitionId)
+      : undefined;
+    return {
+      version: instance.version,
+      approverIds: step.approverIds,
+      lineDecisions: definition?.steps[step.stepIndex]?.lineDecisions ?? false,
+    };
+  }
+
   async get(tx: TenantTx, access: Access, id: string): Promise<ApprovalResult> {
     const instance = await this.find(tx, access.tenantId, id);
     const steps = await this.steps(tx, access.tenantId, [id]);
@@ -324,9 +358,14 @@ export class ApprovalsService {
     access: Access,
     id: string,
     body: ApprovalDecisionBody,
+    /** Set by the module that owns the request, deciding on its own page. */
+    owner = false,
   ): Promise<ApprovalResult> {
     const { tenantId } = access;
     const instance = await this.find(tx, tenantId, id, true);
+    if (!owner && this.types.get(instance.requestType).ownPage) {
+      throw new AppError('FORBIDDEN', 'Decide this request on its own page.');
+    }
     if (instance.requesterId === access.userId) {
       throw new AppError('FORBIDDEN', 'Nobody decides their own request.');
     }
@@ -590,6 +629,7 @@ export class ApprovalsService {
         })),
         cancellable: instance.status === 'pending' && own.every((step) => step.actedBy === null),
         bulk: this.types.get(instance.requestType).bulk ?? false,
+        page: this.types.get(instance.requestType).ownPage?.(instance.requestId) ?? null,
         createdAt: instance.createdAt.toISOString(),
         closedAt: instance.closedAt?.toISOString() ?? null,
       };
