@@ -6,6 +6,8 @@
 #   infra/scripts/demo.sh deploy                builds this commit's images for ARM, pushes them, and
 #                                               bootstraps, migrates and restarts the demo with them
 #   infra/scripts/demo.sh provision <args...>   makes a demo tenant: pnpm provision's arguments, plus --demo
+#   infra/scripts/demo.sh content --tenant <slug> [--days 26]
+#                                               fills a new demo tenant with weeks of fictional work
 #   infra/scripts/demo.sh pause                 stops the instance between demos (the disk and address remain)
 #   infra/scripts/demo.sh resume                starts it again and waits until the demo answers
 #   infra/scripts/demo.sh status                says whether it runs, and checks the demo's health
@@ -27,9 +29,9 @@ on_box() {
   local instance script parameters command status
   instance="$(output instance_id)"
   script="$1"
-  parameters="$(node -e 'console.log(JSON.stringify({ commands: [process.argv[1]] }))' "$script")"
+  parameters="$(node -e 'console.log(JSON.stringify({ commands: [process.argv[1]], executionTimeout: ["7200"] }))' "$script")"
   command="$(aws ssm send-command --instance-ids "$instance" --document-name AWS-RunShellScript \
-    --parameters "$parameters" --timeout-seconds 1800 --query Command.CommandId --output text)"
+    --parameters "$parameters" --timeout-seconds 600 --query Command.CommandId --output text)"
   status=Pending
   while [[ "$status" =~ ^(Pending|InProgress|Delayed)$ ]]; do
     sleep 5
@@ -94,6 +96,14 @@ cd /opt/thelamp
 docker compose run --rm api node dist/provision.mjs --demo$args"
 }
 
+content() {
+  local args=""
+  for arg in "$@"; do args+=" $(printf '%q' "$arg")"; done
+  on_box "set -euo pipefail
+cd /opt/thelamp
+docker compose run --rm api node dist/demo-content.mjs$args"
+}
+
 pause() {
   aws ec2 stop-instances --instance-ids "$(output instance_id)" >/dev/null
   aws ec2 wait instance-stopped --instance-ids "$(output instance_id)"
@@ -120,8 +130,9 @@ case "${1:-}" in
   apply) "${tf[@]}" init -input=false >/dev/null && "${tf[@]}" apply ;;
   deploy) deploy ;;
   provision) shift && provision "$@" ;;
+  content) shift && content "$@" ;;
   pause) pause ;;
   resume) resume ;;
   status) status ;;
-  *) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' && exit 1 ;;
+  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' && exit 1 ;;
 esac

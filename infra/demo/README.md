@@ -29,12 +29,31 @@ From the repository root, with Docker running:
    infra/scripts/demo.sh provision --name "Demo Agro" --slug demo-agro --template agri --status active --admin-name "Demo Admin" --admin-phone +919800000001
    ```
 
-7. Sign in at https://app.thelamp.in with that number and its code. For the phone, a preview build with `EXPO_PUBLIC_DIRECTORY_URL=https://app.thelamp.in`.
+7. Fill it with a few weeks of fictional work, so every screen has something to show (about half an hour on the instance):
+
+   ```bash
+   infra/scripts/demo.sh content --tenant demo-agro --days 26
+   ```
+
+8. Sign in at https://app.thelamp.in with that number and its code. For the phone, a preview build with `EXPO_PUBLIC_DIRECTORY_URL=https://app.thelamp.in`.
 
 ## Every day
 
 - `infra/scripts/demo.sh deploy` after merging, to show the newest build.
 - `infra/scripts/demo.sh pause` after a demo; `resume` before the next one (about two minutes).
 - `infra/scripts/demo.sh status` says whether it runs and answers.
+- For a fresh story, provision another demo tenant and run `content` on it; a tenant is filled once.
+
+## The content
+
+`pnpm --filter @thelamp/api demo:content --tenant <slug>` (locally) or `demo.sh content` (on the instance) fills a demo tenant that has only its admin. It reads the tenant's own configuration, so it works for any template, and makes:
+
+- territories down to markets around Nashik (real towns), and a team: a head manager, two group managers and eight field people, the demo numbers among them (the second number a group manager, the third one of his field people); the rest are fictional and never sign in;
+- distributors and shops in each market, with codes, locations and slots; a few fictional products when a form offers the catalogue;
+- each month's targets, set and locked by the managers;
+- every working day (Sundays off, a few absences): the managers' plans, punch-in, a trail of points, planned visits with a form and photos, farmer activities in villages, punch-out, and the managers' reviews, except the last two days', which wait; today stops at the present, so people are on duty;
+- what the nightly jobs would do: missed plans and everyone's attendance.
+
+It runs the app's own services as each person, on a simulated clock set to each moment, so every rule applies and the events work out attendance, metrics and leaderboards. At the end it releases the fictional phones of the demo numbers, so real phones can sign in with them.
 
 Changing `terraform.tfvars` (new demo numbers) needs `apply`, then `deploy`, which copies the settings to the box. The state lives in `infra/environments/demo` on the machine that applied it, as it holds the generated passwords; don't lose it, and never commit it.
