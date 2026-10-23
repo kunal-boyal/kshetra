@@ -65,7 +65,8 @@ export async function preparePhoto(photo: {
   const saved = await rendered.saveAsync({ compress: JPEG_QUALITY, format: SaveFormat.JPEG });
   const file = new File(saved.uri);
   const kept = new File(folder(), `${id}.jpg`);
-  file.move(kept);
+  // The move finishes later; the file is only there to read once it has.
+  await file.move(kept);
   const bytes = await kept.bytes();
   const digest = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes);
   return { id, uri: kept.uri, size: bytes.byteLength, sha256: hex(digest) };

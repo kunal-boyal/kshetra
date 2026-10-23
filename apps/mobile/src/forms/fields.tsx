@@ -144,6 +144,8 @@ function FieldInput({
   if (field.type === 'info_text') return <Notice>{field.text[locale]}</Notice>;
   const error = issues.get(path);
   const common = {
+    // Field keys never change, so end-to-end flows find inputs by them (decision D68).
+    testID: `field-${field.key}`,
     label: field.label[locale],
     required: field.required,
     ...(field.help ? { help: field.help[locale] } : {}),

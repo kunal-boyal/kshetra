@@ -1,0 +1,28 @@
+# Starting the day: consent, a location, and tracking on (M5, spec 12.1).
+appId: com.kshetra.app.e2e
+name: start-day
+---
+- launchApp:
+    stopApp: false
+- runFlow:
+    when:
+      true: ${EMULATOR == 'true'}
+    commands:
+      - setLocation:
+          latitude: ${LAT}
+          longitude: ${LNG}
+- tapOn: Start day
+- extendedWaitUntil:
+    visible: Before you start the day
+    timeout: 15000
+- tapOn: I agree, find my location
+# A real phone may need a while for an accurate fix, near a window or outside. Then the app says
+# why it needs location all the time before Android asks (Play's prominent disclosure).
+- extendedWaitUntil:
+    visible: Allow location all the time
+    timeout: 120000
+- tapOn: Start day
+- extendedWaitUntil:
+    visible: On duty since.*
+    timeout: 30000
+- assertVisible: Tracking

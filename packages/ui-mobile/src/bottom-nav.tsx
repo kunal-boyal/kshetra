@@ -14,6 +14,8 @@ export interface NavItem {
   icon: LucideIcon;
   active: boolean;
   onPress: () => void;
+  /** For end-to-end flows, which can't find a tab by its label: Android's own Home button shares it. */
+  testID?: string;
 }
 
 /**
@@ -69,6 +71,7 @@ function Tab({ item }: { item: NavItem }) {
       role="tab"
       aria-selected={item.active}
       aria-label={item.label}
+      {...(item.testID ? { testID: item.testID } : {})}
       onPress={item.onPress}
       style={styles.tab}
     >

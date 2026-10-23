@@ -9,6 +9,8 @@ export default defineConfig({
     'src/bootstrap.ts',
     'src/provision.ts',
     'src/seed.ts',
+    'src/load-fixtures.ts',
+    'src/e2e-fixtures.ts',
     'src/openapi.ts',
   ],
   format: 'esm',

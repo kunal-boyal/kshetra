@@ -10,7 +10,10 @@ const name = process.env.PRODUCT_NAME ?? 'Kshetra';
 // `.dev` identifier, so they install beside a preview or store build.
 const variant = process.env.APP_VARIANT ?? 'development';
 const development = variant === 'development';
-const id = `com.${slug}.app${development ? '.dev' : ''}`;
+// Maestro's builds (decision D68) install beside the others, and alone may reach a local API over
+// plain HTTP; every other build talks HTTPS only.
+const e2e = variant === 'e2e';
+const id = `com.${slug}.app${development ? '.dev' : e2e ? '.e2e' : ''}`;
 
 if (!development && !process.env.EXPO_PUBLIC_DIRECTORY_URL) {
   throw new Error(
@@ -32,7 +35,7 @@ const JAMUN = '#5b2b82';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: development ? `${name} dev` : name,
+  name: development ? `${name} dev` : e2e ? `${name} e2e` : name,
   slug,
   // The Expo account that owns the project (decision D34).
   owner: 'kunalboyal',
@@ -125,6 +128,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         ? { androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_KEY }
         : {},
     ],
+    ...(e2e
+      ? [['expo-build-properties', { android: { usesCleartextTraffic: true } }] as [string, object]]
+      : []),
     [
       'expo-splash-screen',
       {

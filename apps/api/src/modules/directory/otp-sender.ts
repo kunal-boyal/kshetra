@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createTransport, type Transporter } from 'nodemailer';
 import { maskPhone } from '@kshetra/shared';
 import { type Msg91Settings, sendFlow } from '../../platform/msg91';
 
@@ -54,5 +55,33 @@ export class Msg91OtpSender extends OtpSender {
     const result = await sendFlow(this.settings, this.templateId, phone, { [this.variable]: code });
     // The caller logs this; it names neither the number nor the code.
     if (!result.ok) throw new Error(result.error ?? 'MSG91 did not send the code');
+  }
+}
+
+/**
+ * Local development and CI only (decision D68): mails each code to the Mailpit inbox, to
+ * `<number>@otp.local`, where Maestro's flows and a developer testing on a phone read it.
+ * Production refuses it.
+ */
+export class MailpitOtpSender extends OtpSender {
+  private readonly transport: Transporter;
+
+  constructor(smtpUrl: string) {
+    super();
+    this.transport = createTransport(smtpUrl);
+  }
+
+  /** The inbox address of a number's codes. */
+  static addressOf(phone: string): string {
+    return `${phone.replace(/^\+/, '')}@otp.local`;
+  }
+
+  async send({ phone, code }: OtpMessage): Promise<void> {
+    await this.transport.sendMail({
+      from: 'sign-in@otp.local',
+      to: MailpitOtpSender.addressOf(phone),
+      subject: `Code ${code}`,
+      text: `Your sign-in code is ${code}.`,
+    });
   }
 }

@@ -18,6 +18,8 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `docker compose up -d` | starts the local services | now |
 | `pnpm dev` | runs the API on http://127.0.0.1:3000 with its worker and scheduler, the web portal on http://127.0.0.1:5173 (which passes `/auth` and `/v1` through to the API), and the field app's Expo dev server | now |
 | `pnpm --filter @kshetra/mobile go` | serves the field app to Expo Go on a phone on the same Wi-Fi; run the API with `HOST=0.0.0.0 pnpm dev`, or set `HOST` in `.env`. Turborepo passes only the variables `turbo.json` lists to a task (`HOST` and `CORS_ORIGINS` for `dev`), so add any other you need there | now |
+| `pnpm --filter @kshetra/api load:fixtures --users N` then `k6 run tools/k6/<script>.js` | load tests against the local API (decision D68, `tools/k6/README.md`); make new fixtures before each run | now |
+| `pnpm --filter @kshetra/api e2e:fixtures` then `apps/mobile/.maestro/run.sh <apk>` | the field app's Maestro flows on an emulator (decision D68, `apps/mobile/.maestro/README.md`) | now |
 | `pnpm --filter @kshetra/mobile web` | runs the field app in a browser, standing in for an Android phone; development only, so add http://localhost:8081 to `CORS_ORIGINS` | now |
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
 | `pnpm test:e2e` | Playwright tests of the web portal, with axe, against a mocked API. Install the browser once with `pnpm --filter @kshetra/web exec playwright install chromium`. | now |
@@ -263,8 +265,8 @@ Migrations are append-only and backward compatible. They follow expand and contr
 - **Unit:** Vitest for business rules, the form engine and metrics; Jest with jest-expo for React Native components and screens.
 - **Integration:** Testcontainers and supertest against real migrations and RLS.
 - **Cross-tenant contract test:** `test/cross-tenant.int.test.ts`, generated from the route registry; it fails for a route without a fixture. A new route's fixture has tenant B try tenant A's IDs: `sameAsNowhere()` for anything that takes an ID, `holdsNothingOfA()` for reads, and every row of A's is compared after each request.
-- **End to end:** Playwright (with axe) for the web apps, Maestro for mobile.
-- **Load:** k6.
+- **End to end:** Playwright (with axe) for the web apps; Maestro for mobile, on main, nightly and on pull requests that change the flows (decision D68). Flows select by the screen's English text and run against a fresh tenant from `e2e:fixtures`, never seeded people; sign-in codes come from Mailpit (`OTP_PROVIDER=mailpit`).
+- **Load:** k6 in `tools/k6`, with spec 3.2's targets as thresholds; sessions come from `load:fixtures`, one person per virtual user.
 - **Merging:** a pull request merges only with typecheck, lint, unit, integration and end-to-end tests green.
 
 ## Deployment (decision D67)

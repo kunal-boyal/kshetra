@@ -96,6 +96,7 @@ Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes mo
 | expo-location | 57.0.21 | Added 2026-10-12 for accounts (decision D43): a fix while the app is open, to sort places by distance and propose where one is. Foreground only; tracking adds background use in step 8. In Expo Go. |
 | expo-task-manager | 57.0.21 | Added 2026-10-13 for tracking (decision D48): the background location task. Background location needs a development build; Expo Go can't run it. |
 | expo-camera, expo-image-manipulator, expo-file-system | 57.0.6, 57.0.21, 57.0.7 | Added 2026-10-12 for photos (decision D44): the live camera without the microphone, resizing, and the app's own storage for photos waiting to upload. All in Expo Go. |
+| expo-build-properties | 57.0.22 | Added 2026-10-22 (decision D68): lets the `e2e` build alone reach a local API over plain HTTP |
 | react-native-screens, react-native-safe-area-context, react-native-gesture-handler | 4.26.2, 5.7.0, 2.32.0 | For the router |
 | react-native-reanimated, react-native-worklets | 4.5.1, 0.10.1 | The versions Expo Go carries, pinned because the router names them as optional peers and pnpm would otherwise install newer native code |
 | react-native-svg | 15.15.4 | Icons and the mark |
@@ -134,6 +135,10 @@ pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-work
 | Amazon RDS for PostgreSQL | 18 (current minor) | With PostGIS, pg_trgm and pg_partman, which RDS ships at 5.4 against 5.5 locally |
 | Amazon ElastiCache | Valkey 8.1 | Redis-compatible, for BullMQ, rate limits and live positions |
 | MSG91 | Flow API v5 | One-time codes and SMS notifications through DLT templates; no SDK, `fetch` only |
+| k6 | 2.x (Homebrew) | Load tests in `tools/k6` (decision D68); installed on the machine, not in the workspace |
+| Maestro | 2.11.0 locally, the latest release in CI | The field app's flows (decision D68); installed from its release zip locally and its installer in CI |
+| Android emulator | API 35 (Android 15) | Locally arm64-v8a, in CI x86_64 through `reactivecircus/android-emulator-runner` |
+| JDK | 17 (Temurin in CI, Homebrew's `openjdk@17` locally) | For Gradle and Maestro |
 
 ## CI (GitHub Actions)
 
@@ -147,3 +152,7 @@ pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-work
 | docker/setup-buildx-action | v4 |
 | docker/build-push-action | v7 |
 | hashicorp/setup-terraform | v4 |
+| actions/setup-java | v6 |
+| gradle/actions/setup-gradle | v6 |
+| reactivecircus/android-emulator-runner | v2 |
+| actions/upload-artifact | v7 |

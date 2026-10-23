@@ -85,6 +85,9 @@ describe('loadConfig', () => {
     expect(() => loadConfig(production)).toThrow(/JWT_SIGNING_KEY/);
     expect(() => loadConfig(production)).toThrow(/OTP_PEPPER/);
     expect(() => loadConfig(production)).toThrow(/CELL_API_URL/);
+    expect(() => loadConfig({ ...production, OTP_PROVIDER: 'mailpit' })).toThrow(
+      /mailpit provider never sends a real code/,
+    );
   });
 
   it('takes MSG91 with its key, its OTP template and the templates of notifications', () => {
