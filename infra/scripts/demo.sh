@@ -10,8 +10,8 @@
 #   infra/scripts/demo.sh resume                starts it again and waits until the demo answers
 #   infra/scripts/demo.sh status                says whether it runs, and checks the demo's health
 set -euo pipefail
-# A failing command inside $(…) stops the script too, so a failed build never deploys.
-shopt -s inherit_errexit
+# macOS runs this with its bash 3.2: no inherit_errexit, so the build runs as a plain command,
+# where set -e stops a deploy whose build failed.
 
 export AWS_PROFILE="${AWS_PROFILE:-thelamp-sandbox}"
 export AWS_REGION=ap-south-1
