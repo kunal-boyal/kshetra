@@ -3965,11 +3965,28 @@
                               "L"
                             ]
                           }
+                        },
+                        "itemFields": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CustomField"
+                          }
+                        },
+                        "rounding": {
+                          "default": "per_unit_first",
+                          "type": "string",
+                          "enum": [
+                            "per_unit_first",
+                            "end"
+                          ]
                         }
                       },
                       "required": [
                         "units",
-                        "measureTypes"
+                        "measureTypes",
+                        "itemFields",
+                        "rounding"
                       ],
                       "additionalProperties": false
                     }
