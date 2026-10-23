@@ -302,6 +302,13 @@
       "when": 1792795700596,
       "tag": "0042_order_row_versions",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792799044270,
+      "tag": "0043_finance",
+      "breakpoints": true
     }
   ]
 }

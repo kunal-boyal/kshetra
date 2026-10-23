@@ -2,6 +2,7 @@ import { type CountryCode, isSupportedCountry } from 'libphonenumber-js';
 import { z } from 'zod';
 import { DataScope, Permission } from './common';
 import { contrastRatio, HEX_COLOUR } from '../colour';
+import { bucketsIssue, DEFAULT_AGEING_BUCKETS } from '../finance';
 import { SWITCHABLE_MODULES } from '../modules';
 import { RAW_LOCATION_RETENTION_DAYS_MAX, SYNC_WINDOW_HOURS_MAX } from '../retention';
 import { TERMINOLOGY_KEYS, type TerminologyKey } from '../terminology';
@@ -125,6 +126,21 @@ export const TenantSettings = z.strictObject({
   targetUnlockByAdmin: z.boolean(),
   ordersNeedOpenShift: z.boolean(),
   ordersAllowedOffline: z.boolean(),
+  /** Days past due that account finance ages outstanding into (M11, BR-20). */
+  ageingBuckets: z
+    .array(
+      z.strictObject({
+        key: Key,
+        fromDays: z.int().min(0).max(3650),
+        toDays: z.int().min(0).max(3650).nullable(),
+      }),
+    )
+    .min(1)
+    .max(8)
+    .superRefine((buckets, context) => {
+      const issue = bucketsIssue(buckets);
+      if (issue) context.addIssue({ code: 'custom', message: issue });
+    }),
   /** When field users hear about today's plan, on the tenant's clock (M16). */
   planNotificationTime: TimeOfDay,
   /** Non-urgent push and SMS wait from here until `quietHoursEnd` (M16). */
@@ -163,6 +179,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   targetUnlockByAdmin: false,
   ordersNeedOpenShift: false,
   ordersAllowedOffline: true,
+  ageingBuckets: DEFAULT_AGEING_BUCKETS.map((bucket) => ({ ...bucket })),
   planNotificationTime: '08:00',
   quietHoursStart: '21:00',
   quietHoursEnd: '07:00',

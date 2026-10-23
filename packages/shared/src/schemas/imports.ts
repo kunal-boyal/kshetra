@@ -12,6 +12,8 @@ export const IMPORT_TARGETS = [
   'items',
   'targets',
   'account_plans',
+  'finance_snapshots',
+  'ledger_entries',
 ] as const;
 export const AccountsImportTarget = z.templateLiteral(['accounts:', Key]);
 export const ImportTarget = z

@@ -25,6 +25,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { customValue } from '../people/custom-fields';
 import { SubmissionsSection } from '../submissions/submissions-section';
 import { AccountPlanSection } from '../targets/account-plan-section';
+import { FinanceSection } from '../finance/finance-section';
 import { useAccess, write } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section, useDates } from '../people/shared';
 import { useAccountOverview, useAccountTypes, useRefreshAccounts } from './data';
@@ -202,6 +203,7 @@ function Account({ overview }: { overview: AccountOverview }) {
       {type?.contacts ? <Contacts overview={overview} manages={manages} /> : null}
       <SubmissionsSection accountId={account.id} />
       <AccountPlanSection accountId={account.id} />
+      {access.can('finance.view') ? <FinanceSection accountId={account.id} /> : null}
 
       {overview.locationProposals.length > 0 ? (
         <Section title={t('account.proposals')}>

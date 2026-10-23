@@ -1942,6 +1942,78 @@
         }
       }
     },
+    "/v1/accounts/{id}/finance": {
+      "get": {
+        "operationId": "FinanceController.forAccount",
+        "summary": "An account's latest balance and the ones before it",
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: finance.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "latest": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/FinanceSnapshot"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FinanceSnapshot"
+                      }
+                    }
+                  },
+                  "required": [
+                    "latest",
+                    "history"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/accounts/{id}/location-proposals": {
       "post": {
         "operationId": "AccountsController.proposeLocation",
@@ -2305,6 +2377,147 @@
                     "date",
                     "lists",
                     "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/{id}/statement": {
+      "get": {
+        "operationId": "FinanceController.statement",
+        "summary": "An account's statement for a financial year, with running balances",
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: finance.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 2000,
+              "maximum": 2100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "to": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "opening": {
+                      "type": "string"
+                    },
+                    "closing": {
+                      "type": "string"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "debit": {
+                            "type": "string"
+                          },
+                          "credit": {
+                            "type": "string"
+                          },
+                          "balance": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "date",
+                          "reference",
+                          "description",
+                          "debit",
+                          "credit",
+                          "balance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "from",
+                    "to",
+                    "opening",
+                    "closing",
+                    "entries",
+                    "truncated",
+                    "count"
                   ],
                   "additionalProperties": false
                 }
@@ -3155,7 +3368,9 @@
                 "order.decided",
                 "order.lines_decided",
                 "order.fulfilled",
-                "order.cancelled"
+                "order.cancelled",
+                "finance.snapshots_added",
+                "finance.entries_added"
               ]
             }
           },
@@ -3340,7 +3555,9 @@
                               "order.decided",
                               "order.lines_decided",
                               "order.fulfilled",
-                              "order.cancelled"
+                              "order.cancelled",
+                              "finance.snapshots_added",
+                              "finance.entries_added"
                             ]
                           },
                           "target": {
@@ -3767,6 +3984,42 @@
                         "ordersAllowedOffline": {
                           "type": "boolean"
                         },
+                        "ageingBuckets": {
+                          "minItems": 1,
+                          "maxItems": 8,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "$ref": "#/components/schemas/Key"
+                              },
+                              "fromDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 3650
+                              },
+                              "toDays": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 3650
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "fromDays",
+                              "toDays"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "planNotificationTime": {
                           "$ref": "#/components/schemas/TimeOfDay"
                         },
@@ -3805,6 +4058,7 @@
                         "targetUnlockByAdmin",
                         "ordersNeedOpenShift",
                         "ordersAllowedOffline",
+                        "ageingBuckets",
                         "planNotificationTime",
                         "quietHoursStart",
                         "quietHoursEnd"
@@ -5196,6 +5450,54 @@
         }
       }
     },
+    "/v1/finance-snapshots": {
+      "post": {
+        "operationId": "FinanceController.addSnapshot",
+        "summary": "An account's balance on a day, with its ageing, under its own ID",
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: finance.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinanceSnapshotBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceSnapshot"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/forms": {
       "get": {
         "operationId": "FormsController.list",
@@ -6037,6 +6339,83 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Leaderboard"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ledger-entries": {
+      "post": {
+        "operationId": "FinanceController.addEntries",
+        "summary": "Add statement entries; one sent again unchanged changes nothing",
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: finance.manage",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LedgerEntriesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "created": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "unchanged": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "created",
+                    "unchanged"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -10192,6 +10571,42 @@
                   "ordersAllowedOffline": {
                     "type": "boolean"
                   },
+                  "ageingBuckets": {
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "$ref": "#/components/schemas/Key"
+                        },
+                        "fromDays": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 3650
+                        },
+                        "toDays": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 3650
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "fromDays",
+                        "toDays"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
                   "planNotificationTime": {
                     "$ref": "#/components/schemas/TimeOfDay"
                   },
@@ -10388,6 +10803,42 @@
                     "ordersAllowedOffline": {
                       "type": "boolean"
                     },
+                    "ageingBuckets": {
+                      "minItems": 1,
+                      "maxItems": 8,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "$ref": "#/components/schemas/Key"
+                          },
+                          "fromDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3650
+                          },
+                          "toDays": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 3650
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "fromDays",
+                          "toDays"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "planNotificationTime": {
                       "$ref": "#/components/schemas/TimeOfDay"
                     },
@@ -10426,6 +10877,7 @@
                     "targetUnlockByAdmin",
                     "ordersNeedOpenShift",
                     "ordersAllowedOffline",
+                    "ageingBuckets",
                     "planNotificationTime",
                     "quietHoursStart",
                     "quietHoursEnd"
@@ -13901,7 +14353,9 @@
                               "order.decided",
                               "order.lines_decided",
                               "order.fulfilled",
-                              "order.cancelled"
+                              "order.cancelled",
+                              "finance.snapshots_added",
+                              "finance.entries_added"
                             ]
                           },
                           "target": {
@@ -18287,6 +18741,138 @@
         ],
         "additionalProperties": false
       },
+      "FinanceSnapshot": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "outstanding": {
+            "type": "string"
+          },
+          "creditLimit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inventoryValue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ageing": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "asOf",
+          "outstanding",
+          "creditLimit",
+          "inventoryValue",
+          "ageing",
+          "source",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "FinanceSnapshotBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "outstanding": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "creditLimit": {
+            "default": null,
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inventoryValue": {
+            "default": null,
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ageing": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "$ref": "#/components/schemas/Key"
+            },
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Money"
+            }
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "asOf",
+          "outstanding",
+          "source"
+        ],
+        "additionalProperties": false
+      },
       "FormDefinition": {
         "type": "object",
         "properties": {
@@ -19477,7 +20063,9 @@
               "territories",
               "items",
               "targets",
-              "account_plans"
+              "account_plans",
+              "finance_snapshots",
+              "ledger_entries"
             ]
           },
           {
@@ -19495,7 +20083,9 @@
               "territories",
               "items",
               "targets",
-              "account_plans"
+              "account_plans",
+              "finance_snapshots",
+              "ledger_entries"
             ]
           },
           {
@@ -20000,6 +20590,72 @@
           "quotaYear",
           "halfDayAllowed",
           "active"
+        ],
+        "additionalProperties": false
+      },
+      "LedgerEntriesBody": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "accountId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60
+                },
+                "description": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "debit": {
+                  "default": "0",
+                  "$ref": "#/components/schemas/Money"
+                },
+                "credit": {
+                  "default": "0",
+                  "$ref": "#/components/schemas/Money"
+                }
+              },
+              "required": [
+                "id",
+                "accountId",
+                "date",
+                "reference"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "entries"
         ],
         "additionalProperties": false
       },
@@ -23124,6 +23780,42 @@
           },
           "ordersAllowedOffline": {
             "type": "boolean"
+          },
+          "ageingBuckets": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "fromDays": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3650
+                },
+                "toDays": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3650
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "fromDays",
+                "toDays"
+              ],
+              "additionalProperties": false
+            }
           },
           "planNotificationTime": {
             "$ref": "#/components/schemas/TimeOfDay"
