@@ -1,10 +1,5 @@
 import type { AccountTypeView } from '@thelamp/forms';
-import {
-  AccountListResult,
-  AccountOverview,
-  ApprovalInboxResult,
-  type AccountStatus,
-} from '@thelamp/shared';
+import { AccountListResult, AccountOverview, type AccountStatus } from '@thelamp/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { useConfig } from '../data';
@@ -52,18 +47,6 @@ export function useAccountOverview(id: string) {
   return useQuery({
     queryKey: ['account', id],
     queryFn: () => read(client, `/v1/accounts/${id}/overview`, AccountOverview),
-  });
-}
-
-/** What waits for the viewer to decide, oldest first. */
-export function useInbox() {
-  const { client } = useApp();
-  return useInfiniteQuery({
-    queryKey: ['approvals'],
-    queryFn: ({ pageParam }) =>
-      read(client, `/v1/approvals/inbox${search({ cursor: pageParam })}`, ApprovalInboxResult),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 }
 

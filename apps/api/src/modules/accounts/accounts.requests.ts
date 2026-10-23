@@ -33,6 +33,7 @@ export class AccountRequests implements OnModuleInit {
     this.types.register({
       type: 'new_account',
       fallbackPermission: 'account.approve',
+      bulk: true,
       subjects: (tx, tenantId, ids) => this.accounts.subjects(tx, tenantId, ids),
       // A withdrawn proposal ends as a rejected one.
       decided: (tx: TenantTx, by: Access, id: string, outcome) =>

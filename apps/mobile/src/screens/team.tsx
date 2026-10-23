@@ -5,15 +5,17 @@ import { Button, EmptyState, ListGroup, ListRow, Screen, Text } from '@thelamp/u
 import { router } from 'expo-router';
 import { ClipboardCheck, MapPin, RotateCw, TriangleAlert } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
+import { useApprovalInbox } from '../approvals';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { PhoneMap, Spot } from '../maps';
 import { useLive } from '../maps-data';
 import { useReviewQueue } from '../review';
+import { ApprovalRows } from './approval-item';
 
 /**
- * Team (spec 8.1), for managers: who is on duty now, and what waits for their review. The
- * approvals inbox and the team's figures join it as their modules arrive.
+ * Team (spec 8.1), for managers: who is on duty now, the requests waiting for their decision, and
+ * what waits for their review. The team's figures join it as their module arrives.
  */
 export function TeamScreen() {
   const { t } = useLanguage();
@@ -26,6 +28,9 @@ export function TeamScreen() {
       </Text>
       {permissions.has('live_map.view') ? (
         <OnDutyNow canReplay={permissions.has('trail.view')} />
+      ) : null}
+      {permissions.has('approval.act') || permissions.has('account.approve') ? (
+        <ApprovalsWaiting />
       ) : null}
       {permissions.has('submission.review') ? <ReviewQueue /> : null}
     </Screen>
@@ -102,6 +107,39 @@ function OnDutyNow({ canReplay }: { canReplay: boolean }) {
         ))}
       </ListGroup>
     </View>
+  );
+}
+
+/** Requests waiting for the manager's decision, oldest first (M15, decision D76). */
+function ApprovalsWaiting() {
+  const { t } = useLanguage();
+  const inbox = useApprovalInbox();
+  const items = inbox.data?.pages.flatMap((page) => page.items) ?? [];
+  const counts = Object.values(inbox.data?.pages[0]?.counts ?? {});
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  if (inbox.isError) {
+    return (
+      <Text tone="danger" role="alert">
+        {errorMessage(inbox.error, t)}
+      </Text>
+    );
+  }
+  if (inbox.isPending) return <Text tone="muted">{t('common.loading')}</Text>;
+  return (
+    <>
+      <ListGroup title={t('team.to_decide', { count: total })}>
+        {items.length === 0 ? <Text tone="muted">{t('approvals.empty_title')}</Text> : null}
+        <ApprovalRows items={items} />
+      </ListGroup>
+      {inbox.hasNextPage ? (
+        <Button
+          variant="secondary"
+          label={t('common.load_more')}
+          busy={inbox.isFetchingNextPage}
+          onPress={() => void inbox.fetchNextPage()}
+        />
+      ) : null}
+    </>
   );
 }
 

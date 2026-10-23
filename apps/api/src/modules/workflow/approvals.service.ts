@@ -5,18 +5,22 @@ import {
   type ApprovalDecisionBody,
   type ApprovalInboxQuery,
   type ApprovalInboxResult,
+  type ApprovalMineQuery,
+  type ApprovalMineResult,
   type ApprovalResult,
+  type BulkApprovalBody,
+  type BulkApprovalResult,
   newId,
   nextStep,
   type RequestType,
   type RoutedStep,
   routeRequest,
 } from '@thelamp/shared';
-import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import { workflowInstances, workflowSteps } from '../../db/schema/workflow';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
-import type { TenantTx } from '../../platform/database';
+import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
@@ -44,6 +48,7 @@ export class ApprovalsService {
     private readonly approvers: Approvers,
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
+    private readonly database: Database,
   ) {}
 
   /**
@@ -209,10 +214,74 @@ export class ApprovalsService {
       .orderBy(asc(workflowInstances.id))
       .limit(query.limit + 1);
     const page = found.slice(0, query.limit).map((row) => row.instance);
+    const counts = await tx
+      .select({ type: workflowInstances.requestType, count: sql<number>`count(*)::int` })
+      .from(workflowInstances)
+      .innerJoin(workflowSteps, this.currentStepOf())
+      .where(this.waitingFor(access))
+      .groupBy(workflowInstances.requestType);
+    return {
+      items: await this.results(tx, access.tenantId, page),
+      nextCursor: found.length > query.limit ? page.at(-1)!.id : null,
+      counts: Object.fromEntries(counts.map((row) => [row.type, row.count])),
+    };
+  }
+
+  /** The caller's own requests, newest first, with where each stands (M15). */
+  async mine(tx: TenantTx, access: Access, query: ApprovalMineQuery): Promise<ApprovalMineResult> {
+    const found = await tx
+      .select()
+      .from(workflowInstances)
+      .where(
+        and(
+          eq(workflowInstances.tenantId, access.tenantId),
+          eq(workflowInstances.requesterId, access.userId),
+          query.status ? eq(workflowInstances.status, query.status) : undefined,
+          query.cursor ? lt(workflowInstances.id, query.cursor) : undefined,
+        ),
+      )
+      .orderBy(desc(workflowInstances.id))
+      .limit(query.limit + 1);
+    const page = found.slice(0, query.limit);
     return {
       items: await this.results(tx, access.tenantId, page),
       nextCursor: found.length > query.limit ? page.at(-1)!.id : null,
     };
+  }
+
+  /**
+   * Approves several requests in one go, where their types allow it (M15). Each is decided on its
+   * own, inside a savepoint, so one refused leaves the others decided.
+   */
+  async approveMany(
+    tx: TenantTx,
+    access: Access,
+    body: BulkApprovalBody,
+  ): Promise<BulkApprovalResult> {
+    const results: BulkApprovalResult['results'] = [];
+    for (const item of body.items) {
+      try {
+        const approval = await this.database.savepoint(tx, async (inner) => {
+          const instance = await this.find(inner, access.tenantId, item.id);
+          if (!this.types.get(instance.requestType).bulk) {
+            throw new AppError('FORBIDDEN', 'Decide this kind of request on its own.');
+          }
+          return this.decide(inner, access, item.id, {
+            decision: 'approve',
+            version: item.version,
+          });
+        });
+        results.push({ id: item.id, approval, error: null });
+      } catch (error) {
+        if (!(error instanceof AppError)) throw error;
+        results.push({
+          id: item.id,
+          approval: null,
+          error: { code: error.code, message: error.message },
+        });
+      }
+    }
+    return { results };
   }
 
   private currentStepOf() {
@@ -520,6 +589,7 @@ export class ApprovalsService {
           fallback: step.fallback,
         })),
         cancellable: instance.status === 'pending' && own.every((step) => step.actedBy === null),
+        bulk: this.types.get(instance.requestType).bulk ?? false,
         createdAt: instance.createdAt.toISOString(),
         closedAt: instance.closedAt?.toISOString() ?? null,
       };

@@ -26,10 +26,13 @@ Notifications.setNotificationHandler({
 });
 
 /** The paths the app can open from a notification; anything else opens the inbox. */
-const APP_PATHS = new Set(['/', '/notifications', '/leaderboard', '/uploads']);
+const APP_PATHS = new Set(['/', '/notifications', '/leaderboard', '/uploads', '/team']);
+/** The portal's paths that have a home on the phone: approvals wait in the Team tab. */
+const PHONE_PATHS: Record<string, string> = { '/approvals': '/team' };
 
 export function openLink(link: unknown): void {
-  const path = typeof link === 'string' && APP_PATHS.has(link) ? link : '/notifications';
+  const asked = typeof link === 'string' ? (PHONE_PATHS[link] ?? link) : null;
+  const path = asked && APP_PATHS.has(asked) ? asked : '/notifications';
   router.push(path as '/');
 }
 

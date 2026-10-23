@@ -89,6 +89,22 @@ export class Database implements OnModuleDestroy {
     tasks.push(task);
   }
 
+  /**
+   * Runs `work` in a savepoint of a transaction `forTenant` opened, so a failure undoes only
+   * `work`. Its after-commit tasks join the transaction's once the savepoint is released.
+   */
+  async savepoint<T>(tx: TenantTx, work: (inner: TenantTx) => Promise<T>): Promise<T> {
+    const outer = this.afterCommitTasks.get(tx);
+    if (!outer) throw new Error('savepoint needs the transaction Database.forTenant opened.');
+    const tasks: (() => Promise<void>)[] = [];
+    const result = await tx.transaction(async (inner) => {
+      this.afterCommitTasks.set(inner, tasks);
+      return work(inner);
+    });
+    outer.push(...tasks);
+    return result;
+  }
+
   /** For readiness: can the API reach the database at all? */
   async ping(): Promise<boolean> {
     try {

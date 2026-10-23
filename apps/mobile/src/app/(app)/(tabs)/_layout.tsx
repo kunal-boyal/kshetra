@@ -53,7 +53,13 @@ export default function TabsLayout() {
         name="team"
         options={{
           title: t('team.title'),
-          href: can('submission.review') || can('live_map.view') ? undefined : null,
+          href:
+            can('submission.review') ||
+            can('live_map.view') ||
+            can('approval.act') ||
+            can('account.approve')
+              ? undefined
+              : null,
         }}
       />
       <Tabs.Screen name="me" options={{ title: t('app.me') }} />
