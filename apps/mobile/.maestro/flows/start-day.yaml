@@ -1,5 +1,5 @@
 # Starting the day: consent, a location, and tracking on (M5, spec 12.1).
-appId: com.kshetra.app.e2e
+appId: com.thelamp.app.e2e
 name: start-day
 ---
 - launchApp:

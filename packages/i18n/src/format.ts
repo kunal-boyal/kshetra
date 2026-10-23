@@ -1,4 +1,4 @@
-import type { Locale } from '@kshetra/shared';
+import type { Locale } from '@thelamp/shared';
 
 /**
  * Numbers, money and dates for display (spec 8.5): the user's language with the tenant's region,

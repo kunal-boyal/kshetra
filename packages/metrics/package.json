@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/metrics",
+  "name": "@thelamp/metrics",
   "version": "0.0.0",
   "private": true,
   "description": "Metric and score definitions and their checks; the metric calculators join in phase 1",
@@ -13,12 +13,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@kshetra/forms": "workspace:*",
-    "@kshetra/shared": "workspace:*",
+    "@thelamp/forms": "workspace:*",
+    "@thelamp/shared": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

@@ -20,5 +20,5 @@ export default defineConfig({
   clean: true,
   dts: false,
   // Workspace packages are TypeScript source, so they are bundled in; npm dependencies stay external.
-  deps: { alwaysBundle: [/^@kshetra\//] },
+  deps: { alwaysBundle: [/^@thelamp\//] },
 });

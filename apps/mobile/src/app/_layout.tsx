@@ -1,7 +1,7 @@
 // What Hermes lacks comes first, then the background location task (spec 12.1).
 import '../polyfills';
 import '../background';
-import { useTheme } from '@kshetra/ui-mobile';
+import { useTheme } from '@thelamp/ui-mobile';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';

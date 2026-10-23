@@ -19,7 +19,7 @@ Settings changed in Terraform reach the services at the next deploy: after `terr
 
 ## Setting up an environment
 
-This needs the AWS account, a domain for the API, the web portal and media, an approved MSG91 account with DLT templates, and Amazon SES out of its sandbox. None of it is done until those exist.
+This needs the AWS accounts, opened as [AWS accounts](aws-accounts.md) sets out, a domain for the API, the web portal and media, an approved MSG91 account with DLT templates, and Amazon SES out of its sandbox. None of it is done until those exist.
 
 ### 1. Terraform state and the first apply
 
@@ -51,12 +51,12 @@ The services start with the image tag `bootstrap`, which doesn't exist yet, so t
 
 ### 2. The cell's secret
 
-Terraform creates the secret `kshetra-<environment>-cell1/app` (output `secret_arn`) but never its value. Set it once, as JSON, from a trusted machine. Database URLs use `sslmode=verify-full`, and passwords inside URLs are URL-encoded:
+Terraform creates the secret `thelamp-<environment>-cell1/app` (output `secret_arn`) but never its value. Set it once, as JSON, from a trusted machine. Database URLs use `sslmode=verify-full`, and passwords inside URLs are URL-encoded:
 
 | Key | Value |
 |---|---|
-| `DATABASE_BOOTSTRAP_URL` | The RDS master user: `postgres://postgres:<password>@<database_address>:5432/kshetra?sslmode=verify-full`. Its password is in the secret RDS keeps (output `database_master_secret_arn`). |
-| `DATABASE_MIGRATOR_URL` | `postgres://migrator:<new password>@<database_address>:5432/kshetra?sslmode=verify-full` |
+| `DATABASE_BOOTSTRAP_URL` | The RDS master user: `postgres://postgres:<password>@<database_address>:5432/<database_name>?sslmode=verify-full`, with both from `terraform output`. Its password is in the secret RDS keeps (output `database_master_secret_arn`). |
+| `DATABASE_MIGRATOR_URL` | `postgres://migrator:<new password>@<database_address>:5432/<database_name>?sslmode=verify-full` |
 | `DATABASE_URL` | `postgres://cell_app:<new password>@…` as above |
 | `DIRECTORY_DATABASE_URL` | `postgres://directory_app:<new password>@…` as above |
 | `OTP_PEPPER` | 48 random characters: `openssl rand -base64 36` |
@@ -81,20 +81,20 @@ In the repository's settings, create the GitHub environment (`staging` or `produ
 Run the Deploy workflow for staging. Its migration fails the first time, because the database has no roles yet; that is expected. The image is now in ECR, so bootstrap the database once with the `bootstrap` task, which creates the three roles and the PostGIS, pg_trgm and pg_partman extensions. It refuses any host but the cell's own:
 
 ```bash
-aws ecs run-task --cluster kshetra-staging-cell1 --launch-type FARGATE \
-  --task-definition kshetra-staging-cell1-bootstrap \
+aws ecs run-task --cluster thelamp-staging-cell1 --launch-type FARGATE \
+  --task-definition thelamp-staging-cell1-bootstrap \
   --network-configuration "awsvpcConfiguration={subnets=[<TASK_SUBNETS>],securityGroups=[<TASK_SECURITY_GROUP>]}"
 ```
 
-Its logs are in `/kshetra-staging-cell1/bootstrap`. Then run the Deploy workflow again; it migrates and starts the services. `https://<api_domain>/ready` answers `ready` once the database, the directory and Redis are reachable.
+Its logs are in `/thelamp-staging-cell1/bootstrap`. Then run the Deploy workflow again; it migrates and starts the services. `https://<api_domain>/ready` answers `ready` once the database, the directory and Redis are reachable.
 
 ### 5. The first tenant
 
 Provisioning runs as a one-off API task with its command overridden, so it reaches the private database:
 
 ```bash
-aws ecs run-task --cluster kshetra-staging-cell1 --launch-type FARGATE \
-  --task-definition kshetra-staging-cell1-api \
+aws ecs run-task --cluster thelamp-staging-cell1 --launch-type FARGATE \
+  --task-definition thelamp-staging-cell1-api \
   --network-configuration "awsvpcConfiguration={subnets=[<TASK_SUBNETS>],securityGroups=[<TASK_SECURITY_GROUP>]}" \
   --overrides '{"containerOverrides":[{"name":"api","command":["node","dist/provision.mjs","--name","<name>","--slug","<slug>","--template","agri","--admin-name","<name>","--admin-phone","<number>"]}]}'
 ```

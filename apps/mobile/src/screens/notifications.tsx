@@ -1,6 +1,6 @@
-import { spacing } from '@kshetra/design-tokens';
-import { formatDateTime, notificationMessage } from '@kshetra/i18n';
-import type { NotificationCategoryKey, NotificationResult } from '@kshetra/shared';
+import { spacing } from '@thelamp/design-tokens';
+import { formatDateTime, notificationMessage } from '@thelamp/i18n';
+import type { NotificationCategoryKey, NotificationResult } from '@thelamp/shared';
 import {
   Button,
   CheckGroup,
@@ -10,7 +10,7 @@ import {
   Notice,
   Screen,
   Text,
-} from '@kshetra/ui-mobile';
+} from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ArrowLeft, Bell, BellDot, CheckCheck, RotateCw, Save } from 'lucide-react-native';
 import { useState } from 'react';

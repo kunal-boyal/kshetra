@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { DashboardResult } from '@kshetra/shared';
+import type { DashboardResult } from '@thelamp/shared';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { ShiftsService } from '../field/shifts.service';

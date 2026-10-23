@@ -4,7 +4,7 @@ import {
   effectivePermissions,
   isOpenTenant,
   type TenantPermission,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
 import { type Access, AccessResolver, type AuthContext } from '../../platform/auth';

@@ -10,7 +10,7 @@ import {
   ReportKeyParam,
   ReportPage,
   ReportQuery,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';

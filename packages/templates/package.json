@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/templates",
+  "name": "@thelamp/templates",
   "version": "0.0.0",
   "private": true,
   "description": "Industry templates: each tenant's starting configuration, with the schema and validator they pass",
@@ -14,13 +14,13 @@
     "schema": "vitest run src/json-schema.test.ts --update"
   },
   "dependencies": {
-    "@kshetra/forms": "workspace:*",
-    "@kshetra/metrics": "workspace:*",
-    "@kshetra/shared": "workspace:*",
+    "@thelamp/forms": "workspace:*",
+    "@thelamp/metrics": "workspace:*",
+    "@thelamp/shared": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "@types/node": "catalog:",
     "ajv": "^8.20.0",
     "eslint": "catalog:",

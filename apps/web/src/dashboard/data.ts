@@ -1,4 +1,4 @@
-import { DashboardResult } from '@kshetra/shared';
+import { DashboardResult } from '@thelamp/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';

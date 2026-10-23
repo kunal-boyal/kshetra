@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { ApiError, NetworkError, type SessionState } from '@kshetra/api-client';
-import { SETTING_DEFAULTS } from '@kshetra/shared';
+import { ApiError, NetworkError, type SessionState } from '@thelamp/api-client';
+import { SETTING_DEFAULTS } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AppProvider, useApp } from '../app-state';

@@ -2,7 +2,7 @@
 # One image for every cell process (spec 14.3, decision D67): the API (the default command), the
 # worker (`node dist/worker.mjs`), the scheduler (`node dist/scheduler.mjs`) and the one-off
 # migration (`node dist/migrate.mjs`). Build from the repository root:
-#   docker build -f apps/api/Dockerfile -t kshetra-api .
+#   docker build -f apps/api/Dockerfile -t thelamp-api .
 
 ARG NODE_IMAGE=node:24-bookworm-slim
 
@@ -12,12 +12,12 @@ RUN corepack enable
 WORKDIR /repo
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm --filter @kshetra/api build
+RUN pnpm --filter @thelamp/api build
 # The build bundles the workspace packages, so the image needs only the API's npm packages. The
 # shared lockfile resolves drizzle-orm with the phone's optional peers, so the deployed copy
 # resolves again without automatic peers: the locked versions stay, and Expo stays out.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm --filter @kshetra/api deploy --prod /deploy \
+    pnpm --filter @thelamp/api deploy --prod /deploy \
  && cd /deploy \
  && sed -i 's/^autoInstallPeers: true/autoInstallPeers: false/' pnpm-workspace.yaml \
  && rm -rf node_modules \

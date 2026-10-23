@@ -1,5 +1,5 @@
 variable "name" {
-  description = "Prefix for every resource's name, such as kshetra-staging-cell1."
+  description = "Prefix for every resource's name, such as thelamp-staging-cell1."
   type        = string
 }
 
@@ -11,13 +11,13 @@ variable "cell_id" {
 variable "product_slug" {
   description = "PRODUCT_SLUG; every identifier derives from it (spec 0)."
   type        = string
-  default     = "kshetra"
+  default     = "thelamp"
 }
 
 variable "product_name" {
   description = "PRODUCT_NAME, where people read it (decision D1)."
   type        = string
-  default     = "Kshetra"
+  default     = "The Lamp"
 }
 
 variable "vpc_id" {

@@ -5,8 +5,8 @@ import {
   type FormContext,
   type FormDefinition,
   type FormView,
-} from '@kshetra/forms';
-import { AppError, type ErrorDetail, issueAt, newId } from '@kshetra/shared';
+} from '@thelamp/forms';
+import { AppError, type ErrorDetail, issueAt, newId } from '@thelamp/shared';
 import { and, asc, eq } from 'drizzle-orm';
 import { forms, formVersions } from '../../db/schema/forms';
 import { type AuditActor, AuditLog, userActor } from '../../platform/audit';

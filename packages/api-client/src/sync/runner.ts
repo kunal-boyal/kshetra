@@ -1,4 +1,4 @@
-import type { SyncEntity } from '@kshetra/shared';
+import type { SyncEntity } from '@thelamp/shared';
 import { ApiError, NetworkError } from '../client';
 import type { Outbox, OutboxCounts } from './outbox';
 import { lastPulledAt, pull, type PullClient } from './pull';

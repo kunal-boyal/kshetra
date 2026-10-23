@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { CreateUserBody, type DeviceInfo, newId, type UserResult } from '@kshetra/shared';
-import { loadTemplate } from '@kshetra/templates';
+import { CreateUserBody, type DeviceInfo, newId, type UserResult } from '@thelamp/shared';
+import { loadTemplate } from '@thelamp/templates';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { sql } from 'drizzle-orm';
 import type { LightMyRequestResponse } from 'fastify';

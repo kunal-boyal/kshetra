@@ -19,7 +19,7 @@ import {
   TerritoryResult,
   UpdateTerritoryBody,
   UpdateTerritoryLevelsBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { userActor } from '../../platform/audit';
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';

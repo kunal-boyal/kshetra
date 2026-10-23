@@ -1,7 +1,7 @@
-import type { FormEntry } from '@kshetra/api-client/sync';
-import { spacing } from '@kshetra/design-tokens';
-import { formatDateTime } from '@kshetra/i18n';
-import { EmptyState, ListGroup, ListRow, Notice, Screen, Text } from '@kshetra/ui-mobile';
+import type { FormEntry } from '@thelamp/api-client/sync';
+import { spacing } from '@thelamp/design-tokens';
+import { formatDateTime } from '@thelamp/i18n';
+import { EmptyState, ListGroup, ListRow, Notice, Screen, Text } from '@thelamp/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
 import { CircleCheck, ClipboardList, FilePen, Hourglass } from 'lucide-react-native';
 import { useCallback, useState } from 'react';

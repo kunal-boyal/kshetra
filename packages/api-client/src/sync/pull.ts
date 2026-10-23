@@ -1,4 +1,4 @@
-import { SYNC_ENTITIES, type SyncEntity, type SyncPullResult } from '@kshetra/shared';
+import { SYNC_ENTITIES, type SyncEntity, type SyncPullResult } from '@thelamp/shared';
 import { ApiError } from '../client';
 import { LOCAL_ENTITIES, type LocalEntity } from './local-schema';
 import type { SqlDatabase, SqlExecutor } from './sql';

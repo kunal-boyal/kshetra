@@ -1,4 +1,4 @@
-import type { FontFaces } from '@kshetra/ui-mobile';
+import type { FontFaces } from '@thelamp/ui-mobile';
 
 /**
  * Android uses the phone's own fonts, so the app downloads none (platforms.md, Mobile): Noto Sans

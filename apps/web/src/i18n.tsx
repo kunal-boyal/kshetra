@@ -1,6 +1,6 @@
-import { type MessageKey, type ResolvedTerminology, translate } from '@kshetra/i18n';
-import { ApiError, NetworkError } from '@kshetra/api-client';
-import type { Locale } from '@kshetra/shared';
+import { type MessageKey, type ResolvedTerminology, translate } from '@thelamp/i18n';
+import { ApiError, NetworkError } from '@thelamp/api-client';
+import type { Locale } from '@thelamp/shared';
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import { applyLocale, savedLocale } from './preferences';
 

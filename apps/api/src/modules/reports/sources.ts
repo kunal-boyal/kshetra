@@ -1,11 +1,11 @@
-import type { MessageKey } from '@kshetra/i18n';
+import type { MessageKey } from '@thelamp/i18n';
 import type {
   Locale,
   ReportCell,
   ReportColumnKind,
   ReportFilters,
   ReportKey,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { SQL } from 'drizzle-orm';
 import type { TenantTx } from '../../platform/database';
 

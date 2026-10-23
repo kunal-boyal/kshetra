@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { type DeviceInfo, newId } from '@kshetra/shared';
+import { type DeviceInfo, newId } from '@thelamp/shared';
 import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';

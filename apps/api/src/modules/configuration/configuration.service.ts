@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { FormDefinition, FormView } from '@kshetra/forms';
+import type { FormDefinition, FormView } from '@thelamp/forms';
 import {
   AppError,
   type ConfigurationChange,
@@ -11,8 +11,8 @@ import {
   todayIn,
   type UpdateDesignationBody,
   type UpdateRoleBody,
-} from '@kshetra/shared';
-import { loadTemplate, type Template, TemplateError, validateTemplate } from '@kshetra/templates';
+} from '@thelamp/shared';
+import { loadTemplate, type Template, TemplateError, validateTemplate } from '@thelamp/templates';
 import type { Access } from '../../platform/auth';
 import { AuditLog, userActor } from '../../platform/audit';
 import { canonicalJson } from '../../platform/canonical-json';

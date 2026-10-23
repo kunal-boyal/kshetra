@@ -6,7 +6,7 @@ import {
   type ImportTarget,
   newId,
   type TenantPermission,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type { WebClient } from '../client';

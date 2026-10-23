@@ -1,4 +1,4 @@
-import type { People, Workflows } from '@kshetra/templates';
+import type { People, Workflows } from '@thelamp/templates';
 import { jsonb, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { cell, isolation } from './common';
 

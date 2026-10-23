@@ -1,5 +1,5 @@
-import { spacing } from '@kshetra/design-tokens';
-import { checkValues, type Values } from '@kshetra/forms';
+import { spacing } from '@thelamp/design-tokens';
+import { checkValues, type Values } from '@thelamp/forms';
 import {
   AccountCode,
   type CreateAccountBody,
@@ -7,8 +7,8 @@ import {
   type SyncAccount,
   timeIn,
   todayIn,
-} from '@kshetra/shared';
-import { Button, ChoiceGroup, Notice, Screen, Text, TextField } from '@kshetra/ui-mobile';
+} from '@thelamp/shared';
+import { Button, ChoiceGroup, Notice, Screen, Text, TextField } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ArrowLeft, Crosshair, Send } from 'lucide-react-native';
 import { useState } from 'react';

@@ -5,7 +5,7 @@ import {
   checkValueChanges,
   primaryAssignee,
   type SlotHolder,
-} from '@kshetra/forms';
+} from '@thelamp/forms';
 import {
   type AccountListQuery,
   type AccountListResult,
@@ -28,7 +28,7 @@ import {
   todayIn,
   type UpdateAccountBody,
   type UpdateContactBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   and,
   asc,
@@ -108,7 +108,7 @@ export function slotsOn(day: string): SQL {
 /**
  * Accounts (spec 5.5, M4). Who sees an account follows today's slot holders, the territories of a
  * territory scope, and what the caller proposed; the rules themselves are pure functions in
- * `@kshetra/forms`.
+ * `@thelamp/forms`.
  */
 @Injectable()
 export class AccountsService {

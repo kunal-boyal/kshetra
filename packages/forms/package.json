@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/forms",
+  "name": "@thelamp/forms",
   "version": "0.0.0",
   "private": true,
   "description": "Form definitions: field types, visibility conditions and the checks a definition passes before it is published",
@@ -13,12 +13,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@kshetra/shared": "workspace:*",
+    "@thelamp/shared": "workspace:*",
     "re2js": "^2.8.6",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

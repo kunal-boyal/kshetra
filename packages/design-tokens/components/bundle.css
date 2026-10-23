@@ -1,4 +1,4 @@
-/* Kshetra components — CSS layer over tokens.css. Prefix ks-. Reads semantic, accent and pastel tokens only. */
+/* The Lamp components — CSS layer over tokens.css. Prefix ks-. Reads semantic, accent and pastel tokens only. */
 :root, [data-density="comfortable"] {
   --ks-control: var(--control-lg); --ks-row: var(--row-comfortable);
   --ks-body-size: 16px; --ks-body-lh: 24px; --ks-pad: var(--space-4);

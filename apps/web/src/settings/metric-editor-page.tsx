@@ -5,9 +5,9 @@ import {
   type MetricSource,
   type MetricSourceType,
   RECOMPUTE_MAX_DAYS,
-} from '@kshetra/metrics';
-import { ORDER_STATUSES, todayIn } from '@kshetra/shared';
-import { Button, Checkbox, ChoiceGroup, Icon, SelectField, TextField } from '@kshetra/ui-web';
+} from '@thelamp/metrics';
+import { ORDER_STATUSES, todayIn } from '@thelamp/shared';
+import { Button, Checkbox, ChoiceGroup, Icon, SelectField, TextField } from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
 import { Save } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';

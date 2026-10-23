@@ -1,4 +1,4 @@
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

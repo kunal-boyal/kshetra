@@ -7,7 +7,7 @@ import {
   LiveResult,
   TrailQuery,
   TrailResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

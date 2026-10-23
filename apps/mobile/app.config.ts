@@ -1,10 +1,13 @@
 import { existsSync } from 'node:fs';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-// Every name and identifier derives from the product slug (spec 0). Decision D1 settles the real
-// name and domain, and with them the store identifiers, before the first store build.
-const slug = process.env.PRODUCT_SLUG ?? 'kshetra';
-const name = process.env.PRODUCT_NAME ?? 'Kshetra';
+// The product's names (decision D1), which `pnpm rename` keeps in step with product.json. The app
+// ID is fixed once the first store build is uploaded; the Expo project keeps the name it was
+// registered under.
+const slug = process.env.PRODUCT_SLUG ?? 'thelamp';
+const name = process.env.PRODUCT_NAME ?? 'The Lamp';
+const APP_ID = 'com.thelamp.app';
+const EXPO_PROJECT = 'kshetra';
 
 // EAS build profiles set the variant (spec 14.3). Development builds carry the dev client and a
 // `.dev` identifier, so they install beside a preview or store build.
@@ -13,7 +16,7 @@ const development = variant === 'development';
 // Maestro's builds (decision D68) install beside the others, and alone may reach a local API over
 // plain HTTP; every other build talks HTTPS only.
 const e2e = variant === 'e2e';
-const id = `com.${slug}.app${development ? '.dev' : e2e ? '.e2e' : ''}`;
+const id = `${APP_ID}${development ? '.dev' : e2e ? '.e2e' : ''}`;
 
 if (!development && !process.env.EXPO_PUBLIC_DIRECTORY_URL) {
   throw new Error(
@@ -36,7 +39,7 @@ const JAMUN = '#5b2b82';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: development ? `${name} dev` : e2e ? `${name} e2e` : name,
-  slug,
+  slug: EXPO_PROJECT,
   // The Expo account that owns the project (decision D34).
   owner: 'kunalboyal',
   version: '0.1.0',

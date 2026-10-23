@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { People, Workflows } from '@kshetra/templates';
+import type { People, Workflows } from '@thelamp/templates';
 import { eq } from 'drizzle-orm';
 import { heldConfiguration } from '../../db/schema/configuration';
 import type { TenantTx } from '../../platform/database';

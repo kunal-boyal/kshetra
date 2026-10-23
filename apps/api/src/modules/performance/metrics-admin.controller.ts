@@ -5,7 +5,7 @@ import {
   MetricKeyParam,
   UpdateMetricBody,
   UpdateScoreBody,
-} from '@kshetra/metrics';
+} from '@thelamp/metrics';
 import { userActor } from '../../platform/audit';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';

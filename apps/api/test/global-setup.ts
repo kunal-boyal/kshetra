@@ -13,7 +13,7 @@ declare module 'vitest' {
   }
 }
 
-const IMAGE = 'kshetra-postgres-test:18';
+const IMAGE = 'thelamp-postgres-test:18';
 
 /**
  * Starts one PostgreSQL and one Redis for the whole run, set up exactly as a developer's machine
@@ -25,14 +25,14 @@ export default async function setup(project: TestProject): Promise<() => Promise
   await GenericContainer.fromDockerfile(context).build(IMAGE, { deleteOnExit: false });
   const [container, redis] = await Promise.all([
     new PostgreSqlContainer(IMAGE)
-      .withDatabase('kshetra')
+      .withDatabase('thelamp')
       .withUsername('postgres')
       .withPassword('postgres')
       .start(),
     new RedisContainer('redis:8.10').start(),
   ]);
 
-  const at = `${container.getHost()}:${container.getPort()}/kshetra`;
+  const at = `${container.getHost()}:${container.getPort()}/thelamp`;
   const urls: BootstrapUrls = {
     admin: container.getConnectionUri(),
     migrator: `postgres://migrator:migrator-test@${at}`,

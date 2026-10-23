@@ -1,4 +1,4 @@
-import type { AttendanceRule, Signature } from '@kshetra/shared';
+import type { AttendanceRule, Signature } from '@thelamp/shared';
 import {
   GEOFENCE_RESULTS,
   LOCATION_SOURCES,
@@ -7,7 +7,7 @@ import {
   SUBMISSION_FLAGS,
   SUBMISSION_STATUSES,
   VISIT_END_REASONS,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,

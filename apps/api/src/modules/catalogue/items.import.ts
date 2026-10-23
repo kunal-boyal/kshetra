@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { checkValueChanges } from '@kshetra/forms';
+import { checkValueChanges } from '@thelamp/forms';
 import {
   AccountCode,
   type ImportProblem,
@@ -9,7 +9,7 @@ import {
   packMeasureIssue,
   percentFromCell,
   todayIn,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { items, itemUnits, productCategories, products } from '../../db/schema/catalogue';
 import type { TenantTx } from '../../platform/database';

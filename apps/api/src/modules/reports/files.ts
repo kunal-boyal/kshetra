@@ -1,5 +1,5 @@
 import { PassThrough } from 'node:stream';
-import { csvLine, neutraliseFormula, type ReportCell, type ReportColumn } from '@kshetra/shared';
+import { csvLine, neutraliseFormula, type ReportCell, type ReportColumn } from '@thelamp/shared';
 import ExcelJS from 'exceljs';
 import type { ReportRow } from './sources';
 

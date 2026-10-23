@@ -1,4 +1,4 @@
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import { ModulesContainer, Reflector } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';

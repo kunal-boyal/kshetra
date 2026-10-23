@@ -1,9 +1,9 @@
-import type { FormEntry } from '@kshetra/api-client/sync';
-import { spacing } from '@kshetra/design-tokens';
-import type { Values } from '@kshetra/forms';
-import { formatDateTime, formatNumber } from '@kshetra/i18n';
-import { punchFixIssue, timeIn, todayIn } from '@kshetra/shared';
-import { Button, Card, Notice, Screen, StatusBadge, Text } from '@kshetra/ui-mobile';
+import type { FormEntry } from '@thelamp/api-client/sync';
+import { spacing } from '@thelamp/design-tokens';
+import type { Values } from '@thelamp/forms';
+import { formatDateTime, formatNumber } from '@thelamp/i18n';
+import { punchFixIssue, timeIn, todayIn } from '@thelamp/shared';
+import { Button, Card, Notice, Screen, StatusBadge, Text } from '@thelamp/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Camera, Send, Trash2, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';

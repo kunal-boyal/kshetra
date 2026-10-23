@@ -1,4 +1,4 @@
-import { AppError } from '@kshetra/shared';
+import { AppError } from '@thelamp/shared';
 import { type AuditActor, SYSTEM_ACTOR, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 

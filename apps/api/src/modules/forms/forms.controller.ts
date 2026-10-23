@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Patch, Post } from '@nestjs/common';
-import { FormListResult, FormView, PublishFormBody, UpdateFormBody } from '@kshetra/forms';
-import { IdParams } from '@kshetra/shared';
+import { FormListResult, FormView, PublishFormBody, UpdateFormBody } from '@thelamp/forms';
+import { IdParams } from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';

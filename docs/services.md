@@ -1,12 +1,12 @@
 # Services
 
-This file lists every service Kshetra uses: where it runs, why, and when it arrives. It draws on spec sections 9.2 (stack), 14.1 (environments) and 14.2 (AWS topology), and on Appendix F (settings). Update it whenever a service is added, replaced or moves to another phase.
+This file lists every service The Lamp uses: where it runs, why, and when it arrives. It draws on spec sections 9.2 (stack), 14.1 (environments) and 14.2 (AWS topology), and on Appendix F (settings). Update it whenever a service is added, replaced or moves to another phase.
 
 ## Local development (Docker Compose)
 
 `docker-compose.yml` runs these four on the developer's machine. Each stands in for a production AWS service, so the code runs offline without an AWS account. Every port binds to 127.0.0.1, so only that machine can reach them.
 
-| Service | Port | What it does for Kshetra | Production twin |
+| Service | Port | What it does for The Lamp | Production twin |
 |---|---|---|---|
 | PostgreSQL 18, with PostGIS, pg_partman and pg_trgm | 5433 (`POSTGRES_PORT`) | The database. It holds every tenant's data and keeps tenants apart with row-level security. PostGIS stores GPS points and works out geofences and distances. pg_partman splits the high-volume location table into partitions. pg_trgm powers fuzzy name matching and search. | Amazon RDS for PostgreSQL |
 | Redis 8.10 | 6380 (`REDIS_PORT`) | Sign-in rate limits and tenant-choice tickets today (step 4). From phase 1 it also holds the background job queues (SMS, push, photo processing, exports, webhooks), so requests never wait on slow work, and caches. | Amazon ElastiCache |

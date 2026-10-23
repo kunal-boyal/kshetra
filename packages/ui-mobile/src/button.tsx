@@ -1,4 +1,4 @@
-import { opacity, radius, size, spacing } from '@kshetra/design-tokens';
+import { opacity, radius, size, spacing } from '@thelamp/design-tokens';
 import type { LucideIcon } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, type PressableProps, StyleSheet, View } from 'react-native';
 import { Icon } from './icon';

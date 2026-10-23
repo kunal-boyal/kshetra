@@ -1,7 +1,7 @@
-import { ApiError } from '@kshetra/api-client';
-import { formatDate, formatDateTime } from '@kshetra/i18n';
-import type { DesignationResult, Locale, TransferStatus, UserStatus } from '@kshetra/shared';
-import { type BadgeVariant, Icon, StatusBadge } from '@kshetra/ui-web';
+import { ApiError } from '@thelamp/api-client';
+import { formatDate, formatDateTime } from '@thelamp/i18n';
+import type { DesignationResult, Locale, TransferStatus, UserStatus } from '@thelamp/shared';
+import { type BadgeVariant, Icon, StatusBadge } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';

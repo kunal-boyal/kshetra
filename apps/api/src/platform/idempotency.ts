@@ -1,4 +1,4 @@
-import { AppError } from '@kshetra/shared';
+import { AppError } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { idempotencyKeys, type StoredResponse } from '../db/schema';
 import { hashRequest } from './canonical-json';

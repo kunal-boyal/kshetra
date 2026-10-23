@@ -1,11 +1,11 @@
-import { type AccountType, type AnyField, checkCondition, checkFields } from '@kshetra/forms';
-import { type ErrorDetail, issueAt, repeats } from '@kshetra/shared';
+import { type AccountType, type AnyField, checkCondition, checkFields } from '@thelamp/forms';
+import { type ErrorDetail, issueAt, repeats } from '@thelamp/shared';
 import { repeatedKeys } from './organisation';
 
 type Path = readonly PropertyKey[];
 
 // The schemas live in the forms package, beside the fields they carry (decision D43).
-export { AccountType, AssignmentSlot, SegmentRule } from '@kshetra/forms';
+export { AccountType, AssignmentSlot, SegmentRule } from '@thelamp/forms';
 
 function checkAccountType(
   type: AccountType,

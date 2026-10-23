@@ -1,5 +1,5 @@
 # A field user signs in with the code sent to their number (M1).
-appId: com.kshetra.app.e2e
+appId: com.thelamp.app.e2e
 name: sign-in
 ---
 - launchApp:

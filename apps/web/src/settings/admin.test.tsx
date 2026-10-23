@@ -1,4 +1,4 @@
-import { SETTING_DEFAULTS } from '@kshetra/shared';
+import { SETTING_DEFAULTS } from '@thelamp/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';

@@ -1,5 +1,5 @@
-import { ApiError } from '@kshetra/api-client';
-import { Button, Card, Icon, TextField } from '@kshetra/ui-web';
+import { ApiError } from '@thelamp/api-client';
+import { Button, Card, Icon, TextField } from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
 import { Building2, ChevronRight } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';

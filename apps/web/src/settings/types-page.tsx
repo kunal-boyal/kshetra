@@ -1,5 +1,5 @@
-import type { AccountTypeView } from '@kshetra/forms';
-import { type Column, DataTable, EmptyState, Icon, StatusBadge } from '@kshetra/ui-web';
+import type { AccountTypeView } from '@thelamp/forms';
+import { type Column, DataTable, EmptyState, Icon, StatusBadge } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { Plus, Store } from 'lucide-react';
 import { errorMessage, useLanguage } from '../i18n';

@@ -1,5 +1,5 @@
-import type { AccountType, AccountTypeView, Condition, CustomField } from '@kshetra/forms';
-import { Button, Checkbox, Icon, SelectField, TextField } from '@kshetra/ui-web';
+import type { AccountType, AccountTypeView, Condition, CustomField } from '@thelamp/forms';
+import { Button, Checkbox, Icon, SelectField, TextField } from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
 import { Plus, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';

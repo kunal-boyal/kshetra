@@ -1,4 +1,4 @@
-import { FormListResult } from '@kshetra/forms';
+import { FormListResult } from '@thelamp/forms';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';

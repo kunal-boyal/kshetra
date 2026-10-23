@@ -1,5 +1,5 @@
-import { spacing } from '@kshetra/design-tokens';
-import { newId, PROPOSAL_ACCURACY_M, proposalFix } from '@kshetra/shared';
+import { spacing } from '@thelamp/design-tokens';
+import { newId, PROPOSAL_ACCURACY_M, proposalFix } from '@thelamp/shared';
 import {
   Button,
   Card,
@@ -9,7 +9,7 @@ import {
   Screen,
   StatusBadge,
   Text,
-} from '@kshetra/ui-mobile';
+} from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import {
   ArrowLeft,

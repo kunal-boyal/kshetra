@@ -1,5 +1,5 @@
-import { UserResult, type UserView } from '@kshetra/shared';
-import { Button, Checkbox, ChoiceGroup, Icon, SelectField, TextField } from '@kshetra/ui-web';
+import { UserResult, type UserView } from '@thelamp/shared';
+import { Button, Checkbox, ChoiceGroup, Icon, SelectField, TextField } from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
 import { Save } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

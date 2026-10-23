@@ -13,7 +13,7 @@ import {
   type TerritoryResult,
   todayIn,
   type UpdateTerritoryBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, gt, inArray, isNull, lte, or, type SQL, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import {

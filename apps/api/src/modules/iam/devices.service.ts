@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AppError, type DeviceHealth, type DeviceHeartbeatBody } from '@kshetra/shared';
+import { AppError, type DeviceHealth, type DeviceHeartbeatBody } from '@thelamp/shared';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { devices } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';

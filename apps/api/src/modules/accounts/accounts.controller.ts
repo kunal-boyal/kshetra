@@ -12,7 +12,7 @@ import {
   LocationProposalResult,
   UpdateAccountBody,
   UpdateContactBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { z } from 'zod';
 import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
 import { Database } from '../../platform/database';

@@ -1,5 +1,5 @@
-import { UserListResult } from '@kshetra/shared';
-import { Button, TextField } from '@kshetra/ui-web';
+import { UserListResult } from '@thelamp/shared';
+import { Button, TextField } from '@thelamp/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { useApp } from '../context';

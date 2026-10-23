@@ -9,7 +9,7 @@ import {
   issueAt,
   newId,
   type UpdateImportMappingBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, desc, eq, inArray, like, lt, or } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { importJobs, importMappings, type PreviewRow } from '../../db/schema/imports';

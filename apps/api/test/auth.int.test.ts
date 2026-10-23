@@ -320,7 +320,7 @@ describe('cell routes', () => {
     const { payload, protectedHeader } = await jwtVerify(
       session.accessToken,
       createLocalJWKSet(jwks),
-      { issuer: 'kshetra:directory', audience: 'kshetra:cell' },
+      { issuer: 'thelamp:directory', audience: 'thelamp:cell' },
     );
     expect(protectedHeader).toMatchObject({ alg: 'ES256', kid: jwks.keys[0].kid });
     expect(payload).toMatchObject({
@@ -335,7 +335,7 @@ describe('cell routes', () => {
 describe('the web (spec 13.1)', () => {
   const web = { 'x-client': 'web' };
   const cookieOf = (response: { cookies: { name: string; value: string }[] }) =>
-    response.cookies.find((cookie) => cookie.name === 'kshetra_refresh');
+    response.cookies.find((cookie) => cookie.name === 'thelamp_refresh');
 
   it('keeps the refresh token in an httpOnly same-site cookie, never in a body', async () => {
     const person = await member('Lotus Web');
@@ -357,7 +357,7 @@ describe('the web (spec 13.1)', () => {
       method: 'POST',
       url: '/auth/v1/token/refresh',
       headers: web,
-      cookies: { kshetra_refresh: first!.value },
+      cookies: { thelamp_refresh: first!.value },
     });
     expect(refreshed.statusCode).toBe(200);
     expect(refreshed.json().tenant).toMatchObject({ id: person.tenantIds[0], name: 'Lotus Web' });
@@ -369,7 +369,7 @@ describe('the web (spec 13.1)', () => {
     const forged = await app.inject({
       method: 'POST',
       url: '/auth/v1/token/refresh',
-      cookies: { kshetra_refresh: second!.value },
+      cookies: { thelamp_refresh: second!.value },
     });
     expect(forged.statusCode).toBe(401);
     expect(forged.json().error.code).toBe('SESSION_REVOKED');
@@ -378,7 +378,7 @@ describe('the web (spec 13.1)', () => {
       method: 'POST',
       url: '/auth/v1/logout',
       headers: web,
-      cookies: { kshetra_refresh: second!.value },
+      cookies: { thelamp_refresh: second!.value },
     });
     expect(signedOut.statusCode).toBe(204);
     expect(cookieOf(signedOut)).toMatchObject({
@@ -391,7 +391,7 @@ describe('the web (spec 13.1)', () => {
       method: 'POST',
       url: '/auth/v1/token/refresh',
       headers: web,
-      cookies: { kshetra_refresh: second!.value },
+      cookies: { thelamp_refresh: second!.value },
     });
     expect(after.json().error.code).toBe('SESSION_REVOKED');
   });

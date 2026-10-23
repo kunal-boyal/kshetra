@@ -1,5 +1,5 @@
 import type { IncomingMessage } from 'node:http';
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 
 const WELL_FORMED = /^[A-Za-z0-9._:-]{1,128}$/;
 

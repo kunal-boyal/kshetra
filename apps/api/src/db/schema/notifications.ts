@@ -2,7 +2,7 @@ import {
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CHANNELS,
   NOTIFICATION_EVENTS,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,

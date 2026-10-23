@@ -1,10 +1,10 @@
-import type { AccountTypeView } from '@kshetra/forms';
+import type { AccountTypeView } from '@thelamp/forms';
 import {
   AccountListResult,
   AccountOverview,
   ApprovalInboxResult,
   type AccountStatus,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { useConfig } from '../data';

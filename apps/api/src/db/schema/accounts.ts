@@ -1,10 +1,10 @@
-import type { AccountType } from '@kshetra/forms';
+import type { AccountType } from '@thelamp/forms';
 import {
   ACCOUNT_STATUSES,
   type AccountAddress,
   LOCATION_STATUSES,
   PROPOSAL_STATUSES,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,

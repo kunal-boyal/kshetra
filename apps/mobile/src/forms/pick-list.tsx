@@ -1,5 +1,5 @@
-import { spacing } from '@kshetra/design-tokens';
-import { ChoiceGroup, Text, TextField } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import { ChoiceGroup, Text, TextField } from '@thelamp/ui-mobile';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLanguage } from '../i18n';

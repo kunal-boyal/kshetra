@@ -1,5 +1,5 @@
 import { Global, Module, type OnModuleInit } from '@nestjs/common';
-import type { EventPayload } from '@kshetra/shared';
+import type { EventPayload } from '@thelamp/shared';
 import { IamAccess } from './modules/iam/access.service';
 import { IamAdmission } from './modules/iam/admission.service';
 import { IamModule } from './modules/iam/iam.module';

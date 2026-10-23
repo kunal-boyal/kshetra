@@ -1,4 +1,4 @@
-import { radius, size, spacing } from '@kshetra/design-tokens';
+import { radius, size, spacing } from '@thelamp/design-tokens';
 import type { LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ViewProps } from 'react-native';

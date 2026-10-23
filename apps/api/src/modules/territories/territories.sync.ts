@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import type { SyncTerritory } from '@kshetra/shared';
+import type { SyncTerritory } from '@thelamp/shared';
 import { and, asc, eq, gte, sql } from 'drizzle-orm';
 import { territories } from '../../db/schema/territories';
 import type { Access } from '../../platform/auth';

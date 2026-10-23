@@ -1,4 +1,4 @@
-import { ACCENT_THEMES, type AccentTheme, deriveAccent } from '@kshetra/shared';
+import { ACCENT_THEMES, type AccentTheme, deriveAccent } from '@thelamp/shared';
 
 /**
  * The tenant's accent on the web (spec 5.1, tenant-theming.md, decision D64): the six accent

@@ -1,7 +1,7 @@
-import { conditionHolds, type FormDefinition, type Values } from '@kshetra/forms';
-import { type MessageKey, translate } from '@kshetra/i18n';
-import type { Locale } from '@kshetra/shared';
-import { Checkbox, ChoiceGroup, SelectField, TextAreaField, TextField } from '@kshetra/ui-web';
+import { conditionHolds, type FormDefinition, type Values } from '@thelamp/forms';
+import { type MessageKey, translate } from '@thelamp/i18n';
+import type { Locale } from '@thelamp/shared';
+import { Checkbox, ChoiceGroup, SelectField, TextAreaField, TextField } from '@thelamp/ui-web';
 import { useId, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';

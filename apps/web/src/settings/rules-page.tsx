@@ -1,5 +1,5 @@
-import { LOCALES, type TenantSettings, type UpdateSettingsBody } from '@kshetra/shared';
-import { Button, Checkbox, Icon, SelectField, TextField } from '@kshetra/ui-web';
+import { LOCALES, type TenantSettings, type UpdateSettingsBody } from '@thelamp/shared';
+import { Button, Checkbox, Icon, SelectField, TextField } from '@thelamp/ui-web';
 import { Save } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { useApp } from '../context';

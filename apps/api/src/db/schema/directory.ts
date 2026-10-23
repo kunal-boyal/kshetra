@@ -1,4 +1,4 @@
-import { TENANT_STATUSES } from '@kshetra/shared';
+import { TENANT_STATUSES } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import { index, integer, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { directory } from './common';

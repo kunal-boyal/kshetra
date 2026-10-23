@@ -6,8 +6,8 @@ import {
   LOGO_MAX_BYTES,
   LOGO_TYPES,
   nearestPassingShade,
-} from '@kshetra/shared';
-import { Button, Icon, Notice, TextAreaField, TextField } from '@kshetra/ui-web';
+} from '@thelamp/shared';
+import { Button, Icon, Notice, TextAreaField, TextField } from '@thelamp/ui-web';
 import { ImageUp, Palette, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, useId, useState } from 'react';
 import { useApp } from '../context';

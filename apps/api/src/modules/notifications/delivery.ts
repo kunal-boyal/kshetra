@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { notificationMessage, resolveTerminology, translate } from '@kshetra/i18n';
+import { notificationMessage, resolveTerminology, translate } from '@thelamp/i18n';
 import {
   type Locale,
   maskPhone,
   NOTIFICATION_KINDS,
   type NotificationEventKey,
   smsSegments,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { notificationDeliveries, notifications, pushTokens } from '../../db/schema/notifications';
 import { Database, type TenantTx } from '../../platform/database';

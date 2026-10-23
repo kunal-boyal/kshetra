@@ -1,5 +1,5 @@
 import { Body, Controller, Headers, HttpCode, Post } from '@nestjs/common';
-import { DeviceHeartbeatBody } from '@kshetra/shared';
+import { DeviceHeartbeatBody } from '@thelamp/shared';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

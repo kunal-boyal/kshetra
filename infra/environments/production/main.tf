@@ -20,7 +20,7 @@ terraform {
 provider "aws" {
   region = "ap-south-1"
   default_tags {
-    tags = { Product = "kshetra", Environment = "production", ManagedBy = "terraform" }
+    tags = { Product = "thelamp", Environment = "production", ManagedBy = "terraform" }
   }
 }
 
@@ -28,7 +28,7 @@ provider "aws" {
   alias  = "us_east_1"
   region = "us-east-1"
   default_tags {
-    tags = { Product = "kshetra", Environment = "production", ManagedBy = "terraform" }
+    tags = { Product = "thelamp", Environment = "production", ManagedBy = "terraform" }
   }
 }
 
@@ -72,7 +72,7 @@ module "environment" {
     aws           = aws
     aws.us_east_1 = aws.us_east_1
   }
-  name                 = "kshetra-production"
+  name                 = "thelamp-production"
   github_environment   = "production"
   api_domain           = var.api_domain
   web_domain           = var.web_domain
@@ -101,6 +101,10 @@ output "secret_arn" {
 
 output "database_address" {
   value = module.environment.database_address
+}
+
+output "database_name" {
+  value = module.environment.database_name
 }
 
 output "database_master_secret_arn" {

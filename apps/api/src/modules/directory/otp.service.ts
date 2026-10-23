@@ -6,7 +6,7 @@ import {
   normalisePhone,
   type OtpRequestResult,
   type OtpVerifyResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { desc, eq } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { identities, otpChallenges } from '../../db/schema/directory';

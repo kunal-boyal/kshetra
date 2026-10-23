@@ -8,7 +8,7 @@ import {
   type Session,
   type SignedIn,
   type TenantSummary,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 import { identities, memberships, refreshTokens } from '../../db/schema/directory';
 import { CellAdmission } from '../../platform/planes';

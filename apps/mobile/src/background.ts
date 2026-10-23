@@ -1,4 +1,4 @@
-import { migrate, Outbox, Tracking } from '@kshetra/api-client/sync';
+import { migrate, Outbox, Tracking } from '@thelamp/api-client/sync';
 import { type MobileClient, mobileClient } from './client';
 import { openLocalDatabase } from './local-db';
 import { registerTrackingTask } from './tracking';

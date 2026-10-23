@@ -1,5 +1,5 @@
-import { ApprovalResult } from '@kshetra/shared';
-import { Button, EmptyState, Icon, TextAreaField } from '@kshetra/ui-web';
+import { ApprovalResult } from '@thelamp/shared';
+import { Button, EmptyState, Icon, TextAreaField } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { Check, Inbox, X } from 'lucide-react';
 import { useState } from 'react';

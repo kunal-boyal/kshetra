@@ -1,4 +1,4 @@
-import { SYSTEM_ROLES, TENANT_PERMISSIONS } from '@kshetra/shared';
+import { SYSTEM_ROLES, TENANT_PERMISSIONS } from '@thelamp/shared';
 import { describe, expect, it } from 'vitest';
 import type { TemplateInput } from './schema/template';
 import { validateTemplate } from './validate';

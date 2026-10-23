@@ -1,9 +1,9 @@
-import type { VisitState } from '@kshetra/api-client/sync';
-import { spacing } from '@kshetra/design-tokens';
-import type { AccountType, FormView } from '@kshetra/forms';
-import { formatDateTime, formatNumber } from '@kshetra/i18n';
-import { punchFixIssue, type SyncAccount, todayIn } from '@kshetra/shared';
-import { Button, Card, ListGroup, ListRow, Notice, StatusBadge, Text } from '@kshetra/ui-mobile';
+import type { VisitState } from '@thelamp/api-client/sync';
+import { spacing } from '@thelamp/design-tokens';
+import type { AccountType, FormView } from '@thelamp/forms';
+import { formatDateTime, formatNumber } from '@thelamp/i18n';
+import { punchFixIssue, type SyncAccount, todayIn } from '@thelamp/shared';
+import { Button, Card, ListGroup, ListRow, Notice, StatusBadge, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { CalendarPlus, ClipboardList, LogIn, LogOut, MapPin } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';

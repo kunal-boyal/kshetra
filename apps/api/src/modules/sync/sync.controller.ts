@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { SyncPullQuery, SyncPullResult } from '@kshetra/shared';
+import { SyncPullQuery, SyncPullResult } from '@thelamp/shared';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

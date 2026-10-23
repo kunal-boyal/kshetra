@@ -1,5 +1,5 @@
-import { spacing } from '@kshetra/design-tokens';
-import { Button, Screen, Text, useTheme } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import { Button, Screen, Text, useTheme } from '@thelamp/ui-mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { ArrowLeft, ScanLine } from 'lucide-react-native';

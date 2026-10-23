@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserBody, type ProvisionTenantInput, type UserResult } from '@kshetra/shared';
-import type { Template } from '@kshetra/templates';
+import { CreateUserBody, type ProvisionTenantInput, type UserResult } from '@thelamp/shared';
+import type { Template } from '@thelamp/templates';
 import { SYSTEM_ACTOR } from '../../platform/audit';
 import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';

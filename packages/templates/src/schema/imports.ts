@@ -1,4 +1,4 @@
-import { type ErrorDetail, issueAt, Key } from '@kshetra/shared';
+import { type ErrorDetail, issueAt, Key } from '@thelamp/shared';
 import { z } from 'zod';
 
 type Path = readonly PropertyKey[];

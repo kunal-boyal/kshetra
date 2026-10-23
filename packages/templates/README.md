@@ -45,7 +45,7 @@ A tenant's configuration exports in this same format (`GET /v1/configuration/exp
 Check your work with:
 
 ```bash
-pnpm --filter @kshetra/templates test
+pnpm --filter @thelamp/templates test
 ```
 
 That validates every template's shape, checks that every reference resolves and that settings agree with each other and the business rules, and checks each file against `schema.json`. Each problem is reported at its path, for example `forms[3].fields[4].visibleWhen.clauses[0].value: purpose has no option salez`.
@@ -57,7 +57,7 @@ Each file starts with `"$schema": "../schema.json"`, so editors such as VS Code 
 `schema.json` is generated from the zod schemas. After changing them, regenerate it:
 
 ```bash
-pnpm --filter @kshetra/templates schema
+pnpm --filter @thelamp/templates schema
 ```
 
 CI fails while the committed file is out of date. Keep changes additive: new optional properties or new values, so existing templates and tenant configurations stay valid.

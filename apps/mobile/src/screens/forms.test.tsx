@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { NetworkError, type SessionState } from '@kshetra/api-client';
-import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
+import { NetworkError, type SessionState } from '@thelamp/api-client';
+import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import {
   FormEntries,
   migrate,
@@ -9,9 +9,9 @@ import {
   submissionBody,
   Tracking,
   Visits,
-} from '@kshetra/api-client/sync';
-import type { FormView } from '@kshetra/forms';
-import { SETTING_DEFAULTS, type SyncPullResult } from '@kshetra/shared';
+} from '@thelamp/api-client/sync';
+import type { FormView } from '@thelamp/forms';
+import { SETTING_DEFAULTS, type SyncPullResult } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';

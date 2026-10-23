@@ -1,5 +1,5 @@
-import { type Client, createClient, memoryStore } from '@kshetra/api-client';
-import { nodeSqlite } from '@kshetra/api-client/node-sqlite';
+import { type Client, createClient, memoryStore } from '@thelamp/api-client';
+import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import {
   clearReferenceData,
   FormEntries,
@@ -12,7 +12,7 @@ import {
   SyncRunner,
   Tracking,
   Visits,
-} from '@kshetra/api-client/sync';
+} from '@thelamp/api-client/sync';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import {
   type DeviceInfo,
@@ -21,7 +21,7 @@ import {
   ShiftResult,
   SubmissionResult,
   VisitResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { devices } from '../src/db/schema/iam';

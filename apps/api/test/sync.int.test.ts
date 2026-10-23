@@ -1,5 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { newId, type SyncPullResult } from '@kshetra/shared';
+import { newId, type SyncPullResult } from '@thelamp/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { devices, users } from '../src/db/schema/iam';

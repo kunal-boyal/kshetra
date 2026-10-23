@@ -1,4 +1,4 @@
-import { FormDefinition } from '@kshetra/forms';
+import { FormDefinition } from '@thelamp/forms';
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { checkMetrics, checkScore, type MetricContext } from './check';

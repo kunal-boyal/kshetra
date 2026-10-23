@@ -1,6 +1,6 @@
-import type { MessageKey } from '@kshetra/i18n';
-import type { ImportFieldInfo, ImportStatus, ImportTarget, Locale } from '@kshetra/shared';
-import { type BadgeVariant, StatusBadge } from '@kshetra/ui-web';
+import type { MessageKey } from '@thelamp/i18n';
+import type { ImportFieldInfo, ImportStatus, ImportTarget, Locale } from '@thelamp/shared';
+import { type BadgeVariant, StatusBadge } from '@thelamp/ui-web';
 import { useLanguage } from '../i18n';
 
 const STATUS_VARIANTS: Record<ImportStatus, BadgeVariant> = {

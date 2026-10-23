@@ -1,4 +1,4 @@
-import { checkFields, CustomField } from '@kshetra/forms';
+import { checkFields, CustomField } from '@thelamp/forms';
 import {
   type ErrorDetail,
   issueAt,
@@ -6,7 +6,7 @@ import {
   LocalizedNoun,
   LocalizedText,
   repeats,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { z } from 'zod';
 import { repeatedKeys } from './organisation';
 

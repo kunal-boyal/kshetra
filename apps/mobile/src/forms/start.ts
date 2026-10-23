@@ -1,6 +1,6 @@
-import type { FormEntries } from '@kshetra/api-client/sync';
-import type { FormView } from '@kshetra/forms';
-import { newId } from '@kshetra/shared';
+import type { FormEntries } from '@thelamp/api-client/sync';
+import type { FormView } from '@thelamp/forms';
+import { newId } from '@thelamp/shared';
 import { router } from 'expo-router';
 
 /** Forms filled on their own, not inside a visit; visit forms open from the visit (M6). */

@@ -7,7 +7,7 @@ import {
   MediaUrlResult,
   PresignMediaBody,
   PresignMediaResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

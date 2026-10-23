@@ -45,6 +45,10 @@ output "database_address" {
   value = aws_db_instance.this.address
 }
 
+output "database_name" {
+  value = aws_db_instance.this.db_name
+}
+
 output "database_master_secret_arn" {
   description = "RDS keeps the master user's password here; bootstrap's URL uses it."
   value       = aws_db_instance.this.master_user_secret[0].secret_arn

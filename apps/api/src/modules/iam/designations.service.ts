@@ -5,7 +5,7 @@ import {
   type DesignationResult,
   newId,
   type UpdateDesignationBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { designations, roles, users } from '../../db/schema/iam';

@@ -1,4 +1,4 @@
-import type { CustomField } from '@kshetra/forms';
+import type { CustomField } from '@thelamp/forms';
 import { parse } from 'csv-parse/sync';
 import { unzipSync } from 'fflate';
 import readXlsxFile from 'read-excel-file/node';

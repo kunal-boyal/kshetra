@@ -6,7 +6,7 @@
 #
 #   IMAGE                 repository:tag to run
 #   ECS_CLUSTER           the cell's cluster
-#   TASK_FAMILY_PREFIX    such as kshetra-staging-cell1; families are <prefix>-api and so on
+#   TASK_FAMILY_PREFIX    such as thelamp-staging-cell1; families are <prefix>-api and so on
 #   TASK_SUBNETS          comma-separated private subnets for the migration task
 #   TASK_SECURITY_GROUP   the tasks' security group
 #   WATCH_MINUTES         how long the alarms must stay quiet afterwards (default 15)

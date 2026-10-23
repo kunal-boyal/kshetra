@@ -1,5 +1,5 @@
 import { Controller, Get, Headers, Res } from '@nestjs/common';
-import { CatalogueResult } from '@kshetra/shared';
+import { CatalogueResult } from '@thelamp/shared';
 import type { FastifyReply } from 'fastify';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';

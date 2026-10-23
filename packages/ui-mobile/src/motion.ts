@@ -1,4 +1,4 @@
-import { duration, easing } from '@kshetra/design-tokens';
+import { duration, easing } from '@thelamp/design-tokens';
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Easing, type EasingFunction } from 'react-native';
 

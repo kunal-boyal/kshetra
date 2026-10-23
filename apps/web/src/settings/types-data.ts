@@ -1,5 +1,5 @@
-import { type AccountType, AccountTypeListResult, AccountTypeView } from '@kshetra/forms';
-import { newId } from '@kshetra/shared';
+import { type AccountType, AccountTypeListResult, AccountTypeView } from '@thelamp/forms';
+import { newId } from '@thelamp/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';

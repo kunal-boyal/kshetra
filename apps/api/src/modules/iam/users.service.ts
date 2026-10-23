@@ -18,7 +18,7 @@ import {
   type UserListResult,
   type UserResult,
   type UserView,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   and,
   asc,

@@ -5,7 +5,7 @@ import {
   type SyncEntity,
   type SyncPullQuery,
   type SyncPullResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, gte, sql } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { syncTombstones } from '../../db/schema/sync';

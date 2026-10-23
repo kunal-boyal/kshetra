@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import type { ApprovalSubject } from '@kshetra/shared';
+import type { ApprovalSubject } from '@thelamp/shared';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { RequestTypes } from '../workflow/request-types';

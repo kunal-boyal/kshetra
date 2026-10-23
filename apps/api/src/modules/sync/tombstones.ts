@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import type { SyncEntity } from '@kshetra/shared';
+import type { SyncEntity } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import { syncTombstones } from '../../db/schema/sync';
 import { Database, type TenantTx } from '../../platform/database';

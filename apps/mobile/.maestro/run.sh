@@ -16,7 +16,7 @@ adb wait-for-device
 adb install -r -g "$apk"
 # Tracking needs location all the time, which installing with -g doesn't grant; a person chooses
 # "Allow all the time" for it.
-adb shell pm grant com.kshetra.app.e2e android.permission.ACCESS_BACKGROUND_LOCATION
+adb shell pm grant com.thelamp.app.e2e android.permission.ACCESS_BACKGROUND_LOCATION
 adb reverse tcp:9000 tcp:9000 # MinIO, where photos upload straight to (decision D44)
 
 # An emulator reaches this machine's API over its own network (10.0.2.2), which its airplane mode

@@ -1,5 +1,5 @@
 {
-  "extends": "@kshetra/config/tsconfig/base.json",
+  "extends": "@thelamp/config/tsconfig/base.json",
   "compilerOptions": {
     "lib": ["ES2023", "DOM"]
   },

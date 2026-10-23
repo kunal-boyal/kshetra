@@ -4,7 +4,7 @@ import {
   LIVE_REFRESH_MS,
   LiveResult,
   TrailResult,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';

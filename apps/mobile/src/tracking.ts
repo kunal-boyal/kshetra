@@ -4,7 +4,7 @@ import {
   type SqlDatabase,
   Tracking,
   Visits,
-} from '@kshetra/api-client/sync';
+} from '@thelamp/api-client/sync';
 import {
   type EndShiftBody,
   LocationBatchResult,
@@ -12,7 +12,7 @@ import {
   type PauseShiftBody,
   type ResumeShiftBody,
   type StartShiftBody,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import * as Battery from 'expo-battery';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';

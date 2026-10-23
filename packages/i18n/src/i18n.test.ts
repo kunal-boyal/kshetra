@@ -1,4 +1,4 @@
-import { ERROR_HTTP_STATUS, type ErrorCode, LOCALES } from '@kshetra/shared';
+import { ERROR_HTTP_STATUS, type ErrorCode, LOCALES } from '@thelamp/shared';
 import { describe, expect, it } from 'vitest';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from './format';
 import { en, type MessageKey } from './messages/en';

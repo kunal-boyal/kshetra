@@ -1,4 +1,4 @@
-import type { ReportColumn } from '@kshetra/shared';
+import type { ReportColumn } from '@thelamp/shared';
 import readXlsxFile from 'read-excel-file/node';
 import { describe, expect, it } from 'vitest';
 import { fieldCell } from './activity-log';

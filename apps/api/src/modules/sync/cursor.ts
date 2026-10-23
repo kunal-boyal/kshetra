@@ -1,4 +1,4 @@
-import { SyncEntity } from '@kshetra/shared';
+import { SyncEntity } from '@thelamp/shared';
 import { z } from 'zod';
 
 /**

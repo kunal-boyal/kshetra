@@ -1,5 +1,5 @@
-import type { ConfigBundle } from '@kshetra/forms';
-import type { MeResult } from '@kshetra/shared';
+import type { ConfigBundle } from '@thelamp/forms';
+import type { MeResult } from '@thelamp/shared';
 import { type QueryClient, useQuery } from '@tanstack/react-query';
 import type { WebClient } from './client';
 

@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Headers, Patch, Put } from '@nestjs/common';
-import { AppError, OrganisationResult, UpdateOrganisationBody } from '@kshetra/shared';
+import { AppError, OrganisationResult, UpdateOrganisationBody } from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { type AttendanceDayResult, type AttendanceRule, dayStatus, todayIn } from '@kshetra/shared';
+import { type AttendanceDayResult, type AttendanceRule, dayStatus, todayIn } from '@thelamp/shared';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { attendanceDays, attendancePolicies, shifts } from '../../db/schema/field';
 import type { TenantTx } from '../../platform/database';

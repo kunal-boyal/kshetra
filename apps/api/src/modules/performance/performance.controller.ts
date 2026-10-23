@@ -6,7 +6,7 @@ import {
   PersonPerformance,
   TeamPerformance,
   TeamPerformanceQuery,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';

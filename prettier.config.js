@@ -1,1 +1,1 @@
-export { default } from '@kshetra/config/prettier';
+export { default } from '@thelamp/config/prettier';

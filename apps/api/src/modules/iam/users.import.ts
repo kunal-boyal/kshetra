@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { checkValueChanges } from '@kshetra/forms';
+import { checkValueChanges } from '@thelamp/forms';
 import {
   AppError,
   canGrant,
@@ -10,7 +10,7 @@ import {
   todayIn,
   type UpdateUserBody,
   UserCode,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { designations as designationsTable, roles as rolesTable, users } from '../../db/schema/iam';

@@ -1,4 +1,4 @@
-import { ConfigBundle } from '@kshetra/forms';
+import { ConfigBundle } from '@thelamp/forms';
 import {
   APP_PLATFORM_HEADER,
   APP_VERSION_HEADER,
@@ -20,7 +20,7 @@ import {
   type TenantSummary,
   WEB_CLIENT,
   WEB_CLIENT_HEADER,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { z } from 'zod';
 
 /** An error response from the API (spec 11.1), with its code from spec 11.4. */

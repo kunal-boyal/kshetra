@@ -1,4 +1,4 @@
-import type { Template } from '@kshetra/templates';
+import type { Template } from '@thelamp/templates';
 
 /** A template's import aliases by target: `users`, `items`, and `accounts:<type>` for each type. */
 export function templateImports(template: Template) {

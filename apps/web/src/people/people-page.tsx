@@ -1,4 +1,4 @@
-import type { UserView } from '@kshetra/shared';
+import type { UserView } from '@thelamp/shared';
 import {
   Button,
   type Column,
@@ -7,7 +7,7 @@ import {
   Icon,
   SelectField,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Search, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';

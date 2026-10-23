@@ -1,4 +1,4 @@
-import { useTheme } from '@kshetra/ui-mobile';
+import { useTheme } from '@thelamp/ui-mobile';
 import { Stack } from 'expo-router';
 import { useTenantBrand } from '../../look';
 import { useNotificationTaps, usePushRegistration } from '../../push';

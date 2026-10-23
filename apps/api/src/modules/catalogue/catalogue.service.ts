@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { CustomField } from '@kshetra/forms';
+import type { CustomField } from '@thelamp/forms';
 import {
   AppError,
   type CatalogueResult,
@@ -8,8 +8,8 @@ import {
   issueAt,
   type ItemResult,
   type MeasureType,
-} from '@kshetra/shared';
-import type { Catalogue } from '@kshetra/templates';
+} from '@thelamp/shared';
+import type { Catalogue } from '@thelamp/templates';
 import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import {
   catalogueSettings,

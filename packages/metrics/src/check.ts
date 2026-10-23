@@ -1,5 +1,5 @@
-import { type AnyField, checkCondition, type FormDefinition } from '@kshetra/forms';
-import { type ErrorDetail, issueAt, repeats } from '@kshetra/shared';
+import { type AnyField, checkCondition, type FormDefinition } from '@thelamp/forms';
+import { type ErrorDetail, issueAt, repeats } from '@thelamp/shared';
 import type {
   MetricDefinition,
   MetricSource,

@@ -1,4 +1,4 @@
-import { spacing } from '@kshetra/design-tokens';
+import { spacing } from '@thelamp/design-tokens';
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { type Edge, SafeAreaView } from 'react-native-safe-area-context';

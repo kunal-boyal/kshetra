@@ -1,4 +1,4 @@
-import type { AccountStatus, AccountResult } from '@kshetra/shared';
+import type { AccountStatus, AccountResult } from '@thelamp/shared';
 import {
   Checkbox,
   Button,
@@ -8,7 +8,7 @@ import {
   Icon,
   SelectField,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Plus, Search, Store } from 'lucide-react';
 import { useState } from 'react';

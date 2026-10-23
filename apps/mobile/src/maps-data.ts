@@ -1,4 +1,4 @@
-import { LIVE_REFRESH_MS, LiveResult, TrailResult } from '@kshetra/shared';
+import { LIVE_REFRESH_MS, LiveResult, TrailResult } from '@thelamp/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './app-state';
 

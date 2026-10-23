@@ -1,5 +1,5 @@
-import { spacing } from '@kshetra/design-tokens';
-import { Button, Card, ChoiceGroup, ListGroup, ListRow, Screen, Text } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import { Button, Card, ChoiceGroup, ListGroup, ListRow, Screen, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { Building2, CloudUpload, LogOut, Repeat } from 'lucide-react-native';
 import { useState } from 'react';

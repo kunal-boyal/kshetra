@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Headers, HttpCode, Post } from '@nestjs/common';
-import { ConfigurationPlan } from '@kshetra/shared';
-import { ImportConfigurationBody, TemplateSchema } from '@kshetra/templates';
+import { ConfigurationPlan } from '@thelamp/shared';
+import { ImportConfigurationBody, TemplateSchema } from '@thelamp/templates';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';

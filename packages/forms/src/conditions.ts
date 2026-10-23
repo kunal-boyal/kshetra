@@ -1,4 +1,4 @@
-import { type ErrorDetail, issueAt, Key, Money } from '@kshetra/shared';
+import { type ErrorDetail, issueAt, Key, Money } from '@thelamp/shared';
 import { z } from 'zod';
 import type { AnyField } from './fields';
 

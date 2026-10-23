@@ -1,7 +1,7 @@
 import { Controller, Get, Headers, Res } from '@nestjs/common';
-import { ConfigBundle } from '@kshetra/forms';
-import { TENANT_PERMISSIONS } from '@kshetra/shared';
-import { resolveTerminology } from '@kshetra/i18n';
+import { ConfigBundle } from '@thelamp/forms';
+import { TENANT_PERMISSIONS } from '@thelamp/shared';
+import { resolveTerminology } from '@thelamp/i18n';
 import type { FastifyReply } from 'fastify';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';

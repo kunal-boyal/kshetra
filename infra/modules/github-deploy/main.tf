@@ -2,7 +2,7 @@
 # GitHub. Only the main branch of the one repository, in the named GitHub environment, may take it.
 
 variable "name" {
-  description = "The role's name, such as kshetra-staging-deploy."
+  description = "The role's name, such as thelamp-staging-deploy."
   type        = string
 }
 

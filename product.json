@@ -1,0 +1,30 @@
+{
+  "about": "The product's name and identifiers (decision D1). Change them only with `pnpm rename`, which rewrites the repository to match. See tools/rename/README.md.",
+  "name": "The Lamp",
+  "slug": "thelamp",
+  "scope": "thelamp",
+  "appId": "com.thelamp.app",
+  "launched": false,
+  "external": {
+    "expoProject": "kshetra",
+    "firebaseProject": "kshetra-e3874",
+    "repository": "kunal-boyal/kshetra"
+  },
+  "keep": [
+    "kunal-boyal/kshetra",
+    "@kunalboyal/kshetra",
+    "kshetra-e3874",
+    "postgres(?:ql)?://[^\\s'\"`]*",
+    "kshetra-local",
+    "S3_ACCESS_KEY_ID=kshetra",
+    "user kshetra / kshetra-local",
+    "`kshetra` / `kshetra-local`",
+    "EXPO_PROJECT = 'kshetra'"
+  ],
+  "skip": [
+    "docker-compose.yml",
+    "pnpm-lock.yaml",
+    "product.json",
+    "tools/rename/src/rename.test.ts"
+  ]
+}

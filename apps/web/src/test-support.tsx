@@ -1,5 +1,5 @@
-import { ApiError } from '@kshetra/api-client';
-import { SETTING_DEFAULTS, type TenantPermission } from '@kshetra/shared';
+import { ApiError } from '@thelamp/api-client';
+import { SETTING_DEFAULTS, type TenantPermission } from '@thelamp/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
 import { render } from '@testing-library/react';

@@ -1,4 +1,4 @@
-import { createClient, memoryStore } from '@kshetra/api-client';
+import { createClient, memoryStore } from '@thelamp/api-client';
 
 /**
  * The API client for this page. On the web the refresh token lives in the directory's cookie and

@@ -1,4 +1,4 @@
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import type { StoredResponse } from '../src/db/schema';
 import { Database } from '../src/platform/database';

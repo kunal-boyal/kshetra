@@ -1,1 +1,1 @@
-export { default } from '@kshetra/config/eslint-react-native';
+export { default } from '@thelamp/config/eslint-react-native';

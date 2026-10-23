@@ -1,6 +1,6 @@
-import { formatNumber } from '@kshetra/i18n';
-import { positionAt, todayIn, type TrailShift } from '@kshetra/shared';
-import { EmptyState, Icon, StatusBadge, TextField } from '@kshetra/ui-web';
+import { formatNumber } from '@thelamp/i18n';
+import { positionAt, todayIn, type TrailShift } from '@thelamp/shared';
+import { EmptyState, Icon, StatusBadge, TextField } from '@thelamp/ui-web';
 import { Route as RouteIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';

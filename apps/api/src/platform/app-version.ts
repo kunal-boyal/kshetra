@@ -5,7 +5,7 @@ import {
   AppError,
   type AppPlatform,
   isBelowMinimum,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { FastifyRequest } from 'fastify';
 import type { Config } from '../config';
 import { CONFIG } from './tokens';

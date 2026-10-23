@@ -1,5 +1,5 @@
-import type { LocationBatchResult, LocationPointBody } from '@kshetra/shared';
-import { SHIFT_FIX_ACCURACY_M } from '@kshetra/shared';
+import type { LocationBatchResult, LocationPointBody } from '@thelamp/shared';
+import { SHIFT_FIX_ACCURACY_M } from '@thelamp/shared';
 import type { SqlDatabase, SqlExecutor } from './sql';
 
 /**

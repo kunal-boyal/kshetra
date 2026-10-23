@@ -9,8 +9,8 @@ import {
   SyncRunner,
   type SyncStatus,
   Visits,
-} from '@kshetra/api-client/sync';
-import { SYNC_ENTITIES } from '@kshetra/shared';
+} from '@thelamp/api-client/sync';
+import { SYNC_ENTITIES } from '@thelamp/shared';
 import * as Network from 'expo-network';
 import {
   createContext,

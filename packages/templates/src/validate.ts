@@ -1,6 +1,6 @@
-import { checkFields, checkForm, type FormContext } from '@kshetra/forms';
-import { checkMetrics, checkScore } from '@kshetra/metrics';
-import { type ErrorDetail, issueAt } from '@kshetra/shared';
+import { checkFields, checkForm, type FormContext } from '@thelamp/forms';
+import { checkMetrics, checkScore } from '@thelamp/metrics';
+import { type ErrorDetail, issueAt } from '@thelamp/shared';
 import { checkAccountTypes } from './schema/account-types';
 import { checkCatalogue } from './schema/catalogue';
 import { checkImports } from './schema/imports';

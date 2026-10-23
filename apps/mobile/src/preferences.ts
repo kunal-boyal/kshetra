@@ -1,4 +1,4 @@
-import type { Locale } from '@kshetra/shared';
+import type { Locale } from '@thelamp/shared';
 import { getLocales } from 'expo-localization';
 import { storage } from './storage';
 

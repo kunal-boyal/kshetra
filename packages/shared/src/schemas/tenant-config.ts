@@ -238,7 +238,7 @@ export const BundleSettings = z.preprocess(
   z.object(TenantSettings.shape),
 );
 
-/** The bundle's core; `ConfigBundle` in `@kshetra/forms` adds the configuration with fields. */
+/** The bundle's core; `ConfigBundle` in `@thelamp/forms` adds the configuration with fields. */
 export const CoreConfigBundle = z.object({
   /** Moves on with every change to anything here; the ETag carries it (spec 11.3). */
   version: z.int().min(0),

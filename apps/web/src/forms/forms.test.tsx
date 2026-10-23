@@ -1,4 +1,4 @@
-import { ApiError } from '@kshetra/api-client';
+import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';

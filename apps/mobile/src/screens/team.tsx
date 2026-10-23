@@ -1,7 +1,7 @@
-import { spacing } from '@kshetra/design-tokens';
-import { formatDateTime, formatNumber } from '@kshetra/i18n';
-import { isStale, type LivePerson } from '@kshetra/shared';
-import { Button, EmptyState, ListGroup, ListRow, Screen, Text } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import { formatDateTime, formatNumber } from '@thelamp/i18n';
+import { isStale, type LivePerson } from '@thelamp/shared';
+import { Button, EmptyState, ListGroup, ListRow, Screen, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ClipboardCheck, MapPin, RotateCw, TriangleAlert } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';

@@ -8,7 +8,7 @@ import {
   type Locale,
   type ReportFilters,
   type ReportKey,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, desc, eq, lt } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { exportJobs } from '../../db/schema/reports';

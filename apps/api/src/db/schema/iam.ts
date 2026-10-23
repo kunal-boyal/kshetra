@@ -1,11 +1,11 @@
-import type { CustomField } from '@kshetra/forms';
+import type { CustomField } from '@thelamp/forms';
 import {
   DATA_SCOPES,
   type LocalizedNoun,
   type LocalizedText,
   TRANSFER_STATUSES,
   USER_STATUSES,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,

@@ -1,5 +1,5 @@
-import { type FormDefinition, photosIn } from '@kshetra/forms';
-import type { CaptureFix, CreateSubmissionBody, Signature } from '@kshetra/shared';
+import { type FormDefinition, photosIn } from '@thelamp/forms';
+import type { CaptureFix, CreateSubmissionBody, Signature } from '@thelamp/shared';
 import type { SqlDatabase, SqlExecutor, SqlValue } from './sql';
 
 /**

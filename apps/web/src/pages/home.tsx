@@ -1,6 +1,6 @@
-import { formatNumber } from '@kshetra/i18n';
-import { type DashboardResult, todayIn } from '@kshetra/shared';
-import { EmptyState, Icon, SelectField, StatusBadge, TextField } from '@kshetra/ui-web';
+import { formatNumber } from '@thelamp/i18n';
+import { type DashboardResult, todayIn } from '@thelamp/shared';
+import { EmptyState, Icon, SelectField, StatusBadge, TextField } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { ClipboardCheck, Inbox, LayoutDashboard, MapPin } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';

@@ -1,4 +1,4 @@
-import { type ErrorDetail, issueAt } from '@kshetra/shared';
+import { type ErrorDetail, issueAt } from '@thelamp/shared';
 import type { AccountType } from './account-types';
 import { conditionHolds, type Values } from './values';
 

@@ -7,7 +7,7 @@ import type {
   SyncItem,
   SyncTerritory,
   SyncUser,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import type { SqlDatabase, SqlValue } from './sql';
 
 /**

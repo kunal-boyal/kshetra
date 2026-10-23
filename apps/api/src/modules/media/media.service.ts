@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import { newId } from '@kshetra/shared';
+import { newId } from '@thelamp/shared';
 import { and, eq, ne } from 'drizzle-orm';
 import { media } from '../../db/schema/media';
 import type { TenantTx } from '../../platform/database';

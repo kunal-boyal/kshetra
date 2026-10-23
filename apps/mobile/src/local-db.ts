@@ -1,4 +1,4 @@
-import type { SqlDatabase, SqlExecutor, SqlValue } from '@kshetra/api-client/sync';
+import type { SqlDatabase, SqlExecutor, SqlValue } from '@thelamp/api-client/sync';
 import Constants from 'expo-constants';
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
@@ -23,7 +23,7 @@ function executor(db: SQLite.SQLiteDatabase): SqlExecutor {
  * lock instead of joining the sync's transaction. The web preview has no second connection.
  */
 export async function openLocalDatabase(): Promise<SqlDatabase> {
-  const db = await SQLite.openDatabaseAsync(`${Constants.expoConfig?.slug ?? 'kshetra'}.db`);
+  const db = await SQLite.openDatabaseAsync(`${Constants.expoConfig?.slug ?? 'thelamp'}.db`);
   await db.execAsync(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`);
   return {
     ...executor(db),

@@ -1,4 +1,4 @@
-import { formatNumber } from '@kshetra/i18n';
+import { formatNumber } from '@thelamp/i18n';
 import {
   CopyTargetsResult,
   LockTargetsResult,
@@ -10,7 +10,7 @@ import {
   targetValueIssue,
   todayIn,
   UNLOCK_REASON_MIN,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import {
   Button,
   Confirm,
@@ -19,7 +19,7 @@ import {
   StatusBadge,
   TextAreaField,
   TextField,
-} from '@kshetra/ui-web';
+} from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Lock, LockOpen, Save, Target } from 'lucide-react';
 import { useState } from 'react';

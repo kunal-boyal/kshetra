@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Res } from '@nestjs/common';
-import { HealthResult, ReadyResult } from '@kshetra/shared';
+import { HealthResult, ReadyResult } from '@thelamp/shared';
 import type { FastifyReply } from 'fastify';
 import { Public } from './auth';
 import { Contract } from './routes';

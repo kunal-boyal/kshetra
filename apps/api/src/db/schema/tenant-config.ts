@@ -1,4 +1,4 @@
-import type { ReviewRules, TenantSettings, TermValue } from '@kshetra/shared';
+import type { ReviewRules, TenantSettings, TermValue } from '@thelamp/shared';
 import { bigint, jsonb, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { cell, isolation } from './common';
 

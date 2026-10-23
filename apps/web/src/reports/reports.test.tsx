@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { SETTING_DEFAULTS, todayIn } from '@kshetra/shared';
+import { SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { fakeClient, renderAt, writesOf } from '../test-support';

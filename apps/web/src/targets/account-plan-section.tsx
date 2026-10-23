@@ -1,6 +1,6 @@
-import { formatNumber } from '@kshetra/i18n';
-import { AccountPlanResult, targetValueIssue, todayIn } from '@kshetra/shared';
-import { Button, Icon, TextField } from '@kshetra/ui-web';
+import { formatNumber } from '@thelamp/i18n';
+import { AccountPlanResult, targetValueIssue, todayIn } from '@thelamp/shared';
+import { Button, Icon, TextField } from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

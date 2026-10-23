@@ -1,6 +1,6 @@
 import type { INestApplicationContext } from '@nestjs/common';
-import { CreateUserBody, newId } from '@kshetra/shared';
-import { loadTemplate } from '@kshetra/templates';
+import { CreateUserBody, newId } from '@thelamp/shared';
+import { loadTemplate } from '@thelamp/templates';
 import type { Config } from '../config';
 import { isLocalDatabase } from './bootstrap';
 import { AccountTypesService } from '../modules/accounts/account-types.service';

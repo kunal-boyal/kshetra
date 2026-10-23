@@ -18,7 +18,7 @@ import {
   type UnlockTargetBody,
   unlockRefusal,
   UNLOCK_REASON_MIN,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { users } from '../../db/schema/iam';
 import { targetLines, targetSets } from '../../db/schema/planning';

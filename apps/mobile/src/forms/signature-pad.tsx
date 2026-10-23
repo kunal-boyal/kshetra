@@ -1,5 +1,5 @@
-import { radius, spacing } from '@kshetra/design-tokens';
-import { Button, Text, useTheme } from '@kshetra/ui-mobile';
+import { radius, spacing } from '@thelamp/design-tokens';
+import { Button, Text, useTheme } from '@thelamp/ui-mobile';
 import { Eraser } from 'lucide-react-native';
 import { useState } from 'react';
 import { type GestureResponderEvent, StyleSheet, View } from 'react-native';

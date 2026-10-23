@@ -109,7 +109,7 @@ describe('type', () => {
 describe('BrandMark', () => {
   it('draws exactly the small mark in the design system', () => {
     const svg = readFileSync(
-      join(__dirname, '../../design-tokens/assets/Logos/kshetra-mark-small.svg'),
+      join(__dirname, '../../design-tokens/assets/Logos/mark-small.svg'),
       'utf8',
     );
     const component = readFileSync(join(__dirname, 'brand.tsx'), 'utf8');

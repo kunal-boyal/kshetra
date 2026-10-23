@@ -1,5 +1,5 @@
 {
-  "name": "@kshetra/ui-mobile",
+  "name": "@thelamp/ui-mobile",
   "version": "0.0.0",
   "private": true,
   "description": "React Native components for the mobile app, on the design system's tokens",
@@ -14,7 +14,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@kshetra/design-tokens": "workspace:*"
+    "@thelamp/design-tokens": "workspace:*"
   },
   "peerDependencies": {
     "lucide-react-native": "catalog:mobile",
@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@jest/globals": "catalog:mobile",
-    "@kshetra/config": "workspace:*",
+    "@thelamp/config": "workspace:*",
     "@testing-library/react-native": "catalog:mobile",
     "@types/node": "catalog:",
     "@types/react": "catalog:mobile",

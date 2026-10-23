@@ -1,4 +1,4 @@
-import type { FormDefinition } from '@kshetra/forms';
+import type { FormDefinition } from '@thelamp/forms';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { EntryClosed, entryPhotos, FormEntries, signatureOf, submissionBody } from './entries';
 import { migrate } from './local-schema';

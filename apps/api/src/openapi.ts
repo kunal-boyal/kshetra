@@ -10,6 +10,6 @@ import { routeRegistry } from './platform/routes';
  * decorators only, so it needs no database. A unit test fails when the file is out of date.
  */
 const target = new URL('../openapi.json', import.meta.url);
-const document = buildOpenApi(routeRegistry(apiControllers()), apiTitle(process.env.PRODUCT_SLUG));
+const document = buildOpenApi(routeRegistry(apiControllers()), apiTitle(process.env.PRODUCT_NAME));
 writeFileSync(target, `${JSON.stringify(document, null, 2)}\n`);
 console.log(`Wrote ${fileURLToPath(target)}`);

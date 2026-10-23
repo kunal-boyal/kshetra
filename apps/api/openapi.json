@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Kshetra API",
+    "title": "The Lamp API",
     "version": "1",
     "description": "Generated from the route registry by `pnpm openapi`. Paths under /auth/v1 belong to the directory; the rest to the tenant's cell (spec 9.3)."
   },

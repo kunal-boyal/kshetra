@@ -7,7 +7,7 @@ import {
   type ApprovalResult,
   newId,
   type RequestType,
-} from '@kshetra/shared';
+} from '@thelamp/shared';
 import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
 import { workflowInstances, workflowSteps } from '../../db/schema/workflow';
 import { type AuditActor, AuditLog, userActor } from '../../platform/audit';

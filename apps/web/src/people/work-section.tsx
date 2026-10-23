@@ -1,6 +1,6 @@
-import { formatNumber } from '@kshetra/i18n';
-import { AttendanceResult, type ShiftResult, ShiftListResult, todayIn } from '@kshetra/shared';
-import { type Column, DataTable, EmptyState, Icon, StatusBadge } from '@kshetra/ui-web';
+import { formatNumber } from '@thelamp/i18n';
+import { AttendanceResult, type ShiftResult, ShiftListResult, todayIn } from '@thelamp/shared';
+import { type Column, DataTable, EmptyState, Icon, StatusBadge } from '@thelamp/ui-web';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import { useApp } from '../context';

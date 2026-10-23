@@ -7,7 +7,7 @@ if (!__DEV__) {
   throw new Error('The field app runs on phones. Use apps/web in a browser.');
 }
 
-const prefix = 'kshetra-mobile-dev.';
+const prefix = 'thelamp-mobile-dev.';
 
 export const storage = {
   read(key: string): string | null {

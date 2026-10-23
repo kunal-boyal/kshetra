@@ -1,5 +1,5 @@
-import type { CustomField } from '@kshetra/forms';
-import { type CatalogueUnitView, MEASURE_TYPES } from '@kshetra/shared';
+import type { CustomField } from '@thelamp/forms';
+import { type CatalogueUnitView, MEASURE_TYPES } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,

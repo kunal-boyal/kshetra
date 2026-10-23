@@ -1,5 +1,5 @@
-import { MetricDefinition } from '@kshetra/metrics';
-import { newId, todayIn } from '@kshetra/shared';
+import { MetricDefinition } from '@thelamp/metrics';
+import { newId, todayIn } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

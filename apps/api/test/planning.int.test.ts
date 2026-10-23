@@ -1,4 +1,4 @@
-import { newId, routeDates, todayIn } from '@kshetra/shared';
+import { newId, routeDates, todayIn } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PlanningService } from '../src/modules/planning/planning.service';

@@ -1,7 +1,7 @@
-import { spacing } from '@kshetra/design-tokens';
-import { formatDate, formatDateTime, formatNumber } from '@kshetra/i18n';
-import { todayIn } from '@kshetra/shared';
-import { Button, Card, EmptyState, ListGroup, ListRow, Screen, Text } from '@kshetra/ui-mobile';
+import { spacing } from '@thelamp/design-tokens';
+import { formatDate, formatDateTime, formatNumber } from '@thelamp/i18n';
+import { todayIn } from '@thelamp/shared';
+import { Button, Card, EmptyState, ListGroup, ListRow, Screen, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ArrowLeft, ChevronLeft, ChevronRight, MapPin, RotateCw, Route } from 'lucide-react-native';
 import { useState } from 'react';

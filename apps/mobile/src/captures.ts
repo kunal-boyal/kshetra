@@ -3,8 +3,8 @@ import {
   type Outbox,
   type SqlDatabase,
   type SyncRunner,
-} from '@kshetra/api-client/sync';
-import type { CreateAccountBody, SyncAccount } from '@kshetra/shared';
+} from '@thelamp/api-client/sync';
+import type { CreateAccountBody, SyncAccount } from '@thelamp/shared';
 import type { LocationProposalPayload } from './outbox-kinds';
 
 interface Ready {
