@@ -288,6 +288,20 @@
       "when": 1792789452317,
       "tag": "0040_price_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792795690397,
+      "tag": "0041_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792795700596,
+      "tag": "0042_order_row_versions",
+      "breakpoints": true
     }
   ]
 }

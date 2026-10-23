@@ -53,6 +53,8 @@ export const ApprovalResult = z
     cancellable: z.boolean(),
     /** Whether its type may be approved with others in one go from the inbox (M15). */
     bulk: z.boolean(),
+    /** Where the portal decides it, for a request decided only on its own page (decision D78). */
+    page: z.string().nullable(),
     createdAt: z.iso.datetime(),
     closedAt: z.iso.datetime().nullable(),
   })

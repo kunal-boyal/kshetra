@@ -9,6 +9,7 @@ import {
   type ItemResult,
   type MeasureType,
   type PriceRounding,
+  type RejectionReason,
 } from '@thelamp/shared';
 import type { Catalogue } from '@thelamp/templates';
 import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
@@ -28,6 +29,7 @@ export interface CatalogueSettings {
   measureTypes: MeasureType[];
   itemFields: CustomField[];
   rounding: PriceRounding;
+  rejectionReasons: RejectionReason[];
   version: number;
 }
 
@@ -43,6 +45,7 @@ const DEFAULT_SETTINGS: CatalogueSettings = {
   measureTypes: [],
   itemFields: [],
   rounding: 'per_unit_first',
+  rejectionReasons: [],
   version: 0,
 };
 
@@ -73,6 +76,7 @@ export class CatalogueService {
         measureTypes: catalogueSettings.measureTypes,
         itemFields: catalogueSettings.itemFields,
         rounding: catalogueSettings.rounding,
+        rejectionReasons: catalogueSettings.rejectionReasons,
         version: catalogueSettings.version,
       })
       .from(catalogueSettings)
@@ -82,6 +86,7 @@ export class CatalogueService {
           ...row,
           measureTypes: row.measureTypes as MeasureType[],
           rounding: row.rounding as PriceRounding,
+          rejectionReasons: row.rejectionReasons as RejectionReason[],
         }
       : DEFAULT_SETTINGS;
   }

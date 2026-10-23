@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import type { Config } from './config';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { FieldModule } from './modules/field/field.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { MapsModule } from './modules/maps/maps.module';
@@ -53,6 +54,7 @@ export const FEATURE_MODULES = [
   WorkflowModule,
   AccountsModule,
   CatalogueModule,
+  OrdersModule,
   FormsModule,
   MetricsModule,
   PlanningModule,

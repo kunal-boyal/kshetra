@@ -40,6 +40,7 @@ function request(id: string, title: string, overrides: Record<string, unknown> =
     steps: [],
     cancellable: false,
     bulk: true,
+    page: null,
     createdAt: '2026-10-12T05:00:00.000Z',
     closedAt: null,
     ...overrides,

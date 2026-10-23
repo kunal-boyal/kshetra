@@ -161,7 +161,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   reviewAutoApproval: false,
   journeyPlanApproval: false,
   targetUnlockByAdmin: false,
-  ordersNeedOpenShift: true,
+  ordersNeedOpenShift: false,
   ordersAllowedOffline: true,
   planNotificationTime: '08:00',
   quietHoursStart: '21:00',

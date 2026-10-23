@@ -1007,6 +1007,20 @@ export class AccountsService {
       where ${and(eq(accounts.tenantId, access.tenantId), await this.reach(tx, access))})`;
   }
 
+  /** Accounts by ID as other records name them: code and name, whoever sees them. */
+  async refs(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, { id: string; code: string; name: string }>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select({ id: accounts.id, code: accounts.code, name: accounts.name })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, [...new Set(ids)])));
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
   /** Which of `ids` are the tenant's accounts, whoever sees them. */
   async existing(tx: TenantTx, tenantId: string, ids: readonly string[]): Promise<Set<string>> {
     if (ids.length === 0) return new Set();

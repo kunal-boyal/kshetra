@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ORDER_STATUSES } from './orders';
 import { UserStatus } from './schemas/iam';
 
 /**
@@ -51,6 +52,19 @@ export const SubmissionEventPayload = z.object({
   visitId: z.uuid().nullable(),
   capturedAt: z.iso.datetime(),
   status: z.enum(['pending', 'approved', 'rejected']),
+});
+
+/**
+ * An order placed, or its status changed (M10, BR-19, decision D78): metrics recompute the
+ * placing person's day, and phones learn where their orders stand.
+ */
+export const OrderEventPayload = z.object({
+  orderId: z.uuid(),
+  userId: z.uuid(),
+  accountId: z.uuid(),
+  visitId: z.uuid().nullable(),
+  placedAt: z.iso.datetime(),
+  status: z.enum(ORDER_STATUSES),
 });
 
 /** A photo processed (spec 12.2): the record holding it, if any, learns of a duplicate (BR-40). */
@@ -167,6 +181,8 @@ export const EVENT_PAYLOADS = {
   'visit.started': VisitEventPayload,
   'visit.ended': VisitEventPayload,
   'submission.created': SubmissionEventPayload,
+  'order.placed': OrderEventPayload,
+  'order.status_changed': OrderEventPayload,
   'media.processed': MediaProcessedPayload,
   'submission.reviewed': SubmissionReviewedPayload,
   'plan_item.status_changed': PlanItemStatusChangedPayload,
