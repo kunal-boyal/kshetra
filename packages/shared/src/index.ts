@@ -218,6 +218,8 @@ export {
   SyncItemsPage,
   SyncPlanItem,
   SyncPlanItemsPage,
+  SyncOrder,
+  SyncOrdersPage,
   SyncPrice,
   SyncPriceList,
   SyncPriceListsPage,

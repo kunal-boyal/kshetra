@@ -252,6 +252,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Orders live in `apps/api/src/modules/orders`. `OrdersService.place()` prices every line with `applicableLists()`, `priceFor()` and `priceLine()` on the day the order was placed, refuses with `PRICE_CHANGED` what the device showed otherwise (`quoteDifferences()`), and keeps each line's item as it was (BR-15). The status rules are `statusFromLines()` and `statusAfterFulfilment()` in `packages/shared/src/orders.ts` (BR-19); GST halves are `gstHalves()`.
 - An order's approval is decided on its own page: `ownPage` on its `RequestTypes` registration makes the inbox link there (`page`) and the generic decision refuse it. Decide through `OrdersService.decide()` and `decideLines()`, which call `ApprovalsService.decide(..., owner = true)`; `ApprovalsService.waiting()` says whether the step decides by line. Account finance provides `over_credit` through `OrderCredit.provide()`.
 - The web's orders are `apps/web/src/orders/`: the register, an order's page and the order desk.
+- On the phone, the cart is `/order/<accountId>` (`src/screens/order.tsx`) with `priceCart()`, `orderBody()`, `queueOrder()` and `repriceRefused()` in `apps/mobile/src/orders.ts`; orders upload as `order.place`, after their visit's check-in. A parked upload's payload changes only through `Outbox.replace()`. Phones keep their person's orders as the `orders` sync entity.
 
 ## Tenant administration (decision D64)
 

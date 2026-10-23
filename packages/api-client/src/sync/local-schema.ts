@@ -5,6 +5,7 @@ import type {
   SyncContact,
   SyncEntity,
   SyncItem,
+  SyncOrder,
   SyncPrice,
   SyncPriceList,
   SyncTerritory,
@@ -200,6 +201,18 @@ const MIGRATIONS: readonly string[] = [
      sync_gen INTEGER NOT NULL
    );
    CREATE INDEX ref_prices_list_item ON ref_prices (price_list_id, item_id);`,
+  // Orders (M10, decision D78): the ones the person placed, with where each stands.
+  `CREATE TABLE ref_orders (
+     id TEXT PRIMARY KEY NOT NULL,
+     account_id TEXT NOT NULL,
+     placed_at TEXT NOT NULL,
+     status TEXT NOT NULL,
+     total TEXT NOT NULL,
+     line_count INTEGER NOT NULL,
+     rejection_reason TEXT,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_orders_account ON ref_orders (account_id, placed_at);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -443,6 +456,27 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       removed: record.removed === 1,
     }),
   },
+  orders: {
+    table: 'ref_orders',
+    columns: (order) => ({
+      id: order.id,
+      account_id: order.accountId,
+      placed_at: order.placedAt,
+      status: order.status,
+      total: order.total,
+      line_count: order.lineCount,
+      rejection_reason: order.rejectionReason,
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      accountId: String(record.account_id),
+      placedAt: String(record.placed_at),
+      status: String(record.status) as SyncOrder['status'],
+      total: String(record.total),
+      lineCount: Number(record.line_count),
+      rejectionReason: record.rejection_reason === null ? null : String(record.rejection_reason),
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -454,6 +488,7 @@ export type RowOf<Name extends SyncEntity> = {
   plan_items: SyncPlanItem;
   price_lists: SyncPriceList;
   prices: SyncPrice;
+  orders: SyncOrder;
 }[Name];
 
 /** Every row the phone holds of one entity. */

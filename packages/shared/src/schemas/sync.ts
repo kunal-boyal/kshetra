@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ORDER_STATUSES } from '../orders';
 import { GeoPoint } from '../geo';
 import { AccountAddress, AccountStatus, ContactResult, LocationStatus } from './accounts';
 import { ItemResult, PriceListScope } from './catalogue';
@@ -22,6 +23,7 @@ export const SYNC_ENTITIES = [
   'plan_items',
   'price_lists',
   'prices',
+  'orders',
 ] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
@@ -147,6 +149,22 @@ export const SyncPrice = z
   .meta({ id: 'SyncPrice' });
 
 /**
+ * An order the person placed (M10, decision D78), so the phone shows where each stands once it
+ * has left the upload queue.
+ */
+export const SyncOrder = z
+  .object({
+    id: z.uuid(),
+    accountId: z.uuid(),
+    placedAt: z.iso.datetime(),
+    status: z.enum(ORDER_STATUSES),
+    total: z.string(),
+    lineCount: z.int().min(1),
+    rejectionReason: z.string().nullable(),
+  })
+  .meta({ id: 'SyncOrder' });
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -171,6 +189,7 @@ export const SyncItemsPage = page(SyncItem);
 export const SyncPlanItemsPage = page(SyncPlanItem);
 export const SyncPriceListsPage = page(SyncPriceList);
 export const SyncPricesPage = page(SyncPrice);
+export const SyncOrdersPage = page(SyncOrder);
 
 export const SyncPullResult = z.object({
   entities: z.object({
@@ -182,6 +201,7 @@ export const SyncPullResult = z.object({
     plan_items: SyncPlanItemsPage.optional(),
     price_lists: SyncPriceListsPage.optional(),
     prices: SyncPricesPage.optional(),
+    orders: SyncOrdersPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -199,4 +219,5 @@ export type SyncItem = z.infer<typeof SyncItem>;
 export type SyncPlanItem = z.infer<typeof SyncPlanItem>;
 export type SyncPriceList = z.infer<typeof SyncPriceList>;
 export type SyncPrice = z.infer<typeof SyncPrice>;
+export type SyncOrder = z.infer<typeof SyncOrder>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

@@ -372,4 +372,40 @@ describe('orders (M10)', () => {
     expect((await t.api.other.get(`/v1/orders/${body.id}`)).json().error.code).toBe('OUT_OF_SCOPE');
     expect((await t.api.other.get('/v1/orders')).json().items).toEqual([]);
   });
+
+  it('sends phones the orders their person placed, and where each stands', async () => {
+    const t = await agri('Sync Orders Agro');
+    const body = t.order(t.distributor, [t.line(t.urea, '1')]);
+    await t.api.sme.post('/v1/orders', body);
+    type Pull = {
+      entities: {
+        orders: { pass: string; rows: { id: string; status: string; lineCount: number }[] };
+      };
+      cursor: string;
+    };
+    const pull = async (api: typeof t.api.sme, cursor?: string) =>
+      (
+        await api.get(
+          `/v1/sync/pull?entities=orders${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+        )
+      ).json() as Pull;
+    const first = await pull(t.api.sme);
+    expect(first.entities.orders.rows).toEqual([
+      expect.objectContaining({ id: body.id, status: 'submitted', lineCount: 1, total: '1277.66' }),
+    ]);
+    // Someone else's phone keeps none of them.
+    expect((await pull(t.api.other)).entities.orders.rows).toEqual([]);
+
+    const { approval } = (await t.api.asm.get(`/v1/orders/${body.id}`)).json();
+    await t.api.asm.post(`/v1/orders/${body.id}/decision`, {
+      decision: 'reject',
+      reason: 'no_stock',
+      version: approval.version,
+    });
+    const second = await pull(t.api.sme, first.cursor);
+    expect(second.entities.orders).toMatchObject({
+      pass: 'changes',
+      rows: [{ id: body.id, status: 'rejected' }],
+    });
+  });
 });

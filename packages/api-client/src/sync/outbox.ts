@@ -221,6 +221,19 @@ export class Outbox {
   }
 
   /**
+   * Replaces a parked item's payload and queues it again, as when a refused order is priced
+   * again from the phone's current lists. Its ID stays, so the server still applies it once.
+   */
+  async replace(id: string, payload: unknown): Promise<void> {
+    await this.db.run(
+      `UPDATE outbox SET payload = ?, state = 'queued', attempts = 0, next_attempt_at = NULL,
+                         last_error = NULL, last_error_code = NULL
+        WHERE id = ? AND state = 'parked'`,
+      [JSON.stringify(payload), id],
+    );
+  }
+
+  /**
    * Drops an item for good; the screen asks first. Items waiting on it park, since they can't
    * upload as they are, and its sender cleans up after it.
    */

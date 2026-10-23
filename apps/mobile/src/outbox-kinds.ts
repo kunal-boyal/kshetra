@@ -7,6 +7,8 @@ import {
   type CreatePlanItemBody,
   type CreateSubmissionBody,
   type CreateLocationProposalBody,
+  OrderResult,
+  type PlaceOrderBody,
   type EndShiftBody,
   LocationProposalResult,
   PlanItemResult,
@@ -28,8 +30,7 @@ export interface LocationProposalPayload extends CreateLocationProposalBody {
 
 /**
  * How each kind of captured record uploads, and its name in the upload queue. Each sends the
- * record's own ID, so an upload sent twice is applied once (BR-46). Orders add their kinds as
- * their module arrives.
+ * record's own ID, so an upload sent twice is applied once (BR-46).
  */
 export function senders(
   client: Pick<MobileClient, 'request'>,
@@ -106,6 +107,14 @@ export function senders(
         });
       },
     },
+    // Orders (M10): after the visit they were taken in, if any. The server prices them again.
+    'order.place': {
+      async send(payload) {
+        await client.request('POST', '/v1/orders', OrderResult, {
+          body: payload as PlaceOrderBody,
+        });
+      },
+    },
     'account.location': {
       async send(payload) {
         const { accountId, ...body } = payload as LocationProposalPayload;
@@ -132,6 +141,7 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'visit.check_out': 'uploads.kind_visit_check_out',
   'submission.create': 'uploads.kind_submission',
   'plan_item.create': 'uploads.kind_plan_item',
+  'order.place': 'uploads.kind_order',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;

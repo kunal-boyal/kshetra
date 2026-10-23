@@ -84,7 +84,7 @@ function server(...answers: (SyncPullResult | Error)[]) {
 describe('the local database', () => {
   it('migrates once, to the latest version', async () => {
     await migrate(db);
-    expect(await db.get('PRAGMA user_version')).toEqual({ user_version: 7 });
+    expect(await db.get('PRAGMA user_version')).toEqual({ user_version: 8 });
     const tables = await db.all<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     );
@@ -95,6 +95,7 @@ describe('the local database', () => {
       'ref_accounts',
       'ref_contacts',
       'ref_items',
+      'ref_orders',
       'ref_plan_items',
       'ref_price_lists',
       'ref_prices',
@@ -337,6 +338,21 @@ describe('the outbox', () => {
     await outbox.retry('photo');
     await outbox.run(OWNER);
     expect(sent).toEqual(['other', 'photo', 'visit']);
+  });
+
+  it("replaces a parked item's payload and sends it again under the same ID", async () => {
+    await add('order');
+    failures.order = [new ApiError(409, 'PRICE_CHANGED', 'Prices changed.')];
+    await outbox.run(OWNER);
+    expect((await outbox.items(OWNER))[0]).toMatchObject({ state: 'parked' });
+    await outbox.replace('order', { id: 'order', priced: 'again' });
+    expect((await outbox.items(OWNER))[0]).toMatchObject({
+      state: 'queued',
+      lastErrorCode: null,
+      payload: { id: 'order', priced: 'again' },
+    });
+    await outbox.run(OWNER);
+    expect(sent).toEqual(['order']);
   });
 
   it('discards an item for good, parking what depended on it', async () => {
