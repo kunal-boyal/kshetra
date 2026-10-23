@@ -109,6 +109,7 @@ Each step is its own pull request, or two (a: the server and the web; b: the pho
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-24 | The phase 2 plan (decision D73), and CI within GitHub's free minutes with `pnpm verify` before every merge (decision D75) | PR #52, merged as `bd29a37` |
 | 2026-10-24 | Phase 1 step 20: the Field brand: Forest and harvest gold, Mukta, the pin-and-flame mark, sturdier shapes and the portal's shell (decision D72) | PR #51, merged as `37bd66c` |
 | 2026-10-24 | Phase 1 step 19: the demo: demo tenants and codes, a demo cell and one EC2 instance at app.thelamp.in (decision D70) | PR #50, merged as `e4e12d4` |
 | 2026-10-24 | The product renamed to The Lamp, with a one-command rename (decision D1) | PR #49, merged as `5ce42ba` |
