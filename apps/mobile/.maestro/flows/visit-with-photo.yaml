@@ -7,9 +7,13 @@ name: visit-with-photo
 - tapOn:
     id: tab-accounts
 - tapOn: ${ACCOUNT}
+# A place with a location shows its map above the visit's buttons, so they may be below the fold.
+- scrollUntilVisible:
+    element: Check in
+    centerElement: true
 - tapOn: Check in
-- extendedWaitUntil:
-    visible: Checked in.*
+- scrollUntilVisible:
+    element: Checked in.*
     timeout: 30000
 - scrollUntilVisible:
     element: Customer visit
@@ -48,11 +52,12 @@ name: visit-with-photo
 - scrollUntilVisible:
     element: Submit
 - tapOn: Submit
-- extendedWaitUntil:
-    visible: Check out
+- scrollUntilVisible:
+    element: Check out
     timeout: 30000
+    centerElement: true
 - tapOn: Check out
 # Check-out waits for a fix first (up to 20 s indoors); Check in returns once the visit has ended.
-- extendedWaitUntil:
-    visible: Check in
+- scrollUntilVisible:
+    element: Check in
     timeout: 45000
