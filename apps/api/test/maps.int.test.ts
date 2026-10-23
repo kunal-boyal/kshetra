@@ -115,7 +115,11 @@ async function tenant(name: string) {
     slots: { executive: asha.id },
   });
   expect(made.statusCode).toBe(201);
-  const start = Date.now() - H;
+  // An hour ago, unless the hour after it crosses midnight in India: then three hours ago, so the
+  // shift, its fixes and its visits fall on one day of the tenant's clock.
+  const day = (ms: number) => todayIn('Asia/Kolkata', new Date(ms));
+  const start =
+    day(Date.now() - H) === day(Date.now() - H + 45 * 60_000) ? Date.now() - H : Date.now() - 3 * H;
   const shiftId = newId();
   const opened = await api.asha.post('/v1/shifts', {
     id: shiftId,

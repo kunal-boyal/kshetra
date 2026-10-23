@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { WorkflowStep } from '@thelamp/forms';
 import {
   AppError,
   type ApprovalDecisionBody,
@@ -6,38 +7,49 @@ import {
   type ApprovalInboxResult,
   type ApprovalResult,
   newId,
+  nextStep,
   type RequestType,
+  type RoutedStep,
+  routeRequest,
 } from '@thelamp/shared';
-import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import { workflowInstances, workflowSteps } from '../../db/schema/workflow';
-import { type AuditActor, AuditLog, userActor } from '../../platform/audit';
+import { type AuditActor, AuditLog, SYSTEM_ACTOR, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
+import { Approvers, type RequestContext } from './approvers';
+import { ChainsService } from './chains.service';
 import { RequestTypes } from './request-types';
 
 type Instance = typeof workflowInstances.$inferSelect;
 type Step = typeof workflowSteps.$inferSelect;
 
+const HOUR_MS = 3_600_000;
+
 /**
- * Approvals (spec 5.9, M15), as phase 1 needs them: one step, decided by the requester's manager,
- * or by whoever may decide across the tenant when the requester has no active manager (decision
- * D38). Phase 2's engine resolves configured chains into the same instances and steps.
+ * Approvals (spec 5.9, M15, BR-31, decision D74). A request type with a chain is routed through
+ * it: each step's approvers are resolved when the request starts, steps nobody can or should
+ * decide are skipped, and the request waits at one step at a time. A type without a chain goes to
+ * the requester's manager for one decision, as in phase 1 (decision D38).
  */
 @Injectable()
 export class ApprovalsService {
   constructor(
     private readonly people: People,
     private readonly types: RequestTypes,
+    private readonly chains: ChainsService,
+    private readonly approvers: Approvers,
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
   ) {}
 
   /**
-   * Starts the approval of a request, in the transaction that makes it. Refused when nobody could
-   * ever decide it. Returns the instance's ID.
+   * Starts the approval of a request, in the transaction that makes it. `context` brings the
+   * request's account, for slot steps, and its facts, for step conditions. Refused when nobody
+   * could ever decide it. Returns the instance's ID.
    */
   async request(
     tx: TenantTx,
@@ -46,13 +58,81 @@ export class ApprovalsService {
     type: RequestType,
     requestId: string,
     actor: AuditActor,
+    context: RequestContext = {},
   ): Promise<string> {
     const requester = (await this.people.facts(tx, tenantId, [requesterId])).get(requesterId);
     if (!requester) throw notFound();
-    const manager = requester.managerId
-      ? (await this.people.facts(tx, tenantId, [requester.managerId])).get(requester.managerId)
+    const chain = await this.chains.current(tx, tenantId, type);
+    const routed = chain
+      ? routeRequest(
+          await this.approvers.resolve(tx, tenantId, requesterId, chain.steps, context),
+          requesterId,
+          await this.approvers.role(
+            tx,
+            tenantId,
+            await this.chains.fallbackRole(tx, tenantId),
+            requesterId,
+          ),
+        )
+      : await this.managerOnly(tx, tenantId, requester.managerId, requesterId, type);
+    if (!routed) {
+      throw new AppError('CONFLICT', 'Nobody can approve this yet. Ask an admin to set a manager.');
+    }
+    const id = newId();
+    const current = routed.findIndex((step) => step.status === 'pending');
+    const now = new Date();
+    await tx.insert(workflowInstances).values({
+      id,
+      tenantId,
+      definitionId: chain?.id ?? null,
+      requestType: type,
+      requestId,
+      requesterId,
+      currentStep: current,
+    });
+    await tx.insert(workflowSteps).values(
+      routed.map((step, index) => ({
+        tenantId,
+        instanceId: id,
+        stepIndex: index,
+        approverIds: step.approvers,
+        status: step.status,
+        skipReason: step.skipReason,
+        escalated: step.escalated,
+        fallback: step.fallback,
+        lineDecisions: chain?.steps[index]?.lineDecisions ?? false,
+        ...(index === current ? this.timing(chain?.steps[index], now) : {}),
+      })),
+    );
+    const approvers = routed[current]!.approvers;
+    await this.audit.record(tx, tenantId, actor, {
+      action: 'approval.requested',
+      target: { type: 'approval', id },
+      after: { requestType: type, requestId, approvers, chainVersion: chain?.version ?? null },
+    });
+    await this.outbox.publish(tx, tenantId, 'approval.requested', id, {
+      approvalId: id,
+      requestType: type,
+      requesterId,
+      approverIds: approvers,
+    });
+    return id;
+  }
+
+  /**
+   * Phase 1's route, for a type without a chain (decision D38): the requester's active manager,
+   * or whoever may decide across the tenant.
+   */
+  private async managerOnly(
+    tx: TenantTx,
+    tenantId: string,
+    managerId: string | null,
+    requesterId: string,
+    type: RequestType,
+  ): Promise<RoutedStep[] | null> {
+    const manager = managerId
+      ? (await this.people.facts(tx, tenantId, [managerId])).get(managerId)
       : undefined;
-    // Nobody approves their own request (BR-31).
     const approvers =
       manager && manager.status === 'active' && manager.id !== requesterId
         ? [manager.id]
@@ -62,36 +142,20 @@ export class ApprovalsService {
             this.types.get(type).fallbackPermission,
             requesterId,
           );
-    if (approvers.length === 0) {
-      throw new AppError('CONFLICT', 'Nobody can approve this yet. Ask an admin to set a manager.');
-    }
-    const id = newId();
-    await tx.insert(workflowInstances).values({
-      id,
-      tenantId,
-      requestType: type,
-      requestId,
-      requesterId,
-    });
-    await tx.insert(workflowSteps).values({
-      tenantId,
-      instanceId: id,
-      stepIndex: 0,
-      approverIds: approvers,
-      status: 'pending',
-    });
-    await this.audit.record(tx, tenantId, actor, {
-      action: 'approval.requested',
-      target: { type: 'approval', id },
-      after: { requestType: type, requestId, approvers },
-    });
-    await this.outbox.publish(tx, tenantId, 'approval.requested', id, {
-      approvalId: id,
-      requestType: type,
-      requesterId,
-      approverIds: approvers,
-    });
-    return id;
+    if (approvers.length === 0) return null;
+    return [{ approvers, status: 'pending', skipReason: null, escalated: false, fallback: false }];
+  }
+
+  /** When a step that starts waiting now should remind, and escalate. */
+  private timing(step: WorkflowStep | undefined, now: Date) {
+    const at = (hours: number | undefined) =>
+      hours === undefined ? null : new Date(now.getTime() + hours * HOUR_MS);
+    return {
+      startedAt: now,
+      remindAt: at(step?.reminderAfterHours),
+      escalateAt: at(step?.escalation?.afterHours),
+      escalateTo: step?.escalation?.to ?? null,
+    };
   }
 
   /** The pending approval of a request, if one waits. */
@@ -120,22 +184,8 @@ export class ApprovalsService {
     const [row] = await tx
       .select({ count: sql<number>`count(*)::int` })
       .from(workflowInstances)
-      .innerJoin(
-        workflowSteps,
-        and(
-          eq(workflowSteps.tenantId, workflowInstances.tenantId),
-          eq(workflowSteps.instanceId, workflowInstances.id),
-          eq(workflowSteps.stepIndex, workflowInstances.currentStep),
-        ),
-      )
-      .where(
-        and(
-          eq(workflowInstances.tenantId, access.tenantId),
-          eq(workflowInstances.status, 'pending'),
-          eq(workflowSteps.status, 'pending'),
-          sql`${access.userId}::uuid = any(${workflowSteps.approverIds})`,
-        ),
-      );
+      .innerJoin(workflowSteps, this.currentStepOf())
+      .where(this.waitingFor(access));
     return row?.count ?? 0;
   }
 
@@ -148,20 +198,10 @@ export class ApprovalsService {
     const found = await tx
       .select({ instance: workflowInstances })
       .from(workflowInstances)
-      .innerJoin(
-        workflowSteps,
-        and(
-          eq(workflowSteps.tenantId, workflowInstances.tenantId),
-          eq(workflowSteps.instanceId, workflowInstances.id),
-          eq(workflowSteps.stepIndex, workflowInstances.currentStep),
-        ),
-      )
+      .innerJoin(workflowSteps, this.currentStepOf())
       .where(
         and(
-          eq(workflowInstances.tenantId, access.tenantId),
-          eq(workflowInstances.status, 'pending'),
-          eq(workflowSteps.status, 'pending'),
-          sql`${access.userId}::uuid = any(${workflowSteps.approverIds})`,
+          this.waitingFor(access),
           query.requestType ? eq(workflowInstances.requestType, query.requestType) : undefined,
           query.cursor ? gt(workflowInstances.id, query.cursor) : undefined,
         ),
@@ -173,6 +213,23 @@ export class ApprovalsService {
       items: await this.results(tx, access.tenantId, page),
       nextCursor: found.length > query.limit ? page.at(-1)!.id : null,
     };
+  }
+
+  private currentStepOf() {
+    return and(
+      eq(workflowSteps.tenantId, workflowInstances.tenantId),
+      eq(workflowSteps.instanceId, workflowInstances.id),
+      eq(workflowSteps.stepIndex, workflowInstances.currentStep),
+    );
+  }
+
+  private waitingFor(access: Access) {
+    return and(
+      eq(workflowInstances.tenantId, access.tenantId),
+      eq(workflowInstances.status, 'pending'),
+      eq(workflowSteps.status, 'pending'),
+      sql`${access.userId}::uuid = any(${workflowSteps.approverIds})`,
+    );
   }
 
   /** One request, for its requester and the people asked to decide it. */
@@ -190,7 +247,8 @@ export class ApprovalsService {
   /**
    * A decision on the current step (BR-31): only its approvers act, nobody acts on their own
    * request, and a decision made on an older version is refused, so when two approvers act at once
-   * one decision is saved and the other gets 409.
+   * one decision is saved and the other gets 409. An approval moves the request to its next
+   * remaining step; the last approval, or any rejection, ends it.
    */
   async decide(
     tx: TenantTx,
@@ -198,13 +256,13 @@ export class ApprovalsService {
     id: string,
     body: ApprovalDecisionBody,
   ): Promise<ApprovalResult> {
-    const instance = await this.find(tx, access.tenantId, id, true);
+    const { tenantId } = access;
+    const instance = await this.find(tx, tenantId, id, true);
     if (instance.requesterId === access.userId) {
       throw new AppError('FORBIDDEN', 'Nobody decides their own request.');
     }
-    const [step] = (await this.steps(tx, access.tenantId, [id])).filter(
-      (entry) => entry.stepIndex === instance.currentStep,
-    );
+    const steps = await this.steps(tx, tenantId, [id]);
+    const step = steps.find((entry) => entry.stepIndex === instance.currentStep);
     const approver = step?.approverIds.includes(access.userId) ?? false;
     if (instance.status !== 'pending' || instance.version !== body.version) {
       if (!approver && instance.status === 'pending') throw this.notCurrent();
@@ -216,34 +274,171 @@ export class ApprovalsService {
     await tx
       .update(workflowSteps)
       .set({ status: outcome, actedBy: access.userId, actedAt: now, note: body.note ?? null })
-      .where(
-        and(
-          eq(workflowSteps.tenantId, access.tenantId),
-          eq(workflowSteps.instanceId, id),
-          eq(workflowSteps.stepIndex, step.stepIndex),
-        ),
-      );
-    const [closed] = await tx
-      .update(workflowInstances)
-      .set({ status: outcome, version: instance.version + 1, closedAt: now })
-      .where(and(eq(workflowInstances.tenantId, access.tenantId), eq(workflowInstances.id, id)))
-      .returning();
-    await this.types.get(instance.requestType).decided(tx, access, instance.requestId, outcome);
-    await this.audit.record(tx, access.tenantId, userActor(access), {
+      .where(this.stepKey(tenantId, id, step.stepIndex));
+    const next = outcome === 'approved' ? nextStep(steps, step.stepIndex) : null;
+    await this.audit.record(tx, tenantId, userActor(access), {
       action: 'approval.decided',
       target: { type: 'approval', id },
-      before: { status: instance.status },
-      after: { status: outcome, note: body.note ?? null },
+      before: { status: instance.status, step: step.stepIndex },
+      after: {
+        status: next === null ? outcome : 'pending',
+        step: next ?? step.stepIndex,
+        note: body.note ?? null,
+      },
     });
-    await this.outbox.publish(tx, access.tenantId, 'approval.decided', id, {
-      approvalId: id,
-      requestType: instance.requestType,
-      requesterId: instance.requesterId,
-      deciderId: access.userId,
-      outcome,
-    });
-    const [result] = await this.results(tx, access.tenantId, [closed!]);
+    let saved: Instance;
+    if (next !== null) {
+      const definition = instance.definitionId
+        ? await this.chains.byId(tx, tenantId, instance.definitionId)
+        : undefined;
+      await tx
+        .update(workflowSteps)
+        .set({ status: 'pending', ...this.timing(definition?.steps[next], now) })
+        .where(this.stepKey(tenantId, id, next));
+      [saved] = (await tx
+        .update(workflowInstances)
+        .set({ currentStep: next, version: instance.version + 1 })
+        .where(and(eq(workflowInstances.tenantId, tenantId), eq(workflowInstances.id, id)))
+        .returning()) as [Instance];
+      await this.outbox.publish(tx, tenantId, 'approval.waiting', id, {
+        approvalId: id,
+        requestType: instance.requestType,
+        requesterId: instance.requesterId,
+        approverIds: steps.find((entry) => entry.stepIndex === next)!.approverIds,
+        stepIndex: next,
+        reason: 'next_step',
+      });
+    } else {
+      [saved] = (await tx
+        .update(workflowInstances)
+        .set({ status: outcome, version: instance.version + 1, closedAt: now })
+        .where(and(eq(workflowInstances.tenantId, tenantId), eq(workflowInstances.id, id)))
+        .returning()) as [Instance];
+      await this.types.get(instance.requestType).decided(tx, access, instance.requestId, outcome);
+      await this.outbox.publish(tx, tenantId, 'approval.decided', id, {
+        approvalId: id,
+        requestType: instance.requestType,
+        requesterId: instance.requesterId,
+        deciderId: access.userId,
+        outcome,
+      });
+    }
+    const [result] = await this.results(tx, tenantId, [saved]);
     return result!;
+  }
+
+  /**
+   * The requester withdraws a request nobody has decided any step of yet (M15). Its record
+   * ends as a rejected one would.
+   */
+  async cancel(tx: TenantTx, access: Access, id: string): Promise<ApprovalResult> {
+    const { tenantId } = access;
+    const instance = await this.find(tx, tenantId, id, true);
+    if (instance.requesterId !== access.userId) {
+      const steps = await this.steps(tx, tenantId, [id]);
+      if (steps.some((step) => step.approverIds.includes(access.userId))) {
+        throw new AppError('FORBIDDEN', 'Only the person who asked can withdraw a request.');
+      }
+      throw outOfScope();
+    }
+    const steps = await this.steps(tx, tenantId, [id]);
+    if (instance.status !== 'pending' || steps.some((step) => step.actedBy !== null)) {
+      throw new AppError('CONFLICT', 'Someone has decided this already, so it can’t be withdrawn.');
+    }
+    const now = new Date();
+    const [saved] = (await tx
+      .update(workflowInstances)
+      .set({ status: 'cancelled', version: instance.version + 1, closedAt: now })
+      .where(and(eq(workflowInstances.tenantId, tenantId), eq(workflowInstances.id, id)))
+      .returning()) as [Instance];
+    await this.types.get(instance.requestType).decided(tx, access, instance.requestId, 'cancelled');
+    await this.audit.record(tx, tenantId, userActor(access), {
+      action: 'approval.cancelled',
+      target: { type: 'approval', id },
+      before: { status: instance.status },
+      after: { status: 'cancelled' },
+    });
+    const [result] = await this.results(tx, tenantId, [saved]);
+    return result!;
+  }
+
+  /**
+   * Reminds the approvers of steps that waited past their reminder time, and escalates steps
+   * that waited past their escalation time to the holders of the escalation role whose scope
+   * reaches the requester (spec 5.9). Each happens once per step; idempotent.
+   */
+  async keepTime(tx: TenantTx, tenantId: string, now = new Date()): Promise<number> {
+    const due = await tx
+      .select({ instance: workflowInstances, step: workflowSteps })
+      .from(workflowInstances)
+      .innerJoin(workflowSteps, this.currentStepOf())
+      .where(
+        and(
+          eq(workflowInstances.tenantId, tenantId),
+          eq(workflowInstances.status, 'pending'),
+          eq(workflowSteps.status, 'pending'),
+          or(
+            and(lte(workflowSteps.remindAt, now), isNull(workflowSteps.remindedAt)),
+            and(lte(workflowSteps.escalateAt, now), isNull(workflowSteps.escalatedAt)),
+          ),
+        ),
+      )
+      .for('update', { skipLocked: true });
+    for (const { instance, step } of due) {
+      const key = this.stepKey(tenantId, instance.id, step.stepIndex);
+      if (step.escalateAt && step.escalateAt <= now && !step.escalatedAt) {
+        const added = step.escalateTo
+          ? (await this.approvers.role(tx, tenantId, step.escalateTo, instance.requesterId)).filter(
+              (id) => id !== instance.requesterId && !step.approverIds.includes(id),
+            )
+          : [];
+        await tx
+          .update(workflowSteps)
+          .set({
+            approverIds: [...step.approverIds, ...added],
+            escalated: step.escalated || added.length > 0,
+            escalatedAt: now,
+            // Escalating is the stronger nudge, so no reminder follows it.
+            remindedAt: step.remindedAt ?? now,
+          })
+          .where(key);
+        if (added.length > 0) {
+          await this.audit.record(tx, tenantId, SYSTEM_ACTOR, {
+            action: 'approval.escalated',
+            target: { type: 'approval', id: instance.id },
+            before: { approvers: step.approverIds },
+            after: { approvers: [...step.approverIds, ...added], role: step.escalateTo },
+          });
+          await this.outbox.publish(tx, tenantId, 'approval.waiting', instance.id, {
+            approvalId: instance.id,
+            requestType: instance.requestType,
+            requesterId: instance.requesterId,
+            approverIds: added,
+            stepIndex: step.stepIndex,
+            reason: 'escalated',
+          });
+        }
+        continue;
+      }
+      await tx.update(workflowSteps).set({ remindedAt: now }).where(key);
+      await this.outbox.publish(tx, tenantId, 'approval.waiting', instance.id, {
+        approvalId: instance.id,
+        requestType: instance.requestType,
+        requesterId: instance.requesterId,
+        approverIds: step.approverIds,
+        stepIndex: step.stepIndex,
+        reason: 'reminder',
+      });
+    }
+    return due.length;
+  }
+
+  private stepKey(tenantId: string, instanceId: string, index: number) {
+    return and(
+      eq(workflowSteps.tenantId, tenantId),
+      eq(workflowSteps.instanceId, instanceId),
+      eq(workflowSteps.stepIndex, index),
+    );
   }
 
   private notCurrent(): AppError {
@@ -300,29 +495,34 @@ export class ApprovalsService {
         subjects.set(`${type}:${requestId}`, subject);
       }
     }
-    return instances.map((instance) => ({
-      id: instance.id,
-      requestType: instance.requestType,
-      requestId: instance.requestId,
-      subject: subjects.get(`${instance.requestType}:${instance.requestId}`) ?? {
-        title: '',
-        accountId: null,
-      },
-      requester: ref(instance.requesterId),
-      status: instance.status,
-      version: instance.version,
-      steps: steps
-        .filter((step) => step.instanceId === instance.id)
-        .map((step) => ({
+    return instances.map((instance) => {
+      const own = steps.filter((step) => step.instanceId === instance.id);
+      return {
+        id: instance.id,
+        requestType: instance.requestType,
+        requestId: instance.requestId,
+        subject: subjects.get(`${instance.requestType}:${instance.requestId}`) ?? {
+          title: '',
+          accountId: null,
+        },
+        requester: ref(instance.requesterId),
+        status: instance.status,
+        version: instance.version,
+        steps: own.map((step) => ({
           index: step.stepIndex,
           approvers: step.approverIds.map(ref),
           status: step.status,
           actedBy: step.actedBy ? ref(step.actedBy) : null,
           actedAt: step.actedAt?.toISOString() ?? null,
           note: step.note,
+          skipReason: step.skipReason,
+          escalated: step.escalated,
+          fallback: step.fallback,
         })),
-      createdAt: instance.createdAt.toISOString(),
-      closedAt: instance.closedAt?.toISOString() ?? null,
-    }));
+        cancellable: instance.status === 'pending' && own.every((step) => step.actedBy === null),
+        createdAt: instance.createdAt.toISOString(),
+        closedAt: instance.closedAt?.toISOString() ?? null,
+      };
+    });
   }
 }

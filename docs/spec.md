@@ -1378,7 +1378,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Finance | `POST /v1/finance-snapshots`, `POST /v1/ledger-entries`, `GET /v1/accounts/:id/statement` |
 | HR | `GET /v1/attendance?userId&period`, `POST /v1/leave-requests`, `POST /v1/regularisations`, `GET /v1/calendars`, `PUT /v1/calendars`, `PUT /v1/leave-types`, `PUT /v1/payroll-profiles`, `GET /v1/payslips/:userId/:period` |
 | Expenses | `PUT /v1/expense-policies`, `POST /v1/expense-claims`, `POST /v1/expense-claims/:id/receipts`, `POST /v1/expense-claims/:id/paid` |
-| Approvals | `GET /v1/approvals/inbox`, `GET /v1/approvals/:instanceId`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel` |
+| Approvals | `GET /v1/approvals/inbox`, `GET /v1/approvals/:instanceId`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel`; the chains: `GET /v1/workflows`, `PUT /v1/workflows/:requestType` (a new version), `PUT /v1/workflows/fallback` (decision D74) |
 | Notifications | `GET /v1/notifications`, `POST /v1/notifications/read`, `GET /v1/notification-prefs`, `PUT /v1/notification-prefs`, `PUT /v1/push-tokens` |
 | Configuration | `GET /v1/configuration/export`, `POST /v1/configuration/import/preview`, `POST /v1/configuration/import` (the configuration as an industry template; an import adds and updates, never removes; decision D66) |
 | Reports | `GET /v1/dashboard?period` (the home dashboard, decision D63), `GET /v1/reports/:key?period&managerId&territoryId&userId&accountType&form&locale` (decision D62) |

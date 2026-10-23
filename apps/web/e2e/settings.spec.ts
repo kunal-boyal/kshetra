@@ -16,6 +16,37 @@ const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, o
 const TYPE_ID = '01a10000-0000-7000-8000-000000000301';
 const ANSWERS: Record<string, unknown> = {
   '/v1/organisation': { name: 'Sunrise Traders', logo: null },
+  '/v1/workflows': {
+    fallbackRole: 'manager',
+    chains: [
+      'leave',
+      'regularisation',
+      'expense',
+      'order',
+      'new_account',
+      'account_location_change',
+      'journey_plan',
+      'target_lock',
+    ].map((requestType) => ({
+      requestType,
+      version: requestType === 'leave' ? 2 : 0,
+      steps:
+        requestType === 'leave'
+          ? [
+              { approver: { type: 'reporting_manager', level: 1 }, lineDecisions: false },
+              {
+                approver: { type: 'nearest_designation', designation: 'executive' },
+                condition: { match: 'all', clauses: [{ field: 'leave_days', op: 'gt', value: 3 }] },
+                reminderAfterHours: 24,
+                lineDecisions: false,
+              },
+            ]
+          : [],
+      updatedAt: requestType === 'leave' ? '2026-10-20T06:30:00.000Z' : null,
+      updatedBy: null,
+    })),
+  },
+  '/v1/users': { items: [], nextCursor: null },
   '/v1/account-types': {
     items: [
       {
@@ -170,6 +201,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'designation.manage',
             'form.manage',
             'catalogue.manage',
+            'workflow.manage',
           ],
         },
       },
@@ -184,6 +216,8 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'forms',
     'territories',
     'metric-definitions',
+    'workflows',
+    'users',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -222,6 +256,7 @@ for (const path of [
   'metrics',
   'metrics/visits',
   'metrics/new',
+  'approvals',
   'configuration',
 ]) {
   for (const theme of ['light', 'outdoor']) {
@@ -274,5 +309,16 @@ test('shows what a configuration file would change, accessibly', async ({ page }
   await page.getByRole('checkbox', { name: /entries that are the same/ }).check();
   await page.getByRole('button', { name: 'Import the file' }).click();
   await expect(page.getByRole('group', { name: 'Add 1 and change 1?' })).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('edits an approval chain, accessibly', async ({ page }) => {
+  await mockSignedIn(page);
+  await page.goto('/settings/approvals');
+  const leave = page.getByRole('region', { name: 'Leave' });
+  await expect(leave.getByText('Version 2', { exact: false })).toBeVisible();
+  await leave.getByRole('button', { name: 'Edit: Leave' }).click();
+  await expect(leave.getByRole('group', { name: 'Step 2' })).toBeVisible();
+  await expect(leave.getByRole('group', { name: 'Use this step only when' })).toBeVisible();
   await expectAccessible(page);
 });

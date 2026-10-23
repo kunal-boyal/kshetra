@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { todayIn } from '@thelamp/shared';
-import { and, eq, or, type SQL, sql } from 'drizzle-orm';
-import { reportingClosure, users } from '../../db/schema/iam';
+import { and, asc, eq, or, type SQL, sql } from 'drizzle-orm';
+import { reportingClosure, roles, users } from '../../db/schema/iam';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
@@ -77,5 +77,54 @@ export class Scopes {
         ),
       );
     return row !== undefined;
+  }
+
+  /**
+   * The active holders of a role whose data scope reaches a person, in code order: who decides an
+   * approval step routed to a role (spec 5.9, `role_in_scope`), or escalated to one.
+   */
+  async holdersReaching(
+    tx: TenantTx,
+    tenantId: string,
+    roleKey: string,
+    userId: string,
+  ): Promise<string[]> {
+    const holders = await tx
+      .select({ id: users.id, scope: roles.scope })
+      .from(users)
+      .innerJoin(roles, and(eq(roles.tenantId, users.tenantId), eq(roles.id, users.roleId)))
+      .where(and(eq(users.tenantId, tenantId), eq(users.status, 'active'), eq(roles.key, roleKey)))
+      .orderBy(asc(users.code));
+    if (holders.length === 0) return [];
+    const above = new Set(
+      (
+        await tx
+          .select({ id: reportingClosure.ancestorId })
+          .from(reportingClosure)
+          .where(
+            and(eq(reportingClosure.tenantId, tenantId), eq(reportingClosure.descendantId, userId)),
+          )
+      ).map((row) => row.id),
+    );
+    const { timezone } = await this.config.settings(tx, tenantId);
+    const today = todayIn(timezone);
+    const reached: string[] = [];
+    for (const holder of holders) {
+      const team = above.has(holder.id);
+      const territory = async () => {
+        const result = await tx.execute<{ hit: number }>(
+          sql`select 1 as hit where ${userId}::uuid in (${this.territories.usersReachedBy(tenantId, holder.id, today)})`,
+        );
+        return result.rows.length > 0;
+      };
+      const reaches =
+        holder.scope === 'tenant' ||
+        (holder.scope === 'self' && holder.id === userId) ||
+        (holder.scope === 'team' && team) ||
+        (holder.scope === 'territory' && (holder.id === userId || (await territory()))) ||
+        (holder.scope === 'team_or_territory' && (team || (await territory())));
+      if (reaches) reached.push(holder.id);
+    }
+    return reached;
   }
 }

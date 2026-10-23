@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { LocalizedNoun, TenantPermission, UserStatus } from '@thelamp/shared';
 import type { z } from 'zod';
 import { and, asc, eq, gte, inArray, isNull, ne, or, type SQL, sql } from 'drizzle-orm';
-import { designations, roles, users } from '../../db/schema/iam';
+import { designations, reportingClosure, roles, users } from '../../db/schema/iam';
 import type { TenantTx } from '../../platform/database';
 
 /** What other modules may know of a person, whatever the caller's scope: no contact details. */
@@ -49,6 +49,47 @@ export class People {
       and(eq(users.tenantId, tenantId), inArray(users.id, [...new Set(ids)])),
     );
     return new Map(found.map((person) => [person.id, person]));
+  }
+
+  /**
+   * A person's managers up the reporting tree, nearest first, with how far up each is: depth 1 is
+   * their manager. Approval chains route by it (spec 5.9).
+   */
+  async ancestors(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+  ): Promise<(PersonFacts & { depth: number })[]> {
+    return tx
+      .select({
+        id: users.id,
+        code: users.code,
+        name: users.name,
+        designation: designations.key,
+        status: users.status,
+        managerId: users.managerId,
+        depth: reportingClosure.depth,
+      })
+      .from(reportingClosure)
+      .innerJoin(
+        users,
+        and(
+          eq(users.tenantId, reportingClosure.tenantId),
+          eq(users.id, reportingClosure.ancestorId),
+        ),
+      )
+      .innerJoin(
+        designations,
+        and(eq(designations.tenantId, users.tenantId), eq(designations.id, users.designationId)),
+      )
+      .where(
+        and(
+          eq(reportingClosure.tenantId, tenantId),
+          eq(reportingClosure.descendantId, userId),
+          gte(reportingClosure.depth, 1),
+        ),
+      )
+      .orderBy(asc(reportingClosure.depth));
   }
 
   /**

@@ -7,6 +7,7 @@ import { Outbox } from '../../platform/outbox';
 import { AccountTypesService } from '../accounts/account-types.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
 import { HeldConfiguration } from '../configuration/held-configuration';
+import { ChainsService } from '../workflow/chains.service';
 import { AttendanceService } from '../field/attendance.service';
 import { FormsService } from '../forms/forms.service';
 import { SYSTEM } from '../iam/actor';
@@ -40,6 +41,7 @@ export class CellSetup {
     private readonly metrics: MetricsService,
     private readonly users: UsersService,
     private readonly held: HeldConfiguration,
+    private readonly chains: ChainsService,
     private readonly outbox: Outbox,
   ) {}
 
@@ -58,12 +60,8 @@ export class CellSetup {
     await this.metrics.applyTemplate(tx, tenantId, template.metrics, template.score);
     await this.attendance.applyTemplate(tx, tenantId, template.people.attendance);
     await this.imports.applyTemplate(tx, tenantId, templateImports(template));
-    await this.held.save(
-      tx,
-      tenantId,
-      { workflows: template.workflows, people: template.people },
-      null,
-    );
+    await this.chains.applyTemplate(tx, tenantId, template.workflows);
+    await this.held.save(tx, tenantId, { people: template.people }, null);
     if (template.settings && Object.keys(template.settings).length > 0) {
       await this.config.updateSettings(tx, tenantId, SYSTEM_ACTOR, template.settings);
     }

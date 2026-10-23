@@ -31,6 +31,7 @@ import { MetricsService } from '../metrics/metrics.service';
 import { MetricsAdmin } from '../performance/metrics-admin';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
+import { ChainsService } from '../workflow/chains.service';
 import { HeldConfiguration, type HeldSections } from './held-configuration';
 
 type Section = ConfigurationChange['section'];
@@ -94,6 +95,7 @@ export class ConfigurationService {
     private readonly attendance: AttendanceService,
     private readonly imports: ImportsService,
     private readonly held: HeldConfiguration,
+    private readonly chains: ChainsService,
     private readonly audit: AuditLog,
   ) {}
 
@@ -105,7 +107,7 @@ export class ConfigurationService {
     if (!started) return undefined;
     try {
       const template = loadTemplate(started.key);
-      return { workflows: template.workflows, people: template.people };
+      return { people: template.people };
     } catch (error) {
       if (error instanceof TemplateError) return undefined;
       throw error;
@@ -168,7 +170,7 @@ export class ConfigurationService {
       forms: (await this.forms.list(tx, tenantId)).map(definitionOf),
       metrics: entries.filter((entry) => entry.active).map((entry) => entry.definition),
       score: await this.metrics.score(tx, tenantId),
-      ...(held ?? {}),
+      workflows: await this.chains.export(tx, tenantId),
       people: held
         ? { ...held.people, attendance: await this.attendance.rule(tx, tenantId) }
         : undefined,
@@ -382,20 +384,17 @@ export class ConfigurationService {
       );
     }
 
+    const chains = await this.chains.import(tx, access, file.workflows);
+    changes.push(...chains.changes);
+    issues.push(...chains.issues);
+
     const held = await this.heldSections(tx, tenantId);
-    const next: HeldSections = { workflows: file.workflows, people: file.people };
-    changes.push(
-      {
-        section: 'workflows',
-        key: 'workflows',
-        change: same(held?.workflows, next.workflows) ? 'same' : held ? 'update' : 'add',
-      },
-      {
-        section: 'people',
-        key: 'people',
-        change: same(held?.people, next.people) ? 'same' : held ? 'update' : 'add',
-      },
-    );
+    const next: HeldSections = { people: file.people };
+    changes.push({
+      section: 'people',
+      key: 'people',
+      change: same(held?.people, next.people) ? 'same' : held ? 'update' : 'add',
+    });
     if (!held || !same(held, next)) await this.held.save(tx, tenantId, next, access.userId);
 
     if (issues.length === 0) {

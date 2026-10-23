@@ -88,4 +88,32 @@ export class ApprovalsController {
     );
     return result.body;
   }
+
+  @Post(':instanceId/cancel')
+  @Contract({
+    tag: 'Approvals',
+    summary: 'Withdraw a request of yours that nobody has decided yet',
+    params: InstanceParams,
+    response: ApprovalResult,
+    idempotencyKey: true,
+  })
+  @SignedIn()
+  @HttpCode(200)
+  async cancel(
+    @CurrentAccess() access: Access,
+    @Param('instanceId') id: string,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    const instanceId = pathId(id);
+    const result = await this.database.forTenant(access.tenantId, (tx) =>
+      idempotent(
+        tx,
+        access.tenantId,
+        requireIdempotencyKey(key),
+        { route: 'POST /v1/approvals/:instanceId/cancel', by: access.userId, instanceId },
+        async () => ({ status: 200, body: await this.approvals.cancel(tx, access, instanceId) }),
+      ),
+    );
+    return result.body;
+  }
 }

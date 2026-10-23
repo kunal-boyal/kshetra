@@ -2234,6 +2234,66 @@
         }
       }
     },
+    "/v1/approvals/{instanceId}/cancel": {
+      "post": {
+        "operationId": "ApprovalsController.cancel",
+        "summary": "Withdraw a request of yours that nobody has decided yet",
+        "tags": [
+          "Approvals"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Approval"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/approvals/{instanceId}/decision": {
       "post": {
         "operationId": "ApprovalsController.decide",
@@ -2632,6 +2692,9 @@
                 "contact.updated",
                 "approval.requested",
                 "approval.decided",
+                "approval.cancelled",
+                "approval.escalated",
+                "workflow.changed",
                 "role.created",
                 "role.updated",
                 "designation.created",
@@ -2804,6 +2867,9 @@
                               "contact.updated",
                               "approval.requested",
                               "approval.decided",
+                              "approval.cancelled",
+                              "approval.escalated",
+                              "workflow.changed",
                               "role.created",
                               "role.updated",
                               "designation.created",
@@ -12338,6 +12404,9 @@
                               "contact.updated",
                               "approval.requested",
                               "approval.decided",
+                              "approval.cancelled",
+                              "approval.escalated",
+                              "workflow.changed",
                               "role.created",
                               "role.updated",
                               "designation.created",
@@ -13078,6 +13147,282 @@
                     "visit"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workflows": {
+      "get": {
+        "operationId": "WorkflowsController.list",
+        "summary": "Every request type's approval chain, and the fallback approver role",
+        "tags": [
+          "Approvals"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: workflow.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workflows"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workflows/{requestType}": {
+      "put": {
+        "operationId": "WorkflowsController.setChain",
+        "summary": "Save a new version of a request type's approval chain",
+        "tags": [
+          "Approvals"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: workflow.manage",
+        "parameters": [
+          {
+            "name": "requestType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "leave",
+                "regularisation",
+                "expense",
+                "order",
+                "new_account",
+                "account_location_change",
+                "journey_plan",
+                "target_lock"
+              ]
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "steps": {
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/WorkflowStepInput"
+                    }
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "steps",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestType": {
+                      "type": "string",
+                      "enum": [
+                        "leave",
+                        "regularisation",
+                        "expense",
+                        "order",
+                        "new_account",
+                        "account_location_change",
+                        "journey_plan",
+                        "target_lock"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WorkflowStep"
+                      }
+                    },
+                    "updatedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "updatedBy": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "requestType",
+                    "version",
+                    "steps",
+                    "updatedAt",
+                    "updatedBy"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workflows/fallback": {
+      "put": {
+        "operationId": "WorkflowsController.setFallback",
+        "summary": "Set the role that approves when no step of a chain remains",
+        "tags": [
+          "Approvals"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: workflow.manage",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "$ref": "#/components/schemas/Key"
+                  }
+                },
+                "required": [
+                  "role"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workflows"
                 }
               }
             }
@@ -14296,6 +14641,28 @@
                     "string",
                     "null"
                   ]
+                },
+                "skipReason": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "condition",
+                        "no_approver",
+                        "requester",
+                        "repeated"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "escalated": {
+                  "type": "boolean"
+                },
+                "fallback": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -14304,10 +14671,16 @@
                 "status",
                 "actedBy",
                 "actedAt",
-                "note"
+                "note",
+                "skipReason",
+                "escalated",
+                "fallback"
               ],
               "additionalProperties": false
             }
+          },
+          "cancellable": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",
@@ -14336,6 +14709,7 @@
           "status",
           "version",
           "steps",
+          "cancellable",
           "createdAt",
           "closedAt"
         ],
@@ -14415,6 +14789,122 @@
             "required": [
               "type",
               "slot"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "specific_user"
+              },
+              "userId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                "description": "One named person. Tenants only: templates hold no users"
+              }
+            },
+            "required": [
+              "type",
+              "userId"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "ApproverInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "reporting_manager"
+              },
+              "level": {
+                "default": 1,
+                "description": "1 is the direct manager, 2 is their manager, and so on up the tree",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "nearest_designation"
+              },
+              "designation": {
+                "description": "The closest ancestor with this designation",
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "type",
+              "designation"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "role_in_scope"
+              },
+              "role": {
+                "description": "Anyone whose role's scope covers the requester; first to act decides",
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "type",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "account_slot"
+              },
+              "slot": {
+                "description": "The user in this slot of the request's account",
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "type",
+              "slot"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "specific_user"
+              },
+              "userId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                "description": "One named person. Tenants only: templates hold no users"
+              }
+            },
+            "required": [
+              "type",
+              "userId"
             ],
             "additionalProperties": false
           }
@@ -23683,11 +24173,105 @@
         ],
         "additionalProperties": false
       },
+      "Workflows": {
+        "type": "object",
+        "properties": {
+          "fallbackRole": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "chains": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "requestType": {
+                  "type": "string",
+                  "enum": [
+                    "leave",
+                    "regularisation",
+                    "expense",
+                    "order",
+                    "new_account",
+                    "account_location_change",
+                    "journey_plan",
+                    "target_lock"
+                  ]
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowStep"
+                  }
+                },
+                "updatedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "updatedBy": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "requestType",
+                "version",
+                "steps",
+                "updatedAt",
+                "updatedBy"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "fallbackRole",
+          "chains"
+        ],
+        "additionalProperties": false
+      },
       "WorkflowStep": {
         "type": "object",
         "properties": {
           "approver": {
             "$ref": "#/components/schemas/Approver"
+          },
+          "condition": {
+            "description": "Use the step only when this holds for the request's facts, such as leave_days > 3. Leave out to use it always.",
+            "$ref": "#/components/schemas/Condition"
           },
           "escalateIfNoApprover": {
             "description": "A role to escalate to when no approver resolves. Leave out to skip the step.",
@@ -23726,6 +24310,55 @@
         "required": [
           "approver",
           "lineDecisions"
+        ],
+        "additionalProperties": false
+      },
+      "WorkflowStepInput": {
+        "type": "object",
+        "properties": {
+          "approver": {
+            "$ref": "#/components/schemas/ApproverInput"
+          },
+          "condition": {
+            "description": "Use the step only when this holds for the request's facts, such as leave_days > 3. Leave out to use it always.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "escalateIfNoApprover": {
+            "description": "A role to escalate to when no approver resolves. Leave out to skip the step.",
+            "$ref": "#/components/schemas/Key"
+          },
+          "reminderAfterHours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 720
+          },
+          "escalation": {
+            "description": "Escalate to a role when the step has waited this long",
+            "type": "object",
+            "properties": {
+              "afterHours": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 720
+              },
+              "to": {
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "afterHours",
+              "to"
+            ],
+            "additionalProperties": false
+          },
+          "lineDecisions": {
+            "default": false,
+            "description": "Order approvers at this step decide line by line (order.line_decide)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "approver"
         ],
         "additionalProperties": false
       },

@@ -10,6 +10,7 @@ import { ImportsModule } from '../imports/imports.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
+import { WorkflowModule } from '../workflow/workflow.module';
 import { CellSetup } from './cell-setup.service';
 import { TenantProvisioner } from './provisioner';
 
@@ -30,6 +31,7 @@ import { TenantProvisioner } from './provisioner';
     FieldModule,
     MetricsModule,
     ConfigurationModule,
+    WorkflowModule,
   ],
   providers: [CellSetup, TenantProvisioner],
   exports: [CellSetup, TenantProvisioner],

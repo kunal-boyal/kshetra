@@ -605,15 +605,22 @@ function ClauseValue({
   );
 }
 
-/** "Show when …": clauses on earlier fields, all or any of which must hold (spec 5.6). */
+/**
+ * "Show when …": clauses on earlier fields, all or any of which must hold (spec 5.6). Approval
+ * chains use it too, on a request's facts, under their own legend (decision D74).
+ */
 export function ConditionEditor({
   condition,
   earlier,
   onChange,
+  legend,
+  addLabel,
 }: {
   condition: Condition | undefined;
   earlier: readonly AnyFormField[];
   onChange: (condition: Condition | undefined) => void;
+  legend?: string;
+  addLabel?: string;
 }) {
   const { t, locale } = useLanguage();
   const groupId = useId();
@@ -639,7 +646,7 @@ export function ConditionEditor({
             })
           }
         >
-          {t('builder.add_condition')}
+          {addLabel ?? t('builder.add_condition')}
         </Button>
       </div>
     );
@@ -654,7 +661,7 @@ export function ConditionEditor({
   return (
     <fieldset className="flex flex-col gap-3" aria-labelledby={groupId}>
       <legend id={groupId} className="font-semibold">
-        {t('builder.show_when')}
+        {legend ?? t('builder.show_when')}
       </legend>
       <SelectField
         label={t('builder.match')}

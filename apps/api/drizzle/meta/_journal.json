@@ -253,6 +253,20 @@
       "when": 1792751153781,
       "tag": "0035_demo_tenants",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792782716865,
+      "tag": "0036_approval_chains",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792782734512,
+      "tag": "0037_approval_chains_from_held",
+      "breakpoints": true
     }
   ]
 }

@@ -232,6 +232,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 - The web Home reads `GET /v1/dashboard` (`DashboardService` in the reports module, with `PerformanceService.dashboard()` for tiles, trend and leaderboard). Draw charts only through `Chart` in `apps/web/src/charts/chart.tsx`, which takes colours from the tokens with `token()`, follows the theme, stops motion under reduced motion, and keeps a Show the numbers table beside every chart. Register any ECharts part a chart needs in `echarts.use()` there. Status series use the status `-solid` tokens; pending is hatched as well as coloured.
 
+## Approval chains (decision D74)
+
+- Chains live in `apps/api/src/modules/workflow`: `ChainsService` keeps each request type's chain as versions (`cell.workflow_definitions`) and the fallback role; a request records the version that routed it. A type without a chain goes to the requester's manager (D38).
+- Start a request with `ApprovalsService.request(tx, tenantId, requesterId, type, requestId, actor, { accountId, facts })` in the transaction that makes it: `accountId` for `account_slot` steps, `facts` keyed as `REQUEST_FACTS` in `@thelamp/forms` for step conditions. A new request type registers with `RequestTypes` (its `decided` also receives `cancelled`, applied as a rejection) and adds its facts to `REQUEST_FACTS`.
+- Routing is `routeRequest()` in `@thelamp/shared` (BR-31); the resolvers are `Approvers` (`People.ancestors`, `Scopes.holdersReaching`, the accounts' slot seam). Moving to a later step, escalating and reminding publish `approval.waiting`; reminders and escalations run every 15 minutes (`approvals.keep_time`).
+- Step schemas (`Approver`, `WorkflowStep`) are the form engine's, in `@thelamp/forms`; templates re-export them. The web edits chains at Settings → Approval chains with the form builder's `ConditionEditor`.
+
 ## Tenant administration (decision D64)
 
 - Settings are `TenantSettings`; the apps read them from the bundle through `BundleSettings`, which drops settings they don't know and fills missing ones with defaults, so settings may only ever be added. The display name is the directory's (`TenantDirectory.rename()`), the logo a `logo` media file behind `/v1/organisation/logo`.

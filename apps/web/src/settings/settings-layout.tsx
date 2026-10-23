@@ -5,7 +5,8 @@ import { useAccess } from '../people/data';
 /**
  * Settings (spec 8.2, M2): the organisation, its rules, words and modules, then its roles,
  * designations, people fields, forms and catalogue, and the account types, territory levels and
- * metrics they work with, and the whole configuration as a file to export and import.
+ * metrics they work with, who approves each kind of request, and the whole configuration as a file
+ * to export and import.
  */
 export function SettingsLayout() {
   const { t } = useLanguage();
@@ -40,6 +41,9 @@ export function SettingsLayout() {
       : []),
     ...(access.can('metric.manage')
       ? [{ to: '/settings/metrics', label: t('metrics.title') }]
+      : []),
+    ...(access.can('workflow.manage')
+      ? [{ to: '/settings/approvals', label: t('nav.approval_chains') }]
       : []),
     ...(access.can('settings.manage')
       ? [{ to: '/settings/configuration', label: t('config_file.title') }]
