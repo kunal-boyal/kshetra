@@ -4,7 +4,7 @@ A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web porta
 
 ## Status
 
-Phase 1 (the field core) is in progress, and phase 0 is complete. Start a new phase only with Kunal's explicit go-ahead. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
+Phase 2 (commerce and people) is in progress, by the plan Kunal approved on 2026-10-24 (decision D73). Phase 1 is built but for its pilot week, which waits on the company's accounts, and phase 0 is complete. Start a new phase only with Kunal's explicit go-ahead. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
 
 Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
 
