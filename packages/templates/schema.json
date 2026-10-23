@@ -3405,6 +3405,42 @@
         "ordersAllowedOffline": {
           "type": "boolean"
         },
+        "ageingBuckets": {
+          "minItems": 1,
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/Key"
+              },
+              "fromDays": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3650
+              },
+              "toDays": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3650
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "fromDays",
+              "toDays"
+            ],
+            "additionalProperties": false
+          }
+        },
         "planNotificationTime": {
           "$ref": "#/$defs/TimeOfDay"
         },
