@@ -46,7 +46,7 @@ The whole product on one EC2 instance in Kunal's personal AWS sandbox, on the Fr
 
 | Service | What it does |
 |---|---|
-| EC2 `t4g.small` with an Elastic IP | Runs PostgreSQL, Redis, the API, worker, scheduler and Caddy in Docker Compose, at `demo.thelamp.in` |
+| EC2 `t4g.small` with an Elastic IP | Runs PostgreSQL, Redis, the API, worker, scheduler and Caddy in Docker Compose, at `app.thelamp.in` |
 | S3 | Photos and exports, through presigned links |
 | ECR | The demo's images, built on the Mac for ARM |
 | Systems Manager | Session Manager and Run Command reach the instance with no SSH; Parameter Store holds its settings |

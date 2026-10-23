@@ -10,6 +10,8 @@
 #   infra/scripts/demo.sh resume                starts it again and waits until the demo answers
 #   infra/scripts/demo.sh status                says whether it runs, and checks the demo's health
 set -euo pipefail
+# A failing command inside $(…) stops the script too, so a failed build never deploys.
+shopt -s inherit_errexit
 
 export AWS_PROFILE="${AWS_PROFILE:-thelamp-sandbox}"
 export AWS_REGION=ap-south-1
@@ -39,10 +41,10 @@ on_box() {
   [[ "$status" == "Success" ]] || { echo "The instance's script ended: $status" >&2; exit 1; }
 }
 
+# Builds the commit's three images for ARM and pushes them, tagged with `$1`.
 build() {
-  local registry tag
+  local registry tag="$1"
   registry="$(output registry)"
-  tag="$(git -C "$root" rev-parse --short=12 HEAD)"
   {
     aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
     # The instance is ARM (Graviton), like Apple silicon, so these build natively on a Mac.
@@ -53,7 +55,6 @@ build() {
     docker buildx build --platform linux/arm64 -f "$root/infra/demo/edge.Dockerfile" \
       -t "$registry/thelamp-demo/edge:$tag" --push "$root"
   } >&2
-  echo "$tag"
 }
 
 deploy() {
@@ -63,7 +64,8 @@ deploy() {
     exit 1
   }
   registry="$(output registry)"
-  tag="$(build | tail -n 1)"
+  tag="$(git -C "$root" rev-parse --short=12 HEAD)"
+  build "$tag"
   compose="$(base64 <"$root/infra/demo/compose.yaml" | tr -d '\n')"
   parameter="$(output settings_parameter)"
   on_box "set -euo pipefail

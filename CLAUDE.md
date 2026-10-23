@@ -289,7 +289,7 @@ Migrations are append-only and backward compatible. They follow expand and contr
 
 ## The demo (decision D70)
 
-- The demo runs the whole product on one EC2 instance in Kunal's AWS sandbox, on the Free plan's credit: Docker Compose (`infra/demo/compose.yaml`) with Caddy at `demo.thelamp.in`; Terraform in `infra/environments/demo`, with local state. It isn't staging; nothing carries over to the company's accounts.
+- The demo runs the whole product on one EC2 instance in Kunal's AWS sandbox, on the Free plan's credit: Docker Compose (`infra/demo/compose.yaml`) with Caddy at `app.thelamp.in`; Terraform in `infra/environments/demo`, with local state. It isn't staging; nothing carries over to the company's accounts.
 - A demo cell is `CELL_PURPOSE=demo`: production code with `OTP_PROVIDER=none` and console senders for SMS and email (numbers masked). A live cell refuses both.
 - People sign in to demo tenants (`pnpm provision --demo`, the `demo` flag in `directory.tenants`) with fixed codes from `DEMO_CODES`. A code works only while every tenant of its number is a demo tenant; keep the codes in `terraform.tfvars`, never in the repository.
 - A new setting the demo needs goes in `local.settings` in `infra/environments/demo/main.tf`, as well as the cell's `modules/cell/services.tf`.

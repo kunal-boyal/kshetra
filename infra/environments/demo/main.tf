@@ -35,7 +35,7 @@ provider "aws" {
 variable "domain" {
   description = "Where the demo is served: the web portal, and the API under /v1 and /auth."
   type        = string
-  default     = "demo.thelamp.in"
+  default     = "app.thelamp.in"
 }
 
 variable "instance_type" {
