@@ -58,7 +58,9 @@ export class PlanningUpkeep implements OnModuleInit {
       type: 'journey_plan',
       fallbackPermission: 'plan_item.manage',
       subjects: (tx, tenantId, ids) => this.planning.subjects(tx, tenantId, ids),
-      decided: (tx, by, id, outcome) => this.planning.decided(tx, by, id, outcome),
+      // A withdrawn month goes back to draft, as a rejected one does.
+      decided: (tx, by, id, outcome) =>
+        this.planning.decided(tx, by, id, outcome === 'approved' ? 'approved' : 'rejected'),
     });
   }
 }

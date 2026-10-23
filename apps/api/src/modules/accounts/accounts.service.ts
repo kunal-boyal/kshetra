@@ -412,6 +412,7 @@ export class AccountsService {
         'new_account',
         input.id,
         userActor(access),
+        { accountId: input.id },
       );
     }
     return created;
@@ -698,6 +699,7 @@ export class AccountsService {
       'account_location_change',
       input.id,
       userActor(access),
+      { accountId },
     );
     await tx
       .update(accountLocationProposals)
@@ -1114,6 +1116,22 @@ export class AccountsService {
         .flatMap((row) => (row.location ? [{ ...row, location: row.location }] : [])),
       truncated: rows.length > limit,
     };
+  }
+
+  /** The active person in one of an account's slots today, on the tenant's clock (spec 5.9). */
+  async slotHolder(
+    tx: TenantTx,
+    tenantId: string,
+    accountId: string,
+    slot: string,
+  ): Promise<string | null> {
+    const today = await this.today(tx, tenantId);
+    const holder = (await this.holdersOn(tx, tenantId, accountId, today)).find(
+      (entry) => entry.slot === slot,
+    );
+    if (!holder) return null;
+    const person = (await this.people.facts(tx, tenantId, [holder.userId])).get(holder.userId);
+    return person?.status === 'active' ? person.id : null;
   }
 
   /** Today's holders of an account's slots. */

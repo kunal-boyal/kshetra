@@ -249,8 +249,27 @@ describe('accounts (spec 5.5)', () => {
 });
 
 describe('proposals from the field (M4, decision D38)', () => {
+  it('routes a proposal through the agri chain: the nearest ASM, then the business head', async () => {
+    const t = await agri('Chain Agro');
+    const proposal = distributor(t, { slots: undefined });
+    expect((await t.api.sme.post('/v1/accounts', proposal)).statusCode).toBe(201);
+    expect((await t.api.tm.get('/v1/approvals/inbox')).json().items).toEqual([]);
+    const [waiting] = (await t.api.asm.get('/v1/approvals/inbox')).json().items;
+    expect(waiting).toMatchObject({ requestType: 'new_account', requestId: proposal.id });
+    expect(waiting.steps.map((step: { status: string }) => step.status)).toEqual([
+      'pending',
+      'waiting',
+    ]);
+  });
+
   it('lets a field user propose an account, which their manager alone decides once', async () => {
     const t = await agri('Proposal Agro');
+    // This tenant's chain asks only the proposer's manager (decision D74).
+    const chain = await t.api.admin.put('/v1/workflows/new_account', {
+      steps: [{ approver: { type: 'reporting_manager', level: 1 } }],
+      version: 1,
+    });
+    expect(chain.statusCode).toBe(200);
     // Retailers are added by admins only.
     const refused = await t.api.sme.post('/v1/accounts', {
       id: newId(),

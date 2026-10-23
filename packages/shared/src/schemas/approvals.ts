@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { REQUEST_TYPES } from '../workflow';
+import { REQUEST_TYPES, SKIP_REASONS } from '../workflow';
 
 /**
- * Approvals (spec 5.9, M15). Phase 1 routes a field user's proposals to their manager for one
- * decision (decision D38); phase 2's engine takes the same instances over with configured chains.
+ * Approvals (spec 5.9, M15). Each request type's chain is the tenant's (decision D74); a type
+ * without one goes to the requester's manager for one decision, as in phase 1 (decision D38).
  */
 
 export const RequestType = z.enum(REQUEST_TYPES);
@@ -23,6 +23,12 @@ export const ApprovalStep = z.object({
   actedBy: Person.nullable(),
   actedAt: z.iso.datetime().nullable(),
   note: z.string().nullable(),
+  /** Why the step was passed over when the request started (BR-31). */
+  skipReason: z.enum(SKIP_REASONS).nullable(),
+  /** Nobody resolved, or nobody decided in time, so the step went to its escalation role. */
+  escalated: z.boolean(),
+  /** The tenant's fallback approvers, because no step of the chain remained. */
+  fallback: z.boolean(),
 });
 
 /** What a request is about, as the module that owns it describes it. */
@@ -43,6 +49,8 @@ export const ApprovalResult = z
     /** Send it back with a decision: a decision on an older version is refused (BR-31). */
     version: z.int().min(1),
     steps: z.array(ApprovalStep),
+    /** Whether the requester may still withdraw it: nobody has decided any step yet. */
+    cancellable: z.boolean(),
     createdAt: z.iso.datetime(),
     closedAt: z.iso.datetime().nullable(),
   })

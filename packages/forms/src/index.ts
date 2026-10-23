@@ -59,3 +59,14 @@ export {
 export type { FormValueContext, ProductLine, ValueContext, ValuePhoto, Values } from './values';
 export { accountSegments, checkSlots, primaryAssignee } from './accounts';
 export type { SlotHolder } from './accounts';
+export {
+  Approver,
+  checkChain,
+  PutChainBody,
+  PutFallbackBody,
+  REQUEST_FACTS,
+  Workflow,
+  WorkflowsResult,
+  WorkflowStep,
+} from './workflows';
+export type { ChainContext, ChainView } from './workflows';

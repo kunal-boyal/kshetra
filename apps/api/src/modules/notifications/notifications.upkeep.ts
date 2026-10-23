@@ -154,6 +154,21 @@ export class NotificationsUpkeep implements OnModuleInit {
         });
       }
     });
+    // A later step, an escalation or a reminder reaches the people it names (decision D74). A
+    // reminder is once per step; each step and escalation notifies its people once.
+    this.outbox.consume(['approval.waiting'], 'notifications.waiting', async (event, tx) => {
+      const waiting = event.payload as EventPayload<'approval.waiting'>;
+      const name = await this.name(tx, event.tenantId, waiting.requesterId);
+      for (const approver of waiting.approverIds) {
+        await this.notifications.notify(tx, event.tenantId, {
+          userId: approver,
+          event: 'approval.waiting',
+          values: { name },
+          link: '/approvals',
+          dedupeKey: `approval:${waiting.approvalId}:${waiting.stepIndex}:${waiting.reason}`,
+        });
+      }
+    });
     this.outbox.consume(['approval.decided'], 'notifications.decided', async (event, tx) => {
       const decided = event.payload as EventPayload<'approval.decided'>;
       await this.notifications.notify(tx, event.tenantId, {

@@ -105,6 +105,19 @@ export const ApprovalRequestedPayload = z.object({
   approverIds: z.array(z.uuid()),
 });
 
+/**
+ * A step of a request began waiting for people who weren't asked before, or was left too long
+ * (M16: they hear of it): the next step after an approval, an escalation, or a reminder (D74).
+ */
+export const ApprovalWaitingPayload = z.object({
+  approvalId: z.uuid(),
+  requestType: z.string(),
+  requesterId: z.uuid(),
+  approverIds: z.array(z.uuid()),
+  stepIndex: z.int().min(0),
+  reason: z.enum(['next_step', 'escalated', 'reminder']),
+});
+
 /** A request was decided (M16: the requester hears of it). */
 export const ApprovalDecidedPayload = z.object({
   approvalId: z.uuid(),
@@ -161,6 +174,7 @@ export const EVENT_PAYLOADS = {
   'target.unlocked': TargetSetEventPayload,
   'approval.requested': ApprovalRequestedPayload,
   'approval.decided': ApprovalDecidedPayload,
+  'approval.waiting': ApprovalWaitingPayload,
   'import.finished': ImportFinishedPayload,
   'export.finished': ExportFinishedPayload,
   'metrics.changed': MetricsChangedPayload,

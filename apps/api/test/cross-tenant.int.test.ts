@@ -800,6 +800,36 @@ const FIXTURES: Record<string, Fixture> = {
         aApprovalId,
       ),
   },
+  'POST /v1/approvals/:instanceId/cancel': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/approvals/${id}/cancel`), aApprovalId),
+  },
+  'GET /v1/workflows': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/workflows')),
+  },
+  'PUT /v1/workflows/fallback': {
+    kind: 'write',
+    run: async () => {
+      const set = await asB('PUT', '/v1/workflows/fallback', { role: 'tenant_admin' });
+      expect(set.statusCode).toBe(200);
+      holdsNothingOfA(set);
+    },
+  },
+  'PUT /v1/workflows/:requestType': {
+    kind: 'write',
+    run: async () => {
+      const current = (await asB('GET', '/v1/workflows'))
+        .json()
+        .chains.find((chain: { requestType: string }) => chain.requestType === 'journey_plan');
+      const set = await asB('PUT', '/v1/workflows/journey_plan', {
+        steps: [{ approver: { type: 'reporting_manager', level: 1 } }],
+        version: current.version,
+      });
+      expect(set.statusCode).toBe(200);
+      holdsNothingOfA(set);
+    },
+  },
   'POST /v1/media/presign': {
     kind: 'write',
     run: async () => {

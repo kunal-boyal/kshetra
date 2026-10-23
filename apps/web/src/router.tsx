@@ -42,6 +42,7 @@ import { MetricsPage } from './settings/metrics-page';
 import { ModulesPage } from './settings/modules-page';
 import { OrganisationPage } from './settings/organisation-page';
 import { ReportsPage } from './reports/reports-page';
+import { ApprovalChainsPage } from './settings/approvals-page';
 import { RolesPage } from './settings/roles-page';
 import { RulesPage } from './settings/rules-page';
 import { SettingsLayout } from './settings/settings-layout';
@@ -255,6 +256,11 @@ const organisation = createRoute({
   component: OrganisationPage,
 });
 const rules = createRoute({ getParentRoute: () => settings, path: '/rules', component: RulesPage });
+const approvalChains = createRoute({
+  getParentRoute: () => settings,
+  path: '/approvals',
+  component: ApprovalChainsPage,
+});
 const terminology = createRoute({
   getParentRoute: () => settings,
   path: '/terminology',
@@ -374,6 +380,7 @@ const tree = root.addChildren([
     settings.addChildren([
       organisation,
       rules,
+      approvalChains,
       terminology,
       modules,
       settingsIndex,

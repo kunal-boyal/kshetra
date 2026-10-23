@@ -2777,6 +2777,10 @@
         "approver": {
           "$ref": "#/$defs/Approver"
         },
+        "condition": {
+          "description": "Use the step only when this holds for the request's facts, such as leave_days > 3. Leave out to use it always.",
+          "$ref": "#/$defs/Condition"
+        },
         "escalateIfNoApprover": {
           "description": "A role to escalate to when no approver resolves. Leave out to skip the step.",
           "$ref": "#/$defs/Key"
@@ -2889,6 +2893,25 @@
           "required": [
             "type",
             "slot"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "specific_user"
+            },
+            "userId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "description": "One named person. Tenants only: templates hold no users"
+            }
+          },
+          "required": [
+            "type",
+            "userId"
           ],
           "additionalProperties": false
         }

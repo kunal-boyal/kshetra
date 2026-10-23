@@ -235,7 +235,14 @@ export { isOpenTenant, OPEN_TENANT_STATUSES, TENANT_STATUSES } from './tenants';
 export type { TenantStatus } from './tenants';
 export { TERMINOLOGY_KEYS } from './terminology';
 export type { TerminologyKey } from './terminology';
-export { ACCOUNT_REQUEST_TYPES, REQUEST_TYPES } from './workflow';
+export {
+  ACCOUNT_REQUEST_TYPES,
+  nextStep,
+  REQUEST_TYPES,
+  routeRequest,
+  SKIP_REASONS,
+} from './workflow';
+export type { ResolvedStep, RoutedStep, SkipReason } from './workflow';
 export {
   distanceMeters,
   GeoPoint,

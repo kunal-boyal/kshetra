@@ -9,6 +9,7 @@ import { MetricsModule } from '../metrics/metrics.module';
 import { PerformanceModule } from '../performance/performance.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
+import { WorkflowModule } from '../workflow/workflow.module';
 import { ConfigurationController } from './configuration.controller';
 import { ConfigurationService } from './configuration.service';
 import { HeldConfiguration } from './held-configuration';
@@ -29,6 +30,7 @@ import { HeldConfiguration } from './held-configuration';
     PerformanceModule,
     FieldModule,
     ImportsModule,
+    WorkflowModule,
   ],
   controllers: [ConfigurationController],
   providers: [ConfigurationService, HeldConfiguration],
