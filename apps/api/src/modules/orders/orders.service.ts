@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { DayOrder } from '@thelamp/metrics';
 import {
   AppError,
   applicableLists,
@@ -34,6 +35,7 @@ import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { pointSql } from '../../platform/geo';
+import { onLocalDate } from '../../platform/local-day';
 import { Outbox } from '../../platform/outbox';
 import { AccountTypesService } from '../accounts/account-types.service';
 import { AccountsService } from '../accounts/accounts.service';
@@ -788,6 +790,68 @@ export class OrdersService {
       after: { status: next, lines: body.lines },
     });
     return this.get(tx, access, id);
+  }
+
+  /**
+   * The orders a person placed on a day on the tenant's clock, with each line's decision, for
+   * the metric engine (spec 12.5, decision D78). Values belong to the person who placed the order
+   * and the day it was placed (BR-03).
+   */
+  async forMetrics(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    date: string,
+    timezone: string,
+  ): Promise<DayOrder[]> {
+    const rows = await tx
+      .select({
+        id: orders.id,
+        status: orders.status,
+        visitId: orders.visitId,
+        accountId: orders.accountId,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.tenantId, tenantId),
+          eq(orders.userId, userId),
+          onLocalDate(orders.placedAt, date, timezone),
+        ),
+      );
+    if (rows.length === 0) return [];
+    const lines = await tx
+      .select()
+      .from(orderLines)
+      .where(
+        and(
+          eq(orderLines.tenantId, tenantId),
+          inArray(
+            orderLines.orderId,
+            rows.map((row) => row.id),
+          ),
+        ),
+      );
+    const accounts = await this.accounts.forMetrics(
+      tx,
+      tenantId,
+      rows.map((row) => row.accountId),
+    );
+    return rows.map((row) => ({
+      status: row.status,
+      visitId: row.visitId,
+      account: accounts.get(row.accountId)!,
+      lines: lines
+        .filter((line) => line.orderId === row.id)
+        .map((line) => ({
+          decision: line.decision,
+          taxable: line.taxable,
+          total: line.total,
+          baseUnits: line.baseUnits,
+          measureType: line.measureType,
+          measure: line.measureTotal,
+        })),
+    }));
   }
 
   /** What each order is about, for the approvals inbox. */

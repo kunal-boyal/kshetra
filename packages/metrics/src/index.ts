@@ -13,6 +13,7 @@ export {
 export type {
   DayAccount,
   DayFact,
+  DayOrder,
   DayPlanItem,
   DayRecords,
   DaySubmission,

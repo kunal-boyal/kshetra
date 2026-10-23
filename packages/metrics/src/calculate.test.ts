@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateDayFacts,
   computed,
+  type DayOrder,
   type DayRecords,
   type DaySubmission,
   decimal,
@@ -30,6 +31,7 @@ function day(overrides: Partial<DayRecords> = {}): DayRecords {
     submissions: [],
     visits: [],
     planItems: [],
+    orders: [],
     ...overrides,
   };
 }
@@ -214,20 +216,117 @@ describe("a person's day (spec 5.7)", () => {
 
   it('leaves out sources that wait for their records', () => {
     const metrics = [
-      metric('order_value', 'currency', {
-        type: 'order_value',
-        statuses: ['accepted'],
-        amount: 'before_tax',
+      metric('lines_value', 'currency', {
+        type: 'product_line_sum',
+        forms: ['visit'],
+        field: 'lines',
+        column: 'value',
       }),
       metric('visits', 'count', { type: 'submission_count', forms: ['visit'] }),
       metric('per_order', 'count', {
         type: 'ratio',
         numerator: 'visits',
-        denominator: 'order_value',
+        denominator: 'lines_value',
       }),
     ];
     const map = new Map(metrics.map((m) => [m.key, m]));
     expect(metrics.map((m) => computed(m, map))).toEqual([false, true, false]);
     expect(calculateDayFacts(metrics, day()).map((fact) => fact.key)).toEqual(['visits']);
+  });
+});
+
+describe('orders as metric sources (M10, decision D78)', () => {
+  const line = (
+    decision: DayOrder['lines'][number]['decision'],
+    taxable: string,
+    total: string,
+    baseUnits: string,
+    measure: string | null = null,
+  ) => ({
+    decision,
+    taxable,
+    total,
+    baseUnits,
+    measureType: measure === null ? null : ('L' as const),
+    measure,
+  });
+  const order = (
+    status: DayOrder['status'],
+    lines: DayOrder['lines'],
+    visitId: string | null = null,
+    account = SHOP,
+  ): DayOrder => ({ status, visitId, account, lines });
+  const orders = [
+    // FX-07 and FX-08: accepted whole.
+    order(
+      'accepted',
+      [
+        line('accepted', '8640.00', '10195.20', '24.000', '12.000'),
+        line('accepted', '3248.28', '3832.97', '36.000'),
+      ],
+      'v1',
+    ),
+    // FX-14: one line rejected for no stock counts for nothing.
+    order('partially_accepted', [
+      line('accepted', '100.00', '118.00', '10.000', '5.000'),
+      line('rejected', '999.00', '1178.82', '99.000'),
+    ]),
+    order('submitted', [line('pending', '50.00', '59.00', '5.000')], 'v2'),
+    order('rejected', [line('rejected', '70.00', '82.60', '7.000')], 'v3', DEPOT),
+  ];
+  const visit = (id: string, account = SHOP) => ({
+    id,
+    account,
+    checkInAt: '2026-10-14T05:00:00.000Z',
+    checkOutAt: '2026-10-14T05:30:00.000Z',
+  });
+
+  it('sums order value before or after tax, quantity and lines, from lines that stand', () => {
+    const statuses = ['accepted', 'partially_accepted', 'fulfilled'];
+    const facts = byKey(
+      calculateDayFacts(
+        [
+          metric('value', 'currency', { type: 'order_value', statuses, amount: 'before_tax' }),
+          metric('billed', 'currency', { type: 'order_value', statuses, amount: 'after_tax' }),
+          metric('units', 'count', { type: 'order_quantity', statuses, measure: 'base_units' }),
+          metric('litres', 'count', { type: 'order_quantity', statuses, measure: 'L' }),
+          metric('lines', 'count', { type: 'order_lines', statuses }),
+        ],
+        day({ orders }),
+      ),
+    );
+    expect(facts.value).toMatchObject({ value: '11988.280', pending: '50.000' });
+    expect(facts.billed).toMatchObject({ value: '14146.170', pending: '59.000' });
+    expect(facts.units).toMatchObject({ value: '70.000', pending: '5.000' });
+    expect(facts.litres).toMatchObject({ value: '17.000', pending: '0.000' });
+    expect(facts.lines).toMatchObject({ value: '3.000', pending: '1.000' });
+  });
+
+  it('counts a submitted order as it is when its status is chosen', () => {
+    const [fact] = calculateDayFacts(
+      [
+        metric('taken', 'currency', {
+          type: 'order_value',
+          statuses: ['submitted'],
+          amount: 'before_tax',
+        }),
+      ],
+      day({ orders }),
+    );
+    expect(fact).toMatchObject({ value: '50.000', pending: '0.000' });
+  });
+
+  it('counts a visit productive when an order that stands names it', () => {
+    const facts = byKey(
+      calculateDayFacts(
+        [
+          metric('productive', 'count', { type: 'productive_visits' }),
+          metric('shops', 'count', { type: 'productive_visits', accountTypes: ['customer'] }),
+        ],
+        day({ orders, visits: [visit('v1'), visit('v2'), visit('v3', DEPOT), visit('v4')] }),
+      ),
+    );
+    expect(facts.productive).toMatchObject({ value: '2.000', accounts: ['a1'] });
+    expect(facts.shops?.value).toBe('2.000');
   });
 });

@@ -408,4 +408,31 @@ describe('orders (M10)', () => {
       rows: [{ id: body.id, status: 'rejected' }],
     });
   });
+
+  it("counts an order in its placer's month: waiting apart, then the lines that stand", async () => {
+    const t = await agri('Metric Orders Agro');
+    const month = new Date().toISOString().slice(0, 7);
+    const figures = async () =>
+      (await t.api.sme.get(`/v1/performance?period=${month}`)).json().figures;
+    const body = t.order(t.distributor, [t.line(t.neem, '2'), t.line(t.urea, '3')]);
+    await t.api.sme.post('/v1/orders', body);
+    // Submitted: shown apart until accepted (BR-02).
+    expect((await figures()).order_value).toMatchObject({ actual: '0', pending: '11888.28' });
+
+    const seen = (await t.api.asm.get(`/v1/orders/${body.id}`)).json();
+    await t.api.asm.post(`/v1/orders/${body.id}/decision`, {
+      decision: 'accept',
+      version: seen.approval.version,
+    });
+    const atHead = (await t.api.head.get(`/v1/orders/${body.id}`)).json();
+    await t.api.head.post(`/v1/orders/${body.id}/line-decisions`, {
+      lines: [
+        { lineId: atHead.lines[0].id, decision: 'accepted' },
+        { lineId: atHead.lines[1].id, decision: 'rejected', reason: 'no_stock' },
+      ],
+      version: atHead.approval.version,
+    });
+    // FX-14: only the accepted line counts.
+    expect((await figures()).order_value).toMatchObject({ actual: '8640', pending: '0' });
+  });
 });
