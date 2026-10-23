@@ -11,6 +11,7 @@ export default defineConfig({
     'src/seed.ts',
     'src/load-fixtures.ts',
     'src/e2e-fixtures.ts',
+    'src/demo-content.ts',
     'src/openapi.ts',
   ],
   format: 'esm',

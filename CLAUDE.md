@@ -24,13 +24,14 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
 | `pnpm test:e2e` | Playwright tests of the web portal, with axe, against a mocked API. Install the browser once with `pnpm --filter @thelamp/web exec playwright install chromium`. | now |
 | `pnpm tokens` | regenerates `tokens.css` and `tokens.ts` in `packages/design-tokens` from `tokens.json` | now |
+| `infra/scripts/demo.sh apply\|deploy\|provision\|pause\|resume\|status` | the demo on one EC2 instance in the AWS sandbox (decision D70, `infra/demo/README.md`); signed in with `aws login --profile thelamp-sandbox` | now |
 | `pnpm rename --name … [--slug …]` | renames the product across the repository from `product.json` (`tools/rename/README.md`); the slug and app ID only until launch | now |
 | `pnpm db:bootstrap` | creates the database roles; refuses anything but a local or CI database | now |
 | `pnpm db:migrate` | applies migrations as the `migrator` role | now |
 | `pnpm --filter @thelamp/api db:generate` | writes a migration for a schema change | now |
 | `pnpm --filter @thelamp/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
 | `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
-| `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin; `--file <path>` instead of `--template` starts it from another tenant's exported configuration | now |
+| `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin; `--file <path>` instead of `--template` starts it from another tenant's exported configuration; `--logo` and `--brand-colour` set its branding as Settings would; `--demo` makes a demo tenant (D70) | now |
 | `pnpm openapi` | regenerates `apps/api/openapi.json` from the route registry; a test fails while it is out of date | now |
 | `docker build -f apps/api/Dockerfile .` | builds the cell's container image (decision D67) | now |
 
@@ -285,6 +286,14 @@ Migrations are append-only and backward compatible. They follow expand and contr
 - A new setting reaches AWS in `modules/cell/services.tf`: a plain value in the processes' environment, or a key of the cell's secret in `secret_keys`. Production refuses console and memory providers, so a new provider needs its real sender before it can be switched on.
 - `.github/workflows/deploy.yml` deploys main after CI, staging then production, once `DEPLOY_ENABLED` is true. Setting up, deploying, rolling back and a failed migration: `docs/runbooks/`.
 - SMS in India goes through DLT templates only: one-time codes and SMS notifications are sent by MSG91 in templates (`MSG91_OTP_TEMPLATE_ID`, `MSG91_SMS_TEMPLATES` by event and language), never as free text. A new event that should reach people by SMS needs its approved template added there.
+
+## The demo (decision D70)
+
+- The demo runs the whole product on one EC2 instance in Kunal's AWS sandbox, on the Free plan's credit: Docker Compose (`infra/demo/compose.yaml`) with Caddy at `app.thelamp.in`; Terraform in `infra/environments/demo`, with local state. It isn't staging; nothing carries over to the company's accounts.
+- A demo cell is `CELL_PURPOSE=demo`: production code with `OTP_PROVIDER=none` and console senders for SMS and email (numbers masked). A live cell refuses both.
+- People sign in to demo tenants (`pnpm provision --demo`, the `demo` flag in `directory.tenants`) with fixed codes from `DEMO_CODES`. A code works only while every tenant of its number is a demo tenant; keep the codes in `terraform.tfvars`, never in the repository.
+- `src/demo-content.ts` (`demo:content`, `demo.sh content`) fills a new demo tenant with weeks of work through the services, under the simulated clock of `src/demo/clock.ts`; storage signs with real time. Keep it reading the tenant's configuration, never a template's keys.
+- A new setting the demo needs goes in `local.settings` in `infra/environments/demo/main.tf`, as well as the cell's `modules/cell/services.tf`.
 
 ## Design system
 

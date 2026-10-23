@@ -13,7 +13,9 @@
 .env
 .env.*
 !.env.example
-infra
+# The demo's edge image builds the Caddyfile in (infra/demo/edge.Dockerfile).
+infra/*
+!infra/demo
 docs
 apps/mobile/android
 apps/mobile/ios

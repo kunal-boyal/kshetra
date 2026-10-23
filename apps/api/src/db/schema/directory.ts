@@ -1,6 +1,6 @@
 import { TENANT_STATUSES } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
-import { index, integer, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { directory } from './common';
 
 /**
@@ -16,7 +16,13 @@ export const tenantStatus = directory.enum('tenant_status', TENANT_STATUSES);
 export const membershipStatus = directory.enum('membership_status', ['active', 'inactive']);
 
 /** How a code was sent. `none` marks a decoy for a number nobody uses: nothing is sent (M1, rule 2). */
-export const otpChannel = directory.enum('otp_channel', ['sms', 'whatsapp', 'email', 'none']);
+export const otpChannel = directory.enum('otp_channel', [
+  'sms',
+  'whatsapp',
+  'email',
+  'none',
+  'demo',
+]);
 
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
@@ -43,6 +49,11 @@ export const tenants = directory.table('tenants', {
   planId: uuid('plan_id'),
   templateKey: text('template_key').notNull(),
   templateVersion: integer('template_version').notNull(),
+  /**
+   * A tenant for showing the product (decision D70): its people may sign in with the fixed codes
+   * in `DEMO_CODES`. Set only at provisioning, from the command line.
+   */
+  demo: boolean('demo').notNull().default(false),
   createdAt: createdAt(),
 });
 

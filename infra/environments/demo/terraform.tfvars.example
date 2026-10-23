@@ -1,0 +1,5 @@
+# Copy to terraform.tfvars (git-ignored). The demo numbers people sign in with, each with a fixed
+# six-digit code (decision D70). Use fictional numbers no real person has, and random codes.
+demo_codes = {
+  "+919800000001" = "000000"
+}

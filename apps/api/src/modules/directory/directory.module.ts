@@ -12,6 +12,7 @@ import {
   MailpitOtpSender,
   MemoryOtpSender,
   Msg91OtpSender,
+  NoOtpSender,
   OtpSender,
 } from './otp-sender';
 import { SessionsService } from './sessions.service';
@@ -53,6 +54,7 @@ export class DirectoryHealth {
           );
         }
         if (config.OTP_PROVIDER === 'mailpit') return new MailpitOtpSender(config.SMTP_URL);
+        if (config.OTP_PROVIDER === 'none') return new NoOtpSender();
         return config.OTP_PROVIDER === 'memory' ? new MemoryOtpSender() : new ConsoleOtpSender();
       },
     },

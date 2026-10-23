@@ -1,4 +1,4 @@
-import { APP_VERSION } from '@thelamp/shared';
+import { APP_VERSION, normalisePhone } from '@thelamp/shared';
 import { z } from 'zod';
 
 // A store version such as 1.4.0; an empty value in .env counts as unset.
@@ -64,7 +64,45 @@ const schema = z
       .optional(),
     // `console` prints codes locally; `mailpit` mails them to the local inbox, where Maestro reads
     // them (decision D68); `memory` keeps them for tests. Production sends them by MSG91 (D67).
-    OTP_PROVIDER: z.enum(['msg91', 'console', 'mailpit', 'memory']).default('console'),
+    // `none` sends nothing, for a demo cell whose people sign in with DEMO_CODES (decision D70).
+    OTP_PROVIDER: z.enum(['msg91', 'console', 'mailpit', 'memory', 'none']).default('console'),
+    // What the cell is for (decision D70). A `demo` cell shows the product to prospects: it may run
+    // without SMS, email or push providers, printing those messages with numbers masked instead.
+    CELL_PURPOSE: z.enum(['live', 'demo']).default('live'),
+    // Fixed sign-in codes for named numbers, as JSON: {"+919800000001": "482913"} (decision D70).
+    // They work only for people whose every tenant is a demo tenant, so a leaked code opens no
+    // real tenant. Keep it in the cell's secret, never in the repository.
+    DEMO_CODES: z
+      .string()
+      .default('{}')
+      .transform((text, ctx) => {
+        let entries: [string, unknown][];
+        try {
+          const parsed: unknown = JSON.parse(text);
+          if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw 0;
+          entries = Object.entries(parsed);
+        } catch {
+          ctx.addIssue({ code: 'custom', message: 'Use JSON: {"<number>": "<six digits>"}' });
+          return z.NEVER;
+        }
+        const codes = new Map<string, string>();
+        for (const [number, code] of entries) {
+          const phone = normalisePhone(number);
+          if (!phone) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'A demo number is not a valid mobile number.',
+            });
+            return z.NEVER;
+          }
+          if (typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+            ctx.addIssue({ code: 'custom', message: 'Each demo code is six digits.' });
+            return z.NEVER;
+          }
+          codes.set(phone, code);
+        }
+        return codes;
+      }),
     // How notifications leave the cell (M16, decision D58). `console` prints them locally and
     // `memory` keeps them for tests; production needs real ones.
     PUSH_PROVIDER: z.enum(['expo', 'console', 'memory']).default('console'),
@@ -148,6 +186,13 @@ const schema = z
       .transform((pem) => (pem ? pem.replace(/\\n/g, '\n') : undefined)),
   })
   .superRefine((config, ctx) => {
+    if (config.OTP_PROVIDER === 'none' && config.CELL_PURPOSE !== 'demo') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['OTP_PROVIDER'],
+        message: 'Only a demo cell may send no codes.',
+      });
+    }
     if (config.NODE_ENV === 'production') {
       if (['console', 'mailpit', 'memory'].includes(config.OTP_PROVIDER)) {
         ctx.addIssue({
@@ -161,7 +206,7 @@ const schema = z
         ['SMS_PROVIDER', config.SMS_PROVIDER],
         ['EMAIL_PROVIDER', config.EMAIL_PROVIDER],
       ] as const) {
-        if (value === 'console' || value === 'memory') {
+        if (value === 'memory' || (value === 'console' && config.CELL_PURPOSE !== 'demo')) {
           ctx.addIssue({
             code: 'custom',
             path: [key],

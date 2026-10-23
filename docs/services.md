@@ -40,6 +40,18 @@ The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderab
 - A lean pilot cell costs a few hundred US dollars a month.
 - A production cell with Multi-AZ, a replica and autoscaling costs in the low thousands a month, before media storage.
 
+## The demo (decision D70)
+
+The whole product on one EC2 instance in Kunal's personal AWS sandbox, on the Free plan's credit, for showing to prospects; see [infra/demo/README.md](../infra/demo/README.md). It isn't staging, and nothing in it carries over.
+
+| Service | What it does |
+|---|---|
+| EC2 `t4g.small` with an Elastic IP | Runs PostgreSQL, Redis, the API, worker, scheduler and Caddy in Docker Compose, at `app.thelamp.in` |
+| S3 | Photos and exports, through presigned links |
+| ECR | The demo's images, built on the Mac for ARM |
+| Systems Manager | Session Manager and Run Command reach the instance with no SSH; Parameter Store holds its settings |
+| Let's Encrypt, through Caddy | The domain's certificate |
+
 ## Outside providers
 
 | Provider | What for | Needed from | Settings (Appendix F) |
