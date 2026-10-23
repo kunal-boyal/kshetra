@@ -153,6 +153,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     productName: name,
+    // Without a Maps key, Android's map SDK ends the app, so maps show a notice instead.
+    mapsKey: Boolean(process.env.GOOGLE_MAPS_ANDROID_KEY),
     // The EAS project @kunalboyal/kshetra (decision D34). Not a secret.
     eas: { projectId: process.env.EAS_PROJECT_ID ?? '9a63d9ab-5510-4768-94ee-ddad44168a4d' },
   },

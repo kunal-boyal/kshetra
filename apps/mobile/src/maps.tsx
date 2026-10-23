@@ -1,9 +1,11 @@
 import { radius, spacing } from '@thelamp/design-tokens';
 import type { GeoPoint } from '@thelamp/shared';
-import { type Colors, Text, useTheme } from '@thelamp/ui-mobile';
+import { type Colors, Notice, Text, useTheme } from '@thelamp/ui-mobile';
+import Constants from 'expo-constants';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { useLanguage } from './i18n';
 
 /**
  * Maps on the phone (M17, decision D61), on react-native-maps: Google Maps on Android with the key
@@ -55,22 +57,39 @@ function frameTo(map: MapView, fit: readonly GeoPoint[]) {
 }
 
 /**
- * A map with a name for screen readers. It frames `fit` when ready, and again whenever `frame`
- * changes (by default, whenever the points do).
+ * Whether this build can draw Google's maps. On Android the map SDK ends the app when the build
+ * has no Maps key, as Maestro's e2e build hasn't (decision D68); the app config says whether it
+ * has one (`extra.mapsKey`).
  */
-export function PhoneMap({
-  label,
-  fit,
-  frame,
-  height = 220,
-  children,
-}: {
+export function mapsAvailable(os: string, extra: Record<string, unknown> | undefined): boolean {
+  return os !== 'android' || extra?.mapsKey !== false;
+}
+
+const MAPS = mapsAvailable(Platform.OS, Constants.expoConfig?.extra);
+
+interface MapProps {
   label: string;
   fit: readonly GeoPoint[];
   frame?: string;
   height?: number;
   children?: ReactNode;
-}) {
+}
+
+/**
+ * A map with a name for screen readers. It frames `fit` when ready, and again whenever `frame`
+ * changes (by default, whenever the points do). A build without a Maps key says so instead; what
+ * the map would show is in words beside it.
+ */
+export function PhoneMap(props: MapProps) {
+  return MAPS ? <GoogleMap {...props} /> : <NoMap label={props.label} />;
+}
+
+function NoMap({ label }: { label: string }) {
+  const { t } = useLanguage();
+  return <Notice>{`${label}: ${t('maps.no_key')}`}</Notice>;
+}
+
+function GoogleMap({ label, fit, frame, height = 220, children }: MapProps) {
   const theme = useTheme();
   const map = useRef<MapView>(null);
   const [ready, setReady] = useState(false);
