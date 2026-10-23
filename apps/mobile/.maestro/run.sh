@@ -31,7 +31,19 @@ while IFS='=' read -r key value; do
   [[ -n "$key" ]] && env+=(-e "$key=$value")
 done <"$here/.env"
 
-# An emulator gets a fake location; a real phone uses its own GPS, as the app refuses mocked ones.
+# The app refuses mocked locations, and Maestro's setLocation is one, so an emulator's own GPS
+# reports the fixtures' place instead, every few seconds so a fresh fix is always on its way. A real
+# phone uses its own GPS.
+if [[ "$emulator" == true ]]; then
+  lat="$(sed -n 's/^LAT=//p' "$here/.env")"
+  lng="$(sed -n 's/^LNG=//p' "$here/.env")"
+  (while true; do
+    adb emu geo fix "$lng" "$lat" >/dev/null 2>&1 || true
+    sleep 3
+  done) &
+  geo=$!
+  trap 'kill "$geo" 2>/dev/null || true' EXIT
+fi
 env+=(-e "EMULATOR=$emulator")
 
 maestro test "${env[@]}" "${flows[@]}"
