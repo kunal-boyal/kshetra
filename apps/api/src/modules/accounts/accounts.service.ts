@@ -987,6 +987,26 @@ export class AccountsService {
     });
   }
 
+  /** Everything, nothing, or a hash of the accounts the caller sees today, for phones' sync scopes. */
+  async reachHash(tx: TenantTx, access: Access): Promise<string> {
+    if (!access.permissions.has('account.view')) return 'none';
+    if (access.scope === 'tenant') return 'tenant';
+    const [row] = await tx
+      .select({
+        hash: sql<string>`md5(coalesce(string_agg(${accounts.id}::text, ',' order by ${accounts.id}), ''))`,
+      })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, access.tenantId), await this.reach(tx, access)));
+    return row!.hash;
+  }
+
+  /** The IDs, as text, of the accounts the caller sees, as a subquery for another module's query. */
+  async reachIds(tx: TenantTx, access: Access): Promise<SQL> {
+    if (!access.permissions.has('account.view')) return sql`(select null::text where false)`;
+    return sql`(select ${accounts.id}::text from ${accounts}
+      where ${and(eq(accounts.tenantId, access.tenantId), await this.reach(tx, access))})`;
+  }
+
   /** Which of `ids` are the tenant's accounts, whoever sees them. */
   async existing(tx: TenantTx, tenantId: string, ids: readonly string[]): Promise<Set<string>> {
     if (ids.length === 0) return new Set();

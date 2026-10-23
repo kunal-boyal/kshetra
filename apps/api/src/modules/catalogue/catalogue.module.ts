@@ -11,6 +11,7 @@ import { ItemsService } from './items.service';
 import { ItemsSync } from './items.sync';
 import { AccountPricesController, PriceListsController } from './price-lists.controller';
 import { PriceListsService } from './price-lists.service';
+import { PriceListsSync, PricesSync, PriceVisibility } from './price-lists.sync';
 
 /** Catalogue settings, categories, products, items and price lists (spec 5.11, 9.6). */
 @Module({
@@ -21,7 +22,16 @@ import { PriceListsService } from './price-lists.service';
     PriceListsController,
     AccountPricesController,
   ],
-  providers: [CatalogueService, ItemsService, PriceListsService, ItemsImport, ItemsSync],
+  providers: [
+    CatalogueService,
+    ItemsService,
+    PriceListsService,
+    ItemsImport,
+    ItemsSync,
+    PriceVisibility,
+    PriceListsSync,
+    PricesSync,
+  ],
   exports: [CatalogueService, ItemsService, PriceListsService],
 })
 export class CatalogueModule {}

@@ -14,6 +14,7 @@ import { SyncProvider } from '../sync';
 import { AccountScreen } from './account';
 import { AccountsScreen } from './accounts';
 import { NewAccountScreen } from './new-account';
+import { PricesScreen } from './prices';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
@@ -39,6 +40,48 @@ const NEAR = '01a10000-0000-7000-8000-000000000080';
 const FAR = '01a10000-0000-7000-8000-000000000081';
 const UNPLACED = '01a10000-0000-7000-8000-000000000082';
 const text = (en: string) => ({ en, hi: en });
+const SEED = '01a10000-0000-7000-8000-0000000000b0';
+const SPRAY = '01a10000-0000-7000-8000-0000000000b1';
+const OLD = '01a10000-0000-7000-8000-0000000000b2';
+const STANDARD = '01a10000-0000-7000-8000-0000000000c0';
+const JANPATH_LIST = '01a10000-0000-7000-8000-0000000000c1';
+
+function item(id: string, code: string, name: string, active = true) {
+  return {
+    id,
+    code,
+    name,
+    product: { id: '01a10000-0000-7000-8000-0000000000d0', name: 'Field care' },
+    category: null,
+    packLabel: null,
+    hsn: null,
+    taxRate: '18.0000',
+    mrp: null,
+    baseUnit: 'pack',
+    units: [{ key: 'pack', factor: '1.000' }],
+    measureType: null,
+    measurePerBaseUnit: null,
+    custom: {},
+    active,
+  };
+}
+
+function priceList(id: string, name: string, scope: string, targets: string[]) {
+  return {
+    id,
+    name,
+    scope,
+    targets,
+    priority: 0,
+    validFrom: '2026-01-01',
+    validTo: null,
+    active: true,
+  };
+}
+
+function price(id: string, list: string, itemId: string, amount: string, discount = '0.0000') {
+  return { id, priceListId: list, itemId, price: amount, discount, removed: false };
+}
 
 const CUSTOMER = {
   id: '01a10000-0000-7000-8000-000000000070',
@@ -125,6 +168,21 @@ function pulled(): SyncPullResult {
         account(NEAR, 'Janpath Mart', { lat: 28.6225, lng: 77.2195 }),
         account(UNPLACED, 'Corner Kirana', null),
       ]) as SyncPullResult['entities']['accounts'],
+      items: full([
+        item(SEED, 'SEED-1', 'Hybrid seed'),
+        item(SPRAY, 'SPRAY-1', 'Neem spray'),
+        item(OLD, 'OLD-1', 'Old stock', false),
+      ]),
+      price_lists: full([
+        priceList(STANDARD, 'Standard', 'default', []),
+        priceList(JANPATH_LIST, 'Janpath terms', 'account', [NEAR]),
+      ]) as SyncPullResult['entities']['price_lists'],
+      prices: full([
+        price('01a10000-0000-7000-8000-0000000000e0', STANDARD, SEED, '400.00', '10.0000'),
+        price('01a10000-0000-7000-8000-0000000000e1', STANDARD, SPRAY, '60.00'),
+        price('01a10000-0000-7000-8000-0000000000e2', STANDARD, OLD, '10.00'),
+        price('01a10000-0000-7000-8000-0000000000e3', JANPATH_LIST, SPRAY, '55.00'),
+      ]),
       contacts: full([
         {
           id: '01a10000-0000-7000-8000-000000000090',
@@ -188,13 +246,18 @@ function fakeClient() {
   return { client, create: () => client as unknown as MobileClient };
 }
 
-type Page = { name: 'list' } | { name: 'account'; id: string } | { name: 'new' };
+type Page =
+  | { name: 'list' }
+  | { name: 'account'; id: string }
+  | { name: 'new' }
+  | { name: 'prices'; id: string };
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
   if (page.name === 'list') return <AccountsScreen />;
   if (page.name === 'new') return <NewAccountScreen typeKey="customer" />;
+  if (page.name === 'prices') return <PricesScreen accountId={page.id} />;
   return <AccountScreen id={page.id} />;
 }
 
@@ -300,5 +363,34 @@ describe('accounts on the phone', () => {
         },
       }),
     );
+  });
+});
+
+describe('prices on the phone (spec 5.11, D77)', () => {
+  it('opens what an account pays from the account', async () => {
+    await renderPhone({ name: 'account', id: NEAR });
+    await fireEvent.press(await screen.findByRole('button', { name: 'See what it pays' }));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/prices/[accountId]',
+      params: { accountId: NEAR },
+    });
+  });
+
+  it("works out an account's prices offline: its own list first, then the default", async () => {
+    await renderPhone({ name: 'prices', id: NEAR });
+    expect(await screen.findByText('Hybrid seed · ₹360.00')).toBeOnTheScreen();
+    expect(screen.getByText('SEED-1 · ₹400.00 less 10% · Standard')).toBeOnTheScreen();
+    expect(screen.getByText('Neem spray · ₹55.00')).toBeOnTheScreen();
+    expect(screen.getByText('SPRAY-1 · Janpath terms')).toBeOnTheScreen();
+    expect(screen.queryByText(/Old stock/)).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText('Find by item code or name'), 'spray');
+    await waitFor(() => expect(screen.queryByText(/Hybrid seed/)).toBeNull());
+  });
+
+  it('prices another account from the default list only', async () => {
+    await renderPhone({ name: 'prices', id: FAR });
+    expect(await screen.findByText('Neem spray · ₹60.00')).toBeOnTheScreen();
+    expect(screen.getByText('SPRAY-1 · Standard')).toBeOnTheScreen();
   });
 });

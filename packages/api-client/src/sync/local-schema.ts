@@ -5,6 +5,8 @@ import type {
   SyncContact,
   SyncEntity,
   SyncItem,
+  SyncPrice,
+  SyncPriceList,
   SyncTerritory,
   SyncUser,
 } from '@thelamp/shared';
@@ -175,6 +177,29 @@ const MIGRATIONS: readonly string[] = [
      sync_gen INTEGER NOT NULL
    );
    CREATE INDEX ref_plan_items_date ON ref_plan_items (date);`,
+  // Prices (spec 5.11, decision D77): the price lists that can apply to the person's accounts and
+  // their prices, so the phone works out what an account pays offline.
+  `CREATE TABLE ref_price_lists (
+     id TEXT PRIMARY KEY NOT NULL,
+     name TEXT NOT NULL,
+     scope TEXT NOT NULL,
+     targets TEXT NOT NULL,
+     priority INTEGER NOT NULL,
+     valid_from TEXT NOT NULL,
+     valid_to TEXT,
+     active INTEGER NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE TABLE ref_prices (
+     id TEXT PRIMARY KEY NOT NULL,
+     price_list_id TEXT NOT NULL,
+     item_id TEXT NOT NULL,
+     price TEXT NOT NULL,
+     discount TEXT NOT NULL,
+     removed INTEGER NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_prices_list_item ON ref_prices (price_list_id, item_id);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -376,6 +401,48 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       visitId: record.visit_id === null ? null : String(record.visit_id),
     }),
   },
+  price_lists: {
+    table: 'ref_price_lists',
+    columns: (list) => ({
+      id: list.id,
+      name: list.name,
+      scope: list.scope,
+      targets: JSON.stringify(list.targets),
+      priority: list.priority,
+      valid_from: list.validFrom,
+      valid_to: list.validTo,
+      active: list.active ? 1 : 0,
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      name: String(record.name),
+      scope: String(record.scope) as SyncPriceList['scope'],
+      targets: JSON.parse(String(record.targets)) as string[],
+      priority: Number(record.priority),
+      validFrom: String(record.valid_from),
+      validTo: record.valid_to === null ? null : String(record.valid_to),
+      active: record.active === 1,
+    }),
+  },
+  prices: {
+    table: 'ref_prices',
+    columns: (price) => ({
+      id: price.id,
+      price_list_id: price.priceListId,
+      item_id: price.itemId,
+      price: price.price,
+      discount: price.discount,
+      removed: price.removed ? 1 : 0,
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      priceListId: String(record.price_list_id),
+      itemId: String(record.item_id),
+      price: String(record.price),
+      discount: String(record.discount),
+      removed: record.removed === 1,
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -385,6 +452,8 @@ export type RowOf<Name extends SyncEntity> = {
   contacts: SyncContact;
   items: SyncItem;
   plan_items: SyncPlanItem;
+  price_lists: SyncPriceList;
+  prices: SyncPrice;
 }[Name];
 
 /** Every row the phone holds of one entity. */

@@ -1,0 +1,2 @@
+ALTER TABLE "cell"."price_list_items" ADD COLUMN "id" uuid DEFAULT uuidv7() NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "price_list_items_tenant_id" ON "cell"."price_list_items" USING btree ("tenant_id","id");

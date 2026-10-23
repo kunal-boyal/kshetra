@@ -34,7 +34,7 @@ export class AccountsSync implements SyncSource<SyncAccount>, OnModuleInit {
   }
 
   async scope(tx: TenantTx, access: Access): Promise<string> {
-    return seenHash(tx, access, this.accounts);
+    return this.accounts.reachHash(tx, access);
   }
 
   async rows(tx: TenantTx, access: Access, page: SyncRowsPage): Promise<SyncRow<SyncAccount>[]> {
@@ -124,7 +124,7 @@ export class ContactsSync implements SyncSource<SyncContact>, OnModuleInit {
   }
 
   async scope(tx: TenantTx, access: Access): Promise<string> {
-    return seenHash(tx, access, this.accounts);
+    return this.accounts.reachHash(tx, access);
   }
 
   async rows(tx: TenantTx, access: Access, page: SyncRowsPage): Promise<SyncRow<SyncContact>[]> {
@@ -159,17 +159,4 @@ export class ContactsSync implements SyncSource<SyncContact>, OnModuleInit {
       .limit(page.limit);
     return found.map(({ version, ...row }) => ({ version, id: row.id, row }));
   }
-}
-
-/** Everything, nothing, or a hash of the accounts the caller sees today. */
-async function seenHash(tx: TenantTx, access: Access, service: AccountsService): Promise<string> {
-  if (!access.permissions.has('account.view')) return 'none';
-  if (access.scope === 'tenant') return 'tenant';
-  const [row] = await tx
-    .select({
-      hash: sql<string>`md5(coalesce(string_agg(${accounts.id}::text, ',' order by ${accounts.id}), ''))`,
-    })
-    .from(accounts)
-    .where(and(eq(accounts.tenantId, access.tenantId), await service.reach(tx, access)));
-  return row!.hash;
 }

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { GeoPoint } from '../geo';
 import { AccountAddress, AccountStatus, ContactResult, LocationStatus } from './accounts';
-import { ItemResult } from './catalogue';
+import { ItemResult, PriceListScope } from './catalogue';
 import { PlanItemStatus } from './planning';
 import { Key } from './config';
 import { UserStatus } from './iam';
@@ -20,6 +20,8 @@ export const SYNC_ENTITIES = [
   'contacts',
   'items',
   'plan_items',
+  'price_lists',
+  'prices',
 ] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
@@ -114,6 +116,37 @@ export const SyncPlanItem = z
   .meta({ id: 'SyncPlanItem' });
 
 /**
+ * A price list the phone keeps (spec 5.11, decision D77): every list for everyone, account types,
+ * segments or territories, and the lists for single accounts the person sees, so the phone works
+ * out an account's prices offline with `applicableLists()`.
+ */
+export const SyncPriceList = z
+  .object({
+    id: z.uuid(),
+    name: z.string(),
+    scope: PriceListScope,
+    targets: z.array(z.string()),
+    priority: z.int(),
+    validFrom: z.iso.date(),
+    validTo: z.iso.date().nullable(),
+    active: z.boolean(),
+  })
+  .meta({ id: 'SyncPriceList' });
+
+/** One item's price on a list the phone keeps; a removed price comes as `removed`. */
+export const SyncPrice = z
+  .object({
+    id: z.uuid(),
+    priceListId: z.uuid(),
+    itemId: z.uuid(),
+    /** Per base unit. */
+    price: z.string(),
+    discount: z.string(),
+    removed: z.boolean(),
+  })
+  .meta({ id: 'SyncPrice' });
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -136,6 +169,8 @@ export const SyncAccountsPage = page(SyncAccount);
 export const SyncContactsPage = page(SyncContact);
 export const SyncItemsPage = page(SyncItem);
 export const SyncPlanItemsPage = page(SyncPlanItem);
+export const SyncPriceListsPage = page(SyncPriceList);
+export const SyncPricesPage = page(SyncPrice);
 
 export const SyncPullResult = z.object({
   entities: z.object({
@@ -145,6 +180,8 @@ export const SyncPullResult = z.object({
     contacts: SyncContactsPage.optional(),
     items: SyncItemsPage.optional(),
     plan_items: SyncPlanItemsPage.optional(),
+    price_lists: SyncPriceListsPage.optional(),
+    prices: SyncPricesPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -160,4 +197,6 @@ export type SyncAccount = z.infer<typeof SyncAccount>;
 export type SyncContact = z.infer<typeof SyncContact>;
 export type SyncItem = z.infer<typeof SyncItem>;
 export type SyncPlanItem = z.infer<typeof SyncPlanItem>;
+export type SyncPriceList = z.infer<typeof SyncPriceList>;
+export type SyncPrice = z.infer<typeof SyncPrice>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

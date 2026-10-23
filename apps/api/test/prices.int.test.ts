@@ -56,11 +56,12 @@ async function agri(name: string) {
     designation: 'business_head',
     role: 'tenant_admin',
   });
-  await world.user(tenantId, { phone: phones.sme, designation: 'sme' });
+  const sme = await world.user(tenantId, { phone: phones.sme, designation: 'sme' });
   const zone = await world.territory(tenantId, `Z-${newId().slice(-6)}`);
   const market = await world.territory(tenantId, `M-${newId().slice(-6)}`, zone);
   return {
     tenantId,
+    smeId: sme.id,
     zone,
     market,
     admin: as((await world.signIn(phones.admin)).accessToken),
@@ -369,5 +370,79 @@ describe('price lists (spec 5.11, BR-10)', () => {
       ['Standard', 1],
       ['Dealer', 1],
     ]);
+  });
+
+  it('sends phones the lists that can apply to their accounts, and their prices', async () => {
+    const t = await agri('Sync Prices Agro');
+    const item1 = await item(t, {
+      code: 'S-1',
+      packLabel: null,
+      measureType: null,
+      measurePerBaseUnit: null,
+    } as never);
+    const mine = newId();
+    const theirs = newId();
+    for (const [id, slots] of [
+      [mine, { sme: t.smeId }],
+      [theirs, {}],
+    ] as const) {
+      const made = await t.admin.post('/v1/accounts', {
+        id,
+        type: 'retailer',
+        code: `R-${newId().slice(-6)}`,
+        name: 'Shop',
+        territoryId: t.market,
+        slots,
+      });
+      expect(made.statusCode, made.body).toBe(201);
+    }
+    const standard = await priceList(t, { name: 'Standard', scope: 'default' });
+    const forMine = await priceList(t, { name: 'Mine', scope: 'account', targets: [mine] });
+    const forTheirs = await priceList(t, { name: 'Theirs', scope: 'account', targets: [theirs] });
+    for (const list of [standard, forMine, forTheirs]) {
+      await setPrices(t, list, [{ itemId: item1, price: '10' }]);
+    }
+
+    type Pull = {
+      entities: {
+        price_lists: { pass: string; rows: { id: string }[] };
+        prices: { pass: string; rows: { priceListId: string; removed: boolean }[] };
+      };
+      cursor: string;
+    };
+    const pull = async (cursor?: string) =>
+      (
+        await t.sme.get(
+          `/v1/sync/pull?entities=price_lists,prices${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+        )
+      ).json() as Pull;
+    const first = await pull();
+    expect(first.entities.price_lists.rows.map((row) => row.id).sort()).toEqual(
+      [standard, forMine].sort(),
+    );
+    expect(first.entities.prices.rows.map((row) => row.priceListId).sort()).toEqual(
+      [standard, forMine].sort(),
+    );
+
+    // A removed price comes as removed.
+    await setPrices(t, standard, [], [item1]);
+    const second = await pull(first.cursor);
+    expect(second.entities.prices).toMatchObject({
+      pass: 'changes',
+      rows: [{ priceListId: standard, removed: true }],
+    });
+
+    // A list for the other account, once it names this one too, arrives with its prices.
+    const { version } = (await t.admin.get(`/v1/price-lists/${forTheirs}`)).json();
+    await t.admin.put(`/v1/price-lists/${forTheirs}`, {
+      name: 'Theirs',
+      scope: 'account',
+      targets: [theirs, mine],
+      validFrom: '2026-01-01',
+      version,
+    });
+    const third = await pull(second.cursor);
+    expect(third.entities.price_lists.pass).toBe('full');
+    expect(third.entities.prices.rows.map((row) => row.priceListId)).toContain(forTheirs);
   });
 });

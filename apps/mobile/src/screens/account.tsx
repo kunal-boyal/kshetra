@@ -18,6 +18,7 @@ import {
   MapPin,
   Phone,
   RotateCw,
+  Tag,
   UserRound,
 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -43,7 +44,8 @@ type Locating =
 /**
  * An account's overview on the phone (spec 8.1): its details, who looks after it and its
  * contacts, from the phone's copy, the forms linked to its type, and, for one without a verified
- * location, proposing where it is from a fresh fix of 50 m or better (M4), and visits there (M6).
+ * location, proposing where it is from a fresh fix of 50 m or better (M4), visits there (M6), and
+ * what it pays (decision D77).
  */
 export function AccountScreen({ id }: { id: string }) {
   const { client } = useApp();
@@ -54,6 +56,7 @@ export function AccountScreen({ id }: { id: string }) {
   const contacts = useLocalRows('contacts');
   const users = useLocalRows('users');
   const territories = useLocalRows('territories');
+  const priceLists = useLocalRows('price_lists');
   const waiting = useOutboxItems();
   const [locating, setLocating] = useState<Locating>({ step: 'idle' });
   const [error, setError] = useState<string>();
@@ -197,6 +200,17 @@ export function AccountScreen({ id }: { id: string }) {
         </View>
       </Card>
 
+      {(priceLists?.length ?? 0) > 0 ? (
+        <ListGroup title={t('prices.title')}>
+          <ListRow
+            icon={Tag}
+            label={t('prices.see')}
+            onPress={() =>
+              router.push({ pathname: '/prices/[accountId]', params: { accountId: account.id } })
+            }
+          />
+        </ListGroup>
+      ) : null}
       {linkedForms.length > 0 ? (
         <ListGroup title={t('account.fill_form')}>
           {linkedForms.map((form) => (
