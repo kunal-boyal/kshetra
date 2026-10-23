@@ -204,6 +204,7 @@ const ANSWERS: Record<string, unknown> = {
         status: 'pending',
         version: 1,
         steps: [],
+        cancellable: false,
         createdAt: '2026-10-12T05:00:00.000Z',
         closedAt: null,
       },
