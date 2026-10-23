@@ -432,7 +432,10 @@ describe("a person's page", () => {
     expect(await screen.findByRole('heading', { name: 'Rahul Verma' })).toBeInTheDocument();
     const phone = screen.getByRole('region', { name: 'Phone' });
     expect(phone).toHaveTextContent('2 waiting, 1 refused');
-    expect(screen.getByRole('region', { name: 'History' })).toHaveTextContent('Added');
+    // The history reads on its own, after the person.
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'History' })).toHaveTextContent('Added'),
+    );
 
     const user = userEvent.setup();
     await user.click(within(phone).getByRole('button', { name: 'Reset phone' }));
