@@ -429,6 +429,7 @@ export class VisitsService {
   ): Promise<DayVisit[]> {
     const rows = await tx
       .select({
+        id: visits.id,
         accountId: accounts.id,
         typeKey: accountTypes.key,
         segments: accounts.segments,
@@ -452,6 +453,7 @@ export class VisitsService {
         ),
       );
     return rows.map((row) => ({
+      id: row.id,
       account: { id: row.accountId, typeKey: row.typeKey, segments: row.segments },
       checkInAt: row.checkInAt.toISOString(),
       checkOutAt: row.checkOutAt?.toISOString() ?? null,

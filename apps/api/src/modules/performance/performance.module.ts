@@ -4,6 +4,7 @@ import { FieldModule } from '../field/field.module';
 import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
 import { MetricsModule } from '../metrics/metrics.module';
+import { OrdersModule } from '../orders/orders.module';
 import { PlanningModule } from '../planning/planning.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { MetricsAdmin } from './metrics-admin';
@@ -25,6 +26,7 @@ import { PerformanceUpkeep } from './performance.upkeep';
     FormsModule,
     PlanningModule,
     MetricsModule,
+    OrdersModule,
     TenantConfigModule,
   ],
   controllers: [PerformanceController, MetricsAdminController],

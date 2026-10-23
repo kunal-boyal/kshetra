@@ -7,6 +7,7 @@ import type { TenantTx } from '../../platform/database';
 import { SubmissionsService } from '../field/submissions.service';
 import { VisitsService } from '../field/visits.service';
 import { MetricsService } from '../metrics/metrics.service';
+import { OrdersService } from '../orders/orders.service';
 import { PlanningService } from '../planning/planning.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
@@ -23,6 +24,7 @@ export class MetricsEngine {
     private readonly submissions: SubmissionsService,
     private readonly visits: VisitsService,
     private readonly planning: PlanningService,
+    private readonly orders: OrdersService,
   ) {}
 
   /** Recomputes every metric for one person and date on the tenant's clock. */
@@ -36,12 +38,14 @@ export class MetricsEngine {
     const submissions = await this.submissions.forMetrics(tx, tenantId, userId, date, timezone);
     const visits = await this.visits.forMetrics(tx, tenantId, userId, date, timezone);
     const planItems = await this.planning.forMetrics(tx, tenantId, userId, date);
+    const orders = await this.orders.forMetrics(tx, tenantId, userId, date, timezone);
     const facts = calculateDayFacts(definitions, {
       date,
       today: todayIn(timezone),
       submissions,
       visits,
       planItems,
+      orders,
     });
     const day = and(
       eq(metricFactsDaily.tenantId, tenantId),

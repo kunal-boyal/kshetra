@@ -83,6 +83,15 @@ export class PerformanceUpkeep implements OnModuleInit {
         await this.at(tx, event.tenantId, payload.userId, payload.capturedAt);
       },
     );
+    // Orders (decision D78): placing one, and every decision and fulfilment after it.
+    this.outbox.consume(
+      ['order.placed', 'order.status_changed'],
+      'performance.orders',
+      async (event, tx) => {
+        const payload = event.payload as EventPayload<'order.placed'>;
+        await this.at(tx, event.tenantId, payload.userId, payload.placedAt);
+      },
+    );
     this.outbox.consume(['visit.ended'], 'performance.visits', async (event, tx) => {
       const payload = event.payload as EventPayload<'visit.ended'>;
       await this.at(tx, event.tenantId, payload.userId, payload.checkInAt);

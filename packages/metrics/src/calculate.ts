@@ -1,4 +1,5 @@
 import { conditionHolds } from '@thelamp/forms';
+import type { OrderStatus } from '@thelamp/shared';
 import type { MetricDefinition, MetricSourceType } from './definition';
 
 /**
@@ -17,6 +18,10 @@ export const COMPUTED_SOURCES = [
   'plan_compliance_percent',
   'visit_duration',
   'active_days',
+  'order_value',
+  'order_quantity',
+  'order_lines',
+  'productive_visits',
   'ratio',
 ] as const satisfies readonly MetricSourceType[];
 
@@ -49,6 +54,8 @@ export interface DaySubmission {
 }
 
 export interface DayVisit {
+  /** For productive visits: a visit is productive when an order names it. */
+  id?: string;
   account: DayAccount;
   checkInAt: string;
   /** Null while the visit is open; open visits don't count. */
@@ -59,6 +66,24 @@ export interface DayPlanItem {
   status: 'planned' | 'visited' | 'completed' | 'missed' | 'cancelled';
 }
 
+/**
+ * An order the person placed that day (M10, decision D78), with each line's decision: a rejected
+ * line counts for nothing (BR-19).
+ */
+export interface DayOrder {
+  status: OrderStatus;
+  visitId: string | null;
+  account: DayAccount;
+  lines: readonly {
+    decision: 'pending' | 'accepted' | 'rejected';
+    taxable: string;
+    total: string;
+    baseUnits: string;
+    measureType: 'kg' | 'L' | null;
+    measure: string | null;
+  }[];
+}
+
 export interface DayRecords {
   /** `YYYY-MM-DD` on the tenant's clock. */
   date: string;
@@ -67,6 +92,7 @@ export interface DayRecords {
   submissions: readonly DaySubmission[];
   visits: readonly DayVisit[];
   planItems: readonly DayPlanItem[];
+  orders: readonly DayOrder[];
 }
 
 /** One metric's fact for one person and day. */
@@ -205,6 +231,53 @@ export function calculateDay(
       const value =
         source.aggregate === 'sum' ? minutes : visits > 0 ? minutes / BigInt(visits) : 0n;
       return fact(key, decimal(value), { numerator: decimal(minutes), denominator: count(visits) });
+    }
+    case 'order_value':
+    case 'order_quantity':
+    case 'order_lines': {
+      // Orders in the chosen statuses count; while submitted ones aren't chosen, they wait apart.
+      const of = (order: DayOrder) =>
+        order.lines
+          .filter((line) => line.decision !== 'rejected')
+          .reduce((sum, line) => {
+            if (source.type === 'order_lines') return sum + SCALE;
+            if (source.type === 'order_value') {
+              return (
+                sum +
+                (thousandths(source.amount === 'before_tax' ? line.taxable : line.total) ?? 0n)
+              );
+            }
+            if (source.measure === 'base_units') return sum + (thousandths(line.baseUnits) ?? 0n);
+            return line.measureType === source.measure
+              ? sum + (thousandths(line.measure) ?? 0n)
+              : sum;
+          }, 0n);
+      let value = 0n;
+      let pending = 0n;
+      for (const order of day.orders) {
+        if (source.statuses.includes(order.status)) value += of(order);
+        else if (order.status === 'submitted') pending += of(order);
+      }
+      return fact(key, decimal(value), { pending: decimal(pending) });
+    }
+    case 'productive_visits': {
+      // A visit with an order that still stands.
+      const ordered = new Set(
+        day.orders
+          .filter(
+            (order) => order.visitId && order.status !== 'rejected' && order.status !== 'cancelled',
+          )
+          .map((order) => order.visitId),
+      );
+      const productive = day.visits.filter(
+        (visit) =>
+          visit.id !== undefined &&
+          ordered.has(visit.id) &&
+          accountMatches(visit.account, source.accountTypes, undefined),
+      );
+      return fact(key, count(productive.length), {
+        accounts: [...new Set(productive.map((visit) => visit.account.id))].sort(),
+      });
     }
     case 'ratio': {
       const top = parts.get(source.numerator);

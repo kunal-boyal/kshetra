@@ -1007,6 +1007,24 @@ export class AccountsService {
       where ${and(eq(accounts.tenantId, access.tenantId), await this.reach(tx, access))})`;
   }
 
+  /** Accounts by ID as the metric engine groups them: their type and segments. */
+  async forMetrics(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, { id: string; typeKey: string; segments: string[] }>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select({ id: accounts.id, typeKey: accountTypes.key, segments: accounts.segments })
+      .from(accounts)
+      .innerJoin(
+        accountTypes,
+        and(eq(accountTypes.tenantId, accounts.tenantId), eq(accountTypes.id, accounts.typeId)),
+      )
+      .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, [...new Set(ids)])));
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
   /** Accounts by ID as other records name them: code and name, whoever sees them. */
   async refs(
     tx: TenantTx,

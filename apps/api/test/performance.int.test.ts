@@ -233,10 +233,11 @@ describe('the metric engine (spec 12.5)', () => {
       days: { actual: '1' },
       per_call: { actual: '75.25' },
     });
+    // Orders are a source now (decision D78); this person placed none.
     expect(mine.metrics.find((m: { key: string }) => m.key === 'order_value')).toMatchObject({
-      available: false,
+      available: true,
     });
-    expect(mine.figures.order_value).toMatchObject({ actual: null });
+    expect(mine.figures.order_value).toMatchObject({ actual: '0' });
     expect(mine.days).toEqual([
       {
         date: expect.any(String),
