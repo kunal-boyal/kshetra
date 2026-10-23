@@ -202,6 +202,97 @@ describe('the accounts table', () => {
   });
 });
 
+describe("an account's finance (M11, D79)", () => {
+  it('shows the latest balance with its ageing, and the statement with running balances', async () => {
+    const year = new Date().getFullYear() - (new Date().getMonth() < 3 ? 1 : 0);
+    const client = fakeClient(
+      {
+        [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+        [`/v1/accounts/${SHOP}/finance`]: {
+          latest: {
+            id: '01a10000-0000-7000-8000-0000000000a9',
+            accountId: SHOP,
+            asOf: '2026-10-15',
+            outstanding: '42000.50',
+            creditLimit: '75000.00',
+            inventoryValue: null,
+            ageing: { d0_30: '32000.50', d181: '10000.00' },
+            source: 'Tally',
+            createdAt: '2026-10-15T05:00:00.000Z',
+          },
+          history: [],
+        },
+        [`/v1/accounts/${SHOP}/statement`]: {
+          from: `${year}-04-01`,
+          to: `${year + 1}-03-31`,
+          opening: '1000.00',
+          closing: '8000.00',
+          entries: [
+            {
+              id: '01a10000-0000-7000-8000-0000000000b9',
+              date: `${year}-04-10`,
+              reference: 'INV-1',
+              description: 'Invoice 1',
+              debit: '10000.00',
+              credit: '0.00',
+              balance: '11000.00',
+            },
+            {
+              id: '01a10000-0000-7000-8000-0000000000ba',
+              date: `${year}-05-02`,
+              reference: 'RCPT-1',
+              description: null,
+              debit: '0.00',
+              credit: '3000.00',
+              balance: '8000.00',
+            },
+          ],
+          truncated: false,
+          count: 2,
+        },
+      },
+      { 'POST /v1/ledger-entries': () => ({ created: 1, unchanged: 0 }) },
+      ['account.view', 'finance.view', 'finance.manage'],
+      BUNDLE,
+    );
+    renderAt(`/accounts/${SHOP}`, client);
+    const finance = await screen.findByRole('region', { name: 'Finance' });
+    await waitFor(() => expect(finance).toHaveTextContent('Outstanding₹42,000.50'));
+    expect(finance).toHaveTextContent('0–30 days₹32,000.50');
+    expect(finance).toHaveTextContent('Over 180 days₹10,000.00');
+    const statement = await within(finance).findByRole('table', { name: 'Statement' });
+    expect(within(statement).getByRole('row', { name: /RCPT-1/ })).toHaveTextContent('₹8,000.00');
+    expect(finance).toHaveTextContent('Opening balance₹1,000.00');
+
+    const user = userEvent.setup();
+    const form = within(finance).getByRole('form', { name: 'Add an entry' });
+    await user.type(within(form).getByRole('textbox', { name: /^Reference/ }), 'RCPT-2');
+    await user.selectOptions(
+      within(form).getByRole('combobox', { name: 'Debit or credit' }),
+      'credit',
+    );
+    await user.type(within(form).getByRole('textbox', { name: /^Amount/ }), '500');
+    await user.click(within(form).getByRole('button', { name: 'Add an entry' }));
+    await waitFor(() =>
+      expect(writesOf(client).at(-1)![3]).toEqual({
+        body: {
+          entries: [
+            {
+              id: expect.any(String),
+              accountId: SHOP,
+              date: expect.any(String),
+              reference: 'RCPT-2',
+              description: null,
+              credit: '500',
+            },
+          ],
+        },
+        idempotencyKey: expect.any(String),
+      }),
+    );
+  });
+});
+
 describe("an account's page", () => {
   it('shows its details, who looks after it, and adds a contact person', async () => {
     const client = fakeClient(

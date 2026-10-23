@@ -630,3 +630,25 @@ export {
   SWITCHABLE_MODULES,
 } from './modules';
 export type { ModuleKey, SwitchableModule } from './modules';
+export {
+  AGEING_TOLERANCE,
+  ageingIssue,
+  bucketsIssue,
+  DEFAULT_AGEING_BUCKETS,
+  entryIssue,
+  financialYear,
+  financialYearOf,
+  openingBalance,
+  runningBalances,
+  STATEMENT_LIMIT,
+} from './finance';
+export type { AgeingBucket, LedgerEntry } from './finance';
+export {
+  AccountFinanceResult,
+  FinanceSnapshot,
+  FinanceSnapshotBody,
+  LedgerEntriesBody,
+  LedgerEntriesResult,
+  StatementQuery,
+  StatementResult,
+} from './schemas/finance';

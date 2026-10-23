@@ -17,7 +17,14 @@ import { read, useAccess } from '../people/data';
 
 /** What each family of imports needs, besides `import.run` (M19). */
 export const TARGET_PERMISSIONS: Record<
-  'users' | 'territories' | 'accounts' | 'items' | 'targets' | 'account_plans',
+  | 'users'
+  | 'territories'
+  | 'accounts'
+  | 'items'
+  | 'targets'
+  | 'account_plans'
+  | 'finance_snapshots'
+  | 'ledger_entries',
   TenantPermission
 > = {
   users: 'user.manage',
@@ -26,6 +33,8 @@ export const TARGET_PERMISSIONS: Record<
   items: 'catalogue.manage',
   targets: 'target.edit',
   account_plans: 'account_plan.manage',
+  finance_snapshots: 'finance.manage',
+  ledger_entries: 'finance.manage',
 };
 
 export interface TargetChoice {

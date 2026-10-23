@@ -435,4 +435,46 @@ describe('orders (M10)', () => {
     // FX-14: only the accepted line counts.
     expect((await figures()).order_value).toMatchObject({ actual: '8640', pending: '0' });
   });
+
+  it('sends an order over the credit limit to its own step (D73)', async () => {
+    const t = await agri('Credit Agro');
+    // The head approves orders that go over the account's limit; the ASM approves the rest.
+    const current = (await t.api.head.get('/v1/workflows'))
+      .json()
+      .chains.find((chain: { requestType: string }) => chain.requestType === 'order');
+    const saved = await t.api.head.put('/v1/workflows/order', {
+      steps: [
+        {
+          approver: { type: 'nearest_designation', designation: 'business_head' },
+          condition: { match: 'all', clauses: [{ field: 'over_credit', op: 'eq', value: true }] },
+        },
+        { approver: { type: 'account_slot', slot: 'asm' } },
+      ],
+      version: current.version,
+    });
+    expect(saved.statusCode, saved.body).toBe(200);
+    const snapshot = await t.api.head.post('/v1/finance-snapshots', {
+      id: newId(),
+      accountId: t.distributor,
+      asOf: '2026-10-01',
+      outstanding: '9000',
+      creditLimit: '10000',
+      source: 'Tally',
+    });
+    expect(snapshot.statusCode, snapshot.body).toBe(201);
+
+    // 1,277.66 on top of 9,000 goes past 10,000.
+    const over = (
+      await t.api.sme.post('/v1/orders', t.order(t.distributor, [t.line(t.urea, '1')]))
+    ).json();
+    expect(over.approval.steps.map((step: { status: string }) => step.status)).toEqual([
+      'pending',
+      'waiting',
+    ]);
+    // Within the limit, the credit step is skipped.
+    const within = (
+      await t.api.sme.post('/v1/orders', t.order(t.distributor, [t.line(t.urea, '0.5')]))
+    ).json();
+    expect(within.approval.steps[0]).toMatchObject({ status: 'skipped', skipReason: 'condition' });
+  });
 });

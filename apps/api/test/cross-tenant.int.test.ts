@@ -1542,6 +1542,62 @@ const FIXTURES: Record<string, Fixture> = {
         aOrderId,
       ),
   },
+  'POST /v1/finance-snapshots': {
+    kind: 'write',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', '/v1/finance-snapshots', {
+            id: newId(),
+            accountId: id,
+            asOf: '2026-09-30',
+            outstanding: '10',
+            source: 'B books',
+          }),
+        aAccountId,
+      ),
+  },
+  'POST /v1/ledger-entries': {
+    kind: 'write',
+    run: async () => {
+      await sameAsNowhere(
+        (id) =>
+          asB('POST', '/v1/ledger-entries', {
+            entries: [
+              {
+                id: newId(),
+                accountId: id,
+                date: '2026-09-30',
+                reference: `B-${newId()}`,
+                debit: '1',
+              },
+            ],
+          }),
+        aAccountId,
+      );
+      // A's reference is B's to use: references belong to a tenant.
+      const own = await asB('POST', '/v1/ledger-entries', {
+        entries: [
+          {
+            id: newId(),
+            accountId: bAccountId,
+            date: '2026-09-30',
+            reference: 'A-INV-1',
+            debit: '2',
+          },
+        ],
+      });
+      expect(own.json()).toEqual({ created: 1, unchanged: 0 });
+    },
+  },
+  'GET /v1/accounts/:id/finance': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/finance`), aAccountId),
+  },
+  'GET /v1/accounts/:id/statement': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/statement`), aAccountId),
+  },
   'GET /v1/accounts/:id/prices': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/prices`), aAccountId),
@@ -1714,6 +1770,26 @@ beforeAll(async () => {
     placedAt: new Date().toISOString(),
   });
   expect(ordered.statusCode, ordered.body).toBe(201);
+  const snapshotted = await send(aToken, 'POST', '/v1/finance-snapshots', {
+    id: newId(),
+    accountId: aAccountId,
+    asOf: '2026-09-30',
+    outstanding: '1000',
+    source: `${a.word} books`,
+  });
+  expect(snapshotted.statusCode, snapshotted.body).toBe(201);
+  const posted = await send(aToken, 'POST', '/v1/ledger-entries', {
+    entries: [
+      {
+        id: newId(),
+        accountId: aAccountId,
+        date: '2026-09-30',
+        reference: 'A-INV-1',
+        debit: '1000',
+      },
+    ],
+  });
+  expect(posted.statusCode, posted.body).toBe(200);
   aContactId = newId();
   await send(aToken, 'POST', `/v1/accounts/${aAccountId}/contacts`, {
     id: aContactId,

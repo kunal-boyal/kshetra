@@ -243,6 +243,39 @@ const ANSWERS: Record<string, unknown> = {
     nextCursor: null,
     counts: { new_account: 2 },
   },
+  [`/v1/accounts/${SHOP}/finance`]: {
+    latest: {
+      id: '01a10000-0000-7000-8000-0000000000a9',
+      accountId: SHOP,
+      asOf: '2026-10-15',
+      outstanding: '42000.50',
+      creditLimit: '75000.00',
+      inventoryValue: null,
+      ageing: { d0_30: '32000.50', d181: '10000.00' },
+      source: 'Tally',
+      createdAt: '2026-10-15T05:00:00.000Z',
+    },
+    history: [],
+  },
+  [`/v1/accounts/${SHOP}/statement`]: {
+    from: '2026-04-01',
+    to: '2027-03-31',
+    opening: '1000.00',
+    closing: '11000.00',
+    entries: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000b9',
+        date: '2026-04-10',
+        reference: 'INV-1',
+        description: 'Invoice 1',
+        debit: '10000.00',
+        credit: '0.00',
+        balance: '11000.00',
+      },
+    ],
+    truncated: false,
+    count: 1,
+  },
   '/v1/approvals/mine': {
     items: [
       {
@@ -336,6 +369,8 @@ async function mockSignedIn(page: Page) {
             'account.manage',
             'approval.act',
             'account_plan.manage',
+            'finance.view',
+            'finance.manage',
           ],
         },
       },

@@ -63,11 +63,26 @@ const FIELD_KEYS = {
     'hsn',
     'tax_rate',
     'mrp',
+    'price',
+    'discount_pct',
+    'expected_net_price',
+    'expected_final_price',
+    'price_list',
     'active',
   ],
   // Their metric columns carry their own labels.
   targets: ['code', 'period', 'lock'],
   account_plans: ['account_code', 'period'],
+  // Their ageing columns carry their own labels.
+  finance_snapshots: [
+    'account_code',
+    'as_of',
+    'outstanding',
+    'credit_limit',
+    'inventory_value',
+    'source',
+  ],
+  ledger_entries: ['reference', 'account_code', 'date', 'description', 'debit', 'credit'],
 } as const satisfies Record<string, readonly string[]>;
 
 /** A field's name in the reader's language: its own label, or the app's word for it. */
