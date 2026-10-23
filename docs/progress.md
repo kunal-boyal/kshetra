@@ -2,7 +2,7 @@
 
 This file tracks where the build stands against the delivery phases in spec section 15. Update it in the same pull request as every step, so it never drifts from the code.
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Now
 
@@ -18,10 +18,11 @@ Last updated: 2026-10-23
 - **Phases 2 and 3 are approved** (decision D71, 2026-10-23), ahead of phase 1's pilot week, which waits for the company's accounts and a customer. First the demo (decision D70): the whole product on one EC2 instance in Kunal's AWS sandbox at app.thelamp.in, with demo tenants whose people sign in with fixed codes. Then phase 2, then phase 3, each planned and shown before it is built.
 - **The brand is Field** (decision D72, 2026-10-23): forest green and harvest gold, Mukta for English and Hindi alike, a map pin holding a flame for the mark, sturdier shapes, and a restyled portal shell. Kunal chose it from three directions laid out side by side.
 - **The product is The Lamp** (decision D1, 2026-10-23), on thelamp.in, published by a new company Kunal is registering. `product.json` holds its names, and `pnpm rename` renames it in one pull request; the slug and app ID are fixed once the app is in a store.
-- **Before phase 2,** Kunal chose on 2026-10-23 to finish every pending item first, and to be asked before phase 2 starts. The raw location archive and retention of locations, trails and evidence photos (decision D69) is in review: each tenant's raw points go to the object store as Parquet once settled, leave the database after the raw retention, trails and archive files go after the trail retention, empty partitions are dropped, and a new nightly job removes evidence photos with their stamped copies after their keeping time, which step 17a's Terraform had wrongly said the app already did. `docs/decision-summary.md` lists D35 to D69 in a line each, for Kunal to confirm.
-- **Next:** 17c, once the accounts exist; the device protocol (spec 14.5) on two Android phones of different brands still waits on Kunal.
+- **Phase 1 is built,** but for the pilot week (17c). Its last steps merged on 2026-10-23 and 24: Maestro in CI and the load tests ([kunal-boyal/kshetra#47](https://github.com/kunal-boyal/kshetra/pull/47)), the raw location archive and retention ([kunal-boyal/kshetra#48](https://github.com/kunal-boyal/kshetra/pull/48)), the rename to The Lamp ([kunal-boyal/kshetra#49](https://github.com/kunal-boyal/kshetra/pull/49)), the demo ([kunal-boyal/kshetra#50](https://github.com/kunal-boyal/kshetra/pull/50)) and the Field brand ([kunal-boyal/kshetra#51](https://github.com/kunal-boyal/kshetra/pull/51)). The Field development build runs on Kunal's Nothing Phone (2a), maps included. `docs/decision-summary.md` lists D35 to D69 in a line each, for Kunal to confirm.
+- **Phase 2 is planned and approved** (decision D73, 2026-10-24): nine steps, below. Next: step 1, approval chains. The pilot week (17c) still waits on the company's accounts, and the device protocol on two Android phones on Kunal.
 - **The build tracker** shows every phase, step and task, with what is done and what is pending: https://claude.ai/artifact/RXrE65BV5qZ7fDqMCojxxs
-- **Also made:** a clickable prototype of the field app and the manager portal: https://claude.ai/artifact/9VVuerfkU3vfou35KDiLZW
+- **CI within GitHub's free minutes** (decision D75, 2026-10-24): pull requests run the quick checks only, main runs the rest after each merge, Maestro runs by hand, and `pnpm verify` runs the full suite locally before every merge.
+- **Also made:** a clickable prototype of the whole product, every phase, on the phone, the portal and the vendor console: https://claude.ai/artifact/5gU3wR97hjoXsho2q7qZGj
 
 ## Phase 0: Foundation
 
@@ -77,14 +78,42 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 | 15 | Dashboards, reports and exports: home dashboards, the activity log, the attendance register, target against achievement, export jobs (M18, D62). In two pull requests: 15a, reports and exports; 15b, the home dashboards. | | Done | #41, #42 |
 | 16 | Tenant administration: settings, terminology and modules screens, branding with the derived accent, configuration export and import (M2, D64). In three pull requests: 16a settings, branding, terminology and modules; 16b configuration screens; 16c configuration export and import. | | Done | #43, #44, #45 |
 | 17 | Pilot readiness and the pilot week: a deployed cell on AWS, the delivery pipeline, Play internal testing, Maestro in CI, the device protocol, the pilot week (spec 14, 15) | AWS and Play Console accounts; D1 and D2 | In progress: 17a merged (#46), 17b in review | |
-| 18 | Before phase 2: the raw location archive as Parquet, location and trail retention, dropping empty partitions, evidence photo retention (BR-41, D69) | | In review | |
-| 19 | The demo: demo tenants and codes, a demo cell, and one EC2 instance in the AWS sandbox at app.thelamp.in (D70) | Kunal's AWS sandbox; the DNS record for app.thelamp.in | In progress | |
-| 20 | The brand: Field. Forest and harvest gold, Mukta, the pin-and-flame mark, sturdier shapes, and the portal's shell (sectioned navigation, sticky app bar, split sign-in) (D72) | A new development build for the phone's icon and font: EAS `1c3030ed` (`com.thelamp.app.dev`), on Kunal's Nothing Phone (2a) since 2026-10-23 | In review | |
+| 18 | Before phase 2: the raw location archive as Parquet, location and trail retention, dropping empty partitions, evidence photo retention (BR-41, D69) | Done | #48 |
+| 19 | The demo: demo tenants and codes, a demo cell, and one EC2 instance in the AWS sandbox at app.thelamp.in (D70) | Kunal's AWS sandbox; the DNS record for app.thelamp.in | Done | #50 |
+| 20 | The brand: Field. Forest and harvest gold, Mukta, the pin-and-flame mark, sturdier shapes, and the portal's shell (sectioned navigation, sticky app bar, split sign-in) (D72) | A new development build for the phone's icon and font: EAS `1c3030ed` (`com.thelamp.app.dev`), on Kunal's Nothing Phone (2a) since 2026-10-23 | Done | #51 |
+
+## Phase 2: Commerce and people
+
+The spec plans 6–8 weeks for this phase. Kunal approved this plan on 2026-10-24 (decision D73), after the whole-product prototype.
+
+**Exit criteria:**
+- order totals reconcile with three real invoices to the paisa
+- leave, regularisation and expense claims pass through configured approval chains
+- the attendance register matches a manual check
+
+Each step is its own pull request, or two (a: the server and the web; b: the phone), in this order. Approval chains come first because every later request uses them; commerce comes next because its exit check needs the longest lead time.
+
+| Step | Capability | Needs from Kunal | Status | Pull request |
+|---|---|---|---|---|
+| 1 | Approval chains (M15, BR-31): approvers by reporting manager, manager's manager, role, designation or person; skip and fallback rules; reminders and escalation per step; one decision wins when two act at once; cancel before the first decision. Phase 1's request types move onto it. The chain editor on the web, and one approvals inbox on the web and the phone with bulk approval. In two pull requests. | | Next | |
+| 2 | Catalogue and price lists (spec 5.11, BR-10 to BR-17, M19): categories, sellable units with factors, kg and L measures, price lists by account type, segment, territory or account with priority and validity, the shared pricing functions tested with Appendix D, imports, price lists on the phone | | To do | |
+| 3 | Orders (M10, BR-13 to BR-15, BR-19): the phone, offline too, and a web order desk; primary and secondary orders; server repricing with `PRICE_CHANGED`; line snapshots; the order chain with line decisions; over the credit limit goes to an approval step; CGST and SGST shown within the state; fulfilment; the orders register; order value as a metric. In two pull requests. | Three real invoices with their orders | To do | |
+| 4 | Account finance (M11, BR-20 to BR-22): snapshots with ageing, statements with running balances, their imports, the account view and statement report, collections on the phone. In two pull requests. | | To do | |
+| 5 | Attendance and regularisation (M13, BR-23 to BR-25, BR-28): holidays, weekly offs, joining and leaving dates, the full day status, the register on the web, the month calendar and fixing a day on the phone. In two pull requests. | A manual check of one month | To do | |
+| 6 | Leave (M13, BR-27): types and quotas from configuration, balances, working days, no overlaps, the leave chain and register, applying on the phone. In two pull requests. | | To do | |
+| 7 | Expenses (M12, BR-29, BR-30): versioned policies with caps, claims with receipt photos and duplicate flags, the expense chain, paid and payroll export, the register, claims on the phone. Receipt reading (OCR) waits for a later version. In two pull requests. | | To do | |
+| 8 | WhatsApp (spec 5.12, D12): the sender behind one interface with console and test stand-ins, approved templates per event and language, opt-in; the provider is switched on when its account exists | A WhatsApp Business number and a provider account | To do | |
+| 9 | Remaining reports and closing the phase (M18): visit compliance, coverage and frequency, location summary, audit log; phase 2 demo content; Maestro flows for orders and leave; the exit checks. In two pull requests. | | To do | |
 
 ## Done
 
 | Date | What | Where |
 |---|---|---|
+| 2026-10-24 | Phase 1 step 20: the Field brand: Forest and harvest gold, Mukta, the pin-and-flame mark, sturdier shapes and the portal's shell (decision D72) | PR #51, merged as `37bd66c` |
+| 2026-10-24 | Phase 1 step 19: the demo: demo tenants and codes, a demo cell and one EC2 instance at app.thelamp.in (decision D70) | PR #50, merged as `e4e12d4` |
+| 2026-10-24 | The product renamed to The Lamp, with a one-command rename (decision D1) | PR #49, merged as `5ce42ba` |
+| 2026-10-23 | Phase 1 step 18: the raw location archive as Parquet, and retention for locations, trails and evidence photos (decision D69) | PR #48, merged as `2b47815` |
+| 2026-10-23 | Phase 1 step 17b: Maestro in CI on main and nightly, k6 load scripts and the remaining runbooks (decision D68) | PR #47, merged as `b939ea8` |
 | 2026-10-16 | Expo SDK 57 patch: expo 57.0.29 in the `mobile` catalog, with expo-constants 57.0.22, expo-linking 57.0.13 and expo-router 57.0.27; jest-expo stays at 57.0.6 | PR #35, merged as `f03bf07` |
 | 2026-10-22 | Phase 1 step 17a: the container image, Terraform for a lean cell, the deploy workflow (off until `DEPLOY_ENABLED`) and MSG91 for codes and SMS (decision D67) | PR #46, merged as `f648d84` |
 | 2026-10-22 | Phase 1 step 16c: configuration export and import as JSON in the template format, with a preview, and `pnpm provision --file` (decision D66) | PR #45, merged as `d31e58d` |
@@ -143,6 +172,9 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 
 | Item | Who | Needed by |
 |---|---|---|
+| Three real invoices with their orders, for phase 2's exit check that order totals match to the paisa. Names can be blacked out; prices, discounts and taxes must be real | Kunal | Phase 2 step 3 |
+| A WhatsApp Business number and an account with a provider, for example Gupshup, Interakt or AiSensy (D12) | Kunal | Phase 2 step 8 |
+| About 30 minutes to check one month of the demo's attendance register against your own count, for phase 2's exit check | Kunal | Phase 2 step 5 |
 | Register the new company that publishes the apps (D1), then send its name: the D-U-N-S number, DLT and the Play Console all need it | Kunal | Before DLT registration and store listings |
 | D2: name the pilot customer (agri inputs) | Kunal | Phase 1 |
 | D3: seat prices and plan contents | Kunal | Before phase 3 |
@@ -188,7 +220,6 @@ Each step is its own pull request, in this order. Each needs from Kunal what its
 
 | Phase | Scope | Exit criteria |
 |---|---|---|
-| 2, Commerce and people, 6–8 weeks | Orders, account finance, expenses, attendance and leave, approval workflows, WhatsApp | Order totals reconcile with real invoices to the paisa |
 | 3, SaaS readiness, 6–8 weeks | Public API, audit, platform console, billing, SSO, store releases, penetration test | A tenant onboarded from the console in under a day |
 | 4, Growth | Driven by customer demand | Not fixed in advance |
 

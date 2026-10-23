@@ -1,11 +1,14 @@
-# Pull-request checks (spec 14.3). Integration, contract, end-to-end and OpenAPI checks join as
-# the code they cover lands.
+# Checks (spec 14.3), lean enough for GitHub's free minutes on a private repository (decision
+# D75): pull requests run the quick checks only; integration, end-to-end, the image and Terraform
+# run on main after a merge, or by hand on any branch. Before each merge the full suite runs locally
+# (`pnpm verify`) and its result goes in the pull request.
 name: CI
 
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -28,6 +31,7 @@ jobs:
       - run: pnpm test
 
   integration:
+    if: github.event_name != 'pull_request'
     # Testcontainers builds infra/docker/postgres and runs the API's tests against it.
     runs-on: ubuntu-latest
     steps:
@@ -41,6 +45,7 @@ jobs:
       - run: pnpm test:int
 
   e2e:
+    if: github.event_name != 'pull_request'
     # Playwright with axe against the web app's production build (spec 14.4).
     runs-on: ubuntu-latest
     steps:
@@ -55,6 +60,7 @@ jobs:
       - run: pnpm test:e2e
 
   image:
+    if: github.event_name != 'pull_request'
     # The cell's container image builds (decision D67); deploys push it, pull requests only build.
     runs-on: ubuntu-latest
     steps:
@@ -70,6 +76,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   infra:
+    if: github.event_name != 'pull_request'
     # Terraform is formatted and valid for every environment, and the deploy scripts pass
     # ShellCheck; nothing is planned or applied here (decision D67).
     runs-on: ubuntu-latest
