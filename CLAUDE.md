@@ -23,6 +23,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm --filter @thelamp/mobile web` | runs the field app in a browser, standing in for an Android phone; development only, so add http://localhost:8081 to `CORS_ORIGINS` | now |
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
 | `pnpm test:e2e` | Playwright tests of the web portal, with axe, against a mocked API. Install the browser once with `pnpm --filter @thelamp/web exec playwright install chromium`. | now |
+| `pnpm verify` | the full check before a merge (decision D75): formatting, types, lint, unit, phone, integration and web end-to-end tests, Terraform; `--image` builds the container image too. Docker must be running | now |
 | `pnpm tokens` | regenerates `tokens.css` and `tokens.ts` in `packages/design-tokens` from `tokens.json` | now |
 | `infra/scripts/demo.sh apply\|deploy\|provision\|pause\|resume\|status` | the demo on one EC2 instance in the AWS sandbox (decision D70, `infra/demo/README.md`); signed in with `aws login --profile thelamp-sandbox` | now |
 | `pnpm rename --name … [--slug …]` | renames the product across the repository from `product.json` (`tools/rename/README.md`); the slug and app ID only until launch | now |
@@ -282,9 +283,9 @@ Migrations are append-only and backward compatible. They follow expand and contr
 - **Unit:** Vitest for business rules, the form engine and metrics; Jest with jest-expo for React Native components and screens.
 - **Integration:** Testcontainers and supertest against real migrations and RLS.
 - **Cross-tenant contract test:** `test/cross-tenant.int.test.ts`, generated from the route registry; it fails for a route without a fixture. A new route's fixture has tenant B try tenant A's IDs: `sameAsNowhere()` for anything that takes an ID, `holdsNothingOfA()` for reads, and every row of A's is compared after each request.
-- **End to end:** Playwright (with axe) for the web apps; Maestro for mobile, on main, nightly and on pull requests that change the flows (decision D68). Flows select by the screen's English text and run against a fresh tenant from `e2e:fixtures`, never seeded people; sign-in codes come from Mailpit (`OTP_PROVIDER=mailpit`).
+- **End to end:** Playwright (with axe) for the web apps; Maestro for mobile, run by hand in CI or locally with `apps/mobile/.maestro/run.sh` (decisions D68 and D75). Flows select by the screen's English text and run against a fresh tenant from `e2e:fixtures`, never seeded people; sign-in codes come from Mailpit (`OTP_PROVIDER=mailpit`).
 - **Load:** k6 in `tools/k6`, with spec 3.2's targets as thresholds; sessions come from `load:fixtures`, one person per virtual user.
-- **Merging:** a pull request merges only with typecheck, lint, unit, integration and end-to-end tests green.
+- **Merging (decision D75):** GitHub's free minutes cover only the quick checks, so pull requests run formatting, types, lint and unit tests there; integration, end-to-end, the image and Terraform run on main after each merge. Before merging, run `pnpm verify` locally and note its result and commit in the pull request. A pull request merges only with its quick checks green and `pnpm verify` passing.
 
 ## Deployment (decision D67)
 

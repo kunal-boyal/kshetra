@@ -1,18 +1,11 @@
 # The field app's end-to-end flows (spec 14.4, decision D68): Maestro on an Android emulator,
-# against the API and its services running on the runner. On main, every night, by hand, and on
-# pull requests that change the flows; a failure on main or at night opens an issue.
+# against the API and its services running on the runner. By hand only: a run takes about 40 of
+# GitHub's free minutes, so it runs before a release or after changes to the flows (decision D75).
+# Locally, apps/mobile/.maestro/run.sh runs them on an emulator or a phone.
 name: Maestro
 
 on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '30 20 * * *' # 02:00 in India
   workflow_dispatch:
-  pull_request:
-    paths:
-      - apps/mobile/.maestro/**
-      - .github/workflows/maestro.yml
 
 permissions:
   contents: read

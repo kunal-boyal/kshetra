@@ -15,6 +15,7 @@
     "test": "turbo run test",
     "test:int": "turbo run test:int",
     "test:e2e": "turbo run test:e2e",
+    "verify": "tools/verify.sh",
     "db:bootstrap": "pnpm --filter @thelamp/api db:bootstrap",
     "db:migrate": "pnpm --filter @thelamp/api db:migrate",
     "db:seed": "pnpm --filter @thelamp/api db:seed",
