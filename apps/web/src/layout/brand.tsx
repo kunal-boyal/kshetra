@@ -1,4 +1,4 @@
-import markUrl from '@kshetra/design-tokens/assets/Logos/kshetra-mark-small.svg?url';
+import markUrl from '@kshetra/design-tokens/assets/Logos/mark-small.svg?url';
 
 /** The product's working name until decision D1 settles it. */
 export const PRODUCT_NAME = import.meta.env.VITE_PRODUCT_NAME ?? 'Kshetra';

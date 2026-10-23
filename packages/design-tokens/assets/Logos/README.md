@@ -1,12 +1,12 @@
 # Logos
 
-Three files carry the Kshetra mark: a Jamun square holding three geofence rings and a pin in `accent-subtle`, the same motif as the cover. None of them has a wordmark.
+Three files carry the product mark: a Jamun square holding three geofence rings and a pin in `accent-subtle`, the same motif as the cover. None of them has a wordmark.
 
 | File | What it is | Use it for |
 |---|---|---|
-| `kshetra-mark.webp` | the master: a 1500 px square raster with no transparency | 96 px and larger: the app icon, splash screen, sign-in screen, store listings and the vendor console |
-| `kshetra-mark-small.svg` | the same mark on a 48-unit grid, with rings at 6% of the width and a larger pin | under 96 px: the favicon, app bar and web navigation |
-| `kshetra-notification-glyph.svg` | single ink: the rings and pin in white (#ffffff) on transparent, 24-unit grid inside a 20-unit live area | Android's persistent tracking notification (spec M5) and any other single-ink use |
+| `mark.webp` | the master: a 1500 px square raster with no transparency | 96 px and larger: the app icon, splash screen, sign-in screen, store listings and the vendor console |
+| `mark-small.svg` | the same mark on a 48-unit grid, with rings at 6% of the width and a larger pin | under 96 px: the favicon, app bar and web navigation |
+| `notification-glyph.svg` | single ink: the rings and pin in white (#ffffff) on transparent, 24-unit grid inside a 20-unit live area | Android's persistent tracking notification (spec M5) and any other single-ink use |
 
 The master's purple encodes as #562d7d, a hair off the `accent` default (#5b2b82). The two SVGs use the exact token values, #5b2b82 and #f3edf8.
 

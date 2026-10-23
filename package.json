@@ -1,7 +1,7 @@
 {
   "name": "kshetra",
   "private": true,
-  "description": "Multi-tenant field-force SaaS. Specification: docs/Kshetra.md",
+  "description": "Multi-tenant field-force SaaS. Specification: docs/spec.md",
   "type": "module",
   "packageManager": "pnpm@12.9.1",
   "engines": {
@@ -21,6 +21,7 @@
     "provision": "pnpm --filter @kshetra/api provision",
     "openapi": "pnpm --filter @kshetra/api openapi",
     "tokens": "pnpm --filter @kshetra/tokens-tool build",
+    "rename": "node tools/rename/src/cli.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

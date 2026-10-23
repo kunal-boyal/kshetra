@@ -199,9 +199,9 @@ Motion says what just happened and where things went. Feedback is quick, arrival
 | Flags | `triangle-alert` (advisory), `shield-alert` (integrity), `clock-alert` (clock skew) |
 
 - **Empty states** carry a 72 px icon chip, a sentence and at most one action. No emoji anywhere in the product UI, and no illustrations: icons, colour and shape carry the friendliness.
-- **Logo:** the Kshetra mark, a Jamun square holding three geofence rings and a pin.
-  - At 96 px and larger, use `assets/Logos/kshetra-mark.webp`. Below that, use `kshetra-mark-small.svg`.
-  - Android's tracking notification uses the white `kshetra-notification-glyph.svg`.
+- **Logo:** the product mark, a Jamun square holding three geofence rings and a pin.
+  - At 96 px and larger, use `assets/Logos/mark.webp`. Below that, use `mark-small.svg`.
+  - Android's tracking notification uses the white `notification-glyph.svg`.
   - The mark is always Jamun whatever the tenant's accent, and never sits on an `accent` fill.
   - The tenant's logo replaces it in the app bar and on PDFs.
   - The Logos group's notes hold the full rules.

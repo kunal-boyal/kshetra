@@ -99,9 +99,9 @@ function access(route: RegisteredRoute) {
   };
 }
 
-/** "Kshetra API", from the product slug (spec 0). */
-export function apiTitle(slug = 'kshetra'): string {
-  return `${slug.charAt(0).toUpperCase()}${slug.slice(1)} API`;
+/** "Kshetra API", from the product's display name (decision D1). */
+export function apiTitle(name = 'Kshetra'): string {
+  return `${name} API`;
 }
 
 /** The document for these routes, with paths and components in a stable order. */

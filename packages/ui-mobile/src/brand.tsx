@@ -1,7 +1,7 @@
 import Svg, { Circle, G, Rect } from 'react-native-svg';
 
 /**
- * The small Kshetra mark, drawn from `packages/design-tokens/assets/Logos/kshetra-mark-small.svg`
+ * The small product mark, drawn from `packages/design-tokens/assets/Logos/mark-small.svg`
  * (a test keeps the two the same). Always Jamun, whatever the tenant's accent, and for sizes under
  * 96 px; larger uses take the master raster (assets/Logos/README.md).
  */
