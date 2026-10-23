@@ -1,6 +1,12 @@
-import { CatalogueUnitView, CoreConfigBundle, MEASURE_TYPES } from '@thelamp/shared';
+import {
+  CatalogueUnitView,
+  CoreConfigBundle,
+  MEASURE_TYPES,
+  PRICE_ROUNDINGS,
+} from '@thelamp/shared';
 import { z } from 'zod';
 import { AccountTypeView } from './account-types';
+import { CustomField } from './fields';
 import { FormView } from './form';
 
 /**
@@ -12,10 +18,15 @@ export const ConfigBundle = CoreConfigBundle.extend({
   accountTypes: z.array(AccountTypeView),
   /** The forms in use that the caller may fill, at their current versions (spec 5.6). */
   forms: z.array(FormView),
-  /** The catalogue's units and measure types, which name items' quantities (spec 5.11). */
+  /**
+   * The catalogue's units and measure types, which name items' quantities, its item fields, and
+   * how prices round (spec 5.11, BR-10, decision D77).
+   */
   catalogue: z.object({
     units: z.array(CatalogueUnitView),
     measureTypes: z.array(z.enum(MEASURE_TYPES)),
+    itemFields: z.array(CustomField).default([]),
+    rounding: z.enum(PRICE_ROUNDINGS).default('per_unit_first'),
   }),
 });
 

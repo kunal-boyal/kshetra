@@ -22,6 +22,9 @@ import { PersonPerformancePage } from './performance/person-page';
 import { TeamPerformancePage } from './performance/team-page';
 import { TargetsPage } from './targets/targets-page';
 import { CataloguePage } from './catalogue/catalogue-page';
+import { ItemEditorPage } from './catalogue/item-editor-page';
+import { PriceListPage } from './catalogue/price-list-page';
+import { PriceListsPage } from './catalogue/price-lists-page';
 import { EditFormPage, NewFormPage } from './forms/form-builder-page';
 import { FormsPage } from './forms/forms-page';
 import { ImportPage } from './imports/import-page';
@@ -305,6 +308,37 @@ const catalogue = createRoute({
   path: '/catalogue',
   component: CataloguePage,
 });
+const newItem = createRoute({
+  getParentRoute: () => settings,
+  path: '/catalogue/items/new',
+  component: () => <ItemEditorPage />,
+});
+const editItem = createRoute({
+  getParentRoute: () => settings,
+  path: '/catalogue/items/$itemId',
+  component: function EditItemRoute() {
+    const { itemId } = editItem.useParams();
+    return <ItemEditorPage key={itemId} itemId={itemId} />;
+  },
+});
+const priceLists = createRoute({
+  getParentRoute: () => settings,
+  path: '/price-lists',
+  component: PriceListsPage,
+});
+const newPriceList = createRoute({
+  getParentRoute: () => settings,
+  path: '/price-lists/new',
+  component: () => <PriceListPage />,
+});
+const priceList = createRoute({
+  getParentRoute: () => settings,
+  path: '/price-lists/$priceListId',
+  component: function PriceListRoute() {
+    const { priceListId } = priceList.useParams();
+    return <PriceListPage key={priceListId} priceListId={priceListId} />;
+  },
+});
 const accountTypes = createRoute({
   getParentRoute: () => settings,
   path: '/account-types',
@@ -395,6 +429,11 @@ const tree = root.addChildren([
       newForm,
       editForm,
       catalogue,
+      newItem,
+      editItem,
+      priceLists,
+      newPriceList,
+      priceList,
       accountTypes,
       newAccountType,
       editAccountType,

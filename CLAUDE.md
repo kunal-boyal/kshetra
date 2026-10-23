@@ -240,6 +240,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Step schemas (`Approver`, `WorkflowStep`) are the form engine's, in `@thelamp/forms`; templates re-export them. The web edits chains at Settings → Approval chains with the form builder's `ConditionEditor`.
 - The inbox (decision D76): `GET /v1/approvals/inbox` (with `counts` by type), `/mine` and `POST /v1/approvals/decisions` for bulk approval. A type opts into bulk with `bulk: true` on its registration; each item runs in `Database.savepoint()`, so one refusal leaves the rest approved. The web inbox is `apps/web/src/approvals/` (chains drawn with `ApprovalSteps`); on the phone managers decide in the Team tab and `/approvals/<id>` (`src/approvals.ts`), online, one at a time.
 
+## Catalogue and prices (decision D77)
+
+- Pricing is pure functions in `packages/shared/src/pricing.ts`: `priceLine()` (BR-10 to BR-12, by the catalogue's `rounding`), `orderTotals()` and `orderSizeIssue()` (BR-13), `quoteDifferences()` (BR-14), `expectedPriceIssue()` (BR-17), and `applicableLists()` with `priceFor()` for which list prices an item at an account. Amounts are decimal strings; compute with these functions or `scaled()` and `unscaled()`, never `Number`.
+- Items and price lists live in `apps/api/src/modules/catalogue`: `ItemsService` (`PUT /v1/items/{id}`, and `product()` for products and categories by name) and `PriceListsService` (lists, entries at the list's version, `forAccount()` for what an account pays). Every change audits and calls `CatalogueService.touch()`. A removed price keeps its row with `removed_at`.
+- The web edits items at Settings → Catalogue and lists at Settings → Price lists (`apps/web/src/catalogue/`).
+
 ## Tenant administration (decision D64)
 
 - Settings are `TenantSettings`; the apps read them from the bundle through `BundleSettings`, which drops settings they don't know and fills missing ones with defaults, so settings may only ever be added. The display name is the directory's (`TenantDirectory.rename()`), the logo a `logo` media file behind `/v1/organisation/logo`.

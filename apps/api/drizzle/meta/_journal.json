@@ -267,6 +267,20 @@
       "when": 1792782734512,
       "tag": "0037_approval_chains_from_held",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792787498918,
+      "tag": "0038_price_lists",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792787502866,
+      "tag": "0039_price_list_row_versions",
+      "breakpoints": true
     }
   ]
 }

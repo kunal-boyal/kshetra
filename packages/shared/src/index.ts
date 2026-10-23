@@ -286,7 +286,57 @@ export {
 } from './schemas/media';
 export { MEASURE_TYPES, packMeasure, packMeasureIssue, percentFromCell } from './catalogue';
 export type { MeasureType } from './catalogue';
-export { CatalogueResult, CatalogueUnitView, ItemResult } from './schemas/catalogue';
+export {
+  applicableLists,
+  baseUnits,
+  EXPECTED_PRICE_TOLERANCE,
+  expectedPriceIssue,
+  finalRate,
+  measureOf,
+  netRate,
+  ORDER_MAX_LINES,
+  ORDER_MAX_TOTAL,
+  orderSizeIssue,
+  orderTotals,
+  PRICE_LIST_SCOPES,
+  PRICE_ROUNDINGS,
+  priceFor,
+  priceLine,
+  quoteDifferences,
+  scaled,
+  unscaled,
+} from './pricing';
+export type {
+  LineInput,
+  OrderTotals,
+  PricedAccount,
+  PricedLine,
+  PriceEntry,
+  PriceListRef,
+  PriceListScope,
+  PriceRounding,
+} from './pricing';
+export {
+  AccountPricesQuery,
+  AccountPricesResult,
+  CatalogueResult,
+  CatalogueUnitView,
+  ItemBody,
+  ItemParams,
+  ItemResult,
+  MeasureAmount,
+  Percent,
+  PriceListBody,
+  PriceListEntry,
+  PriceListItemsBody,
+  PriceListItemsQuery,
+  PriceListItemsResult,
+  PriceListListResult,
+  PriceListParams,
+  PriceListResult,
+  PriceListScope as PriceListScopeSchema,
+  UnitFactor,
+} from './schemas/catalogue';
 export {
   CLOCK_SKEW_LIMIT_S,
   clockSkewed,

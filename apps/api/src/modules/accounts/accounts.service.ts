@@ -987,6 +987,16 @@ export class AccountsService {
     });
   }
 
+  /** Which of `ids` are the tenant's accounts, whoever sees them. */
+  async existing(tx: TenantTx, tenantId: string, ids: readonly string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    const rows = await tx
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, [...ids])));
+    return new Set(rows.map((row) => row.id));
+  }
+
   async codeTaken(tx: TenantTx, tenantId: string, code: string): Promise<boolean> {
     const [row] = await tx
       .select({ id: accounts.id })
