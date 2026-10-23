@@ -19,7 +19,7 @@ Settings changed in Terraform reach the services at the next deploy: after `terr
 
 ## Setting up an environment
 
-This needs the AWS account, a domain for the API, the web portal and media, an approved MSG91 account with DLT templates, and Amazon SES out of its sandbox. None of it is done until those exist.
+This needs the AWS accounts, opened as [AWS accounts](aws-accounts.md) sets out, a domain for the API, the web portal and media, an approved MSG91 account with DLT templates, and Amazon SES out of its sandbox. None of it is done until those exist.
 
 ### 1. Terraform state and the first apply
 
