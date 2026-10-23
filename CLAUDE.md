@@ -297,6 +297,7 @@ Migrations are append-only and backward compatible. They follow expand and contr
 
 ## Design system
 
+- The look is **Field** (decision D72): Forest accent and harvest gold (`brand-forest`, `brand-gold`, `on-brand` are the product's own, never a tenant's), Mukta for Latin and Devanagari, sturdy corners (buttons `radius-md`), and the pin-and-flame mark. The portal's shell uses `ks-rail`, `ks-appbar` and `ks-auth` from `bundle.css`.
 - `packages/design-tokens` holds the design system. `tokens.json` is the source of truth, and `tokens.css` and `tokens.ts` are generated from it. The package also holds the brand book (`README.md`), the component guides, the reference `bundle.css` and the logos.
 - UI code takes colours, spacing, radii, type and motion from the tokens, never hex values or hand-picked timings. Motion honours reduced motion (`prefers-reduced-motion`, and `data-motion` on the root).
 - The same system is published as a claude.ai Design System artifact: https://claude.ai/artifact/REeP6ZXP72DN9kfhVHbPT3. Make every design-system change in both places in the same piece of work.

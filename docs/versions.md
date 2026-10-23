@@ -70,8 +70,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | @tanstack/react-query | 5.104.1 | Server state, such as the config bundle with its ETag |
 | tailwindcss, @tailwindcss/vite | 4.3.3 | Layout utilities, with the tokens mapped into the theme |
 | lucide-react | 1.52.0 | Icons (decision D18) |
-| @fontsource-variable/noto-sans | 5.3.0 | Self-hosted Noto Sans |
-| @fontsource/noto-sans-devanagari | 5.3.0 | Self-hosted Noto Sans Devanagari, weights 400 and 600 |
+| @fontsource/mukta | 5.3.0 | Added 2026-10-23: the web's face, Mukta, in 400, 500, 600 and 700 for Latin and Devanagari (decision D72); replaces Noto Sans and Noto Sans Devanagari |
 | @playwright/test | 1.63.0 | End-to-end tests, in Chromium |
 | @axe-core/playwright | 4.13.0 | Accessibility checks in the end-to-end tests |
 | jsdom | 30.1.2 | The DOM for component tests |
@@ -104,7 +103,7 @@ Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes mo
 | react-native-svg | 15.15.4 | Icons and the mark |
 | react-native-web | 0.21.3 | The development-only web target |
 | lucide-react-native | 1.52.0 | Icons, the same release as `lucide-react` |
-| @expo-google-fonts/noto-sans, @expo-google-fonts/noto-sans-devanagari | 0.4.2, 0.4.1 | Loaded on iOS and the web target only (D36) |
+| @expo-google-fonts/mukta | 0.4.1 | Added 2026-10-23: the phone's face, bundled on every platform (decision D72); replaces Noto Sans |
 | @tanstack/react-query | 5.104.1 | As on the web |
 | jest, @jest/globals | 29.7.0 | Held back from Jest 30.5, because jest-expo 57 runs on Jest 29. Move with jest-expo. |
 | jest-expo | 57.0.6 | The SDK's Jest preset |

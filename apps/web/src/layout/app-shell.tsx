@@ -51,6 +51,21 @@ function NotificationsLink() {
   );
 }
 
+/** One entry of the navigation rail; the current page is marked for the eye and for readers. */
+function RailLink({ link }: { link: { to: string; icon: typeof House; label: string } }) {
+  return (
+    <Link
+      to={link.to}
+      className="ks-rail-link"
+      activeOptions={{ exact: link.to === '/' }}
+      activeProps={{ 'aria-current': 'page' }}
+    >
+      <Icon icon={link.icon} />
+      {link.label}
+    </Link>
+  );
+}
+
 export function AppShell() {
   const { client, queryClient } = useApp();
   const navigate = useNavigate();
@@ -61,57 +76,103 @@ export function AppShell() {
   const tenant = client.session?.tenant;
   const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
   const access = useAccess();
-  // Only what the person may use (spec 8.2); each module adds its entry when it arrives.
-  const links = [
-    { to: '/', icon: House, label: t('shell.home') },
-    ...(access.can('user.view')
-      ? [
-          { to: '/people', icon: Users, label: t('nav.people') },
-          { to: '/org-chart', icon: Network, label: t('nav.org_chart') },
-        ]
-      : []),
-    ...(access.can('account.view')
-      ? [{ to: '/accounts', icon: Store, label: t('nav.accounts') }]
-      : []),
-    ...(access.can('approval.act') || access.can('account.approve')
-      ? [{ to: '/approvals', icon: Inbox, label: t('nav.approvals') }]
-      : []),
-    ...(access.can('submission.review')
-      ? [{ to: '/review', icon: ClipboardCheck, label: t('nav.review') }]
-      : []),
-    ...(access.can('live_map.view')
-      ? [{ to: '/live-map', icon: MapIcon, label: t('nav.live_map') }]
-      : []),
-    ...(access.can('target.view')
-      ? [{ to: '/targets', icon: Target, label: t('nav.targets') }]
-      : []),
-    access.can('performance.view_team')
-      ? { to: '/performance', icon: ChartNoAxesColumn, label: t('nav.performance') }
-      : { to: '/performance/me', icon: ChartNoAxesColumn, label: t('nav.my_performance') },
-    ...(access.can('leaderboard.view')
-      ? [{ to: '/leaderboard', icon: Trophy, label: t('nav.leaderboard') }]
-      : []),
-    ...(access.can('report.view')
-      ? [{ to: '/reports', icon: Sheet, label: t('nav.reports') }]
-      : []),
-    ...(access.can('territory.manage')
-      ? [{ to: '/territories', icon: MapPinned, label: t('nav.territories') }]
-      : []),
-    ...(access.can('import.run')
-      ? [{ to: '/imports', icon: FileSpreadsheet, label: t('nav.imports') }]
-      : []),
-    ...(access.can('role.manage') ||
-    access.can('designation.manage') ||
-    access.can('settings.manage') ||
-    access.can('terminology.manage') ||
-    access.can('module.manage') ||
-    access.can('form.manage') ||
-    access.can('catalogue.manage') ||
-    access.can('territory.manage') ||
-    access.can('metric.manage')
-      ? [{ to: '/settings', icon: Settings, label: t('nav.settings') }]
-      : []),
-  ];
+  // Only what the person may use (spec 8.2), in sections; each module adds its entry when it
+  // arrives, and a section with nothing in it isn't shown.
+  type NavLink = { to: string; icon: typeof House; label: string };
+  const only = (allowed: boolean, link: NavLink): NavLink[] => (allowed ? [link] : []);
+  const sections: { key: string; label: string; links: NavLink[] }[] = [
+    {
+      key: 'work',
+      label: t('nav.section_work'),
+      links: [
+        { to: '/', icon: House, label: t('shell.home') },
+        ...only(access.can('submission.review'), {
+          to: '/review',
+          icon: ClipboardCheck,
+          label: t('nav.review'),
+        }),
+        ...only(access.can('approval.act') || access.can('account.approve'), {
+          to: '/approvals',
+          icon: Inbox,
+          label: t('nav.approvals'),
+        }),
+        ...only(access.can('live_map.view'), {
+          to: '/live-map',
+          icon: MapIcon,
+          label: t('nav.live_map'),
+        }),
+      ],
+    },
+    {
+      key: 'team',
+      label: t('nav.section_team'),
+      links: [
+        ...only(access.can('user.view'), { to: '/people', icon: Users, label: t('nav.people') }),
+        ...only(access.can('user.view'), {
+          to: '/org-chart',
+          icon: Network,
+          label: t('nav.org_chart'),
+        }),
+        ...only(access.can('target.view'), {
+          to: '/targets',
+          icon: Target,
+          label: t('nav.targets'),
+        }),
+        access.can('performance.view_team')
+          ? { to: '/performance', icon: ChartNoAxesColumn, label: t('nav.performance') }
+          : { to: '/performance/me', icon: ChartNoAxesColumn, label: t('nav.my_performance') },
+        ...only(access.can('leaderboard.view'), {
+          to: '/leaderboard',
+          icon: Trophy,
+          label: t('nav.leaderboard'),
+        }),
+      ],
+    },
+    {
+      key: 'places',
+      label: t('nav.section_places'),
+      links: [
+        ...only(access.can('account.view'), {
+          to: '/accounts',
+          icon: Store,
+          label: t('nav.accounts'),
+        }),
+        ...only(access.can('territory.manage'), {
+          to: '/territories',
+          icon: MapPinned,
+          label: t('nav.territories'),
+        }),
+      ],
+    },
+    {
+      key: 'data',
+      label: t('nav.section_data'),
+      links: [
+        ...only(access.can('report.view'), {
+          to: '/reports',
+          icon: Sheet,
+          label: t('nav.reports'),
+        }),
+        ...only(access.can('import.run'), {
+          to: '/imports',
+          icon: FileSpreadsheet,
+          label: t('nav.imports'),
+        }),
+      ],
+    },
+  ].filter((section) => section.links.length > 0);
+  const settings = only(
+    access.can('role.manage') ||
+      access.can('designation.manage') ||
+      access.can('settings.manage') ||
+      access.can('terminology.manage') ||
+      access.can('module.manage') ||
+      access.can('form.manage') ||
+      access.can('catalogue.manage') ||
+      access.can('territory.manage') ||
+      access.can('metric.manage'),
+    { to: '/settings', icon: Settings, label: t('nav.settings') },
+  );
 
   useEffect(() => {
     setTerms(config.data?.bundle.terminology);
@@ -142,40 +203,40 @@ export function AppShell() {
       </a>
       <nav
         aria-label={t('shell.navigation')}
-        className="flex flex-col gap-6 border-[var(--border)] bg-[var(--surface)] p-4 md:min-h-screen md:border-r"
+        className="ks-rail md:sticky md:top-0 md:h-screen md:overflow-y-auto"
       >
         <Brand />
-        <ul className="flex flex-col gap-1">
-          {links.map((link) => (
-            <li key={link.to}>
-              <Link
-                to={link.to}
-                className="ks-btn ghost block"
-                // The button style centres its content; a menu reads from the start.
-                style={{ justifyContent: 'flex-start' }}
-                activeOptions={{ exact: link.to === '/' }}
-                activeProps={{ 'aria-current': 'page', className: 'tonal' }}
-              >
-                <Icon icon={link.icon} />
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {sections.map((section) => (
+          <div key={section.key} className="ks-rail-section">
+            <p className="ks-rail-label" id={`nav-${section.key}`}>
+              {section.label}
+            </p>
+            <ul className="flex flex-col gap-0.5" aria-labelledby={`nav-${section.key}`}>
+              {section.links.map((link) => (
+                <li key={link.to}>
+                  <RailLink link={link} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        {settings.length > 0 ? (
+          <ul className="ks-rail-section ks-rail-foot">
+            {settings.map((link) => (
+              <li key={link.to}>
+                <RailLink link={link} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </nav>
       <div className="flex min-w-0 flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-3">
-          <p className="heading-md flex items-center gap-3">
-            {organisation.data?.logo ? (
-              <img
-                src={organisation.data.logo.url}
-                alt=""
-                className="h-8 w-auto max-w-[8rem] object-contain"
-              />
-            ) : null}
-            {organisation.data?.name || tenant?.name}
+        <header className="ks-appbar">
+          <p className="ks-appbar-org">
+            {organisation.data?.logo ? <img src={organisation.data.logo.url} alt="" /> : null}
+            <span className="truncate">{organisation.data?.name || tenant?.name}</span>
           </p>
-          <div className="flex flex-wrap items-center gap-2" aria-label={t('shell.account_menu')}>
+          <div className="ks-appbar-tools" aria-label={t('shell.account_menu')}>
             <NotificationsLink />
             <LanguagePicker />
             <ThemePicker />

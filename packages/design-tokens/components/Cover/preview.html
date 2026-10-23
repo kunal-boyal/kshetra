@@ -5,29 +5,29 @@
 <meta charset="utf-8">
 <title>The Lamp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;700&display=swap" rel="stylesheet">
 <style>
   html, body { margin:0; height:100%; }
   body { background:var(--bg); color:var(--text); font-family:var(--font-sans); overflow:hidden; }
   .cover { position:relative; height:288px; overflow:hidden; }
   .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
   .art svg { display:block; width:480px; height:288px; }
-  .jamun { fill:var(--accent); }
-  .mint { fill:var(--pastel-mint-fill); }
-  .lilac { fill:var(--pastel-lilac-fill); }
-  .peach { fill:var(--pastel-peach-fill); }
+  .forest { fill:var(--brand-forest); }
+  .pin { fill:var(--bg); }
+  .flame { fill:var(--brand-gold); }
+  .sage { fill:var(--pastel-sage-fill); }
+  .rows { stroke:var(--pastel-sage-fg); stroke-width:4; stroke-linecap:round; opacity:.55; }
+  .sun { fill:var(--pastel-butter-fill); }
+  .road { fill:var(--pastel-sand-fill); }
   .ink { fill:var(--text); }
-  .slab { rx:var(--radius-xl); }
-  .ring { fill:none; stroke:var(--accent-subtle); stroke-width:2; }
-  .ring.inner { stroke-width:3; }
-  .pin { fill:var(--accent-subtle); }
   /* Outdoor: pastel fills wash out in glare, so the blocks take their inks. */
-  [data-theme="outdoor"] .mint { fill:var(--pastel-mint-fg); }
-  [data-theme="outdoor"] .lilac { fill:var(--pastel-lilac-fg); }
-  [data-theme="outdoor"] .peach { fill:var(--pastel-peach-fg); }
+  [data-theme="outdoor"] .sage { fill:var(--pastel-sage-fg); }
+  [data-theme="outdoor"] .sun { fill:var(--pastel-butter-fg); }
+  [data-theme="outdoor"] .road { fill:var(--pastel-sand-fg); }
+  [data-theme="outdoor"] .rows { stroke:var(--surface); }
   .words { position:absolute; left:var(--space-6); bottom:var(--space-6); max-width:440px; }
   .name { margin:0; font-size:104px; line-height:.92; font-weight:700; letter-spacing:-.02em; color:var(--text); }
-  .tag { margin:var(--space-2) 0 0 4px; font-size:14px; line-height:20px; color:var(--text-muted); }
+  .tag { margin:var(--space-2) 0 0 4px; font-size:16px; line-height:22px; color:var(--text-muted); }
 </style>
 </head>
 <body>
@@ -35,25 +35,26 @@
 <div class="art" aria-hidden="true">
 <svg viewBox="0 0 480 288" width="480" height="288">
 <!--
-  blocks      accent (Jamun, the tenant slot) 192×260 slab bled off the top, the largest · pastel-mint-fill 112×112 tile · pastel-lilac-fill disc, r 56 · pastel-peach-fill 272×64 pill bleeding off the right · text ink 96×8 pill, kept small — ≈46% of 480×288
-  arrangement one tall accent slab with pastel satellites in two rows and an ink cap, bottoms aligned at y 232 (space-6 + space-8 above the edge), space-4 gutters
-  pattern     literal motif: the geofence (spec M6/M7: "inside the fence" is the product's core judgement) — three concentric rings in accent-subtle at a space-8 pitch around a pin, cut into the slab; the satellites are the system's soft shapes, a rounded tile, a disc and a pill, because every control is now a pill and every surface rounds
-  scales      sides in space-2 multiples; gutters space-4; ring pitch space-8 (32); slab and tile corners radius-xl (28); pills and the disc at half their short side
+  blocks      brand-forest 192×260 slab bled off the top, the largest, holding the mark's pin and flame · pastel-sage-fill 112×112 tile ploughed with four crop rows · pastel-butter-fill sun, r 56 · pastel-sand-fill 272×64 road bleeding off the right · text ink 96×8 bar, kept small — ≈46% of 480×288
+  arrangement one tall Forest slab with field satellites in two rows and an ink cap, bottoms aligned at y 232 (space-6 + space-8 above the edge), space-4 gutters
+  pattern     literal motif: the mark (Field, decision D72): a map pin holding a flame, light where the team is, at five times the small mark's scale; the satellites are the field it lights: crop rows, the sun, the road to the next market
+  scales      sides in space-2 multiples; gutters space-4; slab and tile corners radius-xl (16); the road at half its short side
 -->
-<rect class="jamun slab" x="16" y="-28" width="192" height="260" rx="28"/>
-<circle class="ring" cx="112" cy="112" r="96"/>
-<circle class="ring" cx="112" cy="112" r="64"/>
-<circle class="ring inner" cx="112" cy="112" r="32"/>
-<circle class="pin" cx="112" cy="112" r="6"/>
-<rect class="mint slab" x="224" y="16" width="112" height="112" rx="28"/>
-<circle class="lilac" cx="408" cy="72" r="56"/>
-<rect class="peach" x="224" y="144" width="272" height="64" rx="32"/>
+<rect class="forest" x="16" y="-28" width="192" height="260" rx="16"/>
+<g transform="translate(112 112) scale(4.4) translate(-24 -23.5)">
+<path class="pin" d="M24 7a12.5 12.5 0 0 1 12.5 12.5c0 9.4-12.5 21.5-12.5 21.5S11.5 28.9 11.5 19.5A12.5 12.5 0 0 1 24 7z"/>
+<path class="flame" d="M24.6 10.6C26.3 13.9 29.2 16.4 29.2 20.6A5.2 5.2 0 0 1 18.8 20.6C18.8 17.9 20.4 15.9 22.2 14.3C22 16 22.6 17.5 23.6 18.3C23.3 15.7 23.7 13 24.6 10.6Z"/>
+</g>
+<rect class="sage" x="224" y="16" width="112" height="112" rx="16"/>
+<path class="rows" d="M240 44h80M240 64h80M240 84h80M240 104h80"/>
+<circle class="sun" cx="408" cy="72" r="56"/>
+<rect class="road" x="224" y="144" width="272" height="64" rx="32"/>
 <rect class="ink" x="224" y="224" width="96" height="8" rx="4"/>
 </svg>
 </div>
 <div class="words">
 <h1 class="name">The Lamp</h1>
-<p class="tag">Field work, recorded where it happens and counted once it is approved.</p>
+<p class="tag">Field work, seen clearly: recorded where it happens, counted once it is approved.</p>
 </div>
 </div>
 </body>

@@ -5,7 +5,8 @@ import { Building2, ChevronRight } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
-import { Brand } from '../layout/brand';
+import markUrl from '@thelamp/design-tokens/assets/Logos/mark-small.svg?url';
+import { PRODUCT_NAME } from '../layout/brand';
 import { LanguagePicker } from '../layout/preferences-menu';
 import { saveTenants } from '../preferences';
 
@@ -83,101 +84,121 @@ export function SignInPage() {
   }
 
   return (
-    <main className="ks mx-auto flex min-h-screen max-w-[440px] flex-col justify-center gap-6 px-4 py-10">
-      <div className="flex items-center justify-between">
-        <Brand />
-        <LanguagePicker />
-      </div>
-      <Card className="ks-enter">
-        {step.name === 'phone' ? (
-          <form className="flex flex-col gap-4" onSubmit={sendCode} noValidate>
-            <h1 className="heading-xl">{t('signin.title')}</h1>
-            <p className="ks-muted">{t('signin.intro')}</p>
-            <TextField
-              label={t('signin.phone_label')}
-              help={t('signin.phone_help')}
-              error={error}
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel-national"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              required
-              autoFocus
-            />
-            <Button type="submit" variant="primary" block busy={busy} disabled={!phone.trim()}>
-              {t('signin.send_code')}
-            </Button>
-          </form>
-        ) : null}
-
-        {step.name === 'code' ? (
-          <form className="flex flex-col gap-4" onSubmit={verify} noValidate>
-            <h1 className="heading-xl">{t('signin.title')}</h1>
-            <TextField
-              label={t('signin.code_label')}
-              help={t('signin.code_help', { phone: step.phone })}
-              error={error}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="\d{6}"
-              maxLength={6}
-              numeric
-              value={code}
-              onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
-              required
-              autoFocus
-            />
-            <Button type="submit" variant="primary" block busy={busy} disabled={code.length !== 6}>
-              {t('signin.verify')}
-            </Button>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setStep({ name: 'phone' })}>
-                {t('signin.other_number')}
-              </Button>
-              {wait > 0 ? (
-                <span className="ks-subtle caption" aria-live="polite">
-                  {t('signin.resend_in', { count: wait })}
-                </span>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={() => sendCode()} disabled={busy}>
-                  {t('signin.resend')}
+    <main className="ks ks-auth">
+      <aside className="ks-auth-brand" aria-label={PRODUCT_NAME}>
+        <span className="ks-auth-name">
+          <img src={markUrl} alt="" width={40} height={40} />
+          {PRODUCT_NAME}
+        </span>
+        <div className="flex flex-col gap-3">
+          <p className="ks-auth-tagline">{t('signin.tagline')}</p>
+          <p>{t('signin.tagline_body')}</p>
+        </div>
+        <img className="ks-auth-art" src={markUrl} alt="" aria-hidden="true" />
+      </aside>
+      <div className="ks-auth-form">
+        <div className="flex flex-col gap-6">
+          <div className="flex justify-end">
+            <LanguagePicker />
+          </div>
+          <Card className="ks-enter">
+            {step.name === 'phone' ? (
+              <form className="flex flex-col gap-4" onSubmit={sendCode} noValidate>
+                <h1 className="heading-xl">{t('signin.title')}</h1>
+                <p className="ks-muted">{t('signin.intro')}</p>
+                <TextField
+                  label={t('signin.phone_label')}
+                  help={t('signin.phone_help')}
+                  error={error}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  required
+                  autoFocus
+                />
+                <Button type="submit" variant="primary" block busy={busy} disabled={!phone.trim()}>
+                  {t('signin.send_code')}
                 </Button>
-              )}
-            </div>
-          </form>
-        ) : null}
-
-        {step.name === 'choose' ? (
-          <section className="flex flex-col gap-4" aria-labelledby="choose-title">
-            <h1 id="choose-title" className="heading-xl">
-              {t('signin.choose_title')}
-            </h1>
-            <p className="ks-muted">{t('signin.choose_intro')}</p>
-            {error ? (
-              <p className="ks-help error" role="alert">
-                {error}
-              </p>
+              </form>
             ) : null}
-            <ul className="flex flex-col gap-2">
-              {step.tenants.map((tenant) => (
-                <li key={tenant.id}>
-                  <Button
-                    variant="secondary"
-                    block
-                    disabled={busy}
-                    onClick={() => choose(step.ticket, tenant.id)}
-                    icon={<Icon icon={Building2} />}
-                  >
-                    <span className="flex-1 text-left">{tenant.name}</span>
-                    <Icon icon={ChevronRight} size="sm" />
+
+            {step.name === 'code' ? (
+              <form className="flex flex-col gap-4" onSubmit={verify} noValidate>
+                <h1 className="heading-xl">{t('signin.title')}</h1>
+                <TextField
+                  label={t('signin.code_label')}
+                  help={t('signin.code_help', { phone: step.phone })}
+                  error={error}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="\d{6}"
+                  maxLength={6}
+                  numeric
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+                  required
+                  autoFocus
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  block
+                  busy={busy}
+                  disabled={code.length !== 6}
+                >
+                  {t('signin.verify')}
+                </Button>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setStep({ name: 'phone' })}>
+                    {t('signin.other_number')}
                   </Button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-      </Card>
+                  {wait > 0 ? (
+                    <span className="ks-subtle caption" aria-live="polite">
+                      {t('signin.resend_in', { count: wait })}
+                    </span>
+                  ) : (
+                    <Button variant="ghost" size="sm" onClick={() => sendCode()} disabled={busy}>
+                      {t('signin.resend')}
+                    </Button>
+                  )}
+                </div>
+              </form>
+            ) : null}
+
+            {step.name === 'choose' ? (
+              <section className="flex flex-col gap-4" aria-labelledby="choose-title">
+                <h1 id="choose-title" className="heading-xl">
+                  {t('signin.choose_title')}
+                </h1>
+                <p className="ks-muted">{t('signin.choose_intro')}</p>
+                {error ? (
+                  <p className="ks-help error" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+                <ul className="flex flex-col gap-2">
+                  {step.tenants.map((tenant) => (
+                    <li key={tenant.id}>
+                      <Button
+                        variant="secondary"
+                        block
+                        disabled={busy}
+                        onClick={() => choose(step.ticket, tenant.id)}
+                        icon={<Icon icon={Building2} />}
+                      >
+                        <span className="flex-1 text-left">{tenant.name}</span>
+                        <Icon icon={ChevronRight} size="sm" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </Card>
+        </div>
+      </div>
     </main>
   );
 }

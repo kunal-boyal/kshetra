@@ -30,7 +30,7 @@ After derivation, verify the pairs in every theme:
 - `on-accent`/`accent`, `on-accent`/`accent-hover`, `accent-subtle-fg`/`accent-subtle` and `accent-subtle-fg`/`accent-soft`: ≥ 4.5:1 in Light and Dark, ≥ 7:1 in Outdoor.
 - `accent` on `surface`: ≥ 3:1.
 
-If a check fails, nudge L until it passes and log the adjustment in the audit entry for the branding change. The product default, Jamun (#5b2b82), already reaches 9.9:1 with white, so its Outdoor accent is unchanged.
+If a check fails, nudge L until it passes and log the adjustment in the audit entry for the branding change. The product default, Forest (#1e5a3a), reaches 8.1:1 with white; Outdoor takes it to #17472e for 7:1 with room to spare.
 
 **Pastels stay put.** The pastel palette is product-owned, like the status colours, and the brand colour never reaches it. A hue marks a kind of thing inside one tenant's configuration (its first account type is `sky`), so people moving between tenants go by names and icons, not hues.
 

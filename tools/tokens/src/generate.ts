@@ -213,7 +213,7 @@ export function contrast(a: string, b: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-const SURFACES = ['bg', 'surface', 'surface-sunken', 'surface-raised'];
+const SURFACES = ['bg', 'surface', 'surface-sunken', 'surface-raised', 'nav-bg'];
 const STATUSES = ['success', 'pending', 'waiting', 'info', 'danger', 'neutral'];
 const PASTELS = ['sky', 'peach', 'mint', 'lilac', 'butter', 'rose', 'sage', 'sand'];
 
@@ -240,6 +240,7 @@ export const CONTRAST_PAIRS: readonly Pair[] = [
   { fg: 'accent', bg: 'surface', floor: [3, 3] },
   { fg: 'focus-ring', bg: 'surface', floor: [3, 3] },
   { fg: 'on-danger', bg: 'danger-solid', floor: [4.5, 4.5] },
+  { fg: 'on-brand', bg: 'brand-forest', floor: [7, 7] },
   ...STATUSES.flatMap((status): Pair[] => [
     { fg: `${status}-fg`, bg: `${status}-bg`, floor: [4.5, 7] },
     { fg: `${status}-fg`, bg: 'surface', floor: [4.5, 7] },

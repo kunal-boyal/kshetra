@@ -1,6 +1,8 @@
-import '@fontsource-variable/noto-sans';
-import '@fontsource/noto-sans-devanagari/400.css';
-import '@fontsource/noto-sans-devanagari/600.css';
+// Mukta, the design system's face (decision D72), drawn for Latin and Devanagari alike.
+import '@fontsource/mukta/400.css';
+import '@fontsource/mukta/500.css';
+import '@fontsource/mukta/600.css';
+import '@fontsource/mukta/700.css';
 import './app.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';

@@ -78,6 +78,9 @@ export const en = {
 
   // Signing in (spec 8.1, module M1).
   'signin.title': 'Sign in',
+  'signin.tagline': 'Field work, seen clearly.',
+  'signin.tagline_body':
+    'Plans, visits, photos and figures from everyone in the field, in one place by evening.',
   'signin.intro': 'Use the mobile number your organisation has for you.',
   'signin.phone_label': 'Mobile number',
   'signin.phone_help': 'We will send a 6-digit code to this number.',
@@ -108,6 +111,10 @@ export const en = {
   'shell.theme_dark': 'Dark',
   'shell.theme_outdoor': 'High contrast',
   'shell.skip': 'Skip to content',
+  'nav.section_work': 'Daily work',
+  'nav.section_team': 'Team',
+  'nav.section_places': 'Places',
+  'nav.section_data': 'Data',
 
   // The mobile app's frame (spec 8.1).
   'app.home': 'Home',
