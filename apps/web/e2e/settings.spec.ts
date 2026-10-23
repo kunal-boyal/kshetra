@@ -14,7 +14,69 @@ const later = () => new Date(Date.now() + 15 * 60_000).toISOString();
 /** What the cell answers to a GET, by path. */
 const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
 const TYPE_ID = '01a10000-0000-7000-8000-000000000301';
+const ITEM_ID = '01a10000-0000-7000-8000-0000000000b0';
+const LIST_ID = '01a10000-0000-7000-8000-0000000000c0';
+const unitName = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
+const UNITS = [
+  { key: 'pack', name: unitName('Pack', 'Packs'), base: true },
+  { key: 'case', name: unitName('Case', 'Cases'), base: false },
+];
+const ITEM = {
+  id: ITEM_ID,
+  code: 'NEEM-500',
+  name: 'Neem Shield 500 ML',
+  product: { id: '01a10000-0000-7000-8000-0000000000b1', name: 'Neem Shield' },
+  category: null,
+  packLabel: '500 ML',
+  hsn: '3808',
+  taxRate: '18.0000',
+  mrp: '450.00',
+  baseUnit: 'pack',
+  units: [
+    { key: 'pack', factor: '1.000' },
+    { key: 'case', factor: '20.000' },
+  ],
+  measureType: 'L',
+  measurePerBaseUnit: '0.500000',
+  custom: {},
+  active: true,
+};
+const LIST = {
+  id: LIST_ID,
+  name: 'Standard',
+  scope: 'default',
+  targets: [],
+  priority: 0,
+  validFrom: '2026-04-01',
+  validTo: null,
+  active: true,
+  version: 2,
+  itemCount: 1,
+  updatedAt: '2026-10-20T05:00:00.000Z',
+};
+
 const ANSWERS: Record<string, unknown> = {
+  '/v1/catalogue': { version: 2, units: UNITS, measureTypes: ['kg', 'L'], items: [ITEM] },
+  '/v1/price-lists': { items: [LIST] },
+  [`/v1/price-lists/${LIST_ID}`]: LIST,
+  [`/v1/price-lists/${LIST_ID}/items`]: {
+    items: [
+      {
+        item: {
+          id: ITEM_ID,
+          code: 'NEEM-500',
+          name: 'Neem Shield 500 ML',
+          packLabel: '500 ML',
+          baseUnit: 'pack',
+          taxRate: '18.0000',
+        },
+        price: '400.00',
+        discount: '10.0000',
+        rate: '360.00',
+      },
+    ],
+    nextCursor: null,
+  },
   '/v1/organisation': { name: 'Sunrise Traders', logo: null },
   '/v1/workflows': {
     fallbackRole: 'manager',
@@ -187,7 +249,12 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
         designations: [],
         accountTypes: [],
         forms: [],
-        catalogue: { units: [], measureTypes: [] },
+        catalogue: {
+          units: UNITS,
+          measureTypes: ['kg', 'L'],
+          itemFields: [],
+          rounding: 'per_unit_first',
+        },
         access: {
           role: 'tenant_admin',
           scope: 'tenant',
@@ -201,6 +268,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'designation.manage',
             'form.manage',
             'catalogue.manage',
+            'price_list.manage',
             'workflow.manage',
           ],
         },
@@ -218,6 +286,8 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'metric-definitions',
     'workflows',
     'users',
+    'catalogue',
+    'price-lists',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -258,6 +328,12 @@ for (const path of [
   'metrics/new',
   'approvals',
   'configuration',
+  'catalogue',
+  'catalogue/items/new',
+  `catalogue/items/${ITEM_ID}`,
+  'price-lists',
+  'price-lists/new',
+  `price-lists/${LIST_ID}`,
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {

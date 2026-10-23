@@ -1,9 +1,10 @@
 import type { CustomField } from '@thelamp/forms';
-import { type CatalogueUnitView, MEASURE_TYPES } from '@thelamp/shared';
+import { type CatalogueUnitView, MEASURE_TYPES, PRICE_LIST_SCOPES } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  date,
   foreignKey,
   index,
   integer,
@@ -11,6 +12,7 @@ import {
   numeric,
   primaryKey,
   text,
+  timestamp,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -18,8 +20,8 @@ import { cell, changeColumns, isolation, rowVersionColumn } from './common';
 
 /**
  * The catalogue (spec 5.11, 10.3), owned by the catalogue module: the tenant's units and item
- * fields, categories, products, and the items sold with the units they come in. Prices and price
- * lists join in phase 2 (decision D38).
+ * fields, categories, products, the items sold with the units they come in, and the price lists
+ * that price them (decision D77).
  */
 
 export const measureType = cell.enum('measure_type', MEASURE_TYPES);
@@ -148,6 +150,88 @@ export const itemUnits = cell
         foreignColumns: [items.tenantId, items.id],
       }),
       check('item_units_factor_positive', sql`${table.factor} > 0`),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+export const priceListScope = cell.enum('price_list_scope', PRICE_LIST_SCOPES);
+
+/**
+ * A price list (spec 5.11): who it is for, its priority among lists as specific, and the dates it
+ * applies on, both included. `version` moves with every change to the list or its entries, for
+ * editing on the version the editor saw.
+ */
+export const priceLists = cell
+  .table(
+    'price_lists',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      name: text('name').notNull(),
+      scope: priceListScope('scope').notNull(),
+      /** Account type keys, segment keys, territory IDs or account IDs; empty for a default list. */
+      targets: text('targets')
+        .array()
+        .notNull()
+        .default(sql`'{}'::text[]`),
+      priority: integer('priority').notNull().default(0),
+      validFrom: date('valid_from').notNull(),
+      validTo: date('valid_to'),
+      active: boolean('active').notNull().default(true),
+      version: integer('version').notNull().default(1),
+      rowVersion: rowVersionColumn(),
+      ...changeColumns(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('price_lists_tenant_name').on(table.tenantId, sql`lower(${table.name})`),
+      check(
+        'price_lists_valid_dates',
+        sql`${table.validTo} is null or ${table.validTo} >= ${table.validFrom}`,
+      ),
+      check(
+        'price_lists_default_targets',
+        sql`(${table.scope} = 'default') = (cardinality(${table.targets}) = 0)`,
+      ),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * An item's price per base unit and discount on a list. A removed entry keeps its row with
+ * `removed_at` set, so phones learn of the removal and nothing is deleted.
+ */
+export const priceListItems = cell
+  .table(
+    'price_list_items',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      priceListId: uuid('price_list_id').notNull(),
+      itemId: uuid('item_id').notNull(),
+      price: numeric('price', { precision: 18, scale: 2 }).notNull(),
+      discount: numeric('discount', { precision: 7, scale: 4 }).notNull().default('0'),
+      removedAt: timestamp('removed_at', { withTimezone: true }),
+      rowVersion: rowVersionColumn(),
+      ...changeColumns(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.priceListId, table.itemId] }),
+      index('price_list_items_tenant_item').on(table.tenantId, table.itemId),
+      index('price_list_items_tenant_row_version').on(table.tenantId, table.rowVersion),
+      foreignKey({
+        name: 'price_list_items_list_fk',
+        columns: [table.tenantId, table.priceListId],
+        foreignColumns: [priceLists.tenantId, priceLists.id],
+      }),
+      foreignKey({
+        name: 'price_list_items_item_fk',
+        columns: [table.tenantId, table.itemId],
+        foreignColumns: [items.tenantId, items.id],
+      }),
+      check('price_list_items_price', sql`${table.price} >= 0`),
+      check('price_list_items_discount', sql`${table.discount} between 0 and 100`),
       isolation(),
     ],
   )

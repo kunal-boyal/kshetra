@@ -8,6 +8,7 @@ import {
   issueAt,
   type ItemResult,
   type MeasureType,
+  type PriceRounding,
 } from '@thelamp/shared';
 import type { Catalogue } from '@thelamp/templates';
 import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
@@ -26,6 +27,7 @@ export interface CatalogueSettings {
   units: CatalogueUnitView[];
   measureTypes: MeasureType[];
   itemFields: CustomField[];
+  rounding: PriceRounding;
   version: number;
 }
 
@@ -40,13 +42,14 @@ const DEFAULT_SETTINGS: CatalogueSettings = {
   ],
   measureTypes: [],
   itemFields: [],
+  rounding: 'per_unit_first',
   version: 0,
 };
 
 /**
  * The catalogue (spec 5.11): the tenant's units and item fields from its template, categories,
- * products and items. Phase 1 holds items without prices (decision D38). Its version moves with
- * every change, so apps holding it current pay one lookup.
+ * products and items; prices live in price lists (decision D77). Its version moves with every
+ * change to items or prices, so apps holding it current pay one lookup.
  */
 @Injectable()
 export class CatalogueService {
@@ -69,11 +72,18 @@ export class CatalogueService {
         units: catalogueSettings.units,
         measureTypes: catalogueSettings.measureTypes,
         itemFields: catalogueSettings.itemFields,
+        rounding: catalogueSettings.rounding,
         version: catalogueSettings.version,
       })
       .from(catalogueSettings)
       .where(eq(catalogueSettings.tenantId, tenantId));
-    return row ? { ...row, measureTypes: row.measureTypes as MeasureType[] } : DEFAULT_SETTINGS;
+    return row
+      ? {
+          ...row,
+          measureTypes: row.measureTypes as MeasureType[],
+          rounding: row.rounding as PriceRounding,
+        }
+      : DEFAULT_SETTINGS;
   }
 
   /** The settings as a template's `catalogue` holds them (M2, decision D66). */
@@ -194,8 +204,10 @@ export class CatalogueService {
     };
   }
 
-  async items(tx: TenantTx, tenantId: string): Promise<ItemResult[]> {
-    return (await this.itemRows(tx, tenantId)).map(({ row }) => row);
+  /** Every item, or only those with `ids`. */
+  async items(tx: TenantTx, tenantId: string, ids?: readonly string[]): Promise<ItemResult[]> {
+    if (ids && ids.length === 0) return [];
+    return (await this.itemRows(tx, tenantId, undefined, ids)).map(({ row }) => row);
   }
 
   /**
@@ -206,6 +218,7 @@ export class CatalogueService {
     tx: TenantTx,
     tenantId: string,
     page?: SyncRowsPage,
+    ids?: readonly string[],
   ): Promise<{ version: number; id: string; row: ItemResult }[]> {
     const query = tx
       .select({
@@ -242,6 +255,7 @@ export class CatalogueService {
       .where(
         and(
           eq(items.tenantId, tenantId),
+          ids ? inArray(items.id, [...ids]) : undefined,
           page ? gte(items.rowVersion, page.since) : undefined,
           page?.after
             ? sql`(${items.rowVersion}, ${items.id}) > (${page.after[0]}::bigint, ${page.after[1]}::uuid)`
@@ -251,14 +265,14 @@ export class CatalogueService {
     const rows = page
       ? await query.orderBy(asc(items.rowVersion), asc(items.id)).limit(page.limit)
       : await query.orderBy(asc(products.name), asc(items.name));
-    const ids = rows.map((row) => row.id);
+    const found = rows.map((row) => row.id);
     const units =
-      ids.length === 0
+      found.length === 0
         ? []
         : await tx
             .select({ itemId: itemUnits.itemId, key: itemUnits.unitKey, factor: itemUnits.factor })
             .from(itemUnits)
-            .where(and(eq(itemUnits.tenantId, tenantId), inArray(itemUnits.itemId, ids)))
+            .where(and(eq(itemUnits.tenantId, tenantId), inArray(itemUnits.itemId, found)))
             .orderBy(asc(itemUnits.factor));
     return rows.map(({ version, productId, productName, categoryId, categoryName, ...row }) => ({
       version,

@@ -92,6 +92,16 @@ export class TerritoriesService {
     return new Map(rows.map((row) => [row.id, row]));
   }
 
+  /** A territory's ID and every one above it, nearest first. */
+  async ancestors(tx: TenantTx, tenantId: string, id: string): Promise<string[]> {
+    const rows = await tx
+      .select({ id: territoryClosure.ancestorId })
+      .from(territoryClosure)
+      .where(and(eq(territoryClosure.tenantId, tenantId), eq(territoryClosure.descendantId, id)))
+      .orderBy(asc(territoryClosure.depth));
+    return rows.map((row) => row.id);
+  }
+
   async get(tx: TenantTx, tenantId: string, id: string): Promise<TerritoryResult> {
     const [row] = await tx
       .select(RESULT)

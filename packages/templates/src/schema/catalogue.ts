@@ -5,6 +5,7 @@ import {
   Key,
   LocalizedNoun,
   LocalizedText,
+  PRICE_ROUNDINGS,
   repeats,
 } from '@thelamp/shared';
 import { z } from 'zod';
@@ -34,7 +35,7 @@ export const Catalogue = z
       .meta({
         description: 'Physical measures totalled on orders (BR-11)',
       }),
-    rounding: z.enum(['per_unit_first', 'end']).default('per_unit_first').meta({
+    rounding: z.enum(PRICE_ROUNDINGS).default('per_unit_first').meta({
       description: "Round each unit's net rate before multiplying, or only the totals (BR-10)",
     }),
     itemFields: z.array(CustomField).max(30).default([]),

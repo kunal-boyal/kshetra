@@ -2,6 +2,8 @@ import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { checkValueChanges } from '@thelamp/forms';
 import {
   AccountCode,
+  applicableLists,
+  expectedPriceIssue,
   type ImportProblem,
   type MeasureType,
   Money,
@@ -10,8 +12,8 @@ import {
   percentFromCell,
   todayIn,
 } from '@thelamp/shared';
-import { and, eq, sql } from 'drizzle-orm';
-import { items, itemUnits, productCategories, products } from '../../db/schema/catalogue';
+import { and, eq } from 'drizzle-orm';
+import { items, itemUnits } from '../../db/schema/catalogue';
 import type { TenantTx } from '../../platform/database';
 import { cellText, cellYesNo, customValues, isEmptyCell } from '../imports/reading';
 import {
@@ -24,6 +26,8 @@ import {
 } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { CatalogueService } from './catalogue.service';
+import { ItemsService } from './items.service';
+import { PriceListsService } from './price-lists.service';
 
 interface Planned {
   row: number;
@@ -43,6 +47,8 @@ interface Planned {
   mrp: string | null;
   active: boolean;
   custom: Record<string, unknown>;
+  /** The row's price, on the list it names or the default list. */
+  price: { listId: string; price: string; discount: string } | null;
 }
 
 const lower = (text: string) => text.trim().toLowerCase();
@@ -58,9 +64,10 @@ const MEASURES: Record<string, MeasureType> = {
 };
 
 /**
- * Item imports (spec 5.11, Appendix B.3) without prices, which join in phase 2 (decision D38):
- * code as the key, the product and category by name, made when new, the base unit, a case
- * factor, the measure checked against the pack label (BR-16), tax, MRP and item fields.
+ * Item imports (spec 5.11, Appendix B.3): code as the key, the product and category by name, made
+ * when new, the base unit, a case factor, the measure checked against the pack label (BR-16),
+ * tax, MRP and item fields; and, when the file has prices, the price and discount on the list it
+ * names or the default list, with any expected net or final price checked (BR-17, decision D77).
  */
 @Injectable()
 export class ItemsImport implements ImportTargetSource, OnModuleInit {
@@ -71,6 +78,8 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
     private readonly targets: ImportTargets,
     private readonly catalogue: CatalogueService,
     private readonly config: TenantConfigService,
+    private readonly itemsService: ItemsService,
+    private readonly priceLists: PriceListsService,
   ) {}
 
   onModuleInit(): void {
@@ -97,6 +106,15 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
       { key: 'hsn', names: ['HSN', 'HSN code'], required: false },
       { key: 'tax_rate', names: ['Tax rate', 'GST', 'GST rate'], required: true },
       { key: 'mrp', names: ['MRP'], required: false },
+      { key: 'price', names: ['Price', 'Price per unit'], required: false },
+      { key: 'discount_pct', names: ['Discount %', 'Discount'], required: false },
+      { key: 'expected_net_price', names: ['Expected net price', 'Net price'], required: false },
+      {
+        key: 'expected_final_price',
+        names: ['Expected final price', 'Final price'],
+        required: false,
+      },
+      { key: 'price_list', names: ['Price list'], required: false },
       { key: 'active', names: ['Active', 'Status'], required: false },
       ...itemFields.map((field) => ({
         key: `custom.${field.key}`,
@@ -131,6 +149,14 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
           .includes(lower(text)),
       );
     const caseUnit = settings.units.find((unit) => !unit.base);
+    const lists = await this.priceLists.refs(tx, tenantId);
+    const listsByName = new Map(lists.map((list) => [lower(list.name), list]));
+    // An empty Price list cell means the default list that applies today.
+    const defaultList = applicableLists(
+      lists.filter((list) => list.scope === 'default'),
+      { id: '', type: '', segments: [], territories: [] },
+      today,
+    )[0];
     const seen = new Map<string, number[]>();
     for (const { row, cells } of rows) {
       const code = lower(cellText(cells.item_code));
@@ -245,6 +271,14 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
         if (yes === null) problem(row, 'active', 'Write yes or no');
         else active = yes;
       }
+      const price = this.planPrice(
+        cells,
+        row,
+        taxRate,
+        { listsByName, defaultList: defaultList?.id ?? null },
+        context,
+        problem,
+      );
       const current = existing.get(lower(code));
       const values = customValues(settings.itemFields, cells, context.emptyValues);
       const custom = checkValueChanges(
@@ -274,9 +308,83 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
         mrp,
         active,
         custom: custom.values,
+        price,
       });
     }
     return { problems, planned, caseUnit: caseUnit?.key ?? null };
+  }
+
+  /** A row's price, discount and list, checked against its expected prices (BR-17). */
+  private planPrice(
+    cells: ImportRow['cells'],
+    row: number,
+    taxRate: string,
+    lists: { listsByName: Map<string, { id: string }>; defaultList: string | null },
+    context: ImportContext,
+    problem: (row: number, field: string | null, issue: string) => void,
+  ): Planned['price'] {
+    const empty = (key: string) =>
+      cells[key] === undefined || isEmptyCell(cells[key], context.emptyValues);
+    const money = (key: string) => cellText(cells[key]).replace(/[₹,\s]/g, '');
+    const priced = ['discount_pct', 'expected_net_price', 'expected_final_price', 'price_list'];
+    if (empty('price')) {
+      const stray = priced.find((key) => !empty(key));
+      if (stray) problem(row, 'price', 'Fill in the price too');
+      return null;
+    }
+    const price = money('price');
+    let ok = true;
+    if (!Money.safeParse(price).success) {
+      problem(row, 'price', 'Write an amount such as 125 or 125.50');
+      ok = false;
+    }
+    let discount = '0';
+    if (!empty('discount_pct')) {
+      // BR-17: a marked column's value of 1 or less is a fraction.
+      const read = percentFromCell(
+        cellText(cells.discount_pct),
+        context.fractions.includes('discount_pct'),
+      );
+      if (read === null || Number(read) > 100) {
+        problem(row, 'discount_pct', 'Write a percentage from 0 to 100');
+        ok = false;
+      } else discount = read;
+    }
+    let listId = lists.defaultList;
+    if (!empty('price_list')) {
+      const named = lists.listsByName.get(lower(cellText(cells.price_list)));
+      if (!named) {
+        problem(row, 'price_list', `There is no price list called ${cellText(cells.price_list)}`);
+        ok = false;
+      } else listId = named.id;
+    } else if (!listId) {
+      problem(row, 'price_list', 'Add a default price list that applies today, or name a list');
+      ok = false;
+    }
+    const expected = {
+      net: empty('expected_net_price') ? null : money('expected_net_price'),
+      final: empty('expected_final_price') ? null : money('expected_final_price'),
+    };
+    for (const [key, value] of [
+      ['expected_net_price', expected.net],
+      ['expected_final_price', expected.final],
+    ] as const) {
+      if (value !== null && !Money.safeParse(value).success) {
+        problem(row, key, 'Write an amount such as 125 or 125.50');
+        ok = false;
+      }
+    }
+    if (!ok || !taxRate) return null;
+    const issue = expectedPriceIssue({ price, discount, taxRate }, expected);
+    if (issue) {
+      problem(
+        row,
+        issue.field === 'net' ? 'expected_net_price' : 'expected_final_price',
+        `The price and discount give ${issue.computed}, more than 0.02 away`,
+      );
+      return null;
+    }
+    return { listId: listId!, price, discount };
   }
 
   async check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
@@ -288,51 +396,17 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
     if (problems.length > 0) throw new ImportRefused(problems);
     const tenantId = context.access.tenantId;
     const by = context.access.userId;
-    const categories = new Map<string, string>();
-    const productIds = new Map<string, string>();
-    const categoryId = async (name: string) => {
-      const known = categories.get(lower(name));
-      if (known) return known;
-      const [found] = await tx
-        .select({ id: productCategories.id })
-        .from(productCategories)
-        .where(
-          and(
-            eq(productCategories.tenantId, tenantId),
-            sql`lower(${productCategories.name}) = ${lower(name)}`,
-          ),
-        );
-      const id = found?.id ?? newId();
-      if (!found) await tx.insert(productCategories).values({ id, tenantId, name });
-      categories.set(lower(name), id);
-      return id;
-    };
-    // A product moved to another category restamps its items, so phones' copies follow.
     let moved = false;
+    const productIds = new Map<string, string>();
     const productId = async (name: string, category: string | null) => {
       const known = productIds.get(lower(name));
       if (known) return known;
-      const [found] = await tx
-        .select({ id: products.id, categoryId: products.categoryId })
-        .from(products)
-        .where(and(eq(products.tenantId, tenantId), sql`lower(${products.name}) = ${lower(name)}`));
-      const id = found?.id ?? newId();
-      const category_ = category ? await categoryId(category) : null;
-      if (!found) await tx.insert(products).values({ id, tenantId, name, categoryId: category_ });
-      else if (category_ && category_ !== found.categoryId) {
-        await tx
-          .update(products)
-          .set({ categoryId: category_ })
-          .where(and(eq(products.tenantId, tenantId), eq(products.id, id)));
-        await tx
-          .update(items)
-          .set({ updatedAt: new Date(), updatedBy: by })
-          .where(and(eq(items.tenantId, tenantId), eq(items.productId, id)));
-        moved = true;
-      }
-      productIds.set(lower(name), id);
-      return id;
+      const product = await this.itemsService.product(tx, tenantId, by, name, category);
+      moved ||= product.moved;
+      productIds.set(lower(name), product.id);
+      return product.id;
     };
+    const prices = new Map<string, { itemId: string; price: string; discount: string }[]>();
 
     let created = 0;
     let updated = 0;
@@ -357,9 +431,12 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
           ? [{ unitKey: caseUnit, factor: String(entry.caseFactor) }]
           : []),
       ];
-      let id = entry.id;
-      if (!id) {
-        id = newId();
+      const id = entry.id ?? newId();
+      if (entry.price) {
+        const { listId, ...price } = entry.price;
+        prices.set(listId, [...(prices.get(listId) ?? []), { itemId: id, ...price }]);
+      }
+      if (!entry.id) {
         await tx.insert(items).values({ id, tenantId, ...columns, createdBy: by, updatedBy: by });
         created += 1;
       } else {
@@ -388,7 +465,10 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
       await tx
         .delete(itemUnits)
         .where(and(eq(itemUnits.tenantId, tenantId), eq(itemUnits.itemId, id)));
-      await tx.insert(itemUnits).values(units.map((unit) => ({ tenantId, itemId: id!, ...unit })));
+      await tx.insert(itemUnits).values(units.map((unit) => ({ tenantId, itemId: id, ...unit })));
+    }
+    for (const [listId, entries] of prices) {
+      await this.priceLists.importPrices(tx, tenantId, context.access, listId, entries);
     }
     if (created + updated > 0 || moved) await this.catalogue.touch(tx, tenantId);
     return { created, updated };

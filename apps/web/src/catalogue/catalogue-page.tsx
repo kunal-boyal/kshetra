@@ -1,5 +1,5 @@
 import { formatMoney, formatNumber } from '@thelamp/i18n';
-import { CatalogueResult, type ItemResult } from '@thelamp/shared';
+import type { ItemResult } from '@thelamp/shared';
 import {
   Button,
   type Column,
@@ -9,28 +9,20 @@ import {
   StatusBadge,
   TextField,
 } from '@thelamp/ui-web';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { FileSpreadsheet, Package, Search } from 'lucide-react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { FileSpreadsheet, Package, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
-import { read, useAccess } from '../people/data';
+import { useAccess } from '../people/data';
 import { PageHeader } from '../people/shared';
-
-/** The catalogue as the phones hold it: units, measures and every item. */
-function useCatalogue() {
-  const { client } = useApp();
-  return useQuery({
-    queryKey: ['catalogue'],
-    queryFn: () => read(client, '/v1/catalogue', CatalogueResult),
-  });
-}
+import { useCatalogue } from './data';
 
 /**
  * The catalogue (spec 5.11, 8.2): the items the tenant sells, by product, with their units and
- * tax. Items arrive through the item import (Appendix B.3); prices come in phase 2 (D38).
+ * tax. Items are added here or through the item import (Appendix B.3); prices are kept on price
+ * lists (decision D77).
  */
 export function CataloguePage() {
   const { client, queryClient } = useApp();
@@ -61,7 +53,17 @@ export function CataloguePage() {
       header: t('catalogue.item'),
       render: (item) => (
         <span className="flex flex-col">
-          <span className="font-semibold">{item.name}</span>
+          {access.can('catalogue.manage') ? (
+            <Link
+              to="/settings/catalogue/items/$itemId"
+              params={{ itemId: item.id }}
+              className="font-semibold"
+            >
+              {item.name}
+            </Link>
+          ) : (
+            <span className="font-semibold">{item.name}</span>
+          )}
           <code>{item.code}</code>
         </span>
       ),
@@ -130,9 +132,18 @@ export function CataloguePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('catalogue.title')} intro={t('catalogue.intro')}>
-        {access.can('import.run') ? (
+        {access.can('catalogue.manage') ? (
           <Button
             variant="primary"
+            icon={<Icon icon={Plus} />}
+            onClick={() => void navigate({ to: '/settings/catalogue/items/new' })}
+          >
+            {t('catalogue.add_item')}
+          </Button>
+        ) : null}
+        {access.can('import.run') ? (
+          <Button
+            variant="secondary"
             icon={<Icon icon={FileSpreadsheet} />}
             onClick={() => void navigate({ to: '/imports' })}
           >

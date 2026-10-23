@@ -73,6 +73,8 @@ let aSubmissionId: string;
 let aRouteId: string;
 let aPlanItemId: string;
 let aExportId: string;
+let aItemId: string;
+let aPriceListId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
 /** An account of B's own, under B's territory. */
@@ -1392,6 +1394,85 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/catalogue')),
   },
+  'PUT /v1/items/:itemId': {
+    kind: 'write',
+    run: async () => {
+      // IDs belong to a tenant: B's item with one of A's IDs is B's own, as with any new ID.
+      // (Not A's item's ID, which later fixtures offer B as an item B doesn't have.)
+      for (const id of [aPriceListId, newId()]) {
+        const made = await asB('PUT', `/v1/items/${id}`, {
+          code: `B-${id.slice(-8)}`,
+          name: 'B item',
+          productName: 'B product',
+          categoryName: null,
+          packLabel: null,
+          hsn: null,
+          taxRate: '5',
+          mrp: null,
+          baseUnit: 'piece',
+          units: [],
+          measureType: null,
+          measurePerBaseUnit: null,
+        });
+        expect(made.statusCode).toBe(201);
+      }
+    },
+  },
+  'GET /v1/price-lists': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/price-lists')),
+  },
+  'GET /v1/price-lists/:priceListId': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/price-lists/${id}`), aPriceListId),
+  },
+  'PUT /v1/price-lists/:priceListId': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('PUT', `/v1/price-lists/${newId()}`, {
+            name: `B list ${newId()}`,
+            scope: 'account',
+            targets: [id],
+            validFrom: '2026-01-01',
+          }),
+        aAccountId,
+      ),
+  },
+  'GET /v1/price-lists/:priceListId/items': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/price-lists/${id}/items`), aPriceListId),
+  },
+  'PUT /v1/price-lists/:priceListId/items': {
+    kind: 'by ID',
+    run: async () => {
+      await sameAsNowhere(
+        (id) =>
+          asB('PUT', `/v1/price-lists/${id}/items`, { set: [], remove: [aItemId], version: 1 }),
+        aPriceListId,
+      );
+      const listId = newId();
+      const made = await asB('PUT', `/v1/price-lists/${listId}`, {
+        name: `B list ${listId}`,
+        scope: 'default',
+        validFrom: '2026-01-01',
+      });
+      expect(made.statusCode).toBe(201);
+      await sameAsNowhere(
+        (id) =>
+          asB('PUT', `/v1/price-lists/${listId}/items`, {
+            set: [{ itemId: id, price: '1' }],
+            version: 1,
+          }),
+        aItemId,
+      );
+    },
+  },
+  'GET /v1/accounts/:id/prices': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/prices`), aAccountId),
+  },
   'GET /v1/org-chart': {
     kind: 'own tenant',
     run: async () => {
@@ -1509,6 +1590,35 @@ beforeAll(async () => {
     slots: { manager: a.member.id },
   });
   expect(account.statusCode).toBe(201);
+  aItemId = newId();
+  const madeItem = await send(aToken, 'PUT', `/v1/items/${aItemId}`, {
+    code: 'A-ITEM',
+    name: `${a.word} item`,
+    productName: `${a.word} product`,
+    categoryName: null,
+    packLabel: null,
+    hsn: null,
+    taxRate: '18',
+    mrp: null,
+    baseUnit: 'piece',
+    units: [],
+    measureType: null,
+    measurePerBaseUnit: null,
+  });
+  expect(madeItem.statusCode).toBe(201);
+  aPriceListId = newId();
+  const madeList = await send(aToken, 'PUT', `/v1/price-lists/${aPriceListId}`, {
+    name: `${a.word} prices`,
+    scope: 'account',
+    targets: [aAccountId],
+    validFrom: '2026-01-01',
+  });
+  expect(madeList.statusCode).toBe(201);
+  const priced = await send(aToken, 'PUT', `/v1/price-lists/${aPriceListId}/items`, {
+    set: [{ itemId: aItemId, price: '100' }],
+    version: 1,
+  });
+  expect(priced.statusCode).toBe(200);
   aContactId = newId();
   await send(aToken, 'POST', `/v1/accounts/${aAccountId}/contacts`, {
     id: aContactId,
