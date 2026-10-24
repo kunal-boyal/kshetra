@@ -9,3 +9,5 @@ executionOrder:
     - start-day
     - visit-with-photo
     - offline-queue
+    - order
+    - leave

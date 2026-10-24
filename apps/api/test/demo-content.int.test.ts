@@ -50,9 +50,10 @@ describe('demo content (decision D70)', () => {
     const slug = `demo-content-${Date.now().toString(36)}`;
     const { tenantId } = await provision(slug, true);
     const lines: string[] = [];
+    // Ten days take in a Saturday, two holidays and decided requests.
     const counts = await new DemoContent(app, {
       slug,
-      days: 1,
+      days: 10,
       seed: 3,
       log: (line) => lines.push(line),
     }).run();
@@ -75,6 +76,34 @@ describe('demo content (decision D70)', () => {
     expect(made!.trails).toBeGreaterThan(0);
     expect(made!.facts).toBeGreaterThan(0);
 
+    // Phase 2 (decision D86): orders decided along the chain and delivered, statements with
+    // invoices and payments, holidays, leave, fixed days and claims, decided and paid.
+    expect(counts.orders).toBeGreaterThan(0);
+    expect(counts.deliveries).toBeGreaterThan(0);
+    expect(counts.claims).toBeGreaterThan(0);
+    expect(counts.decisions).toBeGreaterThan(0);
+    const [phase2] = await sql<Record<string, number>>(
+      `select (select count(*)::int from cell.price_lists where tenant_id = $1) as lists,
+              (select count(*)::int from cell.orders where tenant_id = $1 and status = 'fulfilled') as delivered,
+              (select count(*)::int from cell.orders where tenant_id = $1 and status = 'submitted') as waiting,
+              (select count(*)::int from cell.ledger_entries where tenant_id = $1 and reference like 'INV-%') as invoices,
+              (select count(*)::int from cell.ledger_entries where tenant_id = $1 and reference like 'RCPT-%') as payments,
+              (select count(*)::int from cell.finance_snapshots where tenant_id = $1) as balances,
+              (select count(*)::int from cell.holidays where tenant_id = $1) as holidays,
+              (select count(*)::int from cell.expense_claims where tenant_id = $1 and state in ('approved', 'paid')) as approved_claims,
+              (select count(*)::int from cell.workflow_instances where tenant_id = $1 and status = 'approved') as approved`,
+      [tenantId],
+    );
+    expect(phase2!.lists).toBe(2);
+    expect(phase2!.delivered).toBeGreaterThan(0);
+    expect(phase2!.waiting).toBeGreaterThan(0);
+    expect(phase2!.invoices).toBeGreaterThan(0);
+    expect(phase2!.payments).toBeGreaterThan(0);
+    expect(phase2!.balances).toBeGreaterThan(0);
+    expect(phase2!.holidays).toBe(2);
+    expect(phase2!.approved_claims).toBeGreaterThan(0);
+    expect(phase2!.approved).toBeGreaterThan(0);
+
     // A tenant is filled once, and only a demo tenant.
     await expect(
       new DemoContent(app, { slug, days: 1, seed: 3, log: () => {} }).run(),
@@ -84,5 +113,5 @@ describe('demo content (decision D70)', () => {
     await expect(
       new DemoContent(app, { slug: realSlug, days: 1, seed: 3, log: () => {} }).run(),
     ).rejects.toThrow(/isn't a demo tenant/);
-  }, 180_000);
+  }, 300_000);
 });

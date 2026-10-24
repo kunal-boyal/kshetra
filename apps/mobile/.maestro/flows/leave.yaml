@@ -1,0 +1,52 @@
+# Asking for leave (M13, BR-27): a day of casual leave a week ahead, counted on the person's own
+# calendar, sent to their chain and shown waiting among their requests (decision D86).
+appId: com.thelamp.app.e2e
+name: leave
+---
+- launchApp:
+    stopApp: false
+- repeat:
+    while:
+      notVisible:
+        id: tab-home
+    times: 3
+    commands:
+      - waitForAnimationToEnd
+      - back
+- tapOn:
+    id: tab-me
+- scrollUntilVisible:
+    element: Leave
+    centerElement: true
+- tapOn: Leave
+- tapOn: Ask for leave
+- tapOn: Casual leave
+# A week ahead, moved off Sunday, the template's weekly off; the next month's grid if it falls there.
+- evalScript: ${output.day = (function () { var d = new Date(Date.now() + 7 * 864e5); if (d.getUTCDay() === 0) d = new Date(d.getTime() + 864e5); return d.toISOString().slice(0, 10); })()}
+- evalScript: ${output.later = output.day.slice(0, 7) !== new Date().toISOString().slice(0, 7)}
+- runFlow:
+    when:
+      true: ${output.later}
+    commands:
+      - tapOn: Next month
+- scrollUntilVisible:
+    element:
+      id: day-${output.day}
+    centerElement: true
+- tapOn:
+    id: day-${output.day}
+- scrollUntilVisible:
+    element: 1 working day
+- scrollUntilVisible:
+    element:
+      text: Send the request
+      enabled: true
+    centerElement: true
+- tapOn: Send the request
+# Back on the list: sent, it waits for the manager; without signal, it waits to send.
+- extendedWaitUntil:
+    visible: Requests this year
+    timeout: 30000
+- scrollUntilVisible:
+    element: 'Waiting|Sends when there is signal'
+    timeout: 60000

@@ -1514,18 +1514,19 @@ Events are written to `outbox_events` in the same transaction as the change. Int
 
 | Event | Typical consumers |
 |---|---|
-| `user.created`, `user.updated`, `user.deactivated` | Seat counts, closure tables, sync tombstones, webhooks |
-| `account.created`, `account.updated`, `account.assignment_changed` | Segment rules, sync, webhooks |
-| `shift.started`, `shift.ended` | Live map, attendance days, notifications |
-| `visit.checked_in`, `visit.checked_out` | Plan items, metrics |
-| `submission.created`, `submission.reviewed` | Metrics, plan items, notifications, webhooks |
+| `user.created`, `user.updated`, `user.deactivated` | The directory plane, closure tables, sync tombstones; seat counts and webhooks (phase 3) |
+| `shift.started`, `shift.ended` | Attendance days, trail compaction, the live map, notifications |
+| `visit.started`, `visit.ended` | Metrics; plan items move in the check-in's own transaction |
+| `submission.created`, `submission.reviewed` | Metrics, plan items, notifications; webhooks (phase 3) |
 | `plan_item.status_changed` | Metrics |
-| `target.locked` | Scores, notifications |
-| `order.created`, `order.status_changed` | Workflow, metrics, notifications, webhooks |
-| `expense_claim.created`, `leave_request.created`, `regularisation.created` | Workflow |
-| `workflow.step_pending`, `workflow.completed` | Notifications; the owning module applies the outcome |
+| `target.locked`, `target.unlocked` | Scores, notifications |
+| `metrics.changed` | Recomputing people's days from the change's date |
+| `order.placed`, `order.status_changed` | Metrics; webhooks (phase 3). The order's approval notifies through the `approval.*` events |
+| `approval.requested`, `approval.waiting`, `approval.decided` | Notifications. The owning module applies the outcome in the deciding transaction, so leave, regularisation, expense claims and orders publish no events of their own for it |
+| `media.processed` | Duplicate photo flags |
 | `import.finished`, `export.finished` | Notifications |
-| `tenant.provisioned`, `subscription.changed` | Directory and entitlements |
+| `tenant.provisioned` | The directory plane and entitlements |
+| `account.created`, `account.updated`, `account.assignment_changed`, `subscription.changed` | Planned with segment rules, webhooks and billing (phase 3) |
 
 ### 12.5 Metric engine
 

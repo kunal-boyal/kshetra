@@ -2,7 +2,7 @@
 
 The field app's end-to-end flows (spec 14.4, decision D68), on an Android emulator against the local API. CI runs them on main, every night, and on pull requests that change them (`.github/workflows/maestro.yml`).
 
-Each run starts from a fresh fictional tenant: one field user nobody has signed in yet, and a place of theirs near the emulator's location. Seeded people are never signed in on a test device. Sign-in codes go to the local Mailpit inbox (`OTP_PROVIDER=mailpit`), where the flows read them.
+Each run starts from a fresh fictional tenant: one field user nobody has signed in yet, a place of theirs near the emulator's location, and an item with a price there. Seeded people are never signed in on a test device. Sign-in codes go to the local Mailpit inbox (`OTP_PROVIDER=mailpit`), where the flows read them.
 
 ## Running them here
 
@@ -31,3 +31,5 @@ On a real phone, the flows use its own GPS (the app refuses mocked locations), s
 | `flows/start-day.yaml` | Starting the day with consent and a location; tracking runs |
 | `flows/visit-with-photo.yaml` | Checking in at a place, filling its form with a photo, sending it, checking out |
 | `flows/offline-queue.yaml` | A pause saved without signal waits in the upload queue, then drains |
+| `flows/order.yaml` | Finding an item on the place's prices, adding a line, placing the order, and seeing it wait for approval |
+| `flows/leave.yaml` | Asking for a day of leave a week ahead and seeing the request wait for the manager |

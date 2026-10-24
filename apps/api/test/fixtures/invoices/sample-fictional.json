@@ -1,0 +1,30 @@
+{
+  "label": "A fictional invoice made from fixtures FX-07 and FX-08",
+  "lines": [
+    {
+      "item": "NEEM-500",
+      "unit": "case",
+      "perUnit": "12",
+      "quantity": "2",
+      "price": "400.00",
+      "discount": "10",
+      "taxRate": "18"
+    },
+    {
+      "item": "UREA-1KG",
+      "unit": "case",
+      "perUnit": "12",
+      "quantity": "3",
+      "price": "90.23",
+      "discount": "0",
+      "taxRate": "18"
+    }
+  ],
+  "totals": {
+    "taxable": "11888.28",
+    "tax": "2139.89",
+    "cgst": "1069.95",
+    "sgst": "1069.94",
+    "total": "14028.17"
+  }
+}

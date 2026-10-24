@@ -1,0 +1,56 @@
+# An order at the place (M10, BR-13 to BR-15): find an item on the place's prices, add a line,
+# place it, and see it among the place's orders, waiting for its approval (decision D86).
+appId: com.thelamp.app.e2e
+name: order
+---
+- launchApp:
+    stopApp: false
+# The previous flow ended on the upload queue, above the tabs; Android's back key leaves it.
+- repeat:
+    while:
+      notVisible:
+        id: tab-home
+    times: 3
+    commands:
+      - waitForAnimationToEnd
+      - back
+- tapOn:
+    id: tab-accounts
+- tapOn: ${ACCOUNT}
+- scrollUntilVisible:
+    element: New order
+    centerElement: true
+- tapOn: New order
+- extendedWaitUntil:
+    visible: Items here
+    timeout: 20000
+- tapOn: Find by item code or name
+- inputText: ${ITEM_CODE}
+- pressKey: Enter
+- tapOn: Maestro Seeds 1 kg.*
+- tapOn: Quantity
+- inputText: '3'
+- tapOn: Add
+- extendedWaitUntil:
+    visible: 1 line
+    timeout: 10000
+# 3 at ₹200 with 5% tax: ₹600 taxable, ₹630 in all.
+- scrollUntilVisible:
+    element: 'Total: ₹630.00'
+- scrollUntilVisible:
+    element: Place the order
+    centerElement: true
+# Placing waits for a location fix, as a visit does.
+- extendedWaitUntil:
+    visible:
+      text: Place the order
+      enabled: true
+    timeout: 45000
+- tapOn: Place the order
+- scrollUntilVisible:
+    element: Orders here
+    timeout: 30000
+# Placed online it shows once the phone syncs it back; queued, it waits to send.
+- scrollUntilVisible:
+    element: 'Waiting · ₹630.00|Waiting to send'
+    timeout: 60000

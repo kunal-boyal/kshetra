@@ -77,6 +77,7 @@ export function MonthDays({
               <Pressable
                 key={date}
                 role="button"
+                testID={`day-${date}`}
                 aria-label={label}
                 aria-selected={selected}
                 onPress={() => onPick(date)}
