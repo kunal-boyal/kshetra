@@ -403,10 +403,10 @@ describe('orders (M10)', () => {
       version: approval.version,
     });
     const second = await pull(t.api.sme, first.cursor);
-    expect(second.entities.orders).toMatchObject({
-      pass: 'changes',
-      rows: [{ id: body.id, status: 'rejected' }],
-    });
+    expect(second.entities.orders.pass).toBe('changes');
+    expect(second.entities.orders.rows).toEqual([
+      expect.objectContaining({ id: body.id, status: 'rejected' }),
+    ]);
   });
 
   it("counts an order in its placer's month: waiting apart, then the lines that stand", async () => {

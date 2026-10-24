@@ -272,9 +272,14 @@ describe('account finance (M11)', () => {
     ]);
     expect((await snapshot(t.accountId, '2026-10-20', '6500')).statusCode).toBe(201);
     const second = await pull(first.cursor);
-    expect(second.entities.balances).toMatchObject({
-      pass: 'changes',
-      rows: [{ accountId: t.accountId, asOf: '2026-10-20', outstanding: '6500.00' }],
-    });
+    // One row an account; a changes pass may send it again, never an older balance.
+    expect(second.entities.balances.pass).toBe('changes');
+    expect(second.entities.balances.rows).toEqual([
+      expect.objectContaining({
+        accountId: t.accountId,
+        asOf: '2026-10-20',
+        outstanding: '6500.00',
+      }),
+    ]);
   });
 });
