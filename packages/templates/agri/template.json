@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "agri",
-  "version": 1,
+  "version": 2,
   "name": { "en": "Agri inputs", "hi": "कृषि इनपुट" },
   "description": {
     "en": "For seed, crop protection and fertiliser companies: distributors, retailers and farmers; farmer meetings, demos and distributor visits that record sales, collection and liquidation; orders by the case.",
@@ -227,7 +227,8 @@
         "leave.request",
         "regularisation.request",
         "expense.claim",
-        "payslip.view"
+        "payslip.view",
+        "finance.view"
       ],
       "mobileOnly": true
     },

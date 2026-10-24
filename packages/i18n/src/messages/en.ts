@@ -1394,6 +1394,13 @@ export const en = {
   'finance.description': 'Description',
   'finance.side': 'Debit or credit',
   'finance.amount': 'Amount',
+  'finance.owes': 'What it owes',
+  'finance.owes_as_of': 'Outstanding as of {date}',
+  'finance.credit_left': '{amount} of credit left',
+  'finance.over_limit': 'Over the credit limit by {amount}',
+  'finance.limit_of': 'Credit limit {amount}',
+  'orders.over_credit':
+    'This takes the {term.account:lower} past its credit limit, so it may need another approval.',
   'import.field_items_item_code': 'Item code',
   'import.field_items_item_name': 'Item name',
   'import.field_items_product_name': 'Product name',

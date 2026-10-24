@@ -211,6 +211,8 @@ export {
   SYNC_PAGE_SIZE,
   SyncAccount,
   SyncAccountsPage,
+  SyncBalance,
+  SyncBalancesPage,
   SyncContact,
   SyncContactsPage,
   SyncEntity,

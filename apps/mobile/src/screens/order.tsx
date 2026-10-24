@@ -24,6 +24,7 @@ import { useLocalRows } from '../local-data';
 import { useFix } from '../location';
 import { type CartLine, orderBody, priceCart, queueOrder } from '../orders';
 import { type ItemPrice, useAccountPrices } from '../prices';
+import { overCredit, useBalance } from '../finance';
 import { useSync } from '../sync';
 
 const QUANTITY = /^\d{1,12}(?:\.\d{1,3})?$/;
@@ -43,6 +44,7 @@ export function OrderScreen({ accountId }: { accountId: string }) {
   const account = accounts?.find((entry) => entry.id === accountId);
   const offers = useAccountPrices(account);
   const fix = useFix();
+  const balance = useBalance(accountId);
   const bundle = config.data?.bundle;
   const rounding = bundle?.catalogue?.rounding ?? 'per_unit_first';
   const offline = bundle?.settings.ordersAllowedOffline ?? true;
@@ -243,6 +245,9 @@ export function OrderScreen({ accountId }: { accountId: string }) {
               <TextField label={t('orders.note')} multiline value={note} onChangeText={setNote} />
               {fix.status === 'denied' || fix.status === 'unavailable' ? (
                 <Notice>{t('orders.needs_fix')}</Notice>
+              ) : null}
+              {overCredit(balance, totals.total) ? (
+                <Notice>{t('orders.over_credit')}</Notice>
               ) : null}
               {!offline ? <Notice>{t('orders.needs_connection')}</Notice> : null}
               {failure ? (
