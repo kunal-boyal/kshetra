@@ -15,15 +15,17 @@ import {
   type RequestType,
   type RoutedStep,
   routeRequest,
+  type SwitchableModule,
 } from '@thelamp/shared';
-import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, notInArray, or, sql } from 'drizzle-orm';
 import { workflowInstances, workflowSteps } from '../../db/schema/workflow';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR, userActor } from '../../platform/audit';
-import type { Access } from '../../platform/auth';
+import { type Access, moduleDisabled } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { Approvers, type RequestContext } from './approvers';
 import { ChainsService } from './chains.service';
 import { RequestTypes } from './request-types';
@@ -37,7 +39,8 @@ const HOUR_MS = 3_600_000;
  * Approvals (spec 5.9, M15, BR-31, decision D74). A request type with a chain is routed through
  * it: each step's approvers are resolved when the request starts, steps nobody can or should
  * decide are skipped, and the request waits at one step at a time. A type without a chain goes to
- * the requester's manager for one decision, as in phase 1 (decision D38).
+ * the requester's manager for one decision, as in phase 1 (decision D38). Requests of a module the
+ * tenant has switched off wait untouched, out of every list, until it is switched on (D83).
  */
 @Injectable()
 export class ApprovalsService {
@@ -49,6 +52,7 @@ export class ApprovalsService {
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
     private readonly database: Database,
+    private readonly config: TenantConfigService,
   ) {}
 
   /**
@@ -236,6 +240,7 @@ export class ApprovalsService {
         and(
           eq(workflowInstances.tenantId, access.tenantId),
           eq(workflowInstances.requesterId, access.userId),
+          this.open(access.modulesOff),
           query.status ? eq(workflowInstances.status, query.status) : undefined,
           query.cursor ? lt(workflowInstances.id, query.cursor) : undefined,
         ),
@@ -263,6 +268,7 @@ export class ApprovalsService {
       try {
         const approval = await this.database.savepoint(tx, async (inner) => {
           const instance = await this.find(inner, access.tenantId, item.id);
+          this.refuseClosed(access, instance);
           if (!this.types.get(instance.requestType).bulk) {
             throw new AppError('FORBIDDEN', 'Decide this kind of request on its own.');
           }
@@ -298,7 +304,20 @@ export class ApprovalsService {
       eq(workflowInstances.status, 'pending'),
       eq(workflowSteps.status, 'pending'),
       sql`${access.userId}::uuid = any(${workflowSteps.approverIds})`,
+      this.open(access.modulesOff),
     );
+  }
+
+  /** Leaves out requests of switched-off modules (D83). */
+  private open(off: readonly SwitchableModule[]) {
+    const closed = this.types.closedBy(off);
+    return closed.length > 0 ? notInArray(workflowInstances.requestType, closed) : undefined;
+  }
+
+  /** Refuses a request of a module the caller's tenant has switched off (D83). */
+  private refuseClosed(access: Access, instance: Instance): void {
+    const { module } = this.types.get(instance.requestType);
+    if (module && access.modulesOff.includes(module)) throw moduleDisabled();
   }
 
   /** One request, for its requester and the people asked to decide it. */
@@ -338,6 +357,7 @@ export class ApprovalsService {
 
   async get(tx: TenantTx, access: Access, id: string): Promise<ApprovalResult> {
     const instance = await this.find(tx, access.tenantId, id);
+    this.refuseClosed(access, instance);
     const steps = await this.steps(tx, access.tenantId, [id]);
     const involved =
       instance.requesterId === access.userId ||
@@ -363,6 +383,7 @@ export class ApprovalsService {
   ): Promise<ApprovalResult> {
     const { tenantId } = access;
     const instance = await this.find(tx, tenantId, id, true);
+    this.refuseClosed(access, instance);
     if (!owner && this.types.get(instance.requestType).ownPage) {
       throw new AppError('FORBIDDEN', 'Decide this request on its own page.');
     }
@@ -442,6 +463,7 @@ export class ApprovalsService {
   async cancel(tx: TenantTx, access: Access, id: string): Promise<ApprovalResult> {
     const { tenantId } = access;
     const instance = await this.find(tx, tenantId, id, true);
+    this.refuseClosed(access, instance);
     if (instance.requesterId !== access.userId) {
       const steps = await this.steps(tx, tenantId, [id]);
       if (steps.some((step) => step.approverIds.includes(access.userId))) {
@@ -473,9 +495,11 @@ export class ApprovalsService {
   /**
    * Reminds the approvers of steps that waited past their reminder time, and escalates steps
    * that waited past their escalation time to the holders of the escalation role whose scope
-   * reaches the requester (spec 5.9). Each happens once per step; idempotent.
+   * reaches the requester (spec 5.9). Each happens once per step; idempotent. Requests of
+   * switched-off modules wait without reminders until the module is on again (D83).
    */
   async keepTime(tx: TenantTx, tenantId: string, now = new Date()): Promise<number> {
+    const { modulesOff } = await this.config.settings(tx, tenantId);
     const due = await tx
       .select({ instance: workflowInstances, step: workflowSteps })
       .from(workflowInstances)
@@ -485,6 +509,7 @@ export class ApprovalsService {
           eq(workflowInstances.tenantId, tenantId),
           eq(workflowInstances.status, 'pending'),
           eq(workflowSteps.status, 'pending'),
+          this.open(modulesOff),
           or(
             and(lte(workflowSteps.remindAt, now), isNull(workflowSteps.remindedAt)),
             and(lte(workflowSteps.escalateAt, now), isNull(workflowSteps.escalatedAt)),

@@ -1,6 +1,7 @@
 import { newId, todayIn } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { ApprovalsService } from '../src/modules/workflow/approvals.service';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
 
 /** Leave (M13, BR-23, BR-27, decision D81). */
@@ -19,7 +20,7 @@ afterAll(async () => {
 });
 
 function as(token: string) {
-  const call = (method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) =>
+  const call = (method: 'GET' | 'POST' | 'PUT' | 'PATCH', url: string, payload?: object) =>
     app.inject({
       method,
       url,
@@ -30,6 +31,7 @@ function as(token: string) {
     get: (url: string) => call('GET', url),
     post: (url: string, payload?: object) => call('POST', url, payload),
     put: (url: string, payload: object) => call('PUT', url, payload),
+    patch: (url: string, payload: object) => call('PATCH', url, payload),
   };
 }
 
@@ -306,5 +308,70 @@ describe('leave types (spec 5.10)', () => {
     expect((await t.manager.put('/v1/leave-types', { items: types })).json().error.code).toBe(
       'FORBIDDEN',
     );
+  });
+});
+
+describe('leave and attendance switched off (M2, decision D83)', () => {
+  const H = 3_600_000;
+
+  it('keeps waiting requests out of the inbox, undecided and unreminded, until it is on again', async () => {
+    const t = await tenant('Leave Off Co');
+    const chains = (await t.head.get('/v1/workflows')).json().chains;
+    const current = chains.find((entry: { requestType: string }) => entry.requestType === 'leave');
+    expect(
+      (
+        await t.head.put('/v1/workflows/leave', {
+          steps: [{ approver: { type: 'reporting_manager' }, reminderAfterHours: 24 }],
+          version: current.version,
+        })
+      ).statusCode,
+    ).toBe(200);
+    const day = next(`${Number(TODAY().slice(0, 4)) + 1}-03-01`, 2);
+    const asked = await ask(t, 'casual', day, day);
+    expect(asked.statusCode, asked.body).toBe(201);
+    const { id, version } = asked.json().approval;
+    const inbox = () => t.manager.get('/v1/approvals/inbox').then((answer) => answer.json());
+    expect(await inbox()).toMatchObject({ items: [{ id }], counts: { leave: 1 } });
+    const keep = (hours: number) =>
+      world.database.forTenant(t.tenantId, (tx) =>
+        app.get(ApprovalsService).keepTime(tx, t.tenantId, new Date(Date.now() + hours * H)),
+      );
+
+    expect(
+      (await t.head.patch('/v1/settings', { modulesOff: ['leave_attendance'] })).statusCode,
+    ).toBe(200);
+    expect(await inbox()).toEqual({ items: [], nextCursor: null, counts: {} });
+    expect((await t.manager.get('/v1/approvals/inbox?requestType=leave')).json().items).toEqual([]);
+    expect((await t.field.get('/v1/approvals/mine')).json().items).toEqual([]);
+    const code = (answer: { json(): { error?: { code: string } } }) => answer.json().error?.code;
+    expect(code(await t.manager.get(`/v1/approvals/${id}`))).toBe('MODULE_DISABLED');
+    expect(
+      code(await t.manager.post(`/v1/approvals/${id}/decision`, { decision: 'approve', version })),
+    ).toBe('MODULE_DISABLED');
+    const bulk = await t.manager.post('/v1/approvals/decisions', { items: [{ id, version }] });
+    expect(bulk.statusCode).toBe(200);
+    expect(bulk.json().results).toEqual([
+      expect.objectContaining({
+        id,
+        approval: null,
+        error: expect.objectContaining({ code: 'MODULE_DISABLED' }),
+      }),
+    ]);
+    expect(code(await t.field.post(`/v1/approvals/${id}/cancel`))).toBe('MODULE_DISABLED');
+    expect(await keep(25)).toBe(0);
+
+    // Switched on again, the request waits where it was, and its reminder follows.
+    expect((await t.head.patch('/v1/settings', { modulesOff: [] })).statusCode).toBe(200);
+    expect(await inbox()).toMatchObject({ items: [{ id, version }], counts: { leave: 1 } });
+    expect((await t.field.get('/v1/approvals/mine')).json().items).toEqual([
+      expect.objectContaining({ id }),
+    ]);
+    expect(await keep(25)).toBe(1);
+    const decided = await t.manager.post('/v1/approvals/decisions', { items: [{ id, version }] });
+    expect(decided.json().results[0]).toMatchObject({
+      id,
+      error: null,
+      approval: { status: 'approved' },
+    });
   });
 });

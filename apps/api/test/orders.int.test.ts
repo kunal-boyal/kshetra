@@ -516,7 +516,11 @@ describe('modules switched off (M2, spec 5.13, decision D64)', () => {
   it('closes orders and prices, and phones keep none of them', async () => {
     const t = await agri('Orders Off Agro');
     const body = t.order(t.distributor, [t.line(t.urea, '1')]);
-    expect((await t.api.sme.post('/v1/orders', body)).statusCode).toBe(201);
+    const placed = await t.api.sme.post('/v1/orders', body);
+    expect(placed.statusCode).toBe(201);
+    const { id: approvalId, version } = placed.json().approval;
+    const inbox = async () => (await t.api.asm.get('/v1/approvals/inbox')).json();
+    expect(await inbox()).toMatchObject({ items: [{ id: approvalId }], counts: { order: 1 } });
     const first = (await t.api.sme.get(`/v1/sync/pull?entities=${ENTITIES}`)).json() as Pull;
     expect(first.entities.orders.rows).toHaveLength(1);
     expect(first.entities.price_lists.rows).toHaveLength(1);
@@ -551,6 +555,25 @@ describe('modules switched off (M2, spec 5.13, decision D64)', () => {
       expect(off.entities[entity]).toMatchObject({ pass: 'full', rows: [] });
     }
 
+    // The waiting order leaves the inbox and nobody decides or withdraws it (D83).
+    expect(await inbox()).toEqual({ items: [], nextCursor: null, counts: {} });
+    expect((await t.api.sme.get('/v1/approvals/mine')).json().items).toEqual([]);
+    expect(code(await t.api.asm.get(`/v1/approvals/${approvalId}`))).toBe('MODULE_DISABLED');
+    expect(
+      code(
+        await t.api.asm.post(`/v1/approvals/${approvalId}/decision`, {
+          decision: 'approve',
+          version,
+        }),
+      ),
+    ).toBe('MODULE_DISABLED');
+    expect(
+      code(await t.api.asm.post(`/v1/orders/${body.id}/decision`, { decision: 'accept', version })),
+    ).toBe('MODULE_DISABLED');
+    expect(code(await t.api.sme.post(`/v1/approvals/${approvalId}/cancel`))).toBe(
+      'MODULE_DISABLED',
+    );
+
     // Switched on again, everything comes back.
     expect((await t.api.head.patch('/v1/settings', { modulesOff: [] })).statusCode).toBe(200);
     expect((await t.api.sme.get(`/v1/orders/${body.id}`)).statusCode).toBe(200);
@@ -561,6 +584,12 @@ describe('modules switched off (M2, spec 5.13, decision D64)', () => {
     ).json() as Pull;
     expect(on.entities.orders.rows).toHaveLength(1);
     expect(on.entities.prices.rows).toHaveLength(2);
+    expect(await inbox()).toMatchObject({ items: [{ id: approvalId, version }] });
+    const accepted = await t.api.asm.post(`/v1/orders/${body.id}/decision`, {
+      decision: 'accept',
+      version,
+    });
+    expect(accepted.statusCode, accepted.body).toBe(200);
   });
 
   it('closes account finance, its imports included, and leaves orders open', async () => {
