@@ -1,6 +1,7 @@
-# The web portal (spec 14.2): its build in a private bucket behind CloudFront. CloudFront also
-# passes /v1 and /auth to the cell, so the portal and the API share one origin, as they do
-# locally: the refresh token's cookie stays first-party and no CORS is needed (decision D35).
+# A single-page app (spec 14.2): the web portal, or the platform console (decision D88). Its build
+# sits in a private bucket behind CloudFront, which also passes the app's API paths to the cell,
+# so the app and the API share one origin, as they do locally: the refresh token's cookie stays
+# first-party and no CORS is needed (decision D35).
 # CloudFront's certificate lives in us-east-1, so this module takes a provider for it there.
 
 variable "name" {
@@ -18,8 +19,14 @@ variable "certificate_arn" {
 }
 
 variable "api_domain" {
-  description = "The cell's domain, which /v1 and /auth go to."
+  description = "The cell's domain, which api_paths go to."
   type        = string
+}
+
+variable "api_paths" {
+  description = "The paths CloudFront passes to the cell: the portal's /v1 and /auth, or the console's /platform."
+  type        = list(string)
+  default     = ["/v1/*", "/auth/*"]
 }
 
 variable "tags" {
@@ -127,7 +134,7 @@ resource "aws_cloudfront_distribution" "web" {
   }
 
   dynamic "ordered_cache_behavior" {
-    for_each = ["/v1/*", "/auth/*"]
+    for_each = var.api_paths
     content {
       path_pattern             = ordered_cache_behavior.value
       target_origin_id         = "api"

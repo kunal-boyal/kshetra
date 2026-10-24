@@ -39,6 +39,12 @@ variable "web_domain" {
   type        = string
 }
 
+variable "console_domain" {
+  description = "The platform console, such as console.example.com (decision D88); null leaves it out."
+  type        = string
+  default     = null
+}
+
 variable "media_domain" {
   description = "Photos and files, such as media.example.com; null uses CloudFront's own domain."
   type        = string

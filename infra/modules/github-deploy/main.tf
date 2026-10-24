@@ -43,6 +43,17 @@ variable "web_distribution_arn" {
   type = string
 }
 
+variable "console_bucket_arn" {
+  description = "The platform console's bucket, when it has one (decision D88)."
+  type        = string
+  default     = null
+}
+
+variable "console_distribution_arn" {
+  type    = string
+  default = null
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
@@ -115,14 +126,18 @@ resource "aws_iam_role_policy" "deploy" {
       {
         Effect   = "Allow"
         Action   = ["s3:ListBucket"]
-        Resource = var.web_bucket_arn
+        Resource = compact([var.web_bucket_arn, var.console_bucket_arn])
       },
       {
         Effect   = "Allow"
         Action   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"]
-        Resource = "${var.web_bucket_arn}/*"
+        Resource = [for arn in compact([var.web_bucket_arn, var.console_bucket_arn]) : "${arn}/*"]
       },
-      { Effect = "Allow", Action = ["cloudfront:CreateInvalidation"], Resource = var.web_distribution_arn },
+      {
+        Effect   = "Allow"
+        Action   = ["cloudfront:CreateInvalidation"]
+        Resource = compact([var.web_distribution_arn, var.console_distribution_arn])
+      },
       { Effect = "Allow", Action = ["logs:GetLogEvents", "logs:FilterLogEvents"], Resource = "*" },
       { Effect = "Allow", Action = ["cloudwatch:DescribeAlarms"], Resource = "*" },
     ]

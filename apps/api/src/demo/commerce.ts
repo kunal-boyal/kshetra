@@ -127,7 +127,7 @@ export class DemoCommerce {
         {
           accountId: place.id,
           date: opening,
-          reference: `OPEN-${place.id.slice(-6).toUpperCase()}`,
+          reference: `OPEN-${place.id}`,
           description: 'Balance brought forward',
           debit: unscaled(amount, 2),
         },
@@ -285,7 +285,7 @@ export class DemoCommerce {
             {
               accountId: entry.accountId,
               date,
-              reference: `INV-${entry.id.slice(-8).toUpperCase()}`,
+              reference: `INV-${entry.id}`,
               description: 'Invoice for delivered order',
               debit: unscaled(invoiced, 2),
             },
@@ -305,7 +305,7 @@ export class DemoCommerce {
             {
               accountId: place.id,
               date,
-              reference: `RCPT-${date.replaceAll('-', '')}-${place.id.slice(-4).toUpperCase()}`,
+              reference: `RCPT-${date.replaceAll('-', '')}-${place.id}`,
               description: 'Payment received',
               credit: unscaled(paid, 2),
             },
@@ -316,6 +316,7 @@ export class DemoCommerce {
     }
   }
 
+  /** References are unique across the tenant, so each carries a whole ID, never a part of one. */
   private async entries(
     admin: Person,
     entries: {

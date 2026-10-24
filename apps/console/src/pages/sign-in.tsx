@@ -1,0 +1,97 @@
+import { useNavigate } from '@tanstack/react-router';
+import { ApiError } from '@thelamp/api-client';
+import { Button, Card, TextField } from '@thelamp/ui-web';
+import { type FormEvent, useState } from 'react';
+import { markUrl, PRODUCT_NAME } from '../brand';
+import { useConsole } from '../context';
+import { errorMessage, useLanguage } from '../i18n';
+
+/** Vendor staff sign in with email, password and a code from their authenticator (decision D88). */
+export function SignInPage() {
+  const { client } = useConsole();
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [failure, setFailure] = useState<string>();
+  const [busy, setBusy] = useState(false);
+
+  async function signIn(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setFailure(undefined);
+    try {
+      await client.signIn(email.trim(), password, code.trim());
+      await navigate({ to: '/' });
+    } catch (error) {
+      setFailure(
+        error instanceof ApiError && error.code === 'UNAUTHENTICATED'
+          ? t('console.signin_failed')
+          : errorMessage(error, t),
+      );
+      setCode('');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="ks ks-auth">
+      <aside className="ks-auth-brand" aria-label={PRODUCT_NAME}>
+        <span className="ks-auth-name">
+          {PRODUCT_NAME} {t('console.label')}
+        </span>
+        <p className="ks-auth-tagline">{t('console.tagline')}</p>
+        <img className="ks-auth-art" src={markUrl} alt="" aria-hidden="true" />
+      </aside>
+      <div className="ks-auth-form">
+        <Card className="ks-enter">
+          <form className="flex flex-col gap-4" onSubmit={signIn} noValidate>
+            <h1 className="heading-xl">{t('console.signin_title')}</h1>
+            <p className="ks-muted">{t('console.signin_intro')}</p>
+            <TextField
+              label={t('console.email')}
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+            <TextField
+              label={t('console.password')}
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+            <TextField
+              label={t('console.code')}
+              help={t('console.code_help')}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+              required
+            />
+            {failure ? (
+              <p className="ks-help error" role="alert">
+                {failure}
+              </p>
+            ) : null}
+            <Button
+              type="submit"
+              variant="primary"
+              block
+              busy={busy}
+              disabled={!email.trim() || !password || code.length !== 6}
+            >
+              {t('console.signin')}
+            </Button>
+          </form>
+        </Card>
+      </div>
+    </main>
+  );
+}

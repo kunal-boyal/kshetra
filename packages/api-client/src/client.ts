@@ -133,7 +133,7 @@ export function ownerOf(accessToken: string): string | null {
   }
 }
 
-async function errorFrom(response: Response): Promise<ApiError> {
+export async function errorFrom(response: Response): Promise<ApiError> {
   const retryAfter = response.headers.get('retry-after');
   try {
     const body = (await response.json()) as {
