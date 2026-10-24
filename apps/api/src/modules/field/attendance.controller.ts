@@ -15,7 +15,7 @@ import {
   UserCalendarBody,
   UserCalendarResult,
 } from '@thelamp/shared';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, InModule, Requires, SignedIn } from '../../platform/auth';
 import { AuditLog, userActor } from '../../platform/audit';
 import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';
@@ -48,6 +48,7 @@ export class AttendanceController {
     response: CalendarListResult,
   })
   @SignedIn()
+  @InModule('leave_attendance')
   list(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = CalendarListQuery.parse(query);
     return this.database.forTenant(access.tenantId, (tx) =>
@@ -149,6 +150,7 @@ export class AttendanceController {
     response: RegularisationListResult,
   })
   @SignedIn()
+  @InModule('leave_attendance')
   regularisationsList(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = RegularisationListQuery.parse(query);
     return this.database.forTenant(access.tenantId, (tx) =>

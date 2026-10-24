@@ -2,6 +2,7 @@ import {
   type ErrorDetail,
   issueAt,
   Key,
+  LeaveType,
   LocalizedText,
   Money,
   repeats,
@@ -35,22 +36,8 @@ export const AttendanceRule = z
   ])
   .meta({ id: 'AttendanceRule' });
 
-export const LeaveType = z
-  .strictObject({
-    key: Key,
-    name: LocalizedText,
-    paid: z.boolean(),
-    annualQuota: z.number().min(0).max(366).multipleOf(0.5).meta({
-      description: 'Days per quota year; 0 means the type has no quota',
-    }),
-    quotaYear: z.enum(['calendar', 'financial']),
-    halfDayAllowed: z.boolean(),
-    attachmentAfterDays: z.int().min(1).max(366).optional().meta({
-      description: 'Requests longer than this many days need an attachment',
-    }),
-    active: z.boolean().default(true),
-  })
-  .meta({ id: 'LeaveType' });
+/** Leave types live in `@thelamp/shared`, as the API takes them too (decision D81). */
+export { LeaveType };
 
 /** A flat rate, or a rate for each designation. */
 export const ExpenseRate = z

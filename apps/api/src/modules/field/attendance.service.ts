@@ -193,14 +193,15 @@ export class AttendanceService {
     return result;
   }
 
-  /** Works out and keeps people's days for one date. */
+  /** Works out and keeps people's days for one date, or from it to `to`. */
   async store(
     tx: TenantTx,
     tenantId: string,
     userIds: readonly string[] | 'everyone',
     date: string,
+    to = date,
   ): Promise<number> {
-    const found = await this.days(tx, tenantId, userIds, date, date);
+    const found = await this.days(tx, tenantId, userIds, date, to);
     const rows = [...found].flatMap(([userId, days]) =>
       days.map((day) => ({
         tenantId,

@@ -10,6 +10,7 @@ import { HeldConfiguration } from '../configuration/held-configuration';
 import { ChainsService } from '../workflow/chains.service';
 import { AttendanceService } from '../field/attendance.service';
 import { CalendarsService } from '../field/calendars.service';
+import { LeaveTypesService } from '../leave/leave-types.service';
 import { FormsService } from '../forms/forms.service';
 import { SYSTEM } from '../iam/actor';
 import { IamSetup } from '../iam/setup.service';
@@ -40,6 +41,7 @@ export class CellSetup {
     private readonly forms: FormsService,
     private readonly attendance: AttendanceService,
     private readonly calendars: CalendarsService,
+    private readonly leaveTypes: LeaveTypesService,
     private readonly metrics: MetricsService,
     private readonly users: UsersService,
     private readonly held: HeldConfiguration,
@@ -62,6 +64,7 @@ export class CellSetup {
     await this.metrics.applyTemplate(tx, tenantId, template.metrics, template.score);
     await this.attendance.applyTemplate(tx, tenantId, template.people.attendance);
     await this.calendars.applyTemplate(tx, tenantId, template.people);
+    await this.leaveTypes.applyTemplate(tx, tenantId, template.people?.leaveTypes);
     await this.imports.applyTemplate(tx, tenantId, templateImports(template));
     await this.chains.applyTemplate(tx, tenantId, template.workflows);
     await this.held.save(tx, tenantId, { people: template.people }, null);

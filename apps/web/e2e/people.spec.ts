@@ -164,6 +164,45 @@ const ANSWERS: Record<string, unknown> = {
     ],
     summary: { scheduled: 1, paid: 1 },
   },
+  '/v1/leave-types': {
+    items: [
+      {
+        key: 'casual',
+        name: { en: 'Casual leave', hi: 'आकस्मिक अवकाश' },
+        paid: true,
+        annualQuota: 12,
+        quotaYear: 'calendar',
+        halfDayAllowed: true,
+        active: true,
+      },
+      {
+        key: 'sick',
+        name: { en: 'Sick leave', hi: 'बीमारी अवकाश' },
+        paid: true,
+        annualQuota: 12,
+        quotaYear: 'calendar',
+        halfDayAllowed: true,
+        attachmentAfterDays: 2,
+        active: true,
+      },
+    ],
+  },
+  '/v1/leave-balances': {
+    userId: RAHUL,
+    on: '2026-10-24',
+    items: [
+      {
+        leaveType: 'casual',
+        from: '2026-01-01',
+        to: '2026-12-31',
+        quota: 12,
+        approved: 4,
+        pending: 1,
+        available: 7,
+      },
+    ],
+  },
+  '/v1/leave-requests': { items: [] },
   '/v1/calendars': {
     year: 2026,
     items: [
@@ -327,6 +366,10 @@ async function mockSignedIn(page: Page) {
     }),
   );
   for (const prefix of [
+    'calendars',
+    'leave-types',
+    'leave-balances',
+    'leave-requests',
     'shifts',
     'submissions',
     'attendance',

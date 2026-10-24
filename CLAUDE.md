@@ -269,6 +269,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Regularisations are `RegularisationsService`, the `regularisation` request type: one waiting or approved request a person a day. Only an approved one changes the day.
 - On the phone, `/attendance` (`src/screens/attendance.tsx`) reads the month with `useMyAttendance()`, kept offline, and asks to fix a day with `queueFix()` (outbox kind `regularisation.create`); `fixable()` in `apps/mobile/src/attendance.ts` says which days may be asked about.
 
+## Leave (decision D81)
+
+- Leave lives in `apps/api/src/modules/leave`: `LeaveTypesService` (types keyed by configuration key, never removed, switched off instead) and `LeaveRequestsService` (requests, balances, the `leave` request type, and the days it provides to attendance through `AttendanceLeave`). The rules are pure functions in `packages/shared/src/leave.ts`: `leaveDays()` and `leaveIssues()` (BR-27), `quotaYear()`, `leaveBalance()`.
+- Count a request's days on the person's own calendar (`CalendarsService.forPeople()` and `offOn()`); approved leave never marks a weekly off or holiday.
+- `LeaveType` is `@thelamp/shared`'s; templates re-export it.
+
 ## Tenant administration (decision D64)
 
 - Settings are `TenantSettings`; the apps read them from the bundle through `BundleSettings`, which drops settings they don't know and fills missing ones with defaults, so settings may only ever be added. The display name is the directory's (`TenantDirectory.rename()`), the logo a `logo` media file behind `/v1/organisation/logo`.

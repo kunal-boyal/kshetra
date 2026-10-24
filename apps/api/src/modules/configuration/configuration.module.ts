@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LeaveModule } from '../leave/leave.module';
 import { AccountsModule } from '../accounts/accounts.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { FieldModule } from '../field/field.module';
@@ -20,6 +21,7 @@ import { HeldConfiguration } from './held-configuration';
  */
 @Module({
   imports: [
+    LeaveModule,
     TenantConfigModule,
     IamModule,
     TerritoriesModule,

@@ -94,6 +94,9 @@ export const AUDIT_ACTIONS = [
   'holidays.changed',
   'regularisation.requested',
   'regularisation.decided',
+  'leave_types.changed',
+  'leave.requested',
+  'leave.decided',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -59,6 +59,8 @@ export function useAccess() {
       timezone: config.data?.bundle.settings.timezone ?? 'Asia/Kolkata',
       currency: config.data?.bundle.settings.currency ?? 'INR',
       designations: config.data?.bundle.designations ?? [],
+      /** Modules the tenant switched off: their screens hide (D64). */
+      modulesOff: config.data?.bundle.settings.modulesOff ?? [],
     };
   }, [config.data]);
 }

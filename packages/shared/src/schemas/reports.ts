@@ -10,12 +10,18 @@ import { Period } from './planning';
  */
 
 /** The phase 1 reports (spec 15); the rest arrive with their modules. */
-export const REPORT_KEYS = ['activity_log', 'attendance_register', 'target_achievement'] as const;
+export const REPORT_KEYS = [
+  'activity_log',
+  'attendance_register',
+  'target_achievement',
+  'leave_register',
+] as const;
 export const ReportKey = z.enum(REPORT_KEYS).meta({ id: 'ReportKey' });
 
 /** Reports that belong to a switchable module rather than Core (spec 5.13): off, they close. */
 export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], SwitchableModule>> = {
   attendance_register: 'leave_attendance',
+  leave_register: 'leave_attendance',
 };
 
 /** What every report can be narrowed by (M18), within the caller's scope. */
