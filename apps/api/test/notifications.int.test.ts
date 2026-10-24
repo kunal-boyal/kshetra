@@ -10,8 +10,10 @@ import {
   type MemoryEmailSender,
   type MemoryPushSender,
   type MemorySmsSender,
+  type MemoryWhatsAppSender,
   PushSender,
   SmsSender,
+  WhatsAppSender,
 } from '../src/modules/notifications/senders';
 import { Database } from '../src/platform/database';
 import { Outbox } from '../src/platform/outbox';
@@ -58,6 +60,7 @@ type Api = ReturnType<typeof as>;
 const push = () => app.get(PushSender) as MemoryPushSender;
 const sms = () => app.get(SmsSender) as MemorySmsSender;
 const email = () => app.get(EmailSender) as MemoryEmailSender;
+const whatsapp = () => app.get(WhatsAppSender) as MemoryWhatsAppSender;
 
 /**
  * A tenant with its admin, a manager on a phone with Asha reporting to them on hers, a reviewed
@@ -313,7 +316,7 @@ describe('preferences and quiet hours (M16)', () => {
 });
 
 describe('scheduled notifications (M16)', () => {
-  it("tells field users of today's plan once, falling back to SMS without push", async () => {
+  it("tells field users of today's plan once, falling back to SMS without push or WhatsApp", async () => {
     const t = await tenant('Plan Co');
     await planToday(t);
     const upkeep = app.get(NotificationsUpkeep);
@@ -330,6 +333,12 @@ describe('scheduled notifications (M16)', () => {
       expect.objectContaining({ event: 'plan.today', channel: 'push', status: 'skipped' }),
       expect.objectContaining({
         event: 'plan.today',
+        channel: 'whatsapp',
+        status: 'skipped',
+        error: 'No WhatsApp opt-in',
+      }),
+      expect.objectContaining({
+        event: 'plan.today',
         channel: 'sms',
         status: 'sent',
         costUnits: 1,
@@ -338,6 +347,66 @@ describe('scheduled notifications (M16)', () => {
     expect(sms().sent.filter((message) => message.phone === t.phones.asha)).toEqual([
       expect.objectContaining({ text: expect.stringContaining('1 ') }),
     ]);
+  });
+
+  it('reaches people who agreed by WhatsApp, in the approved template, before SMS', async () => {
+    const t = await tenant('WhatsApp Co');
+    await planToday(t);
+    const before = (await t.api.asha.get('/v1/whatsapp-consent')).json();
+    expect(before).toEqual({
+      optedIn: false,
+      version: null,
+      at: null,
+      currentVersion: 1,
+      available: true,
+    });
+    // Agreeing to text the person wasn't shown is refused.
+    const stale = await t.api.asha.put('/v1/whatsapp-consent', { optedIn: true, version: 2 });
+    expect(stale.json().error.code).toBe('CONFLICT');
+    const agreed = await t.api.asha.put('/v1/whatsapp-consent', { optedIn: true, version: 1 });
+    expect(agreed.json()).toMatchObject({ optedIn: true, version: 1, at: expect.any(String) });
+
+    const upkeep = app.get(NotificationsUpkeep);
+    const at = new Date(`${todayIn('Asia/Kolkata')}T08:05:00+05:30`);
+    await t.api.admin.patch('/v1/settings', { planNotificationTime: '08:00' });
+    expect(await upkeep.morningPlan(t.tenantId, at)).toBe(1);
+    await deliverAll(t);
+    expect(await deliveries(t, t.asha.id)).toEqual([
+      expect.objectContaining({ channel: 'push', status: 'skipped' }),
+      expect.objectContaining({ channel: 'whatsapp', status: 'sent', costUnits: 1 }),
+    ]);
+    expect(whatsapp().sent.filter((message) => message.phone === t.phones.asha)).toEqual([
+      expect.objectContaining({ template: 'plan_today_en', locale: 'en' }),
+    ]);
+    expect(sms().sent.filter((message) => message.phone === t.phones.asha)).toEqual([]);
+
+    // An approver who agreed hears of a request by WhatsApp, but this event has no approved
+    // template yet, so the delivery fails and says why.
+    await t.api.manager.put('/v1/whatsapp-consent', { optedIn: true, version: 1 });
+    await t.api.admin.patch('/v1/settings', { journeyPlanApproval: true });
+    const sent = await t.api.asha.post('/v1/plans/submit', {
+      userId: t.asha.id,
+      period: todayIn('Asia/Kolkata').slice(0, 7),
+    });
+    expect(sent.statusCode).toBe(200);
+    await deliverAll(t);
+    expect(await deliveries(t, t.manager.id)).toEqual([
+      expect.objectContaining({ event: 'approval.waiting', channel: 'push', status: 'skipped' }),
+      expect.objectContaining({
+        event: 'approval.waiting',
+        channel: 'whatsapp',
+        status: 'failed',
+        error: 'No approved WhatsApp template for approval.waiting',
+      }),
+    ]);
+
+    // Withdrawn, the next plan goes by SMS again; every answer is on record.
+    await t.api.asha.put('/v1/whatsapp-consent', { optedIn: false, version: 1 });
+    expect((await t.api.asha.get('/v1/whatsapp-consent')).json().optedIn).toBe(false);
+    const audit = (await t.api.admin.get(`/v1/audit?action=whatsapp.consent_changed`)).json();
+    expect(
+      audit.items.filter((item: { actor: { id: string } }) => item.actor.id === t.asha.id),
+    ).toHaveLength(2);
   });
 
   it('tells the person when tracking stops, and their manager after 40 minutes, once per gap', async () => {

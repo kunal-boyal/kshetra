@@ -49,9 +49,22 @@ function client() {
       '/v1/notifications': INBOX,
       '/v1/notification-prefs': PREFS,
       '/v1/approvals/inbox': { items: [], nextCursor: null },
+      '/v1/whatsapp-consent': {
+        optedIn: false,
+        version: null,
+        at: null,
+        currentVersion: 1,
+        available: false,
+      },
     },
     {
       'POST /v1/notifications/read': () => ({ unread: 0 }),
+      'PUT /v1/whatsapp-consent': ({ body }) => ({
+        ...(body as object),
+        at: '2026-10-24T05:00:00.000Z',
+        currentVersion: 1,
+        available: false,
+      }),
       'PUT /v1/notification-prefs': ({ body }) => ({
         categories: PREFS.categories.map((entry) => ({
           ...entry,
@@ -106,5 +119,28 @@ describe('notifications (M16)', () => {
       ]),
     );
     expect(await within(prefs).findByRole('status')).toHaveTextContent('Saved.');
+  });
+
+  it('asks to agree to WhatsApp messages, records the text agreed to, and stops them', async () => {
+    const fake = client();
+    renderAt('/notifications', fake);
+    const user = userEvent.setup();
+    const section = await screen.findByRole('region', { name: 'WhatsApp messages' });
+    expect(await within(section).findByText(/I agree to receive reminders/)).toBeVisible();
+    expect(within(section).getByText(/isn't switched on yet/)).toBeVisible();
+    expect(within(section).getByRole('status')).toHaveTextContent("You haven't agreed");
+    await user.click(within(section).getByRole('button', { name: 'Agree to WhatsApp messages' }));
+    expect(await within(section).findByText(/You agreed on/)).toBeVisible();
+    await user.click(within(section).getByRole('button', { name: 'Stop WhatsApp messages' }));
+    await waitFor(() =>
+      expect(
+        writesOf(fake)
+          .filter(([, path]) => path === '/v1/whatsapp-consent')
+          .map(([, , , options]) => options?.body),
+      ).toEqual([
+        { optedIn: true, version: 1 },
+        { optedIn: false, version: 1 },
+      ]),
+    );
   });
 });

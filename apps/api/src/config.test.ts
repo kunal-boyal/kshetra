@@ -148,6 +148,39 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...demo, OTP_PROVIDER: 'console' })).toThrow(/OTP_PROVIDER/);
   });
 
+  it('keeps WhatsApp off until a provider exists, and reads its templates (decision D85)', () => {
+    expect(loadConfig(required)).toMatchObject({
+      WHATSAPP_PROVIDER: 'off',
+      WHATSAPP_TEMPLATES: {},
+    });
+    expect(
+      loadConfig({ ...required, WHATSAPP_TEMPLATES: '{"plan.today": {"en": "plan_en"}}' })
+        .WHATSAPP_TEMPLATES,
+    ).toEqual({ 'plan.today': { en: 'plan_en' } });
+    expect(() => loadConfig({ ...required, WHATSAPP_TEMPLATES: '[' })).toThrow(
+      /WHATSAPP_TEMPLATES/,
+    );
+    expect(() => loadConfig({ ...required, WHATSAPP_PROVIDER: 'memory' })).toThrow(/tests only/);
+    const production = {
+      ...required,
+      NODE_ENV: 'production',
+      CELL_API_URL: 'https://api.example.test',
+      JWT_SIGNING_KEY: 'a key',
+      OTP_PEPPER: 'a-production-pepper-of-32-characters',
+      OTP_PROVIDER: 'msg91',
+      MSG91_AUTH_KEY: 'key',
+      MSG91_OTP_TEMPLATE_ID: 'otp',
+      PUSH_PROVIDER: 'expo',
+      SMS_PROVIDER: 'msg91',
+      EMAIL_PROVIDER: 'smtp',
+    };
+    // Off is a real answer in production; printing to the console isn't.
+    expect(loadConfig(production).WHATSAPP_PROVIDER).toBe('off');
+    expect(() => loadConfig({ ...production, WHATSAPP_PROVIDER: 'console' })).toThrow(
+      /WHATSAPP_PROVIDER/,
+    );
+  });
+
   it('keeps the memory code sender to tests', () => {
     expect(() => loadConfig({ ...required, OTP_PROVIDER: 'memory' })).toThrow(/tests only/);
     expect(() => loadConfig({ ...required, OBJECT_STORE: 'memory' })).toThrow(/tests only/);

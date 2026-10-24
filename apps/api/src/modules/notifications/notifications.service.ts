@@ -16,6 +16,9 @@ import {
   type PutNotificationPrefsBody,
   type PutPushTokenBody,
   timeIn,
+  WHATSAPP_CONSENT_VERSION,
+  type WhatsAppConsentBody,
+  type WhatsAppConsentResult,
 } from '@thelamp/shared';
 import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import {
@@ -23,11 +26,14 @@ import {
   notificationPrefs,
   notifications,
   pushTokens,
+  whatsappConsents,
 } from '../../db/schema/notifications';
+import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { Queues } from '../../platform/queues';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { WhatsAppSender } from './senders';
 
 export interface Notify {
   userId: string;
@@ -53,6 +59,8 @@ export class NotificationsService {
     private readonly database: Database,
     private readonly queues: Queues,
     private readonly config: TenantConfigService,
+    private readonly audit: AuditLog,
+    private readonly whatsapp: WhatsAppSender,
   ) {}
 
   /** The categories a person muted. */
@@ -105,13 +113,13 @@ export class NotificationsService {
 
   /**
    * Queues a delivery by one channel once the transaction commits; held until quiet hours end
-   * when the notification isn't urgent and the channel interrupts (push, SMS).
+   * when the notification isn't urgent and the channel interrupts (push, WhatsApp, SMS).
    */
   async queueDelivery(
     tx: TenantTx,
     tenantId: string,
     notificationId: string,
-    channel: 'push' | 'sms' | 'email',
+    channel: 'push' | 'whatsapp' | 'sms' | 'email',
     urgent: boolean,
   ): Promise<void> {
     const settings = await this.config.settings(tx, tenantId);
@@ -228,6 +236,64 @@ export class NotificationsService {
   }
 
   /** Replaces what the person mutes. Approvals and tracking can't be muted (M16). */
+  /** The caller's answer to WhatsApp messages (spec 13.4, decision D85). */
+  async whatsappConsent(tx: TenantTx, access: Access): Promise<WhatsAppConsentResult> {
+    const [row] = await tx
+      .select()
+      .from(whatsappConsents)
+      .where(
+        and(
+          eq(whatsappConsents.tenantId, access.tenantId),
+          eq(whatsappConsents.userId, access.userId),
+        ),
+      );
+    return {
+      optedIn: row?.optedIn ?? false,
+      version: row?.version ?? null,
+      at: row?.at.toISOString() ?? null,
+      currentVersion: WHATSAPP_CONSENT_VERSION,
+      available: this.whatsapp.enabled,
+    };
+  }
+
+  /**
+   * Records the caller agreeing to WhatsApp messages, to the version of the text they were shown,
+   * or withdrawing, with the time; each change is audited, so earlier answers stay on record.
+   */
+  async setWhatsappConsent(
+    tx: TenantTx,
+    access: Access,
+    body: WhatsAppConsentBody,
+  ): Promise<WhatsAppConsentResult> {
+    if (body.optedIn && body.version !== WHATSAPP_CONSENT_VERSION) {
+      throw new AppError('CONFLICT', 'The WhatsApp text changed. Read it again before agreeing.', [
+        { path: 'version', issue: 'Agree to the current text' },
+      ]);
+    }
+    const before = await this.whatsappConsent(tx, access);
+    const at = new Date();
+    await tx
+      .insert(whatsappConsents)
+      .values({
+        tenantId: access.tenantId,
+        userId: access.userId,
+        optedIn: body.optedIn,
+        version: body.version,
+        at,
+      })
+      .onConflictDoUpdate({
+        target: [whatsappConsents.tenantId, whatsappConsents.userId],
+        set: { optedIn: body.optedIn, version: body.version, at },
+      });
+    await this.audit.record(tx, access.tenantId, userActor(access), {
+      action: 'whatsapp.consent_changed',
+      target: { type: 'user', id: access.userId },
+      before: { optedIn: before.optedIn, version: before.version },
+      after: { optedIn: body.optedIn, version: body.version },
+    });
+    return this.whatsappConsent(tx, access);
+  }
+
   async putPrefs(
     tx: TenantTx,
     access: Access,

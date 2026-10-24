@@ -162,3 +162,29 @@ export const pushTokens = cell
     ],
   )
   .enableRLS();
+
+/**
+ * Each person's answer to WhatsApp messages (spec 13.4, decision D85): whether they agreed, to
+ * which version of the text, and when. Changes are audited, so earlier answers stay on record.
+ */
+export const whatsappConsents = cell
+  .table(
+    'whatsapp_consents',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      userId: uuid('user_id').notNull(),
+      optedIn: boolean('opted_in').notNull(),
+      version: integer('version').notNull(),
+      at: at('at').notNull(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.userId] }),
+      foreignKey({
+        name: 'whatsapp_consents_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();

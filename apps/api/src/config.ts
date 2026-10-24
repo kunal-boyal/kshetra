@@ -139,6 +139,31 @@ const schema = z
           return z.NEVER;
         }
       }),
+    // WhatsApp (decision D85): `off` until a provider account exists (D12), when deliveries skip
+    // to the next channel; `console` prints locally and `memory` keeps them for tests.
+    WHATSAPP_PROVIDER: z.enum(['off', 'console', 'memory']).default('off'),
+    // The provider's key and sending number, once its account exists.
+    WHATSAPP_API_KEY: z.string().min(1).optional(),
+    WHATSAPP_SENDER_ID: z.string().min(1).optional(),
+    // The provider-approved templates notifications go out in, by event and language, as JSON:
+    // {"plan.today": {"en": "<template name>", "hi": "<template name>"}}. An event without one goes
+    // to the next channel instead.
+    WHATSAPP_TEMPLATES: z
+      .string()
+      .default('{}')
+      .transform((text, ctx) => {
+        try {
+          return z
+            .record(z.string(), z.record(z.string(), z.string().min(1)))
+            .parse(JSON.parse(text));
+        } catch {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Use JSON: {"<event>": {"en": "<template name>", "hi": "<template name>"}}',
+          });
+          return z.NEVER;
+        }
+      }),
     EMAIL_PROVIDER: z.enum(['smtp', 'console', 'memory']).default('smtp'),
     // Mailpit locally; Amazon SES's SMTP endpoint in AWS.
     SMTP_URL: z.url().default('smtp://127.0.0.1:1025'),
@@ -205,6 +230,7 @@ const schema = z
         ['PUSH_PROVIDER', config.PUSH_PROVIDER],
         ['SMS_PROVIDER', config.SMS_PROVIDER],
         ['EMAIL_PROVIDER', config.EMAIL_PROVIDER],
+        ['WHATSAPP_PROVIDER', config.WHATSAPP_PROVIDER],
       ] as const) {
         if (value === 'memory' || (value === 'console' && config.CELL_PURPOSE !== 'demo')) {
           ctx.addIssue({
@@ -271,6 +297,7 @@ const schema = z
       ['PUSH_PROVIDER', config.PUSH_PROVIDER],
       ['SMS_PROVIDER', config.SMS_PROVIDER],
       ['EMAIL_PROVIDER', config.EMAIL_PROVIDER],
+      ['WHATSAPP_PROVIDER', config.WHATSAPP_PROVIDER],
     ] as const) {
       if (value === 'memory' && config.NODE_ENV !== 'test') {
         ctx.addIssue({

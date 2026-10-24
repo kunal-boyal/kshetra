@@ -7,6 +7,8 @@ import {
   NotificationPrefsResult,
   PutNotificationPrefsBody,
   PutPushTokenBody,
+  WhatsAppConsentBody,
+  WhatsAppConsentResult,
 } from '@thelamp/shared';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
@@ -100,6 +102,50 @@ export class NotificationsController {
           idempotencyKey,
           { route: 'PUT /v1/notification-prefs', by: access.userId, input },
           async () => ({ status: 200, body: await this.notifications.putPrefs(tx, access, input) }),
+        ),
+      )
+      .then((result) => result.body);
+  }
+
+  @Get('whatsapp-consent')
+  @Contract({
+    tag: 'Notifications',
+    summary: 'Whether the caller agreed to WhatsApp messages, to which text and when',
+    response: WhatsAppConsentResult,
+  })
+  @SignedIn()
+  whatsappConsent(@CurrentAccess() access: Access) {
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.notifications.whatsappConsent(tx, access),
+    );
+  }
+
+  @Put('whatsapp-consent')
+  @Contract({
+    tag: 'Notifications',
+    summary: 'Agree to WhatsApp messages, to the text shown, or withdraw',
+    body: WhatsAppConsentBody,
+    response: WhatsAppConsentResult,
+  })
+  @SignedIn()
+  setWhatsappConsent(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    const input = WhatsAppConsentBody.parse(body);
+    const idempotencyKey = requireIdempotencyKey(key);
+    return this.database
+      .forTenant(access.tenantId, (tx) =>
+        idempotent(
+          tx,
+          access.tenantId,
+          idempotencyKey,
+          { route: 'PUT /v1/whatsapp-consent', by: access.userId, input },
+          async () => ({
+            status: 200,
+            body: await this.notifications.setWhatsappConsent(tx, access, input),
+          }),
         ),
       )
       .then((result) => result.body);

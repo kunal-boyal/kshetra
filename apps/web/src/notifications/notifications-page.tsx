@@ -15,6 +15,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useAccess, write } from '../people/data';
 import { PageHeader, Section, useDates } from '../people/shared';
 import { useInbox, useNotificationPrefs } from './data';
+import { WhatsAppSection } from './whatsapp-section';
 
 /** One entry, in the reader's language: unread ones stand out; one with a link opens it. */
 function Entry({ item, onOpen }: { item: NotificationResult; onOpen: () => void }) {
@@ -193,6 +194,7 @@ export function NotificationsPage() {
           {t('notifications.prefs_save')}
         </Button>
       </Section>
+      <WhatsAppSection />
     </div>
   );
 }

@@ -10,7 +10,16 @@ import { NotificationDelivery } from './delivery';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { NotificationsUpkeep } from './notifications.upkeep';
-import { EmailSender, emailSender, PushSender, pushSender, SmsSender, smsSender } from './senders';
+import {
+  EmailSender,
+  emailSender,
+  PushSender,
+  pushSender,
+  SmsSender,
+  smsSender,
+  WhatsAppSender,
+  whatsappSender,
+} from './senders';
 
 /** Notifications (M16, spec 9.6 `notifications`, decision D58). */
 @Module({
@@ -23,6 +32,7 @@ import { EmailSender, emailSender, PushSender, pushSender, SmsSender, smsSender 
     { provide: PushSender, inject: [CONFIG], useFactory: (c: Config) => pushSender(c) },
     { provide: SmsSender, inject: [CONFIG], useFactory: (c: Config) => smsSender(c) },
     { provide: EmailSender, inject: [CONFIG], useFactory: (c: Config) => emailSender(c) },
+    { provide: WhatsAppSender, inject: [CONFIG], useFactory: (c: Config) => whatsappSender(c) },
   ],
   exports: [NotificationsService],
 })

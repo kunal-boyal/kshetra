@@ -8,7 +8,7 @@ import { type Msg91Settings, msg91Settings, sendFlow } from '../../platform/msg9
  * How notifications leave the cell (M16, decision D58), one sender per channel. Each answers per
  * message: delivered with the provider's reference, or failed, and whether trying again could
  * help. Console senders print locally, with numbers and addresses masked; memory senders keep
- * what was sent for tests. Production refuses both.
+ * what was sent for tests. Production refuses both; WhatsApp may be off instead (decision D85).
  */
 
 export interface SendResult {
@@ -44,6 +44,23 @@ export interface SmsMessage {
 
 export abstract class SmsSender {
   abstract send(message: SmsMessage): Promise<SendResult>;
+}
+
+/** A WhatsApp message: always a provider-approved template, filled with the notification's values. */
+export interface WhatsAppMessage {
+  phone: string;
+  /** The approved template's name, by event and language (spec 5.12). */
+  template: string;
+  locale: string;
+  values: Readonly<Record<string, string>>;
+  /** The text as the app shows it, for console senders and logs. */
+  text: string;
+}
+
+export abstract class WhatsAppSender {
+  /** Whether this cell sends WhatsApp at all; off, deliveries move on to the next channel. */
+  abstract readonly enabled: boolean;
+  abstract send(message: WhatsAppMessage): Promise<SendResult>;
 }
 
 export interface EmailMessage {
@@ -172,6 +189,38 @@ export class MemorySmsSender extends SmsSender {
   }
 }
 
+/** No WhatsApp provider yet (decision D12): nothing goes out, and delivery skips the channel. */
+@Injectable()
+export class OffWhatsAppSender extends WhatsAppSender {
+  readonly enabled = false;
+
+  async send(): Promise<SendResult> {
+    return { ok: false, permanent: true, error: 'WhatsApp is off' };
+  }
+}
+
+@Injectable()
+export class ConsoleWhatsAppSender extends WhatsAppSender {
+  readonly enabled = true;
+  private readonly logger = new Logger('WhatsApp');
+
+  async send({ phone, template, text }: WhatsAppMessage): Promise<SendResult> {
+    this.logger.log(`To ${maskPhone(phone)} in ${template}: ${text}`);
+    return { ok: true, providerRef: 'console', costUnits: 1 };
+  }
+}
+
+@Injectable()
+export class MemoryWhatsAppSender extends WhatsAppSender {
+  readonly enabled = true;
+  readonly sent: WhatsAppMessage[] = [];
+
+  async send(message: WhatsAppMessage): Promise<SendResult> {
+    this.sent.push(message);
+    return { ok: true, providerRef: `memory-${this.sent.length}`, costUnits: 1 };
+  }
+}
+
 /** Email over SMTP: Mailpit locally, Amazon SES's SMTP endpoint in AWS. */
 @Injectable()
 export class SmtpEmailSender extends EmailSender {
@@ -249,6 +298,14 @@ export function smsSender(config: Config): SmsSender {
     return new Msg91SmsSender(msg91Settings(config), config.MSG91_SMS_TEMPLATES);
   }
   return config.SMS_PROVIDER === 'memory' ? new MemorySmsSender() : new ConsoleSmsSender();
+}
+
+/** The WhatsApp sender the configuration asks for; a real provider joins once its account exists. */
+export function whatsappSender(config: Config): WhatsAppSender {
+  if (config.WHATSAPP_PROVIDER === 'console') return new ConsoleWhatsAppSender();
+  return config.WHATSAPP_PROVIDER === 'memory'
+    ? new MemoryWhatsAppSender()
+    : new OffWhatsAppSender();
 }
 
 export function emailSender(config: Config): EmailSender {

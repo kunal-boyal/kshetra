@@ -12,12 +12,27 @@ import {
   Text,
 } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
-import { ArrowLeft, Bell, BellDot, CheckCheck, RotateCw, Save } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Bell,
+  BellDot,
+  CheckCheck,
+  MessageCircle,
+  RotateCw,
+  Save,
+} from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
-import { useInbox, useMarkRead, useNotificationPrefs, useSavePrefs } from '../notifications';
+import {
+  useAnswerWhatsApp,
+  useInbox,
+  useMarkRead,
+  useNotificationPrefs,
+  useSavePrefs,
+  useWhatsAppConsent,
+} from '../notifications';
 import { openLink } from '../push';
 
 /**
@@ -171,7 +186,67 @@ export function NotificationsScreen() {
           />
         </View>
       ) : null}
+
+      <WhatsAppConsent />
     </Screen>
+  );
+}
+
+/**
+ * WhatsApp messages (spec 13.4, decision D85): the text people agree to, whether and when they did,
+ * and agreeing or stopping. An agreement to an earlier text no longer counts.
+ */
+function WhatsAppConsent() {
+  const { t, locale } = useLanguage();
+  const config = useConfig();
+  const consent = useWhatsAppConsent();
+  const answer = useAnswerWhatsApp();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const data = consent.data;
+  if (!data) return null;
+  const current = data.optedIn && data.version === data.currentVersion;
+  const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';
+
+  async function press() {
+    if (!data) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      await answer(!current, data.currentVersion);
+    } catch (caught) {
+      setError(errorMessage(caught, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <ListGroup title={t('whatsapp.title')}>
+      <View style={styles.stack}>
+        <Text>{t('whatsapp.consent')}</Text>
+        {data.available ? null : <Notice>{t('whatsapp.unavailable')}</Notice>}
+        <Text tone="muted" role="status">
+          {current && data.at
+            ? t('whatsapp.agreed', { date: formatDateTime(data.at, { locale, timeZone }) })
+            : data.optedIn
+              ? t('whatsapp.changed')
+              : t('whatsapp.not_agreed')}
+        </Text>
+        {error ? (
+          <Text tone="danger" role="alert">
+            {error}
+          </Text>
+        ) : null}
+        <Button
+          variant="secondary"
+          icon={MessageCircle}
+          label={current ? t('whatsapp.stop') : t('whatsapp.agree')}
+          busy={busy}
+          onPress={() => void press()}
+        />
+      </View>
+    </ListGroup>
   );
 }
 

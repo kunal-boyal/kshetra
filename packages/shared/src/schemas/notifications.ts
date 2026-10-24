@@ -57,6 +57,27 @@ export const PutNotificationPrefsBody = z.strictObject({
   muted: z.array(NotificationCategory).max(NOTIFICATION_CATEGORIES.length),
 });
 
+/**
+ * `GET /v1/whatsapp-consent`: whether the caller agreed to WhatsApp messages, to which version of
+ * the text and when (spec 13.4), and whether this cell sends WhatsApp at all yet.
+ */
+export const WhatsAppConsentResult = z
+  .object({
+    optedIn: z.boolean(),
+    version: z.int().nullable(),
+    at: z.iso.datetime().nullable(),
+    /** The text people agree to now; an opt-in to an earlier one no longer counts. */
+    currentVersion: z.int(),
+    /** Whether WhatsApp is switched on in this cell. */
+    available: z.boolean(),
+  })
+  .meta({ id: 'WhatsAppConsentResult' });
+
+/** `PUT /v1/whatsapp-consent`: agreeing, to the version of the text shown, or withdrawing. */
+export const WhatsAppConsentBody = z
+  .strictObject({ optedIn: z.boolean(), version: z.int().min(1) })
+  .meta({ id: 'WhatsAppConsentBody' });
+
 /** The phone's push address, in the language it reads (M16). */
 export const PutPushTokenBody = z.strictObject({
   token: z
@@ -75,3 +96,5 @@ export type MarkNotificationsReadBody = z.output<typeof MarkNotificationsReadBod
 export type NotificationPrefsResult = z.output<typeof NotificationPrefsResult>;
 export type PutNotificationPrefsBody = z.output<typeof PutNotificationPrefsBody>;
 export type PutPushTokenBody = z.output<typeof PutPushTokenBody>;
+export type WhatsAppConsentResult = z.output<typeof WhatsAppConsentResult>;
+export type WhatsAppConsentBody = z.output<typeof WhatsAppConsentBody>;

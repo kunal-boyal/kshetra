@@ -110,6 +110,8 @@ locals {
       SMS_PROVIDER      = "msg91"
       PUSH_PROVIDER     = "expo"
       EMAIL_PROVIDER    = "smtp"
+      # Off until a WhatsApp provider account exists (decisions D12, D85); deliveries skip to SMS.
+      WHATSAPP_PROVIDER = "off"
     },
     var.environment,
   )

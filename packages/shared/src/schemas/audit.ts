@@ -102,6 +102,7 @@ export const AUDIT_ACTIONS = [
   'expense.receipts_added',
   'expense.decided',
   'expense.paid',
+  'whatsapp.consent_changed',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

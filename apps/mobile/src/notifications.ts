@@ -3,6 +3,7 @@ import {
   NotificationListResult,
   type NotificationCategoryKey,
   NotificationPrefsResult,
+  WhatsAppConsentResult,
   newId,
 } from '@thelamp/shared';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -75,5 +76,27 @@ export function useSavePrefs() {
       idempotencyKey: newId(),
     });
     queryClient.setQueryData(['notification-prefs'], result);
+  };
+}
+
+/** The person's answer to WhatsApp messages (spec 13.4, decision D85), read online. */
+export function useWhatsAppConsent() {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['whatsapp-consent'],
+    queryFn: async () =>
+      (await client.request('GET', '/v1/whatsapp-consent', WhatsAppConsentResult))!,
+  });
+}
+
+/** Agrees to the current text, or stops WhatsApp messages. */
+export function useAnswerWhatsApp() {
+  const { client, queryClient } = useApp();
+  return async (optedIn: boolean, version: number) => {
+    const result = await client.request('PUT', '/v1/whatsapp-consent', WhatsAppConsentResult, {
+      body: { optedIn, version },
+      idempotencyKey: newId(),
+    });
+    queryClient.setQueryData(['whatsapp-consent'], result);
   };
 }

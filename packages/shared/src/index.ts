@@ -536,6 +536,7 @@ export {
   mutable,
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CHANNELS,
+  WHATSAPP_CONSENT_VERSION,
   NOTIFICATION_EVENTS,
   NOTIFICATION_KINDS,
   smsSegments,
@@ -560,6 +561,8 @@ export {
   NotificationResult,
   PutNotificationPrefsBody,
   PutPushTokenBody,
+  WhatsAppConsentBody,
+  WhatsAppConsentResult,
 } from './schemas/notifications';
 export {
   decodePolyline,

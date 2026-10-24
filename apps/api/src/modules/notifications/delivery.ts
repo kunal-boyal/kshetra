@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { notificationMessage, resolveTerminology, translate } from '@thelamp/i18n';
 import {
   type Locale,
@@ -6,10 +6,18 @@ import {
   NOTIFICATION_KINDS,
   type NotificationEventKey,
   smsSegments,
+  WHATSAPP_CONSENT_VERSION,
 } from '@thelamp/shared';
 import { and, eq, sql } from 'drizzle-orm';
-import { notificationDeliveries, notifications, pushTokens } from '../../db/schema/notifications';
+import type { Config } from '../../config';
+import {
+  notificationDeliveries,
+  notifications,
+  pushTokens,
+  whatsappConsents,
+} from '../../db/schema/notifications';
 import { Database, type TenantTx } from '../../platform/database';
+import { CONFIG } from '../../platform/tokens';
 import { People } from '../iam/people';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { NotificationsService } from './notifications.service';
@@ -20,9 +28,10 @@ import {
   PushSender,
   type SendResult,
   SmsSender,
+  WhatsAppSender,
 } from './senders';
 
-type Channel = 'push' | 'sms' | 'email';
+type Channel = 'push' | 'whatsapp' | 'sms' | 'email';
 
 interface Outcome {
   status: 'sent' | 'failed' | 'skipped';
@@ -30,6 +39,8 @@ interface Outcome {
   result: SendResult | null;
   /** Push tokens the provider no longer knows, to forget. */
   deadTokens: string[];
+  /** Why a skipped channel couldn't reach the person. */
+  reason?: string;
 }
 
 /** A delivery that failed in a way a retry may fix: the job runs again. */
@@ -54,6 +65,8 @@ export class NotificationDelivery {
     private readonly push: PushSender,
     private readonly sms: SmsSender,
     private readonly email: EmailSender,
+    private readonly whatsapp: WhatsAppSender,
+    @Inject(CONFIG) private readonly cell: Config,
   ) {}
 
   private async text(
@@ -115,9 +128,10 @@ export class NotificationDelivery {
           providerRef: outcome.result?.providerRef ?? null,
           error:
             outcome.status === 'skipped'
-              ? channel === 'push'
-                ? 'No phone registered for push'
-                : `No ${channel === 'sms' ? 'number' : 'email address'} on record`
+              ? (outcome.reason ??
+                (channel === 'push'
+                  ? 'No phone registered for push'
+                  : `No ${channel === 'email' ? 'email address' : 'number'} on record`))
               : (outcome.result?.error ?? null),
           costUnits: outcome.result?.costUnits ?? 0,
           attempts: delivery.attempts + 1,
@@ -135,7 +149,7 @@ export class NotificationDelivery {
           .where(and(eq(pushTokens.tenantId, tenantId), eq(pushTokens.token, token)));
       }
       if (outcome.status !== 'sent') {
-        // The next channel the event lists, if any (M16: push, then SMS).
+        // The next channel the event lists, if any (M16: push, then WhatsApp, then SMS).
         const kind = NOTIFICATION_KINDS[notification.event];
         const chain = kind.external as readonly Channel[];
         const next = chain[chain.indexOf(channel) + 1];
@@ -188,6 +202,7 @@ export class NotificationDelivery {
           .map((message) => message.token),
       };
     }
+    if (channel === 'whatsapp') return this.sendWhatsApp(tx, tenantId, notification);
     const settings = await this.config.settings(tx, tenantId);
     const locale = (settings.languages[0] ?? 'en') as Locale;
     const contact = (await this.people.contacts(tx, tenantId, [notification.userId])).get(
@@ -213,6 +228,70 @@ export class NotificationDelivery {
     return {
       status: result.ok ? 'sent' : 'failed',
       address: channel === 'sms' ? maskPhone(address) : maskEmail(address),
+      result,
+      deadTokens: [],
+    };
+  }
+
+  /**
+   * WhatsApp (decision D85): only when this cell sends it, to people who agreed to the current
+   * text (spec 13.4), in the approved template for the event and the tenant's first language
+   * (spec 5.12). Without a template the delivery fails, and the next channel is tried.
+   */
+  private async sendWhatsApp(
+    tx: TenantTx,
+    tenantId: string,
+    notification: typeof notifications.$inferSelect,
+  ): Promise<Outcome | { transient: string }> {
+    const skipped = (reason: string): Outcome => ({
+      status: 'skipped',
+      address: null,
+      result: null,
+      deadTokens: [],
+      reason,
+    });
+    if (!this.whatsapp.enabled) return skipped('WhatsApp is off');
+    const [consent] = await tx
+      .select()
+      .from(whatsappConsents)
+      .where(
+        and(
+          eq(whatsappConsents.tenantId, tenantId),
+          eq(whatsappConsents.userId, notification.userId),
+        ),
+      );
+    if (!consent?.optedIn || consent.version !== WHATSAPP_CONSENT_VERSION) {
+      return skipped('No WhatsApp opt-in');
+    }
+    const phone = (await this.people.contacts(tx, tenantId, [notification.userId])).get(
+      notification.userId,
+    )?.phone;
+    if (!phone) return skipped('No number on record');
+    const settings = await this.config.settings(tx, tenantId);
+    const locale = (settings.languages[0] ?? 'en') as Locale;
+    const templates = this.cell.WHATSAPP_TEMPLATES[notification.event];
+    const template = templates?.[locale] ?? templates?.en;
+    const failed = (error: string): Outcome => ({
+      status: 'failed',
+      address: maskPhone(phone),
+      result: { ok: false, permanent: true, error },
+      deadTokens: [],
+    });
+    if (!template) return failed(`No approved WhatsApp template for ${notification.event}`);
+    const text = await this.text(tx, tenantId, notification.event, notification.values, locale);
+    const result = await this.whatsapp.send({
+      phone,
+      template,
+      locale,
+      values: Object.fromEntries(
+        Object.entries(notification.values).map(([name, value]) => [name, String(value)]),
+      ),
+      text: `${text.title}: ${text.body}`,
+    });
+    if (!result.ok && !result.permanent) return { transient: result.error ?? 'WhatsApp failed' };
+    return {
+      status: result.ok ? 'sent' : 'failed',
+      address: maskPhone(phone),
       result,
       deadTokens: [],
     };
