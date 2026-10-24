@@ -259,6 +259,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Finance lives in `apps/api/src/modules/finance` (`FinanceService`). The rules are pure functions in `packages/shared/src/finance.ts`: `ageingIssue()` and `bucketsIssue()` (BR-20, buckets from the `ageingBuckets` setting), `entryIssue()`, `openingBalance()` and `runningBalances()` (BR-21), `financialYear()`.
 - Snapshots are all kept; read the latest with `FinanceService.latest()`. Statement entries are only ever added, keyed by reference: `planEntries()` tells new, unchanged and refused apart for the API and the import alike. Never update or delete a ledger entry; a correction is a reversing entry.
 - The finance module provides `OrderCredit`, which decides an order's `over_credit` fact.
+- Phones keep each account's latest balance as the `balances` sync entity, keyed by the account; read it with `useBalance()` in `apps/mobile/src/finance.ts`, and judge an order with `overCredit()`.
 
 ## Tenant administration (decision D64)
 

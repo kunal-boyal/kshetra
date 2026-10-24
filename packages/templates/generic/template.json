@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "generic",
-  "version": 1,
+  "version": 2,
   "name": { "en": "Generic", "hi": "सामान्य" },
   "description": {
     "en": "A starting point for any field team: customers, visit and meeting forms, and metrics for visits, coverage and order value.",
@@ -212,7 +212,8 @@
         "leave.request",
         "regularisation.request",
         "expense.claim",
-        "payslip.view"
+        "payslip.view",
+        "finance.view"
       ],
       "mobileOnly": true
     },

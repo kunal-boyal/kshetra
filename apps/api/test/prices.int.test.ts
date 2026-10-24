@@ -427,10 +427,11 @@ describe('price lists (spec 5.11, BR-10)', () => {
     // A removed price comes as removed.
     await setPrices(t, standard, [], [item1]);
     const second = await pull(first.cursor);
-    expect(second.entities.prices).toMatchObject({
-      pass: 'changes',
-      rows: [{ priceListId: standard, removed: true }],
-    });
+    // A changes pass may send again rows written just before the last pull (spec 11.3).
+    expect(second.entities.prices.pass).toBe('changes');
+    expect(second.entities.prices.rows).toContainEqual(
+      expect.objectContaining({ priceListId: standard, removed: true }),
+    );
 
     // A list for the other account, once it names this one too, arrives with its prices.
     const { version } = (await t.admin.get(`/v1/price-lists/${forTheirs}`)).json();

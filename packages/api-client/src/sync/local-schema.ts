@@ -2,6 +2,7 @@ import type {
   MeasureType,
   SyncPlanItem,
   SyncAccount,
+  SyncBalance,
   SyncContact,
   SyncEntity,
   SyncItem,
@@ -213,6 +214,16 @@ const MIGRATIONS: readonly string[] = [
      sync_gen INTEGER NOT NULL
    );
    CREATE INDEX ref_orders_account ON ref_orders (account_id, placed_at);`,
+  // Account finance (M11, decision D79): each account's latest balance, keyed by the account.
+  `CREATE TABLE ref_balances (
+     id TEXT PRIMARY KEY NOT NULL,
+     account_id TEXT NOT NULL,
+     as_of TEXT NOT NULL,
+     outstanding TEXT NOT NULL,
+     credit_limit TEXT,
+     ageing TEXT NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -477,6 +488,25 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       rejectionReason: record.rejection_reason === null ? null : String(record.rejection_reason),
     }),
   },
+  balances: {
+    table: 'ref_balances',
+    columns: (balance) => ({
+      id: balance.id,
+      account_id: balance.accountId,
+      as_of: balance.asOf,
+      outstanding: balance.outstanding,
+      credit_limit: balance.creditLimit,
+      ageing: JSON.stringify(balance.ageing),
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      accountId: String(record.account_id),
+      asOf: String(record.as_of),
+      outstanding: String(record.outstanding),
+      creditLimit: record.credit_limit === null ? null : String(record.credit_limit),
+      ageing: JSON.parse(String(record.ageing)) as Record<string, string>,
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -489,6 +519,7 @@ export type RowOf<Name extends SyncEntity> = {
   price_lists: SyncPriceList;
   prices: SyncPrice;
   orders: SyncOrder;
+  balances: SyncBalance;
 }[Name];
 
 /** Every row the phone holds of one entity. */

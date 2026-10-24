@@ -24,6 +24,7 @@ export const SYNC_ENTITIES = [
   'price_lists',
   'prices',
   'orders',
+  'balances',
 ] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
@@ -165,6 +166,22 @@ export const SyncOrder = z
   .meta({ id: 'SyncOrder' });
 
 /**
+ * What an account the person sees owed on its latest balance (M11, decision D79), one row an
+ * account, keyed by the account, so the phone shows it offline and warns of an order over the
+ * credit limit. Only for people who may see finance.
+ */
+export const SyncBalance = z
+  .object({
+    id: z.uuid(),
+    accountId: z.uuid(),
+    asOf: z.iso.date(),
+    outstanding: z.string(),
+    creditLimit: z.string().nullable(),
+    ageing: z.record(z.string(), z.string()),
+  })
+  .meta({ id: 'SyncBalance' });
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -190,6 +207,7 @@ export const SyncPlanItemsPage = page(SyncPlanItem);
 export const SyncPriceListsPage = page(SyncPriceList);
 export const SyncPricesPage = page(SyncPrice);
 export const SyncOrdersPage = page(SyncOrder);
+export const SyncBalancesPage = page(SyncBalance);
 
 export const SyncPullResult = z.object({
   entities: z.object({
@@ -202,6 +220,7 @@ export const SyncPullResult = z.object({
     price_lists: SyncPriceListsPage.optional(),
     prices: SyncPricesPage.optional(),
     orders: SyncOrdersPage.optional(),
+    balances: SyncBalancesPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -220,4 +239,5 @@ export type SyncPlanItem = z.infer<typeof SyncPlanItem>;
 export type SyncPriceList = z.infer<typeof SyncPriceList>;
 export type SyncPrice = z.infer<typeof SyncPrice>;
 export type SyncOrder = z.infer<typeof SyncOrder>;
+export type SyncBalance = z.infer<typeof SyncBalance>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

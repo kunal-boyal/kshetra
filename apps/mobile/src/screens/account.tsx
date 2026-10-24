@@ -1,5 +1,5 @@
 import { spacing } from '@thelamp/design-tokens';
-import { formatDateTime, formatMoney } from '@thelamp/i18n';
+import { formatDate, formatDateTime, formatMoney } from '@thelamp/i18n';
 import { newId, PROPOSAL_ACCURACY_M, proposalFix } from '@thelamp/shared';
 import {
   Button,
@@ -23,6 +23,7 @@ import {
   ShoppingCart,
   Tag,
   UserRound,
+  Wallet,
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -33,6 +34,7 @@ import { standalone, startEntry } from '../forms/start';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
+import { creditLeft, useBalance } from '../finance';
 import { useOutboxItems, useSync } from '../sync';
 import { VisitCard } from './visit';
 
@@ -61,6 +63,7 @@ export function AccountScreen({ id }: { id: string }) {
   const territories = useLocalRows('territories');
   const priceLists = useLocalRows('price_lists');
   const orders = useLocalRows('orders');
+  const balance = useBalance(id);
   const waiting = useOutboxItems();
   const [locating, setLocating] = useState<Locating>({ step: 'idle' });
   const [error, setError] = useState<string>();
@@ -217,6 +220,43 @@ export function AccountScreen({ id }: { id: string }) {
         </View>
       </Card>
 
+      {balance && permissions.has('finance.view') ? (
+        <ListGroup title={t('finance.owes')}>
+          <ListRow
+            icon={Wallet}
+            label={money(balance.outstanding)}
+            detail={t('finance.owes_as_of', {
+              date: formatDate(balance.asOf, { locale }),
+            })}
+          />
+          {balance.creditLimit !== null ? (
+            <ListRow
+              label={
+                creditLeft(balance)!.startsWith('-')
+                  ? t('finance.over_limit', { amount: money(creditLeft(balance)!.slice(1)) })
+                  : t('finance.credit_left', { amount: money(creditLeft(balance)!) })
+              }
+              detail={t('finance.limit_of', { amount: money(balance.creditLimit) })}
+              {...(creditLeft(balance)!.startsWith('-') ? { tone: 'danger' as const } : {})}
+            />
+          ) : null}
+          {(bundle?.settings.ageingBuckets ?? []).flatMap((bucket) =>
+            balance.ageing[bucket.key]
+              ? [
+                  <ListRow
+                    key={bucket.key}
+                    label={money(balance.ageing[bucket.key]!)}
+                    detail={
+                      bucket.toDays === null
+                        ? t('finance.bucket_over', { days: bucket.fromDays - 1 })
+                        : t('finance.bucket', { from: bucket.fromDays, to: bucket.toDays })
+                    }
+                  />,
+                ]
+              : [],
+          )}
+        </ListGroup>
+      ) : null}
       {(priceLists?.length ?? 0) > 0 ? (
         <ListGroup title={t('prices.title')}>
           {permissions.has('order.create') && account.status === 'active' ? (

@@ -140,8 +140,9 @@ describe('account finance (M11)', () => {
     expect(finance.history).toEqual([
       expect.objectContaining({ id: first.id, ageing: first.ageing }),
     ]);
-    expect((await t.field.get(`/v1/accounts/${t.accountId}/finance`)).json().error.code).toBe(
-      'FORBIDDEN',
+    // The field user who looks after the account sees what it owes, to collect it (D79).
+    expect((await t.field.get(`/v1/accounts/${t.accountId}/finance`)).json().latest.asOf).toBe(
+      '2026-10-15',
     );
   });
 
@@ -228,5 +229,57 @@ describe('account finance (M11)', () => {
     expect(await t.run('ledger_entries', file)).toMatchObject({ status: 'committed', created: 2 });
     // Loaded again, nothing is added.
     expect(await t.run('ledger_entries', file)).toMatchObject({ status: 'committed', created: 0 });
+  });
+
+  it('sends phones the latest balance of each account their person sees', async () => {
+    const t = await tenant('Balances Stores');
+    const snapshot = (accountId: string, asOf: string, outstanding: string) =>
+      t.admin.post('/v1/finance-snapshots', {
+        id: newId(),
+        accountId,
+        asOf,
+        outstanding,
+        creditLimit: '20000',
+        ageing: { d0_30: outstanding },
+        source: 'Tally',
+      });
+    expect((await snapshot(t.accountId, '2026-09-30', '5000')).statusCode).toBe(201);
+    expect((await snapshot(t.accountId, '2026-10-15', '7000')).statusCode).toBe(201);
+    // An older day added later doesn't take the latest's place.
+    expect((await snapshot(t.accountId, '2026-08-31', '1')).statusCode).toBe(201);
+    type Pull = {
+      entities: {
+        balances: {
+          pass: string;
+          rows: { accountId: string; asOf: string; outstanding: string }[];
+        };
+      };
+      cursor: string;
+    };
+    const pull = async (cursor?: string) =>
+      (
+        await t.field.get(
+          `/v1/sync/pull?entities=balances${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+        )
+      ).json() as Pull;
+    const first = await pull();
+    expect(first.entities.balances.rows).toEqual([
+      expect.objectContaining({
+        accountId: t.accountId,
+        asOf: '2026-10-15',
+        outstanding: '7000.00',
+      }),
+    ]);
+    expect((await snapshot(t.accountId, '2026-10-20', '6500')).statusCode).toBe(201);
+    const second = await pull(first.cursor);
+    // One row an account; a changes pass may send it again, never an older balance.
+    expect(second.entities.balances.pass).toBe('changes');
+    expect(second.entities.balances.rows).toEqual([
+      expect.objectContaining({
+        accountId: t.accountId,
+        asOf: '2026-10-20',
+        outstanding: '6500.00',
+      }),
+    ]);
   });
 });

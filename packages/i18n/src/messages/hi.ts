@@ -1385,6 +1385,13 @@ export const hi: Record<MessageKey, Message> = {
   'finance.description': 'विवरण',
   'finance.side': 'नामे या जमा',
   'finance.amount': 'राशि',
+  'finance.owes': 'कितना बकाया है',
+  'finance.owes_as_of': '{date} तक का बकाया',
+  'finance.credit_left': '{amount} उधार बाक़ी',
+  'finance.over_limit': 'उधार सीमा से {amount} ज़्यादा',
+  'finance.limit_of': 'उधार सीमा {amount}',
+  'orders.over_credit':
+    'इससे {term.account:lower} अपनी उधार सीमा पार करता है, इसलिए इसे एक और मंज़ूरी चाहिए हो सकती है।',
   'import.field_items_item_code': 'आइटम कोड',
   'import.field_items_item_name': 'आइटम का नाम',
   'import.field_items_product_name': 'उत्पाद का नाम',

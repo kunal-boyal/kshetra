@@ -186,6 +186,16 @@ function pulled(): SyncPullResult {
         price('01a10000-0000-7000-8000-0000000000e2', STANDARD, OLD, '10.00'),
         price('01a10000-0000-7000-8000-0000000000e3', JANPATH_LIST, SPRAY, '55.00'),
       ]),
+      balances: full([
+        {
+          id: NEAR,
+          accountId: NEAR,
+          asOf: '2026-10-15',
+          outstanding: '9000.00',
+          creditLimit: '10000.00',
+          ageing: { d0_30: '6000.00', d181: '3000.00' },
+        },
+      ]),
       contacts: full([
         {
           id: '01a10000-0000-7000-8000-000000000090',
@@ -246,6 +256,7 @@ function fakeClient() {
             'account.propose',
             'account.propose_location',
             'order.create',
+            'finance.view',
           ],
         },
       },
@@ -423,6 +434,10 @@ describe('orders on the phone (M10, D78)', () => {
     // FX-07: 24 packs at 360.00 with 18% tax.
     expect(await screen.findByText('Hybrid seed · ₹10,195.20')).toBeOnTheScreen();
     expect(screen.getByText('CGST: ₹777.60')).toBeOnTheScreen();
+    // 9,000 owed and a 10,000 limit: this order goes over it.
+    expect(
+      screen.getByText(/past its credit limit, so it may need another approval/),
+    ).toBeOnTheScreen();
     const place = screen.getByRole('button', { name: 'Place the order' });
     await waitFor(() => expect(place).toBeEnabled());
     await fireEvent.press(place);
@@ -500,5 +515,22 @@ describe('orders on the phone (M10, D78)', () => {
       taxRate: '18.0000',
       factor: '1.000',
     });
+  });
+});
+
+describe('what an account owes on the phone (M11, D79)', () => {
+  it('shows the latest balance, the credit left and its ageing', async () => {
+    await renderPhone({ name: 'account', id: NEAR });
+    expect(await screen.findByText('What it owes')).toBeOnTheScreen();
+    expect(screen.getByText('₹9,000.00')).toBeOnTheScreen();
+    expect(screen.getByText('Outstanding as of 15 Oct 2026')).toBeOnTheScreen();
+    expect(screen.getByText('₹1,000.00 of credit left')).toBeOnTheScreen();
+    expect(screen.getByText('Over 180 days')).toBeOnTheScreen();
+  });
+
+  it('shows nothing owed for an account without a balance', async () => {
+    await renderPhone({ name: 'account', id: FAR });
+    await screen.findByText('India Gate Stores');
+    expect(screen.queryByText('What it owes')).toBeNull();
   });
 });
