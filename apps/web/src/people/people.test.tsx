@@ -201,6 +201,86 @@ function fakeClient(writes: Record<string, Answer> = {}) {
       ],
       summary: { scheduled: 3, paid: 2 },
     },
+    '/v1/leave-types': {
+      items: [
+        {
+          key: 'casual',
+          name: { en: 'Casual leave', hi: 'आकस्मिक अवकाश' },
+          paid: true,
+          annualQuota: 12,
+          quotaYear: 'calendar',
+          halfDayAllowed: true,
+          active: true,
+        },
+        {
+          key: 'unpaid',
+          name: { en: 'Unpaid leave', hi: 'अवैतनिक अवकाश' },
+          paid: false,
+          annualQuota: 0,
+          quotaYear: 'calendar',
+          halfDayAllowed: true,
+          active: true,
+        },
+      ],
+    },
+    '/v1/leave-balances': {
+      userId: RAHUL,
+      on: '2026-10-24',
+      items: [
+        {
+          leaveType: 'casual',
+          from: '2026-01-01',
+          to: '2026-12-31',
+          quota: 12,
+          approved: 4,
+          pending: 1.5,
+          available: 6.5,
+        },
+        {
+          leaveType: 'unpaid',
+          from: '2026-01-01',
+          to: '2026-12-31',
+          quota: null,
+          approved: 2,
+          pending: 0,
+          available: null,
+        },
+      ],
+    },
+    '/v1/leave-requests': {
+      items: [
+        {
+          id: '01a10000-0000-7000-8000-0000000000d1',
+          userId: RAHUL,
+          leaveType: 'casual',
+          startDate: '2026-10-05',
+          endDate: '2026-10-06',
+          halfDay: false,
+          days: 2,
+          reason: null,
+          attachmentId: null,
+          state: 'approved',
+          approval: null,
+          createdAt: '2026-10-01T05:00:00.000Z',
+          decidedAt: '2026-10-02T05:00:00.000Z',
+        },
+        {
+          id: '01a10000-0000-7000-8000-0000000000d2',
+          userId: RAHUL,
+          leaveType: 'casual',
+          startDate: '2026-11-02',
+          endDate: '2026-11-02',
+          halfDay: true,
+          days: 0.5,
+          reason: null,
+          attachmentId: null,
+          state: 'pending',
+          approval: null,
+          createdAt: '2026-10-20T05:00:00.000Z',
+          decidedAt: null,
+        },
+      ],
+    },
     '/v1/calendars': {
       year: 2026,
       items: [
@@ -431,6 +511,22 @@ describe("a person's page", () => {
     expect(rows[0]).toHaveTextContent('Phone clock was off');
     expect(rows[1]).toHaveTextContent('Closed at night');
     expect(rows[1]).toHaveTextContent('—');
+  });
+
+  it("shows their leave balances and this year's requests", async () => {
+    renderAt(`/people/${RAHUL}`, fakeClient());
+    const leave = await screen.findByRole('region', { name: 'Leave' });
+    const balances = await within(leave).findByRole('table', { name: 'Balances' });
+    expect(within(balances).getByRole('row', { name: /Casual leave/ })).toHaveTextContent(
+      /12\s*4\s*1\.5\s*6\.5/,
+    );
+    expect(within(balances).getByRole('row', { name: /Unpaid leave/ })).toHaveTextContent(
+      'No limit',
+    );
+    const requests = within(leave).getByRole('table', { name: 'Requests this year' });
+    const rows = within(requests).getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent(/5 Oct 2026 to 6 Oct 2026.*Casual leave.*2.*Approved/);
+    expect(rows[1]).toHaveTextContent(/2 Nov 2026.*Half day.*Waiting/);
   });
 
   it('keeps them on a holiday calendar, the default unless one is chosen', async () => {

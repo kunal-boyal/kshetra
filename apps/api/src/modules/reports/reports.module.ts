@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LeaveModule } from '../leave/leave.module';
 import { FieldModule } from '../field/field.module';
 import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
@@ -10,6 +11,7 @@ import { TerritoriesModule } from '../territories/territories.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { ActivityLogReport } from './activity-log';
 import { AttendanceRegisterReport } from './attendance-register';
+import { LeaveRegisterReport } from './leave-register';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
 import { ReportsController } from './reports.controller';
@@ -24,6 +26,7 @@ import { TargetAchievementReport } from './target-achievement';
   imports: [
     IamModule,
     FieldModule,
+    LeaveModule,
     FormsModule,
     PerformanceModule,
     TerritoriesModule,
@@ -40,6 +43,7 @@ import { TargetAchievementReport } from './target-achievement';
     ActivityLogReport,
     AttendanceRegisterReport,
     TargetAchievementReport,
+    LeaveRegisterReport,
   ],
 })
 export class ReportsModule {}

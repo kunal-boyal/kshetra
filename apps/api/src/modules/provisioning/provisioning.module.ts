@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LeaveModule } from '../leave/leave.module';
 import { AccountsModule } from '../accounts/accounts.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { ConfigurationModule } from '../configuration/configuration.module';
@@ -20,6 +21,7 @@ import { TenantProvisioner } from './provisioner';
  */
 @Module({
   imports: [
+    LeaveModule,
     DirectoryModule,
     IamModule,
     TenantConfigModule,

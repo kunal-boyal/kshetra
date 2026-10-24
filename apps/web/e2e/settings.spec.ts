@@ -78,6 +78,29 @@ const ANSWERS: Record<string, unknown> = {
     nextCursor: null,
   },
   '/v1/organisation': { name: 'Sunrise Traders', logo: null },
+  '/v1/leave-types': {
+    items: [
+      {
+        key: 'casual',
+        name: { en: 'Casual leave', hi: 'आकस्मिक अवकाश' },
+        paid: true,
+        annualQuota: 12,
+        quotaYear: 'calendar',
+        halfDayAllowed: true,
+        active: true,
+      },
+      {
+        key: 'sick',
+        name: { en: 'Sick leave', hi: 'बीमारी अवकाश' },
+        paid: true,
+        annualQuota: 12,
+        quotaYear: 'calendar',
+        halfDayAllowed: true,
+        attachmentAfterDays: 2,
+        active: true,
+      },
+    ],
+  },
   '/v1/calendars': {
     year: 2026,
     items: [
@@ -286,6 +309,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'price_list.manage',
             'workflow.manage',
             'calendar.manage',
+            'leave_type.manage',
           ],
         },
       },
@@ -304,6 +328,8 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'users',
     'catalogue',
     'price-lists',
+    'calendars',
+    'leave-types',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -344,6 +370,7 @@ for (const path of [
   'metrics/new',
   'approvals',
   'calendars',
+  'leave-types',
   'configuration',
   'catalogue',
   'catalogue/items/new',

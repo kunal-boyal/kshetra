@@ -1270,10 +1270,11 @@ ledger_entries(id, tid, account_id, date, reference, description, debit, credit,
 ── People operations ─────────────────────────────────────────────────────────────
 calendars(tid, key, name jsonb, weekly_offs int[], is_default)               PK(tid, key) · one default (D80)
 holidays(tid, calendar_key, date, name, optional, active)                     PK(tid, calendar_key, date)
-leave_types(id, tid, name jsonb, paid, annual_quota, quota_year enum(calendar,financial),
-       half_day_allowed, attachment_after_days, active)
-leave_requests(id, tid, user_id, leave_type_id, start_date, end_date, half_day, days, reason,
-       status enum(pending,approved,rejected,cancelled), workflow_instance_id, created_at)
+leave_types(tid, key, name jsonb, paid, annual_quota, quota_year enum(calendar,financial),
+       half_day_allowed, attachment_after_days, active, position)            PK(tid, key) (D81)
+leave_requests(id, tid, user_id, leave_type_key, start_date, end_date, half_day, days, reason,
+       attachment_id, status enum(pending,approved,rejected,cancelled), workflow_instance_id,
+       created_at, decided_at)                                               IX(tid, user_id, start_date, end_date)
 regularisations(id, tid, user_id, date, requested enum(present,half_day), reason, status,
        workflow_instance_id)                         UQ(tid, user_id, date) WHERE status IN ('pending','approved')
 attendance_days(tid, user_id, date, status, value, first_in, last_out, hours, source jsonb, computed_at)

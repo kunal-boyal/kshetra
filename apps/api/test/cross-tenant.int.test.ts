@@ -76,6 +76,7 @@ let aExportId: string;
 let aItemId: string;
 let aPriceListId: string;
 let aRegularisationId: string;
+let aLeaveRequestId: string;
 let aOrderId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
@@ -91,6 +92,12 @@ const YESTERDAY = () =>
   new Date(Date.parse(`${todayIn('Asia/Kolkata')}T00:00:00Z`) - 86_400_000)
     .toISOString()
     .slice(0, 10);
+/** A weekday next month, for leave. */
+const LEAVE_DAY = (() => {
+  let at = Date.parse(`${NEXT_MONTH}T00:00:00Z`);
+  while ([0, 6].includes(new Date(at).getUTCDay())) at += 86_400_000;
+  return new Date(at).toISOString().slice(0, 10);
+})();
 /** Every ID in tenant A's rows that tenant B doesn't also hold. */
 let aIds: string[];
 let aRows: Record<string, unknown[]>;
@@ -1637,6 +1644,71 @@ const FIXTURES: Record<string, Fixture> = {
       expect(asked.json()).toMatchObject({ userId: b.member.id, state: 'pending' });
     },
   },
+  'GET /v1/leave-types': {
+    kind: 'own tenant',
+    run: async () => {
+      const types = await asB('GET', '/v1/leave-types');
+      expect(types.statusCode).toBe(200);
+      holdsNothingOfA(types);
+    },
+  },
+  'PUT /v1/leave-types': {
+    kind: 'write',
+    run: async () => {
+      // Keys belong to a tenant: B's study leave is B's own beside A's.
+      const own = (await asB('GET', '/v1/leave-types')).json().items;
+      const put = await asB('PUT', '/v1/leave-types', {
+        items: [
+          ...own.filter((type: { key: string }) => type.key !== 'study'),
+          {
+            key: 'study',
+            name: named(`${b.word} study leave`),
+            paid: false,
+            annualQuota: 2,
+            quotaYear: 'calendar',
+            halfDayAllowed: false,
+          },
+        ],
+      });
+      expect(put.statusCode, put.body).toBe(200);
+      holdsNothingOfA(put);
+    },
+  },
+  'POST /v1/leave-requests': {
+    kind: 'write',
+    run: async () => {
+      // IDs belong to a tenant: B's request with A's ID is B's own.
+      const asked = await asBPhone('POST', '/v1/leave-requests', {
+        id: aLeaveRequestId,
+        leaveType: 'unpaid',
+        startDate: LEAVE_DAY,
+        endDate: LEAVE_DAY,
+      });
+      expect(asked.statusCode, asked.body).toBe(201);
+      expect(asked.json()).toMatchObject({ userId: b.member.id, leaveType: 'unpaid' });
+    },
+  },
+  'GET /v1/leave-requests': {
+    kind: 'by ID',
+    run: async () => {
+      const own = await asB('GET', `/v1/leave-requests?year=${LEAVE_DAY.slice(0, 4)}`);
+      expect(own.statusCode).toBe(200);
+      holdsNothingOfA(own);
+      await sameAsNowhere(
+        (id) => asB('GET', `/v1/leave-requests?userId=${id}&year=${LEAVE_DAY.slice(0, 4)}`),
+        a.member.id,
+      );
+    },
+  },
+  'GET /v1/leave-balances': {
+    kind: 'by ID',
+    run: async () => {
+      const own = await asB('GET', `/v1/leave-balances?on=${LEAVE_DAY}`);
+      expect(own.statusCode).toBe(200);
+      holdsNothingOfA(own);
+      await sameAsNowhere((id) => asB('GET', `/v1/leave-balances?userId=${id}`), a.member.id);
+    },
+  },
   'GET /v1/regularisations': {
     kind: 'by ID',
     run: async () => {
@@ -1884,6 +1956,31 @@ beforeAll(async () => {
     reason: `${a.word} meeting at the depot`,
   });
   expect(fixed.statusCode, fixed.body).toBe(201);
+  // A's own leave type, and its member asks for a day of leave next month.
+  const leaveTypes = (await send(aToken, 'GET', '/v1/leave-types')).json().items;
+  const study = await send(aToken, 'PUT', '/v1/leave-types', {
+    items: [
+      ...leaveTypes,
+      {
+        key: 'study',
+        name: named(`${a.word} study leave`),
+        paid: true,
+        annualQuota: 5,
+        quotaYear: 'calendar',
+        halfDayAllowed: false,
+      },
+    ],
+  });
+  expect(study.statusCode, study.body).toBe(200);
+  aLeaveRequestId = newId();
+  const leave = await send(memberToken, 'POST', '/v1/leave-requests', {
+    id: aLeaveRequestId,
+    leaveType: 'study',
+    startDate: LEAVE_DAY,
+    endDate: LEAVE_DAY,
+    reason: `${a.word} exam`,
+  });
+  expect(leave.statusCode, leave.body).toBe(201);
   aFormId = (await send(aToken, 'GET', '/v1/forms')).json().items[0].id;
   // A's member on shift: punched in an hour ago, with a point, and tracking paused.
   aShiftId = newId();

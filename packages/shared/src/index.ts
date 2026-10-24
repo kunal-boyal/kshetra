@@ -658,6 +658,17 @@ export {
 } from './schemas/finance';
 export { paidDays, REGULARISATION_REASON, regularisationIssue, scheduledDays } from './attendance';
 export {
+  datesBetween,
+  LEAVE_MAX_SPAN_DAYS,
+  LEAVE_REASON_MAX,
+  leaveBalance,
+  leaveDays,
+  type LeaveIssue,
+  leaveIssues,
+  type LeaveTypeRule,
+  quotaYear,
+} from './leave';
+export {
   CalendarListQuery,
   CalendarListResult,
   CalendarParams,
@@ -673,3 +684,17 @@ export {
   UserCalendarBody,
   UserCalendarResult,
 } from './schemas/attendance';
+export {
+  CreateLeaveRequestBody,
+  LEAVE_STATES,
+  LeaveBalance,
+  LeaveBalanceQuery,
+  LeaveBalanceResult,
+  LeaveRequestListQuery,
+  LeaveRequestListResult,
+  LeaveRequestResult,
+  LeaveState,
+  LeaveType,
+  LeaveTypeListResult,
+  LeaveTypesBody,
+} from './schemas/leave';
