@@ -202,6 +202,7 @@ export class UsersService {
       scope: access.scope,
       permissions: TENANT_PERMISSIONS.filter((permission) => access.permissions.has(permission)),
       deviceId: access.deviceId ?? null,
+      calendarKey: user.calendarKey,
     };
   }
 

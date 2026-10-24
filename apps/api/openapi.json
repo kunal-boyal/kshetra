@@ -7272,6 +7272,17 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "calendarKey": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Key"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -7284,7 +7295,8 @@
                     "role",
                     "scope",
                     "permissions",
-                    "deviceId"
+                    "deviceId",
+                    "calendarKey"
                   ],
                   "additionalProperties": false
                 }
