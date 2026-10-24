@@ -1,4 +1,11 @@
-export { formatDate, formatDateTime, formatMoney, formatNumber, localeTag } from './format';
+export {
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  formatMonth,
+  formatNumber,
+  localeTag,
+} from './format';
 export type { FormatContext } from './format';
 export type { MessageKey } from './messages/en';
 export { notificationMessage } from './notifications';
