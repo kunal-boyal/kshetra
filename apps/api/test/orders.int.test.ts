@@ -237,6 +237,25 @@ describe('orders (M10)', () => {
     expect(replay.json().id).toBe(body.id);
     const changed = await t.api.sme.post('/v1/orders', { ...body, note: 'Other' });
     expect(changed.json().error.code).toBe('IDEMPOTENCY_CONFLICT');
+
+    // The orders register (M18, D86): a row a line, priced as it was placed.
+    const period = new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 7);
+    const register = (await t.api.head.get(`/v1/reports/orders_register?period=${period}`)).json();
+    expect(register.rows).toEqual([
+      expect.objectContaining({
+        order: body.id,
+        line: 1,
+        item_code: 'NEEM',
+        quantity: 2,
+        price: 400,
+        rate: 360,
+        tax: 1555.2,
+        line_total: 10195.2,
+        line_decision: 'Waiting',
+        order_status: 'Waiting',
+      }),
+      expect.objectContaining({ order: body.id, line: 2, line_total: 3832.97 }),
+    ]);
   });
 
   it('FX-13: refuses an order whose quoted prices changed, naming each line', async () => {

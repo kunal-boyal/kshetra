@@ -608,6 +608,7 @@ export {
   REPORT_COLUMN_KINDS,
   REPORT_KEYS,
   REPORT_MODULE,
+  REPORT_PERMISSION,
   ReportCell,
   ReportColumn,
   ReportColumnKind,

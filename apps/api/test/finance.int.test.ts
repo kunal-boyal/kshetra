@@ -188,6 +188,23 @@ describe('account finance (M11)', () => {
       entries: [{ ...sale, id: newId(), debit: '10001' }],
     });
     expect(changed.json().error.details[0].issue).toContain('post a reversing entry');
+    // The account statement report (M18, D86): the month's entries, balances running from
+    // everything before them.
+    const april = await t.admin.get(`/v1/reports/account_statement?period=${year}-04`);
+    expect(april.statusCode, april.body).toBe(200);
+    expect(april.json().rows).toEqual([
+      expect.objectContaining({
+        account_code: t.code,
+        date: `${year}-04-10`,
+        reference: 'INV-1',
+        debit: 10000,
+        credit: 0,
+        balance: 11000,
+      }),
+    ]);
+    const may = (await t.admin.get(`/v1/reports/account_statement?period=${year}-05`)).json();
+    expect(may.rows).toEqual([expect.objectContaining({ reference: 'RCPT-1', balance: 8000 })]);
+
     const both = await t.admin.post('/v1/ledger-entries', {
       entries: [{ ...entry('X-1', `${year}-06-01`, 'debit', '5'), credit: '5' }],
     });

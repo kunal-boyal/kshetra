@@ -19,7 +19,7 @@ import {
   type StatementResult,
   todayIn,
 } from '@thelamp/shared';
-import { and, asc, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, lt, type SQL, sql } from 'drizzle-orm';
 import { financeSnapshots, ledgerEntries } from '../../db/schema/finance';
 import { type AuditActor, AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
@@ -285,6 +285,46 @@ export class FinanceService implements OnModuleInit {
    * before it, each entry with its running balance, at most 1,000 listed, and the closing
    * balance counting every entry of the year.
    */
+  /**
+   * The account statement report (M18): the entries of the accounts `accountIds` selects dated
+   * from `from` to `to`, by account and date, each with its account's running balance over
+   * every entry before it (BR-21), so a page later in the month still starts from the right one.
+   */
+  async statementRows(
+    tx: TenantTx,
+    tenantId: string,
+    accountIds: SQL,
+    from: string,
+    to: string,
+    offset: number,
+    limit: number,
+  ) {
+    const result = await tx.execute<{
+      id: string;
+      account_id: string;
+      date: string;
+      reference: string;
+      description: string | null;
+      debit: string;
+      credit: string;
+      balance: string;
+    }>(sql`
+      select id, account_id, date::text, reference, description, debit::text, credit::text,
+             balance::text
+        from (
+          select e.*, sum(e.debit - e.credit) over (
+                   partition by e.account_id order by e.date, e.created_at, e.id) as balance
+            from ${ledgerEntries} e
+           where e.tenant_id = ${tenantId}
+             and e.account_id::text in ${accountIds}
+             and e.date <= ${to}
+        ) statement
+       where date >= ${from}
+       order by account_id, date, created_at, id
+       offset ${offset} limit ${limit + 1}`);
+    return result.rows;
+  }
+
   async statement(
     tx: TenantTx,
     access: Access,

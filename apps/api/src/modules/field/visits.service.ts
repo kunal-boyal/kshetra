@@ -377,6 +377,42 @@ export class VisitsService {
       .orderBy(asc(visits.checkInAt));
   }
 
+  /**
+   * Coverage (M18): the visits people completed at accounts on the days from `from` to `to` on
+   * the tenant's clock, by person and account: how many, and the last day.
+   */
+  async completed(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    from: string,
+    to: string,
+    timezone: string,
+  ): Promise<Map<string, { visits: number; last: string }>> {
+    if (userIds.length === 0) return new Map();
+    const day = sql<string>`((${visits.checkInAt} at time zone ${timezone})::date)::text`;
+    const rows = await tx
+      .select({
+        userId: visits.userId,
+        accountId: visits.accountId,
+        visits: sql<number>`count(*)::int`,
+        last: sql<string>`max(${day})`,
+      })
+      .from(visits)
+      .where(
+        and(
+          eq(visits.tenantId, tenantId),
+          inArray(visits.userId, [...new Set(userIds)]),
+          sql`${visits.checkOutAt} is not null`,
+          sql`${day} between ${from} and ${to}`,
+        ),
+      )
+      .groupBy(visits.userId, visits.accountId);
+    return new Map(
+      rows.map((row) => [`${row.userId}|${row.accountId}`, { visits: row.visits, last: row.last }]),
+    );
+  }
+
   /** The accounts anyone checked in at between two moments, for the map's pins (M17). */
   async accountsVisited(
     tx: TenantTx,

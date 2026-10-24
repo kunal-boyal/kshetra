@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { TenantPermission } from '../access';
 import type { SwitchableModule } from '../modules';
 import { Key } from './config';
 import { Period } from './planning';
@@ -9,13 +10,19 @@ import { Period } from './planning';
  * what the screen shows.
  */
 
-/** The phase 1 reports (spec 15); the rest arrive with their modules. */
+/** The standard reports of M18 (decisions D62 and D86). */
 export const REPORT_KEYS = [
   'activity_log',
   'attendance_register',
   'target_achievement',
   'leave_register',
   'expense_register',
+  'visit_compliance',
+  'coverage_frequency',
+  'location_summary',
+  'orders_register',
+  'account_statement',
+  'audit_log',
 ] as const;
 export const ReportKey = z.enum(REPORT_KEYS).meta({ id: 'ReportKey' });
 
@@ -24,6 +31,15 @@ export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], Switcha
   attendance_register: 'leave_attendance',
   leave_register: 'leave_attendance',
   expense_register: 'expenses',
+  orders_register: 'orders',
+  account_statement: 'account_finance',
+};
+
+/** Reports that need a permission beyond `report.view`, as their records do elsewhere. */
+export const REPORT_PERMISSION: Partial<Record<(typeof REPORT_KEYS)[number], TenantPermission>> = {
+  orders_register: 'order.view',
+  account_statement: 'finance.view',
+  audit_log: 'audit.view',
 };
 
 /** What every report can be narrowed by (M18), within the caller's scope. */

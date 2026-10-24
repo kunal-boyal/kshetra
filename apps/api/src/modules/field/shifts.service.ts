@@ -15,7 +15,7 @@ import {
   type StartShiftBody,
 } from '@thelamp/shared';
 import { and, asc, desc, eq, inArray, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm';
-import { shiftPauses, shifts, userLastPosition } from '../../db/schema/field';
+import { shiftPauses, shifts, shiftTrails, userLastPosition } from '../../db/schema/field';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
@@ -487,6 +487,48 @@ export class ShiftsService {
    * Distance and pauses of some shifts, for the attendance register (M18): the distance the shift
    * kept when it ended, and its pauses, an open one counting until the shift ended or now.
    */
+  /**
+   * The location summary (M18): each shift of people among `people` that started from `from`
+   * to `to`, with its trail's points, kept points and gaps, by start, a page at a time.
+   */
+  async summaryRows(
+    tx: TenantTx,
+    tenantId: string,
+    people: SQL,
+    from: Date,
+    to: Date,
+    offset: number,
+    limit: number,
+  ) {
+    return tx
+      .select({
+        id: shifts.id,
+        userId: shifts.userId,
+        startedAt: shifts.startedAt,
+        endedAt: shifts.endedAt,
+        endReason: shifts.endReason,
+        onDutySeconds: shifts.onDutySeconds,
+        pointCount: shiftTrails.pointCount,
+        keptCount: shiftTrails.keptCount,
+        gaps: sql<number | null>`jsonb_array_length(${shiftTrails.gaps})`,
+      })
+      .from(shifts)
+      .leftJoin(
+        shiftTrails,
+        and(eq(shiftTrails.tenantId, shifts.tenantId), eq(shiftTrails.shiftId, shifts.id)),
+      )
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          sql`${shifts.userId} in (${people})`,
+          sql`${shifts.startedAt} >= ${from.toISOString()} and ${shifts.startedAt} < ${to.toISOString()}`,
+        ),
+      )
+      .orderBy(asc(shifts.startedAt), asc(shifts.id))
+      .offset(offset)
+      .limit(limit + 1);
+  }
+
   async reportFacts(
     tx: TenantTx,
     tenantId: string,

@@ -7,6 +7,7 @@ import type {
   ReportKey,
 } from '@thelamp/shared';
 import type { SQL } from 'drizzle-orm';
+import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 
 /** A column as a report declares it: a fixed heading from the catalogue, or a configured one. */
@@ -19,6 +20,8 @@ export interface ColumnSpec {
 /** What a report reads with: whose records, which month, and words in the reader's language. */
 export interface ReportContext {
   tenantId: string;
+  /** The caller, for reports of records reached otherwise than by person, such as accounts. */
+  access: Access;
   filters: ReportFilters;
   locale: Locale;
   timezone: string;

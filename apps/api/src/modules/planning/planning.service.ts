@@ -19,7 +19,7 @@ import {
   todayIn,
   type UpdateRouteBody,
 } from '@thelamp/shared';
-import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, lt, type SQL, sql } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { accounts } from '../../db/schema/accounts';
 import { planItems, planMonths, routeAccounts, routes } from '../../db/schema/planning';
@@ -544,6 +544,42 @@ export class PlanningService {
   }
 
   /** One person's plan items for a day, for plan compliance (spec 5.7). */
+  /**
+   * Visit compliance (M18): the plan items of people among `people` for the days from `from` to
+   * `to`, by day and person, a page at a time.
+   */
+  async complianceRows(
+    tx: TenantTx,
+    tenantId: string,
+    people: SQL,
+    from: string,
+    to: string,
+    offset: number,
+    limit: number,
+  ) {
+    return tx
+      .select({
+        id: planItems.id,
+        userId: planItems.userId,
+        accountId: planItems.accountId,
+        date: planItems.date,
+        purpose: planItems.purpose,
+        status: planItems.status,
+        source: planItems.source,
+      })
+      .from(planItems)
+      .where(
+        and(
+          eq(planItems.tenantId, tenantId),
+          sql`${planItems.userId} in (${people})`,
+          sql`${planItems.date} between ${from} and ${to}`,
+        ),
+      )
+      .orderBy(asc(planItems.date), asc(planItems.userId), asc(planItems.id))
+      .offset(offset)
+      .limit(limit + 1);
+  }
+
   async forMetrics(
     tx: TenantTx,
     tenantId: string,

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { type MessageKey, resolveTerminology, translate } from '@thelamp/i18n';
 import {
+  AppError,
   EXPORT_MAX_ROWS,
   type Locale,
   type ReportColumn,
@@ -9,6 +10,7 @@ import {
   type ReportPage,
   type ReportQuery,
   REPORT_MODULE,
+  REPORT_PERMISSION,
 } from '@thelamp/shared';
 import { type SQL, sql } from 'drizzle-orm';
 import { type Access, moduleDisabled } from '../../platform/auth';
@@ -22,6 +24,12 @@ import { ActivityLogReport } from './activity-log';
 import { AttendanceRegisterReport } from './attendance-register';
 import { ExpenseRegisterReport } from './expense-register';
 import { LeaveRegisterReport } from './leave-register';
+import { VisitComplianceReport } from './visit-compliance';
+import { CoverageFrequencyReport } from './coverage-frequency';
+import { LocationSummaryReport } from './location-summary';
+import { OrdersRegisterReport } from './orders-register';
+import { AccountStatementReport } from './account-statement';
+import { AuditLogReport } from './audit-log-report';
 import type { ReportContext, ReportRow, ReportSource } from './sources';
 import { TargetAchievementReport } from './target-achievement';
 
@@ -51,11 +59,27 @@ export class ReportsService {
     targetAchievement: TargetAchievementReport,
     leaveRegister: LeaveRegisterReport,
     expenseRegister: ExpenseRegisterReport,
+    visitCompliance: VisitComplianceReport,
+    coverageFrequency: CoverageFrequencyReport,
+    locationSummary: LocationSummaryReport,
+    ordersRegister: OrdersRegisterReport,
+    accountStatement: AccountStatementReport,
+    auditLog: AuditLogReport,
   ) {
     this.sources = new Map<ReportKey, ReportSource>(
-      [activityLog, attendanceRegister, targetAchievement, leaveRegister, expenseRegister].map(
-        (source) => [source.key, source],
-      ),
+      [
+        activityLog,
+        attendanceRegister,
+        targetAchievement,
+        leaveRegister,
+        expenseRegister,
+        visitCompliance,
+        coverageFrequency,
+        locationSummary,
+        ordersRegister,
+        accountStatement,
+        auditLog,
+      ].map((source) => [source.key, source]),
     );
   }
 
@@ -114,6 +138,7 @@ export class ReportsService {
     const terms = resolveTerminology(await this.config.terminology(tx, access.tenantId), locale);
     return {
       tenantId: access.tenantId,
+      access,
       filters,
       locale,
       timezone,
@@ -129,6 +154,10 @@ export class ReportsService {
   private source(access: Access, key: ReportKey): ReportSource {
     const module = REPORT_MODULE[key];
     if (module && access.modulesOff.includes(module)) throw moduleDisabled();
+    const permission = REPORT_PERMISSION[key];
+    if (permission && !access.permissions.has(permission)) {
+      throw new AppError('FORBIDDEN', 'You may not see this report.');
+    }
     return this.sources.get(key)!;
   }
 
