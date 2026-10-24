@@ -72,3 +72,14 @@ jobs:
         env:
           WEB_BUCKET: ${{ vars.WEB_BUCKET }}
           WEB_DISTRIBUTION_ID: ${{ vars.WEB_DISTRIBUTION_ID }}
+      # The platform console, once the environment has its domain (decision D88).
+      - name: Build the platform console
+        if: vars.CONSOLE_BUCKET != ''
+        run: pnpm --filter @thelamp/console build
+      - name: Publish the platform console
+        if: vars.CONSOLE_BUCKET != ''
+        run: infra/scripts/publish-web.sh
+        env:
+          DIST: apps/console/dist
+          WEB_BUCKET: ${{ vars.CONSOLE_BUCKET }}
+          WEB_DISTRIBUTION_ID: ${{ vars.CONSOLE_DISTRIBUTION_ID }}

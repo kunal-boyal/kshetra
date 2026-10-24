@@ -35,7 +35,7 @@ resource "aws_acm_certificate" "api" {
 resource "aws_acm_certificate" "edge" {
   provider                  = aws.us_east_1
   domain_name               = var.web_domain
-  subject_alternative_names = var.media_domain == null ? [] : [var.media_domain]
+  subject_alternative_names = compact([var.media_domain, var.console_domain])
   validation_method         = "DNS"
   tags                      = local.tags
   lifecycle {
@@ -90,6 +90,7 @@ module "cell" {
   api_domain                   = var.api_domain
   certificate_arn              = aws_acm_certificate_validation.api.certificate_arn
   media_domain                 = var.media_domain
+  console_url                  = var.console_domain == null ? null : "https://${var.console_domain}"
   media_domain_certificate_arn = var.media_domain == null ? null : aws_acm_certificate_validation.edge.certificate_arn
   media_public_key_pem         = var.media_public_key_pem
   db_instance_class            = var.cell.db_instance_class
@@ -104,6 +105,7 @@ module "cell" {
     "DATABASE_URL",
     "DIRECTORY_DATABASE_URL",
     "OTP_PEPPER",
+    "COLUMN_KEY",
     "JWT_SIGNING_KEY",
     "CLOUDFRONT_PRIVATE_KEY",
     "MSG91_AUTH_KEY",
@@ -122,18 +124,32 @@ module "web" {
   tags            = local.tags
 }
 
+# The platform console (decision D88): the same kind of site, passing /platform to the cell.
+module "console" {
+  count           = var.console_domain == null ? 0 : 1
+  source          = "../web"
+  name            = "${var.name}-console"
+  domain          = var.console_domain
+  certificate_arn = aws_acm_certificate_validation.edge.certificate_arn
+  api_domain      = var.api_domain
+  api_paths       = ["/platform/*"]
+  tags            = local.tags
+}
+
 module "deploy" {
-  source               = "../github-deploy"
-  name                 = "${var.name}-deploy"
-  repository           = var.repository
-  github_environment   = var.github_environment
-  create_oidc_provider = var.create_oidc_provider
-  ecr_repository_arn   = module.ecr.repository_arn
-  cluster_arn          = module.cell.cluster_arn
-  task_role_arns       = module.cell.task_role_arns
-  web_bucket_arn       = module.web.bucket_arn
-  web_distribution_arn = module.web.distribution_arn
-  tags                 = local.tags
+  source                   = "../github-deploy"
+  name                     = "${var.name}-deploy"
+  repository               = var.repository
+  github_environment       = var.github_environment
+  create_oidc_provider     = var.create_oidc_provider
+  ecr_repository_arn       = module.ecr.repository_arn
+  cluster_arn              = module.cell.cluster_arn
+  task_role_arns           = module.cell.task_role_arns
+  web_bucket_arn           = module.web.bucket_arn
+  web_distribution_arn     = module.web.distribution_arn
+  console_bucket_arn       = one(module.console[*].bucket_arn)
+  console_distribution_arn = one(module.console[*].distribution_arn)
+  tags                     = local.tags
 }
 
 # Where the domains point, when Route 53 holds them.
@@ -156,6 +172,15 @@ resource "aws_route53_record" "web" {
   type    = "CNAME"
   ttl     = 300
   records = [module.web.distribution_domain]
+}
+
+resource "aws_route53_record" "console" {
+  count   = var.route53_zone_id != null && var.console_domain != null ? 1 : 0
+  zone_id = var.route53_zone_id
+  name    = var.console_domain
+  type    = "CNAME"
+  ttl     = 300
+  records = [module.console[0].distribution_domain]
 }
 
 resource "aws_route53_record" "media" {

@@ -5,10 +5,10 @@ Terraform for the cells (spec 14.2, decision D67). Nothing here is applied by CI
 | Path | What it is |
 |---|---|
 | `environments/staging`, `environments/production` | One environment each, in its own AWS account, with its state in that account's S3 bucket |
-| `modules/environment` | Everything one environment holds: network, image repository, certificates, the cell, the web portal and the deploy role |
+| `modules/environment` | Everything one environment holds: network, image repository, certificates, the cell, the web portal, the platform console when it has a domain, and the deploy role |
 | `modules/network` | A VPC across two zones: public, private and database subnets, NAT and an S3 endpoint |
 | `modules/cell` | The load balancer with WAF, ECS services, PostgreSQL, Valkey, media storage behind CloudFront, logs and alarms |
-| `modules/web` | The web portal's bucket and CloudFront, which also passes `/v1` and `/auth` to the cell |
+| `modules/web` | A single-page app's bucket and CloudFront, which also passes its API paths to the cell: `/v1` and `/auth` for the web portal, `/platform` for the console |
 | `modules/ecr` | The image repository: immutable tags, scanned on push |
 | `modules/github-deploy` | The role GitHub Actions takes by OIDC, for the main branch's deploys only |
 | `scripts/deploy-cell.sh`, `scripts/publish-web.sh` | What the Deploy workflow runs, usable by hand for a rollback |

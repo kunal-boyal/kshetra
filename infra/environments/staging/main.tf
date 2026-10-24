@@ -40,6 +40,11 @@ variable "web_domain" {
   type = string
 }
 
+variable "console_domain" {
+  type    = string
+  default = null
+}
+
 variable "media_domain" {
   type    = string
   default = null
@@ -77,6 +82,7 @@ module "environment" {
   api_domain           = var.api_domain
   web_domain           = var.web_domain
   media_domain         = var.media_domain
+  console_domain       = var.console_domain
   route53_zone_id      = var.route53_zone_id
   media_public_key_pem = var.media_public_key_pem
   alarm_email          = var.alarm_email

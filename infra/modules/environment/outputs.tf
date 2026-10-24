@@ -10,6 +10,9 @@ output "github_variables" {
     TASK_SECURITY_GROUP = module.cell.task_security_group_id
     WEB_BUCKET          = module.web.bucket
     WEB_DISTRIBUTION_ID = module.web.distribution_id
+    # Empty until the console has a domain (decision D88); the deploy then leaves it out.
+    CONSOLE_BUCKET          = one(module.console[*].bucket) == null ? "" : one(module.console[*].bucket)
+    CONSOLE_DISTRIBUTION_ID = one(module.console[*].distribution_id) == null ? "" : one(module.console[*].distribution_id)
   }
 }
 
@@ -24,6 +27,7 @@ output "dns_records" {
       { (var.api_domain) = "CNAME ${module.cell.load_balancer_dns_name}" },
       { (var.web_domain) = "CNAME ${module.web.distribution_domain}" },
       var.media_domain == null ? {} : { (var.media_domain) = "CNAME ${module.cell.media_distribution_domain}" },
+      var.console_domain == null ? {} : { (var.console_domain) = "CNAME ${module.console[0].distribution_domain}" },
     )
   }
 }

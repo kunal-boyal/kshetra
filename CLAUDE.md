@@ -16,7 +16,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm typecheck`, `pnpm lint`, `pnpm test` | static checks and unit tests, through Turborepo | now |
 | `pnpm format`, `pnpm format:check` | Prettier | now |
 | `docker compose up -d` | starts the local services | now |
-| `pnpm dev` | runs the API on http://127.0.0.1:3000 with its worker and scheduler, the web portal on http://127.0.0.1:5173 (which passes `/auth` and `/v1` through to the API), and the field app's Expo dev server | now |
+| `pnpm dev` | runs the API on http://127.0.0.1:3000 with its worker and scheduler, the web portal on http://127.0.0.1:5173 (which passes `/auth` and `/v1` through to the API), the platform console on http://127.0.0.1:5174 (which passes `/platform` through), and the field app's Expo dev server | now |
 | `pnpm --filter @thelamp/mobile go` | serves the field app to Expo Go on a phone on the same Wi-Fi; run the API with `HOST=0.0.0.0 pnpm dev`, or set `HOST` in `.env`. Turborepo passes only the variables `turbo.json` lists to a task (`HOST` and `CORS_ORIGINS` for `dev`), so add any other you need there | now |
 | `pnpm --filter @thelamp/api load:fixtures --users N` then `k6 run tools/k6/<script>.js` | load tests against the local API (decision D68, `tools/k6/README.md`); make new fixtures before each run | now |
 | `pnpm --filter @thelamp/api e2e:fixtures` then `apps/mobile/.maestro/run.sh <apk>` | the field app's Maestro flows on an emulator (decision D68, `apps/mobile/.maestro/README.md`) | now |
@@ -119,6 +119,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - The console's API is `apps/api/src/modules/console`, at `/platform/v1`. Vendor staff are `directory.platform_users`, not tenant users; their roles' permissions are `PLATFORM_ROLE_PERMISSIONS` in `@thelamp/shared`. Console routes declare `@ForStaff(...)` with platform permissions and read the caller with `@CurrentStaff()`; their tokens are for the platform audience, so tenant routes refuse them and console routes refuse tenant tokens.
 - Staff sign in with email, password (scrypt, `passwords.ts`) and a TOTP code (`totp.ts`, RFC 6238); the first admin is invited with `pnpm invite-staff`. Secrets kept in columns are sealed with `ColumnCipher` (`src/platform/column-cipher.ts`) under `COLUMN_KEY`, naming the column and row.
 - Every console change writes `PlatformAudit.record()` in its transaction. Tenants are created through `TenantProvisioner` with the console's own tenant ID.
+- The console app is `apps/console`, built like the portal (`@thelamp/ui-web`, strings in English and Hindi, a Vitest test per screen and Playwright with axe). It calls the API only through `createConsoleClient` from `@thelamp/api-client`. In AWS it is the web module again at an environment's `console_domain`, passing `/platform/*` to the cell.
 
 ## Configuration bundle and text (decision D31)
 

@@ -11,7 +11,7 @@ Merging to `main` runs CI; when CI passes, the Deploy workflow rolls the commit 
 3. runs the migration task, and stops if it exits with anything but 0 ([failed migration](failed-migration.md));
 4. moves the API, worker and scheduler onto the new revisions and waits until they are stable; the circuit breaker rolls a service back by itself if its new tasks keep failing;
 5. watches the cell's alarms for 15 minutes, and fails if any fires ([rollback](rollback.md));
-6. builds the web portal and publishes it to its bucket, then invalidates CloudFront.
+6. builds the web portal and publishes it to its bucket, then invalidates CloudFront; and the same for the platform console when the environment has a `console_domain` (decision D88).
 
 To deploy by hand, run the Deploy workflow from GitHub's Actions tab with a commit, and choose staging or production.
 
@@ -75,7 +75,7 @@ Settings that aren't secret, such as `MSG91_OTP_TEMPLATE_ID`, `MSG91_SENDER`, `M
 
 ### 3. GitHub
 
-In the repository's settings, create the GitHub environment (`staging` or `production`), and add as its variables the values of `terraform output github_variables`, plus `VITE_GOOGLE_MAPS_API_KEY`, the web's Maps key. Give `production` required reviewers. Then set the repository variable `DEPLOY_ENABLED` to `true`.
+In the repository's settings, create the GitHub environment (`staging` or `production`), and add as its variables the values of `terraform output github_variables`, plus `VITE_GOOGLE_MAPS_API_KEY`, the web's Maps key. `CONSOLE_BUCKET` and `CONSOLE_DISTRIBUTION_ID` are empty until `console_domain` is set in `terraform.tfvars`; the deploy publishes the console once they aren't. Invite the first platform admin with a one-off task of the image running `node dist/invite-staff.mjs --email … --name …`. Give `production` required reviewers. Then set the repository variable `DEPLOY_ENABLED` to `true`.
 
 ### 4. The first deploy, and the database's roles
 
