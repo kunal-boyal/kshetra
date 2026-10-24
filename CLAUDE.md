@@ -267,6 +267,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Calendars and holidays are `CalendarsService` in `apps/api/src/modules/field`; a person's calendar is `users.calendar_key` (null keeps the default), read through `People.employment()` and `CalendarsService.forPeople()`. Optional holidays never take a day off.
 - Leave reaches attendance only through the `AttendanceLeave` seam: the leave module calls `provide()` with its approved days.
 - Regularisations are `RegularisationsService`, the `regularisation` request type: one waiting or approved request a person a day. Only an approved one changes the day.
+- On the phone, `/attendance` (`src/screens/attendance.tsx`) reads the month with `useMyAttendance()`, kept offline, and asks to fix a day with `queueFix()` (outbox kind `regularisation.create`); `fixable()` in `apps/mobile/src/attendance.ts` says which days may be asked about.
 
 ## Tenant administration (decision D64)
 

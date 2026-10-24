@@ -1,6 +1,6 @@
 import { ERROR_HTTP_STATUS, type ErrorCode, LOCALES } from '@thelamp/shared';
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, formatMoney, formatNumber } from './format';
+import { formatDate, formatDateTime, formatMoney, formatMonth, formatNumber } from './format';
 import { en, type MessageKey } from './messages/en';
 import { resolveTerminology, TERMINOLOGY_DEFAULTS } from './terminology';
 import { createTranslator, MESSAGES, placeholders, translate, pluralForm } from './translate';
@@ -128,6 +128,8 @@ describe('formatting (spec 8.5)', () => {
 
   it("shows dates as they are and times in the tenant's timezone", () => {
     expect(formatDate('2026-10-05', { locale: 'en' })).toBe('5 Oct 2026');
+    expect(formatMonth('2026-10', { locale: 'en' })).toBe('October 2026');
+    expect(formatMonth('2026-10', { locale: 'hi' })).toBe('अक्टूबर 2026');
     expect(formatDateTime('2026-10-05T20:00:00Z', { locale: 'en', timeZone: 'Asia/Kolkata' })).toBe(
       '6 Oct 2026, 1:30 am',
     );

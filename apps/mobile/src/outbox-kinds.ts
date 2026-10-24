@@ -5,6 +5,7 @@ import {
   type CheckOutBody,
   type CreateAccountBody,
   type CreatePlanItemBody,
+  type CreateRegularisationBody,
   type CreateSubmissionBody,
   type CreateLocationProposalBody,
   OrderResult,
@@ -12,6 +13,7 @@ import {
   type EndShiftBody,
   LocationProposalResult,
   PlanItemResult,
+  RegularisationResult,
   type PauseShiftBody,
   type ResumeShiftBody,
   ShiftResult,
@@ -115,6 +117,14 @@ export function senders(
         });
       },
     },
+    // Fixing a day (M13): the server applies a request sent twice once.
+    'regularisation.create': {
+      async send(payload) {
+        await client.request('POST', '/v1/regularisations', RegularisationResult, {
+          body: payload as CreateRegularisationBody,
+        });
+      },
+    },
     'account.location': {
       async send(payload) {
         const { accountId, ...body } = payload as LocationProposalPayload;
@@ -142,6 +152,7 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'submission.create': 'uploads.kind_submission',
   'plan_item.create': 'uploads.kind_plan_item',
   'order.place': 'uploads.kind_order',
+  'regularisation.create': 'uploads.kind_regularisation',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;

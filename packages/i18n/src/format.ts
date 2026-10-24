@@ -45,6 +45,15 @@ export function formatDate(date: string, { locale, region }: FormatContext): str
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
+/** A month (`YYYY-MM`), such as a period of attendance. */
+export function formatMonth(period: string, { locale, region }: FormatContext): string {
+  return new Intl.DateTimeFormat(localeTag(locale, region), {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${period}-01T00:00:00Z`));
+}
+
 /** A moment in time, shown in the tenant's timezone. */
 export function formatDateTime(
   instant: Date | string,

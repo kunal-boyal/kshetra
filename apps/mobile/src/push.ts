@@ -26,7 +26,14 @@ Notifications.setNotificationHandler({
 });
 
 /** The paths the app can open from a notification; anything else opens the inbox. */
-const APP_PATHS = new Set(['/', '/notifications', '/leaderboard', '/uploads', '/team']);
+const APP_PATHS = new Set([
+  '/',
+  '/notifications',
+  '/leaderboard',
+  '/uploads',
+  '/team',
+  '/attendance',
+]);
 /** The portal's paths that have a home on the phone: approvals wait in the Team tab. */
 const PHONE_PATHS: Record<string, string> = { '/approvals': '/team' };
 
