@@ -5,6 +5,7 @@ import {
   type ExportStatus,
   REPORT_KEYS,
   REPORT_MODULE,
+  REPORT_PERMISSION,
   type ReportCell,
   type ReportColumn,
   type ReportFilters,
@@ -151,11 +152,13 @@ export function ReportsPage() {
   const rows = pages.flatMap((entry) => entry.rows);
   const cell = useCell();
   const canExport = access.can('export.create');
-  // A report of a switched-off module isn't offered (spec 5.13).
+  // A report of a switched-off module isn't offered (spec 5.13), nor one whose records the
+  // person may not see elsewhere, such as the audit log.
   const off = bundle?.settings.modulesOff ?? [];
   const offered = REPORT_KEYS.filter((key) => {
     const module = REPORT_MODULE[key];
-    return !module || !off.includes(module);
+    const permission = REPORT_PERMISSION[key];
+    return (!module || !off.includes(module)) && (!permission || access.can(permission));
   });
   const personOptions = (people.data?.pages.flatMap((entry) => entry.items) ?? []).map(
     (person) => ({ value: person.id, label: `${person.name} (${person.code})` }),

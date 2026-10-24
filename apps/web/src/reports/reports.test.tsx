@@ -58,6 +58,13 @@ describe('reports (M18)', () => {
     expect(within(table).getByRole('columnheader', { name: 'Hours' })).toBeVisible();
     expect(within(table).getByRole('row', { name: /Asha Rao/ })).toHaveTextContent('8.5');
     expect(screen.getByRole('button', { name: 'Load more' })).toBeVisible();
+    // Reports whose records the reader may not see elsewhere aren't offered (D86).
+    const offered = within(screen.getByRole('combobox', { name: 'Report' }))
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(offered).toEqual(expect.arrayContaining(['Visit compliance', 'Location summary']));
+    expect(offered).not.toContain('Audit log');
+    expect(offered.some((name) => name?.endsWith('statement'))).toBe(false);
     // Field users can't export; this reader can't either.
     expect(screen.queryByRole('button', { name: 'Download as Excel' })).toBeNull();
 

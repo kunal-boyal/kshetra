@@ -1,5 +1,10 @@
 import { Module } from '@nestjs/common';
 import { LeaveModule } from '../leave/leave.module';
+import { AccountsModule } from '../accounts/accounts.module';
+import { AuditModule } from '../audit/audit.module';
+import { FinanceModule } from '../finance/finance.module';
+import { OrdersModule } from '../orders/orders.module';
+import { PlanningModule } from '../planning/planning.module';
 import { ExpensesModule } from '../expenses/expenses.module';
 import { FieldModule } from '../field/field.module';
 import { FormsModule } from '../forms/forms.module';
@@ -14,6 +19,12 @@ import { ActivityLogReport } from './activity-log';
 import { AttendanceRegisterReport } from './attendance-register';
 import { ExpenseRegisterReport } from './expense-register';
 import { LeaveRegisterReport } from './leave-register';
+import { VisitComplianceReport } from './visit-compliance';
+import { CoverageFrequencyReport } from './coverage-frequency';
+import { LocationSummaryReport } from './location-summary';
+import { OrdersRegisterReport } from './orders-register';
+import { AccountStatementReport } from './account-statement';
+import { AuditLogReport } from './audit-log-report';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
 import { ReportsController } from './reports.controller';
@@ -29,6 +40,11 @@ import { TargetAchievementReport } from './target-achievement';
     IamModule,
     FieldModule,
     LeaveModule,
+    AccountsModule,
+    AuditModule,
+    FinanceModule,
+    OrdersModule,
+    PlanningModule,
     ExpensesModule,
     FormsModule,
     PerformanceModule,
@@ -48,6 +64,12 @@ import { TargetAchievementReport } from './target-achievement';
     TargetAchievementReport,
     LeaveRegisterReport,
     ExpenseRegisterReport,
+    VisitComplianceReport,
+    CoverageFrequencyReport,
+    LocationSummaryReport,
+    OrdersRegisterReport,
+    AccountStatementReport,
+    AuditLogReport,
   ],
 })
 export class ReportsModule {}

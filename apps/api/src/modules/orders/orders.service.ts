@@ -800,6 +800,57 @@ export class OrdersService {
    * the metric engine (spec 12.5, decision D78). Values belong to the person who placed the order
    * and the day it was placed (BR-03).
    */
+  /**
+   * The orders register (M18): one row per line of the orders people among `people` placed from
+   * `from` to `to`, with the order, by placing, a page at a time.
+   */
+  async registerRows(
+    tx: TenantTx,
+    tenantId: string,
+    people: SQL,
+    from: Date,
+    to: Date,
+    offset: number,
+    limit: number,
+  ) {
+    return tx
+      .select({
+        orderId: orders.id,
+        placedAt: orders.placedAt,
+        userId: orders.userId,
+        accountId: orders.accountId,
+        orderStatus: orders.status,
+        position: orderLines.position,
+        snapshot: orderLines.snapshot,
+        unitKey: orderLines.unitKey,
+        quantity: orderLines.quantity,
+        price: orderLines.price,
+        discount: orderLines.discount,
+        rate: orderLines.rate,
+        taxRate: orderLines.taxRate,
+        taxable: orderLines.taxable,
+        tax: orderLines.tax,
+        total: orderLines.total,
+        decision: orderLines.decision,
+        decisionReason: orderLines.decisionReason,
+      })
+      .from(orderLines)
+      .innerJoin(
+        orders,
+        and(eq(orders.tenantId, orderLines.tenantId), eq(orders.id, orderLines.orderId)),
+      )
+      .where(
+        and(
+          eq(orderLines.tenantId, tenantId),
+          sql`${orders.userId} in (${people})`,
+          sql`${orders.placedAt} >= ${from.toISOString()} and ${orders.placedAt} < ${to.toISOString()}`,
+        ),
+      )
+      .orderBy(asc(orders.placedAt), asc(orders.id), asc(orderLines.position))
+      .offset(offset)
+      .limit(limit + 1);
+  }
+
   async forMetrics(
     tx: TenantTx,
     tenantId: string,

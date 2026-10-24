@@ -1039,6 +1039,66 @@ export class AccountsService {
     return new Map(rows.map((row) => [row.id, row]));
   }
 
+  /** Accounts by ID as reports show them: code, name, type and segments. */
+  async forReport(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, { code: string; name: string; typeKey: string; segments: string[] }>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select({
+        id: accounts.id,
+        code: accounts.code,
+        name: accounts.name,
+        typeKey: accountTypes.key,
+        segments: accounts.segments,
+      })
+      .from(accounts)
+      .innerJoin(
+        accountTypes,
+        and(eq(accountTypes.tenantId, accounts.tenantId), eq(accountTypes.id, accounts.typeId)),
+      )
+      .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, [...new Set(ids)])));
+    return new Map(rows.map(({ id, ...row }) => [id, row]));
+  }
+
+  /**
+   * Coverage (M18): each account a person among `people` fills a slot of on a day, by person
+   * and account code, a page at a time.
+   */
+  async slotsHeld(
+    tx: TenantTx,
+    tenantId: string,
+    people: SQL,
+    day: string,
+    offset: number,
+    limit: number,
+  ): Promise<{ userId: string; accountId: string }[]> {
+    return tx
+      .selectDistinct({
+        userId: accountSlots.userId,
+        accountId: accountSlots.accountId,
+        code: accounts.code,
+      })
+      .from(accountSlots)
+      .innerJoin(
+        accounts,
+        and(eq(accounts.tenantId, accountSlots.tenantId), eq(accounts.id, accountSlots.accountId)),
+      )
+      .where(
+        and(
+          eq(accountSlots.tenantId, tenantId),
+          sql`${accountSlots.userId} in (${people})`,
+          lte(accountSlots.validFrom, day),
+          or(isNull(accountSlots.validTo), gt(accountSlots.validTo, day)),
+        ),
+      )
+      .orderBy(asc(accountSlots.userId), asc(accounts.code), asc(accountSlots.accountId))
+      .offset(offset)
+      .limit(limit + 1);
+  }
+
   /** Which of `ids` are the tenant's accounts, whoever sees them. */
   async existing(tx: TenantTx, tenantId: string, ids: readonly string[]): Promise<Set<string>> {
     if (ids.length === 0) return new Set();

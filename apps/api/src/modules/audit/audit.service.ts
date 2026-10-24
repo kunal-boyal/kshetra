@@ -68,6 +68,43 @@ export class AuditService {
   }
 
   /**
+   * The audit log report (M18): what people among `people` changed from `from` to `to`,
+   * oldest first, a page at a time.
+   */
+  async reportRows(
+    tx: TenantTx,
+    tenantId: string,
+    people: SQL,
+    from: Date,
+    to: Date,
+    offset: number,
+    limit: number,
+  ) {
+    return tx
+      .select({
+        id: auditLog.id,
+        actorId: auditLog.actorId,
+        action: auditLog.action,
+        targetType: auditLog.targetType,
+        targetId: auditLog.targetId,
+        ip: auditLog.ip,
+        createdAt: auditLog.createdAt,
+      })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.tenantId, tenantId),
+          sql`${auditLog.actorId} in (${people})`,
+          gte(auditLog.createdAt, from),
+          lt(auditLog.createdAt, to),
+        ),
+      )
+      .orderBy(auditLog.createdAt, auditLog.id)
+      .offset(offset)
+      .limit(limit + 1);
+  }
+
+  /**
    * What changed about one person, whoever changed it (spec 8.2, user detail): for anyone who may
    * view users and reaches this one.
    */

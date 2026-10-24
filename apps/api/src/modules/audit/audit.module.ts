@@ -12,5 +12,6 @@ import { UserHistoryController } from './user-history.controller';
   imports: [IamModule],
   controllers: [AuditController, UserHistoryController],
   providers: [AuditService],
+  exports: [AuditService],
 })
 export class AuditModule {}

@@ -26802,7 +26802,13 @@
           "attendance_register",
           "target_achievement",
           "leave_register",
-          "expense_register"
+          "expense_register",
+          "visit_compliance",
+          "coverage_frequency",
+          "location_summary",
+          "orders_register",
+          "account_statement",
+          "audit_log"
         ]
       },
       "ReportPage": {
