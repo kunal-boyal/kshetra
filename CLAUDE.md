@@ -282,6 +282,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - A request type that must hold an approving decision answers it in `approvable()` on its `RequestTypes` registration; the approvals engine asks before every approval, bulk included.
 - Receipts and odometer photos are media owned by their claim (`expense_claim`); read them with `PhotosService.ownedBy()`. Duplicates come from the media pipeline's `duplicate_of_id` (BR-40) and are flagged, never blocked.
 - `ExpensePolicy` is `@thelamp/shared`'s; templates re-export it.
+- On the phone, `/expenses` and `/expenses/new` read through the kept hooks in `apps/mobile/src/expenses.ts`, preview a claim with `previewClaim()`, and queue claims (`expense_claim.create`) and receipts for a waiting claim (`expense_claim.receipts`).
 
 ## Tenant administration (decision D64)
 

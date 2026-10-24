@@ -7,6 +7,7 @@ import {
   CalendarX,
   CloudUpload,
   LogOut,
+  ReceiptText,
   Repeat,
 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -25,8 +26,8 @@ import { useShift } from './shift';
  * Me (spec 8.1). For now it holds what the More screen will: the profile, the tenant switcher,
  * language, display, the upload queue and sign-out, which warns about unsent records and about
  * recording stopping on duty.
- * Attendance opens the month calendar and Leave the balances and requests (M13); expenses and
- * requests arrive with their modules.
+ * Attendance opens the month calendar, Leave the balances and requests (M13), and Expenses the
+ * claims (M12); requests arrive with their module.
  */
 export function MeScreen() {
   const { client, queryClient, session, sync } = useApp();
@@ -44,7 +45,9 @@ export function MeScreen() {
   const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
   const permissions = new Set<string>(config.data?.bundle.access.permissions ?? []);
   // Leave is a module of its own (D64): switched off, it hides.
-  const leaveOn = !(config.data?.bundle.settings.modulesOff ?? []).includes('leave_attendance');
+  const modulesOff = config.data?.bundle.settings.modulesOff ?? [];
+  const leaveOn = !modulesOff.includes('leave_attendance');
+  const expensesOn = !modulesOff.includes('expenses');
   const designation = config.data?.bundle.designations.find(
     (entry) => entry.key === me.data?.designation,
   );
@@ -129,6 +132,14 @@ export function MeScreen() {
               label={t('leave.title')}
               detail={t('leave.me_detail')}
               onPress={() => router.push('/leave')}
+            />
+          ) : null}
+          {expensesOn && permissions.has('expense.claim') ? (
+            <ListRow
+              icon={ReceiptText}
+              label={t('claims.title')}
+              detail={t('claims.me_detail')}
+              onPress={() => router.push('/expenses')}
             />
           ) : null}
         </ListGroup>

@@ -4,6 +4,7 @@ import {
   AccountResult,
   type CheckOutBody,
   type CreateAccountBody,
+  type CreateExpenseClaimBody,
   type CreateLeaveRequestBody,
   type CreatePlanItemBody,
   type CreateRegularisationBody,
@@ -12,6 +13,7 @@ import {
   OrderResult,
   type PlaceOrderBody,
   type EndShiftBody,
+  ExpenseClaimResult,
   LeaveRequestResult,
   LocationProposalResult,
   PlanItemResult,
@@ -25,6 +27,7 @@ import {
   VisitResult,
 } from '@thelamp/shared';
 import type { MobileClient } from './client';
+import type { ReceiptsPayload } from './expenses';
 import { photoSender } from './photos';
 
 /** A proposed location, with the account it is for. */
@@ -135,6 +138,23 @@ export function senders(
         });
       },
     },
+    // Expenses (M12): a claim after its photos; receipts for a sent claim after theirs.
+    'expense_claim.create': {
+      async send(payload) {
+        await client.request('POST', '/v1/expense-claims', ExpenseClaimResult, {
+          body: payload as CreateExpenseClaimBody,
+        });
+      },
+    },
+    'expense_claim.receipts': {
+      async send(payload, item) {
+        const { claimId, mediaIds } = payload as ReceiptsPayload;
+        await client.request('POST', `/v1/expense-claims/${claimId}/receipts`, ExpenseClaimResult, {
+          body: { mediaIds },
+          idempotencyKey: item.id,
+        });
+      },
+    },
     'account.location': {
       async send(payload) {
         const { accountId, ...body } = payload as LocationProposalPayload;
@@ -164,6 +184,8 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'order.place': 'uploads.kind_order',
   'regularisation.create': 'uploads.kind_regularisation',
   'leave_request.create': 'uploads.kind_leave',
+  'expense_claim.create': 'uploads.kind_expense_claim',
+  'expense_claim.receipts': 'uploads.kind_expense_receipts',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;
