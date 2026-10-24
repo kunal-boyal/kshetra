@@ -16,6 +16,7 @@
     "demo:content": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/demo-content.mjs",
     "db:generate": "drizzle-kit generate",
     "provision": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/provision.mjs",
+    "invite-staff": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/invite-staff.mjs",
     "openapi": "tsdown --log-level warn && node dist/openapi.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

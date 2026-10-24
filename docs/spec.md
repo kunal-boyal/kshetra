@@ -2103,7 +2103,7 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | People operations | `leave.request`, `regularisation.request`, `expense.claim`, `approval.act`, `calendar.manage`, `leave_type.manage`, `expense_policy.manage`, `expense.mark_paid`, `payroll.manage`, `payslip.view` |
 | Data | `report.view`, `export.create`, `import.run`, `audit.view` |
 | Integrations and billing | `api_client.manage`, `webhook.manage`, `billing.manage` |
-| Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.flags.manage`, `platform.billing.manage` |
+| Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.flags.manage`, `platform.billing.manage`, `platform.staff.manage` (inviting and disabling vendor staff, decision D88) |
 
 ## Appendix F. Environment variables
 
@@ -2118,7 +2118,8 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `REDIS_URL` | TLS URL in cloud environments |
 | `OUTBOX_RELAY`, `OUTBOX_POLL_MS`, `SCHEDULER_TICK_MS` | Whether a process runs the outbox relay (the worker does by default) and how often it polls; how often the scheduler looks for tenants' scheduled moments |
 | `SYNC_EPOCH` | Carried by every sync cursor; raising it after the cell's database is restored or moved makes every phone take a full copy (decision D40) |
-| `JWT_SIGNING_KEY` (directory), `JWKS_URL` (cells), `OTP_PEPPER`, `COLUMN_ENCRYPTION_KEY_ID` | Token signing and verification, OTP hashing, KMS key for encrypted columns |
+| `JWT_SIGNING_KEY` (directory), `JWKS_URL` (cells), `OTP_PEPPER`, `COLUMN_KEY` | Token signing and verification, OTP hashing, the AES-256 key for encrypted columns, kept in Secrets Manager under KMS (decision D88) |
+| `CONSOLE_URL` | Where the platform console runs, for vendor staff's setup links (decision D88) |
 | `OBJECT_STORE`, `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `CLOUDFRONT_DOMAIN`, `CLOUDFRONT_KEY_ID`, `CLOUDFRONT_PRIVATE_KEY` | Media storage and signed reads. `OBJECT_STORE` is `s3`, or `memory` in tests only. The endpoint and keys are MinIO's locally; in AWS they stay unset, and the task's role signs requests (decision D42). |
 | `OTP_PROVIDER`, `SMS_PROVIDER`, `SMS_API_KEY`, `SMS_TEMPLATE_IDS` | OTP and SMS; `console` is allowed only locally |
 | `WHATSAPP_PROVIDER`, `WHATSAPP_API_KEY`, `WHATSAPP_SENDER_ID` | WhatsApp templates |

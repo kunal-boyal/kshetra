@@ -63,6 +63,16 @@ export class DirectoryHealth {
     DirectoryMembers,
     DirectoryTenants,
   ],
-  exports: [TokenKeys, DirectoryHealth, OtpSender, DirectoryMembers, DirectoryTenants],
+  // The console module reaches the directory schema too (decision D88): its staff and audit live
+  // there, and it signs its staff's tokens with the directory's key.
+  exports: [
+    TokenKeys,
+    DirectoryHealth,
+    OtpSender,
+    DirectoryMembers,
+    DirectoryTenants,
+    DirectoryDatabase,
+    SigningKey,
+  ],
 })
 export class DirectoryModule {}

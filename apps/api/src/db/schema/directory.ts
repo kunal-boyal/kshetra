@@ -1,6 +1,16 @@
-import { TENANT_STATUSES } from '@thelamp/shared';
+import { PLATFORM_ROLES, TENANT_STATUSES } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
-import { boolean, index, integer, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { directory } from './common';
 
 /**
@@ -54,6 +64,8 @@ export const tenants = directory.table('tenants', {
    * in `DEMO_CODES`. Set only at provisioning, from the command line.
    */
   demo: boolean('demo').notNull().default(false),
+  // When a tenant on trial stops being one; billing decides what follows (module M23).
+  trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
   createdAt: createdAt(),
 });
 
@@ -130,4 +142,79 @@ export const refreshTokens = directory.table(
     createdAt: createdAt(),
   },
   (table) => [index('refresh_tokens_family_idx').on(table.familyId)],
+);
+
+export const platformRole = directory.enum('platform_role', PLATFORM_ROLES);
+
+export const platformUserStatus = directory.enum('platform_user_status', [
+  'invited',
+  'active',
+  'disabled',
+]);
+
+/**
+ * The vendor's staff (spec 4.1, module M22, decision D88). They are not tenant users: they sign in
+ * to the console with an email, a password kept as a scrypt hash, and a TOTP code whose seed is
+ * sealed with the column key. An invitation carries a one-time setup secret, kept as a hash.
+ */
+export const platformUsers = directory.table(
+  'platform_users',
+  {
+    id: uuid('id').primaryKey(),
+    email: text('email').notNull(),
+    name: text('name').notNull(),
+    role: platformRole('role').notNull(),
+    status: platformUserStatus('status').notNull().default('invited'),
+    passwordHash: text('password_hash'),
+    totpSecret: text('totp_secret'),
+    totpConfirmedAt: timestamp('totp_confirmed_at', { withTimezone: true }),
+    // The last 30-second step a code was used in, so no code works twice.
+    totpLastStep: bigint('totp_last_step', { mode: 'number' }),
+    setupTokenHash: text('setup_token_hash').unique(),
+    setupExpiresAt: timestamp('setup_expires_at', { withTimezone: true }),
+    // Moves whenever the person's access changes, ending their sessions (as BR-39 does for users).
+    authRevision: integer('auth_revision').notNull().default(0),
+    failedSignIns: integer('failed_sign_ins').notNull().default(0),
+    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+    lastSignInAt: timestamp('last_sign_in_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (table) => [uniqueIndex('platform_users_email_key').on(sql`lower(${table.email})`)],
+);
+
+/** A console refresh token, kept as a hash; rotation stays in its family, as for tenant users. */
+export const platformSessions = directory.table(
+  'platform_sessions',
+  {
+    id: uuid('id').primaryKey(),
+    platformUserId: uuid('platform_user_id')
+      .notNull()
+      .references(() => platformUsers.id),
+    tokenHash: text('token_hash').notNull().unique(),
+    familyId: uuid('family_id').notNull(),
+    authRevision: integer('auth_revision').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (table) => [index('platform_sessions_family_idx').on(table.familyId)],
+);
+
+/**
+ * What vendor staff did in the console (spec 13.2, M21): sign-ins, invitations, tenants created,
+ * suspended and reactivated. Append-only; actions inside a tenant also reach its own audit log.
+ */
+export const platformAudit = directory.table(
+  'platform_audit',
+  {
+    id: uuid('id').primaryKey(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    platformUserId: uuid('platform_user_id').references(() => platformUsers.id),
+    action: text('action').notNull(),
+    targetType: text('target_type').notNull(),
+    targetId: text('target_id').notNull(),
+    detail: jsonb('detail').notNull().default({}),
+    ip: text('ip'),
+  },
+  (table) => [index('platform_audit_target_idx').on(table.targetType, table.targetId, table.at)],
 );

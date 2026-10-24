@@ -178,6 +178,11 @@ resource "random_password" "otp_pepper" {
   special = false
 }
 
+# The key that seals secrets kept in columns, such as TOTP seeds (decision D88).
+resource "random_id" "column_key" {
+  byte_length = 32
+}
+
 resource "tls_private_key" "jwt" {
   algorithm   = "ECDSA"
   ecdsa_curve = "P256"
@@ -213,6 +218,7 @@ locals {
     EMAIL_PROVIDER         = "console"
     WHATSAPP_PROVIDER      = "console"
     OTP_PEPPER             = random_password.otp_pepper.result
+    COLUMN_KEY             = random_id.column_key.b64_std
     JWT_SIGNING_KEY        = replace(tls_private_key.jwt.private_key_pem_pkcs8, "\n", "\\n")
   }
 }

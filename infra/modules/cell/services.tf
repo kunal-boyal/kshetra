@@ -113,6 +113,7 @@ locals {
       # Off until a WhatsApp provider account exists (decisions D12, D85); deliveries skip to SMS.
       WHATSAPP_PROVIDER = "off"
     },
+    var.console_url == null ? {} : { CONSOLE_URL = var.console_url },
     var.environment,
   )
   secret = aws_secretsmanager_secret.app.arn

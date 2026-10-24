@@ -91,9 +91,25 @@ export const PLATFORM_PERMISSIONS = [
   'platform.support.approve_emergency',
   'platform.flags.manage',
   'platform.billing.manage',
+  'platform.staff.manage',
 ] as const;
 
 export type PlatformPermission = (typeof PLATFORM_PERMISSIONS)[number];
+
+/**
+ * The vendor's staff roles (spec 4.1, decision D88): what each may do in the console. A platform
+ * admin does everything, including inviting staff; the others hold their part of the work.
+ */
+export const PLATFORM_ROLES = ['platform_admin', 'implementation', 'support', 'finance'] as const;
+
+export type PlatformRole = (typeof PLATFORM_ROLES)[number];
+
+export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRole, readonly PlatformPermission[]> = {
+  platform_admin: PLATFORM_PERMISSIONS,
+  implementation: ['platform.tenant.manage', 'platform.flags.manage'],
+  support: ['platform.support.request'],
+  finance: ['platform.plan.manage', 'platform.billing.manage'],
+};
 
 /**
  * Whose records a role reaches (spec 4.2): the user's own, their team at any depth, everything in

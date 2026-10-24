@@ -170,6 +170,20 @@ const schema = z
     MAIL_FROM: z.string().min(3).optional(),
     // The secret one-time codes are hashed with (spec M1, rule 3).
     OTP_PEPPER: z.string().min(16),
+    // The key that seals secrets kept in columns, such as TOTP seeds (spec 13.2): 32 random bytes
+    // in base64. Production needs it; elsewhere one is derived from OTP_PEPPER.
+    COLUMN_KEY: z
+      .string()
+      .optional()
+      .transform((value) => value || undefined)
+      .pipe(
+        z
+          .string()
+          .refine((value) => Buffer.from(value, 'base64').length === 32, 'Use 32 bytes in base64')
+          .optional(),
+      ),
+    // Where the platform console runs, for the setup links sent to vendor staff (decision D88).
+    CONSOLE_URL: z.url().default('http://127.0.0.1:5174'),
     // Whether this process runs the outbox relay, which retries events whose delivery failed. The
     // worker process turns it on; elsewhere it stays off unless set.
     OUTBOX_RELAY: z.stringbool().default(false),
@@ -252,6 +266,13 @@ const schema = z
           code: 'custom',
           path: ['CELL_API_URL'],
           message: 'Production needs the URL apps reach this cell at.',
+        });
+      }
+      if (!config.COLUMN_KEY) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['COLUMN_KEY'],
+          message: 'Production needs a column key of its own, not one derived from the pepper.',
         });
       }
       if (config.OTP_PEPPER.length < 32) {

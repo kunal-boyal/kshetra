@@ -41,7 +41,7 @@ export class TenantProvisioner {
   async provision(
     input: ProvisionTenantInput,
     file?: unknown,
-    options: { demo?: boolean } = {},
+    options: { demo?: boolean; tenantId?: string; trialEndsAt?: Date } = {},
   ): Promise<ProvisionedTenant> {
     const template = file === undefined ? this.template(input.template) : this.fromFile(file);
     // Checked before anything is written, so a typo creates nothing.
@@ -62,7 +62,8 @@ export class TenantProvisioner {
       apiBaseUrl: this.config.CELL_API_URL ?? `http://127.0.0.1:${this.config.PORT}`,
       capacityUsers: SHARED_CELL_CAPACITY,
     });
-    const tenantId = newId();
+    // The console names the tenant, so a create sent twice makes one (decision D88).
+    const tenantId = options.tenantId ?? newId();
     await this.directory.register({
       id: tenantId,
       slug: input.slug,
@@ -71,6 +72,7 @@ export class TenantProvisioner {
       templateKey: template.key,
       templateVersion: template.version,
       demo: options.demo ?? false,
+      ...(options.trialEndsAt ? { trialEndsAt: options.trialEndsAt } : {}),
     });
     const admin = await this.cell.provision(tenantId, template, input);
     return { tenantId, slug: input.slug, admin };
