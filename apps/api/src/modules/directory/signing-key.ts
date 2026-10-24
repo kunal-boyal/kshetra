@@ -96,4 +96,28 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
       .sign(this.privateKey);
     return { token, expiresAt };
   }
+
+  /**
+   * Signs a console token for vendor staff (decision D88): the same key and lifetime, for the
+   * platform audience, so no cell takes it and the console takes no tenant user's.
+   */
+  async signStaff(
+    input: { staffId: string; role: string; revision: number },
+    now: Date = new Date(),
+  ): Promise<{ token: string; expiresAt: Date }> {
+    await this.load();
+    if (!this.privateKey || !this.publicJwk) throw new Error('The signing key is not loaded yet.');
+    const issuedAt = Math.floor(now.getTime() / 1000);
+    const expiresAt = new Date((issuedAt + ACCESS_TOKEN_SECONDS) * 1000);
+    const { issuer, staffAudience } = tokenParties(this.config);
+    const token = await new SignJWT({ role: input.role, rev: input.revision })
+      .setProtectedHeader({ alg: 'ES256', kid: this.publicJwk.kid!, typ: 'JWT' })
+      .setSubject(input.staffId)
+      .setIssuer(issuer)
+      .setAudience(staffAudience)
+      .setIssuedAt(issuedAt)
+      .setExpirationTime(Math.floor(expiresAt.getTime() / 1000))
+      .sign(this.privateKey);
+    return { token, expiresAt };
+  }
 }

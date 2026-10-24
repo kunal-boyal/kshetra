@@ -32,6 +32,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm --filter @thelamp/api db:generate` | writes a migration for a schema change | now |
 | `pnpm --filter @thelamp/templates schema` | regenerates `packages/templates/schema.json` after a template schema change | now |
 | `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
+| `pnpm invite-staff --email … --name … [--role …]` | invites a vendor staff member to the platform console and prints their one-time setup link (decision D88); the first platform admin comes this way | now |
 | `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin; `--file <path>` instead of `--template` starts it from another tenant's exported configuration; `--logo` and `--brand-colour` set its branding as Settings would; `--demo` makes a demo tenant (D70) | now |
 | `pnpm openapi` | regenerates `apps/api/openapi.json` from the route registry; a test fails while it is out of date | now |
 | `docker build -f apps/api/Dockerfile .` | builds the cell's container image (decision D67) | now |
@@ -104,7 +105,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 ## Sign-in and access (decisions D29 and D30)
 
-- Sign-in lives in `apps/api/src/modules/directory`. Only that module touches the directory schema, through `DirectoryDatabase` as `directory_app`. The directory and the cell reach each other only through the seams in `apps/api/src/platform/planes.ts`: the cell admits each sign-in and binds the phone, and tells the directory whenever a user's sign-in facts change.
+- Sign-in lives in `apps/api/src/modules/directory`. Only that module and the console module touch the directory schema, through `DirectoryDatabase` as `directory_app`. The directory and the cell reach each other only through the seams in `apps/api/src/platform/planes.ts`: the cell admits each sign-in and binds the phone, and tells the directory whenever a user's sign-in facts change.
 - Every route declares who may call it: `@Public()` (health checks and sign-in only), `@SignedIn()`, `@Requires(...)` or `@RequiresAny(...)`, with permissions from spec Appendix E. A route that declares nothing is refused, and `test/iam.int.test.ts` fails. Handlers read the caller with `@CurrentAccess()`.
 - Every route also declares what it takes and gives with `@Contract(...)`: a summary, its group, and the shared zod schemas of its path parameters, query, body and answer (decision D37). The route registry (`src/platform/routes.ts`) reads both, and the OpenAPI document and the cross-tenant contract test are built from it. After changing a route, run `pnpm openapi`.
 - The global `AuthGuard` checks the token. IAM then checks, on every request, that the tenant, user and device are still active at the token's auth revision.
@@ -112,6 +113,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Nobody gives access they don't hold (`canGrant` in `@thelamp/shared`), and nobody acts on their own record where a rule forbids it, such as resetting their own device.
 - Never log phone numbers, one-time codes or tokens. A message that must name a number uses `maskPhone()`.
 - Integration tests use `test/support.ts`: `startApp()`, `testConfig()`, and `World`. `World` makes tenants from a template and users through the app's own services, and signs people in on the web, or on a phone with `newDevice()`. Fresh numbers and addresses keep tests from sharing rate limits. `OTP_PROVIDER=memory` keeps codes for tests.
+
+## Platform console (decision D88)
+
+- The console's API is `apps/api/src/modules/console`, at `/platform/v1`. Vendor staff are `directory.platform_users`, not tenant users; their roles' permissions are `PLATFORM_ROLE_PERMISSIONS` in `@thelamp/shared`. Console routes declare `@ForStaff(...)` with platform permissions and read the caller with `@CurrentStaff()`; their tokens are for the platform audience, so tenant routes refuse them and console routes refuse tenant tokens.
+- Staff sign in with email, password (scrypt, `passwords.ts`) and a TOTP code (`totp.ts`, RFC 6238); the first admin is invited with `pnpm invite-staff`. Secrets kept in columns are sealed with `ColumnCipher` (`src/platform/column-cipher.ts`) under `COLUMN_KEY`, naming the column and row.
+- Every console change writes `PlatformAudit.record()` in its transaction. Tenants are created through `TenantProvisioner` with the console's own tenant ID.
 
 ## Configuration bundle and text (decision D31)
 

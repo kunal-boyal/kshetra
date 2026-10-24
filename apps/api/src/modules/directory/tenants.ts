@@ -21,6 +21,8 @@ export interface NewTenant {
   templateVersion: number;
   /** A tenant for showing the product, whose people may sign in with demo codes (D70). */
   demo?: boolean;
+  /** When its trial ends, for a tenant that opens on one (decision D88). */
+  trialEndsAt?: Date;
 }
 
 /** The tenant registry and cells (spec 9.3, 10.3). */
@@ -113,6 +115,7 @@ export class DirectoryTenants extends TenantDirectory {
         templateKey: tenant.templateKey,
         templateVersion: tenant.templateVersion,
         demo: tenant.demo ?? false,
+        trialEndsAt: tenant.trialEndsAt ?? null,
       })
       .onConflictDoNothing({ target: tenants.slug })
       .returning({ id: tenants.id });

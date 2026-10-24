@@ -264,9 +264,22 @@ async function tenant(name: string, word: string): Promise<Tenant> {
 
 interface Fixture {
   /** What the route is, for tenancy: sign-in, a read of the caller's own tenant, an ID, a write. */
-  kind: 'sign-in' | 'not tenant data' | 'own tenant' | 'by ID' | 'write';
+  kind: 'sign-in' | 'not tenant data' | 'own tenant' | 'by ID' | 'write' | 'platform console';
   run: () => Promise<void>;
 }
+
+/**
+ * The vendor's console (decision D88): a tenant admin's token is no way in, A's tenant ID
+ * included, and nothing of A's comes back. Sign-in routes answer B as anyone without an invitation.
+ */
+const consoleShutsB = (method: Method, url: string, payload?: object): Fixture => ({
+  kind: 'platform console',
+  run: async () => {
+    const reply = await asB(method, url.replace(':id', a.tenantId), payload);
+    expect([204, 400, 401]).toContain(reply.statusCode);
+    holdsNothingOfA(reply);
+  },
+});
 
 const FIXTURES: Record<string, Fixture> = {
   'GET /health': {
@@ -281,6 +294,50 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'not tenant data',
     run: async () => holdsNothingOfA(await send(undefined, 'GET', '/auth/v1/jwks')),
   },
+  'POST /platform/v1/setup': consoleShutsB('POST', '/platform/v1/setup', {
+    token: 'x'.repeat(43),
+    password: 'a long enough password',
+  }),
+  'POST /platform/v1/setup/confirm': consoleShutsB('POST', '/platform/v1/setup/confirm', {
+    token: 'x'.repeat(43),
+    code: '123456',
+  }),
+  'POST /platform/v1/session': consoleShutsB('POST', '/platform/v1/session', {
+    email: 'admin@b.example',
+    password: 'a long enough password',
+    code: '123456',
+  }),
+  'POST /platform/v1/session/refresh': consoleShutsB('POST', '/platform/v1/session/refresh'),
+  'POST /platform/v1/session/logout': consoleShutsB('POST', '/platform/v1/session/logout'),
+  'GET /platform/v1/me': consoleShutsB('GET', '/platform/v1/me'),
+  'GET /platform/v1/staff': consoleShutsB('GET', '/platform/v1/staff'),
+  'POST /platform/v1/staff': consoleShutsB('POST', '/platform/v1/staff', {
+    id: newId(),
+    email: 'b@b.example',
+    name: 'B Person',
+    role: 'platform_admin',
+  }),
+  'POST /platform/v1/staff/:id/disable': consoleShutsB('POST', '/platform/v1/staff/:id/disable'),
+  'GET /platform/v1/tenants': consoleShutsB('GET', '/platform/v1/tenants'),
+  'GET /platform/v1/tenants/:id': consoleShutsB('GET', '/platform/v1/tenants/:id'),
+  'POST /platform/v1/tenants': consoleShutsB('POST', '/platform/v1/tenants', {
+    id: newId(),
+    name: 'B Made This',
+    slug: 'b-made-this',
+    template: 'generic',
+    admin: { name: 'B Admin', phone: '+919999999999' },
+  }),
+  'POST /platform/v1/tenants/:id/suspend': consoleShutsB(
+    'POST',
+    '/platform/v1/tenants/:id/suspend',
+    { reason: 'B tries to close A' },
+  ),
+  'POST /platform/v1/tenants/:id/reactivate': consoleShutsB(
+    'POST',
+    '/platform/v1/tenants/:id/reactivate',
+  ),
+  'GET /platform/v1/templates': consoleShutsB('GET', '/platform/v1/templates'),
+  'GET /platform/v1/cells': consoleShutsB('GET', '/platform/v1/cells'),
   'POST /auth/v1/otp/request': {
     kind: 'sign-in',
     run: async () => {

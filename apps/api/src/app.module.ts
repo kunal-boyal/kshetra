@@ -19,6 +19,7 @@ import { ReviewModule } from './modules/review/review.module';
 import { DirectoryHealth, DirectoryModule } from './modules/directory/directory.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ConfigBundleModule } from './modules/config-bundle/config-bundle.module';
+import { ConsoleModule } from './modules/console/console.module';
 import { FormsModule } from './modules/forms/forms.module';
 import { IamModule } from './modules/iam/iam.module';
 import { ImportsModule } from './modules/imports/imports.module';
@@ -43,6 +44,7 @@ import { controllersOf } from './platform/routes';
 export const FEATURE_MODULES = [
   PlanesModule,
   DirectoryModule,
+  ConsoleModule,
   IamModule,
   TerritoriesModule,
   TenantConfigModule,

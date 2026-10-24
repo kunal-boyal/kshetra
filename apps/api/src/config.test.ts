@@ -85,6 +85,8 @@ describe('loadConfig', () => {
     expect(() => loadConfig(production)).toThrow(/JWT_SIGNING_KEY/);
     expect(() => loadConfig(production)).toThrow(/OTP_PEPPER/);
     expect(() => loadConfig(production)).toThrow(/CELL_API_URL/);
+    expect(() => loadConfig(production)).toThrow(/COLUMN_KEY/);
+    expect(() => loadConfig({ ...required, COLUMN_KEY: 'c2hvcnQ=' })).toThrow(/COLUMN_KEY/);
     expect(() => loadConfig({ ...production, OTP_PROVIDER: 'mailpit' })).toThrow(
       /mailpit provider never sends a real code/,
     );
@@ -137,6 +139,7 @@ describe('loadConfig', () => {
       CELL_API_URL: 'https://api.demo.example.com',
       OTP_PEPPER: 'a-production-pepper-of-32-characters',
       JWT_SIGNING_KEY: 'a key',
+      COLUMN_KEY: Buffer.alloc(32, 1).toString('base64'),
       OTP_PROVIDER: 'none',
       PUSH_PROVIDER: 'console',
       SMS_PROVIDER: 'console',
@@ -167,6 +170,7 @@ describe('loadConfig', () => {
       CELL_API_URL: 'https://api.example.test',
       JWT_SIGNING_KEY: 'a key',
       OTP_PEPPER: 'a-production-pepper-of-32-characters',
+      COLUMN_KEY: Buffer.alloc(32, 1).toString('base64'),
       OTP_PROVIDER: 'msg91',
       MSG91_AUTH_KEY: 'key',
       MSG91_OTP_TEMPLATE_ID: 'otp',

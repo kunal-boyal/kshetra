@@ -13,6 +13,9 @@ import {
   AppError,
   closedByModules,
   type DataScope,
+  type PlatformPermission,
+  type PlatformRoleKey,
+  StaffClaims,
   type SwitchableModule,
   type TenantPermission,
 } from '@thelamp/shared';
@@ -66,7 +69,30 @@ export abstract class AccessResolver {
 export type AccessRule =
   | { kind: 'public' }
   | { kind: 'signed_in' }
-  | { kind: 'all' | 'any'; permissions: readonly TenantPermission[] };
+  | { kind: 'all' | 'any'; permissions: readonly TenantPermission[] }
+  | { kind: 'staff'; permissions: readonly PlatformPermission[] };
+
+/** A vendor staff member calling the platform console's API (module M22, decision D88). */
+export interface StaffAccess {
+  staffId: string;
+  role: PlatformRoleKey;
+  permissions: ReadonlySet<PlatformPermission>;
+  ip?: string;
+}
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    staff?: StaffAccess;
+  }
+}
+
+/**
+ * Checks that a staff member is still active at their token's revision, and returns what they may
+ * do. The console module provides it.
+ */
+export abstract class StaffResolver {
+  abstract resolve(claims: StaffClaims, ip?: string): Promise<StaffAccess>;
+}
 
 const ACCESS_RULE = 'access-rule';
 
@@ -88,6 +114,20 @@ export const Requires = (...permissions: [TenantPermission, ...TenantPermission[
 /** Callers whose role holds at least one of these permissions. */
 export const RequiresAny = (...permissions: [TenantPermission, ...TenantPermission[]]) =>
   SetMetadata(ACCESS_RULE, { kind: 'any', permissions } satisfies AccessRule);
+
+/**
+ * Vendor staff in the platform console, holding every one of these permissions; none means any
+ * active staff member. Tenant users' tokens never pass, nor do staff tokens on tenant routes.
+ */
+export const ForStaff = (...permissions: PlatformPermission[]) =>
+  SetMetadata(ACCESS_RULE, { kind: 'staff', permissions } satisfies AccessRule);
+
+/** The staff member calling a console route. */
+export const CurrentStaff = createParamDecorator((_: unknown, context: ExecutionContext) => {
+  const staff = context.switchToHttp().getRequest<FastifyRequest>().staff;
+  if (!staff) throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
+  return staff;
+});
 
 const MODULE = 'module';
 
@@ -137,9 +177,20 @@ export abstract class TokenKeys {
   abstract jwks(): Promise<JSONWebKeySet>;
 }
 
-/** Token issuer and audience, both derived from the product slug. */
-export function tokenParties(config: Config): { issuer: string; audience: string } {
-  return { issuer: `${config.PRODUCT_SLUG}:directory`, audience: `${config.PRODUCT_SLUG}:cell` };
+/**
+ * Token issuer and audiences, derived from the product slug: cells take tenant users' tokens, and
+ * the platform console its staff's.
+ */
+export function tokenParties(config: Config): {
+  issuer: string;
+  audience: string;
+  staffAudience: string;
+} {
+  return {
+    issuer: `${config.PRODUCT_SLUG}:directory`,
+    audience: `${config.PRODUCT_SLUG}:cell`,
+    staffAudience: `${config.PRODUCT_SLUG}:platform`,
+  };
 }
 
 /** Checks access tokens: signature, expiry, issuer, audience and the shape of the claims. */
@@ -153,14 +204,31 @@ export class AccessTokens {
   ) {}
 
   async verify(token: string): Promise<AccessClaims> {
+    const { issuer, audience } = tokenParties(this.config);
+    return this.check(token, issuer, audience, AccessClaims);
+  }
+
+  /** A console token, for the vendor's own audience. */
+  async verifyStaff(token: string): Promise<StaffClaims> {
+    const { issuer, staffAudience } = tokenParties(this.config);
+    return this.check(token, issuer, staffAudience, StaffClaims);
+  }
+
+  private async check<T>(
+    token: string,
+    issuer: string,
+    audience: string,
+    shape: { safeParse(value: unknown): { success: true; data: T } | { success: false } },
+  ): Promise<T> {
     this.keySet ??= createLocalJWKSet(await this.keys.jwks());
     try {
       const { payload } = await jwtVerify(token, this.keySet, {
-        ...tokenParties(this.config),
+        issuer,
+        audience,
         algorithms: ['ES256'],
         clockTolerance: 5,
       });
-      const claims = AccessClaims.safeParse(payload);
+      const claims = shape.safeParse(payload);
       if (!claims.success) throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
       return claims.data;
     } catch (error) {
@@ -186,6 +254,7 @@ export class AuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly tokens: AccessTokens,
     private readonly resolver: AccessResolver,
+    private readonly staffResolver: StaffResolver,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -203,6 +272,17 @@ export class AuthGuard implements CanActivate {
     const [scheme, token] = (request.headers.authorization ?? '').split(' ');
     if (scheme !== 'Bearer' || !token) {
       throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
+    }
+    if (rule.kind === 'staff') {
+      const staff = await this.staffResolver.resolve(
+        await this.tokens.verifyStaff(token),
+        request.ip,
+      );
+      request.staff = staff;
+      if (!rule.permissions.every((permission) => staff.permissions.has(permission))) {
+        throw new AppError('FORBIDDEN', 'You do not have access to this.');
+      }
+      return true;
     }
     const claims = await this.tokens.verify(token);
     if (claims.cell !== this.config.CELL_ID) {

@@ -90,6 +90,15 @@ function parameters(
 function access(route: RegisteredRoute) {
   const rule = route.access;
   if (!rule || rule.kind === 'public') return { security: [] };
+  if (rule.kind === 'staff') {
+    return {
+      security: [{ staffToken: [] }],
+      'x-access':
+        rule.permissions.length === 0
+          ? 'Any active vendor staff member'
+          : `Vendor staff with every one of: ${rule.permissions.join(', ')}`,
+    };
+  }
   return {
     security: [{ accessToken: [] }],
     'x-access':
@@ -186,13 +195,19 @@ export function buildOpenApi(routes: readonly RegisteredRoute[], title: string):
       title,
       version: '1',
       description:
-        "Generated from the route registry by `pnpm openapi`. Paths under /auth/v1 belong to the directory; the rest to the tenant's cell (spec 9.3).",
+        "Generated from the route registry by `pnpm openapi`. Paths under /auth/v1 belong to the directory, those under /platform/v1 to the platform console, and the rest to the tenant's cell (spec 9.3).",
     },
     paths: sorted(paths),
     components: {
       schemas: sorted(components.schemas),
       securitySchemes: {
         accessToken: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        staffToken: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: "A vendor staff member's console token (decision D88)",
+        },
       },
     },
   };

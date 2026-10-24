@@ -158,11 +158,18 @@ variable "secret_keys" {
     "DATABASE_URL",
     "DIRECTORY_DATABASE_URL",
     "OTP_PEPPER",
+    "COLUMN_KEY",
     "JWT_SIGNING_KEY",
     "CLOUDFRONT_PRIVATE_KEY",
     "MSG91_AUTH_KEY",
     "SMTP_URL",
   ]
+}
+
+variable "console_url" {
+  description = "Where the platform console runs, for vendor staff's setup links (CONSOLE_URL, decision D88); null until it is deployed."
+  type        = string
+  default     = null
 }
 
 variable "alarm_email" {

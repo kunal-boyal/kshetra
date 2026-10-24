@@ -60,6 +60,7 @@ Terraform creates the secret `thelamp-<environment>-cell1/app` (output `secret_a
 | `DATABASE_URL` | `postgres://cell_app:<new password>@…` as above |
 | `DIRECTORY_DATABASE_URL` | `postgres://directory_app:<new password>@…` as above |
 | `OTP_PEPPER` | 48 random characters: `openssl rand -base64 36` |
+| `COLUMN_KEY` | 32 random bytes in base64, which seal secrets kept in columns such as vendor staff's TOTP seeds: `openssl rand -base64 32` |
 | `JWT_SIGNING_KEY` | A P-256 key, newlines written as `\n`: `openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256` |
 | `CLOUDFRONT_PRIVATE_KEY` | `media-signing.pem`, newlines written as `\n` |
 | `MSG91_AUTH_KEY` | From MSG91's dashboard |
