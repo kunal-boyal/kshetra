@@ -337,6 +337,20 @@
       "when": 1792820953304,
       "tag": "0047_leave_types_from_held",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792823320678,
+      "tag": "0048_expenses",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792823321301,
+      "tag": "0049_expense_policies_from_held",
+      "breakpoints": true
     }
   ]
 }

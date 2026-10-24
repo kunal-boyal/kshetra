@@ -23,6 +23,7 @@ import { CatalogueService } from '../catalogue/catalogue.service';
 import { AttendanceService } from '../field/attendance.service';
 import { CalendarsService } from '../field/calendars.service';
 import { LeaveTypesService } from '../leave/leave-types.service';
+import { ExpensePoliciesService, termsOf } from '../expenses/expense-policies.service';
 import { FormsService } from '../forms/forms.service';
 import { DesignationsService } from '../iam/designations.service';
 import { RolesService } from '../iam/roles.service';
@@ -97,6 +98,7 @@ export class ConfigurationService {
     private readonly attendance: AttendanceService,
     private readonly calendars: CalendarsService,
     private readonly leaveTypes: LeaveTypesService,
+    private readonly expensePolicies: ExpensePoliciesService,
     private readonly imports: ImportsService,
     private readonly held: HeldConfiguration,
     private readonly chains: ChainsService,
@@ -181,6 +183,7 @@ export class ConfigurationService {
             attendance: await this.attendance.rule(tx, tenantId),
             ...(await this.calendars.section(tx, tenantId)),
             leaveTypes: await this.leaveTypes.list(tx, tenantId),
+            expensePolicies: (await this.expensePolicies.list(tx, tenantId)).map(termsOf),
           }
         : undefined,
       // A tenant whose template had no catalogue keeps the product's defaults, which have no
@@ -391,6 +394,24 @@ export class ConfigurationService {
       const kept = (await this.leaveTypes.list(tx, tenantId)).filter((type) => !sent.has(type.key));
       return this.leaveTypes.replace(tx, tenantId, actor, [...file.people.leaveTypes, ...kept]);
     });
+
+    await step(
+      'expensePolicies',
+      'expensePolicies',
+      'people.expensePolicies',
+      'items',
+      async () => {
+        // Policies in the file are added or changed from today; the tenant's others stay.
+        const sent = new Set(file.people.expensePolicies.map((policy) => policy.key));
+        const kept = (await this.expensePolicies.list(tx, tenantId))
+          .filter((policy) => !sent.has(policy.key))
+          .map(termsOf);
+        return this.expensePolicies.replace(tx, tenantId, actor, [
+          ...file.people.expensePolicies,
+          ...kept,
+        ]);
+      },
+    );
 
     await step('attendance', 'attendance', 'people.attendance', '', async () => {
       if (same(await this.attendance.rule(tx, tenantId), file.people.attendance)) return 'same';

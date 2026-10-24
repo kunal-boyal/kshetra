@@ -26,7 +26,7 @@ export const SWITCHABLE_MODULES = MODULE_KEYS.filter(
 export type SwitchableModule = (typeof SWITCHABLE_MODULES)[number];
 
 /** Modules with something to switch in this release; the rest arrive in later phases (spec 15). */
-export const AVAILABLE_MODULES: readonly ModuleKey[] = ['core', 'leave_attendance'];
+export const AVAILABLE_MODULES: readonly ModuleKey[] = ['core', 'leave_attendance', 'expenses'];
 
 /**
  * The permissions each module brings. Anything not listed is Core's: the catalogue stays there, as

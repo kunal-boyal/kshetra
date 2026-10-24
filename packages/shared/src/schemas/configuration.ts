@@ -21,6 +21,7 @@ export const CONFIGURATION_SECTIONS = [
   'score',
   'calendars',
   'leaveTypes',
+  'expensePolicies',
   'attendance',
   'imports',
   'workflows',

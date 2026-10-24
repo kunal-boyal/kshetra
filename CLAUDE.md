@@ -276,6 +276,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - `LeaveType` is `@thelamp/shared`'s; templates re-export it.
 - On the phone, `/leave` and `/leave/new` read through the kept hooks in `apps/mobile/src/leave.ts`, preview a request with `previewLeave()` and queue it with `queueLeave()` (outbox kind `leave_request.create`). Month grids use `MonthDays` (`src/screens/month-days.tsx`).
 
+## Expenses (decision D82)
+
+- Expenses live in `apps/api/src/modules/expenses`: `ExpensePoliciesService` (policies keyed by configuration key, each change a version from a day; `on()` finds the version in force on a day) and `ExpenseClaimsService` (claims, receipts, payment, the `expense` request type). The rules are pure functions in `packages/shared/src/expenses.ts`: `claimBase()`, `capClaim()`, `claimIssues()` (BR-29), `receiptHoldsApproval()` (BR-30), `rateFor()`, `expensePolicyIssues()`. Money goes through them, exact as paise.
+- A request type that must hold an approving decision answers it in `approvable()` on its `RequestTypes` registration; the approvals engine asks before every approval, bulk included.
+- Receipts and odometer photos are media owned by their claim (`expense_claim`); read them with `PhotosService.ownedBy()`. Duplicates come from the media pipeline's `duplicate_of_id` (BR-40) and are flagged, never blocked.
+- `ExpensePolicy` is `@thelamp/shared`'s; templates re-export it.
+
 ## Tenant administration (decision D64)
 
 - Settings are `TenantSettings`; the apps read them from the bundle through `BundleSettings`, which drops settings they don't know and fills missing ones with defaults, so settings may only ever be added. The display name is the directory's (`TenantDirectory.rename()`), the logo a `logo` media file behind `/v1/organisation/logo`.

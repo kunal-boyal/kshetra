@@ -5,7 +5,7 @@ import { useAccess } from '../people/data';
 /**
  * Settings (spec 8.2, M2): the organisation, its rules, words and modules, then its roles,
  * designations, people fields, forms, catalogue and price lists, and the account types, territory levels and
- * metrics they work with, the holiday calendars and leave types, who approves each kind of request, and the whole configuration as a file
+ * metrics they work with, the holiday calendars, leave types and expense policies, who approves each kind of request, and the whole configuration as a file
  * to export and import.
  */
 export function SettingsLayout() {
@@ -50,6 +50,9 @@ export function SettingsLayout() {
       : []),
     ...(access.can('leave_type.manage')
       ? [{ to: '/settings/leave-types', label: t('leave.types_title') }]
+      : []),
+    ...(access.can('expense_policy.manage')
+      ? [{ to: '/settings/expense-policies', label: t('policies.title') }]
       : []),
     ...(access.can('workflow.manage')
       ? [{ to: '/settings/approvals', label: t('nav.approval_chains') }]

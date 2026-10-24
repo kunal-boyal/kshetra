@@ -134,7 +134,10 @@ describe('modules (M2, spec 5.13)', () => {
     const list = await screen.findByRole('list', { name: 'Modules' });
     expect(within(list).getByText('Always on')).toBeVisible();
     expect(within(list).getAllByText('Arrives later').length).toBeGreaterThan(3);
-    await user.click(within(list).getByRole('checkbox', { name: 'On' }));
+    // Leave and attendance, and expenses, can be switched in this release.
+    const switches = within(list).getAllByRole('checkbox', { name: 'On' });
+    expect(switches).toHaveLength(2);
+    await user.click(switches[0]!);
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(writesOf(client)[0]![3]).toMatchObject({ body: { modulesOff: ['leave_attendance'] } }),

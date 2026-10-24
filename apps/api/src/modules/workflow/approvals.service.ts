@@ -378,6 +378,12 @@ export class ApprovalsService {
     }
     if (!step || !approver || step.status !== 'pending') throw this.notCurrent();
     const outcome = body.decision === 'approve' ? 'approved' : 'rejected';
+    if (outcome === 'approved') {
+      const held = await this.types
+        .get(instance.requestType)
+        .approvable?.(tx, tenantId, instance.requestId);
+      if (held) throw new AppError('PHOTO_REQUIRED', held);
+    }
     const now = new Date();
     await tx
       .update(workflowSteps)
