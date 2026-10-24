@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IamModule } from '../iam/iam.module';
+import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { ApprovalsController } from './approvals.controller';
 import { ApprovalsService } from './approvals.service';
 import { Approvers } from './approvers';
@@ -13,7 +14,7 @@ import { WorkflowsController } from './workflows.controller';
  * escalations of steps left waiting (spec 5.9, 9.6, M15, decision D74).
  */
 @Module({
-  imports: [IamModule],
+  imports: [IamModule, TenantConfigModule],
   controllers: [ApprovalsController, WorkflowsController],
   providers: [ApprovalsService, Approvers, ChainsService, RequestTypes, WorkflowUpkeep],
   exports: [ApprovalsService, ChainsService, RequestTypes],

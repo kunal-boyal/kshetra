@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type { ApprovalSubject, RequestType, TenantPermission } from '@thelamp/shared';
+import type {
+  ApprovalSubject,
+  RequestType,
+  SwitchableModule,
+  TenantPermission,
+} from '@thelamp/shared';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 
@@ -19,6 +24,12 @@ export interface RequestTypeSource {
   fallbackPermission: TenantPermission;
   /** Whether many requests of this type may be approved in one go from the inbox (M15). */
   bulk?: boolean;
+  /**
+   * The module the type belongs to, when it isn't Core's. While the tenant has it switched off,
+   * its requests leave the inbox and refuse decisions, and come back unchanged when it is switched
+   * on again (decision D84).
+   */
+  module?: SwitchableModule;
   /**
    * Decided only on the owning module's own page, which asks for more than a note, such as an
    * order's configured rejection reason (decision D78): the portal's path for a request. The inbox
@@ -65,6 +76,13 @@ export class RequestTypes {
     const source = this.sources.get(type);
     if (!source) throw new Error(`Nothing handles ${type} requests.`);
     return source;
+  }
+
+  /** The types whose module is among these switched-off modules. */
+  closedBy(off: readonly SwitchableModule[]): RequestType[] {
+    return [...this.sources.values()]
+      .filter((source) => source.module && off.includes(source.module))
+      .map((source) => source.type);
   }
 
   /** Whether a module handles this type yet; chains may exist for types still to come. */

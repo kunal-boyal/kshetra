@@ -48,6 +48,7 @@ export class RegularisationsService implements OnModuleInit {
     this.types.register({
       type: 'regularisation',
       fallbackPermission: 'approval.act',
+      module: 'leave_attendance',
       bulk: true,
       subjects: (tx, tenantId, ids) => this.subjects(tx, tenantId, ids),
       decided: async (tx, by, id, outcome) => {
