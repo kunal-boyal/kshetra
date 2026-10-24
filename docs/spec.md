@@ -1153,7 +1153,7 @@ tenant_modules(tid, module, enabled)                                         PK(
 review_rules(tid PK, rules jsonb, updated_by, updated_at)
 designations(id, tid, key, name jsonb, level, default_role_id, can_have_reports, ranked)  UQ(tid, key)
 roles(id, tid, key, name, permissions text[], scope enum, mobile_only, system bool)  UQ(tid, key)
-users(id, tid, code, name, phone_e164, email, designation_id, role_id, manager_id NULL, calendar_id,
+users(id, tid, code, name, phone_e164, email, designation_id, role_id, manager_id NULL, calendar_key NULL,
       joining_date, exit_date, status enum(active,inactive), auth_revision, custom jsonb, row_version)
       UQ(tid, code) · UQ(tid, phone_e164) · IX(tid, manager_id)
 reporting_closure(tid, ancestor_id, descendant_id, depth)                    PK(tid, ancestor_id, descendant_id)
@@ -1268,8 +1268,8 @@ ledger_entries(id, tid, account_id, date, reference, description, debit, credit,
        import_id NULL, created_by, created_at)                               UQ(tid, reference) · IX(tid, account_id, date)
 
 ── People operations ─────────────────────────────────────────────────────────────
-calendars(id, tid, name, weekly_offs int[])
-holidays(calendar_id, date, name, optional)                                  PK(calendar_id, date)
+calendars(tid, key, name jsonb, weekly_offs int[], is_default)               PK(tid, key) · one default (D80)
+holidays(tid, calendar_key, date, name, optional, active)                     PK(tid, calendar_key, date)
 leave_types(id, tid, name jsonb, paid, annual_quota, quota_year enum(calendar,financial),
        half_day_allowed, attachment_after_days, active)
 leave_requests(id, tid, user_id, leave_type_id, start_date, end_date, half_day, days, reason,

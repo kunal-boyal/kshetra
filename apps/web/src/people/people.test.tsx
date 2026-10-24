@@ -35,6 +35,7 @@ function person(id: string, name: string, overrides: Record<string, unknown> = {
     manager: { id: PRIYA, code: 'SUN-003', name: 'Priya Nair' },
     joiningDate: '2026-04-01',
     exitDate: null,
+    calendarKey: null,
     status: 'active',
     territories: [{ id: DELHI, code: 'N-DEL', name: 'Delhi Area' }],
     custom: {},
@@ -198,6 +199,26 @@ function fakeClient(writes: Record<string, Answer> = {}) {
         { date: '2026-10-11', status: 'absent', value: 0, firstIn: null, lastOut: null, hours: 0 },
         { date: '2026-10-31', status: 'future', value: 0, firstIn: null, lastOut: null, hours: 0 },
       ],
+      summary: { scheduled: 3, paid: 2 },
+    },
+    '/v1/calendars': {
+      year: 2026,
+      items: [
+        {
+          key: 'standard',
+          name: { en: 'Standard', hi: 'सामान्य' },
+          weeklyOffs: [7],
+          default: true,
+          holidays: [],
+        },
+        {
+          key: 'south',
+          name: { en: 'South zone', hi: 'दक्षिण क्षेत्र' },
+          weeklyOffs: [7],
+          default: false,
+          holidays: [],
+        },
+      ],
     },
     [`/v1/users/${RAHUL}/history`]: {
       items: [
@@ -340,6 +361,7 @@ function fakeClient(writes: Record<string, Answer> = {}) {
             'role.manage',
             'designation.manage',
             'settings.manage',
+            'calendar.manage',
           ],
         },
       },
@@ -399,6 +421,8 @@ describe("a person's page", () => {
     expect(work).toHaveTextContent(/Days present this month\s*2/);
     expect(work).toHaveTextContent(/Days absent\s*1/);
     expect(work).toHaveTextContent(/Hours on duty\s*22.5/);
+    expect(work).toHaveTextContent(/Working days\s*3/);
+    expect(work).toHaveTextContent(/Paid days\s*2/);
     const table = within(work).getByRole('table', { name: 'Shifts, newest first' });
     const rows = within(table).getAllByRole('row').slice(1);
     expect(rows[0]).toHaveTextContent('8 h 30 min');
@@ -407,6 +431,21 @@ describe("a person's page", () => {
     expect(rows[0]).toHaveTextContent('Phone clock was off');
     expect(rows[1]).toHaveTextContent('Closed at night');
     expect(rows[1]).toHaveTextContent('—');
+  });
+
+  it('keeps them on a holiday calendar, the default unless one is chosen', async () => {
+    const client = fakeClient({
+      [`PUT /v1/users/${RAHUL}/calendar`]: (body) => ({ userId: RAHUL, ...(body as object) }),
+    });
+    renderAt(`/people/${RAHUL}`, client);
+    const work = await screen.findByRole('region', { name: 'Work' });
+    const calendar = await within(work).findByRole('combobox', { name: 'Holiday calendar' });
+    expect(calendar).toHaveDisplayValue('The default (Standard)');
+    await userEvent.setup().selectOptions(calendar, 'south');
+    expect(await within(work).findByText(/Calendar changed/)).toBeVisible();
+    expect(
+      writes(client).map(([method, path, , options]) => [method, path, options?.body]),
+    ).toEqual([['PUT', `/v1/users/${RAHUL}/calendar`, { calendarKey: 'south' }]]);
   });
 
   it('shows the forms they filled, where, and what a reviewer should look at', async () => {

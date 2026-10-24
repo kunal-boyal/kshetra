@@ -78,6 +78,21 @@ const ANSWERS: Record<string, unknown> = {
     nextCursor: null,
   },
   '/v1/organisation': { name: 'Sunrise Traders', logo: null },
+  '/v1/calendars': {
+    year: 2026,
+    items: [
+      {
+        key: 'standard',
+        name: { en: 'Standard', hi: 'सामान्य' },
+        weeklyOffs: [7],
+        default: true,
+        holidays: [
+          { date: '2026-10-20', name: 'Diwali', optional: false },
+          { date: '2026-11-05', name: 'Guru Nanak Jayanti', optional: true },
+        ],
+      },
+    ],
+  },
   '/v1/workflows': {
     fallbackRole: 'manager',
     chains: [
@@ -270,6 +285,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'catalogue.manage',
             'price_list.manage',
             'workflow.manage',
+            'calendar.manage',
           ],
         },
       },
@@ -327,6 +343,7 @@ for (const path of [
   'metrics/visits',
   'metrics/new',
   'approvals',
+  'calendars',
   'configuration',
   'catalogue',
   'catalogue/items/new',

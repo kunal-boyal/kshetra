@@ -309,6 +309,20 @@
       "when": 1792799044270,
       "tag": "0043_finance",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792801001487,
+      "tag": "0044_calendars",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792801013454,
+      "tag": "0045_calendars_from_held",
+      "breakpoints": true
     }
   ]
 }

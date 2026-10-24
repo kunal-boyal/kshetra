@@ -40,6 +40,7 @@ import { PeoplePage } from './people/people-page';
 import { EditPersonPage, NewPersonPage } from './people/person-form-page';
 import { PersonPage } from './people/person-page';
 import { TransferPage } from './people/transfer-page';
+import { CalendarsPage } from './settings/calendars-page';
 import { ConfigurationPage } from './settings/configuration-page';
 import { DesignationsPage } from './settings/designations-page';
 import { LevelsPage } from './settings/levels-page';
@@ -289,6 +290,11 @@ const approvalChains = createRoute({
   path: '/approvals',
   component: ApprovalChainsPage,
 });
+const calendars = createRoute({
+  getParentRoute: () => settings,
+  path: '/calendars',
+  component: CalendarsPage,
+});
 const terminology = createRoute({
   getParentRoute: () => settings,
   path: '/terminology',
@@ -443,6 +449,7 @@ const tree = root.addChildren([
       organisation,
       rules,
       approvalChains,
+      calendars,
       terminology,
       modules,
       settingsIndex,

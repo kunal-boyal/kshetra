@@ -373,6 +373,7 @@ export {
   CLOCK_SKEW_LIMIT_S,
   clockSkewed,
   compactTrail,
+  DAY_STATUSES,
   dayStatus,
   encodePolyline,
   onDutyMs,
@@ -391,6 +392,7 @@ export {
 } from './tracking';
 export type {
   AttendanceRule,
+  DayLeave,
   DayStatus as DayStatusKey,
   PointRejection as PointRejectionKey,
   ShiftWindow,
@@ -654,3 +656,20 @@ export {
   StatementQuery,
   StatementResult,
 } from './schemas/finance';
+export { paidDays, REGULARISATION_REASON, regularisationIssue, scheduledDays } from './attendance';
+export {
+  CalendarListQuery,
+  CalendarListResult,
+  CalendarParams,
+  CalendarResult,
+  CreateRegularisationBody,
+  Holiday,
+  HolidayBody,
+  HolidayParams,
+  REGULARISATION_STATES,
+  RegularisationListQuery,
+  RegularisationListResult,
+  RegularisationResult,
+  UserCalendarBody,
+  UserCalendarResult,
+} from './schemas/attendance';

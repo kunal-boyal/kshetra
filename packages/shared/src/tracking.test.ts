@@ -172,3 +172,58 @@ describe('BR-23, as shifts decide it', () => {
     });
   });
 });
+
+describe('BR-23 in full (decision D80)', () => {
+  const day = {
+    date: '2026-10-13',
+    today: '2026-10-20',
+    joiningDate: '2026-01-01',
+    exitDate: null,
+    shifts: 0,
+    hours: 0,
+    rule: { rule: 'punch_is_present' as const },
+  };
+
+  it('FX-19: a shift wins over approved paid leave', () => {
+    expect(dayStatus({ ...day, shifts: 1, leave: { paid: true, half: false } })).toEqual({
+      status: 'present',
+      value: 1,
+    });
+  });
+
+  it('goes regularisation, leave, holiday, weekly off, then absent', () => {
+    expect(dayStatus({ ...day, regularised: 'present', holiday: true })).toEqual({
+      status: 'present',
+      value: 1,
+    });
+    expect(
+      dayStatus({ ...day, regularised: 'half_day', leave: { paid: true, half: false } }),
+    ).toEqual({
+      status: 'half_day',
+      value: 0.5,
+    });
+    expect(dayStatus({ ...day, leave: { paid: true, half: true }, holiday: true })).toEqual({
+      status: 'paid_leave',
+      value: 0.5,
+    });
+    expect(dayStatus({ ...day, leave: { paid: false, half: false } })).toEqual({
+      status: 'unpaid_leave',
+      value: 0,
+    });
+    expect(dayStatus({ ...day, holiday: true, weeklyOff: true })).toEqual({
+      status: 'holiday',
+      value: 0,
+    });
+    expect(dayStatus({ ...day, weeklyOff: true })).toEqual({ status: 'weekly_off', value: 0 });
+    expect(dayStatus(day)).toEqual({ status: 'absent', value: 0 });
+  });
+
+  it('lets half-day hours stand with a half-day regularisation', () => {
+    const rule = { rule: 'hours' as const, fullDayHours: 8, halfDayHours: 4 };
+    expect(dayStatus({ ...day, rule, hours: 5, regularised: 'present' })).toEqual({
+      status: 'present',
+      value: 1,
+    });
+    expect(dayStatus({ ...day, rule, hours: 5 })).toEqual({ status: 'half_day', value: 0.5 });
+  });
+});

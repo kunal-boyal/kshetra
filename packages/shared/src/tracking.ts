@@ -202,20 +202,35 @@ export function compactTrail(points: readonly TrailPoint[]): {
 export type AttendanceRule =
   { rule: 'punch_is_present' } | { rule: 'hours'; fullDayHours: number; halfDayHours: number };
 
-export const PHASE1_DAY_STATUSES = [
+/** Day statuses (BR-23), in the rule's order of priority. */
+export const DAY_STATUSES = [
   'future',
   'not_employed',
   'present',
   'half_day',
+  'paid_leave',
+  'unpaid_leave',
+  'holiday',
+  'weekly_off',
   'absent',
 ] as const;
-export type DayStatus = (typeof PHASE1_DAY_STATUSES)[number];
+/** The statuses phase 1 knew; kept for what was written before phase 2 (decision D80). */
+export const PHASE1_DAY_STATUSES = DAY_STATUSES;
+export type DayStatus = (typeof DAY_STATUSES)[number];
+
+/** Leave on a day, as the leave module gives it (BR-27): paid or not, and whether half. */
+export interface DayLeave {
+  paid: boolean;
+  half: boolean;
+}
 
 /**
- * BR-23 as far as shifts decide it (decision D47): after today, `future`; outside employment,
- * `not_employed`; a shift that day, or enough hours on duty under the hours rule, `present`;
- * half-day hours, `half_day`; otherwise `absent`. Leave, holidays, weekly offs and
- * regularisations join in phase 2.
+ * BR-23, in priority order: after today, `future`; outside employment, `not_employed`; a shift
+ * that day (or enough hours under the hours rule) or an approved present regularisation,
+ * `present` (1); an approved half-day regularisation or half-day hours, `half_day` (0.5);
+ * approved paid leave, `paid_leave` (1, or 0.5 for a half day); approved unpaid leave,
+ * `unpaid_leave` (0); a holiday, `holiday` (0); a weekly off, `weekly_off` (0); otherwise
+ * `absent` (0). Presence wins over leave on the same day (FX-19).
  */
 export function dayStatus(day: {
   date: string;
@@ -225,6 +240,10 @@ export function dayStatus(day: {
   shifts: number;
   hours: number;
   rule: AttendanceRule;
+  regularised?: 'present' | 'half_day' | null;
+  leave?: DayLeave | null;
+  holiday?: boolean;
+  weeklyOff?: boolean;
 }): { status: DayStatus; value: number } {
   if (day.date > day.today) return { status: 'future', value: 0 };
   if (
@@ -233,10 +252,28 @@ export function dayStatus(day: {
   ) {
     return { status: 'not_employed', value: 0 };
   }
-  if (day.rule.rule === 'punch_is_present') {
-    return day.shifts > 0 ? { status: 'present', value: 1 } : { status: 'absent', value: 0 };
+  const worked =
+    day.rule.rule === 'punch_is_present'
+      ? day.shifts > 0
+        ? 'present'
+        : null
+      : day.hours >= day.rule.fullDayHours
+        ? 'present'
+        : day.hours >= day.rule.halfDayHours
+          ? 'half_day'
+          : null;
+  if (worked === 'present' || day.regularised === 'present') {
+    return { status: 'present', value: 1 };
   }
-  if (day.hours >= day.rule.fullDayHours) return { status: 'present', value: 1 };
-  if (day.hours >= day.rule.halfDayHours) return { status: 'half_day', value: 0.5 };
+  if (worked === 'half_day' || day.regularised === 'half_day') {
+    return { status: 'half_day', value: 0.5 };
+  }
+  if (day.leave) {
+    return day.leave.paid
+      ? { status: 'paid_leave', value: day.leave.half ? 0.5 : 1 }
+      : { status: 'unpaid_leave', value: 0 };
+  }
+  if (day.holiday) return { status: 'holiday', value: 0 };
+  if (day.weeklyOff) return { status: 'weekly_off', value: 0 };
   return { status: 'absent', value: 0 };
 }

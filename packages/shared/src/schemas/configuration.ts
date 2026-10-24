@@ -19,6 +19,7 @@ export const CONFIGURATION_SECTIONS = [
   'forms',
   'metrics',
   'score',
+  'calendars',
   'attendance',
   'imports',
   'workflows',

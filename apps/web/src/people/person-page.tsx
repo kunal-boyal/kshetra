@@ -316,7 +316,7 @@ function Person({ user }: { user: UserView }) {
         </div>
       </Section>
 
-      <WorkSection userId={user.id} />
+      <WorkSection userId={user.id} calendarKey={user.calendarKey} />
       <SubmissionsSection userId={user.id} />
       <Transfers user={user} />
       <History userId={user.id} />

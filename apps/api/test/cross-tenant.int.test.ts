@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { type DeviceInfo, newId } from '@thelamp/shared';
+import { type DeviceInfo, newId, todayIn } from '@thelamp/shared';
 import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';
@@ -75,6 +75,7 @@ let aPlanItemId: string;
 let aExportId: string;
 let aItemId: string;
 let aPriceListId: string;
+let aRegularisationId: string;
 let aOrderId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
@@ -85,6 +86,11 @@ let bTerritoryId: string;
 const TARGET_MONTH = '2030-01';
 /** A day comfortably in the future on every tenant's calendar. */
 const NEXT_MONTH = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+/** The day before today on the tenants' clock: a day gone, to hold a holiday or be fixed. */
+const YESTERDAY = () =>
+  new Date(Date.parse(`${todayIn('Asia/Kolkata')}T00:00:00Z`) - 86_400_000)
+    .toISOString()
+    .slice(0, 10);
 /** Every ID in tenant A's rows that tenant B doesn't also hold. */
 let aIds: string[];
 let aRows: Record<string, unknown[]>;
@@ -1590,6 +1596,59 @@ const FIXTURES: Record<string, Fixture> = {
       expect(own.json()).toEqual({ created: 1, unchanged: 0 });
     },
   },
+  'GET /v1/calendars': {
+    kind: 'own tenant',
+    run: async () => {
+      const calendars = await asB('GET', '/v1/calendars');
+      expect(calendars.statusCode).toBe(200);
+      holdsNothingOfA(calendars);
+    },
+  },
+  'PUT /v1/calendars/:key/holidays/:date': {
+    kind: 'write',
+    run: async () => {
+      // Keys belong to a tenant: B's standard calendar is B's own, on A's holiday too.
+      const put = await asB('PUT', `/v1/calendars/standard/holidays/${YESTERDAY()}`, {
+        name: `${b.word} festival`,
+      });
+      expect(put.statusCode, put.body).toBe(200);
+      holdsNothingOfA(put);
+    },
+  },
+  'PUT /v1/users/:id/calendar': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/users/${id}/calendar`, { calendarKey: null }),
+        a.member.id,
+      ),
+  },
+  'POST /v1/regularisations': {
+    kind: 'write',
+    run: async () => {
+      // IDs belong to a tenant: B's request with A's ID is B's own.
+      const asked = await asBPhone('POST', '/v1/regularisations', {
+        id: aRegularisationId,
+        date: YESTERDAY(),
+        status: 'half_day',
+        reason: `${b.word} meeting`,
+      });
+      expect(asked.statusCode, asked.body).toBe(201);
+      expect(asked.json()).toMatchObject({ userId: b.member.id, state: 'pending' });
+    },
+  },
+  'GET /v1/regularisations': {
+    kind: 'by ID',
+    run: async () => {
+      const own = await asB('GET', `/v1/regularisations?period=${YESTERDAY().slice(0, 7)}`);
+      expect(own.statusCode).toBe(200);
+      holdsNothingOfA(own);
+      await sameAsNowhere(
+        (id) => asB('GET', `/v1/regularisations?userId=${id}&period=${YESTERDAY().slice(0, 7)}`),
+        a.member.id,
+      );
+    },
+  },
   'GET /v1/accounts/:id/finance': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/finance`), aAccountId),
@@ -1790,6 +1849,10 @@ beforeAll(async () => {
     ],
   });
   expect(posted.statusCode, posted.body).toBe(200);
+  const holiday = await send(aToken, 'PUT', `/v1/calendars/standard/holidays/${YESTERDAY()}`, {
+    name: `${a.word} festival`,
+  });
+  expect(holiday.statusCode, holiday.body).toBe(200);
   aContactId = newId();
   await send(aToken, 'POST', `/v1/accounts/${aAccountId}/contacts`, {
     id: aContactId,
@@ -1812,6 +1875,15 @@ beforeAll(async () => {
   );
   expect(proposal.statusCode).toBe(201);
   aApprovalId = proposal.json().approvalId;
+  // A's member asks to count a day as present.
+  aRegularisationId = newId();
+  const fixed = await send(memberToken, 'POST', '/v1/regularisations', {
+    id: aRegularisationId,
+    date: YESTERDAY(),
+    status: 'present',
+    reason: `${a.word} meeting at the depot`,
+  });
+  expect(fixed.statusCode, fixed.body).toBe(201);
   aFormId = (await send(aToken, 'GET', '/v1/forms')).json().items[0].id;
   // A's member on shift: punched in an hour ago, with a point, and tracking paused.
   aShiftId = newId();
