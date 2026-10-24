@@ -235,7 +235,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 ## Approval chains and the inbox (decisions D74 and D76)
 
 - Chains live in `apps/api/src/modules/workflow`: `ChainsService` keeps each request type's chain as versions (`cell.workflow_definitions`) and the fallback role; a request records the version that routed it. A type without a chain goes to the requester's manager (D38).
-- Start a request with `ApprovalsService.request(tx, tenantId, requesterId, type, requestId, actor, { accountId, facts })` in the transaction that makes it: `accountId` for `account_slot` steps, `facts` keyed as `REQUEST_FACTS` in `@thelamp/forms` for step conditions. A new request type registers with `RequestTypes` (its `decided` also receives `cancelled`, applied as a rejection), names its `module` when it isn't Core's, so its requests leave the inbox and refuse decisions while that module is off (D83), and adds its facts to `REQUEST_FACTS`.
+- Start a request with `ApprovalsService.request(tx, tenantId, requesterId, type, requestId, actor, { accountId, facts })` in the transaction that makes it: `accountId` for `account_slot` steps, `facts` keyed as `REQUEST_FACTS` in `@thelamp/forms` for step conditions. A new request type registers with `RequestTypes` (its `decided` also receives `cancelled`, applied as a rejection), names its `module` when it isn't Core's, so its requests leave the inbox and refuse decisions while that module is off (D84), and adds its facts to `REQUEST_FACTS`.
 - Routing is `routeRequest()` in `@thelamp/shared` (BR-31); the resolvers are `Approvers` (`People.ancestors`, `Scopes.holdersReaching`, the accounts' slot seam). Moving to a later step, escalating and reminding publish `approval.waiting`; reminders and escalations run every 15 minutes (`approvals.keep_time`).
 - Step schemas (`Approver`, `WorkflowStep`) are the form engine's, in `@thelamp/forms`; templates re-export them. The web edits chains at Settings → Approval chains with the form builder's `ConditionEditor`.
 - The inbox (decision D76): `GET /v1/approvals/inbox` (with `counts` by type), `/mine` and `POST /v1/approvals/decisions` for bulk approval. A type opts into bulk with `bulk: true` on its registration; each item runs in `Database.savepoint()`, so one refusal leaves the rest approved. The web inbox is `apps/web/src/approvals/` (chains drawn with `ApprovalSteps`); on the phone managers decide in the Team tab and `/approvals/<id>` (`src/approvals.ts`), online, one at a time.
@@ -275,6 +275,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Count a request's days on the person's own calendar (`CalendarsService.forPeople()` and `offOn()`); approved leave never marks a weekly off or holiday.
 - `LeaveType` is `@thelamp/shared`'s; templates re-export it.
 - On the phone, `/leave` and `/leave/new` read through the kept hooks in `apps/mobile/src/leave.ts`, preview a request with `previewLeave()` and queue it with `queueLeave()` (outbox kind `leave_request.create`). Month grids use `MonthDays` (`src/screens/month-days.tsx`).
+
+## Expenses (decision D83)
+
+- Expenses live in `apps/api/src/modules/expenses`: `ExpensePoliciesService` (policies keyed by configuration key, each change a version from a day; `on()` finds the version in force on a day) and `ExpenseClaimsService` (claims, receipts, payment, the `expense` request type). The rules are pure functions in `packages/shared/src/expenses.ts`: `claimBase()`, `capClaim()`, `claimIssues()` (BR-29), `receiptHoldsApproval()` (BR-30), `rateFor()`, `expensePolicyIssues()`. Money goes through them, exact as paise.
+- A request type that must hold an approving decision answers it in `approvable()` on its `RequestTypes` registration; the approvals engine asks before every approval, bulk included.
+- Receipts and odometer photos are media owned by their claim (`expense_claim`); read them with `PhotosService.ownedBy()`. Duplicates come from the media pipeline's `duplicate_of_id` (BR-40) and are flagged, never blocked.
+- `ExpensePolicy` is `@thelamp/shared`'s; templates re-export it.
 
 ## Tenant administration (decision D64)
 

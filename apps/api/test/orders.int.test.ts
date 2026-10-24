@@ -555,7 +555,7 @@ describe('modules switched off (M2, spec 5.13, decision D64)', () => {
       expect(off.entities[entity]).toMatchObject({ pass: 'full', rows: [] });
     }
 
-    // The waiting order leaves the inbox and nobody decides or withdraws it (D83).
+    // The waiting order leaves the inbox and nobody decides or withdraws it (D84).
     expect(await inbox()).toEqual({ items: [], nextCursor: null, counts: {} });
     expect((await t.api.sme.get('/v1/approvals/mine')).json().items).toEqual([]);
     expect(code(await t.api.asm.get(`/v1/approvals/${approvalId}`))).toBe('MODULE_DISABLED');

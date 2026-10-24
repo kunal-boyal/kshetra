@@ -27,7 +27,7 @@ export interface RequestTypeSource {
   /**
    * The module the type belongs to, when it isn't Core's. While the tenant has it switched off,
    * its requests leave the inbox and refuse decisions, and come back unchanged when it is switched
-   * on again (decision D83).
+   * on again (decision D84).
    */
   module?: SwitchableModule;
   /**
@@ -36,6 +36,11 @@ export interface RequestTypeSource {
    * links there instead.
    */
   ownPage?: (requestId: string) => string;
+  /**
+   * Why the request can't be approved at its current step yet, such as a claim without the receipt
+   * its policy needs (BR-30), or null. Asked before every approving decision.
+   */
+  approvable?(tx: TenantTx, tenantId: string, requestId: string): Promise<string | null>;
   /** What each request is about, for the inbox, by request ID. */
   subjects(
     tx: TenantTx,

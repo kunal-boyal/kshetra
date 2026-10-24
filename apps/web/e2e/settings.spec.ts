@@ -78,6 +78,23 @@ const ANSWERS: Record<string, unknown> = {
     nextCursor: null,
   },
   '/v1/organisation': { name: 'Sunrise Traders', logo: null },
+  '/v1/expense-policies': {
+    items: [
+      {
+        key: 'fuel',
+        name: { en: 'Fuel', hi: 'ईंधन' },
+        category: 'travel',
+        calculation: 'per_km',
+        rate: { flat: '3.50' },
+        caps: { perDay: '500' },
+        receiptRequired: false,
+        odometerPhotosRequired: true,
+        active: true,
+        version: 2,
+        validFrom: '2026-10-01',
+      },
+    ],
+  },
   '/v1/leave-types': {
     items: [
       {
@@ -310,6 +327,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'workflow.manage',
             'calendar.manage',
             'leave_type.manage',
+            'expense_policy.manage',
           ],
         },
       },
@@ -330,6 +348,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'price-lists',
     'calendars',
     'leave-types',
+    'expense-policies',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -371,6 +390,7 @@ for (const path of [
   'approvals',
   'calendars',
   'leave-types',
+  'expense-policies',
   'configuration',
   'catalogue',
   'catalogue/items/new',

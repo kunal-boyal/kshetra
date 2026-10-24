@@ -31,6 +31,7 @@ export const AVAILABLE_MODULES: readonly ModuleKey[] = [
   'leave_attendance',
   'orders',
   'account_finance',
+  'expenses',
 ];
 
 /**

@@ -40,7 +40,7 @@ const HOUR_MS = 3_600_000;
  * it: each step's approvers are resolved when the request starts, steps nobody can or should
  * decide are skipped, and the request waits at one step at a time. A type without a chain goes to
  * the requester's manager for one decision, as in phase 1 (decision D38). Requests of a module the
- * tenant has switched off wait untouched, out of every list, until it is switched on (D83).
+ * tenant has switched off wait untouched, out of every list, until it is switched on (D84).
  */
 @Injectable()
 export class ApprovalsService {
@@ -308,13 +308,13 @@ export class ApprovalsService {
     );
   }
 
-  /** Leaves out requests of switched-off modules (D83). */
+  /** Leaves out requests of switched-off modules (D84). */
   private open(off: readonly SwitchableModule[]) {
     const closed = this.types.closedBy(off);
     return closed.length > 0 ? notInArray(workflowInstances.requestType, closed) : undefined;
   }
 
-  /** Refuses a request of a module the caller's tenant has switched off (D83). */
+  /** Refuses a request of a module the caller's tenant has switched off (D84). */
   private refuseClosed(access: Access, instance: Instance): void {
     const { module } = this.types.get(instance.requestType);
     if (module && access.modulesOff.includes(module)) throw moduleDisabled();
@@ -399,6 +399,12 @@ export class ApprovalsService {
     }
     if (!step || !approver || step.status !== 'pending') throw this.notCurrent();
     const outcome = body.decision === 'approve' ? 'approved' : 'rejected';
+    if (outcome === 'approved') {
+      const held = await this.types
+        .get(instance.requestType)
+        .approvable?.(tx, tenantId, instance.requestId);
+      if (held) throw new AppError('PHOTO_REQUIRED', held);
+    }
     const now = new Date();
     await tx
       .update(workflowSteps)
@@ -496,7 +502,7 @@ export class ApprovalsService {
    * Reminds the approvers of steps that waited past their reminder time, and escalates steps
    * that waited past their escalation time to the holders of the escalation role whose scope
    * reaches the requester (spec 5.9). Each happens once per step; idempotent. Requests of
-   * switched-off modules wait without reminders until the module is on again (D83).
+   * switched-off modules wait without reminders until the module is on again (D84).
    */
   async keepTime(tx: TenantTx, tenantId: string, now = new Date()): Promise<number> {
     const { modulesOff } = await this.config.settings(tx, tenantId);

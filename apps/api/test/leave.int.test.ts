@@ -311,7 +311,7 @@ describe('leave types (spec 5.10)', () => {
   });
 });
 
-describe('leave and attendance switched off (M2, decision D83)', () => {
+describe('leave and attendance switched off (M2, decision D84)', () => {
   const H = 3_600_000;
 
   it('keeps waiting requests out of the inbox, undecided and unreminded, until it is on again', async () => {

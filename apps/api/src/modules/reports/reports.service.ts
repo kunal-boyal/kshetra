@@ -20,6 +20,7 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 import { ActivityLogReport } from './activity-log';
 import { AttendanceRegisterReport } from './attendance-register';
+import { ExpenseRegisterReport } from './expense-register';
 import { LeaveRegisterReport } from './leave-register';
 import type { ReportContext, ReportRow, ReportSource } from './sources';
 import { TargetAchievementReport } from './target-achievement';
@@ -49,12 +50,12 @@ export class ReportsService {
     attendanceRegister: AttendanceRegisterReport,
     targetAchievement: TargetAchievementReport,
     leaveRegister: LeaveRegisterReport,
+    expenseRegister: ExpenseRegisterReport,
   ) {
     this.sources = new Map<ReportKey, ReportSource>(
-      [activityLog, attendanceRegister, targetAchievement, leaveRegister].map((source) => [
-        source.key,
-        source,
-      ]),
+      [activityLog, attendanceRegister, targetAchievement, leaveRegister, expenseRegister].map(
+        (source) => [source.key, source],
+      ),
     );
   }
 

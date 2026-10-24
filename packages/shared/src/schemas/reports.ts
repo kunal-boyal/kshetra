@@ -15,6 +15,7 @@ export const REPORT_KEYS = [
   'attendance_register',
   'target_achievement',
   'leave_register',
+  'expense_register',
 ] as const;
 export const ReportKey = z.enum(REPORT_KEYS).meta({ id: 'ReportKey' });
 
@@ -22,6 +23,7 @@ export const ReportKey = z.enum(REPORT_KEYS).meta({ id: 'ReportKey' });
 export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], SwitchableModule>> = {
   attendance_register: 'leave_attendance',
   leave_register: 'leave_attendance',
+  expense_register: 'expenses',
 };
 
 /** What every report can be narrowed by (M18), within the caller's scope. */
