@@ -25,7 +25,7 @@ afterAll(async () => {
 });
 
 function as(token: string) {
-  const call = (method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) =>
+  const call = (method: 'GET' | 'POST' | 'PUT' | 'PATCH', url: string, payload?: object) =>
     app.inject({
       method,
       url,
@@ -36,6 +36,7 @@ function as(token: string) {
     get: (url: string) => call('GET', url),
     post: (url: string, payload?: object) => call('POST', url, payload),
     put: (url: string, payload: object) => call('PUT', url, payload),
+    patch: (url: string, payload: object) => call('PATCH', url, payload),
   };
 }
 type Api = ReturnType<typeof as>;
@@ -395,5 +396,32 @@ describe('expense policies (spec 5.10)', () => {
     // Only their own claims.
     const own = (await t.field.get('/v1/expense-claims')).json();
     expect(own.items.map((item: { userId: string }) => item.userId)).toEqual([t.fieldId]);
+  });
+});
+
+describe('expenses switched off (M2, decision D84)', () => {
+  it('keeps a waiting claim out of the inbox and undecided until the module is on again', async () => {
+    const t = await tenant('Expenses Off Co');
+    const made = await claim(t.field, { policy: 'da', description: 'Tour', days: '1' });
+    expect(made.statusCode, made.body).toBe(201);
+    const { id, version } = made.json().approval;
+    const inbox = async () => (await t.manager.get('/v1/approvals/inbox')).json();
+    expect(await inbox()).toMatchObject({ items: [{ id }], counts: { expense: 1 } });
+
+    expect((await t.head.patch('/v1/settings', { modulesOff: ['expenses'] })).statusCode).toBe(200);
+    expect(await inbox()).toEqual({ items: [], nextCursor: null, counts: {} });
+    const decided = await t.manager.post(`/v1/approvals/${id}/decision`, {
+      decision: 'approve',
+      version,
+    });
+    expect(decided.json().error.code).toBe('MODULE_DISABLED');
+
+    expect((await t.head.patch('/v1/settings', { modulesOff: [] })).statusCode).toBe(200);
+    expect(await inbox()).toMatchObject({ items: [{ id, version }], counts: { expense: 1 } });
+    const approved = await t.manager.post(`/v1/approvals/${id}/decision`, {
+      decision: 'approve',
+      version,
+    });
+    expect(approved.statusCode, approved.body).toBe(200);
   });
 });

@@ -87,6 +87,7 @@ export class ExpenseClaimsService implements OnModuleInit {
     this.requestTypes.register({
       type: 'expense',
       fallbackPermission: 'approval.act',
+      module: 'expenses',
       bulk: true,
       subjects: (tx, tenantId, ids) => this.subjects(tx, tenantId, ids),
       approvable: async (tx, tenantId, id) => {

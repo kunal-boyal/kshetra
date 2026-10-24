@@ -18,6 +18,7 @@ export class OrderRequests implements OnModuleInit {
     this.types.register({
       type: 'order',
       fallbackPermission: 'order.decide',
+      module: 'orders',
       ownPage: (orderId) => `/orders/${orderId}`,
       subjects: (tx, tenantId, ids) => this.orders.subjects(tx, tenantId, ids),
       decided: (tx, by, id, outcome) => this.orders.decided(tx, by.tenantId, id, outcome),
