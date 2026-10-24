@@ -44,6 +44,16 @@ import { startOfLocalDate } from '../platform/local-day';
 import { ObjectStore } from '../platform/object-store';
 import { CONFIG } from '../platform/tokens';
 import { onTravel, realNow, travelTo } from './clock';
+import { DemoCommerce } from './commerce';
+import {
+  DAY,
+  type DemoKit,
+  type FieldPerson,
+  MINUTE,
+  type Person,
+  type Place,
+  weekdayOf,
+} from './kit';
 import {
   Dice,
   distributorName,
@@ -57,9 +67,7 @@ import {
   shopName,
   VILLAGES,
 } from './names';
-
-const MINUTE = 60_000;
-const DAY = 86_400_000;
+import { DemoRequests } from './requests';
 
 export interface DemoOptions {
   slug: string;
@@ -69,26 +77,6 @@ export interface DemoOptions {
   log: (line: string) => void;
 }
 
-interface Person {
-  id: string;
-  name: string;
-  access: Access;
-}
-
-interface Place {
-  id: string;
-  name: string;
-  type: string;
-  location: GeoPoint;
-}
-
-interface FieldPerson extends Person {
-  market: Market;
-  home: GeoPoint;
-  manager: Person;
-  places: Place[];
-}
-
 type Field = FormView['fields'][number];
 
 /**
@@ -96,19 +84,23 @@ type Field = FormView['fields'][number];
  * a team, distributors, shops and farmers, products, targets, daily plans, shifts with their
  * trails, visits, form entries with photos, and reviews. Everything goes through the app's own
  * services, as each person, on the day it happened, so the rules apply and the events that work
- * out attendance, metrics and leaderboards follow. It reads the tenant's configuration rather than
+ * out attendance, metrics and leaderboards follow. Phase 2 adds price lists, orders and their
+ * deliveries, statements, holidays, leave, fixed days and expense claims, decided along the
+ * tenant's chains (`DemoCommerce`, `DemoRequests`). It reads the tenant's configuration rather than
  * assuming a template, and refuses any tenant that isn't a new demo tenant.
  */
-export class DemoContent {
-  private readonly dice: Dice;
+export class DemoContent implements DemoKit {
+  readonly dice: Dice;
   private readonly database: Database;
   private readonly config: Config;
-  private tenantId = '';
-  private timezone = 'Asia/Kolkata';
+  tenantId = '';
+  timezone = 'Asia/Kolkata';
   private forms: FormView[] = [];
   private products: string[] = [];
   private broken = new Set<string>();
   private readonly counts = { visits: 0, entries: 0, photos: 0, shifts: 0, reviews: 0 };
+  private readonly commerce: DemoCommerce;
+  private readonly requests: DemoRequests;
 
   constructor(
     private readonly app: INestApplicationContext,
@@ -124,22 +116,24 @@ export class DemoContent {
     onTravel((offset) => {
       if (client?.config) client.config.systemClockOffset = -offset;
     });
+    this.commerce = new DemoCommerce(this);
+    this.requests = new DemoRequests(this);
   }
 
-  private get<T>(type: abstract new (...args: never[]) => T): T {
+  get<T>(type: abstract new (...args: never[]) => T): T {
     return this.app.get(type as never) as T;
   }
 
-  private tx<T>(work: (tx: TenantTx) => Promise<T>): Promise<T> {
+  tx<T>(work: (tx: TenantTx) => Promise<T>): Promise<T> {
     return this.database.forTenant(this.tenantId, work);
   }
 
   /** Midnight of a date on the tenant's clock, plus `minutes`. */
-  private at(date: string, minutes: number): number {
+  at(date: string, minutes: number): number {
     return startOfLocalDate(date, this.timezone).getTime() + minutes * MINUTE;
   }
 
-  async run(): Promise<typeof this.counts> {
+  async run(): Promise<typeof this.counts & DemoCommerce['made'] & DemoRequests['made']> {
     const { log } = this.options;
     const tenant = await this.get(DirectoryTenants).bySlug(this.options.slug);
     if (!tenant) throw new Error(`There is no tenant ${this.options.slug}.`);
@@ -174,22 +168,53 @@ export class DemoContent {
     for (const person of team) person.places = await this.placesFor(admin, person);
     log('Targets');
     await this.targets(team, first, today);
+    log('Price lists, opening balances and holidays');
+    await this.commerce.setUp(admin, team, first);
+    await this.requests.setUp(first, today);
+    // Who decides requests, from the managers up to the business head and the admin.
+    const approvers = [
+      ...new Map(team.map((person) => [person.manager.id, person.manager])).values(),
+      ...this.managers.map((manager) => manager.person),
+      admin,
+    ].filter((person, index, all) => all.findIndex((each) => each.id === person.id) === index);
 
     for (let day = Date.parse(`${first}T00:00:00Z`); ; day += DAY) {
       const date = new Date(day).toISOString().slice(0, 10);
       if (date > today) break;
-      const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
-      if (weekday !== 0) {
-        for (const person of team) await this.workday(person, date, date === today);
+      const weekday = weekdayOf(date);
+      const working = weekday !== 0 && !this.requests.holidays.has(date);
+      if (working) {
+        for (const person of team) {
+          travelTo(this.at(date, 7 * 60 + 45));
+          await this.requests.morning(person, date);
+          if (this.requests.off(person, date)) continue;
+          await this.workday(person, date, date === today);
+        }
         for (const manager of this.managers) await this.managerDay(manager, date, date === today);
         await this.review(team, date, today);
       }
+      // The week closes on Saturday evening, holiday or not.
+      if (weekday === 6 && date < today) {
+        for (const person of team) await this.requests.weekEnd(person, date);
+        travelTo(this.at(date, 19 * 60 + 15));
+        await this.commerce.weekEnd(admin, date);
+        await this.requests.pay(admin, date);
+      }
+      if (working) await this.decisions(approvers, date, today);
       if (date < today) await this.endOfDay(date);
       log(`${date}: ${this.counts.visits} visits, ${this.counts.entries} entries so far`);
     }
     travelTo(realNow());
     await this.releasePhones(admin);
-    return this.counts;
+    return { ...this.counts, ...this.commerce.made, ...this.requests.made };
+  }
+
+  /** The evening's decisions along the chains, except the last two days', which wait. */
+  private async decisions(approvers: Person[], date: string, today: string): Promise<void> {
+    const ageDays = (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`)) / DAY;
+    if (ageDays < 2) return;
+    travelTo(this.at(date, 20 * 60));
+    await this.requests.evening(approvers, date, this.commerce);
   }
 
   /** Someone's access, on their phone when they have one. */
@@ -464,7 +489,13 @@ export class DemoContent {
               }),
             ),
           );
-          places.push({ id, name, type: key, location });
+          places.push({
+            id,
+            name,
+            type: key,
+            location,
+            ...(parent ? { parentId: parent.id } : {}),
+          });
         } catch (error) {
           this.once(`account:${key}`, error);
         }
@@ -475,7 +506,7 @@ export class DemoContent {
 
   private marketNode = new Map<string, string>();
 
-  private once(key: string, error: unknown): void {
+  once(key: string, error: unknown): void {
     if (this.broken.has(key)) return;
     this.broken.add(key);
     const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
@@ -534,7 +565,12 @@ export class DemoContent {
 
   /** One person's day: punch in, the planned visits with their entries, punch out. */
   private async workday(person: FieldPerson, date: string, isToday: boolean): Promise<void> {
-    if (person.places.length === 0 || this.dice.chance(0.06)) return;
+    if (person.places.length === 0) return;
+    if (this.dice.chance(0.06)) {
+      // Away without a punch: the person may ask to fix the day tomorrow.
+      if (!isToday) this.requests.missedDay(person, date);
+      return;
+    }
     const stops = this.dice.shuffle(person.places).slice(0, this.dice.int(5, 7));
     // The manager plans the day first thing.
     travelTo(this.at(date, 8 * 60));
@@ -578,6 +614,7 @@ export class DemoContent {
         ),
       );
       this.counts.shifts++;
+      this.requests.workedOn(person, date);
     } catch (error) {
       this.once('shift', error);
       return;
@@ -816,6 +853,9 @@ export class DemoContent {
         arrived + this.dice.int(6, 14) * MINUTE,
       );
     }
+    const ordered = arrived + this.dice.int(12, 16) * MINUTE;
+    travelTo(ordered);
+    await this.commerce.atVisit(person, place, visitId, ordered, this.fix(place.location, ordered));
     const left = arrived + this.dice.int(18, 32) * MINUTE;
     travelTo(left);
     await this.tx((tx) =>
@@ -838,7 +878,13 @@ export class DemoContent {
     const limits = form.photos ?? { min: 0, max: 0 };
     const wanted = limits.min + (this.dice.chance(0.3) ? 1 : 0);
     for (let index = 0; index < Math.min(wanted, limits.max); index++) {
-      const id = await this.photo(person, place, form, at - (index + 1) * MINUTE);
+      const id = await this.photo(
+        person,
+        place,
+        form.name.en.one,
+        'evidence',
+        at - (index + 1) * MINUTE,
+      );
       if (id) photos.push(id);
     }
     travelTo(at);
@@ -872,10 +918,11 @@ export class DemoContent {
   }
 
   /** A photo the person takes: a picture of shapes in the place's own colours, never repeated. */
-  private async photo(
-    person: FieldPerson,
-    place: Place,
-    form: FormView,
+  async photo(
+    person: Person,
+    place: { name: string; location: GeoPoint },
+    caption: string,
+    kind: 'evidence' | 'receipt' | 'odometer',
     at: number,
   ): Promise<string | null> {
     travelTo(at);
@@ -889,7 +936,7 @@ export class DemoContent {
         ? `<circle cx="${x}" cy="${y}" r="${size / 2}" fill="${colour}"/>`
         : `<rect x="${x}" y="${y}" width="${size}" height="${Math.round(size * 0.7)}" rx="18" fill="${colour}"/>`;
     }).join('');
-    const label = `${form.name.en.one} · ${place.name}`.replace(/[<&>"]/g, '');
+    const label = `${caption} · ${place.name}`.replace(/[<&>"]/g, '');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720"><rect width="960" height="720" fill="hsl(${hue},30%,88%)"/>${shapes}<rect x="0" y="640" width="960" height="80" fill="rgba(0,0,0,0.45)"/><text x="24" y="690" font-family="sans-serif" font-size="30" fill="#fff">Demo photo · ${label}</text></svg>`;
     const bytes = new Uint8Array(await sharp(Buffer.from(svg)).jpeg({ quality: 72 }).toBuffer());
     const id = newId();
@@ -897,7 +944,7 @@ export class DemoContent {
       await this.tx((tx) =>
         this.get(PhotosService).presign(tx, person.access, {
           id,
-          kind: 'evidence',
+          kind,
           contentType: 'image/jpeg',
           size: bytes.byteLength,
           sha256: createHash('sha256').update(bytes).digest('hex'),

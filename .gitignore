@@ -39,3 +39,9 @@ backend.hcl
 tools/k6/.fixtures/
 # Maestro run settings (apps/mobile/.maestro/README.md)
 apps/mobile/.maestro/.env
+
+# graphify's knowledge graph of the repository, rebuilt locally
+graphify-out/
+
+# Real invoices for the phase 2 exit check stay off the repository (apps/api/test/fixtures/invoices/README.md)
+apps/api/test/fixtures/invoices/private/
