@@ -22,7 +22,7 @@ afterAll(async () => {
 });
 
 function as(token: string) {
-  const call = (method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) =>
+  const call = (method: 'GET' | 'POST' | 'PUT' | 'PATCH', url: string, payload?: object) =>
     app.inject({
       method,
       url,
@@ -33,8 +33,23 @@ function as(token: string) {
     get: (url: string) => call('GET', url),
     post: (url: string, payload?: object) => call('POST', url, payload),
     put: (url: string, payload: object) => call('PUT', url, payload),
+    patch: (url: string, payload: object) => call('PATCH', url, payload),
+    upload: (url: string, body: string) =>
+      app.inject({
+        method: 'POST',
+        url,
+        headers: {
+          authorization: `Bearer ${token}`,
+          'idempotency-key': newId(),
+          'content-type': 'text/csv',
+        },
+        payload: body,
+      }),
   };
 }
+
+/** The answer's error code. */
+const code = (response: { json(): { error?: { code: string } } }) => response.json().error?.code;
 
 const HERE = { lat: 28.6315, lng: 77.2167 };
 const fix = () => ({
@@ -476,5 +491,111 @@ describe('orders (M10)', () => {
       await t.api.sme.post('/v1/orders', t.order(t.distributor, [t.line(t.urea, '0.5')]))
     ).json();
     expect(within.approval.steps[0]).toMatchObject({ status: 'skipped', skipReason: 'condition' });
+
+    // With account finance switched off (spec 5.13), no order is over its limit.
+    expect(
+      (await t.api.head.patch('/v1/settings', { modulesOff: ['account_finance'] })).statusCode,
+    ).toBe(200);
+    const unchecked = (
+      await t.api.sme.post('/v1/orders', t.order(t.distributor, [t.line(t.urea, '1')]))
+    ).json();
+    expect(unchecked.approval.steps[0]).toMatchObject({
+      status: 'skipped',
+      skipReason: 'condition',
+    });
+  });
+});
+
+describe('modules switched off (M2, spec 5.13, decision D64)', () => {
+  type Pull = {
+    entities: Record<'orders' | 'price_lists' | 'prices', { pass: string; rows: unknown[] }>;
+    cursor: string;
+  };
+  const ENTITIES = 'orders,price_lists,prices';
+
+  it('closes orders and prices, and phones keep none of them', async () => {
+    const t = await agri('Orders Off Agro');
+    const body = t.order(t.distributor, [t.line(t.urea, '1')]);
+    expect((await t.api.sme.post('/v1/orders', body)).statusCode).toBe(201);
+    const first = (await t.api.sme.get(`/v1/sync/pull?entities=${ENTITIES}`)).json() as Pull;
+    expect(first.entities.orders.rows).toHaveLength(1);
+    expect(first.entities.price_lists.rows).toHaveLength(1);
+    expect(first.entities.prices.rows).toHaveLength(2);
+
+    expect((await t.api.head.patch('/v1/settings', { modulesOff: ['orders'] })).statusCode).toBe(
+      200,
+    );
+    // Routes that need only Core permissions close as well as those of the module's own.
+    expect(code(await t.api.sme.get('/v1/orders'))).toBe('MODULE_DISABLED');
+    expect(code(await t.api.sme.get(`/v1/orders/${body.id}`))).toBe('MODULE_DISABLED');
+    expect(code(await t.api.sme.get(`/v1/accounts/${t.distributor}/prices`))).toBe(
+      'MODULE_DISABLED',
+    );
+    expect(
+      code(await t.api.sme.post('/v1/orders', t.order(t.distributor, [t.line(t.urea, '1')]))),
+    ).toBe('MODULE_DISABLED');
+    expect(code(await t.api.head.get('/v1/price-lists'))).toBe('MODULE_DISABLED');
+    // The catalogue is Core's, and stays.
+    expect((await t.api.sme.get('/v1/catalogue')).statusCode).toBe(200);
+    expect((await t.api.head.get('/v1/config')).json().access.permissions).not.toContain(
+      'order.view',
+    );
+
+    // The phone starts its copy again, empty.
+    const off = (
+      await t.api.sme.get(
+        `/v1/sync/pull?entities=${ENTITIES}&cursor=${encodeURIComponent(first.cursor)}`,
+      )
+    ).json() as Pull;
+    for (const entity of ['orders', 'price_lists', 'prices'] as const) {
+      expect(off.entities[entity]).toMatchObject({ pass: 'full', rows: [] });
+    }
+
+    // Switched on again, everything comes back.
+    expect((await t.api.head.patch('/v1/settings', { modulesOff: [] })).statusCode).toBe(200);
+    expect((await t.api.sme.get(`/v1/orders/${body.id}`)).statusCode).toBe(200);
+    const on = (
+      await t.api.sme.get(
+        `/v1/sync/pull?entities=${ENTITIES}&cursor=${encodeURIComponent(off.cursor)}`,
+      )
+    ).json() as Pull;
+    expect(on.entities.orders.rows).toHaveLength(1);
+    expect(on.entities.prices.rows).toHaveLength(2);
+  });
+
+  it('closes account finance, its imports included, and leaves orders open', async () => {
+    const t = await agri('Finance Off Agro');
+    const snapshot = {
+      accountId: t.distributor,
+      asOf: '2026-10-01',
+      outstanding: '9000',
+      creditLimit: '10000',
+      source: 'Tally',
+    };
+    expect(
+      (await t.api.head.post('/v1/finance-snapshots', { id: newId(), ...snapshot })).statusCode,
+    ).toBe(201);
+
+    expect(
+      (await t.api.head.patch('/v1/settings', { modulesOff: ['account_finance'] })).statusCode,
+    ).toBe(200);
+    expect(code(await t.api.head.get(`/v1/accounts/${t.distributor}/finance`))).toBe(
+      'MODULE_DISABLED',
+    );
+    expect(code(await t.api.head.get(`/v1/accounts/${t.distributor}/statement?year=2026`))).toBe(
+      'MODULE_DISABLED',
+    );
+    expect(code(await t.api.head.post('/v1/finance-snapshots', { id: newId(), ...snapshot }))).toBe(
+      'MODULE_DISABLED',
+    );
+    expect(
+      code(
+        await t.api.head.upload(
+          '/v1/imports?target=finance_snapshots&fileName=finance.csv',
+          'account_code,as_of,outstanding\n',
+        ),
+      ),
+    ).toBe('MODULE_DISABLED');
+    expect((await t.api.sme.get('/v1/orders')).statusCode).toBe(200);
   });
 });

@@ -16,13 +16,15 @@ import {
  * Which price lists a phone keeps (spec 5.11, decision D77): every list for everyone, account
  * types, segments or territories, and the lists for single accounts the person sees. Lists enter
  * and leave that set as accounts change hands and lists change targets, so the scope is a hash of
- * the lists themselves: when it changes, the phone takes a fresh copy of lists and prices.
+ * the lists themselves: when it changes, the phone takes a fresh copy of lists and prices. Prices
+ * are part of orders: with orders switched off (spec 5.13), the phone keeps none.
  */
 @Injectable()
 export class PriceVisibility {
   constructor(private readonly accounts: AccountsService) {}
 
   async where(tx: TenantTx, access: Access): Promise<SQL> {
+    if (access.modulesOff.includes('orders')) return sql`false`;
     return and(
       eq(priceLists.tenantId, access.tenantId),
       sql`(${priceLists.scope} <> 'account'
@@ -31,6 +33,7 @@ export class PriceVisibility {
   }
 
   async scope(tx: TenantTx, access: Access): Promise<string> {
+    if (access.modulesOff.includes('orders')) return 'off';
     const [row] = await tx
       .select({
         hash: sql<string>`md5(coalesce(string_agg(${priceLists.id}::text, ',' order by ${priceLists.id}), ''))`,

@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import {
   AppError,
+  closedByModules,
   type CreateImportQuery,
   type ImportListQuery,
   type ImportListResult,
@@ -15,7 +16,7 @@ import type { Config } from '../../config';
 import { importJobs, importMappings, type PreviewRow } from '../../db/schema/imports';
 import { canonicalJson } from '../../platform/canonical-json';
 import { AuditLog, userActor } from '../../platform/audit';
-import { type Access, AccessResolver } from '../../platform/auth';
+import { type Access, AccessResolver, moduleDisabled } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
@@ -117,10 +118,11 @@ export class ImportsService implements OnModuleInit {
     );
   }
 
-  /** The import's target, if the caller may import it. */
+  /** The import's target, if the caller may import it and its module is on (spec 5.13). */
   private target(access: Access, name: Job['target']) {
     const target = this.targets.get(name);
     if (!access.permissions.has(target.permission)) {
+      if (closedByModules([target.permission], access.modulesOff)) throw moduleDisabled();
       throw new AppError('FORBIDDEN', "You don't have access to this.");
     }
     return target;
