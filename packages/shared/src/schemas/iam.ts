@@ -322,6 +322,8 @@ export const MeResult = z.object({
   permissions: z.array(Permission),
   /** The bound phone this session runs on; web sessions have none (M1, rule 5). */
   deviceId: z.uuid().nullable(),
+  /** The holiday calendar the person keeps (M13); null keeps the default. */
+  calendarKey: Key.nullable().default(null),
 });
 
 export type RoleDefinition = z.output<typeof RoleDefinition>;

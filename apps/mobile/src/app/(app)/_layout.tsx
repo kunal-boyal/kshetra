@@ -30,6 +30,8 @@ export default function AppLayout() {
       <Stack.Screen name="leaderboard" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="attendance" />
+      <Stack.Screen name="leave/index" />
+      <Stack.Screen name="leave/new" />
     </Stack>
   );
 }

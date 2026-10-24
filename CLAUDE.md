@@ -274,6 +274,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Leave lives in `apps/api/src/modules/leave`: `LeaveTypesService` (types keyed by configuration key, never removed, switched off instead) and `LeaveRequestsService` (requests, balances, the `leave` request type, and the days it provides to attendance through `AttendanceLeave`). The rules are pure functions in `packages/shared/src/leave.ts`: `leaveDays()` and `leaveIssues()` (BR-27), `quotaYear()`, `leaveBalance()`.
 - Count a request's days on the person's own calendar (`CalendarsService.forPeople()` and `offOn()`); approved leave never marks a weekly off or holiday.
 - `LeaveType` is `@thelamp/shared`'s; templates re-export it.
+- On the phone, `/leave` and `/leave/new` read through the kept hooks in `apps/mobile/src/leave.ts`, preview a request with `previewLeave()` and queue it with `queueLeave()` (outbox kind `leave_request.create`). Month grids use `MonthDays` (`src/screens/month-days.tsx`).
 
 ## Tenant administration (decision D64)
 

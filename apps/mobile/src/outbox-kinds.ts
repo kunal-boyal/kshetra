@@ -4,6 +4,7 @@ import {
   AccountResult,
   type CheckOutBody,
   type CreateAccountBody,
+  type CreateLeaveRequestBody,
   type CreatePlanItemBody,
   type CreateRegularisationBody,
   type CreateSubmissionBody,
@@ -11,6 +12,7 @@ import {
   OrderResult,
   type PlaceOrderBody,
   type EndShiftBody,
+  LeaveRequestResult,
   LocationProposalResult,
   PlanItemResult,
   RegularisationResult,
@@ -125,6 +127,14 @@ export function senders(
         });
       },
     },
+    // Leave (M13): after its document photo, if any.
+    'leave_request.create': {
+      async send(payload) {
+        await client.request('POST', '/v1/leave-requests', LeaveRequestResult, {
+          body: payload as CreateLeaveRequestBody,
+        });
+      },
+    },
     'account.location': {
       async send(payload) {
         const { accountId, ...body } = payload as LocationProposalPayload;
@@ -153,6 +163,7 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'plan_item.create': 'uploads.kind_plan_item',
   'order.place': 'uploads.kind_order',
   'regularisation.create': 'uploads.kind_regularisation',
+  'leave_request.create': 'uploads.kind_leave',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;

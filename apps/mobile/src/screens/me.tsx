@@ -1,7 +1,14 @@
 import { spacing } from '@thelamp/design-tokens';
 import { Button, Card, ChoiceGroup, ListGroup, ListRow, Screen, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
-import { Building2, CalendarCheck, CloudUpload, LogOut, Repeat } from 'lucide-react-native';
+import {
+  Building2,
+  CalendarCheck,
+  CalendarX,
+  CloudUpload,
+  LogOut,
+  Repeat,
+} from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
@@ -18,7 +25,8 @@ import { useShift } from './shift';
  * Me (spec 8.1). For now it holds what the More screen will: the profile, the tenant switcher,
  * language, display, the upload queue and sign-out, which warns about unsent records and about
  * recording stopping on duty.
- * Attendance opens the month calendar (M13); leave, expenses and requests arrive with their modules.
+ * Attendance opens the month calendar and Leave the balances and requests (M13); expenses and
+ * requests arrive with their modules.
  */
 export function MeScreen() {
   const { client, queryClient, session, sync } = useApp();
@@ -35,6 +43,8 @@ export function MeScreen() {
   const tenant = session?.tenant;
   const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
   const permissions = new Set<string>(config.data?.bundle.access.permissions ?? []);
+  // Leave is a module of its own (D64): switched off, it hides.
+  const leaveOn = !(config.data?.bundle.settings.modulesOff ?? []).includes('leave_attendance');
   const designation = config.data?.bundle.designations.find(
     (entry) => entry.key === me.data?.designation,
   );
@@ -113,6 +123,14 @@ export function MeScreen() {
             detail={t('attendance.me_detail')}
             onPress={() => router.push('/attendance')}
           />
+          {leaveOn ? (
+            <ListRow
+              icon={CalendarX}
+              label={t('leave.title')}
+              detail={t('leave.me_detail')}
+              onPress={() => router.push('/leave')}
+            />
+          ) : null}
         </ListGroup>
       ) : null}
 
