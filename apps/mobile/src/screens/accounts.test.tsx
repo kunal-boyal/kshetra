@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import type { SessionState } from '@thelamp/api-client';
 import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import { migrate, Outbox, type SqlDatabase, Visits } from '@thelamp/api-client/sync';
-import { SETTING_DEFAULTS, type SyncPullResult } from '@thelamp/shared';
+import { SETTING_DEFAULTS, type SwitchableModule, type SyncPullResult } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
@@ -213,7 +213,7 @@ function pulled(): SyncPullResult {
   };
 }
 
-function fakeClient() {
+function fakeClient(modulesOff: SwitchableModule[] = []) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -244,7 +244,7 @@ function fakeClient() {
       etag: '"1-role-2"',
       bundle: {
         version: 1,
-        settings: SETTING_DEFAULTS,
+        settings: { ...SETTING_DEFAULTS, modulesOff },
         terminology: {},
         designations: [],
         accountTypes: [CUSTOMER],
@@ -282,9 +282,13 @@ function Shown({ page }: { page: Page }) {
   return <AccountScreen id={page.id} />;
 }
 
-async function renderPhone(page: Page, db: SqlDatabase = nodeSqlite()) {
+async function renderPhone(
+  page: Page,
+  db: SqlDatabase = nodeSqlite(),
+  modulesOff: SwitchableModule[] = [],
+) {
   await migrate(db);
-  const fake = fakeClient();
+  const fake = fakeClient(modulesOff);
   await render(
     <LanguageProvider initial="en">
       <AppProvider
@@ -531,6 +535,22 @@ describe('what an account owes on the phone (M11, D79)', () => {
   it('shows nothing owed for an account without a balance', async () => {
     await renderPhone({ name: 'account', id: FAR });
     await screen.findByText('India Gate Stores');
+    expect(screen.queryByText('What it owes')).toBeNull();
+  });
+});
+
+describe('modules switched off on the phone (M2, spec 5.13, D64)', () => {
+  it('hides prices, orders and what an account owes', async () => {
+    await renderPhone({ name: 'account', id: NEAR }, nodeSqlite(), ['orders', 'account_finance']);
+    await screen.findByText('Janpath Mart');
+    expect(screen.queryByText('What it owes')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'See what it pays' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New order' })).toBeNull();
+  });
+
+  it('keeps orders while only finance is off', async () => {
+    await renderPhone({ name: 'account', id: NEAR }, nodeSqlite(), ['account_finance']);
+    expect(await screen.findByRole('button', { name: 'New order' })).toBeOnTheScreen();
     expect(screen.queryByText('What it owes')).toBeNull();
   });
 });

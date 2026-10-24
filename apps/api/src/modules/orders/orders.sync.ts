@@ -14,7 +14,7 @@ import {
 /**
  * The orders a phone keeps (M10, decision D78): the ones its person placed, with where each
  * stands, so the phone shows an order's status once it has left the upload queue. Every decision
- * and fulfilment restamps the order.
+ * and fulfilment restamps the order. With orders switched off (spec 5.13), the phone keeps none.
  */
 @Injectable()
 export class OrdersSync implements SyncSource<SyncOrder>, OnModuleInit {
@@ -27,11 +27,12 @@ export class OrdersSync implements SyncSource<SyncOrder>, OnModuleInit {
     this.entities.register(this);
   }
 
-  async scope(): Promise<string> {
-    return 'own';
+  async scope(_tx: TenantTx, access: Access): Promise<string> {
+    return access.modulesOff.includes('orders') ? 'off' : 'own';
   }
 
   async rows(tx: TenantTx, access: Access, page: SyncRowsPage): Promise<SyncRow<SyncOrder>[]> {
+    if (access.modulesOff.includes('orders')) return [];
     const rows = await tx
       .select({
         version: orders.rowVersion,
