@@ -43,7 +43,7 @@ const FLAG_BADGE: Record<string, BadgeVariant> = {
 };
 
 /**
- * Expense claims (M12, decision D82): claims for a month by the people the caller reaches,
+ * Expense claims (M12, decision D83): claims for a month by the people the caller reaches,
  * newest day first, with what each policy and its caps made of them and what reviewers should
  * look at. Back office marks approved claims paid, asking first; the Expense register in Reports
  * exports them for payroll.

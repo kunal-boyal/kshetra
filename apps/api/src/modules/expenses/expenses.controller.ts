@@ -19,7 +19,7 @@ import { pathId } from '../iam/actor';
 import { ExpenseClaimsService } from './expense-claims.service';
 import { ExpensePoliciesService } from './expense-policies.service';
 
-/** Expense policies and claims (M12, spec 11.2, decision D82). */
+/** Expense policies and claims (M12, spec 11.2, decision D83). */
 @Controller('v1')
 export class ExpensesController {
   constructor(

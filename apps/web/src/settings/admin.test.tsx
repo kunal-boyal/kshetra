@@ -133,14 +133,17 @@ describe('modules (M2, spec 5.13)', () => {
     const user = userEvent.setup();
     const list = await screen.findByRole('list', { name: 'Modules' });
     expect(within(list).getByText('Always on')).toBeVisible();
-    expect(within(list).getAllByText('Arrives later').length).toBeGreaterThan(3);
-    // Leave and attendance, and expenses, can be switched in this release.
-    const switches = within(list).getAllByRole('checkbox', { name: 'On' });
-    expect(switches).toHaveLength(2);
-    await user.click(switches[0]!);
+    expect(within(list).getAllByText('Arrives later')).toHaveLength(4);
+    expect(within(list).getAllByRole('checkbox', { name: 'On' })).toHaveLength(4);
+    const module = (name: string) => within(within(list).getByText(name).closest('li')!);
+    await user.click(module('Leave and attendance').getByRole('checkbox', { name: 'On' }));
+    await user.click(module('Orders').getByRole('checkbox', { name: 'On' }));
+    await user.click(module('Account finance').getByRole('checkbox', { name: 'On' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
-      expect(writesOf(client)[0]![3]).toMatchObject({ body: { modulesOff: ['leave_attendance'] } }),
+      expect(writesOf(client)[0]![3]).toMatchObject({
+        body: { modulesOff: ['leave_attendance', 'orders', 'account_finance'] },
+      }),
     );
   });
 });

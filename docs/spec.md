@@ -1281,7 +1281,7 @@ attendance_days(tid, user_id, date, status, value, first_in, last_out, hours, so
        PK(tid, user_id, date) · PART monthly once volumes need it (D47)
 attendance_policies(tid, rule jsonb)                                         PK(tid)
 payroll_profiles(tid, user_id, monthly_gross, updated_by, updated_at)        PK(tid, user_id)
-expense_policies(tid, key, current_version, active, position)                PK(tid, key) (D82)
+expense_policies(tid, key, current_version, active, position)                PK(tid, key) (D83)
 expense_policy_versions(tid, policy_key, version, definition jsonb, valid_from) PK(tid, policy_key, version)
 expense_claims(id, tid, user_id, policy_key, policy_version, expense_date, description, quantity,
        rate, odometer_open NULL, odometer_close NULL, bill_amount NULL, calculated, amount, capped,

@@ -8,7 +8,7 @@ import { ExpenseClaimsService } from './expense-claims.service';
 import { ExpensePoliciesService } from './expense-policies.service';
 import { ExpensesController } from './expenses.controller';
 
-/** Expense policies and claims (M12): spec 9.6 `expenses`, decision D82. */
+/** Expense policies and claims (M12): spec 9.6 `expenses`, decision D83. */
 @Module({
   imports: [IamModule, FieldModule, PhotosModule, TenantConfigModule, WorkflowModule],
   controllers: [ExpensesController],

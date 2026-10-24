@@ -63,7 +63,7 @@ const invalid = (details: ReturnType<typeof issueAt>[]) =>
   new AppError('VALIDATION', 'Check the highlighted fields.', details);
 
 /**
- * Expense claims (M12, BR-29, BR-30, decision D82): a person claims against the policy version in
+ * Expense claims (M12, BR-29, BR-30, decision D83): a person claims against the policy version in
  * force on the day; the server works out the amount and the caps, attaches the receipts and
  * odometer photos, and starts the `expense` chain, which passes no step without a receipt where
  * the policy needs one. Receipts may follow while the claim waits; back office marks approved

@@ -74,6 +74,10 @@ export function AccountScreen({ id }: { id: string }) {
   const bundle = config.data?.bundle;
   const type = bundle?.accountTypes?.find((entry) => entry.key === account?.type);
   const permissions = new Set<string>(bundle?.access.permissions ?? []);
+  // Orders, prices included, and account finance are modules (D64): switched off, they hide.
+  const modulesOff = bundle?.settings.modulesOff ?? [];
+  const ordersOn = !modulesOff.includes('orders');
+  const financeOn = !modulesOff.includes('account_finance');
 
   if (accounts === undefined) {
     return (
@@ -220,7 +224,7 @@ export function AccountScreen({ id }: { id: string }) {
         </View>
       </Card>
 
-      {balance && permissions.has('finance.view') ? (
+      {balance && financeOn && permissions.has('finance.view') ? (
         <ListGroup title={t('finance.owes')}>
           <ListRow
             icon={Wallet}
@@ -257,7 +261,7 @@ export function AccountScreen({ id }: { id: string }) {
           )}
         </ListGroup>
       ) : null}
-      {(priceLists?.length ?? 0) > 0 ? (
+      {ordersOn && (priceLists?.length ?? 0) > 0 ? (
         <ListGroup title={t('prices.title')}>
           {permissions.has('order.create') && account.status === 'active' ? (
             <ListRow
@@ -277,7 +281,7 @@ export function AccountScreen({ id }: { id: string }) {
           />
         </ListGroup>
       ) : null}
-      {ordersHere.length > 0 || queuedHere.length > 0 ? (
+      {ordersOn && (ordersHere.length > 0 || queuedHere.length > 0) ? (
         <ListGroup title={t('orders.here')}>
           {queuedHere.map((item) => (
             <ListRow

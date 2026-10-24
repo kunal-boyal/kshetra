@@ -18,7 +18,7 @@ import { cell, isolation } from './common';
 import { users } from './iam';
 
 /**
- * Expenses (M12, spec 5.10, BR-29, BR-30, decision D82), owned by the expenses module: policies
+ * Expenses (M12, spec 5.10, BR-29, BR-30, decision D83), owned by the expenses module: policies
  * keyed as configuration names them, each change a version from a day, and claims that keep the
  * version in force on their day. Receipts and odometer photos are media owned by their claim.
  */

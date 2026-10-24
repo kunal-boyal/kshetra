@@ -45,7 +45,7 @@ const same = (a: ExpensePolicy, b: ExpensePolicy) =>
   canonical({ ...a, active: undefined }) === canonical({ ...b, active: undefined });
 
 /**
- * Expense policies (M12, spec 5.10, decision D82): each tenant's policies as configuration lists
+ * Expense policies (M12, spec 5.10, decision D83): each tenant's policies as configuration lists
  * them, keyed and never removed, since claims name them. A change to how a policy pays is a new
  * version from a day, today unless told otherwise; claims keep the version in force on their day. A
  * new policy has no earlier terms, so it takes claims for any day. Switching one off is not a

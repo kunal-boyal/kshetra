@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
-/** Expenses (M12, D82) in the built portal, against a mocked API, with axe. */
+/** Expenses (M12, D83) in the built portal, against a mocked API, with axe. */
 
 const ORIGIN = 'http://127.0.0.1:4173';
 const TENANT = {

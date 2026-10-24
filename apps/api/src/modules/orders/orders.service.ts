@@ -288,8 +288,11 @@ export class OrdersService {
     );
     await this.photos.attach(tx, tenantId, photoIds, { type: 'order', id: body.id });
 
-    // The order chain (spec 5.9), with the facts its conditions read.
-    const overCredit = await this.credit.over(tx, tenantId, account.id, totals.total);
+    // The order chain (spec 5.9), with the facts its conditions read. With account finance
+    // switched off (spec 5.13), no order is over its credit limit.
+    const overCredit =
+      !access.modulesOff.includes('account_finance') &&
+      (await this.credit.over(tx, tenantId, account.id, totals.total));
     const approvalId = await this.approvals.request(
       tx,
       tenantId,

@@ -40,7 +40,7 @@ export const AttendanceRule = z
 /** Leave types live in `@thelamp/shared`, as the API takes them too (decision D81). */
 export { LeaveType };
 
-/** Expense policies live in `@thelamp/shared`, as the API takes them too (decision D82). */
+/** Expense policies live in `@thelamp/shared`, as the API takes them too (decision D83). */
 export { ExpensePolicy, ExpenseRate };
 
 /** Holiday calendars, the attendance rule, leave types and expense policies (spec 5.10). */

@@ -1,4 +1,4 @@
--- Expense policies move from the held configuration to the expenses module (decision D82): each
+-- Expense policies move from the held configuration to the expenses module (decision D83): each
 -- tenant's policies in the order configuration lists them, each as its first version, in force
 -- from 2000-01-01 so claims for any day find it.
 INSERT INTO "cell"."expense_policies" ("tenant_id", "key", "current_version", "active", "position")

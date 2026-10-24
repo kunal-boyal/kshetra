@@ -13,7 +13,7 @@ import {
 } from '@thelamp/shared';
 import type { FastifyReply } from 'fastify';
 import { userActor } from '../../platform/audit';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, InModule, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -153,7 +153,7 @@ export class PriceListsController {
   }
 }
 
-/** What an account pays (spec 5.11), for anyone who sees the account. */
+/** What an account pays (spec 5.11), for anyone who sees the account; prices are part of orders. */
 @Controller('v1/accounts')
 export class AccountPricesController {
   constructor(
@@ -170,6 +170,7 @@ export class AccountPricesController {
     response: AccountPricesResult,
   })
   @SignedIn()
+  @InModule('orders')
   prices(@CurrentAccess() access: Access, @Param('id') id: string, @Query() query: unknown) {
     const accountId = pathId(id);
     const input = AccountPricesQuery.parse(query);

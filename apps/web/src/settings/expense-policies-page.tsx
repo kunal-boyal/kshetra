@@ -107,7 +107,7 @@ function bodyOf(draft: PolicyDraft) {
 }
 
 /**
- * Expense policies (M12, spec 5.10, decision D82): how each claim is paid, at a flat rate or by
+ * Expense policies (M12, spec 5.10, decision D83): how each claim is paid, at a flat rate or by
  * designation, within caps, with the proof it needs. A change applies to claims from a chosen day;
  * a policy keeps its key once saved and is switched off rather than removed.
  */

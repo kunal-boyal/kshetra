@@ -7,7 +7,7 @@ import { PhotosService } from '../src/modules/media/photos.service';
 import { type MemoryObjectStore, ObjectStore } from '../src/platform/object-store';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
 
-/** Expenses (M12, BR-29, BR-30, decision D82). */
+/** Expenses (M12, BR-29, BR-30, decision D83). */
 
 let app: NestFastifyApplication;
 let world: World;

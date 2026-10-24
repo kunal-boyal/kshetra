@@ -4,7 +4,7 @@ import { ApprovalResult } from './approvals';
 import { Key, LocalizedText, Money } from './config';
 
 /**
- * Expenses (M12, spec 5.10, BR-29, BR-30, decision D82): the tenant's policies as versions, and
+ * Expenses (M12, spec 5.10, BR-29, BR-30, decision D83): the tenant's policies as versions, and
  * people's claims against them through the `expense` chain, until back office marks them paid.
  */
 
