@@ -2,11 +2,12 @@ import {
   type ErrorDetail,
   issueAt,
   Key,
+  ExpensePolicy,
+  ExpenseRate,
+  expensePolicyIssues,
   LeaveType,
   LocalizedText,
-  Money,
   repeats,
-  toMinorUnits,
 } from '@thelamp/shared';
 import { z } from 'zod';
 import { repeatedKeys } from './organisation';
@@ -39,33 +40,8 @@ export const AttendanceRule = z
 /** Leave types live in `@thelamp/shared`, as the API takes them too (decision D81). */
 export { LeaveType };
 
-/** A flat rate, or a rate for each designation. */
-export const ExpenseRate = z
-  .union([z.strictObject({ flat: Money }), z.strictObject({ byDesignation: z.record(Key, Money) })])
-  .meta({ id: 'ExpenseRate' });
-
-/** How a claim's amount is calculated and capped (spec 5.10, BR-29). */
-export const ExpensePolicy = z
-  .strictObject({
-    key: Key,
-    name: LocalizedText,
-    category: z.enum(['travel', 'daily_allowance', 'other']),
-    calculation: z.enum(['per_km', 'per_day', 'per_visit', 'actual']),
-    rate: ExpenseRate.optional().meta({
-      description: 'Per km, day or visit. Leave out when the claim is the bill amount (actual).',
-    }),
-    caps: z
-      .strictObject({
-        perClaim: Money.optional(),
-        perDay: Money.optional(),
-        perMonth: Money.optional(),
-      })
-      .default({}),
-    receiptRequired: z.boolean().default(false),
-    odometerPhotosRequired: z.boolean().default(false),
-    active: z.boolean().default(true),
-  })
-  .meta({ id: 'ExpensePolicy' });
+/** Expense policies live in `@thelamp/shared`, as the API takes them too (decision D83). */
+export { ExpensePolicy, ExpenseRate };
 
 /** Holiday calendars, the attendance rule, leave types and expense policies (spec 5.10). */
 export const People = z.strictObject({
@@ -77,45 +53,6 @@ export const People = z.strictObject({
 });
 
 export type People = z.output<typeof People>;
-export type ExpensePolicy = z.output<typeof ExpensePolicy>;
-
-function checkExpensePolicy(
-  policy: ExpensePolicy,
-  designations: ReadonlySet<string>,
-  path: Path,
-): ErrorDetail[] {
-  const issues: ErrorDetail[] = [];
-  const at = (rest: readonly PropertyKey[], issue: string) =>
-    issues.push(issueAt([...path, ...rest], issue));
-  const positive = (amount: string, rest: readonly PropertyKey[]) => {
-    if (toMinorUnits(amount) === 0n) at(rest, 'Use an amount above zero');
-  };
-
-  if (policy.calculation === 'actual') {
-    if (policy.rate) at(['rate'], 'A claim of the bill amount takes no rate');
-  } else if (!policy.rate) {
-    at(['rate'], `A ${policy.calculation} policy needs a rate`);
-  } else if ('flat' in policy.rate) {
-    positive(policy.rate.flat, ['rate', 'flat']);
-  } else {
-    const rates = Object.entries(policy.rate.byDesignation);
-    if (rates.length === 0)
-      at(['rate', 'byDesignation'], 'Give a rate for at least one designation');
-    for (const [designation, amount] of rates) {
-      if (!designations.has(designation)) {
-        at(['rate', 'byDesignation', designation], `There is no designation \`${designation}\``);
-      }
-      positive(amount, ['rate', 'byDesignation', designation]);
-    }
-  }
-  for (const [cap, amount] of Object.entries(policy.caps)) {
-    if (amount !== undefined) positive(amount, ['caps', cap]);
-  }
-  if (policy.odometerPhotosRequired && policy.calculation !== 'per_km') {
-    at(['odometerPhotosRequired'], 'Odometer photos apply to per-km claims only');
-  }
-  return issues;
-}
 
 /** Checks people policies: known calendars and designations, and amounts that make sense. */
 export function checkPeople(
@@ -154,7 +91,7 @@ export function checkPeople(
     );
   }
   people.expensePolicies.forEach((policy, index) => {
-    issues.push(...checkExpensePolicy(policy, designations, [...path, 'expensePolicies', index]));
+    issues.push(...expensePolicyIssues(policy, designations, [...path, 'expensePolicies', index]));
   });
   return issues;
 }

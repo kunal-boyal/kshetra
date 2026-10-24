@@ -97,6 +97,11 @@ export const AUDIT_ACTIONS = [
   'leave_types.changed',
   'leave.requested',
   'leave.decided',
+  'expense_policies.changed',
+  'expense.claimed',
+  'expense.receipts_added',
+  'expense.decided',
+  'expense.paid',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

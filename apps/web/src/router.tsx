@@ -41,6 +41,8 @@ import { EditPersonPage, NewPersonPage } from './people/person-form-page';
 import { PersonPage } from './people/person-page';
 import { TransferPage } from './people/transfer-page';
 import { CalendarsPage } from './settings/calendars-page';
+import { ExpensePoliciesPage } from './settings/expense-policies-page';
+import { ExpensesPage } from './expenses/expenses-page';
 import { LeaveTypesPage } from './settings/leave-types-page';
 import { ConfigurationPage } from './settings/configuration-page';
 import { DesignationsPage } from './settings/designations-page';
@@ -180,6 +182,11 @@ const approvals = createRoute({
   },
 });
 const review = createRoute({ getParentRoute: () => app, path: '/review', component: ReviewPage });
+const expensesRoute = createRoute({
+  getParentRoute: () => app,
+  path: '/expenses',
+  component: ExpensesPage,
+});
 const ordersRoute = createRoute({
   getParentRoute: () => app,
   path: '/orders',
@@ -295,6 +302,11 @@ const calendars = createRoute({
   getParentRoute: () => settings,
   path: '/calendars',
   component: CalendarsPage,
+});
+const expensePolicies = createRoute({
+  getParentRoute: () => settings,
+  path: '/expense-policies',
+  component: ExpensePoliciesPage,
 });
 const leaveTypes = createRoute({
   getParentRoute: () => settings,
@@ -437,6 +449,7 @@ const tree = root.addChildren([
     approvals,
     review,
     ordersRoute,
+    expensesRoute,
     newOrder,
     order,
     targets,
@@ -457,6 +470,7 @@ const tree = root.addChildren([
       approvalChains,
       calendars,
       leaveTypes,
+      expensePolicies,
       terminology,
       modules,
       settingsIndex,

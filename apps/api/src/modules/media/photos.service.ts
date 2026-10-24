@@ -423,6 +423,34 @@ export class PhotosService implements OnModuleInit {
    * Attaches photos to the record that names them (spec 12.2, step 5), in the transaction that
    * creates it. The caller has checked them first; one held elsewhere stays where it is.
    */
+  /** The photos records of a type hold, by record: each one's kind and whether it repeats another. */
+  async ownedBy(
+    tx: TenantTx,
+    tenantId: string,
+    ownerType: string,
+    ownerIds: readonly string[],
+  ): Promise<{ id: string; ownerId: string; kind: string; duplicateOfId: string | null }[]> {
+    if (ownerIds.length === 0) return [];
+    const rows = await tx
+      .select({
+        id: media.id,
+        ownerId: media.ownerId,
+        kind: media.kind,
+        duplicateOfId: media.duplicateOfId,
+      })
+      .from(media)
+      .where(
+        and(
+          eq(media.tenantId, tenantId),
+          eq(media.ownerType, ownerType),
+          inArray(media.ownerId, [...ownerIds]),
+          ne(media.status, 'deleted'),
+        ),
+      )
+      .orderBy(asc(media.capturedAt), asc(media.id));
+    return rows.map((row) => ({ ...row, ownerId: row.ownerId! }));
+  }
+
   async attach(
     tx: TenantTx,
     tenantId: string,

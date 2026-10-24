@@ -77,6 +77,9 @@ let aItemId: string;
 let aPriceListId: string;
 let aRegularisationId: string;
 let aLeaveRequestId: string;
+let aClaimId: string;
+/** A second claim of A's, whose ID B never uses for its own. */
+let aOtherClaimId: string;
 let aOrderId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
@@ -1709,6 +1712,80 @@ const FIXTURES: Record<string, Fixture> = {
       await sameAsNowhere((id) => asB('GET', `/v1/leave-balances?userId=${id}`), a.member.id);
     },
   },
+  'GET /v1/expense-policies': {
+    kind: 'own tenant',
+    run: async () => {
+      const policies = await asB('GET', '/v1/expense-policies');
+      expect(policies.statusCode).toBe(200);
+      holdsNothingOfA(policies);
+    },
+  },
+  'PUT /v1/expense-policies': {
+    kind: 'write',
+    run: async () => {
+      // Keys belong to a tenant: B's meals policy is B's own beside A's.
+      const put = await asB('PUT', '/v1/expense-policies', {
+        items: [
+          {
+            key: 'meals',
+            name: named(`${b.word} meals`),
+            category: 'other',
+            calculation: 'actual',
+          },
+        ],
+      });
+      expect(put.statusCode, put.body).toBe(200);
+      holdsNothingOfA(put);
+    },
+  },
+  'POST /v1/expense-claims': {
+    kind: 'write',
+    run: async () => {
+      const policy = await asB('PUT', '/v1/expense-policies', {
+        items: [
+          {
+            key: 'meals',
+            name: named(`${b.word} meals`),
+            category: 'other',
+            calculation: 'actual',
+          },
+        ],
+      });
+      expect(policy.statusCode, policy.body).toBe(200);
+      // IDs belong to a tenant: B's claim with A's ID is B's own.
+      const claimed = await asBPhone('POST', '/v1/expense-claims', {
+        id: aClaimId,
+        policy: 'meals',
+        expenseDate: YESTERDAY(),
+        description: `${b.word} lunch`,
+        billAmount: '90',
+      });
+      expect(claimed.statusCode, claimed.body).toBe(201);
+      expect(claimed.json()).toMatchObject({ userId: b.member.id, amount: '90.00' });
+    },
+  },
+  'GET /v1/expense-claims': {
+    kind: 'by ID',
+    run: async () => {
+      const own = await asB('GET', '/v1/expense-claims');
+      expect(own.statusCode).toBe(200);
+      holdsNothingOfA(own);
+      await sameAsNowhere((id) => asB('GET', `/v1/expense-claims?userId=${id}`), a.member.id);
+    },
+  },
+  'POST /v1/expense-claims/:id/receipts': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asBPhone('POST', `/v1/expense-claims/${id}/receipts`, { mediaIds: [newId()] }),
+        aOtherClaimId,
+      ),
+  },
+  'POST /v1/expense-claims/:id/paid': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => asB('POST', `/v1/expense-claims/${id}/paid`, {}), aOtherClaimId),
+  },
   'GET /v1/regularisations': {
     kind: 'by ID',
     run: async () => {
@@ -1981,6 +2058,36 @@ beforeAll(async () => {
     reason: `${a.word} exam`,
   });
   expect(leave.statusCode, leave.body).toBe(201);
+  // A's own expense policy, and its member's claim under it.
+  const policy = await send(aToken, 'PUT', '/v1/expense-policies', {
+    items: [
+      {
+        key: 'meals',
+        name: named(`${a.word} meals`),
+        category: 'other',
+        calculation: 'actual',
+      },
+    ],
+  });
+  expect(policy.statusCode, policy.body).toBe(200);
+  aClaimId = newId();
+  const claimed = await send(memberToken, 'POST', '/v1/expense-claims', {
+    id: aClaimId,
+    policy: 'meals',
+    expenseDate: YESTERDAY(),
+    description: `${a.word} lunch`,
+    billAmount: '120',
+  });
+  expect(claimed.statusCode, claimed.body).toBe(201);
+  aOtherClaimId = newId();
+  const other = await send(memberToken, 'POST', '/v1/expense-claims', {
+    id: aOtherClaimId,
+    policy: 'meals',
+    expenseDate: YESTERDAY(),
+    description: `${a.word} dinner`,
+    billAmount: '80',
+  });
+  expect(other.statusCode, other.body).toBe(201);
   aFormId = (await send(aToken, 'GET', '/v1/forms')).json().items[0].id;
   // A's member on shift: punched in an hour ago, with a point, and tracking paused.
   aShiftId = newId();

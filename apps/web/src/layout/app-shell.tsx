@@ -19,6 +19,7 @@ import {
   Target,
   Trophy,
   Users,
+  Receipt,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../context';
@@ -102,6 +103,11 @@ export function AppShell() {
           icon: ShoppingCart,
           label: t('nav.orders'),
         }),
+        ...only(
+          (access.can('expense.mark_paid') || access.can('approval.act')) &&
+            !access.modulesOff.includes('expenses'),
+          { to: '/expenses', icon: Receipt, label: t('nav.expenses') },
+        ),
         ...only(access.can('live_map.view'), {
           to: '/live-map',
           icon: MapIcon,

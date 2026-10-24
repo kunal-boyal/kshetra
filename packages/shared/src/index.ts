@@ -698,3 +698,33 @@ export {
   LeaveTypeListResult,
   LeaveTypesBody,
 } from './schemas/leave';
+export {
+  AddReceiptsBody,
+  CreateExpenseClaimBody,
+  EXPENSE_STATES,
+  ExpenseClaimListQuery,
+  ExpenseClaimListResult,
+  ExpenseClaimResult,
+  ExpensePoliciesBody,
+  ExpensePolicy,
+  ExpensePolicyListResult,
+  ExpensePolicyResult,
+  ExpenseRate,
+  ExpenseState,
+  MarkPaidBody,
+} from './schemas/expenses';
+export {
+  capClaim,
+  claimBase,
+  claimIssues,
+  EXPENSE_CALCULATIONS,
+  EXPENSE_CATEGORIES,
+  EXPENSE_DESCRIPTION,
+  type ExpenseCalculation,
+  type ExpenseIssue,
+  expensePolicyIssues,
+  type ExpensePolicyRule,
+  odometerDistance,
+  rateFor,
+  receiptHoldsApproval,
+} from './expenses';
