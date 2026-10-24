@@ -21,6 +21,7 @@ import { TenantDirectory } from '../../platform/planes';
 import { AccountTypesService } from '../accounts/account-types.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
 import { AttendanceService } from '../field/attendance.service';
+import { CalendarsService } from '../field/calendars.service';
 import { FormsService } from '../forms/forms.service';
 import { DesignationsService } from '../iam/designations.service';
 import { RolesService } from '../iam/roles.service';
@@ -93,6 +94,7 @@ export class ConfigurationService {
     private readonly metrics: MetricsService,
     private readonly metricsAdmin: MetricsAdmin,
     private readonly attendance: AttendanceService,
+    private readonly calendars: CalendarsService,
     private readonly imports: ImportsService,
     private readonly held: HeldConfiguration,
     private readonly chains: ChainsService,
@@ -172,7 +174,11 @@ export class ConfigurationService {
       score: await this.metrics.score(tx, tenantId),
       workflows: await this.chains.export(tx, tenantId),
       people: held
-        ? { ...held.people, attendance: await this.attendance.rule(tx, tenantId) }
+        ? {
+            ...held.people,
+            attendance: await this.attendance.rule(tx, tenantId),
+            ...(await this.calendars.section(tx, tenantId)),
+          }
         : undefined,
       // A tenant whose template had no catalogue keeps the product's defaults, which have no
       // reasons to reject an order yet; a template leaves the section out for those.
@@ -371,6 +377,10 @@ export class ConfigurationService {
       await this.metricsAdmin.updateScore(tx, tenantId, actor, access.userId, file.score);
       return 'update';
     });
+
+    await step('calendars', 'calendars', 'people.calendars', '', () =>
+      this.calendars.importSection(tx, tenantId, file.people),
+    );
 
     await step('attendance', 'attendance', 'people.attendance', '', async () => {
       if (same(await this.attendance.rule(tx, tenantId), file.people.attendance)) return 'same';

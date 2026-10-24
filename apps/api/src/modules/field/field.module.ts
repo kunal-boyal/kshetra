@@ -6,8 +6,15 @@ import { IamModule } from '../iam/iam.module';
 import { PlanningModule } from '../planning/planning.module';
 import { MediaModule } from '../media/media.module';
 import { PhotosModule } from '../media/photos.module';
+import { ImportsModule } from '../imports/imports.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
+import { WorkflowModule } from '../workflow/workflow.module';
+import { AttendanceLeave } from './attendance-leave';
+import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
+import { CalendarsService } from './calendars.service';
+import { HolidaysImport } from './holidays.import';
+import { RegularisationsService } from './regularisations.service';
 import { FieldController } from './field.controller';
 import { FieldUpkeep } from './field.upkeep';
 import { LocationArchive } from './location-archive';
@@ -32,9 +39,15 @@ import { VisitsService } from './visits.service';
     FormsModule,
     CatalogueModule,
     PlanningModule,
+    WorkflowModule,
+    ImportsModule,
   ],
-  controllers: [FieldController, VisitsController],
+  controllers: [FieldController, VisitsController, AttendanceController],
   providers: [
+    AttendanceLeave,
+    CalendarsService,
+    RegularisationsService,
+    HolidaysImport,
     ShiftsService,
     LocationsService,
     TrailsService,
@@ -45,6 +58,8 @@ import { VisitsService } from './visits.service';
     LocationArchive,
   ],
   exports: [
+    AttendanceLeave,
+    CalendarsService,
     AttendanceService,
     ShiftsService,
     SubmissionsService,

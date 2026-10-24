@@ -101,6 +101,8 @@ export const users = cell
       managerId: uuid('manager_id'),
       joiningDate: date('joining_date'),
       exitDate: date('exit_date'),
+      /** The holiday calendar the person keeps (M13); null keeps the tenant's default. */
+      calendarKey: text('calendar_key'),
       status: userStatus('status').notNull().default('active'),
       // Moves with every change that must sign the user out (BR-39).
       authRevision: integer('auth_revision').notNull().default(0),

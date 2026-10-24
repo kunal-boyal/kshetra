@@ -1,11 +1,27 @@
 import { formatNumber } from '@thelamp/i18n';
-import { AttendanceResult, type ShiftResult, ShiftListResult, todayIn } from '@thelamp/shared';
-import { type Column, DataTable, EmptyState, Icon, StatusBadge } from '@thelamp/ui-web';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  AttendanceResult,
+  type ShiftResult,
+  ShiftListResult,
+  todayIn,
+  UserCalendarResult,
+} from '@thelamp/shared';
+import {
+  type Column,
+  DataTable,
+  EmptyState,
+  Icon,
+  Notice,
+  SelectField,
+  StatusBadge,
+} from '@thelamp/ui-web';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
+import { useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
-import { read, useAccess } from './data';
+import { useCalendars } from '../settings/data';
+import { read, useAccess, write } from './data';
 import { Facts, Section, useDates } from './shared';
 
 function useShifts(userId: string) {
@@ -33,10 +49,17 @@ function useAttendance(userId: string, period: string) {
 }
 
 /**
- * A person's work (M5): this month's attendance so far, and their shifts, newest first, with
+ * A person's work (M5): this month's attendance so far, with the days they work and are paid for
+ * (BR-24, BR-25) and the holiday calendar they keep (M13), and their shifts, newest first, with
  * time on duty, distance and how each ended. The live map and day replay come with maps (M17).
  */
-export function WorkSection({ userId }: { userId: string }) {
+export function WorkSection({
+  userId,
+  calendarKey,
+}: {
+  userId: string;
+  calendarKey: string | null;
+}) {
   const { t, locale } = useLanguage();
   const access = useAccess();
   const dates = useDates(access.timezone);
@@ -126,9 +149,12 @@ export function WorkSection({ userId }: { userId: string }) {
             [t('work.half_day'), formatNumber(count('half_day'), { locale })],
             [t('work.absent'), formatNumber(count('absent'), { locale })],
             [t('work.hours'), formatNumber(hours, { locale }, { maximumFractionDigits: 1 })],
+            [t('work.scheduled'), formatNumber(attendance.data.summary.scheduled, { locale })],
+            [t('work.paid'), formatNumber(attendance.data.summary.paid, { locale })],
           ]}
         />
       ) : null}
+      <CalendarChoice userId={userId} calendarKey={calendarKey} />
       <p className="ks-muted">{t('work.month_note')}</p>
       {shifts.isError ? (
         <p className="ks-help error" role="alert">
@@ -159,5 +185,57 @@ export function WorkSection({ userId }: { userId: string }) {
         />
       )}
     </Section>
+  );
+}
+
+/** The holiday calendar a person keeps; those who manage calendars may change it. */
+function CalendarChoice({ userId, calendarKey }: { userId: string; calendarKey: string | null }) {
+  const { client } = useApp();
+  const { t, locale } = useLanguage();
+  const access = useAccess();
+  const queryClient = useQueryClient();
+  const calendars = useCalendars();
+  const [failure, setFailure] = useState<unknown>();
+  const [saved, setSaved] = useState(false);
+  const items = calendars.data?.items ?? [];
+  const fallback = items.find((calendar) => calendar.default);
+  if (items.length === 0) return null;
+  const options = [
+    {
+      value: '',
+      label: t('work.calendar_default', { name: fallback ? fallback.name[locale] : '—' }),
+    },
+    ...items.map((calendar) => ({ value: calendar.key, label: calendar.name[locale] })),
+  ];
+
+  async function choose(value: string) {
+    setFailure(undefined);
+    setSaved(false);
+    try {
+      await write(client, 'PUT', `/v1/users/${userId}/calendar`, UserCalendarResult, {
+        calendarKey: value || null,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['user', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance', userId] }),
+      ]);
+      setSaved(true);
+    } catch (caught) {
+      setFailure(caught);
+    }
+  }
+
+  return (
+    <div className="flex max-w-md flex-col gap-2">
+      <SelectField
+        label={t('work.calendar')}
+        value={calendarKey ?? ''}
+        disabled={!access.can('calendar.manage')}
+        options={options}
+        {...(failure !== undefined ? { error: errorMessage(failure, t) } : {})}
+        onChange={(event) => void choose(event.target.value)}
+      />
+      {saved ? <Notice>{t('work.calendar_saved')}</Notice> : null}
+    </div>
   );
 }

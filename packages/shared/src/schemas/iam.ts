@@ -144,6 +144,8 @@ export const UserResult = z.object({
   managerId: z.uuid().nullable(),
   joiningDate: CalendarDate.nullable(),
   exitDate: CalendarDate.nullable(),
+  /** The holiday calendar the person keeps (M13); null keeps the tenant's default. */
+  calendarKey: Key.nullable().default(null),
   status: UserStatus,
   /** The manager's code and name, for tables and headings. */
   manager: z.object({ id: z.uuid(), code: z.string(), name: z.string() }).nullable(),

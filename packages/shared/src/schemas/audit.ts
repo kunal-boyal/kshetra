@@ -91,6 +91,9 @@ export const AUDIT_ACTIONS = [
   'order.cancelled',
   'finance.snapshots_added',
   'finance.entries_added',
+  'holidays.changed',
+  'regularisation.requested',
+  'regularisation.decided',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

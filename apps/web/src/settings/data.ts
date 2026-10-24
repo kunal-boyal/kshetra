@@ -1,4 +1,5 @@
 import {
+  CalendarListResult,
   newId,
   OrganisationResult,
   TenantSettings,
@@ -80,4 +81,13 @@ export function useAdmin() {
       await refresh();
     },
   };
+}
+
+/** The holiday calendars with their holidays of a year (M13). */
+export function useCalendars(year?: number) {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['calendars', year ?? 'this'],
+    queryFn: () => read(client, `/v1/calendars${year ? `?year=${year}` : ''}`, CalendarListResult),
+  });
 }

@@ -93,16 +93,28 @@ export class People {
   }
 
   /**
-   * When each person works for the tenant, for attendance days (BR-23): everyone active, or the
-   * people named. Deactivated people keep their past days; they get no new ones.
+   * When each person works for the tenant, and the holiday calendar they keep, for attendance days
+   * (BR-23): everyone active, or the people named. Deactivated people keep their past days; they get no new ones.
    */
   async employment(
     tx: TenantTx,
     tenantId: string,
     ids?: readonly string[],
-  ): Promise<{ id: string; joiningDate: string | null; exitDate: string | null }[]> {
+  ): Promise<
+    {
+      id: string;
+      joiningDate: string | null;
+      exitDate: string | null;
+      calendarKey: string | null;
+    }[]
+  > {
     return tx
-      .select({ id: users.id, joiningDate: users.joiningDate, exitDate: users.exitDate })
+      .select({
+        id: users.id,
+        joiningDate: users.joiningDate,
+        exitDate: users.exitDate,
+        calendarKey: users.calendarKey,
+      })
       .from(users)
       .where(
         and(
@@ -110,6 +122,30 @@ export class People {
           ids ? inArray(users.id, [...new Set(ids)]) : eq(users.status, 'active'),
         ),
       );
+  }
+
+  /**
+   * Keeps a person on a holiday calendar (M13), or on the tenant's default with null. The field
+   * module, which owns calendars, checks the key; returns the key before, or undefined when there
+   * is no such person.
+   */
+  async setCalendar(
+    tx: TenantTx,
+    tenantId: string,
+    id: string,
+    calendarKey: string | null,
+  ): Promise<string | null | undefined> {
+    const [before] = await tx
+      .select({ calendarKey: users.calendarKey })
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.id, id)))
+      .for('update');
+    if (!before) return undefined;
+    await tx
+      .update(users)
+      .set({ calendarKey, updatedAt: new Date() })
+      .where(and(eq(users.tenantId, tenantId), eq(users.id, id)));
+    return before.calendarKey;
   }
 
   /** Everyone in the tenant, by code, for files that name people (BR-42). */

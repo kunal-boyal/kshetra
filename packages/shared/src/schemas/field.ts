@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { GeoPoint } from '../geo';
 import { LocalizedNoun } from './config';
-import { PHASE1_DAY_STATUSES, POINT_REJECTIONS } from '../tracking';
+import { DAY_STATUSES, POINT_REJECTIONS } from '../tracking';
 
 /**
  * Shifts and location tracking (M5, spec 11.2, 12.1). Records made on the phone carry their own
@@ -124,9 +124,9 @@ export const LocationBatchResult = z.object({
   rejected: z.array(z.object({ id: z.uuid(), reason: PointRejection })),
 });
 
-export const DayStatus = z.enum(PHASE1_DAY_STATUSES);
+export const DayStatus = z.enum(DAY_STATUSES);
 
-/** One day of a person's attendance (BR-23 as shifts decide it in phase 1, decision D47). */
+/** One day of a person's attendance (BR-23, decisions D47 and D80). */
 export const AttendanceDayResult = z.object({
   date: CalendarDate,
   status: DayStatus,
@@ -134,6 +134,17 @@ export const AttendanceDayResult = z.object({
   firstIn: z.iso.datetime().nullable(),
   lastOut: z.iso.datetime().nullable(),
   hours: z.number(),
+  /** The holiday's name, when the person's calendar has one that day. */
+  holiday: z.string().nullable().default(null),
+  /** A request to fix the day, while it waits or once approved (BR-28). */
+  regularisation: z
+    .object({
+      id: z.uuid(),
+      status: z.enum(['present', 'half_day']),
+      state: z.enum(['pending', 'approved']),
+    })
+    .nullable()
+    .default(null),
 });
 
 /** `GET /v1/attendance`: a person's days in a month. */
@@ -146,6 +157,8 @@ export const AttendanceResult = z.object({
   userId: z.uuid(),
   period: z.string(),
   days: z.array(AttendanceDayResult),
+  /** BR-24 and BR-25, for the days so far. */
+  summary: z.object({ scheduled: z.int().min(0), paid: z.number().min(0) }),
 });
 
 export type PunchFix = z.output<typeof PunchFix>;

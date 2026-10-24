@@ -80,6 +80,7 @@ const selection = {
   managerName: managers.name,
   joiningDate: users.joiningDate,
   exitDate: users.exitDate,
+  calendarKey: users.calendarKey,
   status: users.status,
   custom: users.custom,
   createdAt: users.createdAt,

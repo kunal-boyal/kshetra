@@ -15,6 +15,8 @@ import {
   ShiftListResult,
   ShiftResult,
   StartShiftBody,
+  paidDays,
+  scheduledDays,
 } from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
 import { Database } from '../../platform/database';
@@ -213,17 +215,21 @@ export class FieldController {
         `${input.period}-01`,
         `${input.period}-${String(last).padStart(2, '0')}`,
       );
+      const days = (found.get(input.userId) ?? []).map((day) => ({
+        date: day.date,
+        status: day.status,
+        value: day.value,
+        firstIn: day.firstIn,
+        lastOut: day.lastOut,
+        hours: day.hours,
+        holiday: day.holiday,
+        regularisation: day.regularisation,
+      }));
       return {
         userId: input.userId,
         period: input.period,
-        days: (found.get(input.userId) ?? []).map((day) => ({
-          date: day.date,
-          status: day.status,
-          value: day.value,
-          firstIn: day.firstIn,
-          lastOut: day.lastOut,
-          hours: day.hours,
-        })),
+        days,
+        summary: { scheduled: scheduledDays(days), paid: paidDays(days) },
       };
     });
   }

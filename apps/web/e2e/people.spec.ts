@@ -162,6 +162,19 @@ const ANSWERS: Record<string, unknown> = {
     days: [
       { date: '2026-10-13', status: 'present', value: 1, firstIn: null, lastOut: null, hours: 8.5 },
     ],
+    summary: { scheduled: 1, paid: 1 },
+  },
+  '/v1/calendars': {
+    year: 2026,
+    items: [
+      {
+        key: 'standard',
+        name: { en: 'Standard', hi: 'सामान्य' },
+        weeklyOffs: [7],
+        default: true,
+        holidays: [],
+      },
+    ],
   },
   '/v1/users': { items: [PRIYA_VIEW, RAHUL_VIEW], nextCursor: null },
   [`/v1/users/${RAHUL}`]: RAHUL_VIEW,

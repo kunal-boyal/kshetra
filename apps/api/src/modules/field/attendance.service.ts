@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { type AttendanceDayResult, type AttendanceRule, dayStatus, todayIn } from '@thelamp/shared';
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { regularisations } from '../../db/schema/attendance';
 import { attendanceDays, attendancePolicies, shifts } from '../../db/schema/field';
 import type { TenantTx } from '../../platform/database';
 import { People } from '../iam/people';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { AttendanceLeave } from './attendance-leave';
+import { CalendarsService, offOn } from './calendars.service';
 
 const DEFAULT_RULE: AttendanceRule = { rule: 'punch_is_present' };
 
@@ -19,16 +22,20 @@ function dates(from: string, to: string): string[] {
 }
 
 /**
- * Attendance days (BR-23 as shifts decide it in phase 1, decision D47). A day belongs to the
- * shifts that started on it, on the tenant's clock; its hours are their time on duty, an open
- * shift counting until now. Shifts are the source: the stored days are what reports read, and
- * are worked out again whenever a shift starts or ends, and nightly for the day just gone.
+ * Attendance days (BR-23, decisions D47 and D80). A day belongs to the shifts that started on
+ * it, on the tenant's clock; its hours are their time on duty, an open shift counting until now.
+ * Approved regularisations, approved leave, the person's calendar of holidays and weekly offs, and
+ * when they were employed decide the rest. The stored days are what reports read, and are worked
+ * out again whenever a shift starts or ends, a regularisation is decided or a holiday changes, and
+ * nightly for the day just gone.
  */
 @Injectable()
 export class AttendanceService {
   constructor(
     private readonly config: TenantConfigService,
     private readonly people: People,
+    private readonly calendars: CalendarsService,
+    private readonly leave: AttendanceLeave,
   ) {}
 
   async applyTemplate(tx: TenantTx, tenantId: string, rule: AttendanceRule | undefined) {
@@ -93,6 +100,10 @@ export class AttendanceService {
           sql`${localDate} between ${from} and ${to}`,
         ),
       );
+    const ids = employed.map((person) => person.id);
+    const calendars = await this.calendars.forPeople(tx, tenantId, employed, from, to);
+    const leave = await this.leave.days(tx, tenantId, ids, from, to);
+    const fixes = await this.regularised(tx, tenantId, ids, from, to);
     const result = new Map<string, (AttendanceDayResult & { shiftIds: string[] })[]>();
     for (const person of employed) {
       const mine = found.filter((shift) => shift.userId === person.id);
@@ -109,6 +120,8 @@ export class AttendanceService {
             0,
           );
           const hours = Math.round((seconds / 3_600) * 100) / 100;
+          const off = offOn(calendars.get(person.id)!, date);
+          const fix = fixes.get(person.id)?.get(date) ?? null;
           const { status, value } = dayStatus({
             date,
             today,
@@ -117,6 +130,10 @@ export class AttendanceService {
             shifts: theirs.length,
             hours,
             rule,
+            regularised: fix?.state === 'approved' ? fix.status : null,
+            leave: leave.get(person.id)?.get(date) ?? null,
+            holiday: off.holiday !== null,
+            weeklyOff: off.weeklyOff,
           });
           const starts = theirs.map((shift) => shift.startedAt.getTime());
           const ends = theirs.flatMap((shift) => (shift.endedAt ? [shift.endedAt.getTime()] : []));
@@ -128,9 +145,50 @@ export class AttendanceService {
             firstIn: starts.length > 0 ? new Date(Math.min(...starts)).toISOString() : null,
             lastOut: ends.length > 0 ? new Date(Math.max(...ends)).toISOString() : null,
             shiftIds: theirs.map((shift) => shift.id),
+            holiday: off.holiday,
+            regularisation: fix,
           };
         }),
       );
+    }
+    return result;
+  }
+
+  /** Waiting and approved regularisations by person and day (BR-28). */
+  private async regularised(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    from: string,
+    to: string,
+  ) {
+    type Fix = { id: string; status: 'present' | 'half_day'; state: 'pending' | 'approved' };
+    const result = new Map<string, Map<string, Fix>>();
+    if (userIds.length === 0) return result;
+    const rows = await tx
+      .select({
+        id: regularisations.id,
+        userId: regularisations.userId,
+        date: regularisations.date,
+        status: regularisations.status,
+        state: regularisations.state,
+      })
+      .from(regularisations)
+      .where(
+        and(
+          eq(regularisations.tenantId, tenantId),
+          inArray(regularisations.userId, [...userIds]),
+          inArray(regularisations.state, ['pending', 'approved']),
+          sql`${regularisations.date} between ${from} and ${to}`,
+        ),
+      );
+    for (const row of rows) {
+      if (!result.has(row.userId)) result.set(row.userId, new Map());
+      result.get(row.userId)!.set(row.date, {
+        id: row.id,
+        status: row.status as Fix['status'],
+        state: row.state as Fix['state'],
+      });
     }
     return result;
   }

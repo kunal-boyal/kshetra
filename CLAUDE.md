@@ -261,6 +261,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - The finance module provides `OrderCredit`, which decides an order's `over_credit` fact.
 - Phones keep each account's latest balance as the `balances` sync entity, keyed by the account; read it with `useBalance()` in `apps/mobile/src/finance.ts`, and judge an order with `overCredit()`.
 
+## Attendance and calendars (decision D80)
+
+- A day's status is `dayStatus()` in `packages/shared/src/tracking.ts`, the whole of BR-23 in priority order; `scheduledDays()`, `paidDays()` and `regularisationIssue()` are in `packages/shared/src/attendance.ts`. `AttendanceService.days()` gathers its inputs; `store()` keeps the stored days that reports read, so anything that changes a day gone calls it in the same transaction.
+- Calendars and holidays are `CalendarsService` in `apps/api/src/modules/field`; a person's calendar is `users.calendar_key` (null keeps the default), read through `People.employment()` and `CalendarsService.forPeople()`. Optional holidays never take a day off.
+- Leave reaches attendance only through the `AttendanceLeave` seam: the leave module calls `provide()` with its approved days.
+- Regularisations are `RegularisationsService`, the `regularisation` request type: one waiting or approved request a person a day. Only an approved one changes the day.
+
 ## Tenant administration (decision D64)
 
 - Settings are `TenantSettings`; the apps read them from the bundle through `BundleSettings`, which drops settings they don't know and fills missing ones with defaults, so settings may only ever be added. The display name is the directory's (`TenantDirectory.rename()`), the logo a `logo` media file behind `/v1/organisation/logo`.
