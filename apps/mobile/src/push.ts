@@ -34,6 +34,7 @@ const APP_PATHS = new Set([
   '/team',
   '/attendance',
   '/leave',
+  '/expenses',
 ]);
 /** The portal's paths that have a home on the phone: approvals wait in the Team tab. */
 const PHONE_PATHS: Record<string, string> = { '/approvals': '/team' };
