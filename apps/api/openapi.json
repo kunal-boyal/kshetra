@@ -3452,7 +3452,8 @@
                 "expense.claimed",
                 "expense.receipts_added",
                 "expense.decided",
-                "expense.paid"
+                "expense.paid",
+                "whatsapp.consent_changed"
               ]
             }
           },
@@ -3650,7 +3651,8 @@
                               "expense.claimed",
                               "expense.receipts_added",
                               "expense.decided",
-                              "expense.paid"
+                              "expense.paid",
+                              "whatsapp.consent_changed"
                             ]
                           },
                           "target": {
@@ -15629,7 +15631,8 @@
                               "expense.claimed",
                               "expense.receipts_added",
                               "expense.decided",
-                              "expense.paid"
+                              "expense.paid",
+                              "whatsapp.consent_changed"
                             ]
                           },
                           "target": {
@@ -16328,6 +16331,90 @@
                     "visit"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/whatsapp-consent": {
+      "get": {
+        "operationId": "NotificationsController.whatsappConsent",
+        "summary": "Whether the caller agreed to WhatsApp messages, to which text and when",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppConsentResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "NotificationsController.setWhatsappConsent",
+        "summary": "Agree to WhatsApp messages, to the text shown, or withdraw",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatsAppConsentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppConsentResult"
                 }
               }
             }
@@ -29919,6 +30006,72 @@
           "endReason",
           "planItemId",
           "flags"
+        ],
+        "additionalProperties": false
+      },
+      "WhatsAppConsentBody": {
+        "type": "object",
+        "properties": {
+          "optedIn": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "optedIn",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "WhatsAppConsentResult": {
+        "type": "object",
+        "properties": {
+          "optedIn": {
+            "type": "boolean"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currentVersion": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "optedIn",
+          "version",
+          "at",
+          "currentVersion",
+          "available"
         ],
         "additionalProperties": false
       },

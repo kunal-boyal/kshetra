@@ -1712,6 +1712,23 @@ const FIXTURES: Record<string, Fixture> = {
       await sameAsNowhere((id) => asB('GET', `/v1/leave-balances?userId=${id}`), a.member.id);
     },
   },
+  'GET /v1/whatsapp-consent': {
+    kind: 'own tenant',
+    run: async () => {
+      const consent = await asB('GET', '/v1/whatsapp-consent');
+      expect(consent.statusCode).toBe(200);
+      holdsNothingOfA(consent);
+    },
+  },
+  'PUT /v1/whatsapp-consent': {
+    kind: 'write',
+    run: async () => {
+      // A person's answer is their own: B's changes nothing of A's.
+      const answered = await asB('PUT', '/v1/whatsapp-consent', { optedIn: true, version: 1 });
+      expect(answered.statusCode, answered.body).toBe(200);
+      holdsNothingOfA(answered);
+    },
+  },
   'GET /v1/expense-policies': {
     kind: 'own tenant',
     run: async () => {

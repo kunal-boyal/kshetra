@@ -114,6 +114,17 @@ function fakeClient() {
         if (method === 'GET' && url.startsWith('/v1/notifications')) return INBOX;
         if (method === 'GET' && url === '/v1/notification-prefs') return PREFS;
         if (method === 'POST' && url === '/v1/notifications/read') return { unread: 0 };
+        if (url === '/v1/whatsapp-consent') {
+          const body = (options as { body?: { optedIn: boolean; version: number } } | undefined)
+            ?.body;
+          return {
+            optedIn: body?.optedIn ?? false,
+            version: body?.version ?? null,
+            at: body ? '2026-10-24T05:00:00.000Z' : null,
+            currentVersion: 1,
+            available: true,
+          };
+        }
         if (method === 'PUT' && url === '/v1/notification-prefs') {
           const { muted } = (options as { body: { muted: string[] } }).body;
           return {
@@ -215,6 +226,21 @@ describe('the inbox on the phone (M16)', () => {
       ]),
     );
     expect(await screen.findByText('Saved.')).toBeOnTheScreen();
+  });
+
+  it('asks to agree to WhatsApp messages, and records the text agreed to', async () => {
+    const client = await renderPhone('inbox');
+    expect(await screen.findByText(/I agree to receive reminders/)).toBeOnTheScreen();
+    expect(screen.getByText("You haven't agreed, so nothing comes on WhatsApp.")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Agree to WhatsApp messages' }));
+    expect(await screen.findByText(/^You agreed on /)).toBeOnTheScreen();
+    expect(writes(client)).toContainEqual([
+      'PUT',
+      '/v1/whatsapp-consent',
+      expect.anything(),
+      { body: { optedIn: true, version: 1 }, idempotencyKey: expect.any(String) },
+    ]);
+    expect(screen.getByRole('button', { name: 'Stop WhatsApp messages' })).toBeOnTheScreen();
   });
 
   it('opens a link the app has, approvals in the Team tab, and the inbox for any other', () => {

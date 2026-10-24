@@ -39,6 +39,13 @@ const INBOX = {
 /** What the cell answers to a GET, by path. */
 const ANSWERS: Record<string, unknown> = {
   '/v1/notifications': INBOX,
+  '/v1/whatsapp-consent': {
+    optedIn: true,
+    version: 1,
+    at: '2026-10-20T05:00:00.000Z',
+    currentVersion: 1,
+    available: true,
+  },
   '/v1/notification-prefs': {
     categories: [
       { category: 'plan', muted: false, mutable: true },
@@ -109,7 +116,7 @@ async function mockSignedIn(page: Page) {
       },
     }),
   );
-  for (const prefix of ['notifications', 'notification-prefs']) {
+  for (const prefix of ['notifications', 'notification-prefs', 'whatsapp-consent']) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
       return answer

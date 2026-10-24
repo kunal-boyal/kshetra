@@ -4,7 +4,7 @@
  * the reader's language; the server keeps the values it was rendered from.
  */
 
-export const NOTIFICATION_CHANNELS = ['in_app', 'push', 'sms', 'email'] as const;
+export const NOTIFICATION_CHANNELS = ['in_app', 'push', 'sms', 'email', 'whatsapp'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 /** Categories people can mute, unless `mutable` is false (approvals and tracking can't be). */
@@ -23,19 +23,33 @@ export const UNMUTABLE_CATEGORIES: readonly NotificationCategory[] = ['approvals
 export interface NotificationKind {
   category: NotificationCategory;
   /** Channels tried in order after the in-app entry; the first that delivers ends the list. */
-  external: readonly ('push' | 'sms' | 'email')[];
+  external: readonly ('push' | 'whatsapp' | 'sms' | 'email')[];
   /** Whether it ignores quiet hours. */
   urgent: boolean;
   /** Whether it shows in the in-app inbox. */
   inbox: boolean;
 }
 
-/** The events of M16, as phase 1 has them; orders and WhatsApp arrive later. */
+/**
+ * The events of M16. WhatsApp reaches only people who opted in (spec 13.4), in the provider's
+ * approved template for the event and language (spec 5.12, decision D85); without either, the next
+ * channel is tried.
+ */
 export const NOTIFICATION_KINDS = {
-  /** Today's plan, at the tenant's plan time: push, then SMS when push can't reach the phone. */
-  'plan.today': { category: 'plan', external: ['push', 'sms'], urgent: false, inbox: true },
-  /** A request waits for the person's decision. */
-  'approval.waiting': { category: 'approvals', external: ['push'], urgent: false, inbox: true },
+  /** Today's plan, at the tenant's plan time: push, then WhatsApp, then SMS (M16). */
+  'plan.today': {
+    category: 'plan',
+    external: ['push', 'whatsapp', 'sms'],
+    urgent: false,
+    inbox: true,
+  },
+  /** A request waits for the person's decision: push, then WhatsApp for those who opted in. */
+  'approval.waiting': {
+    category: 'approvals',
+    external: ['push', 'whatsapp'],
+    urgent: false,
+    inbox: true,
+  },
   /** The person's request was decided. */
   'approval.decided': { category: 'approvals', external: ['push'], urgent: false, inbox: true },
   /** A submission of the person's was rejected. */
@@ -62,6 +76,12 @@ export const NOTIFICATION_EVENTS = Object.keys(NOTIFICATION_KINDS) as [
   NotificationEvent,
   ...NotificationEvent[],
 ];
+
+/**
+ * The version of the WhatsApp opt-in text (`whatsapp.consent` in the strings). Raise it when the
+ * text changes: an opt-in to an earlier version no longer counts, and people are asked again.
+ */
+export const WHATSAPP_CONSENT_VERSION = 1;
 
 /** Minutes without points before the person hears (spec 12.1), and then their manager. */
 export const TRACKING_SILENCE_MINUTES = 20;
