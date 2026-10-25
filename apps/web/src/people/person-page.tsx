@@ -1,6 +1,6 @@
 import type { AuditEntry, TransferResult, UserView } from '@thelamp/shared';
 import { Button, Confirm, Icon, Notice } from '@thelamp/ui-web';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
   ArrowRightLeft,
@@ -9,12 +9,13 @@ import {
   Pencil,
   RotateCcw,
   Route,
+  ShieldCheck,
   Smartphone,
   UserCheck,
   UserX,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
-import { UserResult, UserView as UserViewSchema } from '@thelamp/shared';
+import { SecondFactorStatus, UserResult, UserView as UserViewSchema } from '@thelamp/shared';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { customValue } from './custom-fields';
@@ -317,12 +318,86 @@ function Person({ user }: { user: UserView }) {
         </div>
       </Section>
 
+      {access.can('user.manage') ? <SecondFactorSection user={user} /> : null}
       <WorkSection userId={user.id} calendarKey={user.calendarKey} />
       {access.modulesOff.includes('leave_attendance') ? null : <LeaveSection userId={user.id} />}
       <SubmissionsSection userId={user.id} />
       <Transfers user={user} />
       <History userId={user.id} />
     </div>
+  );
+}
+
+/**
+ * Whether someone needs an authenticator on the web and has one, and resetting it when they lost
+ * it (decision D91). Resetting signs them out everywhere; nobody resets their own.
+ */
+function SecondFactorSection({ user }: { user: UserView }) {
+  const { client } = useApp();
+  const queryClient = useQueryClient();
+  const { t } = useLanguage();
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [failure, setFailure] = useState<unknown>();
+  const status = useQuery({
+    queryKey: ['second-factor', user.id],
+    queryFn: () => read(client, `/v1/users/${user.id}/second-factor`, SecondFactorStatus),
+  });
+  if (!status.data || (!status.data.required && !status.data.enrolled)) {
+    return status.data ? (
+      <Section title={t('people.second_factor')}>
+        <p className="ks-muted">{t('people.second_factor_not_needed')}</p>
+      </Section>
+    ) : null;
+  }
+
+  async function reset() {
+    setBusy(true);
+    setFailure(undefined);
+    try {
+      await write(client, 'POST', `/v1/users/${user.id}/second-factor/reset`, NOTHING);
+      setAsking(false);
+      setDone(true);
+      await queryClient.invalidateQueries({ queryKey: ['second-factor', user.id] });
+    } catch (caught) {
+      setFailure(caught);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section title={t('people.second_factor')}>
+      <p>{t(status.data.enrolled ? 'people.second_factor_on' : 'people.second_factor_off')}</p>
+      {done ? <Notice>{t('people.second_factor_reset_done')}</Notice> : null}
+      {failure ? (
+        <p className="ks-help error" role="alert">
+          {errorMessage(failure, t)}
+        </p>
+      ) : null}
+      {asking ? (
+        <Confirm
+          question={t('people.second_factor_reset_question', { name: user.name })}
+          action={
+            <Button variant="danger" busy={busy} onClick={() => void reset()}>
+              {t('people.second_factor_reset')}
+            </Button>
+          }
+          cancel={<Button onClick={() => setAsking(false)}>{t('common.cancel')}</Button>}
+        />
+      ) : status.data.enrolled ? (
+        <div>
+          <Button
+            size="sm"
+            icon={<Icon icon={ShieldCheck} size="sm" />}
+            onClick={() => setAsking(true)}
+          >
+            {t('people.second_factor_reset')}
+          </Button>
+        </div>
+      ) : null}
+    </Section>
   );
 }
 

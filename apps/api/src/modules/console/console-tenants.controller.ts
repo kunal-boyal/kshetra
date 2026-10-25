@@ -5,12 +5,19 @@ import {
   ConsoleTenantList,
   ConsoleTenantQuery,
   CreateTenantBody,
+  normalisePhone,
+  SecondFactorResetBody,
+  SecondFactorResetResult,
   SuspendTenantBody,
   TemplateListResult,
   TenantIdParams,
 } from '@thelamp/shared';
 import { CurrentStaff, ForStaff, type StaffAccess } from '../../platform/auth';
 import { Contract } from '../../platform/routes';
+import { AppError } from '@thelamp/shared';
+import { SecondFactorService } from '../directory/second-factor.service';
+import { DirectoryDatabase } from '../directory/directory.database';
+import { PlatformAudit } from '../directory/platform-audit';
 import { ConsoleTenantsService } from './console-tenants.service';
 
 /**
@@ -19,7 +26,12 @@ import { ConsoleTenantsService } from './console-tenants.service';
  */
 @Controller('platform/v1')
 export class ConsoleTenantsController {
-  constructor(private readonly tenants: ConsoleTenantsService) {}
+  constructor(
+    private readonly tenants: ConsoleTenantsService,
+    private readonly secondFactors: SecondFactorService,
+    private readonly directory: DirectoryDatabase,
+    private readonly audit: PlatformAudit,
+  ) {}
 
   @ForStaff()
   @Get('tenants')
@@ -106,5 +118,40 @@ export class ConsoleTenantsController {
   })
   async cells() {
     return { items: await this.tenants.cells() };
+  }
+
+  @ForStaff('platform.support.request')
+  @Post('tenants/:id/second-factor-resets')
+  @HttpCode(200)
+  @Contract({
+    tag: 'Platform console',
+    summary: "Remove a tenant member's authenticator, found by their number",
+    params: TenantIdParams,
+    body: SecondFactorResetBody,
+    response: SecondFactorResetResult,
+  })
+  async resetSecondFactor(
+    @CurrentStaff() staff: StaffAccess,
+    @Param() params: unknown,
+    @Body() body: unknown,
+  ) {
+    const tenantId = TenantIdParams.parse(params).id;
+    const { phone, reason } = SecondFactorResetBody.parse(body);
+    const e164 = normalisePhone(phone);
+    const userId = e164 ? await this.secondFactors.userByPhone(tenantId, e164) : undefined;
+    if (!userId) {
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+        { path: 'phone', issue: 'Nobody in this tenant has this number' },
+      ]);
+    }
+    const removed = await this.secondFactors.reset(tenantId, userId);
+    await this.directory.db.transaction((tx) =>
+      this.audit.record(tx, staff, 'tenant.second_factor_reset', 'tenant', tenantId, {
+        userId,
+        removed,
+        reason,
+      }),
+    );
+    return { removed };
   }
 }

@@ -1,0 +1,180 @@
+import { randomBytes } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import { AppError, maskPhone, type TotpSetupResult, type TotpVerifyResult } from '@thelamp/shared';
+import { and, eq, inArray } from 'drizzle-orm';
+import type { Config } from '../../config';
+import { identities, memberships, totpSecrets } from '../../db/schema/directory';
+import { ColumnCipher } from '../../platform/column-cipher';
+import { SecondFactors } from '../../platform/planes';
+import { RedisClient } from '../../platform/redis';
+import { CONFIG } from '../../platform/tokens';
+import { matchTotp, newTotpSecret, otpauthUri, toBase32 } from '../../platform/totp';
+import { DirectoryDatabase } from './directory.database';
+import { digest } from './secrets';
+import { SessionsService, TICKET_SECONDS } from './sessions.service';
+
+/** Wrong codes a second-factor ticket takes before it ends and the sign-in starts again. */
+export const SECOND_FACTOR_TRIES = 5;
+/** Recovery codes given when an authenticator is set up; each works once. */
+export const RECOVERY_CODES = 10;
+
+const wrongCode = () =>
+  new AppError('OTP_INVALID', 'Check the code in your authenticator and try again.');
+
+/** A recovery code as people read it, such as K7Q2M-XW4PA, and as it is compared. */
+function recoveryCode(): string {
+  const text = toBase32(randomBytes(7)).slice(0, 10);
+  return `${text.slice(0, 5)}-${text.slice(5)}`;
+}
+const recoveryDigest = (code: string) => digest(code.replace('-', '').toUpperCase());
+
+/**
+ * The second factor of web sign-in for people who can change access (spec M1, decision D91): a
+ * TOTP authenticator per person, set up at their first such sign-in, with ten single-use recovery
+ * codes. Its secret is sealed in its column; no code works twice. Resetting it removes it and
+ * ends the person's sessions, so they set it up again at their next sign-in.
+ */
+@Injectable()
+export class SecondFactorService extends SecondFactors {
+  constructor(
+    private readonly database: DirectoryDatabase,
+    private readonly sessions: SessionsService,
+    private readonly cipher: ColumnCipher,
+    private readonly client: RedisClient,
+    @Inject(CONFIG) private readonly config: Config,
+  ) {
+    super();
+  }
+
+  /** A new secret for someone signing in without an authenticator; a later one replaces it. */
+  async setup(ticket: string): Promise<TotpSetupResult> {
+    const { membership } = await this.sessions.pending(ticket);
+    const identityId = membership.identityId;
+    const [existing] = await this.database.db
+      .select({ enabledAt: totpSecrets.enabledAt })
+      .from(totpSecrets)
+      .where(eq(totpSecrets.identityId, identityId));
+    if (existing?.enabledAt) {
+      throw new AppError('CONFLICT', 'You have an authenticator already. Enter its code.');
+    }
+    const secret = newTotpSecret();
+    const values = {
+      secretSealed: this.cipher.seal(secret, where(identityId)),
+      enabledAt: null,
+      lastStep: null,
+      recoveryHashes: [],
+    };
+    await this.database.db
+      .insert(totpSecrets)
+      .values({ identityId, ...values })
+      .onConflictDoUpdate({ target: totpSecrets.identityId, set: values });
+    const [identity] = await this.database.db
+      .select({ phone: identities.phoneE164 })
+      .from(identities)
+      .where(eq(identities.id, identityId));
+    return {
+      secret,
+      uri: otpauthUri(this.config.PRODUCT_NAME, maskPhone(identity!.phone), secret),
+    };
+  }
+
+  /**
+   * Checks the authenticator's code, or a recovery code, and signs in. The first good code sets
+   * the authenticator up and hands out the recovery codes, once.
+   */
+  async verify(
+    ticket: string,
+    answer: { code?: string | undefined; recoveryCode?: string | undefined },
+  ): Promise<TotpVerifyResult> {
+    const { membership } = await this.sessions.pending(ticket);
+    const tries = `second-tries:${digest(ticket)}`;
+    const count = await this.client.redis.incr(tries);
+    if (count === 1) await this.client.redis.expire(tries, TICKET_SECONDS);
+    if (count > SECOND_FACTOR_TRIES) {
+      await this.client.redis.del(`second:${digest(ticket)}`);
+      throw new AppError('OTP_EXPIRED', 'Too many tries. Request a new code to sign in again.');
+    }
+    const identityId = membership.identityId;
+    const recoveryCodes = await this.database.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(totpSecrets)
+        .where(eq(totpSecrets.identityId, identityId))
+        .for('update');
+      if (!row) throw new AppError('CONFLICT', 'Set up your authenticator first.');
+      if (answer.code) {
+        const step = matchTotp(
+          this.cipher.open(row.secretSealed, where(identityId)),
+          answer.code,
+          row.lastStep,
+        );
+        if (step === null) throw wrongCode();
+        const fresh = row.enabledAt ? null : Array.from({ length: RECOVERY_CODES }, recoveryCode);
+        await tx
+          .update(totpSecrets)
+          .set({
+            lastStep: step,
+            ...(fresh ? { enabledAt: new Date(), recoveryHashes: fresh.map(recoveryDigest) } : {}),
+          })
+          .where(eq(totpSecrets.identityId, identityId));
+        return fresh;
+      }
+      const hash = recoveryDigest(answer.recoveryCode ?? '');
+      if (!row.enabledAt || !row.recoveryHashes.includes(hash)) {
+        throw new AppError(
+          'OTP_INVALID',
+          'This recovery code is not one of yours, or it was used already.',
+        );
+      }
+      await tx
+        .update(totpSecrets)
+        .set({ recoveryHashes: row.recoveryHashes.filter((each) => each !== hash) })
+        .where(eq(totpSecrets.identityId, identityId));
+      return null;
+    });
+    await this.client.redis.del(tries);
+    const signedIn = await this.sessions.finish(ticket);
+    return recoveryCodes ? { ...signedIn, recoveryCodes } : signedIn;
+  }
+
+  /** Which of a tenant's people have an authenticator set up, by user. */
+  async enrolled(tenantId: string, userIds: readonly string[]): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set();
+    const rows = await this.database.db
+      .select({ userId: memberships.userId, enabledAt: totpSecrets.enabledAt })
+      .from(memberships)
+      .innerJoin(totpSecrets, eq(totpSecrets.identityId, memberships.identityId))
+      .where(and(eq(memberships.tenantId, tenantId), inArray(memberships.userId, [...userIds])));
+    return new Set(rows.filter((row) => row.enabledAt !== null).map((row) => row.userId));
+  }
+
+  /** Removes a person's authenticator and ends their sessions everywhere. */
+  async reset(tenantId: string, userId: string): Promise<boolean> {
+    const [membership] = await this.database.db
+      .select({ identityId: memberships.identityId })
+      .from(memberships)
+      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, userId)));
+    if (!membership) return false;
+    const removed = await this.database.db
+      .delete(totpSecrets)
+      .where(eq(totpSecrets.identityId, membership.identityId))
+      .returning({ identityId: totpSecrets.identityId });
+    await this.sessions.endAll(membership.identityId);
+    return removed.length > 0;
+  }
+
+  /** The identity behind a tenant's member with this number, for vendor support's resets. */
+  async userByPhone(tenantId: string, phone: string): Promise<string | undefined> {
+    const [row] = await this.database.db
+      .select({ userId: memberships.userId })
+      .from(memberships)
+      .innerJoin(identities, eq(identities.id, memberships.identityId))
+      .where(and(eq(memberships.tenantId, tenantId), eq(identities.phoneE164, phone)));
+    return row?.userId;
+  }
+}
+
+/** The context a sealed secret belongs to: its column and its row. */
+function where(identityId: string): string {
+  return `totp_secrets.secret_sealed:${identityId}`;
+}

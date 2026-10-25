@@ -424,7 +424,7 @@ Each module lists what it does, the rules it applies (section 7) and its accepta
 |---|---|
 | Mobile app, every role | Mobile number and a 6-digit one-time code by SMS, with WhatsApp as a fallback channel |
 | Web portal | Mobile number and OTP, or email and OTP. A tenant on the SSO module can require OIDC or SAML for web users. |
-| Tenant admins on the web | A TOTP authenticator code in addition to OTP |
+| Tenant admins on the web | A TOTP authenticator code in addition to OTP, for anyone whose role can change access (role, user, settings, module or billing management); set up at the first such sign-in, with ten single-use recovery codes. Phones keep OTP and device binding. |
 | Platform console | Email, password and TOTP for vendor staff, or the vendor's own identity provider |
 
 Flow and rules:
@@ -1138,7 +1138,7 @@ memberships(id, identity_id, tenant_id, user_id, status, auth_revision)
 otp_challenges(id, identity_key, code_hmac, channel, attempts, expires_at, consumed_at, ip, created_at)
 refresh_tokens(id, membership_id, device_id NULL, token_hash UQ, family_id, auth_revision,
                expires_at, revoked_at, created_at)                            IX(family_id)
-totp_secrets(identity_id PK, secret_encrypted, enabled_at)
+totp_secrets(identity_id PK, secret_sealed, enabled_at, last_step, recovery_hashes text[])
 sso_connections(id, tenant_id, protocol enum(oidc,saml), config_encrypted, enforced, domains text[])
 platform_users(id, email UQ, name, role, status)
 support_grants(id, tenant_id, platform_user_id, reason, scope enum(read,write), approved_by,
@@ -1371,7 +1371,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 
 | Group | Representative endpoints |
 |---|---|
-| Auth (directory) | `POST /auth/v1/otp/request`, `POST /auth/v1/otp/verify`, `POST /auth/v1/select-tenant`, `POST /auth/v1/token/refresh`, `POST /auth/v1/logout`, `POST /auth/v1/switch-tenant`, `GET /auth/v1/jwks`, `POST /auth/v1/totp/verify`, `GET /auth/v1/sso/:tenant/start` |
+| Auth (directory) | `POST /auth/v1/otp/request`, `POST /auth/v1/otp/verify`, `POST /auth/v1/select-tenant`, `POST /auth/v1/token/refresh`, `POST /auth/v1/logout`, `POST /auth/v1/switch-tenant`, `GET /auth/v1/jwks`, `POST /auth/v1/totp/setup`, `POST /auth/v1/totp/verify`, `GET /auth/v1/sso/:tenant/start` |
 | Me and config | `GET /v1/me`, `GET /v1/config` (settings, terminology, modules, effective permissions, current form versions, account types, metrics; ETag), `PATCH /v1/settings`, `GET /v1/terminology`, `PUT /v1/terminology`, `GET /v1/organisation`, `PATCH /v1/organisation`, `PUT /v1/organisation/logo`, `DELETE /v1/organisation/logo` (decision D64), `POST /v1/devices/heartbeat`, `PUT /v1/devices/push-token` |
 | Sync | `GET /v1/sync/pull?entities=...&cursor=...` |
 | People | `GET /v1/users`, `GET /v1/users/:id`, `POST /v1/users`, `PATCH /v1/users/:id`, `POST /v1/users/:id/reset-device`, `POST /v1/users/:id/sign-out-everywhere`, `GET /v1/users/:id/history`, `POST /v1/users/:id/transfers`, `GET /v1/users/:id/transfers`, `POST /v1/users/:id/transfers/:transferId/cancel`, `GET /v1/org-chart`, `GET /v1/user-fields`, `PUT /v1/user-fields`, `GET /v1/roles`, `POST /v1/roles`, `PATCH /v1/roles/:id`, `GET /v1/designations`, `POST /v1/designations`, `PATCH /v1/designations/:id` |

@@ -120,6 +120,24 @@ export const DATA_SCOPES = ['self', 'team', 'territory', 'team_or_territory', 't
 
 export type DataScope = (typeof DATA_SCOPES)[number];
 
+/**
+ * Permissions that change who may do what, or what the organisation pays (spec M1, decision D91).
+ * On the web, anyone whose role holds one confirms sign-in with an authenticator code.
+ */
+export const SECOND_FACTOR_PERMISSIONS = [
+  'role.manage',
+  'user.manage',
+  'settings.manage',
+  'module.manage',
+  'billing.manage',
+] as const satisfies readonly TenantPermission[];
+
+/** Whether a role's holder needs an authenticator code to sign in on the web. */
+export function needsSecondFactor(permissions: Iterable<string>): boolean {
+  const held = new Set(permissions);
+  return SECOND_FACTOR_PERMISSIONS.some((permission) => held.has(permission));
+}
+
 /** The roles every tenant starts with (spec 4.2). Templates set their names and permissions. */
 export const SYSTEM_ROLES = [
   'tenant_admin',

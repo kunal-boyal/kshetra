@@ -2,7 +2,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { newId, type PlatformRoleKey } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StaffService } from '../src/modules/console/staff.service';
-import { totpAt, totpStep } from '../src/modules/console/totp';
+import { totpAt, totpStep } from '../src/platform/totp';
 import { newPhone, startApp, testConfig, World } from './support';
 
 /**

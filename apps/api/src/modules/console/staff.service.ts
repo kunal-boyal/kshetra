@@ -21,7 +21,7 @@ import { digest, newSecret } from '../directory/secrets';
 import { SigningKey } from '../directory/signing-key';
 import { DECOY_HASH, hashPassword, verifyPassword } from './passwords';
 import { PlatformAudit } from '../directory/platform-audit';
-import { matchTotp, newTotpSecret, otpauthUri } from './totp';
+import { matchTotp, newTotpSecret, otpauthUri } from '../../platform/totp';
 
 /** Console sessions last 12 hours, a working day, and rotate on every refresh. */
 export const STAFF_SESSION_HOURS = 12;

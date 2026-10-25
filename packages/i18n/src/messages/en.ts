@@ -3082,6 +3082,49 @@ export const en = {
   'billing.standing_read_only':
     '{amount} has been overdue since {since}, so your organisation can only read for now. Pay before {suspend} to avoid suspension.',
   'billing.standing_suspended': '{amount} has been overdue since {since}.',
+  'error.SECOND_FACTOR_REQUIRED':
+    'Sign in again with your authenticator to open this organisation.',
+  'signin.totp_title': 'Enter your authenticator code',
+  'signin.totp_intro':
+    'You can change who does what in {organisation}, so we ask for the code from your authenticator app too.',
+  'signin.totp_label': 'Authenticator code',
+  'signin.totp_help': 'The 6 digits your authenticator app shows now',
+  'signin.use_recovery': 'Use a recovery code instead',
+  'signin.use_totp': 'Use the authenticator instead',
+  'signin.recovery_label': 'Recovery code',
+  'signin.recovery_help':
+    'One of the codes you saved when you set up your authenticator, such as K7Q2M-XW4PA',
+  'signin.setup_title': 'Set up your authenticator',
+  'signin.setup_intro':
+    'You can change who does what in {organisation}, so signing in takes a second step. Scan this code with an authenticator app, such as Google Authenticator, Microsoft Authenticator or 1Password, then enter the 6 digits it shows.',
+  'signin.qr_label': 'QR code for your authenticator app',
+  'signin.setup_key': 'Or type this key into the app',
+  'signin.confirm': 'Confirm and sign in',
+  'signin.codes_title': 'Save your recovery codes',
+  'signin.codes_intro':
+    'Each code signs you in once if you lose your phone. Keep them somewhere safe, away from your phone. They are shown only now.',
+  'signin.copy_codes': 'Copy the codes',
+  'signin.copied': 'Copied',
+  'signin.codes_saved': 'I have saved them',
+  'signin.codes_label': 'Your recovery codes',
+  'people.second_factor': 'Authenticator',
+  'people.second_factor_on': 'Set up',
+  'people.second_factor_off': 'Not set up yet: they set it up at their next web sign-in.',
+  'people.second_factor_not_needed': 'Not needed for this role.',
+  'people.second_factor_reset': 'Reset the authenticator',
+  'people.second_factor_reset_question':
+    'Reset {name}’s authenticator? They are signed out everywhere and set up a new one at their next web sign-in.',
+  'people.second_factor_reset_done':
+    'Reset. They set up a new authenticator at their next sign-in.',
+  'console.second_factor_reset': 'Reset an authenticator',
+  'console.second_factor_intro':
+    'For someone who has lost their authenticator and their recovery codes, when no other admin can reset it. Confirm who is calling first.',
+  'console.member_phone': 'Their mobile number',
+  'console.second_factor_reason': 'How you confirmed it is them',
+  'console.second_factor_removed':
+    'Removed. They set up a new authenticator at their next sign-in.',
+  'console.second_factor_none': 'They had no authenticator; their sessions have ended.',
+  'console.reset': 'Reset',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;

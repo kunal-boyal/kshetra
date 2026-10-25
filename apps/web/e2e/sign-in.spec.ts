@@ -176,3 +176,57 @@ test('speaks Hindi when chosen, with the extra line height Devanagari needs', as
   await expect(page.getByLabel('मोबाइल नंबर')).toBeVisible();
   await expectAccessible(page);
 });
+
+test('sets up an authenticator for an admin, shows the recovery codes once, and passes axe', async ({
+  page,
+}) => {
+  await mockApi(page);
+  // An admin's code leads to the authenticator, set up the first time (decision D91).
+  await page.route('**/auth/v1/otp/verify', (route) =>
+    route.fulfill({
+      json: {
+        status: 'second_factor',
+        ticket: 's'.repeat(43),
+        enrolled: false,
+        tenant: { id: TENANT.id, name: TENANT.name },
+      },
+    }),
+  );
+  await page.route('**/auth/v1/totp/setup', (route) =>
+    route.fulfill({
+      json: {
+        secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+        uri: 'otpauth://totp/The%20Lamp:%2B91%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A2%E2%80%A200001?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=The%20Lamp',
+      },
+    }),
+  );
+  await page.route('**/auth/v1/totp/verify', (route) =>
+    route.fulfill({
+      json: {
+        status: 'signed_in',
+        tenant: TENANT,
+        session: {
+          tokenType: 'Bearer',
+          accessToken: 'access-token',
+          accessTokenExpiresAt: later(),
+          refreshTokenExpiresAt: later(),
+        },
+        recoveryCodes: ['K7Q2M-XW4PA', 'ZZ2AB-CD3EF', 'QQ4RS-TU5VW', 'AB2CD-EF3GH'],
+      },
+    }),
+  );
+  await page.goto('/sign-in');
+  await page.getByLabel('Mobile number').fill('90000 00001');
+  await page.getByRole('button', { name: 'Send code' }).click();
+  await page.getByLabel('Code').fill('123456');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'Set up your authenticator' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'QR code for your authenticator app' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByLabel('Authenticator code').fill('123456');
+  await page.getByRole('button', { name: 'Confirm and sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'Save your recovery codes' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('button', { name: 'I have saved them' }).click();
+  await expect(page.getByRole('heading', { name: 'Hello, Anita Rao' })).toBeVisible();
+});

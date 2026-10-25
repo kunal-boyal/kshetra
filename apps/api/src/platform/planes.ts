@@ -24,6 +24,8 @@ export interface AdmissionRequest {
 export interface Admission {
   /** The device the session is bound to; none for the web. */
   deviceId?: string;
+  /** A web sign-in whose role can change access: an authenticator code first (decision D91). */
+  secondFactor?: boolean;
 }
 
 /**
@@ -106,4 +108,13 @@ export abstract class SeatCounts {
 /** Who at a tenant hears about billing besides its billing contact: its active admins with email. */
 export abstract class TenantContacts {
   abstract admins(tenantId: string): Promise<{ name: string; email: string }[]>;
+}
+
+/**
+ * People's authenticators (decision D91), kept by the directory: which of a tenant's people have
+ * one set up, and removing one, which ends that person's sessions everywhere.
+ */
+export abstract class SecondFactors {
+  abstract enrolled(tenantId: string, userIds: readonly string[]): Promise<Set<string>>;
+  abstract reset(tenantId: string, userId: string): Promise<boolean>;
 }

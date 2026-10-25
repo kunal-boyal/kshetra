@@ -35,7 +35,9 @@ describe("a tenant's plan in the console (D89)", () => {
       return { ...TENANT, plan: ON_GROWTH.plan };
     });
     renderConsole(`/tenants/${TENANT.id}`, client);
-    const card = (await screen.findByRole('heading', { name: 'Plan' })).parentElement!;
+    // The first render of the file is the slowest; give it time on a busy machine.
+    const card = (await screen.findByRole('heading', { name: 'Plan' }, { timeout: 5000 }))
+      .parentElement!;
     expect(within(card).getByText('Growth')).toBeInTheDocument();
     expect(
       within(card).getByText('Core, Leave and attendance, Orders, Expenses'),

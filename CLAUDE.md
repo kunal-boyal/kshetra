@@ -128,6 +128,11 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Usage is metered hourly by `MeteringService` (`modules/metering`) and recorded through the `UsageRecorder` seam; API calls are counted by `ApiCalls` in the auth guard. A new metric goes in `USAGE_METRICS` and is measured there.
 - The console shows plans at `/plans` (`apps/console/src/pages/plans.tsx`, `plan.tsx`) and a tenant's plan and usage on its page (`tenant-plan.tsx`). A new usage metric needs its column heading as `console.usage_<metric>`.
 
+## Admin TOTP (decision D91)
+
+- On the web, anyone whose role holds a `SECOND_FACTOR_PERMISSIONS` permission gives an authenticator code after the one-time code: `CellAdmission.admit()` says `secondFactor`, the directory answers `second_factor` with a ticket, and `SecondFactorService` (`apps/api/src/modules/directory/second-factor.service.ts`) sets the authenticator up and checks codes and recovery codes before `SessionsService.finish()` starts the session. Phones and demo tenants skip it. TOTP itself is `src/platform/totp.ts`, shared with the console.
+- The cell reaches authenticators only through the `SecondFactors` seam (`enrolled()`, `reset()`). In integration tests `World.signIn()` completes the step; use `world.secondFactor()` after a raw `verify()` or `select-tenant` that answers `second_factor`.
+
 ## Billing (decision D90)
 
 - Subscriptions, invoices, payments and dunning live in `apps/api/src/modules/billing` (directory plane): `TenantBillingService` (billing details, subscriptions, the mandate), `InvoicesService` (issuing in a gapless series, charging, recording payments), `DunningService` (BR-48) and `BillingCycle`, the hourly job on the vendor's clock (`BILLING_TIME_ZONE`) that issues, renews, trues up, charges, follows up and ends trials. Every step checks what was done before, so it may run any number of times. The rules are pure functions in `packages/shared/src/invoicing.ts`: `gstOn()`, `lineAmount()`, `trueUp()`, `dunning()`, `dunningNotices()`, `licenceState()`, `gstinIssue()`.

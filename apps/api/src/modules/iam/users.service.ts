@@ -7,9 +7,11 @@ import {
   type DeviceHealth,
   type DeviceSummary,
   type MeResult,
+  needsSecondFactor,
   newId,
   normalisePhone,
   TENANT_PERMISSIONS,
+  type SecondFactorStatus,
   type TenantPermission,
   type TenantSettings,
   todayIn,
@@ -40,6 +42,7 @@ import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { AuditLog, userActor } from '../../platform/audit';
 import { Outbox } from '../../platform/outbox';
+import { SecondFactors } from '../../platform/planes';
 import {
   type Actor,
   actorId,
@@ -149,6 +152,7 @@ export class UsersService {
     private readonly territories: TerritoriesService,
     private readonly fields: UserFieldsService,
     private readonly seats: Seats,
+    private readonly secondFactors: SecondFactors,
   ) {}
 
   async list(tx: TenantTx, access: Access, query: UserListQuery): Promise<UserListResult> {
@@ -491,6 +495,41 @@ export class UsersService {
       action: 'user.device_reset',
       target: { type: 'user', id },
       after: { revokedDevices: revoked.map((device) => device.id) },
+    });
+  }
+
+  /** Whether someone needs an authenticator on the web, and has one (decision D91). */
+  async secondFactor(tx: TenantTx, access: Access, id: string): Promise<SecondFactorStatus> {
+    const [user] = await tx
+      .select({ permissions: roles.permissions })
+      .from(users)
+      .innerJoin(roles, and(eq(roles.tenantId, users.tenantId), eq(roles.id, users.roleId)))
+      .where(and(eq(users.tenantId, access.tenantId), eq(users.id, id)));
+    if (!user) throw new AppError('NOT_FOUND', 'There is no such person.');
+    if (!(await this.scopes.reaches(tx, access, id))) throw outOfScope();
+    const enrolled = await this.secondFactors.enrolled(access.tenantId, [id]);
+    return { required: needsSecondFactor(user.permissions), enrolled: enrolled.has(id) };
+  }
+
+  /**
+   * Removes someone's authenticator and ends their sessions; they set one up again at their next
+   * web sign-in (decision D91). Nobody resets their own: a recovery code is for that.
+   */
+  async resetSecondFactor(tx: TenantTx, access: Access, id: string): Promise<void> {
+    const user = await this.lock(tx, access.tenantId, id);
+    if (access.userId === id) {
+      throw new AppError(
+        'FORBIDDEN',
+        'You cannot reset your own authenticator. Use a recovery code, or ask another admin.',
+      );
+    }
+    if (!(await this.scopes.reaches(tx, access, id))) throw outOfScope();
+    const removed = await this.secondFactors.reset(access.tenantId, id);
+    await this.revise(tx, access, user);
+    await this.audit.record(tx, access.tenantId, userActor(access), {
+      action: 'user.second_factor_reset',
+      target: { type: 'user', id },
+      after: { removed },
     });
   }
 

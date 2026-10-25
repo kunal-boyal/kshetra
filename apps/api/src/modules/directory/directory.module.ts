@@ -15,6 +15,8 @@ import {
   NoOtpSender,
   OtpSender,
 } from './otp-sender';
+import { ColumnCipher } from '../../platform/column-cipher';
+import { SecondFactorService } from './second-factor.service';
 import { SessionsService } from './sessions.service';
 import { SigningKey } from './signing-key';
 import { PlatformAudit } from './platform-audit';
@@ -61,6 +63,9 @@ export class DirectoryHealth {
     },
     OtpService,
     SessionsService,
+    SecondFactorService,
+    // Seals each authenticator's secret in its column (decision D91).
+    ColumnCipher,
     DirectoryMembers,
     DirectoryTenants,
     PlatformAudit,
@@ -76,6 +81,7 @@ export class DirectoryHealth {
     DirectoryDatabase,
     SigningKey,
     PlatformAudit,
+    SecondFactorService,
   ],
 })
 export class DirectoryModule {}

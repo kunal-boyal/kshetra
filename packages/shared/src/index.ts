@@ -1,12 +1,14 @@
 export {
   canGrant,
   DATA_SCOPES,
+  needsSecondFactor,
   PERMISSIONS_BY_AREA,
   PLATFORM_PERMISSIONS,
   PLATFORM_ROLE_PERMISSIONS,
   PLATFORM_ROLES,
   type PlatformRole as PlatformRoleKey,
   scopeContains,
+  SECOND_FACTOR_PERMISSIONS,
   SYSTEM_ROLES,
   TENANT_PERMISSIONS,
 } from './access';
@@ -95,13 +97,20 @@ export {
   OtpVerifyBody,
   OtpVerifyResult,
   PhoneInput,
+  RECOVERY_CODE,
   RefreshBody,
   RefreshResult,
+  SecondFactor,
   SelectTenantBody,
+  SelectTenantResult,
   Session,
   SignedIn,
   SwitchTenantBody,
   TenantSummary,
+  TotpSetupBody,
+  TotpSetupResult,
+  TotpVerifyBody,
+  TotpVerifyResult,
   WEB_CLIENT,
   WEB_CLIENT_HEADER,
 } from './schemas/auth';
@@ -140,6 +149,7 @@ export {
   UserResult,
   UserStatus,
   UserView,
+  SecondFactorStatus,
 } from './schemas/iam';
 export {
   CreateTerritoryBody,
@@ -236,6 +246,8 @@ export {
   TenantIdParams,
   TenantStatus as TenantStatusSchema,
   TotpCode,
+  SecondFactorResetBody,
+  SecondFactorResetResult,
 } from './schemas/console';
 export {
   billableSeats,

@@ -2,7 +2,7 @@ import qrcode from 'qrcode-generator';
 import { useMemo } from 'react';
 
 /**
- * A QR code an authenticator app scans (decision D88), drawn as SVG from the brand's tokens: dark
+ * A QR code an authenticator app scans (decisions D88 and D91), drawn as SVG from the brand's tokens: dark
  * modules on a light ground in every theme, as many readers can't read an inverted code, with the
  * four-module quiet zone the standard asks for.
  */

@@ -368,6 +368,11 @@ const FIXTURES: Record<string, Fixture> = {
     extraModules: ['orders'],
   }),
   'GET /platform/v1/tenants/:id/usage': consoleShutsB('GET', '/platform/v1/tenants/:id/usage'),
+  'POST /platform/v1/tenants/:id/second-factor-resets': consoleShutsB(
+    'POST',
+    '/platform/v1/tenants/:id/second-factor-resets',
+    { phone: '9000000001', reason: 'Checking' },
+  ),
   'GET /platform/v1/billing/settings': consoleShutsB('GET', '/platform/v1/billing/settings'),
   'PUT /platform/v1/billing/settings': consoleShutsB('PUT', '/platform/v1/billing/settings', {
     seller: {
@@ -429,9 +434,42 @@ const FIXTURES: Record<string, Fixture> = {
   'POST /auth/v1/otp/verify': {
     kind: 'sign-in',
     run: async () => {
+      // B's admin is asked for the authenticator next, for B (decision D91).
       const verified = await world.verify(b.admin.phone);
-      expect(verified.json()).toMatchObject({ status: 'signed_in', tenant: { id: b.tenantId } });
+      expect(verified.json()).toMatchObject({
+        status: 'second_factor',
+        tenant: { id: b.tenantId },
+      });
       holdsNothingOfA(verified);
+    },
+  },
+  'POST /auth/v1/totp/setup': {
+    kind: 'sign-in',
+    run: async () => {
+      // A ticket of B's sets up B's admin's own authenticator; anything else is no ticket at all.
+      const verified = (await world.verify(b.admin.phone)).json();
+      const fresh = await send(undefined, 'POST', '/auth/v1/totp/setup', {
+        ticket: verified.ticket,
+      });
+      expect([200, 409]).toContain(fresh.statusCode);
+      holdsNothingOfA(fresh);
+      const forged = await send(undefined, 'POST', '/auth/v1/totp/setup', {
+        ticket: 'x'.repeat(43),
+      });
+      expect(forged.json().error.code).toBe('OTP_EXPIRED');
+    },
+  },
+  'POST /auth/v1/totp/verify': {
+    kind: 'sign-in',
+    run: async () => {
+      const verified = (await world.verify(b.admin.phone)).json();
+      const signedIn = await world.secondFactor(b.admin.phone, verified);
+      expect(JSON.stringify(signedIn)).not.toContain(a.tenantId);
+      const forged = await send(undefined, 'POST', '/auth/v1/totp/verify', {
+        ticket: 'x'.repeat(43),
+        code: '123456',
+      });
+      expect(forged.json().error.code).toBe('OTP_EXPIRED');
     },
   },
   'POST /auth/v1/select-tenant': {
@@ -1461,6 +1499,15 @@ const FIXTURES: Record<string, Fixture> = {
   'GET /v1/exports/:id': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/exports/${id}`), aExportId),
+  },
+  'GET /v1/users/:id/second-factor': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/users/${id}/second-factor`), a.admin.id),
+  },
+  'POST /v1/users/:id/second-factor/reset': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => asB('POST', `/v1/users/${id}/second-factor/reset`), a.admin.id),
   },
   'GET /v1/billing': {
     kind: 'own tenant',

@@ -88,7 +88,62 @@ export const ChooseTenant = z.object({
   tenants: z.array(TenantSummary.pick({ id: true, name: true })),
 });
 
-export const OtpVerifyResult = z.discriminatedUnion('status', [SignedIn, ChooseTenant]);
+/**
+ * A web sign-in by someone who can change access: an authenticator code comes next, on the
+ * ticket, and only then the session (spec M1, decision D91). Someone without one sets it up first.
+ */
+export const SecondFactor = z.object({
+  status: z.literal('second_factor'),
+  ticket: z.string(),
+  enrolled: z.boolean(),
+  tenant: TenantSummary.pick({ id: true, name: true }),
+});
+
+export const OtpVerifyResult = z.discriminatedUnion('status', [
+  SignedIn,
+  ChooseTenant,
+  SecondFactor,
+]);
+
+/** Choosing a tenant signs in, or asks for the authenticator code first. */
+export const SelectTenantResult = z.discriminatedUnion('status', [SignedIn, SecondFactor]);
+
+/** `POST /auth/v1/totp/setup`: a new authenticator secret for someone without one. */
+export const TotpSetupBody = z.strictObject({ ticket: Secret });
+export const TotpSetupResult = z.object({
+  /** Base32, for typing into an authenticator by hand. */
+  secret: z.string(),
+  /** The `otpauth://` link a QR code carries. */
+  uri: z.string(),
+});
+
+/** One of the ten single-use recovery codes, such as `K7Q2M-XW4PA`. */
+export const RECOVERY_CODE = /^[A-Z2-7]{5}-?[A-Z2-7]{5}$/;
+
+/** `POST /auth/v1/totp/verify`: the code from the authenticator, or a recovery code. */
+export const TotpVerifyBody = z
+  .strictObject({
+    ticket: Secret,
+    code: z
+      .string()
+      .regex(/^\d{6}$/, 'Enter the 6-digit code')
+      .optional(),
+    recoveryCode: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(RECOVERY_CODE, 'Enter a recovery code such as K7Q2M-XW4PA')
+      .optional(),
+  })
+  .refine((body) => (body.code === undefined) !== (body.recoveryCode === undefined), {
+    message: 'Enter the code from your authenticator, or a recovery code',
+    path: ['code'],
+  });
+
+/** Signed in; recovery codes come once, when the authenticator is first set up. */
+export const TotpVerifyResult = SignedIn.extend({
+  recoveryCodes: z.array(z.string()).optional(),
+});
 
 export const SelectTenantBody = z.strictObject({
   ticket: Secret,
@@ -129,5 +184,9 @@ export type TenantSummary = z.infer<typeof TenantSummary>;
 export type SignedIn = z.infer<typeof SignedIn>;
 export type ChooseTenant = z.infer<typeof ChooseTenant>;
 export type OtpVerifyResult = z.infer<typeof OtpVerifyResult>;
+export type SecondFactor = z.infer<typeof SecondFactor>;
+export type SelectTenantResult = z.infer<typeof SelectTenantResult>;
+export type TotpVerifyResult = z.infer<typeof TotpVerifyResult>;
+export type TotpSetupResult = z.infer<typeof TotpSetupResult>;
 export type RefreshResult = z.infer<typeof RefreshResult>;
 export type AccessClaims = z.infer<typeof AccessClaims>;

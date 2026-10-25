@@ -17,7 +17,7 @@ import { tenants } from '../src/db/schema/directory';
 import { BillingCycle } from '../src/modules/billing/billing-cycle';
 import { PaymentGateway, type MemoryGateway } from '../src/modules/billing/gateway';
 import { StaffService } from '../src/modules/console/staff.service';
-import { totpAt, totpStep } from '../src/modules/console/totp';
+import { totpAt, totpStep } from '../src/platform/totp';
 import { DirectoryDatabase } from '../src/modules/directory/directory.database';
 import { EmailSender, type MemoryEmailSender } from '../src/modules/notifications/senders';
 import { newPhone, startApp, testConfig, World } from './support';

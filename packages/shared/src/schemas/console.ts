@@ -175,3 +175,16 @@ export type ConsoleTenantQuery = z.output<typeof ConsoleTenantQuery>;
 export type InviteStaffBody = z.output<typeof InviteStaffBody>;
 export type TemplateSummary = z.infer<typeof TemplateSummary>;
 export type CellSummary = z.infer<typeof CellSummary>;
+
+/**
+ * `POST /platform/v1/tenants/{id}/second-factor-resets`: vendor support removes the authenticator
+ * of the tenant's member with this number, as when a lone admin has lost theirs (decision D91).
+ */
+export const SecondFactorResetBody = z.strictObject({
+  phone: z.string().trim().min(6).max(32),
+  reason: z.string().trim().min(3).max(500),
+});
+export const SecondFactorResetResult = z.object({
+  /** Whether the person had an authenticator to remove; their sessions end either way. */
+  removed: z.boolean(),
+});
