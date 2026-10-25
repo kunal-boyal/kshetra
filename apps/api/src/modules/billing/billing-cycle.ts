@@ -15,7 +15,8 @@ import {
   todayIn,
   type TenantStatus,
 } from '@thelamp/shared';
-import { and, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, type SQL, sql } from 'drizzle-orm';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { invoices, plans, subscriptions, tenants } from '../../db/schema/directory';
 import { SeatCounts } from '../../platform/planes';
 import { Queues } from '../../platform/queues';
@@ -67,13 +68,18 @@ export class BillingCycle implements OnModuleInit {
     this.queues.handle('maintenance', 'billing.cycle', () => this.run());
   }
 
-  async run(now = new Date()): Promise<void> {
+  /**
+   * One run, as of `now`. `only` limits it to some tenants, as tests do, so a run at a later date
+   * leaves everyone else alone.
+   */
+  async run(now = new Date(), only?: readonly string[]): Promise<void> {
     const today = todayIn(BILLING_TIME_ZONE, now);
+    const among = (column: AnyPgColumn) => (only ? inArray(column, [...only]) : undefined);
     const active = await this.database.db
       .select({ subscription: subscriptions, plan: plans })
       .from(subscriptions)
       .innerJoin(plans, eq(plans.id, subscriptions.planId))
-      .where(eq(subscriptions.status, 'active'));
+      .where(and(eq(subscriptions.status, 'active'), among(subscriptions.tenantId)));
     for (const { subscription, plan } of active) {
       try {
         if (subscription.cycle === 'month') await this.monthly(subscription, plan, today);
@@ -89,11 +95,11 @@ export class BillingCycle implements OnModuleInit {
     const owing = await this.database.db
       .selectDistinct({ tenantId: invoices.tenantId })
       .from(invoices)
-      .where(eq(invoices.status, 'issued'));
+      .where(and(eq(invoices.status, 'issued'), among(invoices.tenantId)));
     const reviewed = new Set([...active.map((row) => row.subscription.tenantId)]);
     for (const { tenantId } of owing) reviewed.add(tenantId);
     for (const tenantId of reviewed) await this.dunning.review(tenantId, now);
-    await this.trials(now, today);
+    await this.trials(now, today, among(tenants.id));
   }
 
   /** Every settled month since the subscription began, billed for the seats it used (BR-45). */
@@ -285,7 +291,7 @@ export class BillingCycle implements OnModuleInit {
    * Trials (spec 10.3): reminders 7 days and 1 day before the end, then suspension for a trial
    * that ended without a subscription. Demo tenants never end.
    */
-  private async trials(now: Date, today: string): Promise<void> {
+  private async trials(now: Date, today: string, among: SQL | undefined): Promise<void> {
     const trials = await this.database.db
       .select({ id: tenants.id, endsAt: tenants.trialEndsAt })
       .from(tenants)
@@ -294,6 +300,7 @@ export class BillingCycle implements OnModuleInit {
           eq(tenants.status, 'trial'),
           eq(tenants.demo, false),
           isNotNull(tenants.trialEndsAt),
+          among,
           sql`not exists (select 1 from ${subscriptions} where ${subscriptions.tenantId} = ${tenants.id} and ${subscriptions.status} = 'active')`,
         ),
       );

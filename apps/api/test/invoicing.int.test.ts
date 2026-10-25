@@ -103,6 +103,7 @@ const SETTINGS = {
 /** A tenant with its admin signed in, its billing details set, in Maharashtra unless told. */
 async function customer(name: string, stateCode = '27', gstin: string | null = null) {
   const tenantId = await world.tenant(name);
+  mine.push(tenantId);
   const phone = newPhone();
   await world.user(tenantId, {
     phone,
@@ -140,7 +141,9 @@ const invoicesOf = async (tenantId: string) =>
 const statusOf = async (tenantId: string) =>
   (await send('GET', `/platform/v1/tenants/${tenantId}`, staff)).json().status;
 
-const cycle = (day: string) => app.get(BillingCycle).run(at(day));
+/** The tenants this file made: billing runs only for them, so other files' tenants are left be. */
+const mine: string[] = [];
+const cycle = (day: string) => app.get(BillingCycle).run(at(day), mine);
 
 beforeAll(async () => {
   app = await startApp(testConfig());
@@ -185,6 +188,7 @@ describe('billing settings (D90)', () => {
 describe('monthly subscriptions (BR-47)', () => {
   it('needs billing details, then invoices each settled month once, with CGST and SGST', async () => {
     const bare = await world.tenant('Unbilled Co');
+    mine.push(bare);
     const refused = await subscribe(bare);
     expect(refused.json().error.code).toBe('CONFLICT');
 
@@ -428,6 +432,7 @@ describe('ending (BR-47)', () => {
 describe('trials (spec 10.3)', () => {
   it('reminds a week before, then suspends a trial that ended without a subscription', async () => {
     const tenantId = await world.tenant('Trying Co', 'trial');
+    mine.push(tenantId);
     const phone = newPhone();
     const adminEmail = `trial-${newId().slice(-8)}@customer.example`;
     await world.user(tenantId, {
@@ -449,7 +454,7 @@ describe('trials (spec 10.3)', () => {
         email.to === adminEmail && email.subject.startsWith('The trial for Trying Co ends'),
     );
     expect(reminders).toHaveLength(1);
-    await app.get(BillingCycle).run(new Date(endsAt.getTime() + 60_000));
+    await app.get(BillingCycle).run(new Date(endsAt.getTime() + 60_000), mine);
     expect(await statusOf(tenantId)).toBe('suspended');
     expect(emails()).toContainEqual(
       expect.objectContaining({ to: adminEmail, subject: 'The trial for Trying Co has ended' }),
