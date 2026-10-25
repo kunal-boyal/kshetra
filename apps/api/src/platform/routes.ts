@@ -6,7 +6,8 @@ import {
   PATH_METADATA,
 } from '@nestjs/common/constants';
 import type { z } from 'zod';
-import { type AccessRule, accessRuleOf } from './auth';
+import type { ApiScopeKey } from '@thelamp/shared';
+import { type AccessRule, accessRuleOf, apiClientScopesOf } from './auth';
 
 /**
  * What a route takes and gives (spec 11). The route registry reads it, and the OpenAPI document
@@ -49,6 +50,8 @@ export interface RegisteredRoute {
   /** The status a success answers with. */
   status: number;
   access: AccessRule | undefined;
+  /** For a route open to anyone signed in: the scopes that open it to API clients (D94). */
+  apiScopes: ApiScopeKey[] | undefined;
   contract: RouteContract | undefined;
 }
 
@@ -107,6 +110,7 @@ export function routeRegistry(controllers: readonly Type[]): RegisteredRoute[] {
           (Reflect.getMetadata(HTTP_CODE_METADATA, handler) as number | undefined) ??
           (method === 'POST' ? 201 : 200),
         access: accessRuleOf(handler, controller),
+        apiScopes: apiClientScopesOf(handler, controller),
         contract: Reflect.getMetadata(CONTRACT, handler) as RouteContract | undefined,
       });
     }

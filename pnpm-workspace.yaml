@@ -6,12 +6,15 @@ packages:
 # Install scripts run only where approved. esbuild sets up its native binary for drizzle-kit, Vite
 # and tsdown. ssh2 and cpu-features only serve Docker over SSH, protobufjs only prints notices, and
 # msgpackr-extract is an optional native speed-up that BullMQ's MessagePack works without.
+# vue-demi only picks a Vue version for Scalar's components; the API serves Scalar's prebuilt
+# browser bundle, which doesn't need it (decision D94).
 allowBuilds:
   cpu-features: false
   esbuild: true
   msgpackr-extract: false
   protobufjs: false
   ssh2: false
+  vue-demi: false
 
 # One version of each shared tool for every package; see docs/versions.md.
 catalog:

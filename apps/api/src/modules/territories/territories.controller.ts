@@ -21,7 +21,7 @@ import {
   UpdateTerritoryLevelsBody,
 } from '@thelamp/shared';
 import { userActor } from '../../platform/audit';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, ForApiClients, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -45,6 +45,7 @@ export class TerritoriesController {
   })
   // Every phone already keeps the whole tree (decision D40), so anyone signed in may read it.
   @SignedIn()
+  @ForApiClients()
   list(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = TerritoryListQuery.parse(query);
     return this.database.forTenant(access.tenantId, async (tx) => ({

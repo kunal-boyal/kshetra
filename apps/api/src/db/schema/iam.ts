@@ -305,3 +305,33 @@ export const seatIntervals = cell
     ],
   )
   .enableRLS();
+
+/**
+ * A tenant's API clients (spec 10.3, module M20, decision D94): systems such as an ERP that call
+ * the API with OAuth 2.0 client credentials. The client ID is public and names the tenant; the
+ * secret is kept as a SHA-256 hash of its 32 random bytes. Scopes say what it may do; revoking it
+ * or rotating its secret moves its auth revision, so tokens issued before stop working.
+ */
+export const apiClients = cell
+  .table(
+    'api_clients',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      name: text('name').notNull(),
+      clientId: text('client_id').notNull(),
+      secretHash: text('secret_hash').notNull(),
+      scopes: text('scopes').array().notNull(),
+      status: text('status').notNull().default('active'),
+      authRevision: integer('auth_revision').notNull().default(0),
+      lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+      revokedAt: timestamp('revoked_at', { withTimezone: true }),
+      ...changeColumns(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('api_clients_tenant_client_id').on(table.tenantId, table.clientId),
+      isolation(),
+    ],
+  )
+  .enableRLS();

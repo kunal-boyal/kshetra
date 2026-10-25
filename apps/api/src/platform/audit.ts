@@ -19,10 +19,13 @@ export interface AuditActor {
 export const SYSTEM_ACTOR: AuditActor = { kind: 'system', id: null };
 
 /**
- * A signed-in user, with the address and device of their request; or vendor support, marked with
- * the grant it acted under.
+ * A signed-in user, with the address and device of their request; vendor support, marked with
+ * the grant it acted under; or an API client.
  */
 export function userActor(access: Access): AuditActor {
+  if (access.apiClient) {
+    return { kind: 'api_client', id: access.apiClient.id, ip: access.ip, deviceId: null };
+  }
   if (access.support) {
     return {
       kind: 'platform',

@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Headers, Patch, Put } from '@nestjs/common';
 import { AppError, OrganisationResult, UpdateOrganisationBody } from '@thelamp/shared';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, ForApiClients, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';
 import { OrganisationService } from './organisation.service';
@@ -24,6 +24,7 @@ export class OrganisationController {
     response: OrganisationResult,
   })
   @SignedIn()
+  @ForApiClients()
   read(@CurrentAccess() access: Access) {
     return this.database.forTenant(access.tenantId, (tx) =>
       this.organisation.read(tx, access.tenantId),

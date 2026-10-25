@@ -38,6 +38,8 @@ import { AppVersionGuard } from './platform/app-version';
 import { AccessTokens, AuthGuard } from './platform/auth';
 import { Database } from './platform/database';
 import { HEALTH_CHECKS, HealthController, type HealthChecks } from './platform/health.controller';
+import { API_ROUTES, DocsController } from './platform/docs.controller';
+import { routeRegistry } from './platform/routes';
 import { PlatformModule } from './platform/platform.module';
 import { RedisClient } from './platform/redis';
 import { controllersOf } from './platform/routes';
@@ -79,9 +81,9 @@ export const FEATURE_MODULES = [
   MeteringModule,
 ];
 
-/** Every controller the API serves: the health checks and each feature module's. */
+/** Every controller the API serves: the health checks, its documentation and each feature module's. */
 export function apiControllers(): Type[] {
-  return [HealthController, ...controllersOf(FEATURE_MODULES)];
+  return [HealthController, DocsController, ...controllersOf(FEATURE_MODULES)];
 }
 
 @Module({})
@@ -90,13 +92,15 @@ export class AppModule {
     return {
       module: AppModule,
       imports: [PlatformModule.forRoot(config), ...FEATURE_MODULES],
-      controllers: [HealthController],
+      controllers: [HealthController, DocsController],
       providers: [
         AccessTokens,
         // Guards run in this order: an outdated app hears that first, then every route needs an
         // access token unless it is marked @Public().
         { provide: APP_GUARD, useClass: AppVersionGuard },
         { provide: APP_GUARD, useClass: AuthGuard },
+        // What the documentation describes: every route the API serves (decision D94).
+        { provide: API_ROUTES, useFactory: () => routeRegistry(apiControllers()) },
         {
           provide: HEALTH_CHECKS,
           inject: [Database, DirectoryHealth, RedisClient],

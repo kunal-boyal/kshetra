@@ -6,7 +6,7 @@ import {
   IdParams,
   UpdateDesignationBody,
 } from '@thelamp/shared';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, ForApiClients, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -28,6 +28,7 @@ export class DesignationsController {
     response: DesignationListResult,
   })
   @SignedIn()
+  @ForApiClients()
   async list(@CurrentAccess() access: Access): Promise<DesignationListResult> {
     const items = await this.database.forTenant(access.tenantId, (tx) =>
       this.designations.list(tx, access.tenantId),

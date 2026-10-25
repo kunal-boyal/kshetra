@@ -10,6 +10,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import {
   AccessClaims,
+  type ApiScopeKey,
   AppError,
   closedByModules,
   type DataScope,
@@ -23,6 +24,7 @@ import type { FastifyRequest } from 'fastify';
 import { createLocalJWKSet, errors, type JSONWebKeySet, jwtVerify } from 'jose';
 import type { Config } from '../config';
 import { ApiCalls } from './api-calls';
+import { ApiClientLimits } from './api-client-limits';
 import { CONFIG } from './tokens';
 
 /** Who is calling, from a verified access token (spec 11.1). */
@@ -38,6 +40,15 @@ export interface AuthContext {
   ip?: string;
   /** Vendor support's grant (decision D93); `userId` is then the staff member's, not a user's. */
   supportGrantId?: string;
+  /** An API client's scopes (decision D94); `userId` is then the client's ID, not a user's. */
+  scopes?: readonly string[];
+}
+
+/** An API client calling the API (module M20, decision D94). */
+export interface ApiClientAccess {
+  id: string;
+  name: string;
+  scopes: readonly ApiScopeKey[];
 }
 
 /** Vendor support inside a tenant under a grant (module M22, decision D93). */
@@ -64,6 +75,8 @@ export interface Access extends AuthContext {
   readOnly: boolean;
   /** Set when vendor support is calling; nobody at the tenant is. */
   support?: SupportAccess;
+  /** Set when an API client is calling; nobody at the tenant is. */
+  apiClient?: ApiClientAccess;
 }
 
 declare module 'fastify' {
@@ -144,6 +157,22 @@ export const CurrentStaff = createParamDecorator((_: unknown, context: Execution
   if (!staff) throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
   return staff;
 });
+
+const FOR_API_CLIENTS = 'for_api_clients';
+
+/**
+ * A route open to anyone signed in that API clients may call too, with one of these scopes; none
+ * means any client (decision D94). Clients reach routes that need permissions through the
+ * permissions their scopes stand for, and no other route open to anyone signed in, as most of
+ * those are a person's own.
+ */
+export const ForApiClients = (...scopes: ApiScopeKey[]) => SetMetadata(FOR_API_CLIENTS, scopes);
+
+/** The scopes a route opens to API clients, read without a running app. */
+export function apiClientScopesOf(handler: object, controller: object): ApiScopeKey[] | undefined {
+  return (Reflect.getMetadata(FOR_API_CLIENTS, handler) ??
+    Reflect.getMetadata(FOR_API_CLIENTS, controller)) as ApiScopeKey[] | undefined;
+}
 
 const MODULE = 'module';
 
@@ -282,6 +311,7 @@ export class AuthGuard implements CanActivate {
     private readonly resolver: AccessResolver,
     private readonly staffResolver: StaffResolver,
     private readonly apiCalls: ApiCalls,
+    private readonly clientLimits: ApiClientLimits,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -323,9 +353,24 @@ export class AuthGuard implements CanActivate {
       ip: request.ip,
       ...(claims.did ? { deviceId: claims.did } : {}),
       ...(claims.sg ? { supportGrantId: claims.sg } : {}),
+      ...(claims.scp ? { scopes: claims.scp } : {}),
     });
     request.access = access;
     this.apiCalls.count(access.tenantId);
+    if (access.apiClient) {
+      // Each client within its plan's requests a minute (decision D94).
+      await this.clientLimits.hit(access.tenantId, access.apiClient.id);
+      if (rule.kind === 'signed_in') {
+        const scopes = this.reflector.getAllAndOverride<ApiScopeKey[] | undefined>(
+          FOR_API_CLIENTS,
+          [context.getHandler(), context.getClass()],
+        );
+        const held = access.apiClient.scopes;
+        if (!scopes || (scopes.length > 0 && !scopes.some((scope) => held.includes(scope)))) {
+          throw new AppError('FORBIDDEN', 'This API client’s scopes don’t reach this.');
+        }
+      }
+    }
     if (
       access.readOnly &&
       !READS.has(request.method) &&

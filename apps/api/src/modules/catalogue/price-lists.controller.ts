@@ -13,7 +13,14 @@ import {
 } from '@thelamp/shared';
 import type { FastifyReply } from 'fastify';
 import { userActor } from '../../platform/audit';
-import { type Access, CurrentAccess, InModule, Requires, SignedIn } from '../../platform/auth';
+import {
+  type Access,
+  CurrentAccess,
+  InModule,
+  Requires,
+  ForApiClients,
+  SignedIn,
+} from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -170,6 +177,7 @@ export class AccountPricesController {
     response: AccountPricesResult,
   })
   @SignedIn()
+  @ForApiClients('catalogue:read', 'catalogue:write')
   @InModule('orders')
   prices(@CurrentAccess() access: Access, @Param('id') id: string, @Query() query: unknown) {
     const accountId = pathId(id);

@@ -24,6 +24,10 @@ export interface AccessTokenInput {
   deviceId?: string;
   /** Vendor support's grant (decision D93); `userId` is then the staff member's. */
   supportGrantId?: string;
+  /** An API client's scopes (decision D94); `userId` is then the client's ID. */
+  scopes?: readonly string[];
+  /** How long the token lasts, when not the usual. */
+  seconds?: number;
 }
 
 /**
@@ -81,7 +85,7 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
     await this.load();
     if (!this.privateKey || !this.publicJwk) throw new Error('The signing key is not loaded yet.');
     const issuedAt = Math.floor(now.getTime() / 1000);
-    const expiresAt = new Date((issuedAt + ACCESS_TOKEN_SECONDS) * 1000);
+    const expiresAt = new Date((issuedAt + (input.seconds ?? ACCESS_TOKEN_SECONDS)) * 1000);
     const { issuer, audience } = tokenParties(this.config);
     const token = await new SignJWT({
       tid: input.tenantId,
@@ -89,6 +93,7 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
       rev: input.revision,
       ...(input.deviceId ? { did: input.deviceId } : {}),
       ...(input.supportGrantId ? { sg: input.supportGrantId } : {}),
+      ...(input.scopes ? { scp: [...input.scopes] } : {}),
     })
       .setProtectedHeader({ alg: 'ES256', kid: this.publicJwk.kid!, typ: 'JWT' })
       .setSubject(input.userId)

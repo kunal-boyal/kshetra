@@ -111,6 +111,9 @@ export const AUDIT_ACTIONS = [
   'support.approved',
   'support.declined',
   'support.ended',
+  'api_client.created',
+  'api_client.revoked',
+  'api_client.secret_rotated',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

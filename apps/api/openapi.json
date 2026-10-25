@@ -114,6 +114,69 @@
         }
       }
     },
+    "/auth/v1/oauth/token": {
+      "post": {
+        "operationId": "OAuthController.token",
+        "summary": "An access token for an API client (OAuth 2.0 client credentials)",
+        "tags": [
+          "Sign-in"
+        ],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "grant_type": {
+                    "type": "string"
+                  },
+                  "client_id": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "client_secret": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "scope": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "grant_type"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthToken"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/v1/otp/request": {
       "post": {
         "operationId": "AuthController.request",
@@ -2165,7 +2228,8 @@
                   "limits": {
                     "default": {
                       "users": null,
-                      "storageGb": null
+                      "storageGb": null,
+                      "apiPerMinute": null
                     },
                     "type": "object",
                     "properties": {
@@ -2189,6 +2253,19 @@
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "apiPerMinute": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000
                           },
                           {
                             "type": "null"
@@ -3785,6 +3862,18 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "apiPerMinute": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
                     },
                     "additionalProperties": false
@@ -4334,6 +4423,13 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:read",
+              "accounts:write",
+              "submissions:read"
+            ]
           }
         ],
         "x-access": "Every one of: account.view",
@@ -4381,6 +4477,13 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:read",
+              "accounts:write",
+              "submissions:read"
+            ]
           }
         ],
         "x-access": "Any one of: account.view, account_plan.manage",
@@ -4530,6 +4633,27 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "territories:write",
+              "accounts:read",
+              "accounts:write",
+              "catalogue:read",
+              "catalogue:write",
+              "orders:read",
+              "orders:write",
+              "submissions:read",
+              "attendance:read",
+              "finance:read",
+              "finance:write",
+              "targets:read",
+              "targets:write",
+              "reports:read",
+              "audit:read"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -4720,6 +4844,13 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:read",
+              "accounts:write",
+              "submissions:read"
+            ]
           }
         ],
         "x-access": "Every one of: account.view",
@@ -4865,6 +4996,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:write"
+            ]
           }
         ],
         "x-access": "Any one of: account.manage, account.propose",
@@ -4980,6 +5116,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:write"
+            ]
           }
         ],
         "x-access": "Every one of: account.manage",
@@ -5141,6 +5282,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:write"
+            ]
           }
         ],
         "x-access": "Every one of: account.manage",
@@ -5234,6 +5380,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:write"
+            ]
           }
         ],
         "x-access": "Every one of: account.manage",
@@ -5352,6 +5503,12 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:read",
+              "finance:write"
+            ]
           }
         ],
         "x-access": "Every one of: finance.view",
@@ -5524,6 +5681,13 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:read",
+              "accounts:write",
+              "submissions:read"
+            ]
           }
         ],
         "x-access": "Every one of: account.view",
@@ -5667,6 +5831,12 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "catalogue:read",
+              "catalogue:write"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -5806,6 +5976,12 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:read",
+              "finance:write"
+            ]
           }
         ],
         "x-access": "Every one of: finance.view",
@@ -5983,6 +6159,200 @@
                     "items"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api-clients": {
+      "get": {
+        "operationId": "ApiClientsController.list",
+        "summary": "List API clients",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: api_client.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiClient"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "ApiClientsController.create",
+        "summary": "Make an API client; its secret is shown once",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: api_client.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiClientBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiClientSecret"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api-clients/{id}/revoke": {
+      "post": {
+        "operationId": "ApiClientsController.revoke",
+        "summary": "Revoke an API client for good",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: api_client.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiClient"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api-clients/{id}/rotate": {
+      "post": {
+        "operationId": "ApiClientsController.rotate",
+        "summary": "Give an API client a new secret, shown once; the old one stops working",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: api_client.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiClientSecret"
                 }
               }
             }
@@ -6585,6 +6955,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Any one of: user.view, shift.use",
@@ -6792,6 +7170,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "audit:read"
+            ]
           }
         ],
         "x-access": "Every one of: audit.view",
@@ -6924,7 +7307,10 @@
                 "support.requested",
                 "support.approved",
                 "support.declined",
-                "support.ended"
+                "support.ended",
+                "api_client.created",
+                "api_client.revoked",
+                "api_client.secret_rotated"
               ]
             }
           },
@@ -7141,7 +7527,10 @@
                               "support.requested",
                               "support.approved",
                               "support.declined",
-                              "support.ended"
+                              "support.ended",
+                              "api_client.created",
+                              "api_client.revoked",
+                              "api_client.secret_rotated"
                             ]
                           },
                           "target": {
@@ -7574,6 +7963,27 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "territories:write",
+              "accounts:read",
+              "accounts:write",
+              "catalogue:read",
+              "catalogue:write",
+              "orders:read",
+              "orders:write",
+              "submissions:read",
+              "attendance:read",
+              "finance:read",
+              "finance:write",
+              "targets:read",
+              "targets:write",
+              "reports:read",
+              "audit:read"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -7726,6 +8136,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "catalogue:read",
+              "catalogue:write",
+              "orders:read",
+              "orders:write"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -8832,6 +9250,27 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "territories:write",
+              "accounts:read",
+              "accounts:write",
+              "catalogue:read",
+              "catalogue:write",
+              "orders:read",
+              "orders:write",
+              "submissions:read",
+              "attendance:read",
+              "finance:read",
+              "finance:write",
+              "targets:read",
+              "targets:write",
+              "reports:read",
+              "audit:read"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -9263,6 +9702,74 @@
         "responses": {
           "204": {
             "description": "Success, with no body"
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/docs": {
+      "get": {
+        "operationId": "DocsController.docs",
+        "summary": "The interactive API reference",
+        "tags": [
+          "Documentation"
+        ],
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success: the file",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/docs/scalar.js": {
+      "get": {
+        "operationId": "DocsController.script",
+        "summary": "The reference’s script",
+        "tags": [
+          "Documentation"
+        ],
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success: the file",
+            "content": {
+              "text/javascript": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           },
           "default": {
             "description": "An error in the format of spec 11.1, its code from spec 11.4",
@@ -9711,6 +10218,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "reports:read"
+            ]
           }
         ],
         "x-access": "Every one of: export.create",
@@ -9771,6 +10283,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "reports:read"
+            ]
           }
         ],
         "x-access": "Every one of: export.create",
@@ -9884,6 +10401,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "reports:read"
+            ]
           }
         ],
         "x-access": "Every one of: export.create",
@@ -9933,6 +10455,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:write"
+            ]
           }
         ],
         "x-access": "Every one of: finance.manage",
@@ -10711,6 +11238,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "catalogue:write"
+            ]
           }
         ],
         "x-access": "Every one of: catalogue.manage",
@@ -11160,6 +11692,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:write"
+            ]
           }
         ],
         "x-access": "Every one of: finance.manage",
@@ -11996,6 +12533,15 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:read",
+              "accounts:write",
+              "submissions:read",
+              "targets:read",
+              "targets:write"
+            ]
           }
         ],
         "x-access": "Any one of: target.view, target.edit, account_plan.manage, account.view",
@@ -12484,6 +13030,40 @@
         }
       }
     },
+    "/v1/openapi.json": {
+      "get": {
+        "operationId": "DocsController.openapi",
+        "summary": "The OpenAPI document",
+        "tags": [
+          "Documentation"
+        ],
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success: the file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/orders": {
       "get": {
         "operationId": "OrdersController.list",
@@ -12494,6 +13074,12 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "orders:read",
+              "orders:write"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -12682,6 +13268,12 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "orders:read",
+              "orders:write"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -12801,6 +13393,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "orders:write"
+            ]
           }
         ],
         "x-access": "Every one of: order.fulfil",
@@ -12941,6 +13538,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Every one of: user.view",
@@ -13015,6 +13620,27 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "territories:write",
+              "accounts:read",
+              "accounts:write",
+              "catalogue:read",
+              "catalogue:write",
+              "orders:read",
+              "orders:write",
+              "submissions:read",
+              "attendance:read",
+              "finance:read",
+              "finance:write",
+              "targets:read",
+              "targets:write",
+              "reports:read",
+              "audit:read"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -13298,6 +13924,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Any one of: plan_item.manage, user.view, visit.use",
@@ -13736,6 +14370,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "catalogue:write"
+            ]
           }
         ],
         "x-access": "Every one of: price_list.manage",
@@ -13786,6 +14425,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "catalogue:write"
+            ]
           }
         ],
         "x-access": "Every one of: price_list.manage",
@@ -13833,6 +14477,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "catalogue:write"
+            ]
           }
         ],
         "x-access": "Every one of: price_list.manage",
@@ -13906,6 +14555,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "catalogue:write"
+            ]
           }
         ],
         "x-access": "Every one of: price_list.manage",
@@ -14002,6 +14656,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "catalogue:write"
+            ]
           }
         ],
         "x-access": "Every one of: price_list.manage",
@@ -14249,6 +14908,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "reports:read"
+            ]
           }
         ],
         "x-access": "Every one of: report.view",
@@ -14770,6 +15434,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:write"
+            ]
           }
         ],
         "x-access": "Any one of: user.manage, role.manage",
@@ -15874,6 +16543,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Any one of: user.view, shift.use",
@@ -16459,6 +17136,16 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "accounts:read",
+              "accounts:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Any one of: submission.create, submission.review, user.view, account.view",
@@ -17479,6 +18166,12 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "targets:read",
+              "targets:write"
+            ]
           }
         ],
         "x-access": "Every one of: target.view",
@@ -17561,6 +18254,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "targets:write"
+            ]
           }
         ],
         "x-access": "Every one of: target.edit",
@@ -17687,6 +18385,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "targets:write"
+            ]
           }
         ],
         "x-access": "Every one of: target.edit",
@@ -18119,6 +18822,27 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "territories:write",
+              "accounts:read",
+              "accounts:write",
+              "catalogue:read",
+              "catalogue:write",
+              "orders:read",
+              "orders:write",
+              "submissions:read",
+              "attendance:read",
+              "finance:read",
+              "finance:write",
+              "targets:read",
+              "targets:write",
+              "reports:read",
+              "audit:read"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -18203,6 +18927,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "territories:write"
+            ]
           }
         ],
         "x-access": "Every one of: territory.manage",
@@ -18292,6 +19021,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "territories:write"
+            ]
           }
         ],
         "x-access": "Every one of: territory.manage",
@@ -18371,6 +19105,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "territories:write"
+            ]
           }
         ],
         "x-access": "Every one of: territory.manage",
@@ -18536,6 +19275,27 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "territories:write",
+              "accounts:read",
+              "accounts:write",
+              "catalogue:read",
+              "catalogue:write",
+              "orders:read",
+              "orders:write",
+              "submissions:read",
+              "attendance:read",
+              "finance:read",
+              "finance:write",
+              "targets:read",
+              "targets:write",
+              "reports:read",
+              "audit:read"
+            ]
           }
         ],
         "x-access": "Anyone signed in to the tenant",
@@ -18633,6 +19393,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Every one of: user.view",
@@ -18758,6 +19526,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:write"
+            ]
           }
         ],
         "x-access": "Every one of: user.manage",
@@ -19073,6 +19846,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Every one of: user.view",
@@ -19120,6 +19901,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:write"
+            ]
           }
         ],
         "x-access": "Every one of: user.manage",
@@ -19538,6 +20324,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Every one of: user.view",
@@ -19726,7 +20520,10 @@
                               "support.requested",
                               "support.approved",
                               "support.declined",
-                              "support.ended"
+                              "support.ended",
+                              "api_client.created",
+                              "api_client.revoked",
+                              "api_client.secret_rotated"
                             ]
                           },
                           "target": {
@@ -19899,6 +20696,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:write"
+            ]
           }
         ],
         "x-access": "Every one of: user.manage",
@@ -19948,6 +20750,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:write"
+            ]
           }
         ],
         "x-access": "Every one of: user.manage",
@@ -20054,6 +20861,14 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:read",
+              "people:write",
+              "submissions:read",
+              "attendance:read"
+            ]
           }
         ],
         "x-access": "Every one of: user.view",
@@ -20113,6 +20928,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:write"
+            ]
           }
         ],
         "x-access": "Every one of: user.manage",
@@ -20224,6 +21044,11 @@
         "security": [
           {
             "accessToken": []
+          },
+          {
+            "apiClient": [
+              "people:write"
+            ]
           }
         ],
         "x-access": "Every one of: user.manage",
@@ -22119,6 +22944,110 @@
           "tenantIds",
           "startsAt",
           "endsAt"
+        ],
+        "additionalProperties": false
+      },
+      "ApiClient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "people:read",
+                "people:write",
+                "territories:write",
+                "accounts:read",
+                "accounts:write",
+                "catalogue:read",
+                "catalogue:write",
+                "orders:read",
+                "orders:write",
+                "submissions:read",
+                "attendance:read",
+                "finance:read",
+                "finance:write",
+                "targets:read",
+                "targets:write",
+                "reports:read",
+                "audit:read"
+              ]
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "clientId",
+          "scopes",
+          "status",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ],
+        "additionalProperties": false
+      },
+      "ApiClientSecret": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/ApiClient"
+          },
+          "clientSecret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client",
+          "clientSecret"
         ],
         "additionalProperties": false
       },
@@ -24121,6 +25050,53 @@
           "key",
           "label",
           "type"
+        ],
+        "additionalProperties": false
+      },
+      "CreateApiClientBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "scopes": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "people:read",
+                "people:write",
+                "territories:write",
+                "accounts:read",
+                "accounts:write",
+                "catalogue:read",
+                "catalogue:write",
+                "orders:read",
+                "orders:write",
+                "submissions:read",
+                "attendance:read",
+                "finance:read",
+                "finance:write",
+                "targets:read",
+                "targets:write",
+                "reports:read",
+                "audit:read"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "scopes"
         ],
         "additionalProperties": false
       },
@@ -30062,6 +31038,33 @@
         ],
         "additionalProperties": false
       },
+      "OAuthToken": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "scope": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "scope"
+        ],
+        "additionalProperties": false
+      },
       "Option": {
         "type": "object",
         "properties": {
@@ -31375,11 +32378,24 @@
                     "type": "null"
                   }
                 ]
+              },
+              "apiPerMinute": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
               "users",
-              "storageGb"
+              "storageGb",
+              "apiPerMinute"
             ],
             "additionalProperties": false
           },
@@ -31470,7 +32486,8 @@
           "limits": {
             "default": {
               "users": null,
-              "storageGb": null
+              "storageGb": null,
+              "apiPerMinute": null
             },
             "type": "object",
             "properties": {
@@ -31494,6 +32511,19 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "apiPerMinute": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
                   },
                   {
                     "type": "null"
@@ -35920,11 +36950,24 @@
                     "type": "null"
                   }
                 ]
+              },
+              "apiPerMinute": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
               "users",
-              "storageGb"
+              "storageGb",
+              "apiPerMinute"
             ],
             "additionalProperties": false
           },
@@ -35944,6 +36987,18 @@
                 ]
               },
               "storageGb": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "apiPerMinute": {
                 "anyOf": [
                   {
                     "type": "integer",
@@ -37343,6 +38398,34 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "A vendor staff member's console token (decision D88)"
+      },
+      "apiClient": {
+        "type": "oauth2",
+        "description": "An API client's token (decision D94): its ID and secret buy an hour's token at the token URL",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "/auth/v1/oauth/token",
+            "scopes": {
+              "people:read": "user.view",
+              "people:write": "user.view, user.manage",
+              "territories:write": "territory.manage",
+              "accounts:read": "account.view",
+              "accounts:write": "account.view, account.manage",
+              "catalogue:read": "Reads the catalogue",
+              "catalogue:write": "catalogue.manage, price_list.manage",
+              "orders:read": "order.view",
+              "orders:write": "order.view, order.fulfil",
+              "submissions:read": "user.view, account.view",
+              "attendance:read": "user.view",
+              "finance:read": "finance.view",
+              "finance:write": "finance.view, finance.manage",
+              "targets:read": "target.view",
+              "targets:write": "target.view, target.edit",
+              "reports:read": "report.view, export.create",
+              "audit:read": "audit.view"
+            }
+          }
+        }
       }
     }
   }

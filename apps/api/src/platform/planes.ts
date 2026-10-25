@@ -1,4 +1,5 @@
 import type {
+  ApiScopeKey,
   BillableSeats,
   CellFiguresShape,
   DeviceInfo,
@@ -69,7 +70,8 @@ export abstract class TenantDirectory {
 /** What a tenant may use (module M23, decision D89): `modules` is null when no plan limits them. */
 export interface Entitled {
   modules: readonly ModuleKey[] | null;
-  limits: { users: number | null; storageGb: number | null };
+  /** `apiPerMinute`: requests a minute each API client may make; null keeps the default. */
+  limits: { users: number | null; storageGb: number | null; apiPerMinute: number | null };
   /** A dedicated install whose licence expired past its grace (BR-49): reads only. */
   readOnly?: boolean;
 }
@@ -181,4 +183,20 @@ export abstract class PeopleNames {
 /** Where a cell reports its health each minute (decision D93); the directory keeps it. */
 export abstract class CellHealthRecorder {
   abstract record(cellName: string, at: Date, figures: CellFiguresShape): Promise<void>;
+}
+
+/** An API client whose credentials checked out, for its token (decision D94). */
+export interface ApiClientCheck {
+  tenantId: string;
+  apiClientId: string;
+  scopes: ApiScopeKey[];
+  authRevision: number;
+}
+
+/**
+ * The cell's API clients, as the directory's token endpoint asks of them: whether a client ID
+ * and secret belong to an active client, and what it may do.
+ */
+export abstract class ApiClientCredentials {
+  abstract check(clientId: string, clientSecret: string): Promise<ApiClientCheck | null>;
 }

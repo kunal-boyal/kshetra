@@ -132,6 +132,10 @@ export class EntitlementsService extends EntitlementsSeam {
         found.limits.storageGb !== undefined
           ? found.limits.storageGb
           : (found.plan?.limits.storageGb ?? null),
+      apiPerMinute:
+        found.limits.apiPerMinute !== undefined
+          ? found.limits.apiPerMinute
+          : (found.plan?.limits.apiPerMinute ?? null),
     };
     if (!found.plan) return { modules: null, limits };
     const modules = new Set<ModuleKey>(['core', ...found.plan.modules]);

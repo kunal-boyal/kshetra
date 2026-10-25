@@ -83,6 +83,7 @@ let aRouteId: string;
 let aPlanItemId: string;
 let aExportId: string;
 let aSupportGrantId: string;
+let aApiClient: { id: string; clientId: string; secret: string };
 let aInvoiceId: string;
 let aItemId: string;
 let aPriceListId: string;
@@ -293,6 +294,58 @@ const consoleShutsB = (method: Method, url: string, payload?: object): Fixture =
 });
 
 const FIXTURES: Record<string, Fixture> = {
+  'GET /v1/openapi.json': {
+    kind: 'not tenant data',
+    run: async () => holdsNothingOfA(await send(undefined, 'GET', '/v1/openapi.json')),
+  },
+  'GET /v1/docs': {
+    kind: 'not tenant data',
+    run: async () => holdsNothingOfA(await send(undefined, 'GET', '/v1/docs')),
+  },
+  'GET /v1/docs/scalar.js': {
+    kind: 'not tenant data',
+    run: async () => {
+      const reply = await send(undefined, 'GET', '/v1/docs/scalar.js');
+      expect(reply.statusCode).toBe(200);
+    },
+  },
+  'POST /auth/v1/oauth/token': {
+    kind: 'sign-in',
+    run: async () => {
+      // A's client ID with a guessed secret buys nothing.
+      const reply = await send(undefined, 'POST', '/auth/v1/oauth/token', {
+        grant_type: 'client_credentials',
+        client_id: aApiClient.clientId,
+        client_secret: 'a guess at the secret',
+      });
+      expect(reply.statusCode).toBe(401);
+      holdsNothingOfA(reply);
+    },
+  },
+  'GET /v1/api-clients': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/api-clients')),
+  },
+  'POST /v1/api-clients': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asB('POST', '/v1/api-clients', {
+        id: newId(),
+        name: 'B ERP',
+        scopes: ['people:read'],
+      });
+      expect(reply.statusCode, reply.body).toBe(201);
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /v1/api-clients/:id/rotate': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/api-clients/${id}/rotate`), aApiClient.id),
+  },
+  'POST /v1/api-clients/:id/revoke': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/api-clients/${id}/revoke`), aApiClient.id),
+  },
   'GET /health': {
     kind: 'not tenant data',
     run: async () => holdsNothingOfA(await send(undefined, 'GET', '/health')),
@@ -2278,6 +2331,15 @@ beforeAll(async () => {
   // A sync cursor of A's, made before A's rows are taken down, since signing in writes some.
   const aToken = (await world.signIn(a.admin.phone)).accessToken;
   aCursor = (await send(aToken, 'GET', '/v1/sync/pull?entities=users')).json().cursor;
+  // An API client of A's (decision D94), which B must never reach or use.
+  const made = (
+    await send(aToken, 'POST', '/v1/api-clients', {
+      id: newId(),
+      name: 'A ERP',
+      scopes: ['people:read'],
+    })
+  ).json();
+  aApiClient = { id: made.client.id, clientId: made.client.clientId, secret: made.clientSecret };
   const transfer = await send(aToken, 'POST', `/v1/users/${a.member.id}/transfers`, {
     effectiveDate: NEXT_MONTH,
     designation: 'executive',

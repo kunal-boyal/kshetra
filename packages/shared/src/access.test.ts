@@ -87,4 +87,20 @@ describe('granting a role', () => {
     expect(canGrant(manager, payroll)).toBe(false);
     expect(canGrant({ ...manager, modulesOff: ['payroll_inputs'] }, payroll)).toBe(true);
   });
+
+  it('lets an API client give any role but one that can change access (D94)', () => {
+    const client = {
+      permissions: ['user.view', 'user.manage'],
+      scope: 'tenant' as const,
+      apiClient: {},
+    };
+    const field = {
+      permissions: ['shift.use', 'visit.use', 'submission.create'],
+      scope: 'self' as const,
+    };
+    expect(canGrant(client, field)).toBe(true);
+    expect(canGrant(client, manager)).toBe(true);
+    expect(canGrant(client, admin)).toBe(false);
+    expect(canGrant(client, { permissions: ['settings.manage'], scope: 'self' })).toBe(false);
+  });
 });

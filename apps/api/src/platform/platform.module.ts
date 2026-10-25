@@ -8,6 +8,7 @@ import { createObjectStore, ObjectStore } from './object-store';
 import { Outbox } from './outbox';
 import { Queues } from './queues';
 import { RateLimiter } from './rate-limit';
+import { ApiClientLimits } from './api-client-limits';
 import { RedisClient } from './redis';
 import { OutboxRelay } from './relay';
 import { Schedules } from './schedules';
@@ -25,6 +26,7 @@ export class PlatformModule {
         Database,
         RedisClient,
         RateLimiter,
+        ApiClientLimits,
         ApiCalls,
         HealthCounters,
         AuditLog,
@@ -39,6 +41,7 @@ export class PlatformModule {
         Database,
         RedisClient,
         RateLimiter,
+        ApiClientLimits,
         ApiCalls,
         HealthCounters,
         AuditLog,

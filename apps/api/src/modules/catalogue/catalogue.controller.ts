@@ -2,7 +2,7 @@ import { Body, Controller, Get, Headers, Param, Put, Res } from '@nestjs/common'
 import { CatalogueResult, ItemBody, ItemParams, ItemResult } from '@thelamp/shared';
 import type { FastifyReply } from 'fastify';
 import { userActor } from '../../platform/audit';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, ForApiClients, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -39,6 +39,7 @@ export class CatalogueController {
     also: [{ status: 304, description: 'The catalogue the caller holds is current' }],
   })
   @SignedIn()
+  @ForApiClients('catalogue:read', 'catalogue:write', 'orders:read', 'orders:write')
   get(
     @CurrentAccess() access: Access,
     @Headers('if-none-match') ifNoneMatch: string | undefined,

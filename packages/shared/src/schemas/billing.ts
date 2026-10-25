@@ -13,6 +13,8 @@ export const PlanLimits = z.strictObject({
   /** People who may be active at once (BR-45); past it, adding someone answers SEAT_LIMIT. */
   users: z.int().min(1).max(1_000_000).nullable().default(null),
   storageGb: z.int().min(1).max(1_000_000).nullable().default(null),
+  /** Requests a minute each API client may make (decision D94); null keeps the default. */
+  apiPerMinute: z.int().min(1).max(100_000).nullable().default(null),
 });
 
 export const PlanAddon = z.strictObject({
@@ -34,7 +36,7 @@ export const PlanBody = z
       .array(z.enum(MODULE_KEYS))
       .refine((modules) => modules.includes('core'), 'Every plan includes core')
       .refine((modules) => new Set(modules).size === modules.length, 'List each module once'),
-    limits: PlanLimits.default({ users: null, storageGb: null }),
+    limits: PlanLimits.default({ users: null, storageGb: null, apiPerMinute: null }),
     addons: z.array(PlanAddon).max(20).default([]),
     active: z.boolean().default(true),
   })
@@ -51,7 +53,11 @@ export const PlanResult = z
     priceMonth: z.string(),
     priceYear: z.string(),
     modules: z.array(z.enum(MODULE_KEYS)),
-    limits: z.object({ users: z.int().nullable(), storageGb: z.int().nullable() }),
+    limits: z.object({
+      users: z.int().nullable(),
+      storageGb: z.int().nullable(),
+      apiPerMinute: z.int().nullable(),
+    }),
     addons: z.array(z.object({ key: Key, name: LocalizedText, price: z.string() })),
     active: z.boolean(),
     /** Tenants on the plan now. */
@@ -75,6 +81,7 @@ export const TenantPlanBody = z.strictObject({
     .strictObject({
       users: z.int().min(1).max(1_000_000).nullable().optional(),
       storageGb: z.int().min(1).max(1_000_000).nullable().optional(),
+      apiPerMinute: z.int().min(1).max(100_000).nullable().optional(),
     })
     .default({}),
 });
@@ -87,11 +94,16 @@ export const TenantEntitlements = z
     /** Every module the tenant may switch on; all of them without a plan. */
     modules: z.array(z.enum(MODULE_KEYS)),
     /** The limits in force: the tenant's own where it has them, else the plan's. */
-    limits: z.object({ users: z.int().nullable(), storageGb: z.int().nullable() }),
+    limits: z.object({
+      users: z.int().nullable(),
+      storageGb: z.int().nullable(),
+      apiPerMinute: z.int().nullable(),
+    }),
     /** Limits set for this tenant alone; a missing key follows the plan, null lifts the cap. */
     ownLimits: z.object({
       users: z.int().nullable().optional(),
       storageGb: z.int().nullable().optional(),
+      apiPerMinute: z.int().nullable().optional(),
     }),
   })
   .meta({ id: 'TenantEntitlements' });
