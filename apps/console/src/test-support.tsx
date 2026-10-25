@@ -120,10 +120,14 @@ export const INVOICE = {
 /** A tenant with no billing details, subscription or invoices (decision D90). */
 export const NO_BILLING = { account: null, subscription: null, outstanding: '0.00', dunning: null };
 
-/** The tenant page's billing reads, answered as for a tenant with no billing yet. */
+/**
+ * The tenant page's billing and support reads, answered as for a tenant with no billing yet and
+ * no support access.
+ */
 export function billingAnswer(path: string): unknown {
   if (path.endsWith('/billing')) return NO_BILLING;
   if (path.startsWith('/platform/v1/invoices?')) return { items: [], nextCursor: null };
+  if (path.startsWith('/platform/v1/support-grants')) return { items: [] };
   return undefined;
 }
 
