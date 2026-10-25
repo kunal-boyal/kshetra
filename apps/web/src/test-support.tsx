@@ -50,6 +50,9 @@ export function fakeClient(
   );
   return {
     request,
+    file: vi.fn<(path: string) => Promise<Blob>>(
+      async () => new Blob(['%PDF-1.3'], { type: 'application/pdf' }),
+    ),
     session: { tenant: TENANT, accessToken: 'a1', accessTokenExpiresAt: '' },
     restore: vi.fn(async () => null),
     me: vi.fn(async () => ({

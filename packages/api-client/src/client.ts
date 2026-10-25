@@ -433,6 +433,11 @@ export function createClient(options: ClientOptions) {
       await cell('PUT', '/v1/push-tokens', { body, idempotencyKey });
     },
 
+    /** A file from the cell, such as an invoice's PDF (decision D90). */
+    async file(path: string): Promise<Blob> {
+      return (await cell('GET', path)).blob();
+    },
+
     /** Any other call to the cell, for the screens that arrive with each module. */
     async request<T extends z.ZodType>(
       method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',

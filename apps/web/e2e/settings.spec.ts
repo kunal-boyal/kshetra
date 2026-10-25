@@ -56,6 +56,92 @@ const LIST = {
 };
 
 const ANSWERS: Record<string, unknown> = {
+  '/v1/billing': {
+    account: {
+      legalName: 'Sunrise Agro Private Limited',
+      gstin: null,
+      address: 'Plot 9, MIDC, Nashik 422010',
+      stateCode: '27',
+      email: 'accounts@sunrise.example',
+      language: 'en',
+      mandate: 'failed',
+    },
+    subscription: {
+      id: '01a10000-0000-7000-8000-0000000000d1',
+      plan: {
+        id: '01a10000-0000-7000-8000-0000000000c1',
+        key: 'growth',
+        name: { en: 'Growth', hi: 'ग्रोथ' },
+      },
+      cycle: 'year',
+      committedSeats: 20,
+      status: 'active',
+      startedOn: '2026-10-01',
+      term: { from: '2026-10-01', to: '2027-09-30' },
+      endsOn: null,
+    },
+    outstanding: '6761.95',
+    dunning: {
+      overdueSince: '2026-11-20',
+      stage: 'read_only',
+      readOnlyOn: '2026-11-27',
+      suspendOn: '2026-12-11',
+      outstanding: '6761.95',
+    },
+    plan: { name: { en: 'Growth', hi: 'ग्रोथ' }, priceMonth: '499.00', priceYear: '4990.00' },
+    modules: ['core', 'orders'],
+    people: { active: 12, limit: 25 },
+    trialEndsAt: null,
+    automaticPayment: true,
+    usage: [
+      {
+        period: '2026-10',
+        metrics: { seats: '11.4839', sms: '42.0000', storage_bytes: '2684354560.0000' },
+        updatedAt: '2026-10-31T18:00:00.000Z',
+      },
+    ],
+  },
+  '/v1/billing/invoices': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000e1',
+        number: 'TL/26-27/00042',
+        tenant: { id: '01a10000-0000-7000-8000-000000000001', name: 'Sunrise', slug: 'sunrise' },
+        kind: 'annual',
+        period: { from: '2026-10-01', to: '2027-09-30' },
+        issuedOn: '2026-10-01',
+        dueOn: '2026-10-16',
+        seller: {
+          legalName: 'Example Field Software Private Limited',
+          gstin: '27ZZZZZ0000Z1ZQ',
+          address: 'Pune',
+          stateCode: '27',
+          stateName: 'Maharashtra',
+          email: 'billing@vendor.example',
+          sac: '998314',
+        },
+        buyer: {
+          legalName: 'Sunrise Agro Private Limited',
+          gstin: null,
+          address: 'Nashik',
+          stateCode: '27',
+          stateName: 'Maharashtra',
+        },
+        lines: [],
+        subtotal: '99800.00',
+        gstRate: '18',
+        cgst: '8982.00',
+        sgst: '8982.00',
+        igst: '0.00',
+        total: '117764.00',
+        paid: '0.00',
+        status: 'issued',
+        example: false,
+        payments: [],
+      },
+    ],
+    nextCursor: null,
+  },
   '/v1/catalogue': { version: 2, units: UNITS, measureTypes: ['kg', 'L'], items: [ITEM] },
   '/v1/price-lists': { items: [LIST] },
   [`/v1/price-lists/${LIST_ID}`]: LIST,
@@ -328,6 +414,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'calendar.manage',
             'leave_type.manage',
             'expense_policy.manage',
+            'billing.manage',
           ],
         },
       },
@@ -349,6 +436,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'calendars',
     'leave-types',
     'expense-policies',
+    'billing',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -398,6 +486,7 @@ for (const path of [
   'price-lists',
   'price-lists/new',
   `price-lists/${LIST_ID}`,
+  'billing',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {

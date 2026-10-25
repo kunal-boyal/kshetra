@@ -14,6 +14,7 @@ import { PaymentGateway, paymentGateway } from './gateway';
 import { InvoicesService } from './invoices.service';
 import { InvoicingController } from './invoicing.controller';
 import { PlansService } from './plans.service';
+import { PortalBillingController } from './portal-billing.controller';
 import { TenantBillingService } from './tenant-billing.service';
 import { UsageService } from './usage.service';
 
@@ -25,7 +26,7 @@ import { UsageService } from './usage.service';
  */
 @Module({
   imports: [DirectoryModule, NotificationsModule],
-  controllers: [BillingController, InvoicingController],
+  controllers: [BillingController, InvoicingController, PortalBillingController],
   providers: [
     PlansService,
     EntitlementsService,

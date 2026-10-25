@@ -310,6 +310,8 @@ export {
   PAYMENT_METHODS,
   type PaymentMethod,
   PaymentResult,
+  PortalBillingResult,
+  PortalInvoiceQuery,
   RecordPaymentBody,
   SubscriptionBody,
   SubscriptionResult,

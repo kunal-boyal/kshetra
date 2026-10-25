@@ -135,6 +135,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Billing reaches the cell through `SeatCounts` (seats for a period, BR-45) and `TenantContacts` (admins' emails); its emails go through `BillingNotices.send()` with a key, so each goes once, in the strings `billing.notice_*`.
 - Read only (BR-48, BR-49): `Access.readOnly` makes the guard refuse writes with `TENANT_READ_ONLY`; mark a write a read-only tenant may still make with `@WhileReadOnly()`.
 - `PAYMENT_PROVIDER` is `off` in production until Razorpay; `console` and `memory` stand in (`gateway.ts`). Seller details and dunning periods are `BillingSettings` (`platform_settings`); `ensureExample()` puts fictional ones in place for the seed and the demo, and a live cell refuses to invoice on them.
+- Tenant admins see Settings › Billing (`apps/web/src/settings/billing-page.tsx`), on the billing module's `/v1/billing` routes (`portal-billing.controller.ts`, `billing.manage`), which read only the caller's own organisation. Writes there that must work while read only carry `@WhileReadOnly()`.
 - The console's billing screens are `apps/console/src/pages/billing.tsx`, `billing-settings.tsx`, `invoice.tsx` and the tenant page's `tenant-billing.tsx`; files such as an invoice's PDF come through the console client's `file()`.
 - Licence mode: with `LICENCE_FILE_PATH` and `LICENCE_PUBLIC_KEY`, `LicenceEntitlements` replaces the directory's entitlements. `pnpm licence keys|sign|check` (docs/runbooks/licences.md); the private key never enters the repository.
 

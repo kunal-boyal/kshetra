@@ -56,6 +56,10 @@ export class CellSeatCounts extends SeatCounts {
     super();
   }
 
+  active(tenantId: string): Promise<number> {
+    return this.database.forTenant(tenantId, (tx) => this.seats.active(tx, tenantId));
+  }
+
   billable(
     tenantId: string,
     from: string,

@@ -6,6 +6,12 @@ import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { apiControllers } from '../src/app.module';
+import { plans, subscriptions } from '../src/db/schema/directory';
+import { BillingSettings } from '../src/modules/billing/billing-settings.service';
+import { ExamplePlans } from '../src/modules/billing/example-plans';
+import { InvoicesService } from '../src/modules/billing/invoices.service';
+import { TenantBillingService } from '../src/modules/billing/tenant-billing.service';
+import { DirectoryDatabase } from '../src/modules/directory/directory.database';
 import { NotificationDelivery } from '../src/modules/notifications/delivery';
 import { type MemoryObjectStore, ObjectStore } from '../src/platform/object-store';
 import { routeRegistry } from '../src/platform/routes';
@@ -73,6 +79,7 @@ let aSubmissionId: string;
 let aRouteId: string;
 let aPlanItemId: string;
 let aExportId: string;
+let aInvoiceId: string;
 let aItemId: string;
 let aPriceListId: string;
 let aRegularisationId: string;
@@ -1455,6 +1462,43 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/exports/${id}`), aExportId),
   },
+  'GET /v1/billing': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/billing')),
+  },
+  'GET /v1/billing/invoices': {
+    kind: 'own tenant',
+    run: async () => {
+      const reply = await asB('GET', '/v1/billing/invoices');
+      holdsNothingOfA(reply);
+      expect(reply.body).not.toContain(aInvoiceId);
+    },
+  },
+  'GET /v1/billing/invoices/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/billing/invoices/${id}`), aInvoiceId),
+  },
+  'GET /v1/billing/invoices/:id/pdf': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/billing/invoices/${id}/pdf`), aInvoiceId),
+  },
+  'PUT /v1/billing/account': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asB('PUT', '/v1/billing/account', {
+        legalName: 'Another Company',
+        address: 'Somewhere in Pune 411001',
+        stateCode: '27',
+        email: 'accounts@b.example',
+      });
+      expect(reply.statusCode).toBe(200);
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /v1/billing/mandate': {
+    kind: 'write',
+    run: async () => holdsNothingOfA(await asB('POST', '/v1/billing/mandate')),
+  },
   'GET /v1/notifications': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/notifications')),
@@ -2291,6 +2335,40 @@ beforeAll(async () => {
     values: { note: `${a.word} looked fine` },
   });
   expect(submitted.statusCode).toBe(201);
+  // An invoice of A's, on the example seller (decision D90).
+  await app.get(BillingSettings).ensureExample();
+  await app.get(ExamplePlans).ensure();
+  await app.get(TenantBillingService).setAccount(null, a.tenantId, {
+    legalName: `${a.word} Private Limited`,
+    gstin: null,
+    address: 'Plot 9, MIDC Industrial Area, Nashik 422010',
+    stateCode: '27',
+    email: 'accounts@a.example',
+    language: 'en',
+  });
+  const today = todayIn('Asia/Kolkata', new Date());
+  aInvoiceId = await app.get(DirectoryDatabase).db.transaction(async (tx) => {
+    const [plan] = await tx.select({ id: plans.id }).from(plans).limit(1);
+    const subscriptionId = newId();
+    await tx.insert(subscriptions).values({
+      id: subscriptionId,
+      tenantId: a.tenantId,
+      planId: plan!.id,
+      cycle: 'month',
+      startedOn: today,
+    });
+    const issued = await app.get(InvoicesService).issue(tx, {
+      tenantId: a.tenantId,
+      subscriptionId,
+      kind: 'monthly',
+      period: { from: today, to: today },
+      lines: [
+        { description: `${a.word} seats`, quantity: '1.0000', rate: '100.00', amount: '100.00' },
+      ],
+      issuedOn: today,
+    });
+    return issued!.id;
+  });
   // A route and a planned visit for A's member.
   aExportId = newId();
   const asked = await send(aToken, 'POST', '/v1/exports', {

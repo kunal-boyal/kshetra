@@ -73,6 +73,29 @@ describe('signing in', () => {
     expect((call.init.headers as Record<string, string>)['x-device-time']).toMatch(/^\d{4}-/);
   });
 
+  it('downloads a file from the cell with the token, and turns a refusal into an ApiError', async () => {
+    const server = fakeServer((url) => {
+      if (url.endsWith('/auth/v1/otp/verify')) {
+        return json(200, { status: 'signed_in', tenant: TENANT, session: session('a1', 'r1') });
+      }
+      if (url.endsWith('/missing/pdf')) {
+        return json(404, { error: { code: 'NOT_FOUND', message: 'No.', requestId: 'r' } });
+      }
+      return new Response('%PDF-1.3', { headers: { 'content-type': 'application/pdf' } });
+    });
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store: memoryStore(),
+      fetch: server.fetch,
+    });
+    await client.verifyCode('9000000001', '123456');
+    const file = await client.file('/v1/billing/invoices/one/pdf');
+    expect(await file.text()).toBe('%PDF-1.3');
+    expect(server.calls[1]!.url).toBe('https://cell.test/v1/billing/invoices/one/pdf');
+    await expect(client.file('/v1/billing/invoices/missing/pdf')).rejects.toBeInstanceOf(ApiError);
+  });
+
   it('on the web sends the client header and the cookie, and never holds a refresh token', async () => {
     const server = fakeServer(() =>
       json(200, { status: 'signed_in', tenant: TENANT, session: session('a1') }),
