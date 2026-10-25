@@ -129,10 +129,22 @@ export class SsoService {
                 body.settings.clientSecret ??
                 (previous?.protocol === 'oidc' ? previous.clientSecret : ''),
             }
-          : { ...body.settings };
+          : {
+              protocol: 'saml',
+              entryPoint: body.settings.entryPoint,
+              idpIssuer: body.settings.idpIssuer,
+              idpCertificate:
+                body.settings.idpCertificate ??
+                (previous?.protocol === 'saml' ? previous.idpCertificate : ''),
+            };
       if (settings.protocol === 'oidc' && !settings.clientSecret) {
         throw new AppError('VALIDATION', 'Check the highlighted fields.', [
           { path: 'settings.clientSecret', issue: 'Enter the client secret' },
+        ]);
+      }
+      if (settings.protocol === 'saml' && !settings.idpCertificate) {
+        throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+          { path: 'settings.idpCertificate', issue: 'Paste the identity provider’s certificate' },
         ]);
       }
       const taken = await tx

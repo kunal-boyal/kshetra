@@ -1,9 +1,9 @@
 import { ApiError } from '@thelamp/api-client';
 import { Button, Card, Icon, TextField } from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
-import { Building2, ChevronRight } from 'lucide-react';
+import { Building2, ChevronRight, KeyRound } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
-import type { SecondFactor } from '@thelamp/shared';
+import { SSO_FAILURES, type SecondFactor, type SsoFailure } from '@thelamp/shared';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import markUrl from '@thelamp/design-tokens/assets/Logos/mark-small.svg?url';
@@ -19,7 +19,21 @@ type Step =
   | { name: 'phone' }
   | { name: 'code'; phone: string }
   | { name: 'choose'; ticket: string; tenants: { id: string; name: string }[] }
-  | { name: 'second'; ticket: string; enrolled: boolean; organisation: string };
+  | { name: 'second'; ticket: string; enrolled: boolean; organisation: string }
+  | { name: 'sso' };
+
+/** Where the browser goes for single sign-on; a seam, so tests can watch it. */
+export const browser = {
+  go(url: string) {
+    window.location.assign(url);
+  },
+};
+
+/** Why a single sign-on came back here, from the `sso` parameter the directory adds. */
+function ssoFailure(): SsoFailure | undefined {
+  const reason = new URLSearchParams(window.location.search).get('sso');
+  return SSO_FAILURES.find((failure) => failure === reason);
+}
 
 /** The authenticator step a sign-in by someone who can change access goes to (decision D91). */
 function secondStep(result: SecondFactor): Step {
@@ -33,16 +47,21 @@ function secondStep(result: SecondFactor): Step {
 
 /**
  * Signing in with a mobile number and a one-time code (spec 8.1, module M1), then an
- * authenticator code for those who can change access (decision D91).
+ * authenticator code for those who can change access; or with the organisation's own identity
+ * provider, found from a work email (decision D91).
  */
 export function SignInPage() {
   const { client } = useApp();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [step, setStep] = useState<Step>({ name: 'phone' });
+  const [failure] = useState(ssoFailure);
+  const [step, setStep] = useState<Step>(failure ? { name: 'sso' } : { name: 'phone' });
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [error, setError] = useState<string>();
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState<string | undefined>(
+    failure ? t(`signin.sso_failed_${failure}`) : undefined,
+  );
   const [busy, setBusy] = useState(false);
   const [wait, setWait] = useState(0);
 
@@ -58,6 +77,8 @@ export function SignInPage() {
     try {
       await work();
     } catch (caught) {
+      // A tenant that requires single sign-on sends its people there (decision D91).
+      if (caught instanceof ApiError && caught.code === 'SSO_REQUIRED') setStep({ name: 'sso' });
       setError(
         caught instanceof ApiError && caught.code === 'VALIDATION'
           ? t('signin.phone_invalid')
@@ -93,6 +114,15 @@ export function SignInPage() {
         return;
       }
       await navigate({ to: '/' });
+    });
+  }
+
+  function startSso(event: FormEvent) {
+    event.preventDefault();
+    void run(async () => {
+      const url = await client.ssoDiscover(email.trim());
+      if (url) browser.go(url);
+      else setError(t('signin.sso_none'));
     });
   }
 
@@ -150,6 +180,56 @@ export function SignInPage() {
                 />
                 <Button type="submit" variant="primary" block busy={busy} disabled={!phone.trim()}>
                   {t('signin.send_code')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="self-center"
+                  icon={<Icon icon={KeyRound} size="sm" />}
+                  onClick={() => {
+                    setError(undefined);
+                    setStep({ name: 'sso' });
+                  }}
+                >
+                  {t('signin.sso_link')}
+                </Button>
+              </form>
+            ) : null}
+
+            {step.name === 'sso' ? (
+              <form className="flex flex-col gap-4" onSubmit={startSso} noValidate>
+                <h1 className="heading-xl">{t('signin.sso_title')}</h1>
+                <p className="ks-muted">{t('signin.sso_intro')}</p>
+                <TextField
+                  label={t('signin.sso_email')}
+                  error={error}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                  autoFocus
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  block
+                  busy={busy}
+                  disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())}
+                >
+                  {t('signin.sso_continue')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="self-center"
+                  onClick={() => {
+                    setError(undefined);
+                    setStep({ name: 'phone' });
+                  }}
+                >
+                  {t('signin.sso_back')}
                 </Button>
               </form>
             ) : null}
