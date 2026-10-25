@@ -469,3 +469,23 @@ export const billingNotices = directory.table(
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.key] })],
 );
+
+export const ssoProtocol = directory.enum('sso_protocol', ['oidc', 'saml']);
+
+/**
+ * A tenant's single sign-on (spec 10.3, decision D91): one connection a tenant, its protocol
+ * settings sealed under `COLUMN_KEY` (the OIDC client secret among them), the email domains it
+ * signs in, whether it is on, and whether web users in those domains must use it.
+ */
+export const ssoConnections = directory.table('sso_connections', {
+  tenantId: uuid('tenant_id')
+    .primaryKey()
+    .references(() => tenants.id),
+  protocol: ssoProtocol('protocol').notNull(),
+  configSealed: text('config_sealed').notNull(),
+  domains: text('domains').array().notNull(),
+  enabled: boolean('enabled').notNull().default(false),
+  enforced: boolean('enforced').notNull().default(false),
+  createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

@@ -40,6 +40,7 @@ export const ERROR_HTTP_STATUS = {
   OTP_INVALID: 400,
   OTP_EXPIRED: 400,
   SECOND_FACTOR_REQUIRED: 403,
+  SSO_REQUIRED: 403,
   UPGRADE_REQUIRED: 426,
   INTERNAL: 500,
 } as const satisfies Record<string, number>;

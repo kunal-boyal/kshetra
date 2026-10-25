@@ -118,3 +118,12 @@ export abstract class SecondFactors {
   abstract enrolled(tenantId: string, userIds: readonly string[]): Promise<Set<string>>;
   abstract reset(tenantId: string, userId: string): Promise<boolean>;
 }
+
+/**
+ * People's work emails, which the cell keeps, for single sign-on (decision D91): the active
+ * person in a tenant with an email, and a person's email.
+ */
+export abstract class PeopleEmails {
+  abstract find(tenantId: string, email: string): Promise<string | null>;
+  abstract emailOf(tenantId: string, userId: string): Promise<string | null>;
+}

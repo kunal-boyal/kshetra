@@ -18,6 +18,10 @@ import {
 import { ColumnCipher } from '../../platform/column-cipher';
 import { SecondFactorService } from './second-factor.service';
 import { SessionsService } from './sessions.service';
+import { WebCookie } from './web-cookie';
+import { SsoController } from './sso.controller';
+import { SsoService } from './sso.service';
+import { SsoSettingsController } from './sso-settings.controller';
 import { SigningKey } from './signing-key';
 import { PlatformAudit } from './platform-audit';
 import { DirectoryTenants } from './tenants';
@@ -39,7 +43,7 @@ export class DirectoryHealth {
  * it asks a cell to admit each sign-in through the same seams.
  */
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, SsoController, SsoSettingsController],
   providers: [
     DirectoryDatabase,
     DirectoryHealth,
@@ -64,6 +68,8 @@ export class DirectoryHealth {
     OtpService,
     SessionsService,
     SecondFactorService,
+    WebCookie,
+    SsoService,
     // Seals each authenticator's secret in its column (decision D91).
     ColumnCipher,
     DirectoryMembers,

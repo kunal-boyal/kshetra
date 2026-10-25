@@ -116,6 +116,7 @@ locals {
       # recorded in the console.
       PAYMENT_PROVIDER = "off"
     },
+    { WEB_URL = var.web_url },
     var.console_url == null ? {} : { CONSOLE_URL = var.console_url },
     var.environment,
   )

@@ -12,8 +12,14 @@ import {
   type TenantSummary,
 } from '@thelamp/shared';
 import { and, eq, isNull } from 'drizzle-orm';
-import { identities, memberships, refreshTokens, totpSecrets } from '../../db/schema/directory';
-import { CellAdmission } from '../../platform/planes';
+import {
+  identities,
+  memberships,
+  refreshTokens,
+  ssoConnections,
+  totpSecrets,
+} from '../../db/schema/directory';
+import { CellAdmission, PeopleEmails } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
 import { DirectoryDatabase, type DirectoryDb, type DirectoryTx } from './directory.database';
 import { activeMemberships, type MembershipRow } from './memberships';
@@ -48,6 +54,7 @@ export class SessionsService {
     private readonly keys: SigningKey,
     private readonly client: RedisClient,
     private readonly cell: CellAdmission,
+    private readonly emails: PeopleEmails,
   ) {}
 
   /** After a verified code: one tenant signs straight in; several get a ticket to choose with. */
@@ -215,6 +222,7 @@ export class SessionsService {
     device: DeviceInfo | undefined,
     ip: string | undefined,
   ): Promise<SignedIn | SecondFactor> {
+    if (!device) await this.refuseWhereSsoRequired(row);
     const { deviceId, secondFactor } = await this.cell.admit({
       tenantId: row.tenantId,
       userId: row.userId,
@@ -243,6 +251,39 @@ export class SessionsService {
       };
     }
     return this.signedIn(row, await this.issue(this.database.db, row, newId(), deviceId));
+  }
+
+  /**
+   * A tenant that requires single sign-on refuses web OTP to its people in the connection's
+   * domains (decision D91); phones, and people outside those domains, carry on.
+   */
+  private async refuseWhereSsoRequired(row: MembershipRow): Promise<void> {
+    const [connection] = await this.database.db
+      .select({ enforced: ssoConnections.enforced, domains: ssoConnections.domains })
+      .from(ssoConnections)
+      .where(and(eq(ssoConnections.tenantId, row.tenantId), eq(ssoConnections.enabled, true)));
+    if (!connection?.enforced) return;
+    const email = await this.emails.emailOf(row.tenantId, row.userId);
+    const domain = email?.split('@')[1]?.toLowerCase();
+    if (domain && connection.domains.includes(domain)) {
+      throw new AppError(
+        'SSO_REQUIRED',
+        'Your organisation signs you in with its own sign-in. Choose Sign in with SSO.',
+      );
+    }
+  }
+
+  /**
+   * Starts a web session for someone their organisation's identity provider vouched for
+   * (decision D91). The provider does its own second factor, so the authenticator isn't asked.
+   */
+  async ssoSignIn(row: MembershipRow, ip: string | undefined): Promise<SignedIn> {
+    await this.cell.admit({
+      tenantId: row.tenantId,
+      userId: row.userId,
+      ...(ip ? { ip } : {}),
+    });
+    return this.signedIn(row, await this.issue(this.database.db, row, newId(), null));
   }
 
   /** The sign-in a second-factor ticket holds, while it lasts; the ticket stays unspent. */

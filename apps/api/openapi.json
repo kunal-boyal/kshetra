@@ -629,6 +629,224 @@
         }
       }
     },
+    "/auth/v1/sso/{tenant}/oidc/callback": {
+      "get": {
+        "operationId": "SsoController.oidcCallback",
+        "summary": "Come back from an OIDC identity provider, signed in",
+        "tags": [
+          "Sign-in"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,39}$"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirects into the portal"
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/v1/sso/{tenant}/saml/acs": {
+      "post": {
+        "operationId": "SsoController.samlResponse",
+        "summary": "Come back from a SAML identity provider, signed in",
+        "tags": [
+          "Sign-in"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,39}$"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirects into the portal"
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/v1/sso/{tenant}/saml/metadata": {
+      "get": {
+        "operationId": "SsoController.metadata",
+        "summary": "The SAML service provider metadata, for the identity provider",
+        "tags": [
+          "Sign-in"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,39}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the file",
+            "content": {
+              "application/samlmetadata+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/v1/sso/{tenant}/start": {
+      "get": {
+        "operationId": "SsoController.start",
+        "summary": "Start signing in with the organisation’s identity provider",
+        "tags": [
+          "Sign-in"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,39}$"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirects to the identity provider"
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/v1/sso/discover": {
+      "post": {
+        "operationId": "SsoController.discover",
+        "summary": "Whether a work email signs in with its organisation’s SSO",
+        "tags": [
+          "Sign-in"
+        ],
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  }
+                },
+                "required": [
+                  "email"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/v1/switch-tenant": {
       "post": {
         "operationId": "AuthController.switchTenant",
@@ -6115,7 +6333,8 @@
                 "whatsapp.consent_changed",
                 "billing.account_changed",
                 "billing.mandate_started",
-                "user.second_factor_reset"
+                "user.second_factor_reset",
+                "sso.changed"
               ]
             }
           },
@@ -6317,7 +6536,8 @@
                               "whatsapp.consent_changed",
                               "billing.account_changed",
                               "billing.mandate_started",
-                              "user.second_factor_reset"
+                              "user.second_factor_reset",
+                              "sso.changed"
                             ]
                           },
                           "target": {
@@ -15499,6 +15719,90 @@
         }
       }
     },
+    "/v1/sso": {
+      "get": {
+        "operationId": "SsoSettingsController.get",
+        "summary": "The organisation’s single sign-on, and what its identity provider needs",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: settings.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "SsoSettingsController.put",
+        "summary": "Set the organisation’s single sign-on",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: settings.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SsoConnectionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/submissions": {
       "get": {
         "operationId": "VisitsController.list",
@@ -18613,7 +18917,8 @@
                               "whatsapp.consent_changed",
                               "billing.account_changed",
                               "billing.mandate_started",
-                              "user.second_factor_reset"
+                              "user.second_factor_reset",
+                              "sso.changed"
                             ]
                           },
                           "target": {
@@ -23525,6 +23830,7 @@
                   "OTP_INVALID",
                   "OTP_EXPIRED",
                   "SECOND_FACTOR_REQUIRED",
+                  "SSO_REQUIRED",
                   "UPGRADE_REQUIRED",
                   "INTERNAL"
                 ],
@@ -32375,6 +32681,210 @@
           "key",
           "label",
           "type"
+        ],
+        "additionalProperties": false
+      },
+      "SsoConnection": {
+        "type": "object",
+        "properties": {
+          "connection": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "protocol": {
+                    "type": "string",
+                    "enum": [
+                      "oidc",
+                      "saml"
+                    ]
+                  },
+                  "issuer": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "clientId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "hasClientSecret": {
+                    "type": "boolean"
+                  },
+                  "entryPoint": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "idpIssuer": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "hasIdpCertificate": {
+                    "type": "boolean"
+                  },
+                  "domains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "enforced": {
+                    "type": "boolean"
+                  },
+                  "updatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "protocol",
+                  "issuer",
+                  "clientId",
+                  "hasClientSecret",
+                  "entryPoint",
+                  "idpIssuer",
+                  "hasIdpCertificate",
+                  "domains",
+                  "enabled",
+                  "enforced",
+                  "updatedAt"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider": {
+            "type": "object",
+            "properties": {
+              "redirectUri": {
+                "type": "string"
+              },
+              "entityId": {
+                "type": "string"
+              },
+              "acsUrl": {
+                "type": "string"
+              },
+              "metadataUrl": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "redirectUri",
+              "entityId",
+              "acsUrl",
+              "metadataUrl"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "connection",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "SsoConnectionBody": {
+        "type": "object",
+        "properties": {
+          "settings": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "protocol": {
+                    "type": "string",
+                    "const": "oidc"
+                  },
+                  "issuer": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "clientId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "clientSecret": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "protocol",
+                  "issuer",
+                  "clientId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "protocol": {
+                    "type": "string",
+                    "const": "saml"
+                  },
+                  "entryPoint": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "idpIssuer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "idpCertificate": {
+                    "type": "string",
+                    "minLength": 100,
+                    "maxLength": 20000
+                  }
+                },
+                "required": [
+                  "protocol",
+                  "entryPoint",
+                  "idpIssuer",
+                  "idpCertificate"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "domains": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "enforced": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "settings",
+          "domains",
+          "enabled",
+          "enforced"
         ],
         "additionalProperties": false
       },

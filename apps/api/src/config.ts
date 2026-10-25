@@ -192,6 +192,9 @@ const schema = z
       ),
     // Where the platform console runs, for the setup links sent to vendor staff (decision D88).
     CONSOLE_URL: z.url().default('http://127.0.0.1:5174'),
+    // Where the web portal runs, which passes /auth through to the API: single sign-on sends
+    // identity providers back here, and people into the portal after (decision D91).
+    WEB_URL: z.url().default('http://127.0.0.1:5173'),
     // Whether this process runs the outbox relay, which retries events whose delivery failed. The
     // worker process turns it on; elsewhere it stays off unless set.
     OUTBOX_RELAY: z.stringbool().default(false),

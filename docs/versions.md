@@ -74,6 +74,10 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | qrcode-generator | 2.0.4 | Added 2026-10-24: the QR code vendor staff scan into their authenticator app on the console's setup page (decision D88), and tenant admins on the web's (D91), from `QrCode` in `@thelamp/ui-web` since 2026-10-25; MIT, no dependencies, its own types. Chosen over `qrcode`, which brings pngjs, yargs and dijkstrajs |
 | pdfkit | 0.20.2 | Added 2026-10-25: draws the vendor's GST invoices as PDFs (decision D90), in the standard Helvetica with no font files; MIT, released 2026-09-07. Chosen with Kunal over pdf-lib, which has had no release since 2021 |
 | @types/pdfkit | 0.17.7 | Added 2026-10-25: pdfkit's types, which it doesn't ship; the API's dev dependency |
+| openid-client | 6.8.8 | Added 2026-10-25: OIDC sign-in with a tenant's identity provider, authorization code with PKCE, state and nonce (decision D91); MIT, by panva, released 2026-09-05 |
+| @node-saml/node-saml | 5.1.0 | Added 2026-10-25: SAML sign-in, checking the provider's signed assertions (decision D91); MIT, released 2025-07-21 |
+| oauth2-mock-server | 9.2.0 | Added 2026-10-25: a local OIDC provider for the SSO integration tests (decision D91); the API's dev dependency, MIT. 9.2.0 rather than 9.3.0, which was 11 days old |
+| xml-crypto | 6.3.3 | Added 2026-10-25: signs the SAML responses the SSO integration tests send (decision D91); the API's dev dependency, MIT, the major node-saml uses |
 | @playwright/test | 1.63.0 | End-to-end tests, in Chromium |
 | @axe-core/playwright | 4.13.0 | Accessibility checks in the end-to-end tests |
 | jsdom | 30.1.2 | The DOM for component tests |

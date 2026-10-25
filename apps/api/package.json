@@ -33,6 +33,7 @@
     "@nestjs/common": "^12.1.2",
     "@nestjs/core": "^12.1.2",
     "@nestjs/platform-fastify": "^12.1.2",
+    "@node-saml/node-saml": "5.1.0",
     "bullmq": "6.3.11",
     "csv-parse": "^7.0.3",
     "drizzle-orm": "^0.45.3",
@@ -42,6 +43,7 @@
     "ioredis": "^6.0.0",
     "jose": "^6.2.12",
     "nodemailer": "10.1.1",
+    "openid-client": "6.8.8",
     "pdfkit": "0.20.2",
     "pg": "^8.23.1",
     "read-excel-file": "^9.3.10",
@@ -68,9 +70,11 @@
     "eslint": "catalog:",
     "fastify": "^5.12.5",
     "hyparquet": "^1.31.5",
+    "oauth2-mock-server": "9.2.0",
     "testcontainers": "^12.2.0",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "xml-crypto": "6.3.3"
   }
 }

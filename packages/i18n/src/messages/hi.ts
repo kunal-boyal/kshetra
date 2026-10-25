@@ -3071,6 +3071,8 @@ export const hi: Record<MessageKey, Message> = {
   'billing.standing_read_only':
     '{amount} {since} से बाक़ी है, इसलिए अभी आपका संगठन सिर्फ़ देख सकता है। निलंबन से बचने के लिए {suspend} से पहले भुगतान करें।',
   'billing.standing_suspended': '{amount} {since} से बाक़ी है।',
+  'error.SSO_REQUIRED':
+    'आपका संगठन अपने ख़ुद के साइन इन से साइन इन कराता है। SSO से साइन इन चुनें।',
   'error.SECOND_FACTOR_REQUIRED':
     'इस संगठन को खोलने के लिए अपने ऑथेंटिकेटर के साथ फिर से साइन इन करें।',
   'signin.totp_title': 'अपने ऑथेंटिकेटर का कोड डालें',

@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Header,
-  HttpCode,
-  Inject,
-  Ip,
-  Post,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Ip, Post, Req, Res } from '@nestjs/common';
 import {
   AppError,
   JwksResult,
@@ -22,27 +11,21 @@ import {
   RefreshResult,
   SelectTenantBody,
   SelectTenantResult,
-  type Session,
   SignedIn,
   SwitchTenantBody,
   TotpSetupBody,
   TotpSetupResult,
   TotpVerifyBody,
   TotpVerifyResult,
-  WEB_CLIENT,
-  WEB_CLIENT_HEADER,
 } from '@thelamp/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { Config } from '../../config';
 import { Public } from '../../platform/auth';
 import { Contract } from '../../platform/routes';
-import { CONFIG } from '../../platform/tokens';
 import { OtpService } from './otp.service';
 import { SecondFactorService } from './second-factor.service';
 import { SessionsService } from './sessions.service';
 import { SigningKey } from './signing-key';
-
-const COOKIE_PATH = '/auth/v1';
+import { isWeb, WebCookie } from './web-cookie';
 
 /**
  * Sign-in at the directory (spec 11.2, Auth group). Responses carrying tokens are never cached.
@@ -56,18 +39,13 @@ const COOKIE_PATH = '/auth/v1';
 @Public()
 @Controller('auth/v1')
 export class AuthController {
-  /** The refresh cookie's name, from the product slug. */
-  private readonly cookieName: string;
-
   constructor(
     private readonly otp: OtpService,
     private readonly sessions: SessionsService,
     private readonly secondFactor: SecondFactorService,
     private readonly keys: SigningKey,
-    @Inject(CONFIG) private readonly config: Config,
-  ) {
-    this.cookieName = `${config.PRODUCT_SLUG.replace(/-/g, '_')}_refresh`;
-  }
+    private readonly cookie: WebCookie,
+  ) {}
 
   @Post('otp/request')
   @HttpCode(202)
@@ -100,7 +78,7 @@ export class AuthController {
     const { phone, code, device } = OtpVerifyBody.parse(body);
     const result = await this.otp.verify(phone, code, address, device);
     return result.status === 'signed_in'
-      ? { ...result, session: this.handOver(request, reply, result.session) }
+      ? { ...result, session: this.cookie.handOver(request, reply, result.session) }
       : result;
   }
 
@@ -122,7 +100,7 @@ export class AuthController {
     const { ticket, tenantId, device } = SelectTenantBody.parse(body);
     const result = await this.sessions.selectTenant(ticket, tenantId, device, address);
     return result.status === 'signed_in'
-      ? { ...result, session: this.handOver(request, reply, result.session) }
+      ? { ...result, session: this.cookie.handOver(request, reply, result.session) }
       : result;
   }
 
@@ -155,7 +133,7 @@ export class AuthController {
   ) {
     const { ticket, code, recoveryCode } = TotpVerifyBody.parse(body);
     const result = await this.secondFactor.verify(ticket, { code, recoveryCode });
-    return { ...result, session: this.handOver(request, reply, result.session) };
+    return { ...result, session: this.cookie.handOver(request, reply, result.session) };
   }
 
   @Post('token/refresh')
@@ -174,7 +152,7 @@ export class AuthController {
   ) {
     const { refreshToken } = RefreshBody.parse(body ?? {});
     const result = await this.sessions.refresh(this.refreshToken(request, refreshToken));
-    return { ...result, session: this.handOver(request, reply, result.session) };
+    return { ...result, session: this.cookie.handOver(request, reply, result.session) };
   }
 
   @Post('switch-tenant')
@@ -199,7 +177,7 @@ export class AuthController {
       device,
       address,
     );
-    return { ...result, session: this.handOver(request, reply, result.session) };
+    return { ...result, session: this.cookie.handOver(request, reply, result.session) };
   }
 
   @Post('logout')
@@ -211,9 +189,9 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     const { refreshToken } = LogoutBody.parse(body ?? {});
-    const token = refreshToken ?? (isWeb(request) ? this.cookie(request) : undefined);
+    const token = refreshToken ?? (isWeb(request) ? this.cookie.read(request) : undefined);
     if (token) await this.sessions.logout(token);
-    if (isWeb(request)) void reply.clearCookie(this.cookieName, this.cookieOptions());
+    if (isWeb(request)) this.cookie.clear(reply);
   }
 
   /** The public key cells verify access tokens with (spec 9.3). */
@@ -228,43 +206,10 @@ export class AuthController {
     return this.keys.jwks();
   }
 
-  private cookie(request: FastifyRequest): string | undefined {
-    return request.cookies[this.cookieName];
-  }
-
-  /** The cookie's attributes, the same when it is set and when it is cleared. */
-  private cookieOptions() {
-    return {
-      httpOnly: true,
-      sameSite: 'strict' as const,
-      secure: this.config.NODE_ENV === 'production',
-      path: COOKIE_PATH,
-    };
-  }
-
   /** The refresh token from the body, or from the web's cookie when the request says it is the web. */
   private refreshToken(request: FastifyRequest, fromBody: string | undefined): string {
-    const token = fromBody ?? (isWeb(request) ? this.cookie(request) : undefined);
+    const token = fromBody ?? (isWeb(request) ? this.cookie.read(request) : undefined);
     if (!token) throw new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
     return token;
   }
-
-  /** For the web, moves the refresh token out of the body into the cookie. */
-  private handOver(request: FastifyRequest, reply: FastifyReply, session: Session): Session {
-    if (!isWeb(request) || !session.refreshToken) return session;
-    void reply.setCookie(this.cookieName, session.refreshToken, {
-      ...this.cookieOptions(),
-      expires: new Date(session.refreshTokenExpiresAt),
-    });
-    return {
-      tokenType: session.tokenType,
-      accessToken: session.accessToken,
-      accessTokenExpiresAt: session.accessTokenExpiresAt,
-      refreshTokenExpiresAt: session.refreshTokenExpiresAt,
-    };
-  }
-}
-
-function isWeb(request: FastifyRequest): boolean {
-  return request.headers[WEB_CLIENT_HEADER] === WEB_CLIENT;
 }

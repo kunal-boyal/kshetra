@@ -1500,6 +1500,80 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/exports/${id}`), aExportId),
   },
+  'GET /v1/sso': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/sso')),
+  },
+  'PUT /v1/sso': {
+    kind: 'write',
+    run: async () => {
+      // B can't claim a domain for itself and so take A's people; B's own connection is B's.
+      const reply = await asB('PUT', '/v1/sso', {
+        settings: {
+          protocol: 'oidc',
+          issuer: 'https://idp.b.example/',
+          clientId: 'b',
+          clientSecret: 'b secret',
+        },
+        domains: ['b.example'],
+        enabled: false,
+        enforced: false,
+      });
+      expect(reply.statusCode, reply.body).toBe(200);
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /auth/v1/sso/discover': {
+    kind: 'sign-in',
+    run: async () =>
+      holdsNothingOfA(
+        await send(undefined, 'POST', '/auth/v1/sso/discover', { email: 'someone@a.example' }),
+      ),
+  },
+  'GET /auth/v1/sso/:tenant/start': {
+    kind: 'sign-in',
+    run: async () => {
+      // A has no connection: B's people can't start one there, and nothing of A's comes back.
+      const reply = await send(undefined, 'GET', `/auth/v1/sso/t-${a.tenantId}/start`);
+      expect(reply.headers.location).toMatch(/sign-in\?sso=unavailable$/);
+      holdsNothingOfA(reply);
+    },
+  },
+  'GET /auth/v1/sso/:tenant/oidc/callback': {
+    kind: 'sign-in',
+    run: async () => {
+      const reply = await send(
+        undefined,
+        'GET',
+        `/auth/v1/sso/t-${a.tenantId}/oidc/callback?code=x&state=${'y'.repeat(43)}`,
+      );
+      expect(reply.headers.location).toMatch(/sign-in\?sso=expired$/);
+      expect(reply.headers['set-cookie']).toBeUndefined();
+    },
+  },
+  'POST /auth/v1/sso/:tenant/saml/acs': {
+    kind: 'sign-in',
+    run: async () => {
+      const reply = await send(undefined, 'POST', `/auth/v1/sso/t-${a.tenantId}/saml/acs`, {
+        SAMLResponse: 'PHNhbWw+',
+        RelayState: 'z'.repeat(43),
+      });
+      expect(reply.headers.location).toMatch(/sign-in\?sso=expired$/);
+      expect(reply.headers['set-cookie']).toBeUndefined();
+    },
+  },
+  'GET /auth/v1/sso/:tenant/saml/metadata': {
+    kind: 'not tenant data',
+    run: async () => {
+      // Public by design: the addresses the identity provider registers, built from the slug.
+      const reply = await send(undefined, 'GET', `/auth/v1/sso/t-${a.tenantId}/saml/metadata`);
+      expect(reply.body).toContain('EntityDescriptor');
+      holdsNothingOfA({
+        ...reply,
+        body: reply.body.replaceAll(`t-${a.tenantId}`, 'slug'),
+      } as Reply);
+    },
+  },
   'GET /v1/users/:id/second-factor': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/users/${id}/second-factor`), a.admin.id),

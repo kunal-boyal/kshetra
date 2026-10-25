@@ -386,6 +386,13 @@
       "when": 1792943271518,
       "tag": "0054_admin_totp",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792946159774,
+      "tag": "0055_sso",
+      "breakpoints": true
     }
   ]
 }
