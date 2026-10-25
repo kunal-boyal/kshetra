@@ -1,5 +1,5 @@
 # Deploys main (spec 14.3, decision D67): staging first, then production, each from the same
-# commit. Off until the repository variable DEPLOY_ENABLED is true, which is set once AWS is
+# commit, after a CI run on main that ran the full checks: the nightly run, or one by hand (D92). Off until the repository variable DEPLOY_ENABLED is true, which is set once AWS is
 # connected (docs/runbooks/deploy.md). Production waits for its GitHub environment's reviewers.
 name: Deploy
 
@@ -31,7 +31,9 @@ jobs:
   staging:
     if: >-
       vars.DEPLOY_ENABLED == 'true' &&
-      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event != 'push'))
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: staging
