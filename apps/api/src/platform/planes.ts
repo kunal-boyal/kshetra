@@ -99,6 +99,8 @@ export abstract class SeatCounts {
     prorate: boolean,
     billedFrom?: string,
   ): Promise<BillableSeats>;
+  /** People active now, as the plan's limit counts them. */
+  abstract active(tenantId: string): Promise<number>;
 }
 
 /** Who at a tenant hears about billing besides its billing contact: its active admins with email. */

@@ -6,6 +6,8 @@ import {
   INVOICE_KINDS,
   INVOICE_STATUSES,
 } from '../invoicing';
+import { MODULE_KEYS } from '../modules';
+import { TenantUsageResult } from './billing';
 import { Key, LocalizedText, Money } from './config';
 
 /**
@@ -247,6 +249,28 @@ export const RecordPaymentBody = z
   })
   .meta({ id: 'RecordPaymentBody' });
 
+/**
+ * `GET /v1/billing`: what a tenant admin sees of their organisation's billing (spec M23): the
+ * plan and its prices, the people active against its limit, the modules open, the billing
+ * details, subscription and automatic payment, where it stands if unpaid, and recent usage.
+ */
+export const PortalBillingResult = TenantBillingResult.extend({
+  plan: z.object({ name: LocalizedText, priceMonth: z.string(), priceYear: z.string() }).nullable(),
+  modules: z.array(z.enum(MODULE_KEYS)),
+  people: z.object({ active: z.int().min(0), limit: z.int().nullable() }),
+  /** When the trial ends, for an organisation on one. */
+  trialEndsAt: z.iso.datetime().nullable(),
+  /** Whether automatic payment can be set up yet (a payment gateway exists). */
+  automaticPayment: z.boolean(),
+  usage: TenantUsageResult.shape.items,
+}).meta({ id: 'PortalBilling' });
+
+/** The organisation's own invoices, newest first. */
+export const PortalInvoiceQuery = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  cursor: z.string().max(200).optional(),
+});
+
 export type BillingSettingsBody = z.output<typeof BillingSettingsBody>;
 export type BillingSettingsResult = z.infer<typeof BillingSettingsResult>;
 export type BillingAccountBody = z.output<typeof BillingAccountBody>;
@@ -258,3 +282,4 @@ export type InvoiceResult = z.infer<typeof InvoiceResult>;
 export type RecordPaymentBody = z.output<typeof RecordPaymentBody>;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export type MandateStatus = (typeof MANDATE_STATUSES)[number];
+export type PortalBillingResult = z.infer<typeof PortalBillingResult>;

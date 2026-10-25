@@ -462,6 +462,65 @@ describe('trials (spec 10.3)', () => {
   });
 });
 
+describe('the portal’s billing page (spec M23)', () => {
+  it('shows a tenant admin only their own organisation’s billing, read only included', async () => {
+    const c = await customer('Portal Co');
+    await subscribe(c.tenantId);
+    await cycle(INVOICE_DAY);
+    const other = await customer('Elsewhere Co');
+    await subscribe(other.tenantId);
+    await cycle(INVOICE_DAY);
+    const [theirs] = await invoicesOf(other.tenantId);
+
+    const overview = await send('GET', '/v1/billing', c.admin);
+    expect(overview.statusCode, overview.body).toBe(200);
+    expect(overview.json()).toMatchObject({
+      plan: { name: { en: 'Field' }, priceMonth: '499.00', priceYear: '4990.00' },
+      people: { active: 1, limit: null },
+      account: { legalName: 'Portal Co Private Limited', mandate: 'none' },
+      subscription: { cycle: 'month', startedOn: TODAY },
+      automaticPayment: true,
+      trialEndsAt: null,
+    });
+    const listed = (await send('GET', '/v1/billing/invoices', c.admin)).json().items;
+    expect(listed).toHaveLength(1);
+    expect(listed[0].tenant.id).toBe(c.tenantId);
+    const own = await send('GET', `/v1/billing/invoices/${listed[0].id}/pdf`, c.admin);
+    expect(own.headers['content-type']).toBe('application/pdf');
+    // Another organisation's invoice answers as one that doesn't exist.
+    const elsewhere = await send('GET', `/v1/billing/invoices/${theirs!.id}`, c.admin);
+    expect(elsewhere.json().error.code).toBe('NOT_FOUND');
+
+    // Only billing.manage sees billing.
+    const phone = newPhone();
+    // A manager signs in on the web but holds no billing.manage.
+    await world.user(c.tenantId, { phone });
+    const member = (await world.signIn(phone)).accessToken;
+    expect((await send('GET', '/v1/billing', member)).json().error.code).toBe('FORBIDDEN');
+
+    // Read only, an admin can still put the billing details right and set up payment.
+    await app
+      .get(DirectoryDatabase)
+      .db.update(tenants)
+      .set({ status: 'read_only' })
+      .where(eq(tenants.id, c.tenantId));
+    const details = await send('PUT', '/v1/billing/account', c.admin, {
+      legalName: 'Portal Company Private Limited',
+      address: 'Plot 9, MIDC Industrial Area, Nashik 422010',
+      stateCode: '27',
+      email: c.billingEmail,
+    });
+    expect(details.statusCode, details.body).toBe(200);
+    expect(details.json().account.legalName).toBe('Portal Company Private Limited');
+    const mandate = await send('POST', '/v1/billing/mandate', c.admin);
+    expect(mandate.json()).toEqual({ url: null });
+    expect((await send('GET', '/v1/billing', c.admin)).json().account.mandate).toBe('active');
+    expect(
+      (await send('PATCH', '/v1/settings', c.admin, { reviewAutoApproval: false })).statusCode,
+    ).toBe(423);
+  });
+});
+
 describe('invoice numbers (BR-47)', () => {
   it('run without gaps in each series', async () => {
     const all = (await send('GET', '/platform/v1/invoices?limit=100', staff)).json().items as {

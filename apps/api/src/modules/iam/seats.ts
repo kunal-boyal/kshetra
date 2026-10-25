@@ -13,15 +13,20 @@ import { Entitlements } from '../../platform/planes';
 export class Seats {
   constructor(private readonly entitlements: Entitlements) {}
 
-  /** Refuses one more active person past the plan's limit (SEAT_LIMIT). */
-  async assertRoom(tx: TenantTx, tenantId: string): Promise<void> {
-    const { limits } = await this.entitlements.forTenant(tenantId);
-    if (limits.users === null) return;
+  /** People active now. */
+  async active(tx: TenantTx, tenantId: string): Promise<number> {
     const [row] = await tx
       .select({ active: sql<number>`count(*)::int` })
       .from(users)
       .where(and(eq(users.tenantId, tenantId), eq(users.status, 'active')));
-    if ((row?.active ?? 0) >= limits.users) {
+    return row?.active ?? 0;
+  }
+
+  /** Refuses one more active person past the plan's limit (SEAT_LIMIT). */
+  async assertRoom(tx: TenantTx, tenantId: string): Promise<void> {
+    const { limits } = await this.entitlements.forTenant(tenantId);
+    if (limits.users === null) return;
+    if ((await this.active(tx, tenantId)) >= limits.users) {
       throw new AppError(
         'SEAT_LIMIT',
         `Your plan allows ${limits.users} active people. Deactivate someone or add seats.`,

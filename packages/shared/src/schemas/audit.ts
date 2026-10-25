@@ -103,6 +103,8 @@ export const AUDIT_ACTIONS = [
   'expense.decided',
   'expense.paid',
   'whatsapp.consent_changed',
+  'billing.account_changed',
+  'billing.mandate_started',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
