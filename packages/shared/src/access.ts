@@ -176,9 +176,21 @@ export function scopeContains(outer: DataScope, inner: DataScope): boolean {
  * nothing while they are off, so they never stop someone giving a role (decisions D82, D89).
  */
 export function canGrant(
-  actor: { permissions: Iterable<string>; scope: DataScope; modulesOff?: readonly string[] },
+  actor: {
+    permissions: Iterable<string>;
+    scope: DataScope;
+    modulesOff?: readonly string[];
+    /** Set for an API client (decision D94). */
+    apiClient?: unknown;
+  },
   role: { permissions: Iterable<string>; scope: DataScope },
 ): boolean {
+  // An API client holds no person's permissions, so it gives any role but one that can change
+  // access: an HR system adds field users and managers, never admins (decision D94).
+  if (actor.apiClient) {
+    const changing = new Set<string>(SECOND_FACTOR_PERMISSIONS);
+    return ![...role.permissions].some((permission) => changing.has(permission));
+  }
   const held = new Set(actor.permissions);
   const closed = new Set(actor.modulesOff ?? []);
   for (const permission of role.permissions) {

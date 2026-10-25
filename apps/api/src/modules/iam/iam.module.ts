@@ -6,6 +6,8 @@ import { TerritoriesModule } from '../territories/territories.module';
 import { IamAccess } from './access.service';
 import { IamContacts, IamPeopleEmails, IamPeopleNames } from './contacts';
 import { IamSupportNotices } from './support-notices';
+import { ApiClientsService } from './api-clients.service';
+import { ApiClientsController } from './api-clients.controller';
 import { IamAdmission } from './admission.service';
 import { DesignationsController } from './designations.controller';
 import { DesignationsService } from './designations.service';
@@ -38,6 +40,7 @@ import { UsersSync } from './users.sync';
 @Module({
   imports: [TerritoriesModule, TenantConfigModule, SyncModule, ImportsModule],
   controllers: [
+    ApiClientsController,
     MeController,
     UsersController,
     RolesController,
@@ -54,6 +57,7 @@ import { UsersSync } from './users.sync';
     IamPeopleEmails,
     IamPeopleNames,
     IamSupportNotices,
+    ApiClientsService,
     IamAdmission,
     Scopes,
     ReportingTree,
@@ -77,6 +81,7 @@ import { UsersSync } from './users.sync';
     IamPeopleEmails,
     IamPeopleNames,
     IamSupportNotices,
+    ApiClientsService,
     IamAdmission,
     Scopes,
     UsersService,

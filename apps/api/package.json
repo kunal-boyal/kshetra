@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@nestjs/testing": "^12.1.2",
+    "@scalar/api-reference": "1.73.1",
     "@testcontainers/postgresql": "^12.2.0",
     "@testcontainers/redis": "^12.2.0",
     "@thelamp/api-client": "workspace:*",

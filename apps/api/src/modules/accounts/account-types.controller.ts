@@ -7,7 +7,7 @@ import {
 } from '@thelamp/forms';
 import { IdParams } from '@thelamp/shared';
 import { userActor } from '../../platform/audit';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, ForApiClients, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -30,6 +30,7 @@ export class AccountTypesController {
   })
   // The config bundle hands every app the same definitions.
   @SignedIn()
+  @ForApiClients()
   list(@CurrentAccess() access: Access) {
     return this.database.forTenant(access.tenantId, async (tx) => ({
       items: this.types.views(await this.types.list(tx, access.tenantId)),

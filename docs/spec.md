@@ -1324,7 +1324,8 @@ import_mappings(id, tid, target, name, mapping jsonb, empty_values jsonb, fracti
          updated_at)
        UQ(tid, target, name)
 export_jobs(id, tid, kind, params jsonb, status, file_media_id NULL, error, requested_by, created_at, finished_at)
-api_clients(id, tid, name, client_id UQ, secret_hash, scopes text[], status, last_used_at)
+api_clients(id, tid, name, client_id UQ(tid, client_id), secret_hash, scopes text[], status, auth_revision,
+            last_used_at, revoked_at)
 webhook_subscriptions(id, tid, url, events text[], secret_encrypted, status)
 webhook_deliveries(id, tid, subscription_id, event_id, attempt, status, response_code, created_at)  PART monthly
 outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, attempts, next_attempt_at, last_error NULL,

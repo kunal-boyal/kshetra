@@ -177,6 +177,8 @@ export const AccessClaims = z.object({
   did: z.uuid().optional(),
   /** The support grant a vendor staff member entered under (decision D93); `sub` is then theirs. */
   sg: z.uuid().optional(),
+  /** An API client's scopes (spec 11.1, decision D94); `sub` is then the client's ID. */
+  scp: z.array(z.string()).optional(),
 });
 
 export type DeviceInfo = z.infer<typeof DeviceInfo>;

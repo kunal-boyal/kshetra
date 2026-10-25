@@ -16,7 +16,7 @@ const ON_GROWTH = {
   plan: { id: PLAN.id, key: PLAN.key, name: PLAN.name },
   extraModules: ['expenses'],
   modules: ['core', 'leave_attendance', 'orders', 'expenses'],
-  limits: { users: 25, storageGb: 50 },
+  limits: { users: 25, storageGb: 50, apiPerMinute: 300 },
   ownLimits: {},
 };
 
@@ -45,6 +45,7 @@ describe("a tenant's plan in the console (D89)", () => {
     expect(within(card).getByText('Expenses')).toBeInTheDocument();
     expect(within(card).getByText('12 of 25 active')).toBeInTheDocument();
     expect(within(card).getByText('50 GB')).toBeInTheDocument();
+    expect(within(card).getByText('300 a minute')).toBeInTheDocument();
     // Support reads the plan but doesn't change it.
     expect(screen.queryByRole('button', { name: 'Change the plan' })).not.toBeInTheDocument();
   });
@@ -60,7 +61,7 @@ describe("a tenant's plan in the console (D89)", () => {
             { path: 'limits.users', issue: 'Must be at least 1' },
           ]);
         }
-        entitled = { ...ON_GROWTH, limits: { users: 30, storageGb: null } };
+        entitled = { ...ON_GROWTH, limits: { users: 30, storageGb: null, apiPerMinute: 300 } };
         return entitled;
       }
       if (path === '/platform/v1/plans') {

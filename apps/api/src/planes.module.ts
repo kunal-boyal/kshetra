@@ -9,6 +9,7 @@ import { IamAccess } from './modules/iam/access.service';
 import { IamAdmission } from './modules/iam/admission.service';
 import { IamContacts, IamPeopleEmails, IamPeopleNames } from './modules/iam/contacts';
 import { IamSupportNotices } from './modules/iam/support-notices';
+import { ApiClientsService } from './modules/iam/api-clients.service';
 import { SupportService } from './modules/directory/support.service';
 import { CellHealthService } from './modules/directory/cell-health.service';
 import { IamModule } from './modules/iam/iam.module';
@@ -22,6 +23,7 @@ import { AccessResolver } from './platform/auth';
 import { Outbox } from './platform/outbox';
 import { CONFIG } from './platform/tokens';
 import {
+  ApiClientCredentials,
   CellAdmission,
   CellHealthRecorder,
   Entitlements,
@@ -70,6 +72,7 @@ import {
     { provide: SupportNotices, useExisting: IamSupportNotices },
     { provide: SupportGrants, useExisting: SupportService },
     { provide: CellHealthRecorder, useExisting: CellHealthService },
+    { provide: ApiClientCredentials, useExisting: ApiClientsService },
   ],
   exports: [
     CellAdmission,
@@ -86,6 +89,7 @@ import {
     SupportNotices,
     SupportGrants,
     CellHealthRecorder,
+    ApiClientCredentials,
   ],
 })
 export class PlanesModule implements OnModuleInit {

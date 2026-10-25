@@ -108,7 +108,7 @@ function result(row: PlanRow, tenantCount: number): PlanResult {
     priceMonth: row.priceMonth,
     priceYear: row.priceYear,
     modules: row.modules,
-    limits: row.limits,
+    limits: { ...row.limits, apiPerMinute: row.limits.apiPerMinute ?? null },
     addons: row.addons,
     active: row.active,
     tenants: tenantCount,

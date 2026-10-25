@@ -35,7 +35,7 @@ export class LicenceEntitlements extends Entitlements {
     const licensed = tenantId === this.terms.tenantId;
     return Promise.resolve({
       modules: licensed ? this.terms.modules : ['core'],
-      limits: { users: this.terms.users, storageGb: null },
+      limits: { users: this.terms.users, storageGb: null, apiPerMinute: null },
       readOnly: !licensed || state === 'expired',
     });
   }

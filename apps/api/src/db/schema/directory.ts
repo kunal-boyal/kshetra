@@ -356,7 +356,10 @@ export const plans = directory.table('plans', {
   priceMonth: numeric('price_month', { precision: 18, scale: 2 }).notNull(),
   priceYear: numeric('price_year', { precision: 18, scale: 2 }).notNull(),
   modules: text('modules').array().$type<(typeof MODULE_KEYS)[number][]>().notNull(),
-  limits: jsonb('limits').$type<{ users: number | null; storageGb: number | null }>().notNull(),
+  // `apiPerMinute` came with API clients (decision D94); plans made before have none.
+  limits: jsonb('limits')
+    .$type<{ users: number | null; storageGb: number | null; apiPerMinute?: number | null }>()
+    .notNull(),
   addons: jsonb('addons')
     .$type<{ key: string; name: { en: string; hi: string }; price: string }[]>()
     .notNull()
@@ -373,7 +376,7 @@ export const tenantEntitlements = directory.table('tenant_entitlements', {
     .references(() => tenants.id),
   extraModules: text('extra_modules').array().$type<string[]>().notNull().default([]),
   limits: jsonb('limits')
-    .$type<{ users?: number | null; storageGb?: number | null }>()
+    .$type<{ users?: number | null; storageGb?: number | null; apiPerMinute?: number | null }>()
     .notNull()
     .default({}),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

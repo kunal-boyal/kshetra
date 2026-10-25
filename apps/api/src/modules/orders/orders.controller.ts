@@ -9,7 +9,14 @@ import {
   OrderResult,
   PlaceOrderBody,
 } from '@thelamp/shared';
-import { type Access, CurrentAccess, InModule, Requires, SignedIn } from '../../platform/auth';
+import {
+  type Access,
+  CurrentAccess,
+  InModule,
+  Requires,
+  ForApiClients,
+  SignedIn,
+} from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -55,6 +62,7 @@ export class OrdersController {
     response: OrderListResult,
   })
   @SignedIn()
+  @ForApiClients('orders:read', 'orders:write')
   @InModule('orders')
   list(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = OrderListQuery.parse(query);
@@ -64,6 +72,7 @@ export class OrdersController {
   @Get(':id')
   @Contract({ tag: 'Orders', summary: 'One order', params: IdParams, response: OrderResult })
   @SignedIn()
+  @ForApiClients('orders:read', 'orders:write')
   @InModule('orders')
   get(@CurrentAccess() access: Access, @Param('id') id: string) {
     const orderId = pathId(id);

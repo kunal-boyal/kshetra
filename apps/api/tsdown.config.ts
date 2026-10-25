@@ -24,4 +24,12 @@ export default defineConfig({
   dts: false,
   // Workspace packages are TypeScript source, so they are bundled in; npm dependencies stay external.
   deps: { alwaysBundle: [/^@thelamp\//] },
+  // The API reference's browser bundle (decision D94), served at /v1/docs; the package itself is
+  // a dev dependency, so the image carries only this one file.
+  copy: [
+    {
+      from: 'node_modules/@scalar/api-reference/dist/browser/standalone.js',
+      to: 'dist/docs',
+    },
+  ],
 });

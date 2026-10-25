@@ -3,6 +3,8 @@ import {
   AppError,
   effectivePermissions,
   isOpenTenant,
+  API_CLIENT_ROLE_KEY,
+  scopePermissions,
   SUPPORT_ROLE_KEY,
   supportPermissions,
   type TenantPermission,
@@ -13,6 +15,7 @@ import { type Access, AccessResolver, type AuthContext } from '../../platform/au
 import { Database } from '../../platform/database';
 import { Entitlements, SupportGrants, TenantDirectory } from '../../platform/planes';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { ApiClientsService } from './api-clients.service';
 
 const revoked = () => new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
 
@@ -29,6 +32,7 @@ export class IamAccess extends AccessResolver {
     private readonly config: TenantConfigService,
     private readonly entitlements: Entitlements,
     private readonly support: SupportGrants,
+    private readonly clients: ApiClientsService,
   ) {
     super();
   }
@@ -49,6 +53,7 @@ export class IamAccess extends AccessResolver {
     }
 
     if (auth.supportGrantId) return this.supportAccess(auth, auth.supportGrantId, status);
+    if (auth.scopes) return this.clientAccess(auth, auth.scopes, status);
 
     const found = await this.database.forTenant(auth.tenantId, async (tx) => {
       const [user] = await tx
@@ -101,6 +106,35 @@ export class IamAccess extends AccessResolver {
     return (
       status === 'read_only' || ((await this.entitlements.forTenant(tenantId)).readOnly ?? false)
     );
+  }
+
+  /**
+   * An API client (module M20, decision D94): no user of the tenant either. While the client is
+   * active at the token's revision, it reaches the whole tenant with the permissions of the scopes
+   * the token holds, which are no more than the client's own.
+   */
+  private async clientAccess(
+    auth: AuthContext,
+    tokenScopes: readonly string[],
+    status: string,
+  ): Promise<Access> {
+    const found = await this.database.forTenant(auth.tenantId, async (tx) => ({
+      client: await this.clients.state(tx, auth.tenantId, auth.userId),
+      settings: await this.config.settings(tx, auth.tenantId),
+    }));
+    const { client, settings } = found;
+    if (!client || client.authRevision !== auth.revision) throw revoked();
+    const scopes = client.scopes.filter((scope) => tokenScopes.includes(scope));
+    return {
+      ...auth,
+      roleId: client.id,
+      roleKey: API_CLIENT_ROLE_KEY,
+      scope: 'tenant',
+      permissions: effectivePermissions(scopePermissions(scopes), settings.modulesOff),
+      modulesOff: settings.modulesOff,
+      readOnly: await this.readOnly(auth.tenantId, status),
+      apiClient: { id: client.id, name: client.name, scopes },
+    };
   }
 
   /**

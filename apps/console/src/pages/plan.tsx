@@ -1,5 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router';
+import { formatNumber } from '@thelamp/i18n';
 import {
+  API_DEFAULT_PER_MINUTE,
   AVAILABLE_MODULES,
   MODULE_KEYS,
   type ModuleKey,
@@ -32,6 +34,7 @@ interface PlanDraft {
   modules: ModuleKey[];
   users: string;
   storageGb: string;
+  apiPerMinute: string;
   active: boolean;
   addons: AddonDraft[];
 }
@@ -46,6 +49,7 @@ function draftOf(plan: PlanResult | undefined): PlanDraft {
     modules: plan?.modules ?? ['core'],
     users: plan?.limits.users?.toString() ?? '',
     storageGb: plan?.limits.storageGb?.toString() ?? '',
+    apiPerMinute: plan?.limits.apiPerMinute?.toString() ?? '',
     active: plan?.active ?? true,
     addons: (plan?.addons ?? []).map((addon) => ({
       row: newId(),
@@ -68,6 +72,7 @@ function bodyOf(draft: PlanDraft) {
     limits: {
       users: draft.users ? Number(draft.users) : null,
       storageGb: draft.storageGb ? Number(draft.storageGb) : null,
+      apiPerMinute: draft.apiPerMinute ? Number(draft.apiPerMinute) : null,
     },
     addons: draft.addons.map((addon) => ({
       key: addon.key.trim(),
@@ -140,7 +145,7 @@ function BackToPlans() {
 
 function PlanForm({ plan }: { plan?: PlanResult }) {
   const { client } = useConsole();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const { createPlan, updatePlan } = useConsoleMutations();
   const [id] = useState(newId);
@@ -256,6 +261,17 @@ function PlanForm({ plan }: { plan?: PlanResult }) {
               value={draft.storageGb}
               onChange={(event) => change({ storageGb: event.target.value.replace(/\D/g, '') })}
               error={errors['limits.storageGb']}
+            />
+            <TextField
+              label={t('console.api_limit')}
+              help={t('console.api_limit_help', {
+                value: formatNumber(API_DEFAULT_PER_MINUTE, { locale }),
+              })}
+              numeric
+              inputMode="numeric"
+              value={draft.apiPerMinute}
+              onChange={(event) => change({ apiPerMinute: event.target.value.replace(/\D/g, '') })}
+              error={errors['limits.apiPerMinute']}
             />
           </div>
           <ChoiceGroup legend={t('console.addons')} error={errors.addons}>

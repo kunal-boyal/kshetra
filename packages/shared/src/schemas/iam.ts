@@ -4,6 +4,7 @@ import { PhoneInput } from './auth';
 import { Key, LocalizedNoun, LocalizedText } from './config';
 import { SupportSession } from './support';
 import { SUPPORT_ROLE_KEY } from '../support';
+import { API_CLIENT_ROLE_KEY } from '../api-clients';
 
 /**
  * People and access in a tenant (spec 4.2, 5.3, module M3, spec 11.2 People group). Roles and
@@ -14,8 +15,11 @@ import { SUPPORT_ROLE_KEY } from '../support';
 /** A role: permissions from spec Appendix E, and whose records they reach (spec 4.2). */
 export const RoleDefinition = z
   .strictObject({
-    // Vendor support shows as `vendor_support` (decision D93), so no tenant's role takes the key.
-    key: Key.refine((key) => key !== SUPPORT_ROLE_KEY, 'This key is kept for vendor support'),
+    // Vendor support and API clients show as their own roles (D93, D94), which no tenant takes.
+    key: Key.refine(
+      (key) => key !== SUPPORT_ROLE_KEY && key !== API_CLIENT_ROLE_KEY,
+      'This key is kept for the product',
+    ),
     name: LocalizedText,
     scope: DataScope,
     permissions: z.array(Permission).min(1),

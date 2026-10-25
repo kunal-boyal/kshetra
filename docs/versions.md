@@ -77,6 +77,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | openid-client | 6.8.8 | Added 2026-10-25: OIDC sign-in with a tenant's identity provider, authorization code with PKCE, state and nonce (decision D91); MIT, by panva, released 2026-09-05 |
 | @node-saml/node-saml | 5.1.0 | Added 2026-10-25: SAML sign-in, checking the provider's signed assertions (decision D91); MIT, released 2025-07-21 |
 | oauth2-mock-server | 9.2.0 | Added 2026-10-25: a local OIDC provider for the SSO integration tests (decision D91); the API's dev dependency, MIT. 9.2.0 rather than 9.3.0, which was 11 days old |
+| @scalar/api-reference | 1.73.1 | Added 2026-10-26: the interactive API reference at `/v1/docs` (decision D94), chosen with Kunal over Redoc and Swagger UI. The API's dev dependency, MIT, released 2026-10-07 (1.76.0 was under two weeks old); its build copies only the prebuilt browser bundle into `dist/docs`, so the image carries one file and none of its dependencies. `vue-demi`'s install script is left off in `allowBuilds`, as the bundle doesn't need it |
 | xml-crypto | 6.3.3 | Added 2026-10-25: signs the SAML responses the SSO integration tests send (decision D91); the API's dev dependency, MIT, the major node-saml uses |
 | @playwright/test | 1.63.0 | End-to-end tests, in Chromium |
 | @axe-core/playwright | 4.13.0 | Accessibility checks in the end-to-end tests |

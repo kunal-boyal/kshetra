@@ -8,6 +8,7 @@ import {
   CellHealthController,
 } from './announcements.controller';
 import { CellHealthService } from './cell-health.service';
+import { OAuthController } from './oauth.controller';
 import { AnnouncementsService } from './announcements.service';
 import { AuthController } from './auth.controller';
 import { DirectoryDatabase } from './directory.database';
@@ -64,6 +65,7 @@ export class DirectoryHealth {
     AnnouncementsConsoleController,
     AnnouncementsController,
     CellHealthController,
+    OAuthController,
   ],
   providers: [
     DirectoryDatabase,

@@ -1,4 +1,4 @@
-import { ErrorResponse } from '@thelamp/shared';
+import { API_SCOPE_KEYS, type ApiScopeKey, ErrorResponse, scopePermissions } from '@thelamp/shared';
 import { z } from 'zod';
 import type { RegisteredRoute } from './routes';
 
@@ -99,13 +99,33 @@ function access(route: RegisteredRoute) {
           : `Vendor staff with every one of: ${rule.permissions.join(', ')}`,
     };
   }
+  const scopes = clientScopes(route);
   return {
-    security: [{ accessToken: [] }],
+    security: [{ accessToken: [] }, ...(scopes.length > 0 ? [{ apiClient: scopes }] : [])],
     'x-access':
       rule.kind === 'signed_in'
         ? 'Anyone signed in to the tenant'
         : `${rule.kind === 'all' ? 'Every one' : 'Any one'} of: ${rule.permissions.join(', ')}`,
   };
+}
+
+/**
+ * The scopes that let an API client call a route (decision D94): for one that needs permissions,
+ * each scope whose permissions meet its rule; for one open to anyone signed in, those it names.
+ */
+function clientScopes(route: RegisteredRoute): ApiScopeKey[] {
+  const rule = route.access;
+  if (!rule || rule.kind === 'public' || rule.kind === 'staff') return [];
+  if (rule.kind === 'signed_in') {
+    if (!route.apiScopes) return [];
+    return route.apiScopes.length > 0 ? route.apiScopes : [...API_SCOPE_KEYS];
+  }
+  return API_SCOPE_KEYS.filter((scope) => {
+    const held = new Set<string>(scopePermissions([scope]));
+    return rule.kind === 'all'
+      ? rule.permissions.every((permission) => held.has(permission))
+      : rule.permissions.some((permission) => held.has(permission));
+  });
 }
 
 /** "The Lamp API", from the product's display name (decision D1). */
@@ -214,6 +234,22 @@ export function buildOpenApi(routes: readonly RegisteredRoute[], title: string):
           scheme: 'bearer',
           bearerFormat: 'JWT',
           description: "A vendor staff member's console token (decision D88)",
+        },
+        apiClient: {
+          type: 'oauth2',
+          description:
+            "An API client's token (decision D94): its ID and secret buy an hour's token at the token URL",
+          flows: {
+            clientCredentials: {
+              tokenUrl: '/auth/v1/oauth/token',
+              scopes: Object.fromEntries(
+                API_SCOPE_KEYS.map((scope) => [
+                  scope,
+                  scopePermissions([scope]).join(', ') || 'Reads the catalogue',
+                ]),
+              ),
+            },
+          },
         },
       },
     },

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
 import { UpdateUserFieldsBody, UserFieldsResult } from '@thelamp/forms';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, ForApiClients, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';
 import { UserFieldsService } from './user-fields.service';
@@ -20,6 +20,7 @@ export class UserFieldsController {
     response: UserFieldsResult,
   })
   @SignedIn()
+  @ForApiClients()
   get(@CurrentAccess() access: Access) {
     return this.database.forTenant(access.tenantId, (tx) => this.fields.get(tx, access.tenantId));
   }

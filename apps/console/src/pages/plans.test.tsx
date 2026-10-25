@@ -17,7 +17,7 @@ describe('plans in the console (M23)', () => {
       id: PLAN.id.replace('c1', 'c2'),
       key: 'starter',
       name: { en: 'Starter', hi: 'स्टार्टर' },
-      limits: { users: null, storageGb: null },
+      limits: { users: null, storageGb: null, apiPerMinute: null },
       active: false,
       tenants: 0,
     };
@@ -93,7 +93,7 @@ describe('plans in the console (M23)', () => {
       priceMonth: '350',
       priceYear: '3500',
       modules: ['core', 'expenses'],
-      limits: { users: 40, storageGb: null },
+      limits: { users: 40, storageGb: null, apiPerMinute: null },
       addons: [{ key: 'sms_pack', name: { en: 'SMS pack', hi: 'SMS पैक' }, price: '250' }],
       active: true,
     });
@@ -128,7 +128,7 @@ describe('plans in the console (M23)', () => {
       priceMonth: '525.50',
       priceYear: '4990.00',
       modules: ['core', 'leave_attendance', 'orders'],
-      limits: { users: 25, storageGb: 50 },
+      limits: { users: 25, storageGb: 50, apiPerMinute: 300 },
       addons: [],
       active: false,
     });

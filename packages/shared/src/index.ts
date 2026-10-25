@@ -935,3 +935,24 @@ export {
   HealthHour,
   QueueFigures,
 } from './schemas/health';
+export {
+  API_CLIENT_ROLE_KEY,
+  API_DEFAULT_PER_MINUTE,
+  API_SCOPE_KEYS,
+  API_SCOPES,
+  API_TOKEN_SECONDS,
+  apiClientId,
+  type ApiScope as ApiScopeKey,
+  scopePermissions,
+  tenantOfClientId,
+} from './api-clients';
+export {
+  ApiClientList,
+  ApiClientResult,
+  ApiClientSecret,
+  ApiScope,
+  CreateApiClientBody,
+  OAuthError,
+  OAuthTokenBody,
+  OAuthTokenResult,
+} from './schemas/api-clients';
