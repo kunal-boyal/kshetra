@@ -1,5 +1,8 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type AnnouncementBody,
+  ConsoleAnnouncement,
+  ConsoleAnnouncementList,
   type BillingAccountBody,
   type BillingSettingsBody,
   BillingSettingsResult,
@@ -158,6 +161,15 @@ export function useStaff() {
   });
 }
 
+/** Announcements to tenants (decision D93), newest first. */
+export function useAnnouncements() {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => client.request('GET', '/platform/v1/announcements', ConsoleAnnouncementList),
+  });
+}
+
 /** Support grants (decision D93): a tenant's, or the signed-in staff member's own, or all. */
 export function useSupportGrants(filters: { tenantId?: string; mine?: boolean }) {
   const { client } = useConsole();
@@ -281,6 +293,16 @@ export function useConsoleMutations() {
         client.request('POST', `/platform/v1/invoices/${invoiceId}/payments`, InvoiceResult, body),
       // Paying can move the tenant out of grace or read only.
       onSuccess: () => refresh(['invoice', 'invoices', 'tenant-billing', 'tenant', 'tenants']),
+    }),
+    announce: useMutation({
+      mutationFn: (body: z.input<typeof AnnouncementBody>) =>
+        client.request('POST', '/platform/v1/announcements', ConsoleAnnouncement, body),
+      onSuccess: () => refresh(['announcements']),
+    }),
+    withdraw: useMutation({
+      mutationFn: (id: string) =>
+        client.request('POST', `/platform/v1/announcements/${id}/withdraw`, ConsoleAnnouncement),
+      onSuccess: () => refresh(['announcements']),
     }),
     askSupport: useMutation({
       mutationFn: (body: z.input<typeof SupportRequestBody>) =>

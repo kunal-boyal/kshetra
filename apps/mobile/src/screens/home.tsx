@@ -8,6 +8,7 @@ import { useConfig, useMe } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useUnread } from '../notifications';
 import { useSyncStatus } from '../sync';
+import { Announcements } from './announcements';
 import { ShiftSection } from './shift';
 import { MyMonth } from './my-month';
 import { TodayPlan } from './today-plan';
@@ -61,7 +62,7 @@ function InboxButton() {
 }
 
 /**
- * Home (spec 8.1): the sync banner, the tenant's name, a greeting, the shift card, the visit the
+ * Home (spec 8.1): the sync banner, the vendor's announcements, the tenant's name, a greeting, the shift card, the visit the
  * person is in, today's plan and My month, with the inbox beside the tenant's name.
  */
 export function HomeScreen() {
@@ -76,6 +77,7 @@ export function HomeScreen() {
   return (
     <Screen edges={['top', 'left', 'right']}>
       <Banner />
+      <Announcements />
       <View style={styles.top}>
         <Text variant="labelSm" tone="muted" style={styles.grow}>
           {session?.tenant.name}

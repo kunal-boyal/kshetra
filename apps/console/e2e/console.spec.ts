@@ -236,6 +236,28 @@ async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
       },
     }),
   );
+  await page.route('**/platform/v1/announcements', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: '01a10000-0000-7000-8000-0000000000d1',
+            title: { en: 'Planned maintenance', hi: 'तय रखरखाव' },
+            body: { en: 'Down from 11 pm to midnight.', hi: 'रात 11 से 12 बजे तक बंद।' },
+            tone: 'warning',
+            surfaces: ['web', 'mobile'],
+            tenants: null,
+            startsAt: '2026-10-26T04:00:00.000Z',
+            endsAt: '2099-10-27T04:00:00.000Z',
+            status: 'showing',
+            createdBy: 'Meera Iyer',
+            createdAt: '2026-10-26T03:50:00.000Z',
+            withdrawnAt: null,
+          },
+        ],
+      },
+    }),
+  );
   await page.route('**/platform/v1/support-grants?**', (route) =>
     route.fulfill({
       json: {
@@ -351,6 +373,7 @@ for (const [path, heading] of [
   [`/invoices/${INVOICE.id}`, 'Invoice TL/26-27/00042'],
   ['/staff', 'Staff'],
   ['/support', 'Support access'],
+  ['/announcements', 'Announcements'],
 ] as const) {
   for (const theme of ['light', 'dark'] as const) {
     test(`${path} passes axe in the ${theme} theme`, async ({ page }) => {

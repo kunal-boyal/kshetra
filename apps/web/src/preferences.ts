@@ -69,3 +69,17 @@ export function forgetTenants(): void {
     // Nothing was kept.
   }
 }
+
+/** Announcements this viewer dismissed in this browser (decision D93); old ones fall away. */
+export function dismissedAnnouncements(): string[] {
+  try {
+    const saved = JSON.parse(read('announcements.dismissed') ?? '[]') as unknown;
+    return Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function dismissAnnouncement(id: string): void {
+  write('announcements.dismissed', JSON.stringify([...dismissedAnnouncements(), id].slice(-50)));
+}

@@ -1,9 +1,7 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { newId } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { StaffService } from '../src/modules/console/staff.service';
-import { totpAt, totpStep } from '../src/platform/totp';
-import { newAddress, newPhone, startApp, testConfig, World } from './support';
+import { newAddress, newPhone, staffToken, startApp, testConfig, World } from './support';
 
 /**
  * Support access (module M22, decision D93): vendor staff ask to enter a tenant; its admin
@@ -34,27 +32,6 @@ function call(method: 'GET' | 'POST' | 'PUT', url: string, token: string, body?:
     headers: { authorization: `Bearer ${token}`, 'idempotency-key': newId() },
     ...(body ? { payload: body } : {}),
   });
-}
-
-/** A vendor staff member signed in to the console, with their role. */
-async function staffToken(role: 'support' | 'platform_admin'): Promise<string> {
-  const email = `${role}-${newId().slice(-8)}@vendor.example`;
-  const post = (url: string, payload: object) =>
-    app.inject({ method: 'POST', url, payload, remoteAddress: newAddress() });
-  const { setupUrl } = await app
-    .get(StaffService)
-    .invite({ id: newId(), email, name: `Staff ${role}`, role }, null);
-  const token = setupUrl.split('#')[1]!;
-  const { secret } = (
-    await post('/platform/v1/setup', { token, password: 'a long staff password' })
-  ).json();
-  await post('/platform/v1/setup/confirm', { token, code: totpAt(secret, totpStep()) });
-  const signedIn = await post('/platform/v1/session', {
-    email,
-    password: 'a long staff password',
-    code: totpAt(secret, totpStep() + 1),
-  });
-  return signedIn.json().accessToken;
 }
 
 /** A tenant with its admin signed in. */
@@ -97,7 +74,7 @@ const cookieOf = (response: { headers: Record<string, unknown> }) =>
 describe('support access (M22, D93)', () => {
   it('asks the admin, enters under a read grant as vendor support, and ends with it', async () => {
     const org = await organisation();
-    const staff = await staffToken('support');
+    const staff = await staffToken(app, 'support');
     const asked = await call('POST', '/platform/v1/support-grants', staff, {
       tenantId: org.tenantId,
       reason: 'Checking why the visit report is empty',
@@ -195,7 +172,7 @@ describe('support access (M22, D93)', () => {
 
   it('audits what support changes under a write grant, and never lets it decide its own access', async () => {
     const org = await organisation();
-    const staff = await staffToken('support');
+    const staff = await staffToken(app, 'support');
     const grant = (
       await call('POST', '/platform/v1/support-grants', staff, {
         tenantId: org.tenantId,
@@ -240,8 +217,8 @@ describe('support access (M22, D93)', () => {
 
   it('lets a second vendor admin approve emergency access, which reads only, for two hours at most', async () => {
     const org = await organisation();
-    const staff = await staffToken('support');
-    const admin = await staffToken('platform_admin');
+    const staff = await staffToken(app, 'support');
+    const admin = await staffToken(app, 'platform_admin');
     const ask = (body: object) =>
       call('POST', '/platform/v1/support-grants', staff, {
         tenantId: org.tenantId,
@@ -281,7 +258,7 @@ describe('support access (M22, D93)', () => {
   it('declines a request, and shows the tenant only its own grants', async () => {
     const org = await organisation();
     const other = await organisation();
-    const staff = await staffToken('support');
+    const staff = await staffToken(app, 'support');
     const grant = (
       await call('POST', '/platform/v1/support-grants', staff, {
         tenantId: org.tenantId,

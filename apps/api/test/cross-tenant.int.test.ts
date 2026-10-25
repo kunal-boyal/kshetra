@@ -14,6 +14,7 @@ import { TenantBillingService } from '../src/modules/billing/tenant-billing.serv
 import { StaffService } from '../src/modules/console/staff.service';
 import { DirectoryDatabase } from '../src/modules/directory/directory.database';
 import { SupportService } from '../src/modules/directory/support.service';
+import { AnnouncementsService } from '../src/modules/directory/announcements.service';
 import { NotificationDelivery } from '../src/modules/notifications/delivery';
 import { type MemoryObjectStore, ObjectStore } from '../src/platform/object-store';
 import { routeRegistry } from '../src/platform/routes';
@@ -411,6 +412,14 @@ const FIXTURES: Record<string, Fixture> = {
   'POST /platform/v1/tenants/:id/mandate': consoleShutsB(
     'POST',
     '/platform/v1/tenants/:id/mandate',
+  ),
+  'GET /platform/v1/announcements': consoleShutsB('GET', '/platform/v1/announcements'),
+  'POST /platform/v1/announcements': consoleShutsB('POST', '/platform/v1/announcements', {
+    id: newId(),
+  }),
+  'POST /platform/v1/announcements/:id/withdraw': consoleShutsB(
+    'POST',
+    '/platform/v1/announcements/:id/withdraw',
   ),
   'GET /platform/v1/support-grants': consoleShutsB('GET', '/platform/v1/support-grants'),
   'POST /platform/v1/support-grants': consoleShutsB('POST', '/platform/v1/support-grants', {
@@ -1520,6 +1529,16 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/exports/${id}`), aExportId),
   },
+  'GET /v1/announcements': {
+    kind: 'own tenant',
+    run: async () => {
+      for (const surface of ['web', 'mobile']) {
+        const reply = await asB('GET', `/v1/announcements?surface=${surface}`);
+        expect(reply.statusCode, reply.body).toBe(200);
+        holdsNothingOfA(reply);
+      }
+    },
+  },
   'GET /v1/support-grants': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/support-grants')),
@@ -2544,6 +2563,20 @@ beforeAll(async () => {
       role: 'support',
     },
     null,
+  );
+  // An announcement for A alone, naming A, which B must never see (decision D93).
+  await app.get(AnnouncementsService).create(
+    { staffId, role: 'platform_admin', permissions: new Set(['platform.tenant.manage']) },
+    {
+      id: newId(),
+      title: { en: `For ${a.word}`, hi: `For ${a.word}` },
+      body: { en: `Only ${a.word} sees this`, hi: `Only ${a.word} sees this` },
+      tone: 'info',
+      surfaces: ['web', 'mobile'],
+      tenantIds: [a.tenantId],
+      startsAt: new Date(Date.now() - 60_000).toISOString(),
+      endsAt: new Date(Date.now() + 86_400_000).toISOString(),
+    },
   );
   aSupportGrantId = (
     await app.get(SupportService).request(

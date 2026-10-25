@@ -32,6 +32,7 @@ import { useAccess } from '../people/data';
 import { savedTenants } from '../preferences';
 import { Brand } from './brand';
 import { LanguagePicker, ThemePicker } from './preferences-menu';
+import { Announcements } from './announcements';
 import { SupportBanner } from './support-banner';
 
 /**
@@ -281,6 +282,7 @@ export function AppShell() {
           ) : null}
         </header>
         <SupportBanner onSignOut={() => act(() => client.signOut())} />
+        <Announcements />
         <main id="content" className="mx-auto w-full max-w-[var(--content-max)] p-6">
           <Outlet />
         </main>

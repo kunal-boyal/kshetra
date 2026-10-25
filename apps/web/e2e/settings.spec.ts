@@ -108,6 +108,25 @@ const ANSWERS: Record<string, unknown> = {
     ],
   },
   '/v1/audit': { items: [], nextCursor: null },
+  // Announcements show above every settings page, so axe checks them in each theme.
+  '/v1/announcements': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000d1',
+        title: { en: 'Planned maintenance', hi: 'तय रखरखाव' },
+        body: { en: 'Down from 11 pm to midnight.', hi: 'रात 11 से 12 बजे तक बंद।' },
+        tone: 'warning',
+        endsAt: '2099-10-27T04:00:00.000Z',
+      },
+      {
+        id: '01a10000-0000-7000-8000-0000000000d2',
+        title: { en: 'New reports', hi: 'नई रिपोर्टें' },
+        body: { en: 'Visit reports are faster.', hi: 'विज़िट रिपोर्टें तेज़ हैं।' },
+        tone: 'info',
+        endsAt: '2099-10-27T04:00:00.000Z',
+      },
+    ],
+  },
   '/v1/sso': {
     connection: {
       protocol: 'saml',
@@ -513,6 +532,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'sso',
     'support-grants',
     'audit',
+    'announcements',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -661,6 +681,9 @@ for (const theme of ['light', 'outdoor']) {
     await page.addInitScript((chosen) => localStorage.setItem('theme', chosen), theme);
     await page.goto('/settings/support');
     await expect(page.getByRole('status')).toContainText('as vendor support, to see only');
+    await expect(
+      page.getByRole('region', { name: 'Announcements' }).getByText('Planned maintenance'),
+    ).toBeVisible();
     await expectAccessible(page);
   });
 }
