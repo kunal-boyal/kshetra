@@ -11,7 +11,9 @@ import { BillingSettings } from '../src/modules/billing/billing-settings.service
 import { ExamplePlans } from '../src/modules/billing/example-plans';
 import { InvoicesService } from '../src/modules/billing/invoices.service';
 import { TenantBillingService } from '../src/modules/billing/tenant-billing.service';
+import { StaffService } from '../src/modules/console/staff.service';
 import { DirectoryDatabase } from '../src/modules/directory/directory.database';
+import { SupportService } from '../src/modules/directory/support.service';
 import { NotificationDelivery } from '../src/modules/notifications/delivery';
 import { type MemoryObjectStore, ObjectStore } from '../src/platform/object-store';
 import { routeRegistry } from '../src/platform/routes';
@@ -79,6 +81,7 @@ let aSubmissionId: string;
 let aRouteId: string;
 let aPlanItemId: string;
 let aExportId: string;
+let aSupportGrantId: string;
 let aInvoiceId: string;
 let aItemId: string;
 let aPriceListId: string;
@@ -408,6 +411,23 @@ const FIXTURES: Record<string, Fixture> = {
   'POST /platform/v1/tenants/:id/mandate': consoleShutsB(
     'POST',
     '/platform/v1/tenants/:id/mandate',
+  ),
+  'GET /platform/v1/support-grants': consoleShutsB('GET', '/platform/v1/support-grants'),
+  'POST /platform/v1/support-grants': consoleShutsB('POST', '/platform/v1/support-grants', {
+    tenantId: newId(),
+    reason: 'B trying to ask for support',
+  }),
+  'POST /platform/v1/support-grants/:id/approve': consoleShutsB(
+    'POST',
+    '/platform/v1/support-grants/:id/approve',
+  ),
+  'POST /platform/v1/support-grants/:id/end': consoleShutsB(
+    'POST',
+    '/platform/v1/support-grants/:id/end',
+  ),
+  'POST /platform/v1/support-grants/:id/enter': consoleShutsB(
+    'POST',
+    '/platform/v1/support-grants/:id/enter',
   ),
   'GET /platform/v1/invoices': consoleShutsB('GET', '/platform/v1/invoices'),
   'GET /platform/v1/invoices/:id': consoleShutsB('GET', `/platform/v1/invoices/${newId()}`),
@@ -1500,6 +1520,30 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/exports/${id}`), aExportId),
   },
+  'GET /v1/support-grants': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/support-grants')),
+  },
+  'POST /v1/support-grants/:id/decision': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', `/v1/support-grants/${id}/decision`, { approve: true }),
+        aSupportGrantId,
+      ),
+  },
+  'POST /v1/support-grants/:id/end': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/support-grants/${id}/end`), aSupportGrantId),
+  },
+  'GET /auth/v1/support/enter': {
+    kind: 'sign-in',
+    run: async () => {
+      const reply = await send(undefined, 'GET', `/auth/v1/support/enter?code=${'x'.repeat(43)}`);
+      expect(reply.headers.location).toMatch(/sign-in\?support=expired$/);
+      holdsNothingOfA(reply);
+    },
+  },
   'GET /v1/sso': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/sso')),
@@ -2490,6 +2534,29 @@ beforeAll(async () => {
     });
     return issued!.id;
   });
+  // Vendor support asks to enter A (decision D93).
+  const staffId = newId();
+  await app.get(StaffService).invite(
+    {
+      id: staffId,
+      email: `support-${staffId.slice(-8)}@vendor.example`,
+      name: 'Support',
+      role: 'support',
+    },
+    null,
+  );
+  aSupportGrantId = (
+    await app.get(SupportService).request(
+      { staffId, role: 'support', permissions: new Set(['platform.support.request']) },
+      {
+        tenantId: a.tenantId,
+        reason: 'Checking the contract test',
+        scope: 'read',
+        hours: 1,
+        emergency: false,
+      },
+    )
+  ).id;
   // A route and a planned visit for A's member.
   aExportId = newId();
   const asked = await send(aToken, 'POST', '/v1/exports', {

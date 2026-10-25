@@ -4,7 +4,8 @@ import { ImportsModule } from '../imports/imports.module';
 import { SyncModule } from '../sync/sync.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { IamAccess } from './access.service';
-import { IamContacts, IamPeopleEmails } from './contacts';
+import { IamContacts, IamPeopleEmails, IamPeopleNames } from './contacts';
+import { IamSupportNotices } from './support-notices';
 import { IamAdmission } from './admission.service';
 import { DesignationsController } from './designations.controller';
 import { DesignationsService } from './designations.service';
@@ -51,6 +52,8 @@ import { UsersSync } from './users.sync';
     IamAccess,
     IamContacts,
     IamPeopleEmails,
+    IamPeopleNames,
+    IamSupportNotices,
     IamAdmission,
     Scopes,
     ReportingTree,
@@ -72,6 +75,8 @@ import { UsersSync } from './users.sync';
     IamAccess,
     IamContacts,
     IamPeopleEmails,
+    IamPeopleNames,
+    IamSupportNotices,
     IamAdmission,
     Scopes,
     UsersService,

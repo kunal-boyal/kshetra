@@ -17,6 +17,7 @@ import {
   memberships,
   refreshTokens,
   ssoConnections,
+  supportGrants,
   totpSecrets,
 } from '../../db/schema/directory';
 import { CellAdmission, PeopleEmails } from '../../platform/planes';
@@ -24,6 +25,7 @@ import { RedisClient } from '../../platform/redis';
 import { DirectoryDatabase, type DirectoryDb, type DirectoryTx } from './directory.database';
 import { activeMemberships, type MembershipRow } from './memberships';
 import { digest, newSecret } from './secrets';
+import { grantOpen, type SupportGrantRow, supportGrantRows } from './support-grants';
 import { SigningKey } from './signing-key';
 
 /** Refresh tokens live 30 days and rotate on every use (M1, rule 6). */
@@ -40,6 +42,11 @@ interface Pending {
 const revoked = () => new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
 
 type RefreshTokenRow = typeof refreshTokens.$inferSelect;
+
+/** A refresh token still good, and whose it is: a member's, or vendor support's grant. */
+type Claimed =
+  | { token: RefreshTokenRow; membership: MembershipRow; grant?: never }
+  | { token: RefreshTokenRow; grant: SupportGrantRow; membership?: never };
 
 /**
  * Sessions: a refresh-token family per sign-in, with access tokens issued from it. Reusing a spent
@@ -102,6 +109,10 @@ export class SessionsService {
       const claimed = await this.claim(tx, refreshToken);
       if (!claimed) return null;
       await this.spend(tx, claimed.token);
+      if (claimed.grant) {
+        const session = await this.issueSupport(tx, claimed.grant, claimed.token.familyId);
+        return { session, tenant: this.grantSummary(claimed.grant) };
+      }
       const { membership, token } = claimed;
       const session = await this.issue(
         tx,
@@ -126,6 +137,8 @@ export class SessionsService {
     const result = await this.database.db.transaction(async (tx) => {
       const claimed = await this.claim(tx, refreshToken);
       if (!claimed) return 'revoked' as const;
+      // Vendor support stays in the tenant its grant names.
+      if (!claimed.membership) return 'forbidden' as const;
       const [target] = await activeMemberships(
         tx,
         and(
@@ -177,10 +190,7 @@ export class SessionsService {
    * active in an open tenant, and its auth revision current (BR-39). Anything else ends the
    * family and returns null; the caller commits that before refusing.
    */
-  private async claim(
-    tx: DirectoryTx,
-    refreshToken: string,
-  ): Promise<{ token: RefreshTokenRow; membership: MembershipRow } | null> {
+  private async claim(tx: DirectoryTx, refreshToken: string): Promise<Claimed | null> {
     const [token] = await tx
       .select()
       .from(refreshTokens)
@@ -191,7 +201,21 @@ export class SessionsService {
       await this.endFamily(tx, token.familyId);
       return null;
     }
-    const [membership] = await activeMemberships(tx, eq(memberships.id, token.membershipId));
+    if (token.supportGrantId) {
+      // Vendor support's session lasts while its grant does, and its staff member's access.
+      const [grant] = await supportGrantRows(tx, eq(supportGrants.id, token.supportGrantId), 1);
+      if (
+        !grant ||
+        !grantOpen(grant) ||
+        token.expiresAt.getTime() <= Date.now() ||
+        token.authRevision !== grant.staffRevision
+      ) {
+        await this.endFamily(tx, token.familyId);
+        return null;
+      }
+      return { token, grant };
+    }
+    const [membership] = await activeMemberships(tx, eq(memberships.id, token.membershipId!));
     if (
       !membership ||
       token.expiresAt.getTime() <= Date.now() ||
@@ -321,6 +345,51 @@ export class SessionsService {
       .innerJoin(memberships, eq(memberships.id, refreshTokens.membershipId))
       .where(and(eq(memberships.identityId, identityId), isNull(refreshTokens.revokedAt)));
     for (const { familyId } of families) await this.endFamily(this.database.db, familyId);
+  }
+
+  /**
+   * Starts vendor support's web session under an open grant (decision D93). It ends when the grant
+   * does, and every request checks the grant again.
+   */
+  async supportSignIn(grant: SupportGrantRow): Promise<SignedIn> {
+    if (!grantOpen(grant)) throw revoked();
+    const session = await this.issueSupport(this.database.db, grant, newId());
+    return { status: 'signed_in', tenant: this.grantSummary(grant), session };
+  }
+
+  private grantSummary(grant: SupportGrantRow): TenantSummary {
+    return { id: grant.tenantId, name: grant.tenantName, cellUrl: grant.cellUrl };
+  }
+
+  private async issueSupport(
+    db: DirectoryDb | DirectoryTx,
+    grant: SupportGrantRow,
+    familyId: string,
+  ): Promise<Session> {
+    const refreshToken = newSecret();
+    const refreshTokenExpiresAt = grant.endsAt!;
+    await db.insert(refreshTokens).values({
+      id: newId(),
+      supportGrantId: grant.id,
+      tokenHash: digest(refreshToken),
+      familyId,
+      authRevision: grant.staffRevision,
+      expiresAt: refreshTokenExpiresAt,
+    });
+    const access = await this.keys.sign({
+      userId: grant.staffId,
+      tenantId: grant.tenantId,
+      cell: grant.cellName,
+      revision: grant.staffRevision,
+      supportGrantId: grant.id,
+    });
+    return {
+      tokenType: 'Bearer',
+      accessToken: access.token,
+      accessTokenExpiresAt: access.expiresAt.toISOString(),
+      refreshToken,
+      refreshTokenExpiresAt: refreshTokenExpiresAt.toISOString(),
+    };
   }
 
   private signedIn(row: MembershipRow, session: Session): SignedIn {

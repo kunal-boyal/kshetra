@@ -2066,6 +2066,16 @@ export const en = {
   'notify.category_targets': '{term.target:other}',
   'notify.category_tracking': 'Tracking stopped',
   'notify.category_imports': 'Imports',
+  'notify.category_support': 'Vendor support',
+  'notify.support_requested_title': 'Vendor support asks for access',
+  'notify.support_requested_body':
+    '{staff} asks to {access} your organisation for {duration}: {reason}. Approve or decline it in Settings.',
+  'support.duration': { one: '{count} hour', other: '{count} hours' },
+  'support.access_read': 'see',
+  'support.access_write': 'see and change',
+  'notify.support_emergency_title': 'Vendor support entered in an emergency',
+  'notify.support_emergency_body':
+    '{staff} can see your organisation until {ends}, approved by a second vendor admin: {reason}. You can end it in Settings.',
   'notifications.title': 'Notifications',
   'notifications.open': {
     one: 'Notifications, {count} unread',
@@ -3082,6 +3092,7 @@ export const en = {
   'billing.standing_read_only':
     '{amount} has been overdue since {since}, so your organisation can only read for now. Pay before {suspend} to avoid suspension.',
   'billing.standing_suspended': '{amount} has been overdue since {since}.',
+  'error.SUPPORT_READ_ONLY': 'Your support access lets you look, not change anything.',
   'error.SSO_REQUIRED':
     'Your organisation signs you in with its own sign-in. Enter your work email to continue.',
   'error.SECOND_FACTOR_REQUIRED':

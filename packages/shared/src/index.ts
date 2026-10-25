@@ -867,3 +867,32 @@ export {
   type SsoProtocol,
   SsoSettings,
 } from './schemas/sso';
+export {
+  SUPPORT_DEFAULT_HOURS,
+  SUPPORT_EMERGENCY_MAX_HOURS,
+  SUPPORT_MAX_HOURS,
+  SUPPORT_REQUEST_HOURS,
+  SUPPORT_ROLE_KEY,
+  SUPPORT_SCOPES,
+  SUPPORT_STATUSES,
+  SUPPORT_WITHHELD,
+  supportApprovalIssue,
+  type SupportGrantFacts,
+  supportPermissions,
+  supportRequestIssue,
+  type SupportScope as SupportScopeKey,
+  supportStatus,
+  type SupportStatus as SupportStatusKey,
+} from './support';
+export {
+  SupportDecisionBody,
+  SupportEntryQuery,
+  SupportEntryResult,
+  SupportGrantList,
+  SupportGrantQuery,
+  SupportGrantResult,
+  SupportRequestBody,
+  SupportScope,
+  SupportSession,
+  SupportStatus,
+} from './schemas/support';

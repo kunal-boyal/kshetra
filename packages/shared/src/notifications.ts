@@ -15,10 +15,15 @@ export const NOTIFICATION_CATEGORIES = [
   'targets',
   'tracking',
   'imports',
+  'support',
 ] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
-export const UNMUTABLE_CATEGORIES: readonly NotificationCategory[] = ['approvals', 'tracking'];
+export const UNMUTABLE_CATEGORIES: readonly NotificationCategory[] = [
+  'approvals',
+  'tracking',
+  'support',
+];
 
 export interface NotificationKind {
   category: NotificationCategory;
@@ -69,6 +74,10 @@ export const NOTIFICATION_KINDS = {
   'import.finished': { category: 'imports', external: ['email'], urgent: false, inbox: true },
   /** An export the person asked for is ready, or failed. */
   'export.finished': { category: 'imports', external: [], urgent: false, inbox: true },
+  /** Vendor support asks to enter the organisation; its admins decide (M22, decision D93). */
+  'support.requested': { category: 'support', external: ['email'], urgent: false, inbox: true },
+  /** Vendor support entered in an emergency, approved by a second vendor admin. */
+  'support.emergency': { category: 'support', external: ['email'], urgent: true, inbox: true },
 } as const satisfies Record<string, NotificationKind>;
 
 export type NotificationEvent = keyof typeof NOTIFICATION_KINDS;

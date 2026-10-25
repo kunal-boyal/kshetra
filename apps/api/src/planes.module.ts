@@ -7,7 +7,9 @@ import { LicenceEntitlements } from './modules/billing/licence-entitlements';
 import { UsageService } from './modules/billing/usage.service';
 import { IamAccess } from './modules/iam/access.service';
 import { IamAdmission } from './modules/iam/admission.service';
-import { IamContacts, IamPeopleEmails } from './modules/iam/contacts';
+import { IamContacts, IamPeopleEmails, IamPeopleNames } from './modules/iam/contacts';
+import { IamSupportNotices } from './modules/iam/support-notices';
+import { SupportService } from './modules/directory/support.service';
 import { IamModule } from './modules/iam/iam.module';
 import { MeteringModule } from './modules/metering/metering.module';
 import { CellSeatCounts } from './modules/metering/seat-counts';
@@ -23,8 +25,11 @@ import {
   Entitlements,
   MembershipSync,
   PeopleEmails,
+  PeopleNames,
   SeatCounts,
   SecondFactors,
+  SupportGrants,
+  SupportNotices,
   TenantContacts,
   TenantDirectory,
   UsageRecorder,
@@ -59,6 +64,9 @@ import {
     { provide: TenantContacts, useExisting: IamContacts },
     { provide: SecondFactors, useExisting: SecondFactorService },
     { provide: PeopleEmails, useExisting: IamPeopleEmails },
+    { provide: PeopleNames, useExisting: IamPeopleNames },
+    { provide: SupportNotices, useExisting: IamSupportNotices },
+    { provide: SupportGrants, useExisting: SupportService },
   ],
   exports: [
     CellAdmission,
@@ -71,6 +79,9 @@ import {
     TenantContacts,
     SecondFactors,
     PeopleEmails,
+    PeopleNames,
+    SupportNotices,
+    SupportGrants,
   ],
 })
 export class PlanesModule implements OnModuleInit {

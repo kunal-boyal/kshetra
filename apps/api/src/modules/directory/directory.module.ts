@@ -23,6 +23,10 @@ import { SsoController } from './sso.controller';
 import { SsoService } from './sso.service';
 import { SsoSettingsController } from './sso-settings.controller';
 import { SigningKey } from './signing-key';
+import { SupportConsoleController } from './support-console.controller';
+import { SupportEntryController } from './support-entry.controller';
+import { SupportSettingsController } from './support-settings.controller';
+import { SupportService } from './support.service';
 import { PlatformAudit } from './platform-audit';
 import { DirectoryTenants } from './tenants';
 
@@ -43,7 +47,14 @@ export class DirectoryHealth {
  * it asks a cell to admit each sign-in through the same seams.
  */
 @Module({
-  controllers: [AuthController, SsoController, SsoSettingsController],
+  controllers: [
+    AuthController,
+    SsoController,
+    SsoSettingsController,
+    SupportConsoleController,
+    SupportSettingsController,
+    SupportEntryController,
+  ],
   providers: [
     DirectoryDatabase,
     DirectoryHealth,
@@ -75,6 +86,7 @@ export class DirectoryHealth {
     DirectoryMembers,
     DirectoryTenants,
     PlatformAudit,
+    SupportService,
   ],
   // The console module reaches the directory schema too (decision D88): its staff and audit live
   // there, and it signs its staff's tokens with the directory's key.
@@ -88,6 +100,7 @@ export class DirectoryHealth {
     SigningKey,
     PlatformAudit,
     SecondFactorService,
+    SupportService,
   ],
 })
 export class DirectoryModule {}

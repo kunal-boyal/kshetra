@@ -162,6 +162,24 @@ export const ExportFinishedPayload = z.object({
   rows: z.int().min(0).nullable(),
 });
 
+/** Vendor support asked to enter the tenant (M22, decision D93): its admins hear of it. */
+export const SupportRequestedPayload = z.object({
+  grantId: z.uuid(),
+  staffName: z.string(),
+  reason: z.string(),
+  scope: z.enum(['read', 'write']),
+  hours: z.int().min(1),
+  emergency: z.boolean(),
+});
+
+/** Vendor support entered the tenant in an emergency, on a second vendor admin's word. */
+export const SupportEmergencyPayload = z.object({
+  grantId: z.uuid(),
+  staffName: z.string(),
+  reason: z.string(),
+  endsAt: z.iso.datetime(),
+});
+
 /**
  * Metric definitions changed (M2): people's facts from `from`, a date on the tenant's clock, are
  * worked out again.
@@ -194,6 +212,8 @@ export const EVENT_PAYLOADS = {
   'import.finished': ImportFinishedPayload,
   'export.finished': ExportFinishedPayload,
   'metrics.changed': MetricsChangedPayload,
+  'support.requested': SupportRequestedPayload,
+  'support.emergency': SupportEmergencyPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

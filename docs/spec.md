@@ -1141,8 +1141,9 @@ refresh_tokens(id, membership_id, device_id NULL, token_hash UQ, family_id, auth
 totp_secrets(identity_id PK, secret_sealed, enabled_at, last_step, recovery_hashes text[])
 sso_connections(tenant_id PK, protocol enum(oidc,saml), config_sealed, domains text[], enabled, enforced)
 platform_users(id, email UQ, name, role, status)
-support_grants(id, tenant_id, platform_user_id, reason, scope enum(read,write), approved_by,
-               starts_at, ends_at, revoked_at)
+support_grants(id, tenant_id, platform_user_id, reason, scope enum(read,write), hours, emergency,
+               granted_scope, approved_by_user_id, approved_by_staff_id, approved_by_name, starts_at,
+               ends_at, declined_at, revoked_at, closed_by_user_id, closed_by_staff_id, closed_by_name)
 plans(id, key UQ, name, price_month, price_year, modules text[], limits jsonb, addons jsonb, active)
 billing_accounts(tenant_id PK, legal_name, gstin, address, state_code, email, language,
                  mandate_status, mandate_ref)
