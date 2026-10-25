@@ -3,12 +3,14 @@ import { AccountsModule } from '../accounts/accounts.module';
 import { FieldModule } from '../field/field.module';
 import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
+import { ImportsModule } from '../imports/imports.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { OrdersModule } from '../orders/orders.module';
 import { PlanningModule } from '../planning/planning.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { MetricsAdmin } from './metrics-admin';
 import { MetricsAdminController } from './metrics-admin.controller';
+import { ExternalMetricsImport } from './external-values';
 import { MetricsEngine } from './metrics-engine';
 import { PerformanceController } from './performance.controller';
 import { PerformanceService } from './performance.service';
@@ -28,9 +30,16 @@ import { PerformanceUpkeep } from './performance.upkeep';
     MetricsModule,
     OrdersModule,
     TenantConfigModule,
+    ImportsModule,
   ],
   controllers: [PerformanceController, MetricsAdminController],
-  providers: [MetricsEngine, PerformanceService, PerformanceUpkeep, MetricsAdmin],
+  providers: [
+    MetricsEngine,
+    PerformanceService,
+    PerformanceUpkeep,
+    MetricsAdmin,
+    ExternalMetricsImport,
+  ],
   exports: [MetricsAdmin, MetricsEngine, PerformanceService],
 })
 export class PerformanceModule {}

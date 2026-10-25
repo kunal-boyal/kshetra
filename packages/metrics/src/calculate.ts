@@ -22,6 +22,7 @@ export const COMPUTED_SOURCES = [
   'order_quantity',
   'order_lines',
   'productive_visits',
+  'external',
   'ratio',
 ] as const satisfies readonly MetricSourceType[];
 
@@ -93,6 +94,11 @@ export interface DayRecords {
   visits: readonly DayVisit[];
   planItems: readonly DayPlanItem[];
   orders: readonly DayOrder[];
+  /**
+   * External values credited to the person that day (decision D94): theirs, and those of the
+   * accounts whose first slot they held. Absent where none were loaded.
+   */
+  external?: readonly { metricKey: string; value: string }[];
 }
 
 /** One metric's fact for one person and day. */
@@ -278,6 +284,13 @@ export function calculateDay(
       return fact(key, count(productive.length), {
         accounts: [...new Set(productive.map((visit) => visit.account.id))].sort(),
       });
+    }
+    case 'external': {
+      let total = 0n;
+      for (const entry of day.external ?? []) {
+        if (entry.metricKey === key) total += thousandths(entry.value) ?? 0n;
+      }
+      return fact(key, decimal(total));
     }
     case 'ratio': {
       const top = parts.get(source.numerator);

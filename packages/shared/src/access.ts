@@ -23,7 +23,7 @@ export const PERMISSIONS_BY_AREA = {
     'plan_item.manage',
     'account_plan.manage',
   ],
-  performance: ['performance.view_team', 'leaderboard.view'],
+  performance: ['performance.view_team', 'leaderboard.view', 'metric.record'],
   maps: ['live_map.view', 'trail.view'],
   people: [
     'user.view',

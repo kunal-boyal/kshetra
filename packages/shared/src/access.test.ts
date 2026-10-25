@@ -11,7 +11,7 @@ import {
 
 describe('the permission catalogue (spec Appendix E)', () => {
   it('lists every tenant permission once, as <area>.<action>', () => {
-    expect(TENANT_PERMISSIONS).toHaveLength(66);
+    expect(TENANT_PERMISSIONS).toHaveLength(67);
     expect(new Set(TENANT_PERMISSIONS).size).toBe(TENANT_PERMISSIONS.length);
     for (const permission of TENANT_PERMISSIONS) {
       expect(permission).toMatch(/^[a-z_]+\.[a-z_]+$/);

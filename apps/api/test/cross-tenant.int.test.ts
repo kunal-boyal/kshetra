@@ -322,6 +322,35 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(reply);
     },
   },
+  'GET /v1/bulk/fields': {
+    kind: 'own tenant',
+    run: async () => {
+      for (const target of ['users', 'items', 'ledger-entries', 'external-metrics']) {
+        holdsNothingOfA(await asB('GET', `/v1/bulk/fields?target=${target}`));
+      }
+    },
+  },
+  ...Object.fromEntries(
+    (['users', 'accounts', 'items', 'ledger-entries', 'external-metrics'] as const).map(
+      (target) => [
+        `POST /v1/bulk/${target}`,
+        {
+          kind: 'write',
+          run: async () => {
+            // B's rows reach only B: a code of A's is a code nobody has, and nothing of A's comes back.
+            const reply = await asB('POST', `/v1/bulk/${target}`, {
+              ...(target === 'accounts' ? { accountType: 'customer' } : {}),
+              rows: [
+                { code: 'A-ONLY', account_code: 'A-ONLY', employee_code: 'A-ONLY', name: 'B row' },
+              ],
+            });
+            expect([200, 400]).toContain(reply.statusCode);
+            holdsNothingOfA(reply);
+          },
+        } satisfies Fixture,
+      ],
+    ),
+  ),
   'GET /v1/api-clients': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/api-clients')),

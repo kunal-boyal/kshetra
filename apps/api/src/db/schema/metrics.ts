@@ -1,6 +1,8 @@
 import type { MetricDefinition, ScoreDefinition } from '@thelamp/metrics';
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   date,
   foreignKey,
   index,
@@ -10,6 +12,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { accounts } from './accounts';
@@ -142,6 +145,55 @@ export const scoreSnapshots = cell
         columns: [table.tenantId, table.userId],
         foreignColumns: [users.tenantId, users.id],
       }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * Values of external metrics (spec 5.7, B.6, decision D94), loaded by import or the bulk API from
+ * systems such as an ERP: for a person, or for an account, on a day, or for a month on its last
+ * day. One value per metric, subject and day; loading it again replaces it. An account's value
+ * counts for the holder of its type's first slot on that day, as `credited_user_id` records.
+ */
+export const externalMetricValues = cell
+  .table(
+    'external_metric_values',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      id: uuid('id').notNull(),
+      metricKey: text('metric_key').notNull(),
+      userId: uuid('user_id'),
+      accountId: uuid('account_id'),
+      date: date('date').notNull(),
+      /** Given for the whole month the date ends. */
+      month: boolean('month').notNull().default(false),
+      value: numeric('value', { precision: 18, scale: 3 }).notNull(),
+      /** Whose figures it counts in: the person, or the account's field person that day. */
+      creditedUserId: uuid('credited_user_id'),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedBy: uuid('updated_by'),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      unique('external_metric_values_subject')
+        .on(table.tenantId, table.metricKey, table.userId, table.accountId, table.date)
+        .nullsNotDistinct(),
+      index('external_metric_values_credited').on(table.tenantId, table.creditedUserId, table.date),
+      foreignKey({
+        name: 'external_metric_values_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      foreignKey({
+        name: 'external_metric_values_account_fk',
+        columns: [table.tenantId, table.accountId],
+        foreignColumns: [accounts.tenantId, accounts.id],
+      }),
+      check(
+        'external_metric_values_one_subject',
+        sql`(${table.userId} is null) <> (${table.accountId} is null)`,
+      ),
       isolation(),
     ],
   )

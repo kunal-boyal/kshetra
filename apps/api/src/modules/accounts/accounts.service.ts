@@ -1256,6 +1256,24 @@ export class AccountsService {
     return person?.status === 'active' ? person.id : null;
   }
 
+  /**
+   * Whose figures an account's external values count in on a day (decision D94): the holder of its
+   * type's first slot then, the field person; null with that slot empty.
+   */
+  async creditedOn(
+    tx: TenantTx,
+    tenantId: string,
+    accountId: string,
+    day: string,
+  ): Promise<string | null> {
+    const account = await this.row(tx, tenantId, accountId);
+    const type = await this.types.byId(tx, tenantId, account.typeId);
+    const first = type.definition.slots[0]?.key;
+    if (!first) return null;
+    const holders = await this.holdersOn(tx, tenantId, accountId, day);
+    return holders.find((holder) => holder.slot === first)?.userId ?? null;
+  }
+
   /** Today's holders of an account's slots. */
   async holdersOn(
     tx: TenantTx,

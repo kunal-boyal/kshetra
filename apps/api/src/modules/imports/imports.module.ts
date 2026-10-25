@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MediaModule } from '../media/media.module';
+import { BulkController } from './bulk.controller';
 import { ImportsController } from './imports.controller';
 import { ImportsService } from './imports.service';
 import { ImportTargets } from './targets';
@@ -10,7 +11,7 @@ import { ImportTargets } from './targets';
  */
 @Module({
   imports: [MediaModule],
-  controllers: [ImportsController],
+  controllers: [ImportsController, BulkController],
   providers: [ImportsService, ImportTargets],
   exports: [ImportsService, ImportTargets],
 })

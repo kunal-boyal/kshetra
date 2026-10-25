@@ -10,6 +10,7 @@ import { MetricsService } from '../metrics/metrics.service';
 import { OrdersService } from '../orders/orders.service';
 import { PlanningService } from '../planning/planning.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { externalValuesFor } from './external-values';
 
 /**
  * The metric engine (spec 12.5, decision D56): one person's day, recomputed from its source
@@ -46,6 +47,7 @@ export class MetricsEngine {
       visits,
       planItems,
       orders,
+      external: await externalValuesFor(tx, tenantId, userId, date),
     });
     const day = and(
       eq(metricFactsDaily.tenantId, tenantId),
