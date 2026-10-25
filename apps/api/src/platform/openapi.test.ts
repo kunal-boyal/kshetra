@@ -22,9 +22,10 @@ describe('the route registry', () => {
       expect(Boolean(contract.params), `${route.key} describes its path parameters`).toBe(
         route.path.includes(':'),
       );
-      expect(Boolean(contract.response ?? contract.file), `${route.key} describes its answer`).toBe(
-        route.status !== 204,
-      );
+      expect(
+        Boolean(contract.response ?? contract.file ?? contract.redirect),
+        `${route.key} describes its answer`,
+      ).toBe(route.status !== 204);
     }
   });
 });

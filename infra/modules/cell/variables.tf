@@ -166,6 +166,11 @@ variable "secret_keys" {
   ]
 }
 
+variable "web_url" {
+  description = "Where the web portal runs, which passes /auth to the cell: single sign-on sends identity providers back here (WEB_URL, decision D91)."
+  type        = string
+}
+
 variable "console_url" {
   description = "Where the platform console runs, for vendor staff's setup links (CONSOLE_URL, decision D88); null until it is deployed."
   type        = string

@@ -7,7 +7,7 @@ import { LicenceEntitlements } from './modules/billing/licence-entitlements';
 import { UsageService } from './modules/billing/usage.service';
 import { IamAccess } from './modules/iam/access.service';
 import { IamAdmission } from './modules/iam/admission.service';
-import { IamContacts } from './modules/iam/contacts';
+import { IamContacts, IamPeopleEmails } from './modules/iam/contacts';
 import { IamModule } from './modules/iam/iam.module';
 import { MeteringModule } from './modules/metering/metering.module';
 import { CellSeatCounts } from './modules/metering/seat-counts';
@@ -22,6 +22,7 @@ import {
   CellAdmission,
   Entitlements,
   MembershipSync,
+  PeopleEmails,
   SeatCounts,
   SecondFactors,
   TenantContacts,
@@ -57,6 +58,7 @@ import {
     { provide: SeatCounts, useExisting: CellSeatCounts },
     { provide: TenantContacts, useExisting: IamContacts },
     { provide: SecondFactors, useExisting: SecondFactorService },
+    { provide: PeopleEmails, useExisting: IamPeopleEmails },
   ],
   exports: [
     CellAdmission,
@@ -68,6 +70,7 @@ import {
     SeatCounts,
     TenantContacts,
     SecondFactors,
+    PeopleEmails,
   ],
 })
 export class PlanesModule implements OnModuleInit {

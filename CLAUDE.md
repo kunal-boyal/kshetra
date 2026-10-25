@@ -128,9 +128,10 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Usage is metered hourly by `MeteringService` (`modules/metering`) and recorded through the `UsageRecorder` seam; API calls are counted by `ApiCalls` in the auth guard. A new metric goes in `USAGE_METRICS` and is measured there.
 - The console shows plans at `/plans` (`apps/console/src/pages/plans.tsx`, `plan.tsx`) and a tenant's plan and usage on its page (`tenant-plan.tsx`). A new usage metric needs its column heading as `console.usage_<metric>`.
 
-## Admin TOTP (decision D91)
+## Admin TOTP and SSO (decision D91)
 
 - On the web, anyone whose role holds a `SECOND_FACTOR_PERMISSIONS` permission gives an authenticator code after the one-time code: `CellAdmission.admit()` says `secondFactor`, the directory answers `second_factor` with a ticket, and `SecondFactorService` (`apps/api/src/modules/directory/second-factor.service.ts`) sets the authenticator up and checks codes and recovery codes before `SessionsService.finish()` starts the session. Phones and demo tenants skip it. TOTP itself is `src/platform/totp.ts`, shared with the console.
+- Single sign-on is `SsoService` (`apps/api/src/modules/directory/sso.service.ts`): connections at `/v1/sso`, the browser routes at `/auth/v1/sso/{slug}/…`, which answer with redirects (`redirect` in their `@Contract`) and set the web cookie through `WebCookie`. People are matched through the `PeopleEmails` seam, never created. A tenant that requires SSO refuses web OTP in `SessionsService` with `SSO_REQUIRED`. Integration tests run OIDC against `oauth2-mock-server` and sign SAML responses with `xml-crypto` and a certificate `openssl` makes on the spot.
 - The cell reaches authenticators only through the `SecondFactors` seam (`enrolled()`, `reset()`). In integration tests `World.signIn()` completes the step; use `world.secondFactor()` after a raw `verify()` or `select-tenant` that answers `second_factor`.
 
 ## Billing (decision D90)

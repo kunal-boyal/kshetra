@@ -3082,6 +3082,8 @@ export const en = {
   'billing.standing_read_only':
     '{amount} has been overdue since {since}, so your organisation can only read for now. Pay before {suspend} to avoid suspension.',
   'billing.standing_suspended': '{amount} has been overdue since {since}.',
+  'error.SSO_REQUIRED':
+    'Your organisation signs you in with its own sign-in. Choose Sign in with SSO.',
   'error.SECOND_FACTOR_REQUIRED':
     'Sign in again with your authenticator to open this organisation.',
   'signin.totp_title': 'Enter your authenticator code',

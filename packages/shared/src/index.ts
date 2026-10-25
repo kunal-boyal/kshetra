@@ -855,3 +855,15 @@ export {
   rateFor,
   receiptHoldsApproval,
 } from './expenses';
+export {
+  EmailDomain,
+  SSO_FAILURES,
+  SSO_PROTOCOLS,
+  SsoConnectionBody,
+  SsoConnectionResult,
+  SsoDiscoverBody,
+  SsoDiscoverResult,
+  type SsoFailure,
+  type SsoProtocol,
+  SsoSettings,
+} from './schemas/sso';

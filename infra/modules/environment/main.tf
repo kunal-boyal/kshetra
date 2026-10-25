@@ -90,6 +90,7 @@ module "cell" {
   api_domain                   = var.api_domain
   certificate_arn              = aws_acm_certificate_validation.api.certificate_arn
   media_domain                 = var.media_domain
+  web_url                      = "https://${var.web_domain}"
   console_url                  = var.console_domain == null ? null : "https://${var.console_domain}"
   media_domain_certificate_arn = var.media_domain == null ? null : aws_acm_certificate_validation.edge.certificate_arn
   media_public_key_pem         = var.media_public_key_pem

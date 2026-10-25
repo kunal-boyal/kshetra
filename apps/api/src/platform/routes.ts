@@ -24,6 +24,8 @@ export interface RouteContract {
   response?: z.ZodType;
   /** A success that is a file rather than JSON, such as an invoice's PDF: its media type. */
   file?: string;
+  /** A browser navigation that answers with a redirect, such as single sign-on's: where to. */
+  redirect?: string;
   /** Creates and actions without a client-generated ID take an `Idempotency-Key` (BR-46). */
   idempotencyKey?: boolean;
   /** Request headers beyond the usual ones, such as `If-None-Match`. */

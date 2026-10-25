@@ -200,6 +200,7 @@ locals {
     TRUST_PROXY            = "true"
     CELL_ID                = "demo"
     CELL_API_URL           = local.url
+    WEB_URL                = local.url
     CELL_REGION            = "ap-south-1"
     POSTGRES_PASSWORD      = random_password.database["postgres"].result
     DATABASE_BOOTSTRAP_URL = local.db["postgres"]

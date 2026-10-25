@@ -106,6 +106,7 @@ export const AUDIT_ACTIONS = [
   'billing.account_changed',
   'billing.mandate_started',
   'user.second_factor_reset',
+  'sso.changed',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
