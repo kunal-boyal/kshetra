@@ -1,21 +1,27 @@
-# Checks (spec 14.3), lean enough for GitHub's free minutes on a private repository (decision
-# D75): pull requests run the quick checks only; integration, end-to-end, the image and Terraform
-# run on main after a merge, or by hand on any branch. Before each merge the full suite runs locally
-# (`pnpm verify`) and its result goes in the pull request.
+# Checks (spec 14.3), lean enough for GitHub's free minutes on a private repository (decisions
+# D75 and D92): pull requests and merges to main run the quick checks only; integration, end-to-end,
+# the image and Terraform run on main nightly when something merged that day, or by hand on any
+# branch. Before each merge the full suite runs locally (`pnpm verify`) and its result goes in the
+# pull request.
 name: CI
 
 on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    # 02:30 in India.
+    - cron: '0 21 * * *'
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # A merge never cancels the nightly run.
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   checks:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -30,8 +36,23 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
 
+  # The nightly run goes ahead only when main changed in the last day.
+  changed:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      recent: ${{ steps.log.outputs.recent }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 50
+      - id: log
+        run: echo "recent=$(git log -1 --since='25 hours ago' --format=%h)" >> "$GITHUB_OUTPUT"
+
   integration:
-    if: github.event_name != 'pull_request'
+    needs: changed
+    if: >-
+      !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changed.outputs.recent != '')
     # Testcontainers builds infra/docker/postgres and runs the API's tests against it.
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +66,9 @@ jobs:
       - run: pnpm test:int
 
   e2e:
-    if: github.event_name != 'pull_request'
+    needs: changed
+    if: >-
+      !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changed.outputs.recent != '')
     # Playwright with axe against the web app's production build (spec 14.4).
     runs-on: ubuntu-latest
     steps:
@@ -60,7 +83,9 @@ jobs:
       - run: pnpm test:e2e
 
   image:
-    if: github.event_name != 'pull_request'
+    needs: changed
+    if: >-
+      !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changed.outputs.recent != '')
     # The cell's container image builds (decision D67); deploys push it, pull requests only build.
     runs-on: ubuntu-latest
     steps:
@@ -76,7 +101,9 @@ jobs:
           cache-to: type=gha,mode=max
 
   infra:
-    if: github.event_name != 'pull_request'
+    needs: changed
+    if: >-
+      !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changed.outputs.recent != '')
     # Terraform is formatted and valid for every environment, and the deploy scripts pass
     # ShellCheck; nothing is planned or applied here (decision D67).
     runs-on: ubuntu-latest
