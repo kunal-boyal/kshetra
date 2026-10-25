@@ -76,7 +76,8 @@ describe('setting up and using an authenticator (D91)', () => {
     expect(setUp.statusCode, setUp.body).toBe(200);
     const { secret, uri } = setUp.json();
     expect(uri).toMatch(/^otpauth:\/\/totp\//);
-    expect(uri).not.toContain(o.adminPhone.slice(-6));
+    // Masked: only the last five digits show, the rest as bullets.
+    expect(decodeURIComponent(uri)).not.toContain(o.adminPhone.slice(-6));
 
     const wrong = await post('/auth/v1/totp/verify', { ticket: first.ticket, code: '000000' });
     expect(wrong.json().error.code).toBe('OTP_INVALID');
