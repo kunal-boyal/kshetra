@@ -242,6 +242,12 @@ describe('tenants in the console (M22)', () => {
     );
     const cells = (await send('GET', '/platform/v1/cells', { token })).json().items;
     expect(cells).toContainEqual(expect.objectContaining({ name: 'local', kind: 'shared' }));
+    // Every tenant so far lives in the local cell.
+    const local = cells.find((cell: { name: string }) => cell.name === 'local');
+    const counted = await world.directory.client.query(
+      `select count(*)::int as n from directory.tenants t join directory.cells c on c.id = t.cell_id where c.name = 'local'`,
+    );
+    expect(local.tenants).toBe(counted.rows[0].n);
 
     const phone = newPhone();
     const slug = `console-${newId().slice(-8)}`;

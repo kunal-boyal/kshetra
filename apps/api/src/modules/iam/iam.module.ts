@@ -17,6 +17,7 @@ import { ReportingTree } from './reporting-tree';
 import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
 import { Scopes } from './scopes';
+import { Seats } from './seats';
 import { IamSetup } from './setup.service';
 import { TransfersController } from './transfers.controller';
 import { TransfersService } from './transfers.service';
@@ -45,6 +46,7 @@ import { UsersSync } from './users.sync';
     UserFieldsController,
   ],
   providers: [
+    Seats,
     IamAccess,
     IamAdmission,
     Scopes,
@@ -62,6 +64,7 @@ import { UsersSync } from './users.sync';
     IamSetup,
   ],
   exports: [
+    Seats,
     DevicesService,
     IamAccess,
     IamAdmission,

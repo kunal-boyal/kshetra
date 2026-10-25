@@ -25,6 +25,9 @@ describe('setting up from an invitation', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(client.setUp).toHaveBeenCalledWith('invitation-secret', 'a long password!');
     expect(await screen.findByLabelText('Setup key')).toHaveTextContent('JBSW Y3DP EHPK 3PXP');
+    expect(
+      screen.getByRole('img', { name: 'QR code for your authenticator app' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open in an authenticator app' })).toHaveAttribute(
       'href',
       'otpauth://totp/x',

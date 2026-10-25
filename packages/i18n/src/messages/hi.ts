@@ -2732,7 +2732,8 @@ export const hi: Record<MessageKey, Message> = {
   'console.continue': 'आगे बढ़ें',
   'console.authenticator_title': 'ऑथेंटिकेटर जोड़ें',
   'console.authenticator_intro':
-    'अपने ऑथेंटिकेटर ऐप में इस सेटअप कुंजी से खाता जोड़ें, या फ़ोन पर लिंक खोलें। फिर वह कोड डालें जो ऐप दिखाता है।',
+    'अपने ऑथेंटिकेटर ऐप से यह कोड स्कैन करें, या नीचे दी गई सेटअप कुंजी ख़ुद डालें। फिर वह कोड डालें जो ऐप दिखाता है।',
+  'console.qr_label': 'आपके ऑथेंटिकेटर ऐप के लिए QR कोड',
   'console.secret': 'सेटअप कुंजी',
   'console.open_authenticator': 'ऑथेंटिकेटर ऐप में खोलें',
   'console.secret_once': 'यह कुंजी सिर्फ़ अभी दिखती है। इसे कहीं और न रखें।',

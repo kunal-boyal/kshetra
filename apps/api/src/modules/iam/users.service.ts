@@ -54,6 +54,7 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 import { ReportingTree } from './reporting-tree';
 import { Scopes } from './scopes';
+import { Seats } from './seats';
 import { UserFieldsService } from './user-fields.service';
 
 type UserRow = typeof users.$inferSelect;
@@ -147,6 +148,7 @@ export class UsersService {
     private readonly config: TenantConfigService,
     private readonly territories: TerritoriesService,
     private readonly fields: UserFieldsService,
+    private readonly seats: Seats,
   ) {}
 
   async list(tx: TenantTx, access: Access, query: UserListQuery): Promise<UserListResult> {
@@ -234,6 +236,7 @@ export class UsersService {
       await this.checkManager(tx, tenantId, null, input.managerId);
     }
     const custom = await this.fields.values(tx, tenantId, null, input.custom);
+    await this.seats.assertRoom(tx, tenantId);
 
     const id = newId();
     const by = actorId(actor);
@@ -256,6 +259,7 @@ export class UsersService {
       }),
     );
     await this.tree.add(tx, tenantId, id, input.managerId);
+    await this.seats.open(tx, tenantId, id);
     if (input.territoryIds.length > 0) {
       await this.territories.replaceAttachments(
         tx,
@@ -383,6 +387,8 @@ export class UsersService {
     const before = await this.read(tx, tenantId, id);
     if (Object.keys(changes).length === 0) return before;
 
+    // Reactivating someone takes a seat; deactivating frees one (BR-45).
+    if ('status' in changes && status === 'active') await this.seats.assertRoom(tx, tenantId);
     // A change of phone, role or status ends every session the user has (BR-39).
     const revise = 'phoneE164' in changes || 'roleId' in changes || 'status' in changes;
     const authRevision = current.authRevision + (revise ? 1 : 0);
@@ -393,6 +399,10 @@ export class UsersService {
         .where(and(eq(users.tenantId, tenantId), eq(users.id, id))),
     );
     if (managerChanged) await this.tree.move(tx, tenantId, id, managerId);
+    if ('status' in changes) {
+      if (status === 'active') await this.seats.open(tx, tenantId, id);
+      else await this.seats.close(tx, tenantId, id);
+    }
     const after = await this.read(tx, tenantId, id);
     await this.audit.record(tx, tenantId, auditActor(actor), {
       action: 'user.updated',

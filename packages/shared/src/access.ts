@@ -1,3 +1,4 @@
+import { moduleOf } from './modules';
 /**
  * The permission catalogue of spec Appendix E, grouped by its areas. A role holds a list of these,
  * and the role's data scope decides whose records each one reaches (spec 4.2). Stored roles refer
@@ -152,13 +153,18 @@ export function scopeContains(outer: DataScope, inner: DataScope): boolean {
  * Whether someone may give a role to a user, or define or change one: only when the role holds no
  * permission they lack and reaches no further than they do. Without this rule, anyone who manages
  * users or roles could raise their own access through a second account or through a role.
+ *
+ * Permissions of modules that are off for the tenant (`modulesOff`, by its admin or its plan) do
+ * nothing while they are off, so they never stop someone giving a role (decisions D82, D89).
  */
 export function canGrant(
-  actor: { permissions: Iterable<string>; scope: DataScope },
+  actor: { permissions: Iterable<string>; scope: DataScope; modulesOff?: readonly string[] },
   role: { permissions: Iterable<string>; scope: DataScope },
 ): boolean {
   const held = new Set(actor.permissions);
+  const closed = new Set(actor.modulesOff ?? []);
   for (const permission of role.permissions) {
+    if (closed.has(moduleOf(permission as TenantPermission))) continue;
     if (!held.has(permission)) return false;
   }
   return scopeContains(actor.scope, role.scope);

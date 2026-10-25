@@ -28,6 +28,7 @@ const TENANT = {
   status: 'trial',
   cell: { name: 'local', region: 'ap-south-1', kind: 'shared' },
   template: { key: 'agri', version: 4 },
+  plan: null,
   trialEndsAt: '2026-11-23T10:00:00.000Z',
   demo: false,
   activeUsers: 12,

@@ -71,6 +71,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | tailwindcss, @tailwindcss/vite | 4.3.3 | Layout utilities, with the tokens mapped into the theme |
 | lucide-react | 1.52.0 | Icons (decision D18) |
 | @fontsource/mukta | 5.3.0 | Added 2026-10-23: the web's face, Mukta, in 400, 500, 600 and 700 for Latin and Devanagari (decision D72); replaces Noto Sans and Noto Sans Devanagari |
+| qrcode-generator | 2.0.4 | Added 2026-10-24: the QR code vendor staff scan into their authenticator app on the console's setup page (decision D88); MIT, no dependencies, its own types. Chosen over `qrcode`, which brings pngjs, yargs and dijkstrajs |
 | @playwright/test | 1.63.0 | End-to-end tests, in Chromium |
 | @axe-core/playwright | 4.13.0 | Accessibility checks in the end-to-end tests |
 | jsdom | 30.1.2 | The DOM for component tests |

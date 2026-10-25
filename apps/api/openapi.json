@@ -986,6 +986,271 @@
         }
       }
     },
+    "/platform/v1/plans": {
+      "get": {
+        "operationId": "BillingController.list",
+        "summary": "List plans",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Any active vendor staff member",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Plan"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "BillingController.create",
+        "summary": "Add a plan",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Vendor staff with every one of: platform.plan.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "$ref": "#/components/schemas/Key"
+                  },
+                  "name": {
+                    "$ref": "#/components/schemas/LocalizedText"
+                  },
+                  "priceMonth": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "priceYear": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "modules": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "core",
+                        "leave_attendance",
+                        "orders",
+                        "account_finance",
+                        "expenses",
+                        "payroll_inputs",
+                        "integrations",
+                        "sso",
+                        "advanced_analytics"
+                      ]
+                    }
+                  },
+                  "limits": {
+                    "default": {
+                      "users": null,
+                      "storageGb": null
+                    },
+                    "type": "object",
+                    "properties": {
+                      "users": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "storageGb": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "addons": {
+                    "default": [],
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "$ref": "#/components/schemas/Key"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/LocalizedText"
+                        },
+                        "price": {
+                          "$ref": "#/components/schemas/Money"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name",
+                        "price"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "active": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "key",
+                  "name",
+                  "priceMonth",
+                  "priceYear",
+                  "modules",
+                  "id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plan"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/plans/{id}": {
+      "put": {
+        "operationId": "BillingController.update",
+        "summary": "Change a plan; its tenants follow at once",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Vendor staff with every one of: platform.plan.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plan"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/platform/v1/session": {
       "post": {
         "operationId": "ConsoleSessionController.signIn",
@@ -1757,6 +2022,19 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 90
+                  },
+                  "planId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -1827,6 +2105,180 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConsoleTenant"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/tenants/{id}/entitlements": {
+      "get": {
+        "operationId": "BillingController.detail",
+        "summary": "A tenant's plan, extra modules and limits",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Any active vendor staff member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantEntitlements"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/tenants/{id}/plan": {
+      "put": {
+        "operationId": "BillingController.setPlan",
+        "summary": "Set a tenant's plan, extra modules and limits",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Vendor staff with every one of: platform.plan.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "planId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "extraModules": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "leave_attendance",
+                        "orders",
+                        "account_finance",
+                        "expenses",
+                        "payroll_inputs",
+                        "integrations",
+                        "sso",
+                        "advanced_analytics"
+                      ]
+                    }
+                  },
+                  "limits": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                      "users": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "storageGb": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "planId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantEntitlements"
                 }
               }
             }
@@ -1946,6 +2398,112 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConsoleTenant"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/tenants/{id}/usage": {
+      "get": {
+        "operationId": "BillingController.tenantUsage",
+        "summary": "A tenant's metered usage by month",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Any active vendor staff member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "months",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 6,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 24
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "period": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}$"
+                          },
+                          "metrics": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string",
+                              "enum": [
+                                "seats",
+                                "active_users",
+                                "storage_bytes",
+                                "sms",
+                                "whatsapp",
+                                "api_calls"
+                              ]
+                            },
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "period",
+                          "metrics",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -19911,6 +20469,48 @@
             ],
             "additionalProperties": false
           },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "key": {
+                    "$ref": "#/components/schemas/Key"
+                  },
+                  "name": {
+                    "type": "object",
+                    "properties": {
+                      "en": {
+                        "type": "string"
+                      },
+                      "hi": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "en",
+                      "hi"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "key",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "trialEndsAt": {
             "anyOf": [
               {
@@ -19944,6 +20544,7 @@
           "status",
           "cell",
           "template",
+          "plan",
           "trialEndsAt",
           "demo",
           "activeUsers",
@@ -26945,6 +27546,236 @@
         ],
         "additionalProperties": false
       },
+      "Plan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "priceMonth": {
+            "type": "string"
+          },
+          "priceYear": {
+            "type": "string"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "core",
+                "leave_attendance",
+                "orders",
+                "account_finance",
+                "expenses",
+                "payroll_inputs",
+                "integrations",
+                "sso",
+                "advanced_analytics"
+              ]
+            }
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "users": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "storageGb": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "users",
+              "storageGb"
+            ],
+            "additionalProperties": false
+          },
+          "addons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "price": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "name",
+                "price"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "tenants": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "priceMonth",
+          "priceYear",
+          "modules",
+          "limits",
+          "addons",
+          "active",
+          "tenants",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "PlanBody": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "priceMonth": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "priceYear": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "core",
+                "leave_attendance",
+                "orders",
+                "account_finance",
+                "expenses",
+                "payroll_inputs",
+                "integrations",
+                "sso",
+                "advanced_analytics"
+              ]
+            }
+          },
+          "limits": {
+            "default": {
+              "users": null,
+              "storageGb": null
+            },
+            "type": "object",
+            "properties": {
+              "users": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "storageGb": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "addons": {
+            "default": [],
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "price": {
+                  "$ref": "#/components/schemas/Money"
+                }
+              },
+              "required": [
+                "key",
+                "name",
+                "price"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "active": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "priceMonth",
+          "priceYear",
+          "modules"
+        ],
+        "additionalProperties": false
+      },
       "PlanItemResult": {
         "type": "object",
         "properties": {
@@ -30324,6 +31155,114 @@
           "metrics",
           "rows",
           "totals"
+        ],
+        "additionalProperties": false
+      },
+      "TenantEntitlements": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "key": {
+                    "$ref": "#/components/schemas/Key"
+                  },
+                  "name": {
+                    "$ref": "#/components/schemas/LocalizedText"
+                  }
+                },
+                "required": [
+                  "id",
+                  "key",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "extraModules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "leave_attendance",
+                "orders",
+                "account_finance",
+                "expenses",
+                "payroll_inputs",
+                "integrations",
+                "sso",
+                "advanced_analytics"
+              ]
+            }
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "core",
+                "leave_attendance",
+                "orders",
+                "account_finance",
+                "expenses",
+                "payroll_inputs",
+                "integrations",
+                "sso",
+                "advanced_analytics"
+              ]
+            }
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "users": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "storageGb": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "users",
+              "storageGb"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "plan",
+          "extraModules",
+          "modules",
+          "limits"
         ],
         "additionalProperties": false
       },

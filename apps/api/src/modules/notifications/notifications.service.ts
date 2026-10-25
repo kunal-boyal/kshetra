@@ -20,7 +20,7 @@ import {
   type WhatsAppConsentBody,
   type WhatsAppConsentResult,
 } from '@thelamp/shared';
-import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import {
   notificationDeliveries,
   notificationPrefs,
@@ -64,6 +64,29 @@ export class NotificationsService {
   ) {}
 
   /** The categories a person muted. */
+  /** Messages sent by a channel in `[from, to)`, for metered usage (M22, decision D89). */
+  async sentCount(
+    tx: TenantTx,
+    tenantId: string,
+    channel: 'sms' | 'whatsapp',
+    from: Date,
+    to: Date,
+  ): Promise<number> {
+    const [row] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(notificationDeliveries)
+      .where(
+        and(
+          eq(notificationDeliveries.tenantId, tenantId),
+          eq(notificationDeliveries.channel, channel),
+          eq(notificationDeliveries.status, 'sent'),
+          gte(notificationDeliveries.sentAt, from),
+          lt(notificationDeliveries.sentAt, to),
+        ),
+      );
+    return row?.count ?? 0;
+  }
+
   async muted(
     tx: TenantTx,
     tenantId: string,

@@ -1,11 +1,14 @@
-import { PLATFORM_ROLES, TENANT_STATUSES } from '@thelamp/shared';
+import { MODULE_KEYS, PLATFORM_ROLES, TENANT_STATUSES } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
   bigint,
   boolean,
   index,
   integer,
   jsonb,
+  numeric,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -55,8 +58,8 @@ export const tenants = directory.table('tenants', {
   cellId: uuid('cell_id')
     .notNull()
     .references(() => cells.id),
-  // Plans arrive with billing (module M23).
-  planId: uuid('plan_id'),
+  // The tenant's plan (module M23, decision D89); none leaves every module open.
+  planId: uuid('plan_id').references((): AnyPgColumn => plans.id),
   templateKey: text('template_key').notNull(),
   templateVersion: integer('template_version').notNull(),
   /**
@@ -217,4 +220,54 @@ export const platformAudit = directory.table(
     ip: text('ip'),
   },
   (table) => [index('platform_audit_target_idx').on(table.targetType, table.targetId, table.at)],
+);
+
+/**
+ * What tenants buy (spec 5.13, module M23, decision D89): a price per seat, monthly or yearly, the
+ * modules it opens, its limits and its add-ons. Plans are data: the console makes and changes
+ * them, and a plan in use is switched off rather than removed.
+ */
+export const plans = directory.table('plans', {
+  id: uuid('id').primaryKey(),
+  key: text('key').notNull().unique(),
+  name: jsonb('name').$type<{ en: string; hi: string }>().notNull(),
+  priceMonth: numeric('price_month', { precision: 18, scale: 2 }).notNull(),
+  priceYear: numeric('price_year', { precision: 18, scale: 2 }).notNull(),
+  modules: text('modules').array().$type<(typeof MODULE_KEYS)[number][]>().notNull(),
+  limits: jsonb('limits').$type<{ users: number | null; storageGb: number | null }>().notNull(),
+  addons: jsonb('addons')
+    .$type<{ key: string; name: { en: string; hi: string }; price: string }[]>()
+    .notNull()
+    .default([]),
+  active: boolean('active').notNull().default(true),
+  createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** What a tenant has beyond its plan: modules added, and limits that differ from the plan's. */
+export const tenantEntitlements = directory.table('tenant_entitlements', {
+  tenantId: uuid('tenant_id')
+    .primaryKey()
+    .references(() => tenants.id),
+  extraModules: text('extra_modules').array().$type<string[]>().notNull().default([]),
+  limits: jsonb('limits')
+    .$type<{ users?: number | null; storageGb?: number | null }>()
+    .notNull()
+    .default({}),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** A tenant's metered usage for one month (M22): kept current through the month, then final. */
+export const usageRecords = directory.table(
+  'usage_records',
+  {
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    period: text('period').notNull(),
+    metric: text('metric').notNull(),
+    quantity: numeric('quantity', { precision: 24, scale: 4 }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.tenantId, table.period, table.metric] })],
 );

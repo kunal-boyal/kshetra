@@ -336,6 +336,31 @@ const FIXTURES: Record<string, Fixture> = {
     'POST',
     '/platform/v1/tenants/:id/reactivate',
   ),
+  'GET /platform/v1/plans': consoleShutsB('GET', '/platform/v1/plans'),
+  'POST /platform/v1/plans': consoleShutsB('POST', '/platform/v1/plans', {
+    id: newId(),
+    key: 'b_plan',
+    name: { en: 'B plan', hi: 'B plan' },
+    priceMonth: '1',
+    priceYear: '10',
+    modules: ['core'],
+  }),
+  'PUT /platform/v1/plans/:id': consoleShutsB('PUT', `/platform/v1/plans/${newId()}`, {
+    key: 'b_plan',
+    name: { en: 'B plan', hi: 'B plan' },
+    priceMonth: '1',
+    priceYear: '10',
+    modules: ['core'],
+  }),
+  'GET /platform/v1/tenants/:id/entitlements': consoleShutsB(
+    'GET',
+    '/platform/v1/tenants/:id/entitlements',
+  ),
+  'PUT /platform/v1/tenants/:id/plan': consoleShutsB('PUT', '/platform/v1/tenants/:id/plan', {
+    planId: null,
+    extraModules: ['orders'],
+  }),
+  'GET /platform/v1/tenants/:id/usage': consoleShutsB('GET', '/platform/v1/tenants/:id/usage'),
   'GET /platform/v1/templates': consoleShutsB('GET', '/platform/v1/templates'),
   'GET /platform/v1/cells': consoleShutsB('GET', '/platform/v1/cells'),
   'POST /auth/v1/otp/request': {

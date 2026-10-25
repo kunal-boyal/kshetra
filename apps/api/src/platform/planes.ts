@@ -1,4 +1,4 @@
-import type { DeviceInfo, TenantStatus } from '@thelamp/shared';
+import type { DeviceInfo, TenantStatus, ModuleKey, UsageMetric } from '@thelamp/shared';
 
 /**
  * The seams between the directory plane and a cell (spec 9.3). In phases 0 to 2 both run in one
@@ -54,4 +54,27 @@ export abstract class TenantDirectory {
   abstract rename(tenantId: string, name: string): Promise<void>;
   /** The template the tenant started from, and its version (spec 5.14). */
   abstract template(tenantId: string): Promise<{ key: string; version: number } | undefined>;
+}
+
+/** What a tenant may use (module M23, decision D89): `modules` is null when no plan limits them. */
+export interface Entitled {
+  modules: readonly ModuleKey[] | null;
+  limits: { users: number | null; storageGb: number | null };
+}
+
+/**
+ * The tenant's entitlements, from its plan in the directory. Cells close the modules outside them
+ * and cap active people at the plan's limit.
+ */
+export abstract class Entitlements {
+  abstract forTenant(tenantId: string): Promise<Entitled>;
+}
+
+/** Where a cell sends what it metered for a tenant's month; the directory adds what it knows. */
+export abstract class UsageRecorder {
+  abstract record(
+    tenantId: string,
+    period: string,
+    metrics: Partial<Record<UsageMetric, string>>,
+  ): Promise<void>;
 }

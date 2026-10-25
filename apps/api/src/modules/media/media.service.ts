@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { newId } from '@thelamp/shared';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { media } from '../../db/schema/media';
 import type { TenantTx } from '../../platform/database';
 import { ObjectStore } from '../../platform/object-store';
@@ -59,6 +59,15 @@ export class MediaService {
   }
 
   /** A stored file's bytes, with how it was stored. */
+  /** Bytes the tenant keeps in storage now, derivatives included; deleted files count no more. */
+  async storedBytes(tx: TenantTx, tenantId: string): Promise<number> {
+    const [row] = await tx
+      .select({ bytes: sql<string>`coalesce(sum(${media.size}), 0)::text` })
+      .from(media)
+      .where(and(eq(media.tenantId, tenantId), ne(media.status, 'deleted')));
+    return Number(row?.bytes ?? 0);
+  }
+
   async read(tx: TenantTx, tenantId: string, id: string) {
     const [row] = await tx
       .select({

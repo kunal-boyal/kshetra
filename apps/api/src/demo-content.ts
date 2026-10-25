@@ -29,7 +29,9 @@ try {
     log: (line) => console.log(line),
   }).run();
   console.log(
-    `Done: ${counts.shifts} shifts, ${counts.visits} visits, ${counts.entries} entries, ${counts.photos} photos, ${counts.reviews} reviews.`,
+    `Done: ${counts.shifts} shifts, ${counts.visits} visits, ${counts.entries} entries, ${counts.photos} photos, ${counts.reviews} reviews; ` +
+      `${counts.orders} orders, ${counts.deliveries} delivered; ${counts.leave} leave requests, ${counts.fixes} fixed days, ` +
+      `${counts.claims} claims, ${counts.paid} paid; ${counts.decisions} decisions.`,
   );
   void started;
 } catch (error) {

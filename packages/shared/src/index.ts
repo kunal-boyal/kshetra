@@ -238,6 +238,27 @@ export {
   TotpCode,
 } from './schemas/console';
 export {
+  billableSeats,
+  type BillableSeats,
+  periodDays,
+  type SeatInterval,
+  USAGE_METRICS,
+  type UsageMetric,
+} from './billing';
+export {
+  CreatePlanBody,
+  PlanAddon,
+  PlanBody,
+  PlanIdParams,
+  PlanLimits,
+  PlanListResult,
+  PlanResult,
+  TenantEntitlements,
+  TenantPlanBody,
+  TenantUsageResult,
+  UsageQuery,
+} from './schemas/billing';
+export {
   SYNC_ENTITIES,
   SYNC_PAGE_SIZE,
   SyncAccount,

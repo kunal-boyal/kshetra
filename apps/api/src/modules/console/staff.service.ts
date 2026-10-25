@@ -20,7 +20,7 @@ import { DirectoryDatabase, type DirectoryTx } from '../directory/directory.data
 import { digest, newSecret } from '../directory/secrets';
 import { SigningKey } from '../directory/signing-key';
 import { DECOY_HASH, hashPassword, verifyPassword } from './passwords';
-import { PlatformAudit } from './platform-audit';
+import { PlatformAudit } from '../directory/platform-audit';
 import { matchTotp, newTotpSecret, otpauthUri } from './totp';
 
 /** Console sessions last 12 hours, a working day, and rotate on every refresh. */

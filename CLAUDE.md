@@ -121,6 +121,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Every console change writes `PlatformAudit.record()` in its transaction. Tenants are created through `TenantProvisioner` with the console's own tenant ID.
 - The console app is `apps/console`, built like the portal (`@thelamp/ui-web`, strings in English and Hindi, a Vitest test per screen and Playwright with axe). It calls the API only through `createConsoleClient` from `@thelamp/api-client`. In AWS it is the web module again at an environment's `console_domain`, passing `/platform/*` to the cell.
 
+## Plans and usage (decision D89)
+
+- Plans, entitlements and usage live in `apps/api/src/modules/billing` (directory plane). Cells read a tenant's entitlements through the `Entitlements` seam: `TenantConfigService.settings()` folds modules outside the plan into `modulesOff`, so module checks need nothing else. Without a plan, every module is open.
+- People's active stretches are `cell.seat_intervals`, kept by `Seats` (IAM) in the transaction that changes a user's status; `Seats.assertRoom()` answers `SEAT_LIMIT` past the plan's limit. Billable seats are `billableSeats()` in `@thelamp/shared` (BR-45).
+- Usage is metered hourly by `MeteringService` (`modules/metering`) and recorded through the `UsageRecorder` seam; API calls are counted by `ApiCalls` in the auth guard. A new metric goes in `USAGE_METRICS` and is measured there.
+
 ## Configuration bundle and text (decision D31)
 
 - Strings live in `packages/i18n/src/messages/en.ts` and `hi.ts` under stable keys. Add both languages in the same change. A message names a term through a placeholder such as `{term.account:lower}`, never as a word; plural messages carry `one` and `other`.

@@ -10,11 +10,11 @@ import {
 } from '@thelamp/shared';
 import { loadTemplate, TEMPLATE_KEYS } from '@thelamp/templates';
 import { and, asc, eq, gt, ilike, or, sql, type SQL } from 'drizzle-orm';
-import { cells, memberships, tenants } from '../../db/schema/directory';
+import { cells, memberships, plans, tenants } from '../../db/schema/directory';
 import type { StaffAccess } from '../../platform/auth';
 import { DirectoryDatabase } from '../directory/directory.database';
 import { TenantProvisioner } from '../provisioning/provisioner';
-import { PlatformAudit } from './platform-audit';
+import { PlatformAudit } from '../directory/platform-audit';
 
 const DAY = 86_400_000;
 
@@ -72,18 +72,31 @@ export class ConsoleTenantsService {
       }
       return this.get(body.id);
     }
-    const { id, trialDays, ...input } = body;
+    const { id, trialDays, planId, ...input } = body;
+    if (planId) {
+      const [plan] = await this.database.db
+        .select({ active: plans.active })
+        .from(plans)
+        .where(eq(plans.id, planId));
+      if (!plan?.active) {
+        throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+          { path: 'planId', issue: plan ? 'This plan is switched off' : 'There is no such plan' },
+        ]);
+      }
+    }
     await this.provisioner.provision(input, undefined, {
       tenantId: id,
       ...(input.status === 'trial' ? { trialEndsAt: new Date(Date.now() + trialDays * DAY) } : {}),
     });
-    await this.database.db.transaction((tx) =>
-      this.audit.record(tx, by, 'tenant.created', 'tenant', id, {
+    await this.database.db.transaction(async (tx) => {
+      if (planId) await tx.update(tenants).set({ planId }).where(eq(tenants.id, id));
+      await this.audit.record(tx, by, 'tenant.created', 'tenant', id, {
         slug: input.slug,
         template: input.template,
         status: input.status,
-      }),
-    );
+        planId,
+      });
+    });
     return this.get(id);
   }
 
@@ -127,9 +140,11 @@ export class ConsoleTenantsService {
         kind: cells.kind,
         status: cells.status,
         capacityUsers: cells.capacityUsers,
-        tenants: sql<number>`(select count(*)::int from ${tenants} where ${tenants.cellId} = ${cells.id})`,
+        tenants: sql<number>`count(${tenants.id})::int`,
       })
       .from(cells)
+      .leftJoin(tenants, eq(tenants.cellId, cells.id))
+      .groupBy(cells.id)
       .orderBy(asc(cells.name));
     return rows;
   }
@@ -176,10 +191,14 @@ export class ConsoleTenantsService {
         cellName: cells.name,
         cellRegion: cells.region,
         cellKind: cells.kind,
+        planId: plans.id,
+        planKey: plans.key,
+        planName: plans.name,
         activeUsers: sql<number>`(select count(*)::int from ${memberships} where ${memberships.tenantId} = ${tenants.id} and ${memberships.status} = 'active')`,
       })
       .from(tenants)
       .innerJoin(cells, eq(cells.id, tenants.cellId))
+      .leftJoin(plans, eq(plans.id, tenants.planId))
       .where(where)
       .orderBy(asc(tenants.slug))
       .limit(limit);
@@ -190,6 +209,10 @@ export class ConsoleTenantsService {
       status: row.status,
       cell: { name: row.cellName, region: row.cellRegion, kind: row.cellKind },
       template: { key: row.templateKey, version: row.templateVersion },
+      plan:
+        row.planId && row.planKey && row.planName
+          ? { id: row.planId, key: row.planKey, name: row.planName }
+          : null,
       trialEndsAt: row.trialEndsAt?.toISOString() ?? null,
       demo: row.demo,
       activeUsers: row.activeUsers,

@@ -1,5 +1,8 @@
 import { Global, Module, type OnModuleInit } from '@nestjs/common';
 import type { EventPayload } from '@thelamp/shared';
+import { BillingModule } from './modules/billing/billing.module';
+import { EntitlementsService } from './modules/billing/entitlements.service';
+import { UsageService } from './modules/billing/usage.service';
 import { IamAccess } from './modules/iam/access.service';
 import { IamAdmission } from './modules/iam/admission.service';
 import { IamModule } from './modules/iam/iam.module';
@@ -8,7 +11,13 @@ import { DirectoryMembers } from './modules/directory/members';
 import { DirectoryTenants } from './modules/directory/tenants';
 import { AccessResolver } from './platform/auth';
 import { Outbox } from './platform/outbox';
-import { CellAdmission, MembershipSync, TenantDirectory } from './platform/planes';
+import {
+  CellAdmission,
+  Entitlements,
+  MembershipSync,
+  TenantDirectory,
+  UsageRecorder,
+} from './platform/planes';
 
 /**
  * Connects the directory plane and the cell, which depend on each other only through the seams in
@@ -19,14 +28,23 @@ import { CellAdmission, MembershipSync, TenantDirectory } from './platform/plane
  */
 @Global()
 @Module({
-  imports: [DirectoryModule, IamModule],
+  imports: [DirectoryModule, IamModule, BillingModule],
   providers: [
     { provide: CellAdmission, useExisting: IamAdmission },
     { provide: MembershipSync, useExisting: DirectoryMembers },
     { provide: TenantDirectory, useExisting: DirectoryTenants },
     { provide: AccessResolver, useExisting: IamAccess },
+    { provide: Entitlements, useExisting: EntitlementsService },
+    { provide: UsageRecorder, useExisting: UsageService },
   ],
-  exports: [CellAdmission, MembershipSync, TenantDirectory, AccessResolver],
+  exports: [
+    CellAdmission,
+    MembershipSync,
+    TenantDirectory,
+    AccessResolver,
+    Entitlements,
+    UsageRecorder,
+  ],
 })
 export class PlanesModule implements OnModuleInit {
   constructor(

@@ -5,6 +5,7 @@ import { type FormEvent, useState } from 'react';
 import { markUrl, PRODUCT_NAME } from '../brand';
 import { useConsole } from '../context';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
+import { QrCode } from '../qr-code';
 
 type Step =
   { name: 'password' } | { name: 'authenticator'; secret: string; uri: string } | { name: 'done' };
@@ -128,6 +129,7 @@ export function SetupPage() {
             <form className="flex flex-col gap-4" onSubmit={confirm} noValidate>
               <h1 className="heading-xl">{t('console.authenticator_title')}</h1>
               <p className="ks-muted">{t('console.authenticator_intro')}</p>
+              <QrCode value={step.uri} label={t('console.qr_label')} />
               <p
                 className="font-mono text-lg font-semibold tracking-wide break-all"
                 aria-label={t('console.secret')}

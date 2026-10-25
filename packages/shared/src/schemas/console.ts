@@ -102,6 +102,10 @@ export const ConsoleTenant = z
     status: TenantStatus,
     cell: z.object({ name: z.string(), region: z.string(), kind: z.enum(['shared', 'dedicated']) }),
     template: z.object({ key: Key, version: z.int() }),
+    /** Its plan (decision D89); none leaves every module open. */
+    plan: z
+      .object({ id: z.uuid(), key: Key, name: z.object({ en: z.string(), hi: z.string() }) })
+      .nullable(),
     /** When the trial ends; null for a tenant that isn't on one. */
     trialEndsAt: z.iso.datetime().nullable(),
     demo: z.boolean(),
@@ -134,6 +138,8 @@ export const CreateTenantBody = ProvisionTenantInput.extend({
   id: z.uuid(),
   /** Trial days, for a tenant that opens on trial. */
   trialDays: z.int().min(1).max(90).default(30),
+  /** The plan it starts on (decision D89); none leaves every module open. */
+  planId: z.uuid().nullable().default(null),
 });
 
 /** Suspending says why, for the tenant's record. */

@@ -16,6 +16,8 @@ import type { Config } from '../config';
 import { users } from '../db/schema/iam';
 import { media } from '../db/schema/media';
 import { AccountTypesService } from '../modules/accounts/account-types.service';
+import { EntitlementsService } from '../modules/billing/entitlements.service';
+import { ExamplePlans } from '../modules/billing/example-plans';
 import { AccountsService } from '../modules/accounts/accounts.service';
 import { CatalogueService } from '../modules/catalogue/catalogue.service';
 import { ItemsImport } from '../modules/catalogue/items.import';
@@ -168,6 +170,16 @@ export class DemoContent implements DemoKit {
     for (const person of team) person.places = await this.placesFor(admin, person);
     log('Targets');
     await this.targets(team, first, today);
+    // The demo tenant shows a plan in the console: the example Growth plan opens every module.
+    const examples = await this.get(ExamplePlans).ensure();
+    const growth = examples.get('growth');
+    if (growth) {
+      await this.get(EntitlementsService).set(null, this.tenantId, {
+        planId: growth,
+        extraModules: [],
+        limits: {},
+      });
+    }
     log('Price lists, opening balances and holidays');
     await this.commerce.setUp(admin, team, first);
     await this.requests.setUp(first, today);
