@@ -10,6 +10,7 @@ import { MAX_FILE_BYTES } from './modules/imports/reading';
 import type { Config } from './config';
 import { ErrorFilter } from './platform/errors';
 import { genReqId } from './platform/request-id';
+import { HealthCounters } from './platform/health-counters';
 
 const LEVELS: Record<Config['LOG_LEVEL'], LogLevel[]> = {
   debug: ['debug', 'log', 'warn', 'error', 'fatal'],
@@ -82,7 +83,10 @@ export async function createApp(
     void reply.header('x-request-id', request.id);
   });
   const http = new Logger('HTTP');
+  const health = app.get(HealthCounters);
   fastify.addHook('onResponse', async (request, reply) => {
+    // Each answer counts toward the cell's health, server errors as errors (decision D93).
+    health.request(reply.statusCode);
     // The path only: query strings can carry tokens or signed URLs, which never go in logs (spec 13.1).
     http.log({
       requestId: request.id,

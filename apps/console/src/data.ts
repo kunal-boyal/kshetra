@@ -4,6 +4,7 @@ import {
   ConsoleAnnouncement,
   ConsoleAnnouncementList,
   type BillingAccountBody,
+  CellHealthList,
   type BillingSettingsBody,
   BillingSettingsResult,
   CellListResult,
@@ -158,6 +159,16 @@ export function useStaff() {
   return useQuery({
     queryKey: ['staff'],
     queryFn: () => client.request('GET', '/platform/v1/staff', StaffListResult),
+  });
+}
+
+/** Each cell's health (decision D93), read again every minute while shown. */
+export function useCellHealth() {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['health'],
+    queryFn: () => client.request('GET', '/platform/v1/health', CellHealthList),
+    refetchInterval: 60_000,
   });
 }
 

@@ -1,6 +1,7 @@
 import { type DynamicModule, Global, Module } from '@nestjs/common';
 import type { Config } from '../config';
 import { ApiCalls } from './api-calls';
+import { HealthCounters } from './health-counters';
 import { AuditLog } from './audit';
 import { Database } from './database';
 import { createObjectStore, ObjectStore } from './object-store';
@@ -25,6 +26,7 @@ export class PlatformModule {
         RedisClient,
         RateLimiter,
         ApiCalls,
+        HealthCounters,
         AuditLog,
         Outbox,
         OutboxRelay,
@@ -38,6 +40,7 @@ export class PlatformModule {
         RedisClient,
         RateLimiter,
         ApiCalls,
+        HealthCounters,
         AuditLog,
         Outbox,
         OutboxRelay,

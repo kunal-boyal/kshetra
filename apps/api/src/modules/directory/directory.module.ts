@@ -5,7 +5,9 @@ import { CONFIG } from '../../platform/tokens';
 import {
   AnnouncementsConsoleController,
   AnnouncementsController,
+  CellHealthController,
 } from './announcements.controller';
+import { CellHealthService } from './cell-health.service';
 import { AnnouncementsService } from './announcements.service';
 import { AuthController } from './auth.controller';
 import { DirectoryDatabase } from './directory.database';
@@ -61,6 +63,7 @@ export class DirectoryHealth {
     SupportEntryController,
     AnnouncementsConsoleController,
     AnnouncementsController,
+    CellHealthController,
   ],
   providers: [
     DirectoryDatabase,
@@ -95,6 +98,7 @@ export class DirectoryHealth {
     PlatformAudit,
     SupportService,
     AnnouncementsService,
+    CellHealthService,
   ],
   // The console module reaches the directory schema too (decision D88): its staff and audit live
   // there, and it signs its staff's tokens with the directory's key.
@@ -109,6 +113,7 @@ export class DirectoryHealth {
     PlatformAudit,
     SecondFactorService,
     SupportService,
+    CellHealthService,
   ],
 })
 export class DirectoryModule {}

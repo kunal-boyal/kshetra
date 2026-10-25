@@ -1,5 +1,6 @@
 import {
   ANNOUNCEMENT_TONES,
+  type CellFiguresShape,
   MODULE_KEYS,
   PLATFORM_ROLES,
   SUPPORT_SCOPES,
@@ -277,6 +278,22 @@ export const supportGrants = directory.table(
     index('support_grants_tenant_idx').on(table.tenantId, table.createdAt),
     index('support_grants_staff_idx').on(table.platformUserId, table.createdAt),
   ],
+);
+
+/**
+ * Each cell's health, a minute at a time (module M22, spec 14.6, decision D93): what its scheduler
+ * reported for the minute just gone. Kept two days; the console shows the latest and the last day.
+ */
+export const cellHealth = directory.table(
+  'cell_health',
+  {
+    cellId: uuid('cell_id')
+      .notNull()
+      .references(() => cells.id),
+    at: timestamp('at', { withTimezone: true }).notNull(),
+    figures: jsonb('figures').$type<CellFiguresShape>().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.cellId, table.at] })],
 );
 
 export const announcementTone = directory.enum('announcement_tone', ANNOUNCEMENT_TONES);

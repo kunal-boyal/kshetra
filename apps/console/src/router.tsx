@@ -18,6 +18,7 @@ import { SignInPage } from './pages/sign-in';
 import { StaffPage } from './pages/staff';
 import { SupportPage } from './pages/support';
 import { AnnouncementsPage } from './pages/announcements';
+import { HealthPage } from './pages/health';
 import { TenantPage } from './pages/tenant';
 import { TenantsPage } from './pages/tenants';
 import { Shell } from './shell';
@@ -93,6 +94,7 @@ const invoice = createRoute({
   },
 });
 const staff = createRoute({ getParentRoute: () => app, path: '/staff', component: StaffPage });
+const health = createRoute({ getParentRoute: () => app, path: '/health', component: HealthPage });
 const announcements = createRoute({
   getParentRoute: () => app,
   path: '/announcements',
@@ -120,6 +122,7 @@ const routeTree = root.addChildren([
     staff,
     support,
     announcements,
+    health,
   ]),
 ]);
 

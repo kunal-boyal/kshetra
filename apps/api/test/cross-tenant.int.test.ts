@@ -413,6 +413,7 @@ const FIXTURES: Record<string, Fixture> = {
     'POST',
     '/platform/v1/tenants/:id/mandate',
   ),
+  'GET /platform/v1/health': consoleShutsB('GET', '/platform/v1/health'),
   'GET /platform/v1/announcements': consoleShutsB('GET', '/platform/v1/announcements'),
   'POST /platform/v1/announcements': consoleShutsB('POST', '/platform/v1/announcements', {
     id: newId(),

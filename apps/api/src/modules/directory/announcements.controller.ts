@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import {
   AnnouncementBody,
+  CellHealthList,
   AnnouncementQuery,
   ConsoleAnnouncement,
   ConsoleAnnouncementList,
@@ -17,6 +18,7 @@ import {
 } from '../../platform/auth';
 import { Contract } from '../../platform/routes';
 import { AnnouncementsService } from './announcements.service';
+import { CellHealthService } from './cell-health.service';
 
 /**
  * Announcements in the platform console (module M22, decision D93): any staff member reads them;
@@ -79,5 +81,22 @@ export class AnnouncementsController {
   async current(@CurrentAccess() access: Access, @Query() query: unknown) {
     const { surface } = AnnouncementQuery.parse(query);
     return { items: await this.announcements.current(access.tenantId, surface) };
+  }
+}
+
+/** Health per cell in the platform console (decision D93): any staff member reads it. */
+@Controller('platform/v1/health')
+export class CellHealthController {
+  constructor(private readonly health: CellHealthService) {}
+
+  @ForStaff()
+  @Get()
+  @Contract({
+    tag: 'Platform console',
+    summary: 'Each cell’s health: its latest minute, what needs looking at, and its last day',
+    response: CellHealthList,
+  })
+  async report() {
+    return { items: await this.health.report() };
   }
 }
