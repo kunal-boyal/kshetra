@@ -141,6 +141,8 @@ export const AuditListQuery = z.strictObject({
     .optional(),
   targetId: z.uuid().optional(),
   actorId: z.uuid().optional(),
+  /** What vendor support did under one grant (decision D93). */
+  supportGrantId: z.uuid().optional(),
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
 });

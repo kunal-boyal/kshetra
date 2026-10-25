@@ -46,6 +46,7 @@ function page(
     if (path.endsWith('/entitlements')) return OPEN;
     if (path.includes('/usage')) return { items: [] };
     if (path === '/platform/v1/plans') return { items: [PLAN] };
+    if (path.startsWith('/platform/v1/support-grants')) return { items: [] };
     return TENANT;
   });
 }

@@ -236,6 +236,48 @@ async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
       },
     }),
   );
+  await page.route('**/platform/v1/support-grants?**', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: '01a10000-0000-7000-8000-0000000000f1',
+            tenant: { id: TENANT.id, name: TENANT.name },
+            staff: { id: ADMIN.id, name: ADMIN.name },
+            reason: 'Checking why the visit report is empty',
+            scope: 'read',
+            hours: 4,
+            emergency: false,
+            status: 'active',
+            grantedScope: 'read',
+            approvedBy: { kind: 'user', name: 'Anita Rao' },
+            startsAt: '2026-10-26T04:00:00.000Z',
+            endsAt: '2099-10-26T08:00:00.000Z',
+            closedAt: null,
+            closedBy: null,
+            createdAt: '2026-10-26T03:50:00.000Z',
+          },
+          {
+            id: '01a10000-0000-7000-8000-0000000000f2',
+            tenant: { id: TENANT.id, name: TENANT.name },
+            staff: { id: '01a10000-0000-7000-8000-0000000000a2', name: 'Ravi Shah' },
+            reason: 'Orders are failing for everyone',
+            scope: 'read',
+            hours: 2,
+            emergency: true,
+            status: 'requested',
+            grantedScope: null,
+            approvedBy: null,
+            startsAt: null,
+            endsAt: null,
+            closedAt: null,
+            closedBy: null,
+            createdAt: '2026-10-26T03:55:00.000Z',
+          },
+        ],
+      },
+    }),
+  );
   await page.route('**/platform/v1/staff', (route) =>
     route.request().method() === 'POST'
       ? route.fulfill({
@@ -308,6 +350,7 @@ for (const [path, heading] of [
   ['/billing/settings', 'Billing settings'],
   [`/invoices/${INVOICE.id}`, 'Invoice TL/26-27/00042'],
   ['/staff', 'Staff'],
+  ['/support', 'Support access'],
 ] as const) {
   for (const theme of ['light', 'dark'] as const) {
     test(`${path} passes axe in the ${theme} theme`, async ({ page }) => {

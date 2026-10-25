@@ -221,6 +221,12 @@ describe('support access (M22, D93)', () => {
       actor: { kind: 'platform' },
       supportGrantId: grant.id,
     });
+    // The admin sees what vendor staff did with the grant; their own decision is theirs.
+    const done = (await call('GET', `/v1/audit?supportGrantId=${grant.id}`, org.admin)).json();
+    expect(done.items.map((item: { action: string }) => item.action)).toEqual([
+      'designation.created',
+      'support.requested',
+    ]);
 
     expect(
       (await call('POST', `/v1/support-grants/${grant.id}/end`, support)).json().error.code,

@@ -55,7 +55,59 @@ const LIST = {
   updatedAt: '2026-10-20T05:00:00.000Z',
 };
 
+const SUPPORT_BASE = {
+  tenant: { id: '01a10000-0000-7000-8000-000000000001', name: 'Sunrise Traders' },
+  staff: { id: '01a10000-0000-7000-8000-0000000000a2', name: 'Ravi Shah' },
+  emergency: false,
+  closedAt: null,
+  closedBy: null,
+  createdAt: '2026-10-26T03:50:00.000Z',
+};
+
 const ANSWERS: Record<string, unknown> = {
+  '/v1/support-grants': {
+    items: [
+      {
+        ...SUPPORT_BASE,
+        id: '01a10000-0000-7000-8000-0000000000f1',
+        reason: 'Setting up designations with you',
+        scope: 'write',
+        hours: 4,
+        status: 'requested',
+        grantedScope: null,
+        approvedBy: null,
+        startsAt: null,
+        endsAt: null,
+      },
+      {
+        ...SUPPORT_BASE,
+        id: '01a10000-0000-7000-8000-0000000000f2',
+        reason: 'Checking why the visit report is empty',
+        scope: 'read',
+        hours: 2,
+        status: 'active',
+        grantedScope: 'read',
+        approvedBy: { kind: 'user', name: 'Anita Rao' },
+        startsAt: '2026-10-26T04:00:00.000Z',
+        endsAt: '2099-10-26T06:00:00.000Z',
+      },
+      {
+        ...SUPPORT_BASE,
+        id: '01a10000-0000-7000-8000-0000000000f3',
+        reason: 'Looking at a failed import',
+        scope: 'read',
+        hours: 1,
+        status: 'ended',
+        grantedScope: 'read',
+        approvedBy: { kind: 'user', name: 'Anita Rao' },
+        startsAt: '2026-10-20T04:00:00.000Z',
+        endsAt: '2026-10-20T05:00:00.000Z',
+        closedAt: '2026-10-20T04:30:00.000Z',
+        closedBy: { kind: 'staff', name: 'Ravi Shah' },
+      },
+    ],
+  },
+  '/v1/audit': { items: [], nextCursor: null },
   '/v1/sso': {
     connection: {
       protocol: 'saml',
@@ -459,6 +511,8 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'expense-policies',
     'billing',
     'sso',
+    'support-grants',
+    'audit',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -510,6 +564,7 @@ for (const path of [
   `price-lists/${LIST_ID}`,
   'billing',
   'sso',
+  'support',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {
@@ -574,3 +629,38 @@ test('edits an approval chain, accessibly', async ({ page }) => {
   await expect(leave.getByRole('group', { name: 'Use this step only when' })).toBeVisible();
   await expectAccessible(page);
 });
+
+for (const theme of ['light', 'outdoor']) {
+  test(`vendor support sees whose organisation it is in, and until when, in the ${theme} theme`, async ({
+    page,
+  }) => {
+    await mockSignedIn(page);
+    await page.route('**/v1/me', (route) =>
+      route.fulfill({
+        json: {
+          userId: '01a10000-0000-7000-8000-0000000000a2',
+          tenantId: '01a10000-0000-7000-8000-000000000001',
+          cell: 'local',
+          code: 'SUPPORT',
+          name: 'Ravi Shah',
+          designation: 'vendor_support',
+          role: 'vendor_support',
+          scope: 'tenant',
+          permissions: ['settings.manage'],
+          deviceId: null,
+          calendarKey: null,
+          support: {
+            grantId: '01a10000-0000-7000-8000-0000000000f2',
+            staffName: 'Ravi Shah',
+            scope: 'read',
+            endsAt: '2099-10-26T06:00:00.000Z',
+          },
+        },
+      }),
+    );
+    await page.addInitScript((chosen) => localStorage.setItem('theme', chosen), theme);
+    await page.goto('/settings/support');
+    await expect(page.getByRole('status')).toContainText('as vendor support, to see only');
+    await expectAccessible(page);
+  });
+}

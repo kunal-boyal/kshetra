@@ -20,6 +20,10 @@ import {
   PlanResult,
   StaffListResult,
   StaffResult,
+  SupportEntryResult,
+  SupportGrantList,
+  SupportGrantResult,
+  type SupportRequestBody,
   TemplateListResult,
   TenantEntitlements,
   type TenantPlanBody,
@@ -154,6 +158,20 @@ export function useStaff() {
   });
 }
 
+/** Support grants (decision D93): a tenant's, or the signed-in staff member's own, or all. */
+export function useSupportGrants(filters: { tenantId?: string; mine?: boolean }) {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['support-grants', filters],
+    queryFn: () => {
+      const query = new URLSearchParams();
+      if (filters.tenantId) query.set('tenantId', filters.tenantId);
+      if (filters.mine) query.set('mine', 'true');
+      return client.request('GET', `/platform/v1/support-grants?${query}`, SupportGrantList);
+    },
+  });
+}
+
 /** Changes go through here, and every list they touch reads again afterwards. */
 export function useConsoleMutations() {
   const { client } = useConsole();
@@ -263,6 +281,26 @@ export function useConsoleMutations() {
         client.request('POST', `/platform/v1/invoices/${invoiceId}/payments`, InvoiceResult, body),
       // Paying can move the tenant out of grace or read only.
       onSuccess: () => refresh(['invoice', 'invoices', 'tenant-billing', 'tenant', 'tenants']),
+    }),
+    askSupport: useMutation({
+      mutationFn: (body: z.input<typeof SupportRequestBody>) =>
+        client.request('POST', '/platform/v1/support-grants', SupportGrantResult, body),
+      onSuccess: () => refresh(['support-grants']),
+    }),
+    approveSupport: useMutation({
+      mutationFn: (id: string) =>
+        client.request('POST', `/platform/v1/support-grants/${id}/approve`, SupportGrantResult),
+      onSuccess: () => refresh(['support-grants']),
+    }),
+    endSupport: useMutation({
+      mutationFn: (id: string) =>
+        client.request('POST', `/platform/v1/support-grants/${id}/end`, SupportGrantResult),
+      onSuccess: () => refresh(['support-grants']),
+    }),
+    /** A one-time link into the tenant's portal under an open grant. */
+    supportEntry: useMutation({
+      mutationFn: (id: string) =>
+        client.request('POST', `/platform/v1/support-grants/${id}/enter`, SupportEntryResult),
     }),
     invite: useMutation({
       mutationFn: (body: { id: string; email: string; name: string; role: string }) =>

@@ -299,6 +299,15 @@ describe('signing in with single sign-on (decision D91)', () => {
     expect(screen.getByText(/Nobody here has that work email/)).toBeVisible();
   });
 
+  it('says when a vendor support link from the console expired or was used', async () => {
+    window.history.replaceState({}, '', '/sign-in?support=expired');
+    renderApp(fakeClient(async () => ({})));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'That support link has expired or was already used. Open the portal again from the console.',
+    );
+    expect(screen.getByLabelText('Mobile number *')).toBeVisible();
+  });
+
   it('moves to single sign-on when the organisation requires it', async () => {
     const client = fakeClient(async () => {
       throw new ApiError(403, 'SSO_REQUIRED', 'Sign in with SSO.');
