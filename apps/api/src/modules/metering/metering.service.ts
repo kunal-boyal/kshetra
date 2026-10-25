@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { billableSeats, periodDays, todayIn, type UsageMetric } from '@thelamp/shared';
+import { addDays, periodDays, todayIn, type UsageMetric } from '@thelamp/shared';
 import { ApiCalls } from '../../platform/api-calls';
 import { Database } from '../../platform/database';
 import { UsageRecorder } from '../../platform/planes';
@@ -10,6 +10,7 @@ import { Seats } from '../iam/seats';
 import { MediaService } from '../media/media.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { countSeats } from './seat-counts';
 
 /** How often each tenant's month is measured again. */
 export const METERING_EVERY_MS = 60 * 60_000;
@@ -69,19 +70,15 @@ export class MeteringService implements OnModuleInit {
   ): Promise<Partial<Record<UsageMetric, string>>> {
     const { start, end } = periodDays(period);
     const from = startOfLocalDate(start, timezone);
-    const next = new Date(Date.parse(`${end}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
-    const to = startOfLocalDate(next, timezone);
+    const to = startOfLocalDate(addDays(end, 1), timezone);
     return this.database.forTenant(tenantId, async (tx) => {
-      const intervals = await this.seats.during(tx, tenantId, from, to);
-      const seats = billableSeats(
-        intervals.map((interval) => ({
-          userId: interval.userId,
-          from: todayIn(timezone, interval.activeFrom),
-          to: interval.activeTo ? todayIn(timezone, interval.activeTo) : null,
-        })),
-        start,
-        end,
-      );
+      const seats = await countSeats(tx, this.seats, {
+        tenantId,
+        from: start,
+        to: end,
+        timezone,
+        prorate: true,
+      });
       return {
         seats: seats.units,
         storage_bytes: String(await this.media.storedBytes(tx, tenantId)),

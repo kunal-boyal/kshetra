@@ -32,6 +32,7 @@ export function testConfig(overrides: Record<string, string> = {}): Config {
     SMS_PROVIDER: 'memory',
     EMAIL_PROVIDER: 'memory',
     WHATSAPP_PROVIDER: 'memory',
+    PAYMENT_PROVIDER: 'memory',
     // One approved template, so tests see both a template and an event without one.
     WHATSAPP_TEMPLATES: JSON.stringify({ 'plan.today': { en: 'plan_today_en' } }),
     OTP_PEPPER: 'a-test-pepper-of-16+',

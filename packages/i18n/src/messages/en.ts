@@ -2879,6 +2879,34 @@ export const en = {
   'console.usage_whatsapp': 'WhatsApp',
   'console.usage_api_calls': 'API calls',
   'console.no_usage': 'Nothing measured yet. The first figures arrive within the hour.',
+  'billing.notice_invoice_issued_subject': 'Invoice {number} for {organisation}',
+  'billing.notice_invoice_issued_body':
+    'Invoice {number} for {amount} is ready for {organisation}. It is due on {date}. {payment}',
+  'billing.notice_paid_automatically':
+    'It will be paid automatically from your saved payment method.',
+  'billing.notice_pay_by_transfer':
+    'Please pay by bank transfer, quoting the invoice number, or set up automatic payment from Billing in the portal.',
+  'billing.notice_payment_overdue_subject': 'Payment overdue for {organisation}',
+  'billing.notice_payment_overdue_body':
+    '{amount} is overdue for {organisation}. Everyone can keep working until {date}; after that the organisation can only read until it is paid.',
+  'billing.notice_payment_reminder_subject': 'Reminder: payment overdue for {organisation}',
+  'billing.notice_payment_reminder_body':
+    '{amount} is still overdue for {organisation}. From {date} the organisation can only read until it is paid.',
+  'billing.notice_read_only_subject': '{organisation} can only read until paid',
+  'billing.notice_read_only_body':
+    '{amount} is overdue, so {organisation} can only read for now: nothing new can be recorded. Pay before {date} to avoid suspension.',
+  'billing.notice_suspension_soon_subject': '{organisation} will be suspended on {date}',
+  'billing.notice_suspension_soon_body':
+    '{amount} is still overdue. Unless it is paid, {organisation} will be suspended on {date} and nobody will be able to sign in.',
+  'billing.notice_suspended_subject': '{organisation} is suspended',
+  'billing.notice_suspended_body':
+    '{organisation} is suspended because {amount} is overdue. Pay it and contact us to open it again.',
+  'billing.notice_trial_reminder_subject': 'The trial for {organisation} ends on {date}',
+  'billing.notice_trial_reminder_body':
+    'The trial for {organisation} ends on {date}. Subscribe before then to keep working without a break.',
+  'billing.notice_trial_ended_subject': 'The trial for {organisation} has ended',
+  'billing.notice_trial_ended_body':
+    'The trial for {organisation} ended on {date}, so it is suspended. Subscribe to open it again.',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;

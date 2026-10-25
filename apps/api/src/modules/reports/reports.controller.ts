@@ -11,7 +11,7 @@ import {
   ReportPage,
   ReportQuery,
 } from '@thelamp/shared';
-import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, SignedIn, WhileReadOnly } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -67,6 +67,8 @@ export class ReportsController {
     );
   }
 
+  // Exporting only reads, so a read-only tenant may still take its data away (BR-48).
+  @WhileReadOnly()
   @Post('exports')
   @Contract({
     tag: 'Reports',

@@ -49,6 +49,8 @@ export interface Access extends AuthContext {
   /** The role's permissions, less those of modules the tenant switched off (spec 5.13). */
   permissions: ReadonlySet<TenantPermission>;
   modulesOff: readonly SwitchableModule[];
+  /** The tenant may only read (BR-48, BR-49): writes answer `TENANT_READ_ONLY`. */
+  readOnly: boolean;
 }
 
 declare module 'fastify' {
@@ -138,6 +140,16 @@ const MODULE = 'module';
  * without this.
  */
 export const InModule = (module: SwitchableModule) => SetMetadata(MODULE, module);
+
+const WHILE_READ_ONLY = 'while_read_only';
+
+/**
+ * A write a read-only tenant may still make (BR-48): one that only reads, such as requesting an
+ * export, or that settles the bill. Every other write answers `TENANT_READ_ONLY`.
+ */
+export const WhileReadOnly = () => SetMetadata(WHILE_READ_ONLY, true);
+
+const READS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /** The module a handler or its controller belongs to, read without a running app. */
 export function moduleOfRoute(handler: object, controller: object): SwitchableModule | undefined {
@@ -300,6 +312,19 @@ export class AuthGuard implements CanActivate {
     });
     request.access = access;
     this.apiCalls.count(access.tenantId);
+    if (
+      access.readOnly &&
+      !READS.has(request.method) &&
+      !this.reflector.getAllAndOverride<boolean | undefined>(WHILE_READ_ONLY, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      throw new AppError(
+        'TENANT_READ_ONLY',
+        'Your organisation can only read for now. Ask an admin about billing.',
+      );
+    }
 
     const module = this.reflector.getAllAndOverride<SwitchableModule | undefined>(MODULE, [
       context.getHandler(),

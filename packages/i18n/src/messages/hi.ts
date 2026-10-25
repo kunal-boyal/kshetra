@@ -2867,4 +2867,32 @@ export const hi: Record<MessageKey, Message> = {
   'console.usage_whatsapp': 'WhatsApp',
   'console.usage_api_calls': 'API कॉल',
   'console.no_usage': 'अभी कुछ नहीं मापा गया। पहले आँकड़े एक घंटे के भीतर आएँगे।',
+  'billing.notice_invoice_issued_subject': '{organisation} के लिए इनवॉइस {number}',
+  'billing.notice_invoice_issued_body':
+    '{organisation} के लिए {amount} का इनवॉइस {number} तैयार है। इसकी आख़िरी तारीख़ {date} है। {payment}',
+  'billing.notice_paid_automatically':
+    'इसका भुगतान आपके सहेजे गए भुगतान तरीक़े से अपने-आप हो जाएगा।',
+  'billing.notice_pay_by_transfer':
+    'कृपया इनवॉइस नंबर लिखकर बैंक ट्रांसफ़र से भुगतान करें, या पोर्टल के बिलिंग में अपने-आप भुगतान चालू करें।',
+  'billing.notice_payment_overdue_subject': '{organisation} का भुगतान बाक़ी है',
+  'billing.notice_payment_overdue_body':
+    '{organisation} के {amount} बाक़ी हैं। {date} तक सब काम करते रह सकते हैं; उसके बाद भुगतान होने तक संगठन सिर्फ़ देख पाएगा।',
+  'billing.notice_payment_reminder_subject': 'याद दिलाना: {organisation} का भुगतान बाक़ी है',
+  'billing.notice_payment_reminder_body':
+    '{organisation} के {amount} अब भी बाक़ी हैं। {date} से भुगतान होने तक संगठन सिर्फ़ देख पाएगा।',
+  'billing.notice_read_only_subject': 'भुगतान होने तक {organisation} सिर्फ़ देख सकता है',
+  'billing.notice_read_only_body':
+    '{amount} बाक़ी हैं, इसलिए अभी {organisation} सिर्फ़ देख सकता है: कुछ नया दर्ज नहीं हो सकता। निलंबन से बचने के लिए {date} से पहले भुगतान करें।',
+  'billing.notice_suspension_soon_subject': '{organisation} {date} को निलंबित हो जाएगा',
+  'billing.notice_suspension_soon_body':
+    '{amount} अब भी बाक़ी हैं। भुगतान न होने पर {organisation} {date} को निलंबित हो जाएगा और कोई साइन इन नहीं कर पाएगा।',
+  'billing.notice_suspended_subject': '{organisation} निलंबित है',
+  'billing.notice_suspended_body':
+    '{amount} बाक़ी होने के कारण {organisation} निलंबित है। इसे फिर खोलने के लिए भुगतान करें और हमसे संपर्क करें।',
+  'billing.notice_trial_reminder_subject': '{organisation} का ट्रायल {date} को ख़त्म होगा',
+  'billing.notice_trial_reminder_body':
+    '{organisation} का ट्रायल {date} को ख़त्म होगा। बिना रुकावट काम जारी रखने के लिए उससे पहले सदस्यता लें।',
+  'billing.notice_trial_ended_subject': '{organisation} का ट्रायल ख़त्म हो गया',
+  'billing.notice_trial_ended_body':
+    '{organisation} का ट्रायल {date} को ख़त्म हो गया, इसलिए यह निलंबित है। इसे फिर खोलने के लिए सदस्यता लें।',
 };

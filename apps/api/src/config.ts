@@ -165,6 +165,14 @@ const schema = z
         }
       }),
     EMAIL_PROVIDER: z.enum(['smtp', 'console', 'memory']).default('smtp'),
+    // Payments for invoices (decision D90): `off` until the Razorpay account exists, when invoices
+    // are paid by bank transfer and recorded in the console; `console` approves every mandate and
+    // charge locally and on the demo, and `memory` lets tests decide.
+    PAYMENT_PROVIDER: z.enum(['off', 'console', 'memory']).default('off'),
+    // Licence mode for a dedicated install (spec M23, decision D90): the vendor's Ed25519 public
+    // key as PEM, and where the signed licence file is. With both, entitlements come from the file.
+    LICENCE_PUBLIC_KEY: z.string().min(1).optional(),
+    LICENCE_FILE_PATH: z.string().min(1).optional(),
     // Mailpit locally; Amazon SES's SMTP endpoint in AWS.
     SMTP_URL: z.url().default('smtp://127.0.0.1:1025'),
     MAIL_FROM: z.string().min(3).optional(),
@@ -245,6 +253,7 @@ const schema = z
         ['SMS_PROVIDER', config.SMS_PROVIDER],
         ['EMAIL_PROVIDER', config.EMAIL_PROVIDER],
         ['WHATSAPP_PROVIDER', config.WHATSAPP_PROVIDER],
+        ['PAYMENT_PROVIDER', config.PAYMENT_PROVIDER],
       ] as const) {
         if (value === 'memory' || (value === 'console' && config.CELL_PURPOSE !== 'demo')) {
           ctx.addIssue({
@@ -300,6 +309,13 @@ const schema = z
         message: 'Name the DLT template one-time codes go out in.',
       });
     }
+    if (Boolean(config.LICENCE_FILE_PATH) !== Boolean(config.LICENCE_PUBLIC_KEY)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['LICENCE_FILE_PATH'],
+        message: 'Licence mode needs both the licence file and the public key that checks it.',
+      });
+    }
     if (config.OBJECT_STORE === 's3' && !config.S3_BUCKET) {
       ctx.addIssue({
         code: 'custom',
@@ -319,6 +335,7 @@ const schema = z
       ['SMS_PROVIDER', config.SMS_PROVIDER],
       ['EMAIL_PROVIDER', config.EMAIL_PROVIDER],
       ['WHATSAPP_PROVIDER', config.WHATSAPP_PROVIDER],
+      ['PAYMENT_PROVIDER', config.PAYMENT_PROVIDER],
     ] as const) {
       if (value === 'memory' && config.NODE_ENV !== 'test') {
         ctx.addIssue({

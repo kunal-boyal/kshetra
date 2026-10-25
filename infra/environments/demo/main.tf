@@ -217,6 +217,7 @@ locals {
     SMS_PROVIDER           = "console"
     EMAIL_PROVIDER         = "console"
     WHATSAPP_PROVIDER      = "console"
+    PAYMENT_PROVIDER       = "console"
     OTP_PEPPER             = random_password.otp_pepper.result
     COLUMN_KEY             = random_id.column_key.b64_std
     JWT_SIGNING_KEY        = replace(tls_private_key.jwt.private_key_pem_pkcs8, "\n", "\\n")

@@ -83,6 +83,9 @@ describe('tenants in the console (M22)', () => {
       if (path === '/platform/v1/plans') {
         return { items: [PLAN, { ...PLAN, id: PLAN.id.replace('c1', 'c2'), active: false }] };
       }
+      // The new tenant's page reads its plan and usage once it opens.
+      if (path.endsWith('/entitlements')) return OPEN;
+      if (path.includes('/usage')) return { items: [] };
       if (method === 'POST') {
         sent.push(body);
         if (sent.length === 1) {

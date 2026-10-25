@@ -4,6 +4,7 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
   bigint,
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -270,4 +271,183 @@ export const usageRecords = directory.table(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.period, table.metric] })],
+);
+
+/**
+ * Settings of the platform itself, by key (decision D90): `billing` holds the seller's details
+ * and the dunning periods. Defaults apply until a row is written.
+ */
+export const platformSettings = directory.table('platform_settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: uuid('updated_by'),
+});
+
+/** How a tenant pays automatically: none until set up, then active, or failed after a refusal. */
+export const mandateStatus = directory.enum('mandate_status', [
+  'none',
+  'pending',
+  'active',
+  'failed',
+]);
+
+/** The tenant as the buyer on its invoices (module M23, decision D90). */
+export const billingAccounts = directory.table('billing_accounts', {
+  tenantId: uuid('tenant_id')
+    .primaryKey()
+    .references(() => tenants.id),
+  legalName: text('legal_name').notNull(),
+  gstin: text('gstin'),
+  address: text('address').notNull(),
+  // The place of supply: the GST state code, such as 27 for Maharashtra.
+  stateCode: text('state_code').notNull(),
+  email: text('email').notNull(),
+  language: text('language').notNull().default('en'),
+  mandateStatus: mandateStatus('mandate_status').notNull().default('none'),
+  mandateRef: text('mandate_ref'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const billingCycle = directory.enum('billing_cycle', ['month', 'year']);
+export const subscriptionStatus = directory.enum('subscription_status', ['active', 'cancelled']);
+
+/**
+ * A tenant's subscription (spec 10.3): its plan, monthly or annual, the seats an annual one
+ * commits to (raised by each true-up), and its current term. One active subscription a tenant.
+ */
+export const subscriptions = directory.table(
+  'subscriptions',
+  {
+    id: uuid('id').primaryKey(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    planId: uuid('plan_id')
+      .notNull()
+      .references(() => plans.id),
+    cycle: billingCycle('cycle').notNull(),
+    committedSeats: integer('committed_seats'),
+    status: subscriptionStatus('status').notNull().default('active'),
+    startedOn: date('started_on', { mode: 'string' }).notNull(),
+    termStart: date('term_start', { mode: 'string' }),
+    termEnd: date('term_end', { mode: 'string' }),
+    endsOn: date('ends_on', { mode: 'string' }),
+    // The dunning stage last applied to the tenant (BR-48), so a tenant moves only when it changes.
+    dunningStage: text('dunning_stage'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('subscriptions_one_active')
+      .on(table.tenantId)
+      .where(sql`${table.status} = 'active'`),
+  ],
+);
+
+export const invoiceKind = directory.enum('invoice_kind', ['monthly', 'annual', 'true_up']);
+export const invoiceStatus = directory.enum('invoice_status', ['issued', 'paid']);
+
+interface InvoiceParty {
+  legalName: string;
+  gstin: string | null;
+  address: string;
+  stateCode: string;
+  stateName: string;
+}
+
+/**
+ * The vendor's GST tax invoices (BR-47). Issued once and never changed: the seller and buyer are
+ * copied in as they were, and the PDF is drawn from the row whenever it is asked for.
+ */
+export const invoices = directory.table(
+  'invoices',
+  {
+    id: uuid('id').primaryKey(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    subscriptionId: uuid('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id),
+    number: text('number').notNull().unique(),
+    kind: invoiceKind('kind').notNull(),
+    periodFrom: date('period_from', { mode: 'string' }).notNull(),
+    periodTo: date('period_to', { mode: 'string' }).notNull(),
+    issuedOn: date('issued_on', { mode: 'string' }).notNull(),
+    dueOn: date('due_on', { mode: 'string' }).notNull(),
+    seller: jsonb('seller').$type<InvoiceParty & { email: string; sac: string }>().notNull(),
+    buyer: jsonb('buyer').$type<InvoiceParty>().notNull(),
+    lines: jsonb('lines')
+      .$type<{ description: string; quantity: string; rate: string; amount: string }[]>()
+      .notNull(),
+    subtotal: numeric('subtotal', { precision: 18, scale: 2 }).notNull(),
+    // The GST rate the invoice was issued at, in percent.
+    gstRate: numeric('gst_rate', { precision: 7, scale: 4 }).notNull(),
+    cgst: numeric('cgst', { precision: 18, scale: 2 }).notNull(),
+    sgst: numeric('sgst', { precision: 18, scale: 2 }).notNull(),
+    igst: numeric('igst', { precision: 18, scale: 2 }).notNull(),
+    total: numeric('total', { precision: 18, scale: 2 }).notNull(),
+    status: invoiceStatus('status').notNull().default('issued'),
+    example: boolean('example').notNull().default(false),
+    // When the gateway refused the charge; the invoice is overdue from that day (BR-48).
+    chargeFailedAt: timestamp('charge_failed_at', { withTimezone: true }),
+    providerRef: text('provider_ref'),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    // The billing job issues each period's invoice once, however often it runs.
+    uniqueIndex('invoices_once').on(table.subscriptionId, table.kind, table.periodFrom),
+    index('invoices_tenant_idx').on(table.tenantId, table.issuedOn),
+    index('invoices_status_idx').on(table.status, table.issuedOn),
+  ],
+);
+
+/** The last number used in each invoice series, so numbers run without gaps (BR-47). */
+export const invoiceSequences = directory.table('invoice_sequences', {
+  series: text('series').primaryKey(),
+  last: integer('last').notNull(),
+});
+
+export const paymentMethod = directory.enum('payment_method', [
+  'mandate',
+  'bank_transfer',
+  'cheque',
+  'upi',
+  'other',
+]);
+
+/** Money received against an invoice, through the gateway or recorded by vendor finance. */
+export const payments = directory.table(
+  'payments',
+  {
+    id: uuid('id').primaryKey(),
+    invoiceId: uuid('invoice_id')
+      .notNull()
+      .references(() => invoices.id),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    amount: numeric('amount', { precision: 18, scale: 2 }).notNull(),
+    method: paymentMethod('method').notNull(),
+    reference: text('reference'),
+    receivedOn: date('received_on', { mode: 'string' }).notNull(),
+    providerRef: text('provider_ref').unique(),
+    recordedBy: uuid('recorded_by'),
+    createdAt: createdAt(),
+  },
+  (table) => [index('payments_invoice_idx').on(table.invoiceId)],
+);
+
+/** Billing emails already sent, by tenant and key, so each goes once (BR-48). */
+export const billingNotices = directory.table(
+  'billing_notices',
+  {
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    key: text('key').notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.tenantId, table.key] })],
 );

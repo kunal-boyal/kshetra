@@ -22,6 +22,8 @@ export interface RouteContract {
   body?: z.ZodType;
   /** The body of a success; leave it out when the route answers 204 with none. */
   response?: z.ZodType;
+  /** A success that is a file rather than JSON, such as an invoice's PDF: its media type. */
+  file?: string;
   /** Creates and actions without a client-generated ID take an `Idempotency-Key` (BR-46). */
   idempotencyKey?: boolean;
   /** Request headers beyond the usual ones, such as `If-None-Match`. */

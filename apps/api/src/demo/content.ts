@@ -16,6 +16,7 @@ import type { Config } from '../config';
 import { users } from '../db/schema/iam';
 import { media } from '../db/schema/media';
 import { AccountTypesService } from '../modules/accounts/account-types.service';
+import { BillingSettings } from '../modules/billing/billing-settings.service';
 import { EntitlementsService } from '../modules/billing/entitlements.service';
 import { ExamplePlans } from '../modules/billing/example-plans';
 import { AccountsService } from '../modules/accounts/accounts.service';
@@ -180,6 +181,8 @@ export class DemoContent implements DemoKit {
         limits: {},
       });
     }
+    // Fictional seller details, so the demo's console can show invoicing (decision D90).
+    await this.get(BillingSettings).ensureExample();
     log('Price lists, opening balances and holidays');
     await this.commerce.setUp(admin, team, first);
     await this.requests.setUp(first, today);

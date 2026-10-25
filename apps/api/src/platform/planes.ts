@@ -1,4 +1,10 @@
-import type { DeviceInfo, TenantStatus, ModuleKey, UsageMetric } from '@thelamp/shared';
+import type {
+  BillableSeats,
+  DeviceInfo,
+  ModuleKey,
+  TenantStatus,
+  UsageMetric,
+} from '@thelamp/shared';
 
 /**
  * The seams between the directory plane and a cell (spec 9.3). In phases 0 to 2 both run in one
@@ -60,6 +66,8 @@ export abstract class TenantDirectory {
 export interface Entitled {
   modules: readonly ModuleKey[] | null;
   limits: { users: number | null; storageGb: number | null };
+  /** A dedicated install whose licence expired past its grace (BR-49): reads only. */
+  readOnly?: boolean;
 }
 
 /**
@@ -77,4 +85,23 @@ export abstract class UsageRecorder {
     period: string,
     metrics: Partial<Record<UsageMetric, string>>,
   ): Promise<void>;
+}
+
+/**
+ * A tenant's billable seats for some days (BR-45), counted by its cell for the directory's
+ * invoices (decision D90): prorated by day on monthly plans, whole on annual ones.
+ */
+export abstract class SeatCounts {
+  abstract billable(
+    tenantId: string,
+    from: string,
+    to: string,
+    prorate: boolean,
+    billedFrom?: string,
+  ): Promise<BillableSeats>;
+}
+
+/** Who at a tenant hears about billing besides its billing contact: its active admins with email. */
+export abstract class TenantContacts {
+  abstract admins(tenantId: string): Promise<{ name: string; email: string }[]>;
 }
