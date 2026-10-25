@@ -8,6 +8,8 @@ import {
 } from '@tanstack/react-router';
 import type { ConsoleContext } from './context';
 import { NewTenantPage } from './pages/new-tenant';
+import { NewPlanPage, PlanPage } from './pages/plan';
+import { PlansPage } from './pages/plans';
 import { SetupPage } from './pages/setup';
 import { SignInPage } from './pages/sign-in';
 import { StaffPage } from './pages/staff';
@@ -53,12 +55,26 @@ const tenant = createRoute({
     return <TenantPage key={tenantId} tenantId={tenantId} />;
   },
 });
+const plans = createRoute({ getParentRoute: () => app, path: '/plans', component: PlansPage });
+const newPlan = createRoute({
+  getParentRoute: () => app,
+  path: '/plans/new',
+  component: NewPlanPage,
+});
+const plan = createRoute({
+  getParentRoute: () => app,
+  path: '/plans/$planId',
+  component: function PlanRoute() {
+    const { planId } = plan.useParams();
+    return <PlanPage key={planId} planId={planId} />;
+  },
+});
 const staff = createRoute({ getParentRoute: () => app, path: '/staff', component: StaffPage });
 
 const routeTree = root.addChildren([
   signIn,
   setup,
-  app.addChildren([tenants, newTenant, tenant, staff]),
+  app.addChildren([tenants, newTenant, tenant, plans, newPlan, plan, staff]),
 ]);
 
 export function createConsoleRouter(context: ConsoleContext, history?: RouterHistory) {

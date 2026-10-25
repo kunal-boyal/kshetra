@@ -1,4 +1,4 @@
-import type { ConsoleTenant } from '@thelamp/shared';
+import type { ConsoleTenant, ModuleKey } from '@thelamp/shared';
 import { type BadgeVariant, StatusBadge } from '@thelamp/ui-web';
 import { useLanguage } from '../i18n';
 
@@ -27,3 +27,18 @@ export function holds(
 
 /** Vendor staff see moments in their own browser's time zone. */
 export const VIEWER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+/** A plan's state: on sale, or switched off for new tenants. */
+export function PlanStatusBadge({ active }: { active: boolean }) {
+  const { t } = useLanguage();
+  return (
+    <StatusBadge variant={active ? 'success' : 'neutral'}>
+      {t(active ? 'console.plan_on_sale' : 'console.plan_off_sale')}
+    </StatusBadge>
+  );
+}
+
+/** A module's name in the product's own words; the console has no tenant terms. */
+export function moduleName(key: ModuleKey, t: ReturnType<typeof useLanguage>['t']): string {
+  return t(`admin.module_${key}`);
+}

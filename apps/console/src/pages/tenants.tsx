@@ -18,7 +18,7 @@ import { holds, TenantStatusBadge } from './shared';
 
 type Status = ConsoleTenant['status'];
 
-/** Every tenant, with its status, template, cell, people and trial (module M22). */
+/** Every tenant, with its status, template, plan, cell, people and trial (module M22). */
 export function TenantsPage() {
   const { client } = useConsole();
   const { t, locale } = useLanguage();
@@ -55,6 +55,11 @@ export function TenantsPage() {
       key: 'template',
       header: t('console.col_template'),
       render: (row) => row.template.key,
+    },
+    {
+      key: 'plan',
+      header: t('console.col_plan'),
+      render: (row) => (row.plan ? row.plan.name[locale] : t('console.no_plan')),
     },
     { key: 'cell', header: t('console.col_cell'), render: (row) => row.cell.name },
     {

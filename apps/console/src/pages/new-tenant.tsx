@@ -3,7 +3,7 @@ import { newId } from '@thelamp/shared';
 import { Button, Card, SelectField, TextField } from '@thelamp/ui-web';
 import { ArrowLeft } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
-import { useConsoleMutations, useTemplates } from '../data';
+import { useConsoleMutations, usePlans, useTemplates } from '../data';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 
 /** A slug from a name: lowercase letters, digits and hyphens, starting with a letter. */
@@ -25,12 +25,14 @@ export function NewTenantPage() {
   const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const templates = useTemplates();
+  const plans = usePlans();
   const { createTenant } = useConsoleMutations();
   const [id] = useState(newId);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [template, setTemplate] = useState('');
+  const [planId, setPlanId] = useState('');
   const [status, setStatus] = useState<'trial' | 'active'>('trial');
   const [trialDays, setTrialDays] = useState('30');
   const [adminName, setAdminName] = useState('');
@@ -52,6 +54,7 @@ export function NewTenantPage() {
         name: name.trim(),
         slug: chosenSlug,
         template: chosenTemplate,
+        planId: planId || null,
         status,
         ...(status === 'trial' ? { trialDays: Number(trialDays) } : {}),
         admin: {
@@ -106,6 +109,16 @@ export function NewTenantPage() {
               templates.data?.items.find((item) => item.key === chosenTemplate)?.description[locale]
             }
             error={errors.template}
+          />
+          <SelectField
+            label={t('console.col_plan')}
+            none={t('console.no_plan_option')}
+            value={planId}
+            onChange={(event) => setPlanId(event.target.value)}
+            options={(plans.data?.items ?? [])
+              .filter((plan) => plan.active)
+              .map((plan) => ({ value: plan.id, label: plan.name[locale] }))}
+            error={errors.planId}
           />
           <SelectField
             label={t('console.opens_as')}

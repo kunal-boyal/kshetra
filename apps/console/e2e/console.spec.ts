@@ -35,6 +35,20 @@ const TENANT = {
   createdAt: '2026-10-24T10:00:00.000Z',
 };
 
+const PLAN = {
+  id: '01a10000-0000-7000-8000-0000000000c1',
+  key: 'growth',
+  name: { en: 'Growth', hi: 'ग्रोथ' },
+  priceMonth: '499.00',
+  priceYear: '4990.00',
+  modules: ['core', 'leave_attendance', 'orders'],
+  limits: { users: 25, storageGb: 50 },
+  addons: [{ key: 'sms_pack', name: { en: 'SMS pack', hi: 'SMS पैक' }, price: '250.00' }],
+  active: true,
+  tenants: 1,
+  createdAt: '2026-10-20T10:00:00.000Z',
+};
+
 /** Answers the console's calls as the API would; `signedIn` starts with a live session cookie. */
 async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
   let session = signedIn;
@@ -70,6 +84,38 @@ async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
   await page.route(`**/platform/v1/tenants/${TENANT.id}`, (route) =>
     route.fulfill({ json: TENANT }),
   );
+  await page.route(`**/platform/v1/tenants/${TENANT.id}/entitlements`, (route) =>
+    route.fulfill({
+      json: {
+        plan: { id: PLAN.id, key: PLAN.key, name: PLAN.name },
+        extraModules: ['expenses'],
+        modules: ['core', 'leave_attendance', 'orders', 'expenses'],
+        limits: { users: 25, storageGb: 50 },
+        ownLimits: {},
+      },
+    }),
+  );
+  await page.route(`**/platform/v1/tenants/${TENANT.id}/usage?**`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            period: '2026-10',
+            metrics: {
+              seats: '11.4839',
+              active_users: '9.0000',
+              storage_bytes: '2684354560.0000',
+              sms: '42.0000',
+              whatsapp: '0.0000',
+              api_calls: '18250.0000',
+            },
+            updatedAt: '2026-10-25T10:00:00.000Z',
+          },
+        ],
+      },
+    }),
+  );
+  await page.route('**/platform/v1/plans', (route) => route.fulfill({ json: { items: [PLAN] } }));
   await page.route('**/platform/v1/templates', (route) =>
     route.fulfill({
       json: {
@@ -149,6 +195,9 @@ for (const [path, heading] of [
   ['/', 'Tenants'],
   ['/tenants/new', 'New tenant'],
   [`/tenants/${TENANT.id}`, 'Sunrise Agro'],
+  ['/plans', 'Plans'],
+  ['/plans/new', 'New plan'],
+  [`/plans/${PLAN.id}`, 'Growth'],
   ['/staff', 'Staff'],
 ] as const) {
   for (const theme of ['light', 'dark'] as const) {
@@ -169,5 +218,16 @@ test('shows a new staff member’s setup link once, accessibly', async ({ page }
   await page.getByLabel(/^Email/).fill('asha@vendor.example');
   await page.getByRole('button', { name: 'Invite' }).click();
   await expect(page.getByText('http://127.0.0.1:4174/setup#a-one-time-secret')).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('changing a tenant’s plan passes axe, with its usage beside it', async ({ page }) => {
+  await mockApi(page, { signedIn: true });
+  await page.goto(`/tenants/${TENANT.id}`);
+  await expect(page.getByText('12 of 25 active')).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Usage' })).toContainText('2.5 GB');
+  await page.getByRole('button', { name: 'Change the plan' }).click();
+  await page.getByLabel('People active at once').selectOption('own');
+  await expect(page.getByLabel(/^People/).last()).toBeVisible();
   await expectAccessible(page);
 });

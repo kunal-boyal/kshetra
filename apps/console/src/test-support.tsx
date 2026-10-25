@@ -42,6 +42,29 @@ export const TENANT = {
   createdAt: '2026-10-24T10:00:00.000Z',
 };
 
+export const PLAN = {
+  id: '01a10000-0000-7000-8000-0000000000c1',
+  key: 'growth',
+  name: { en: 'Growth', hi: 'ग्रोथ' },
+  priceMonth: '499.00',
+  priceYear: '4990.00',
+  modules: ['core' as const, 'leave_attendance' as const, 'orders' as const],
+  limits: { users: 25, storageGb: 50 },
+  addons: [{ key: 'sms_pack', name: { en: 'SMS pack', hi: 'SMS पैक' }, price: '250.00' }],
+  active: true,
+  tenants: 3,
+  createdAt: '2026-10-20T10:00:00.000Z',
+};
+
+/** A tenant without a plan: every module open, nothing capped. */
+export const OPEN = {
+  plan: null,
+  extraModules: [],
+  modules: ['core', 'leave_attendance', 'orders', 'account_finance', 'expenses'],
+  limits: { users: null, storageGb: null },
+  ownLimits: {},
+};
+
 type Handler = (method: string, path: string, body: unknown) => unknown;
 
 /** A console client that answers from `handler` and never touches a network. */
