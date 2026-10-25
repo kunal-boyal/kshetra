@@ -56,6 +56,27 @@ const LIST = {
 };
 
 const ANSWERS: Record<string, unknown> = {
+  '/v1/sso': {
+    connection: {
+      protocol: 'saml',
+      issuer: null,
+      clientId: null,
+      hasClientSecret: false,
+      entryPoint: 'https://idp.sunrise.example/sso',
+      idpIssuer: 'https://idp.sunrise.example',
+      hasIdpCertificate: true,
+      domains: ['sunrise.example'],
+      enabled: true,
+      enforced: false,
+      updatedAt: '2026-10-25T06:00:00.000Z',
+    },
+    provider: {
+      redirectUri: 'http://127.0.0.1:4173/auth/v1/sso/sunrise/oidc/callback',
+      entityId: 'http://127.0.0.1:4173/auth/v1/sso/sunrise/saml/metadata',
+      acsUrl: 'http://127.0.0.1:4173/auth/v1/sso/sunrise/saml/acs',
+      metadataUrl: 'http://127.0.0.1:4173/auth/v1/sso/sunrise/saml/metadata',
+    },
+  },
   '/v1/billing': {
     account: {
       legalName: 'Sunrise Agro Private Limited',
@@ -437,6 +458,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'leave-types',
     'expense-policies',
     'billing',
+    'sso',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -487,6 +509,7 @@ for (const path of [
   'price-lists/new',
   `price-lists/${LIST_ID}`,
   'billing',
+  'sso',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {

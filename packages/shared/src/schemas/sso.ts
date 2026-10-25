@@ -35,7 +35,8 @@ const SamlSettings = z.strictObject({
   /** The provider's entity ID, which its responses must name. */
   idpIssuer: z.string().trim().min(1).max(500),
   /** The provider's signing certificate, as PEM or bare base64. */
-  idpCertificate: z.string().trim().min(100).max(20_000),
+  /** Left out when changing other settings, to keep the one saved. */
+  idpCertificate: z.string().trim().min(100).max(20_000).optional(),
 });
 
 export const SsoSettings = z.discriminatedUnion('protocol', [OidcSettings, SamlSettings]);
