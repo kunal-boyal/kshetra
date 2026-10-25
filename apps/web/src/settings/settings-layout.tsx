@@ -6,7 +6,7 @@ import { useAccess } from '../people/data';
  * Settings (spec 8.2, M2): the organisation, its rules, words and modules, then its roles,
  * designations, people fields, forms, catalogue and price lists, and the account types, territory levels and
  * metrics they work with, the holiday calendars, leave types and expense policies, who approves each kind of request, the whole configuration as a file
- * to export and import, single sign-on, and billing.
+ * to export and import, single sign-on, vendor support's access, and billing.
  */
 export function SettingsLayout() {
   const { t } = useLanguage();
@@ -62,6 +62,9 @@ export function SettingsLayout() {
       : []),
     ...(access.can('settings.manage') && !access.modulesOff.includes('sso')
       ? [{ to: '/settings/sso', label: t('sso.title') }]
+      : []),
+    ...(access.can('settings.manage')
+      ? [{ to: '/settings/support', label: t('support.title') }]
       : []),
     ...(access.can('billing.manage')
       ? [{ to: '/settings/billing', label: t('billing.title') }]

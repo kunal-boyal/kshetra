@@ -35,6 +35,11 @@ function ssoFailure(): SsoFailure | undefined {
   return SSO_FAILURES.find((failure) => failure === reason);
 }
 
+/** Whether a vendor support link came back here spent or expired (decision D93). */
+function supportLinkSpent(): boolean {
+  return new URLSearchParams(window.location.search).get('support') === 'expired';
+}
+
 /** The authenticator step a sign-in by someone who can change access goes to (decision D91). */
 function secondStep(result: SecondFactor): Step {
   return {
@@ -64,6 +69,7 @@ export function SignInPage() {
   );
   const [busy, setBusy] = useState(false);
   const [wait, setWait] = useState(0);
+  const [spent] = useState(supportLinkSpent);
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -165,6 +171,11 @@ export function SignInPage() {
             {step.name === 'phone' ? (
               <form className="flex flex-col gap-4" onSubmit={sendCode} noValidate>
                 <h1 className="heading-xl">{t('signin.title')}</h1>
+                {spent ? (
+                  <p className="ks-help error" role="alert">
+                    {t('signin.support_expired')}
+                  </p>
+                ) : null}
                 <p className="ks-muted">{t('signin.intro')}</p>
                 <TextField
                   label={t('signin.phone_label')}

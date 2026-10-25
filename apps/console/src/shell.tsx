@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { Button } from '@thelamp/ui-web';
-import { Building2, Languages, LogOut, Receipt, Tags, Users } from 'lucide-react';
+import { Building2, KeyRound, Languages, LogOut, Receipt, Tags, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Brand } from './brand';
 import { useConsole } from './context';
@@ -11,7 +11,7 @@ function NavLink({
   icon,
   children,
 }: {
-  to: '/' | '/plans' | '/billing' | '/staff';
+  to: '/' | '/plans' | '/billing' | '/support' | '/staff';
   icon: ReactNode;
   children: ReactNode;
 }) {
@@ -35,6 +35,7 @@ export function Shell() {
   const navigate = useNavigate();
   const staff = client.staff;
   const managesStaff = staff?.permissions.includes('platform.staff.manage') ?? false;
+  const supports = staff?.permissions.includes('platform.support.request') ?? false;
   return (
     <div className="ks flex min-h-screen flex-col md:flex-row">
       <nav
@@ -58,6 +59,13 @@ export function Shell() {
               {t('console.billing')}
             </NavLink>
           </li>
+          {supports ? (
+            <li>
+              <NavLink to="/support" icon={<KeyRound size={18} aria-hidden="true" />}>
+                {t('console.support')}
+              </NavLink>
+            </li>
+          ) : null}
           {managesStaff ? (
             <li>
               <NavLink to="/staff" icon={<Users size={18} aria-hidden="true" />}>

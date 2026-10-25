@@ -32,6 +32,7 @@ import { useAccess } from '../people/data';
 import { savedTenants } from '../preferences';
 import { Brand } from './brand';
 import { LanguagePicker, ThemePicker } from './preferences-menu';
+import { SupportBanner } from './support-banner';
 
 /**
  * The portal's frame (spec 8.2): navigation on the left, the tenant and the person's choices on
@@ -279,6 +280,7 @@ export function AppShell() {
             </p>
           ) : null}
         </header>
+        <SupportBanner onSignOut={() => act(() => client.signOut())} />
         <main id="content" className="mx-auto w-full max-w-[var(--content-max)] p-6">
           <Outlet />
         </main>

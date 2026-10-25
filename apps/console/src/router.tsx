@@ -16,6 +16,7 @@ import { PlansPage } from './pages/plans';
 import { SetupPage } from './pages/setup';
 import { SignInPage } from './pages/sign-in';
 import { StaffPage } from './pages/staff';
+import { SupportPage } from './pages/support';
 import { TenantPage } from './pages/tenant';
 import { TenantsPage } from './pages/tenants';
 import { Shell } from './shell';
@@ -91,6 +92,11 @@ const invoice = createRoute({
   },
 });
 const staff = createRoute({ getParentRoute: () => app, path: '/staff', component: StaffPage });
+const support = createRoute({
+  getParentRoute: () => app,
+  path: '/support',
+  component: SupportPage,
+});
 
 const routeTree = root.addChildren([
   signIn,
@@ -106,6 +112,7 @@ const routeTree = root.addChildren([
     billingSettings,
     invoice,
     staff,
+    support,
   ]),
 ]);
 

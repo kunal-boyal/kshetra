@@ -9,6 +9,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { holds, TenantStatusBadge, VIEWER_TIME_ZONE } from './shared';
 import { BillingCard } from './tenant-billing';
 import { SecondFactorResetCard } from './tenant-second-factor';
+import { SupportCard } from './support';
 import { PlanCard, UsageCard } from './tenant-plan';
 
 /**
@@ -84,6 +85,7 @@ export function TenantPage({ tenantId }: { tenantId: string }) {
       <PlanCard tenant={row} />
       <BillingCard tenant={row} />
       <UsageCard tenantId={row.id} />
+      <SupportCard tenant={row} />
       <SecondFactorResetCard tenant={row} />
       {failure ? (
         <p className="ks-help error" role="alert">

@@ -58,6 +58,7 @@ export class AuditService {
       query.targetType ? eq(auditLog.targetType, query.targetType) : undefined,
       query.targetId ? eq(auditLog.targetId, query.targetId) : undefined,
       query.actorId ? eq(auditLog.actorId, query.actorId) : undefined,
+      query.supportGrantId ? eq(auditLog.supportGrantId, query.supportGrantId) : undefined,
       query.from ? gte(auditLog.createdAt, new Date(query.from)) : undefined,
       query.to ? lt(auditLog.createdAt, new Date(query.to)) : undefined,
     ];

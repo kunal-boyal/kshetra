@@ -51,6 +51,7 @@ import { MetricEditorPage } from './settings/metric-editor-page';
 import { MetricsPage } from './settings/metrics-page';
 import { BillingPage } from './settings/billing-page';
 import { SsoPage } from './settings/sso-page';
+import { SupportPage } from './settings/support-page';
 import { ModulesPage } from './settings/modules-page';
 import { OrganisationPage } from './settings/organisation-page';
 import { ReportsPage } from './reports/reports-page';
@@ -335,6 +336,11 @@ const ssoSettings = createRoute({
   path: '/sso',
   component: SsoPage,
 });
+const supportSettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/support',
+  component: SupportPage,
+});
 const roles = createRoute({ getParentRoute: () => settings, path: '/roles', component: RolesPage });
 const designations = createRoute({
   getParentRoute: () => settings,
@@ -487,6 +493,7 @@ const tree = root.addChildren([
       modules,
       billingSettings,
       ssoSettings,
+      supportSettings,
       settingsIndex,
       roles,
       designations,
