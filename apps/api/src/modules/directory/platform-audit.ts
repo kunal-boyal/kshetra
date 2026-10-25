@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { newId } from '@thelamp/shared';
 import { platformAudit } from '../../db/schema/directory';
 import type { StaffAccess } from '../../platform/auth';
-import type { DirectoryTx } from '../directory/directory.database';
+import type { DirectoryTx } from './directory.database';
 
 /**
  * What vendor staff did in the console (spec 13.2, decision D88), written in the transaction of

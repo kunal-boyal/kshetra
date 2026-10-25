@@ -17,6 +17,7 @@ import {
 } from './otp-sender';
 import { SessionsService } from './sessions.service';
 import { SigningKey } from './signing-key';
+import { PlatformAudit } from './platform-audit';
 import { DirectoryTenants } from './tenants';
 
 /** For readiness checks: the directory's database, without exposing the connection itself. */
@@ -62,6 +63,7 @@ export class DirectoryHealth {
     SessionsService,
     DirectoryMembers,
     DirectoryTenants,
+    PlatformAudit,
   ],
   // The console module reaches the directory schema too (decision D88): its staff and audit live
   // there, and it signs its staff's tokens with the directory's key.
@@ -73,6 +75,7 @@ export class DirectoryHealth {
     DirectoryTenants,
     DirectoryDatabase,
     SigningKey,
+    PlatformAudit,
   ],
 })
 export class DirectoryModule {}

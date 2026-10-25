@@ -2744,7 +2744,8 @@ export const en = {
   'console.continue': 'Continue',
   'console.authenticator_title': 'Add an authenticator',
   'console.authenticator_intro':
-    'Add this setup key to your authenticator app, or open the link on your phone. Then enter the code the app shows.',
+    'Scan this code with your authenticator app, or add the setup key below by hand. Then enter the code the app shows.',
+  'console.qr_label': 'QR code for your authenticator app',
   'console.secret': 'Setup key',
   'console.open_authenticator': 'Open in an authenticator app',
   'console.secret_once': 'This key is shown only now. Keep it nowhere else.',

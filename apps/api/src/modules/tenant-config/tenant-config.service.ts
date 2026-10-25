@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import {
+  AppError,
   deriveAccent,
   AUTO_APPROVAL_DELAY_HOURS,
   LOCALES,
   type ReviewRulesResult,
+  SWITCHABLE_MODULES,
+  type SwitchableModule,
   type TenantSettings,
   TerminologyOverrides,
   type TermValue,
@@ -14,6 +17,7 @@ import { eq, sql } from 'drizzle-orm';
 import { reviewRules, tenantSettings, terminologyOverrides } from '../../db/schema/tenant-config';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR } from '../../platform/audit';
 import type { TenantTx } from '../../platform/database';
+import { Entitlements } from '../../platform/planes';
 
 /**
  * A tenant's settings (spec 5.1), its words (spec 5.2), and the config version that moves on with
@@ -21,7 +25,27 @@ import type { TenantTx } from '../../platform/database';
  */
 @Injectable()
 export class TenantConfigService {
-  constructor(private readonly audit: AuditLog) {}
+  constructor(
+    private readonly audit: AuditLog,
+    private readonly entitlements: Entitlements,
+  ) {}
+
+  /**
+   * The modules the tenant's plan leaves out (spec 5.13, decision D89). They count as switched off
+   * wherever settings are read, so their routes, phone copies and screens close as an admin's
+   * switch closes them; without a plan, none are left out.
+   */
+  private async outsidePlan(tenantId: string): Promise<SwitchableModule[]> {
+    const { modules } = await this.entitlements.forTenant(tenantId);
+    return modules ? SWITCHABLE_MODULES.filter((module) => !modules.includes(module)) : [];
+  }
+
+  /** Settings as everyone reads them: the admin's switched-off modules, and those outside the plan. */
+  private async effective(tenantId: string, stored: TenantSettings): Promise<TenantSettings> {
+    const outside = await this.outsidePlan(tenantId);
+    if (outside.length === 0) return stored;
+    return { ...stored, modulesOff: [...new Set([...stored.modulesOff, ...outside])] };
+  }
 
   /** The tenant's settings, defaults filled in. */
   async settings(tx: TenantTx, tenantId: string): Promise<TenantSettings> {
@@ -29,7 +53,7 @@ export class TenantConfigService {
       .select({ settings: tenantSettings.settings })
       .from(tenantSettings)
       .where(eq(tenantSettings.tenantId, tenantId));
-    return withDefaults(row?.settings ?? {});
+    return this.effective(tenantId, withDefaults(row?.settings ?? {}));
   }
 
   /** The config version; 0 for a tenant whose configuration never changed. */
@@ -69,9 +93,20 @@ export class TenantConfigService {
       .from(tenantSettings)
       .where(eq(tenantSettings.tenantId, tenantId))
       .for('update');
-    const before = withDefaults(row?.settings ?? {});
+    const before = await this.effective(tenantId, withDefaults(row?.settings ?? {}));
     const changed = { ...row?.settings, ...patch };
-    const settings = withDefaults(changed);
+    if (patch.modulesOff) {
+      // A module outside the plan can't be switched on, and only the admin's own choices are kept.
+      const outside = await this.outsidePlan(tenantId);
+      const opened = outside.filter((module) => !patch.modulesOff!.includes(module));
+      if (opened.length > 0) {
+        throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+          { path: 'modulesOff', issue: `Your plan does not include ${opened.join(', ')}` },
+        ]);
+      }
+      changed.modulesOff = patch.modulesOff.filter((module) => !outside.includes(module));
+    }
+    const settings = await this.effective(tenantId, withDefaults(changed));
     await tx
       .insert(tenantSettings)
       .values({ tenantId, settings: changed, updatedBy: actorId })

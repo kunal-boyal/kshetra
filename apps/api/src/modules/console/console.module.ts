@@ -6,7 +6,6 @@ import { ProvisioningModule } from '../provisioning/provisioning.module';
 import { ConsoleSessionController } from './console-session.controller';
 import { ConsoleTenantsController } from './console-tenants.controller';
 import { ConsoleTenantsService } from './console-tenants.service';
-import { PlatformAudit } from './platform-audit';
 import { StaffService } from './staff.service';
 
 /**
@@ -20,7 +19,6 @@ import { StaffService } from './staff.service';
   controllers: [ConsoleSessionController, ConsoleTenantsController],
   providers: [
     ColumnCipher,
-    PlatformAudit,
     StaffService,
     ConsoleTenantsService,
     { provide: StaffResolver, useExisting: StaffService },

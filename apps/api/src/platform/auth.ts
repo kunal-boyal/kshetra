@@ -22,6 +22,7 @@ import {
 import type { FastifyRequest } from 'fastify';
 import { createLocalJWKSet, errors, type JSONWebKeySet, jwtVerify } from 'jose';
 import type { Config } from '../config';
+import { ApiCalls } from './api-calls';
 import { CONFIG } from './tokens';
 
 /** Who is calling, from a verified access token (spec 11.1). */
@@ -255,6 +256,7 @@ export class AuthGuard implements CanActivate {
     private readonly tokens: AccessTokens,
     private readonly resolver: AccessResolver,
     private readonly staffResolver: StaffResolver,
+    private readonly apiCalls: ApiCalls,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -297,6 +299,7 @@ export class AuthGuard implements CanActivate {
       ...(claims.did ? { deviceId: claims.did } : {}),
     });
     request.access = access;
+    this.apiCalls.count(access.tenantId);
 
     const module = this.reflector.getAllAndOverride<SwitchableModule | undefined>(MODULE, [
       context.getHandler(),

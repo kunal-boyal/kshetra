@@ -274,3 +274,34 @@ export const userTransfers = cell
     ],
   )
   .enableRLS();
+
+/**
+ * Each stretch of time a person was active (BR-45, decision D89): opened when they are added or
+ * reactivated, closed when deactivated, in the same transaction. Billable seats for a period are
+ * read from here; vendor staff are never users, so never seats.
+ */
+export const seatIntervals = cell
+  .table(
+    'seat_intervals',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      userId: uuid('user_id').notNull(),
+      activeFrom: timestamp('active_from', { withTimezone: true }).notNull(),
+      activeTo: timestamp('active_to', { withTimezone: true }),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.userId, table.activeFrom] }),
+      index('seat_intervals_tenant_period').on(table.tenantId, table.activeFrom, table.activeTo),
+      // At most one open stretch a person.
+      uniqueIndex('seat_intervals_one_open')
+        .on(table.tenantId, table.userId)
+        .where(sql`${table.activeTo} is null`),
+      foreignKey({
+        name: 'seat_intervals_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();

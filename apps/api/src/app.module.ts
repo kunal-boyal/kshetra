@@ -2,6 +2,7 @@ import { type DynamicModule, Module, type Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import type { Config } from './config';
 import { AccountsModule } from './modules/accounts/accounts.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { LeaveModule } from './modules/leave/leave.module';
@@ -10,6 +11,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { FieldModule } from './modules/field/field.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { MapsModule } from './modules/maps/maps.module';
+import { MeteringModule } from './modules/metering/metering.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ConfigurationModule } from './modules/configuration/configuration.module';
@@ -45,6 +47,7 @@ export const FEATURE_MODULES = [
   PlanesModule,
   DirectoryModule,
   ConsoleModule,
+  BillingModule,
   IamModule,
   TerritoriesModule,
   TenantConfigModule,
@@ -73,6 +76,7 @@ export const FEATURE_MODULES = [
   LeaveModule,
   ExpensesModule,
   ReviewModule,
+  MeteringModule,
 ];
 
 /** Every controller the API serves: the health checks and each feature module's. */

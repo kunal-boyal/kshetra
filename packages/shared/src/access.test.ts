@@ -81,5 +81,10 @@ describe('granting a role', () => {
     expect(canGrant(manager, { permissions: ['user.view'], scope: 'self' })).toBe(true);
     expect(canGrant(manager, { permissions: ['user.view'], scope: 'tenant' })).toBe(false);
     expect(canGrant(manager, { permissions: ['user.view'], scope: 'territory' })).toBe(false);
+
+    // A permission of a module that is off does nothing, so it never stops a grant (D82, D89).
+    const payroll = { permissions: ['user.view', 'payslip.view'], scope: 'self' as const };
+    expect(canGrant(manager, payroll)).toBe(false);
+    expect(canGrant({ ...manager, modulesOff: ['payroll_inputs'] }, payroll)).toBe(true);
   });
 });
