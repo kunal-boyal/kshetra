@@ -7,6 +7,7 @@ import {
   type TenantUsageResult,
   USAGE_METRICS,
   type UsageMetric,
+  API_DEFAULT_PER_MINUTE,
 } from '@thelamp/shared';
 import {
   Button,
@@ -26,7 +27,8 @@ import { useConsoleMutations, useEntitlements, usePlans, useUsage } from '../dat
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 import { holds, moduleName } from './shared';
 
-type Limit = 'users' | 'storageGb';
+type Limit = 'users' | 'storageGb' | 'apiPerMinute';
+const LIMITS: readonly Limit[] = ['users', 'storageGb', 'apiPerMinute'];
 type LimitMode = 'plan' | 'none' | 'own';
 type Translate = ReturnType<typeof useLanguage>['t'];
 
@@ -78,6 +80,12 @@ export function PlanCard({ tenant }: { tenant: ConsoleTenant }) {
       limit(now.limits.storageGb, (gb) =>
         t('console.gigabytes', { value: formatNumber(gb, { locale }) }),
       ),
+    ],
+    [
+      t('console.api_limit'),
+      t('console.per_minute', {
+        value: formatNumber(now.limits.apiPerMinute ?? API_DEFAULT_PER_MINUTE, { locale }),
+      }),
     ],
   ];
 
@@ -131,10 +139,12 @@ function PlanEditor({
   const [modes, setModes] = useState<Record<Limit, LimitMode>>({
     users: modeOf(now.ownLimits, 'users'),
     storageGb: modeOf(now.ownLimits, 'storageGb'),
+    apiPerMinute: modeOf(now.ownLimits, 'apiPerMinute'),
   });
   const [values, setValues] = useState<Record<Limit, string>>({
     users: now.ownLimits.users?.toString() ?? '',
     storageGb: now.ownLimits.storageGb?.toString() ?? '',
+    apiPerMinute: now.ownLimits.apiPerMinute?.toString() ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string>();
@@ -149,8 +159,8 @@ function PlanEditor({
     event.preventDefault();
     setErrors({});
     setFailure(undefined);
-    const limits: { users?: number | null; storageGb?: number | null } = {};
-    for (const key of ['users', 'storageGb'] as const) {
+    const limits: Partial<Record<Limit, number | null>> = {};
+    for (const key of LIMITS) {
       if (modes[key] === 'none') limits[key] = null;
       if (modes[key] === 'own') limits[key] = Number(values[key]);
     }
@@ -204,16 +214,25 @@ function PlanEditor({
           ))}
         </ChoiceGroup>
       ) : null}
-      {(['users', 'storageGb'] as const).map((key) => (
+      {LIMITS.map((key) => (
         <LimitField
           key={key}
-          label={t(key === 'users' ? 'console.people_limit' : 'console.storage_limit')}
-          valueLabel={t(
-            key === 'users' ? 'console.limit_people_value' : 'console.limit_storage_value',
-          )}
+          label={t(LIMIT_LABEL[key])}
+          valueLabel={t(LIMIT_VALUE_LABEL[key])}
           planValue={
             chosen?.limits[key] == null ? null : formatNumber(chosen.limits[key], { locale })
           }
+          // No API limit means the default, not none (decision D94).
+          {...(key === 'apiPerMinute'
+            ? {
+                openLabel: t('console.limit_follow_default', {
+                  value: formatNumber(API_DEFAULT_PER_MINUTE, { locale }),
+                }),
+                noneLabel: t('console.limit_default', {
+                  value: formatNumber(API_DEFAULT_PER_MINUTE, { locale }),
+                }),
+              }
+            : {})}
           mode={modes[key]}
           onMode={(mode) => setModes((current) => ({ ...current, [key]: mode }))}
           value={values[key]}
@@ -232,9 +251,7 @@ function PlanEditor({
           type="submit"
           variant="primary"
           busy={setPlan.isPending}
-          disabled={(['users', 'storageGb'] as const).some(
-            (key) => modes[key] === 'own' && !values[key],
-          )}
+          disabled={LIMITS.some((key) => modes[key] === 'own' && !values[key])}
         >
           {t('common.save')}
         </Button>
@@ -247,9 +264,22 @@ function PlanEditor({
 }
 
 /** A cap that follows the plan, is lifted, or is this tenant's own number. */
+const LIMIT_LABEL = {
+  users: 'console.people_limit',
+  storageGb: 'console.storage_limit',
+  apiPerMinute: 'console.api_limit',
+} as const;
+const LIMIT_VALUE_LABEL = {
+  users: 'console.limit_people_value',
+  storageGb: 'console.limit_storage_value',
+  apiPerMinute: 'console.limit_api_value',
+} as const;
+
 function LimitField({
   label,
   valueLabel,
+  openLabel,
+  noneLabel,
   planValue,
   mode,
   onMode,
@@ -260,6 +290,9 @@ function LimitField({
 }: {
   label: string;
   valueLabel: string;
+  /** What following a plan without this cap means, and having none, when not "no limit". */
+  openLabel?: string;
+  noneLabel?: string;
   /** The plan's cap, or null when it has none. */
   planValue: string | null;
   mode: LimitMode;
@@ -280,10 +313,10 @@ function LimitField({
             value: 'plan',
             label:
               planValue === null
-                ? t('console.limit_follow_open')
+                ? (openLabel ?? t('console.limit_follow_open'))
                 : t('console.limit_follow', { value: planValue }),
           },
-          { value: 'none', label: t('console.limit_none') },
+          { value: 'none', label: noneLabel ?? t('console.limit_none') },
           { value: 'own', label: t('console.limit_own') },
         ]}
         {...(mode === 'own' ? {} : { error })}
