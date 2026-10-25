@@ -10,6 +10,7 @@ import { IamAdmission } from './modules/iam/admission.service';
 import { IamContacts, IamPeopleEmails, IamPeopleNames } from './modules/iam/contacts';
 import { IamSupportNotices } from './modules/iam/support-notices';
 import { SupportService } from './modules/directory/support.service';
+import { CellHealthService } from './modules/directory/cell-health.service';
 import { IamModule } from './modules/iam/iam.module';
 import { MeteringModule } from './modules/metering/metering.module';
 import { CellSeatCounts } from './modules/metering/seat-counts';
@@ -22,6 +23,7 @@ import { Outbox } from './platform/outbox';
 import { CONFIG } from './platform/tokens';
 import {
   CellAdmission,
+  CellHealthRecorder,
   Entitlements,
   MembershipSync,
   PeopleEmails,
@@ -67,6 +69,7 @@ import {
     { provide: PeopleNames, useExisting: IamPeopleNames },
     { provide: SupportNotices, useExisting: IamSupportNotices },
     { provide: SupportGrants, useExisting: SupportService },
+    { provide: CellHealthRecorder, useExisting: CellHealthService },
   ],
   exports: [
     CellAdmission,
@@ -82,6 +85,7 @@ import {
     PeopleNames,
     SupportNotices,
     SupportGrants,
+    CellHealthRecorder,
   ],
 })
 export class PlanesModule implements OnModuleInit {

@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { Button } from '@thelamp/ui-web';
 import {
+  Activity,
   Building2,
   KeyRound,
   Languages,
@@ -20,7 +21,7 @@ function NavLink({
   icon,
   children,
 }: {
-  to: '/' | '/plans' | '/billing' | '/announcements' | '/support' | '/staff';
+  to: '/' | '/plans' | '/billing' | '/announcements' | '/health' | '/support' | '/staff';
   icon: ReactNode;
   children: ReactNode;
 }) {
@@ -71,6 +72,11 @@ export function Shell() {
           <li>
             <NavLink to="/announcements" icon={<Megaphone size={18} aria-hidden="true" />}>
               {t('console.announcements')}
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/health" icon={<Activity size={18} aria-hidden="true" />}>
+              {t('console.health')}
             </NavLink>
           </li>
           {supports ? (

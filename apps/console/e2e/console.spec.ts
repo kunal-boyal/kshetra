@@ -236,6 +236,57 @@ async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
       },
     }),
   );
+  await page.route('**/platform/v1/health', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            cell: { name: 'local', region: 'ap-south-1', kind: 'shared' },
+            latest: {
+              at: '2026-10-26T10:00:00.000Z',
+              figures: {
+                requests: 412,
+                errors: 13,
+                points: 960,
+                latePoints: 40,
+                queues: {
+                  notifications: {
+                    waiting: 3,
+                    active: 1,
+                    delayed: 0,
+                    failed: 0,
+                    oldestWaitSeconds: 12,
+                  },
+                  exports: {
+                    waiting: 40,
+                    active: 1,
+                    delayed: 0,
+                    failed: 2,
+                    oldestWaitSeconds: 420,
+                  },
+                },
+                outbox: { backlog: 0, oldestSeconds: null },
+                phones: { seen: 120, waiting: 8, parked: 1, oldestQueuedSeconds: 7500 },
+              },
+            },
+            issues: [{ key: 'errors' }, { key: 'queue', queue: 'exports' }],
+            hours: [
+              {
+                hour: '2026-10-26T10:00:00.000Z',
+                requests: 412,
+                errors: 13,
+                points: 960,
+                latePoints: 40,
+                worstQueueWaitSeconds: 420,
+                worstSyncSeconds: 7500,
+                minutes: 1,
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  );
   await page.route('**/platform/v1/announcements', (route) =>
     route.fulfill({
       json: {
@@ -374,6 +425,7 @@ for (const [path, heading] of [
   ['/staff', 'Staff'],
   ['/support', 'Support access'],
   ['/announcements', 'Announcements'],
+  ['/health', 'Health'],
 ] as const) {
   for (const theme of ['light', 'dark'] as const) {
     test(`${path} passes axe in the ${theme} theme`, async ({ page }) => {

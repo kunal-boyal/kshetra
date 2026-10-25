@@ -1,5 +1,6 @@
 import type {
   BillableSeats,
+  CellFiguresShape,
   DeviceInfo,
   ModuleKey,
   SupportScopeKey,
@@ -175,4 +176,9 @@ export abstract class SupportNotices {
 /** A person's name, which the cell keeps, for records the directory writes about them. */
 export abstract class PeopleNames {
   abstract nameOf(tenantId: string, userId: string): Promise<string | null>;
+}
+
+/** Where a cell reports its health each minute (decision D93); the directory keeps it. */
+export abstract class CellHealthRecorder {
+  abstract record(cellName: string, at: Date, figures: CellFiguresShape): Promise<void>;
 }

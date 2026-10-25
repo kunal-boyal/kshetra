@@ -17,8 +17,10 @@ import {
   StartShiftBody,
   paidDays,
   scheduledDays,
+  HEALTH_LIMITS,
 } from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
+import { HealthCounters } from '../../platform/health-counters';
 import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -47,6 +49,7 @@ export class FieldController {
     private readonly locations: LocationsService,
     private readonly attendance: AttendanceService,
     private readonly scopes: Scopes,
+    private readonly health: HealthCounters,
   ) {}
 
   @Post('shifts')
@@ -181,12 +184,22 @@ export class FieldController {
     response: LocationBatchResult,
   })
   @Requires('shift.use')
-  ingest(@CurrentAccess() access: Access, @Body() body: unknown) {
+  async ingest(@CurrentAccess() access: Access, @Body() body: unknown) {
     if (!access.deviceId) throw new AppError('USE_MOBILE_APP', 'Points come from the mobile app.');
     const input = LocationBatchBody.parse(body);
-    return this.database.forTenant(access.tenantId, (tx) =>
+    const result = await this.database.forTenant(access.tenantId, (tx) =>
       this.locations.ingest(tx, access, input),
     );
+    // The cell's ingest rate, and how much of it arrives late (decision D93).
+    const accepted = new Set(result.accepted);
+    const now = Date.now();
+    const late = input.points.filter(
+      (point) =>
+        accepted.has(point.id) &&
+        now - Date.parse(point.capturedAt) > HEALTH_LIMITS.lateSeconds * 1000,
+    ).length;
+    this.health.points(accepted.size, late);
+    return result;
   }
 
   @Get('attendance')

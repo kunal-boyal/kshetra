@@ -917,3 +917,21 @@ export {
   TenantAnnouncement,
   TenantAnnouncementList,
 } from './schemas/announcements';
+export {
+  type CellFigures as CellFiguresShape,
+  HEALTH_ISSUES,
+  HEALTH_LIMITS,
+  HEALTH_SILENT_MINUTES,
+  type HealthIssue,
+  type HealthIssueKey,
+  healthIssues,
+  type QueueFigures as QueueFiguresShape,
+} from './health';
+export {
+  CellFigures,
+  CellHealth,
+  CellHealthList,
+  type CellHealthResult,
+  HealthHour,
+  QueueFigures,
+} from './schemas/health';
