@@ -10,7 +10,7 @@ import { MetricsService } from '../metrics/metrics.service';
 import { OrdersService } from '../orders/orders.service';
 import { PlanningService } from '../planning/planning.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
-import { externalValuesFor } from './external-values';
+import { externalValuesFor } from './external-values.store';
 
 /**
  * The metric engine (spec 12.5, decision D56): one person's day, recomputed from its source
