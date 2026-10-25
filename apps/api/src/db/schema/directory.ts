@@ -1,4 +1,10 @@
-import { MODULE_KEYS, PLATFORM_ROLES, SUPPORT_SCOPES, TENANT_STATUSES } from '@thelamp/shared';
+import {
+  ANNOUNCEMENT_TONES,
+  MODULE_KEYS,
+  PLATFORM_ROLES,
+  SUPPORT_SCOPES,
+  TENANT_STATUSES,
+} from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
@@ -271,6 +277,35 @@ export const supportGrants = directory.table(
     index('support_grants_tenant_idx').on(table.tenantId, table.createdAt),
     index('support_grants_staff_idx').on(table.platformUserId, table.createdAt),
   ],
+);
+
+export const announcementTone = directory.enum('announcement_tone', ANNOUNCEMENT_TONES);
+
+/**
+ * What the vendor tells tenants (module M22, decision D93): a title and body in English and Hindi,
+ * as information or a warning, on the web, the phone or both, to every tenant or those listed,
+ * from its start to its end, unless withdrawn first.
+ */
+export const announcements = directory.table(
+  'announcements',
+  {
+    id: uuid('id').primaryKey(),
+    title: jsonb('title').$type<{ en: string; hi: string }>().notNull(),
+    body: jsonb('body').$type<{ en: string; hi: string }>().notNull(),
+    tone: announcementTone('tone').notNull(),
+    surfaces: text('surfaces').array().notNull(),
+    // Null for every tenant.
+    tenantIds: uuid('tenant_ids').array(),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => platformUsers.id),
+    createdAt: createdAt(),
+    withdrawnAt: timestamp('withdrawn_at', { withTimezone: true }),
+    withdrawnBy: uuid('withdrawn_by').references(() => platformUsers.id),
+  },
+  (table) => [index('announcements_ends_idx').on(table.endsAt)],
 );
 
 /**

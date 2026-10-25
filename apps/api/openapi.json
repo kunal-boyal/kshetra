@@ -1402,6 +1402,151 @@
         }
       }
     },
+    "/platform/v1/announcements": {
+      "get": {
+        "operationId": "AnnouncementsConsoleController.list",
+        "summary": "List announcements",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Any active vendor staff member",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConsoleAnnouncement"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "AnnouncementsConsoleController.create",
+        "summary": "Announce something to tenants",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Vendor staff with every one of: platform.tenant.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleAnnouncement"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/announcements/{id}/withdraw": {
+      "post": {
+        "operationId": "AnnouncementsConsoleController.withdraw",
+        "summary": "Take an announcement down",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Vendor staff with every one of: platform.tenant.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleAnnouncement"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/platform/v1/billing/settings": {
       "get": {
         "operationId": "InvoicingController.readSettings",
@@ -5723,6 +5868,69 @@
                     "entries",
                     "truncated",
                     "count"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/announcements": {
+      "get": {
+        "operationId": "AnnouncementsController.current",
+        "summary": "What the vendor is announcing now",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [
+          {
+            "name": "surface",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "web",
+                "mobile"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Announcement"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
                   ],
                   "additionalProperties": false
                 }
@@ -21688,6 +21896,182 @@
         ],
         "additionalProperties": false
       },
+      "Announcement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "title": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 80,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 80,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning"
+            ]
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "body",
+          "tone",
+          "endsAt"
+        ],
+        "additionalProperties": false
+      },
+      "AnnouncementBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "title": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 80,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 80,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning"
+            ]
+          },
+          "surfaces": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "web",
+                "mobile"
+              ]
+            }
+          },
+          "tenantIds": {
+            "anyOf": [
+              {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "body",
+          "tone",
+          "surfaces",
+          "tenantIds",
+          "startsAt",
+          "endsAt"
+        ],
+        "additionalProperties": false
+      },
       "Approval": {
         "type": "object",
         "properties": {
@@ -22926,6 +23310,155 @@
         "required": [
           "changes",
           "issues"
+        ],
+        "additionalProperties": false
+      },
+      "ConsoleAnnouncement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "title": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 80,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 80,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning"
+            ]
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "web",
+                "mobile"
+              ]
+            }
+          },
+          "tenants": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "showing",
+              "ended",
+              "withdrawn"
+            ]
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "withdrawnAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "body",
+          "tone",
+          "surfaces",
+          "tenants",
+          "startsAt",
+          "endsAt",
+          "status",
+          "createdBy",
+          "createdAt",
+          "withdrawnAt"
         ],
         "additionalProperties": false
       },

@@ -1144,6 +1144,8 @@ platform_users(id, email UQ, name, role, status)
 support_grants(id, tenant_id, platform_user_id, reason, scope enum(read,write), hours, emergency,
                granted_scope, approved_by_user_id, approved_by_staff_id, approved_by_name, starts_at,
                ends_at, declined_at, revoked_at, closed_by_user_id, closed_by_staff_id, closed_by_name)
+announcements(id, title jsonb, body jsonb, tone enum(info,warning), surfaces text[], tenant_ids uuid[] NULL,
+              starts_at, ends_at, created_by, created_at, withdrawn_at, withdrawn_by)
 plans(id, key UQ, name, price_month, price_year, modules text[], limits jsonb, addons jsonb, active)
 billing_accounts(tenant_id PK, legal_name, gstin, address, state_code, email, language,
                  mandate_status, mandate_ref)

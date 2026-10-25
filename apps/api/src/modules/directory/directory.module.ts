@@ -2,6 +2,11 @@ import { Injectable, Module } from '@nestjs/common';
 import type { Config } from '../../config';
 import { TokenKeys } from '../../platform/auth';
 import { CONFIG } from '../../platform/tokens';
+import {
+  AnnouncementsConsoleController,
+  AnnouncementsController,
+} from './announcements.controller';
+import { AnnouncementsService } from './announcements.service';
 import { AuthController } from './auth.controller';
 import { DirectoryDatabase } from './directory.database';
 import { DirectoryMembers } from './members';
@@ -54,6 +59,8 @@ export class DirectoryHealth {
     SupportConsoleController,
     SupportSettingsController,
     SupportEntryController,
+    AnnouncementsConsoleController,
+    AnnouncementsController,
   ],
   providers: [
     DirectoryDatabase,
@@ -87,6 +94,7 @@ export class DirectoryHealth {
     DirectoryTenants,
     PlatformAudit,
     SupportService,
+    AnnouncementsService,
   ],
   // The console module reaches the directory schema too (decision D88): its staff and audit live
   // there, and it signs its staff's tokens with the directory's key.

@@ -896,3 +896,24 @@ export {
   SupportSession,
   SupportStatus,
 } from './schemas/support';
+export {
+  ANNOUNCEMENT_MAX_DAYS,
+  ANNOUNCEMENT_STATUSES,
+  ANNOUNCEMENT_SURFACES,
+  ANNOUNCEMENT_TONES,
+  announcementStatus,
+  type AnnouncementStatus,
+  type AnnouncementSurface as AnnouncementSurfaceKey,
+  type AnnouncementTone as AnnouncementToneKey,
+  announcementWindowIssue,
+} from './announcements';
+export {
+  AnnouncementBody,
+  AnnouncementQuery,
+  AnnouncementSurface,
+  AnnouncementTone,
+  ConsoleAnnouncement,
+  ConsoleAnnouncementList,
+  TenantAnnouncement,
+  TenantAnnouncementList,
+} from './schemas/announcements';

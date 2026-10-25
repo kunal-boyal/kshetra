@@ -19,10 +19,38 @@ import { OTP_LIMITS } from '../src/modules/directory/otp.service';
 import { SYSTEM } from '../src/modules/iam/actor';
 import { UsersService } from '../src/modules/iam/users.service';
 import { CellSetup } from '../src/modules/provisioning/cell-setup.service';
+import { StaffService } from '../src/modules/console/staff.service';
 import { TerritoriesService } from '../src/modules/territories/territories.service';
 import { Database } from '../src/platform/database';
 import { RedisClient } from '../src/platform/redis';
 import { totpAt, totpStep } from '../src/platform/totp';
+
+/**
+ * A vendor staff member, invited, set up and signed in to the console, with their role; named
+ * `Staff <role>`. Returns their access token.
+ */
+export async function staffToken(
+  app: NestFastifyApplication,
+  role: 'support' | 'platform_admin' | 'implementation' | 'finance',
+): Promise<string> {
+  const email = `${role}-${newId().slice(-8)}@vendor.example`;
+  const post = (url: string, payload: object) =>
+    app.inject({ method: 'POST', url, payload, remoteAddress: newAddress() });
+  const { setupUrl } = await app
+    .get(StaffService)
+    .invite({ id: newId(), email, name: `Staff ${role}`, role }, null);
+  const token = setupUrl.split('#')[1]!;
+  const { secret } = (
+    await post('/platform/v1/setup', { token, password: 'a long staff password' })
+  ).json();
+  await post('/platform/v1/setup/confirm', { token, code: totpAt(secret, totpStep()) });
+  const signedIn = await post('/platform/v1/session', {
+    email,
+    password: 'a long staff password',
+    code: totpAt(secret, totpStep() + 1),
+  });
+  return signedIn.json().accessToken;
+}
 
 /** The API's settings for a test, pointed at the run's PostgreSQL and Redis. */
 export function testConfig(overrides: Record<string, string> = {}): Config {
