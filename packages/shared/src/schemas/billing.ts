@@ -86,7 +86,13 @@ export const TenantEntitlements = z
     extraModules: z.array(z.enum(SWITCHABLE_MODULES)),
     /** Every module the tenant may switch on; all of them without a plan. */
     modules: z.array(z.enum(MODULE_KEYS)),
+    /** The limits in force: the tenant's own where it has them, else the plan's. */
     limits: z.object({ users: z.int().nullable(), storageGb: z.int().nullable() }),
+    /** Limits set for this tenant alone; a missing key follows the plan, null lifts the cap. */
+    ownLimits: z.object({
+      users: z.int().nullable().optional(),
+      storageGb: z.int().nullable().optional(),
+    }),
   })
   .meta({ id: 'TenantEntitlements' });
 

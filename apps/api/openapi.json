@@ -31256,13 +31256,44 @@
               "storageGb"
             ],
             "additionalProperties": false
+          },
+          "ownLimits": {
+            "type": "object",
+            "properties": {
+              "users": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "storageGb": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
           "plan",
           "extraModules",
           "modules",
-          "limits"
+          "limits",
+          "ownLimits"
         ],
         "additionalProperties": false
       },

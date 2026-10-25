@@ -56,6 +56,7 @@ export class EntitlementsService extends EntitlementsSeam {
       extraModules: found.extraModules as SwitchableModule[],
       modules: entitled.modules ? [...entitled.modules] : [...AVAILABLE_MODULES],
       limits: entitled.limits,
+      ownLimits: found.limits,
     };
   }
 

@@ -127,10 +127,11 @@ export function createConsoleClient(options: ConsoleClientOptions) {
 
     /**
      * A console request with the staff member's token. A token the server calls expired is
-     * refreshed once and the request sent again; a revoked session signs out.
+     * refreshed once and the request sent again; a revoked session signs out. Creates carry their
+     * own IDs and a `PUT` sets a whole value, so sending either again changes nothing more.
      */
     async request<T>(
-      method: 'GET' | 'POST',
+      method: 'GET' | 'POST' | 'PUT',
       path: string,
       schema: z.ZodType<T>,
       body?: unknown,

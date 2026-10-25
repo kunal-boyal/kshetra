@@ -126,6 +126,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Plans, entitlements and usage live in `apps/api/src/modules/billing` (directory plane). Cells read a tenant's entitlements through the `Entitlements` seam: `TenantConfigService.settings()` folds modules outside the plan into `modulesOff`, so module checks need nothing else. Without a plan, every module is open.
 - People's active stretches are `cell.seat_intervals`, kept by `Seats` (IAM) in the transaction that changes a user's status; `Seats.assertRoom()` answers `SEAT_LIMIT` past the plan's limit. Billable seats are `billableSeats()` in `@thelamp/shared` (BR-45).
 - Usage is metered hourly by `MeteringService` (`modules/metering`) and recorded through the `UsageRecorder` seam; API calls are counted by `ApiCalls` in the auth guard. A new metric goes in `USAGE_METRICS` and is measured there.
+- The console shows plans at `/plans` (`apps/console/src/pages/plans.tsx`, `plan.tsx`) and a tenant's plan and usage on its page (`tenant-plan.tsx`). A new usage metric needs its column heading as `console.usage_<metric>`.
 
 ## Configuration bundle and text (decision D31)
 

@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { Button } from '@thelamp/ui-web';
-import { Building2, Languages, LogOut, Users } from 'lucide-react';
+import { Building2, Languages, LogOut, Tags, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Brand } from './brand';
 import { useConsole } from './context';
@@ -11,7 +11,7 @@ function NavLink({
   icon,
   children,
 }: {
-  to: '/' | '/staff';
+  to: '/' | '/plans' | '/staff';
   icon: ReactNode;
   children: ReactNode;
 }) {
@@ -28,7 +28,7 @@ function NavLink({
   );
 }
 
-/** The console's frame: the rail with its two places, and the bar with who is signed in. */
+/** The console's frame: the rail with its places, and the bar with who is signed in. */
 export function Shell() {
   const { client } = useConsole();
   const { t, locale, setLocale } = useLanguage();
@@ -46,6 +46,11 @@ export function Shell() {
           <li>
             <NavLink to="/" icon={<Building2 size={18} aria-hidden="true" />}>
               {t('console.tenants')}
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/plans" icon={<Tags size={18} aria-hidden="true" />}>
+              {t('console.plans')}
             </NavLink>
           </li>
           {managesStaff ? (

@@ -161,6 +161,7 @@ describe('entitlements (spec 5.13)', () => {
       modules: ['core', 'leave_attendance'],
       extraModules: [],
       limits: { users: null, storageGb: null },
+      ownLimits: {},
     });
     expect((await send('GET', '/v1/orders', t.admin)).json().error.code).toBe('MODULE_DISABLED');
     const bundle = (await send('GET', '/v1/config', t.admin)).json();
@@ -239,6 +240,24 @@ describe('entitlements (spec 5.13)', () => {
       version: off.json().version,
     });
     expect(back.json().error.code).toBe('SEAT_LIMIT');
+
+    // A cap of the tenant's own replaces the plan's; one lifted for it alone is null.
+    const own = await send('PUT', `/platform/v1/tenants/${t.tenantId}/plan`, staff, {
+      planId: capped,
+      limits: { users: 3, storageGb: null },
+    });
+    expect(own.json()).toMatchObject({
+      limits: { users: 3, storageGb: null },
+      ownLimits: { users: 3, storageGb: null },
+    });
+    expect(
+      (
+        await send('PATCH', `/v1/users/${secondId}`, t.admin, {
+          status: 'active',
+          version: off.json().version,
+        })
+      ).statusCode,
+    ).toBe(200);
   });
 });
 

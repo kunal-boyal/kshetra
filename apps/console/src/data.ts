@@ -3,12 +3,19 @@ import {
   CellListResult,
   ConsoleTenant,
   ConsoleTenantList,
+  type CreatePlanBody,
   CreateTenantBody,
   InviteStaffResult,
+  type PlanBody,
+  PlanListResult,
+  PlanResult,
   StaffListResult,
   StaffResult,
   TemplateListResult,
+  TenantEntitlements,
+  type TenantPlanBody,
   type TenantStatusSchema,
+  TenantUsageResult,
 } from '@thelamp/shared';
 import type { z } from 'zod';
 import { useConsole } from './context';
@@ -57,6 +64,35 @@ export function useCells() {
   });
 }
 
+/** Every plan, switched off ones included, with how many tenants are on each (M23). */
+export function usePlans() {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['plans'],
+    queryFn: () => client.request('GET', '/platform/v1/plans', PlanListResult),
+  });
+}
+
+/** A tenant's plan, the modules beyond it and the limits in force (decision D89). */
+export function useEntitlements(tenantId: string) {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['entitlements', tenantId],
+    queryFn: () =>
+      client.request('GET', `/platform/v1/tenants/${tenantId}/entitlements`, TenantEntitlements),
+  });
+}
+
+/** A tenant's metered usage for its last six months, newest first. */
+export function useUsage(tenantId: string) {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['usage', tenantId],
+    queryFn: () =>
+      client.request('GET', `/platform/v1/tenants/${tenantId}/usage?months=6`, TenantUsageResult),
+  });
+}
+
 export function useStaff() {
   const { client } = useConsole();
   return useQuery({
@@ -75,7 +111,7 @@ export function useConsoleMutations() {
     createTenant: useMutation({
       mutationFn: (body: z.input<typeof CreateTenantBody>) =>
         client.request('POST', '/platform/v1/tenants', ConsoleTenant, body),
-      onSuccess: () => refresh(['tenants', 'cells']),
+      onSuccess: () => refresh(['tenants', 'cells', 'plans']),
     }),
     suspend: useMutation({
       mutationFn: ({ id, reason }: { id: string; reason: string }) =>
@@ -86,6 +122,28 @@ export function useConsoleMutations() {
       mutationFn: (id: string) =>
         client.request('POST', `/platform/v1/tenants/${id}/reactivate`, ConsoleTenant),
       onSuccess: () => refresh(['tenants', 'tenant']),
+    }),
+    createPlan: useMutation({
+      mutationFn: (body: z.input<typeof CreatePlanBody>) =>
+        client.request('POST', '/platform/v1/plans', PlanResult, body),
+      onSuccess: () => refresh(['plans']),
+    }),
+    updatePlan: useMutation({
+      mutationFn: ({ id, body }: { id: string; body: z.input<typeof PlanBody> }) =>
+        client.request('PUT', `/platform/v1/plans/${id}`, PlanResult, body),
+      // A plan's tenants follow it at once.
+      onSuccess: () => refresh(['plans', 'entitlements']),
+    }),
+    setPlan: useMutation({
+      mutationFn: ({
+        tenantId,
+        body,
+      }: {
+        tenantId: string;
+        body: z.input<typeof TenantPlanBody>;
+      }) =>
+        client.request('PUT', `/platform/v1/tenants/${tenantId}/plan`, TenantEntitlements, body),
+      onSuccess: () => refresh(['entitlements', 'tenant', 'tenants', 'plans']),
     }),
     invite: useMutation({
       mutationFn: (body: { id: string; email: string; name: string; role: string }) =>

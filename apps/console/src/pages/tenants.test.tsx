@@ -2,7 +2,7 @@ import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { ADMIN, fakeClient, renderConsole, TENANT } from '../test-support';
+import { ADMIN, fakeClient, OPEN, PLAN, renderConsole, TENANT } from '../test-support';
 
 const SUPPORT = {
   ...ADMIN,
@@ -31,6 +31,7 @@ describe('tenants in the console (M22)', () => {
     expect(row).toHaveTextContent('Trial');
     expect(row).toHaveTextContent('agri');
     expect(row).toHaveTextContent('12');
+    expect(row).toHaveTextContent('No plan');
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Load more' }));
     expect(await within(table).findByRole('row', { name: /Zen Pharma/ })).toHaveTextContent(
@@ -79,6 +80,9 @@ describe('tenants in the console (M22)', () => {
           ],
         };
       }
+      if (path === '/platform/v1/plans') {
+        return { items: [PLAN, { ...PLAN, id: PLAN.id.replace('c1', 'c2'), active: false }] };
+      }
       if (method === 'POST') {
         sent.push(body);
         if (sent.length === 1) {
@@ -95,6 +99,10 @@ describe('tenants in the console (M22)', () => {
     await user.type(await screen.findByLabelText(/^Organisation name/), 'Sunrise Agro & Co.');
     expect(screen.getByLabelText(/^Slug/)).toHaveValue('sunrise-agro-co');
     expect(await screen.findByText('For seed companies')).toBeInTheDocument();
+    // Only plans on sale are offered.
+    const plan = screen.getByLabelText('Plan');
+    await waitFor(() => expect(within(plan).getAllByRole('option')).toHaveLength(2));
+    await user.selectOptions(plan, 'Growth');
     await user.type(screen.getByLabelText(/^Name/), 'Kiran Patil');
     await user.type(screen.getByLabelText(/^Mobile number/), '98765 43210');
     await user.click(screen.getByRole('button', { name: 'Create the tenant' }));
@@ -107,6 +115,7 @@ describe('tenants in the console (M22)', () => {
       name: 'Sunrise Agro & Co.',
       slug: 'sunrise-agro',
       template: 'agri',
+      planId: PLAN.id,
       status: 'trial',
       trialDays: 30,
       admin: { name: 'Kiran Patil', phone: '98765 43210' },
@@ -123,6 +132,8 @@ describe('tenants in the console (M22)', () => {
         status = 'suspended';
       }
       if (method === 'POST' && path.endsWith('/reactivate')) status = 'trial';
+      if (path.endsWith('/entitlements')) return OPEN;
+      if (path.includes('/usage')) return { items: [] };
       return { ...TENANT, status };
     });
     renderConsole(`/tenants/${TENANT.id}`, client);
