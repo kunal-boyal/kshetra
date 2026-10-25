@@ -13,6 +13,7 @@ import { People } from '../modules/iam/people';
 import { UsersService } from '../modules/iam/users.service';
 import { DirectoryTenants } from '../modules/directory/tenants';
 import { MetricsService } from '../modules/metrics/metrics.service';
+import { BillingSettings } from '../modules/billing/billing-settings.service';
 import { ExamplePlans } from '../modules/billing/example-plans';
 import { TenantProvisioner } from '../modules/provisioning/provisioner';
 import { TerritoriesService } from '../modules/territories/territories.service';
@@ -246,6 +247,8 @@ export async function seed(app: INestApplicationContext): Promise<SeedReport> {
   const territories = app.get(TerritoriesService);
   // Example plans for the console to show (decision D89); the seed tenants keep every module.
   await app.get(ExamplePlans).ensure();
+  // Fictional seller details, so local invoices can be issued (decision D90).
+  await app.get(BillingSettings).ensureExample();
 
   for (const tenant of SEED) {
     const existing = await app.get(DirectoryTenants).bySlug(tenant.slug);

@@ -1,20 +1,28 @@
 import { Global, Module, type OnModuleInit } from '@nestjs/common';
 import type { EventPayload } from '@thelamp/shared';
 import { BillingModule } from './modules/billing/billing.module';
+import type { Config } from './config';
 import { EntitlementsService } from './modules/billing/entitlements.service';
+import { LicenceEntitlements } from './modules/billing/licence-entitlements';
 import { UsageService } from './modules/billing/usage.service';
 import { IamAccess } from './modules/iam/access.service';
 import { IamAdmission } from './modules/iam/admission.service';
+import { IamContacts } from './modules/iam/contacts';
 import { IamModule } from './modules/iam/iam.module';
+import { MeteringModule } from './modules/metering/metering.module';
+import { CellSeatCounts } from './modules/metering/seat-counts';
 import { DirectoryModule } from './modules/directory/directory.module';
 import { DirectoryMembers } from './modules/directory/members';
 import { DirectoryTenants } from './modules/directory/tenants';
 import { AccessResolver } from './platform/auth';
 import { Outbox } from './platform/outbox';
+import { CONFIG } from './platform/tokens';
 import {
   CellAdmission,
   Entitlements,
   MembershipSync,
+  SeatCounts,
+  TenantContacts,
   TenantDirectory,
   UsageRecorder,
 } from './platform/planes';
@@ -28,14 +36,24 @@ import {
  */
 @Global()
 @Module({
-  imports: [DirectoryModule, IamModule, BillingModule],
+  imports: [DirectoryModule, IamModule, BillingModule, MeteringModule],
   providers: [
     { provide: CellAdmission, useExisting: IamAdmission },
     { provide: MembershipSync, useExisting: DirectoryMembers },
     { provide: TenantDirectory, useExisting: DirectoryTenants },
     { provide: AccessResolver, useExisting: IamAccess },
-    { provide: Entitlements, useExisting: EntitlementsService },
+    {
+      // A dedicated install in licence mode takes its entitlements from the signed file (D90).
+      provide: Entitlements,
+      inject: [CONFIG, EntitlementsService],
+      useFactory: (config: Config, service: EntitlementsService) =>
+        config.LICENCE_FILE_PATH && config.LICENCE_PUBLIC_KEY
+          ? new LicenceEntitlements(config.LICENCE_FILE_PATH, config.LICENCE_PUBLIC_KEY)
+          : service,
+    },
     { provide: UsageRecorder, useExisting: UsageService },
+    { provide: SeatCounts, useExisting: CellSeatCounts },
+    { provide: TenantContacts, useExisting: IamContacts },
   ],
   exports: [
     CellAdmission,
@@ -44,6 +62,8 @@ import {
     AccessResolver,
     Entitlements,
     UsageRecorder,
+    SeatCounts,
+    TenantContacts,
   ],
 })
 export class PlanesModule implements OnModuleInit {

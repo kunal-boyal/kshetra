@@ -128,6 +128,15 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Usage is metered hourly by `MeteringService` (`modules/metering`) and recorded through the `UsageRecorder` seam; API calls are counted by `ApiCalls` in the auth guard. A new metric goes in `USAGE_METRICS` and is measured there.
 - The console shows plans at `/plans` (`apps/console/src/pages/plans.tsx`, `plan.tsx`) and a tenant's plan and usage on its page (`tenant-plan.tsx`). A new usage metric needs its column heading as `console.usage_<metric>`.
 
+## Billing (decision D90)
+
+- Subscriptions, invoices, payments and dunning live in `apps/api/src/modules/billing` (directory plane): `TenantBillingService` (billing details, subscriptions, the mandate), `InvoicesService` (issuing in a gapless series, charging, recording payments), `DunningService` (BR-48) and `BillingCycle`, the hourly job on the vendor's clock (`BILLING_TIME_ZONE`) that issues, renews, trues up, charges, follows up and ends trials. Every step checks what was done before, so it may run any number of times. The rules are pure functions in `packages/shared/src/invoicing.ts`: `gstOn()`, `lineAmount()`, `trueUp()`, `dunning()`, `dunningNotices()`, `licenceState()`, `gstinIssue()`.
+- Issue an invoice only through `InvoicesService.issue()` inside a directory transaction: it takes the next number from `invoice_sequences`, so a failed transaction gives its number back. Issued invoices never change; the PDF (`invoice-pdf.ts`, pdfkit) is drawn from the row on request.
+- Billing reaches the cell through `SeatCounts` (seats for a period, BR-45) and `TenantContacts` (admins' emails); its emails go through `BillingNotices.send()` with a key, so each goes once, in the strings `billing.notice_*`.
+- Read only (BR-48, BR-49): `Access.readOnly` makes the guard refuse writes with `TENANT_READ_ONLY`; mark a write a read-only tenant may still make with `@WhileReadOnly()`.
+- `PAYMENT_PROVIDER` is `off` in production until Razorpay; `console` and `memory` stand in (`gateway.ts`). Seller details and dunning periods are `BillingSettings` (`platform_settings`); `ensureExample()` puts fictional ones in place for the seed and the demo, and a live cell refuses to invoice on them.
+- Licence mode: with `LICENCE_FILE_PATH` and `LICENCE_PUBLIC_KEY`, `LicenceEntitlements` replaces the directory's entitlements. `pnpm licence keys|sign|check` (docs/runbooks/licences.md); the private key never enters the repository.
+
 ## Configuration bundle and text (decision D31)
 
 - Strings live in `packages/i18n/src/messages/en.ts` and `hi.ts` under stable keys. Add both languages in the same change. A message names a term through a placeholder such as `{term.account:lower}`, never as a word; plural messages carry `one` and `other`.

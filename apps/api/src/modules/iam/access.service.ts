@@ -9,7 +9,7 @@ import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
 import { type Access, AccessResolver, type AuthContext } from '../../platform/auth';
 import { Database } from '../../platform/database';
-import { TenantDirectory } from '../../platform/planes';
+import { Entitlements, TenantDirectory } from '../../platform/planes';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 const revoked = () => new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
@@ -25,6 +25,7 @@ export class IamAccess extends AccessResolver {
     private readonly database: Database,
     private readonly tenants: TenantDirectory,
     private readonly config: TenantConfigService,
+    private readonly entitlements: Entitlements,
   ) {
     super();
   }
@@ -86,6 +87,10 @@ export class IamAccess extends AccessResolver {
       scope: user.scope,
       permissions: effectivePermissions(user.permissions as TenantPermission[], found.modulesOff),
       modulesOff: found.modulesOff,
+      // Unpaid past grace (BR-48), or a dedicated install whose licence lapsed (BR-49).
+      readOnly:
+        status === 'read_only' ||
+        ((await this.entitlements.forTenant(auth.tenantId)).readOnly ?? false),
     };
   }
 

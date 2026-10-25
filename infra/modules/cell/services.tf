@@ -112,6 +112,9 @@ locals {
       EMAIL_PROVIDER    = "smtp"
       # Off until a WhatsApp provider account exists (decisions D12, D85); deliveries skip to SMS.
       WHATSAPP_PROVIDER = "off"
+      # Off until the Razorpay account exists (decision D90): invoices are paid by transfer and
+      # recorded in the console.
+      PAYMENT_PROVIDER = "off"
     },
     var.console_url == null ? {} : { CONSOLE_URL = var.console_url },
     var.environment,

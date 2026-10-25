@@ -722,10 +722,10 @@ Rules: BR-42, BR-43.
 ### M23. Billing and subscriptions
 
 - Plans with a per-seat monthly price, annual price, included modules, limits and add-on prices.
-- Seats per billing period follow BR-45. Mid-period additions are prorated; annual subscriptions true up each quarter.
-- Invoices with GST for the vendor's services, payments through a gateway with subscriptions and mandates (Razorpay in India), dunning emails, a grace period, then read-only mode, then suspension.
+- Seats per billing period follow BR-45. Mid-period additions are prorated; annual subscriptions true up each quarter (BR-47).
+- Invoices with GST for the vendor's services (BR-47), payments through a gateway with subscriptions and mandates (Razorpay in India) or recorded by vendor finance, dunning emails, a grace period, then read-only mode, then suspension (BR-48).
 - A billing page for tenant admins: plan, seats, invoices, payment method and add-on usage.
-- Licence mode: a signed entitlement file (signed with the vendor's private key and verified with the public key shipped in the build) states the tenant, user cap, modules and expiry. A dedicated deployment enforces it offline, with a 30-day grace period after expiry.
+- Licence mode: a signed entitlement file (signed with the vendor's private key and verified with the public key shipped in the build) states the tenant, user cap, modules and expiry. A dedicated deployment enforces it offline, with a 30-day grace period after expiry (BR-49).
 
 ## 7. Business rules
 
@@ -806,6 +806,9 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-44 | Clock skew: every request carries the device's current time. If device time differs from server time by more than 10 minutes, records captured on that device since its last good sync are flagged `clock_skew` for reviewers. |
 | BR-45 | Billable seats for a period = distinct users with status `active` at any moment in the period, excluding vendor support identities. Users activated mid-period are prorated by day on monthly plans. |
 | BR-46 | Idempotency: replaying a create with the same ID and the same content returns the original result; the same ID with different content returns `IDEMPOTENCY_CONFLICT` (409). Content equality uses a hash of the canonical request body. |
+| BR-47 | The vendor's invoices: a monthly subscription is invoiced in arrears, from the 4th of the next month, for its BR-45 seats at the plan's monthly price; an annual subscription is invoiced upfront for its committed seats at the annual price, and after each quarter the seats above the commitment (distinct users active in the quarter) are invoiced from the quarter's start to the term's end and join the commitment. GST is CGST and SGST at half the rate each when the place of supply is the seller's state, otherwise IGST, each rounded half-up to the paisa. Numbers run without gaps in one series per financial year (April to March), at most 16 characters. |
+| BR-48 | Dunning: a tenant is overdue from the day a mandate charge is refused, or the day after an invoice falls due unpaid. It is in grace for 7 days, then read only for 14, then suspended (both periods are settings). Paying everything overdue returns a tenant in grace or read only to active; a suspended tenant opens only when the vendor reactivates it. Read only refuses every write but exports and paying. Emails go at once, on days 3 and 6 of grace, when read only begins, 3 days before suspension and on suspension, each once. |
+| BR-49 | Licence mode: a dedicated install accepts a licence only with a valid Ed25519 signature from the vendor's key. It is valid to its expiry date and for 30 days of grace after, then the install is read only until a new licence is in place. Its modules and user cap replace the plan's. |
 
 ## 8. Screens and user experience
 
@@ -1141,9 +1144,15 @@ platform_users(id, email UQ, name, role, status)
 support_grants(id, tenant_id, platform_user_id, reason, scope enum(read,write), approved_by,
                starts_at, ends_at, revoked_at)
 plans(id, key UQ, name, price_month, price_year, modules text[], limits jsonb, addons jsonb, active)
-subscriptions(id, tenant_id, plan_id, billing_cycle, seats_committed, status, provider_ref,
-              current_period_start, current_period_end)
-invoices(id, tenant_id, period, lines jsonb, subtotal, tax, total, status, provider_ref, pdf_key)
+billing_accounts(tenant_id PK, legal_name, gstin, address, state_code, email, language,
+                 mandate_status, mandate_ref)
+subscriptions(id, tenant_id, plan_id, cycle, committed_seats, status, started_on, term_start,
+              term_end, ends_on, dunning_stage)                 UQ(tenant_id) WHERE active
+invoices(id, tenant_id, subscription_id, number UQ, kind, period_from, period_to, issued_on,
+         due_on, seller jsonb, buyer jsonb, lines jsonb, subtotal, gst_rate, cgst, sgst, igst,
+         total, status, charge_failed_at, provider_ref)     UQ(subscription_id, kind, period_from)
+payments(id, invoice_id, tenant_id, amount, method, reference, received_on, provider_ref UQ)
+invoice_sequences(series PK, last) · billing_notices(tenant_id, key) PK · platform_settings(key PK, value)
 usage_records(tenant_id, period, metric, quantity)                           PK(tenant_id, period, metric)
 
 ── Configuration and identity (cell) ─────────────────────────────────────────────
@@ -2083,6 +2092,10 @@ Each example becomes at least one automated test.
 | FX-35 | BR-45 | In a 30-day month: A active all month; B activated on day 16; C deactivated on day 10 | 3 seats; B prorated at 15/30; C counted in full |
 | FX-36 | BR-46 | The same order ID sent again with an identical body, then with a changed quantity | First returns the original order; second returns `IDEMPOTENCY_CONFLICT` |
 | FX-37 | BR-35 | Plan item visited; the submission is rejected after local midnight | `missed` |
+| FX-38 | BR-47 | Subtotal ₹10,000 at 18%; seller in Maharashtra (27); buyer in Maharashtra, then in Karnataka (29) | CGST ₹900 and SGST ₹900; then IGST ₹1,800; ₹11,800 both times |
+| FX-39 | BR-47 | Annual, 10 seats committed at ₹12,000 a year; 13 people active in quarter 2 | 3 seats for 9 months at ₹9,000 each: ₹27,000; the commitment becomes 13 |
+| FX-40 | BR-48 | Overdue since 4 November; 7 days' grace, 14 read only | Grace to 10 November, read only from 11 November, suspended from 25 November |
+| FX-41 | BR-49 | A licence expiring on 31 March 2027 | Valid on 31 March; in grace from 1 to 30 April; read only from 1 May |
 
 ## Appendix E. Permission catalogue
 

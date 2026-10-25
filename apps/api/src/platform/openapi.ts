@@ -171,9 +171,14 @@ export function buildOpenApi(routes: readonly RegisteredRoute[], title: string):
           }
         : {}),
       responses: {
-        [String(route.status)]: response
-          ? { description: 'Success', content: { 'application/json': { schema: response } } }
-          : { description: 'Success, with no body' },
+        [String(route.status)]: contract.file
+          ? {
+              description: 'Success: the file',
+              content: { [contract.file]: { schema: { type: 'string', format: 'binary' } } },
+            }
+          : response
+            ? { description: 'Success', content: { 'application/json': { schema: response } } }
+            : { description: 'Success, with no body' },
         ...Object.fromEntries(
           (contract.also ?? []).map((other) => [
             String(other.status),

@@ -34,6 +34,6 @@ import {
     { provide: EmailSender, inject: [CONFIG], useFactory: (c: Config) => emailSender(c) },
     { provide: WhatsAppSender, inject: [CONFIG], useFactory: (c: Config) => whatsappSender(c) },
   ],
-  exports: [NotificationsService],
+  exports: [NotificationsService, EmailSender],
 })
 export class NotificationsModule {}
