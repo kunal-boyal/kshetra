@@ -36,6 +36,17 @@ export interface AuthContext {
   deviceId?: string;
   /** The caller's address, for the audit log. */
   ip?: string;
+  /** Vendor support's grant (decision D93); `userId` is then the staff member's, not a user's. */
+  supportGrantId?: string;
+}
+
+/** Vendor support inside a tenant under a grant (module M22, decision D93). */
+export interface SupportAccess {
+  grantId: string;
+  staffName: string;
+  /** A read grant's writes answer `SUPPORT_READ_ONLY`. */
+  write: boolean;
+  endsAt: Date;
 }
 
 /**
@@ -51,6 +62,8 @@ export interface Access extends AuthContext {
   modulesOff: readonly SwitchableModule[];
   /** The tenant may only read (BR-48, BR-49): writes answer `TENANT_READ_ONLY`. */
   readOnly: boolean;
+  /** Set when vendor support is calling; nobody at the tenant is. */
+  support?: SupportAccess;
 }
 
 declare module 'fastify' {
@@ -309,6 +322,7 @@ export class AuthGuard implements CanActivate {
       revision: claims.rev,
       ip: request.ip,
       ...(claims.did ? { deviceId: claims.did } : {}),
+      ...(claims.sg ? { supportGrantId: claims.sg } : {}),
     });
     request.access = access;
     this.apiCalls.count(access.tenantId);
@@ -323,6 +337,22 @@ export class AuthGuard implements CanActivate {
       throw new AppError(
         'TENANT_READ_ONLY',
         'Your organisation can only read for now. Ask an admin about billing.',
+      );
+    }
+
+    // A read grant looks without changing anything, as a read-only tenant does.
+    if (
+      access.support &&
+      !access.support.write &&
+      !READS.has(request.method) &&
+      !this.reflector.getAllAndOverride<boolean | undefined>(WHILE_READ_ONLY, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      throw new AppError(
+        'SUPPORT_READ_ONLY',
+        'Your support access lets you look, not change anything.',
       );
     }
 

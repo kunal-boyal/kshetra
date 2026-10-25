@@ -22,6 +22,8 @@ export interface AccessTokenInput {
   revision: number;
   /** The bound phone; the web has none. */
   deviceId?: string;
+  /** Vendor support's grant (decision D93); `userId` is then the staff member's. */
+  supportGrantId?: string;
 }
 
 /**
@@ -86,6 +88,7 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
       cell: input.cell,
       rev: input.revision,
       ...(input.deviceId ? { did: input.deviceId } : {}),
+      ...(input.supportGrantId ? { sg: input.supportGrantId } : {}),
     })
       .setProtectedHeader({ alg: 'ES256', kid: this.publicJwk.kid!, typ: 'JWT' })
       .setSubject(input.userId)

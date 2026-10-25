@@ -86,6 +86,9 @@ describe('demo content (decision D70)', () => {
       `select (select count(*)::int from cell.price_lists where tenant_id = $1) as lists,
               (select count(*)::int from cell.orders where tenant_id = $1 and status = 'fulfilled') as delivered,
               (select count(*)::int from cell.orders where tenant_id = $1 and status = 'submitted') as waiting,
+              (select count(*)::int from cell.orders where tenant_id = $1
+                  and (placed_at at time zone 'Asia/Kolkata')::date
+                      >= (now() at time zone 'Asia/Kolkata')::date - 1) as recent,
               (select count(*)::int from cell.ledger_entries where tenant_id = $1 and reference like 'INV-%') as invoices,
               (select count(*)::int from cell.ledger_entries where tenant_id = $1 and reference like 'RCPT-%') as payments,
               (select count(*)::int from cell.finance_snapshots where tenant_id = $1) as balances,
@@ -96,7 +99,9 @@ describe('demo content (decision D70)', () => {
     );
     expect(phase2!.lists).toBe(2);
     expect(phase2!.delivered).toBeGreaterThan(0);
-    expect(phase2!.waiting).toBeGreaterThan(0);
+    // The last two days' orders wait for their decisions; there are none just after midnight
+    // after a Sunday, before the day's work starts.
+    if (phase2!.recent! > 0) expect(phase2!.waiting).toBeGreaterThan(0);
     expect(phase2!.invoices).toBeGreaterThan(0);
     expect(phase2!.payments).toBeGreaterThan(0);
     expect(phase2!.balances).toBeGreaterThan(0);

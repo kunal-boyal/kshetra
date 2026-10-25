@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { resolveTerminology, translate } from '@thelamp/i18n';
+import { formatDateTime, resolveTerminology, translate } from '@thelamp/i18n';
 import {
   type EventPayload,
   type Locale,
@@ -20,6 +20,9 @@ import { PlanningService } from '../planning/planning.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { DELIVER, NotificationsService } from './notifications.service';
 import { NotificationDelivery } from './delivery';
+
+/** No user has this ID, so every holder counts. */
+const NOBODY = '00000000-0000-0000-0000-000000000000';
 
 /** Minutes past the plan time within which the morning notification still goes (M16). */
 const PLAN_WINDOW_MINUTES = 180;
@@ -60,6 +63,39 @@ export class NotificationsUpkeep implements OnModuleInit {
     id: string,
   ) {
     return (await this.people.facts(tx, tenantId, [id])).get(id)?.name ?? '';
+  }
+
+  /** What a support request says, in each language: what support would do, and for how long. */
+  private supportRequested(request: EventPayload<'support.requested'>) {
+    const both = (locale: Locale) => ({
+      access: translate(`support.access_${request.scope}`, { locale }),
+      duration: translate('support.duration', { locale, params: { count: request.hours } }),
+    });
+    const [en, hi] = [both('en'), both('hi')];
+    return {
+      staff: request.staffName,
+      reason: request.reason,
+      access_en: en.access,
+      access_hi: hi.access,
+      duration_en: en.duration,
+      duration_hi: hi.duration,
+    };
+  }
+
+  /** What an emergency entry says: until when, on the tenant's clock. */
+  private async supportEmergency(
+    tx: Parameters<NotificationsService['notify']>[0],
+    tenantId: string,
+    entry: EventPayload<'support.emergency'>,
+  ) {
+    const { timezone } = await this.config.settings(tx, tenantId);
+    const ends = (locale: Locale) => formatDateTime(entry.endsAt, { locale, timeZone: timezone });
+    return {
+      staff: entry.staffName,
+      reason: entry.reason,
+      ends_en: ends('en'),
+      ends_hi: ends('hi'),
+    };
   }
 
   /** Field users with plan items today hear of them, once a day, from the tenant's plan time. */
@@ -229,6 +265,33 @@ export class NotificationsUpkeep implements OnModuleInit {
         dedupeKey: `export:${finished.exportId}`,
       });
     });
+
+    // Vendor support asks to enter, or entered in an emergency (decision D93): everyone who can
+    // decide on it across the organisation hears, as its admins.
+    this.outbox.consume(
+      ['support.requested', 'support.emergency'],
+      'notifications.support',
+      async (event, tx) => {
+        const admins = await this.people.holding(tx, event.tenantId, 'settings.manage', NOBODY);
+        const values =
+          event.type === 'support.requested'
+            ? this.supportRequested(event.payload as EventPayload<'support.requested'>)
+            : await this.supportEmergency(
+                tx,
+                event.tenantId,
+                event.payload as EventPayload<'support.emergency'>,
+              );
+        for (const userId of admins) {
+          await this.notifications.notify(tx, event.tenantId, {
+            userId,
+            event: event.type as 'support.requested' | 'support.emergency',
+            values,
+            link: '/settings/support',
+            dedupeKey: `support:${event.id}`,
+          });
+        }
+      },
+    );
 
     this.queues.handle('notifications', DELIVER, (data) =>
       this.delivery.deliver(String(data.tenantId), String(data.deliveryId)),

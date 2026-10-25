@@ -2062,6 +2062,16 @@ export const hi: Record<MessageKey, Message> = {
   'notify.category_review': 'अस्वीकृत फ़ॉर्म',
   'notify.category_targets': '{term.target:other}',
   'notify.category_tracking': 'ट्रैकिंग रुकना',
+  'notify.category_support': 'वेंडर सहायता',
+  'notify.support_requested_title': 'वेंडर सहायता पहुँच माँग रही है',
+  'notify.support_requested_body':
+    '{staff} आपके संगठन को {duration} के लिए {access} चाहते हैं: {reason}। सेटिंग्स में इसे मंज़ूर या नामंज़ूर करें।',
+  'support.duration': { one: '{count} घंटे', other: '{count} घंटे' },
+  'support.access_read': 'देखना',
+  'support.access_write': 'देखना और बदलना',
+  'notify.support_emergency_title': 'आपात स्थिति में वेंडर सहायता ने प्रवेश किया',
+  'notify.support_emergency_body':
+    '{staff} {ends} तक आपका संगठन देख सकते हैं, दूसरे वेंडर एडमिन की मंज़ूरी से: {reason}। आप इसे सेटिंग्स में ख़त्म कर सकते हैं।',
   'notify.category_imports': 'इंपोर्ट',
   'notifications.title': 'सूचनाएँ',
   'notifications.open': { one: 'सूचनाएँ, {count} अपठित', other: 'सूचनाएँ, {count} अपठित' },
@@ -3071,6 +3081,7 @@ export const hi: Record<MessageKey, Message> = {
   'billing.standing_read_only':
     '{amount} {since} से बाक़ी है, इसलिए अभी आपका संगठन सिर्फ़ देख सकता है। निलंबन से बचने के लिए {suspend} से पहले भुगतान करें।',
   'billing.standing_suspended': '{amount} {since} से बाक़ी है।',
+  'error.SUPPORT_READ_ONLY': 'आपकी सहायता पहुँच से आप देख सकते हैं, कुछ बदल नहीं सकते।',
   'error.SSO_REQUIRED':
     'आपका संगठन अपने ख़ुद के साइन इन से साइन इन कराता है। आगे बढ़ने के लिए अपना काम का ईमेल डालें।',
   'error.SECOND_FACTOR_REQUIRED':

@@ -11,13 +11,27 @@ export interface AuditActor {
   id: string | null;
   ip?: string | null;
   deviceId?: string | null;
+  /** The grant vendor staff acted under (spec M21, decision D93). */
+  supportGrantId?: string | null;
 }
 
 /** Changes the system makes itself, such as provisioning a tenant. */
 export const SYSTEM_ACTOR: AuditActor = { kind: 'system', id: null };
 
-/** A signed-in user, with the address and device of their request. */
+/**
+ * A signed-in user, with the address and device of their request; or vendor support, marked with
+ * the grant it acted under.
+ */
 export function userActor(access: Access): AuditActor {
+  if (access.support) {
+    return {
+      kind: 'platform',
+      id: access.userId,
+      ip: access.ip,
+      deviceId: null,
+      supportGrantId: access.support.grantId,
+    };
+  }
   return { kind: 'user', id: access.userId, ip: access.ip, deviceId: access.deviceId ?? null };
 }
 
@@ -66,6 +80,7 @@ export class AuditLog implements OnApplicationBootstrap {
       after: entry.after ?? null,
       ip: actor.ip ?? null,
       deviceId: actor.deviceId ?? null,
+      supportGrantId: actor.supportGrantId ?? null,
     });
   }
 }

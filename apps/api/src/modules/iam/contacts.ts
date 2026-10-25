@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import { roles, users } from '../../db/schema/iam';
 import { Database } from '../../platform/database';
-import { PeopleEmails, TenantContacts } from '../../platform/planes';
+import { PeopleEmails, PeopleNames, TenantContacts } from '../../platform/planes';
 
 /** A tenant's active admins with an email, for billing's notices (decision D90). */
 @Injectable()
@@ -62,6 +62,24 @@ export class IamPeopleEmails extends PeopleEmails {
         .from(users)
         .where(and(eq(users.tenantId, tenantId), eq(users.id, userId)));
       return row?.email ?? null;
+    });
+  }
+}
+
+/** People's names, for what the directory records about them, such as who approved support. */
+@Injectable()
+export class IamPeopleNames extends PeopleNames {
+  constructor(private readonly database: Database) {
+    super();
+  }
+
+  nameOf(tenantId: string, userId: string): Promise<string | null> {
+    return this.database.forTenant(tenantId, async (tx) => {
+      const [row] = await tx
+        .select({ name: users.name })
+        .from(users)
+        .where(and(eq(users.tenantId, tenantId), eq(users.id, userId)));
+      return row?.name ?? null;
     });
   }
 }

@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { DataScope, Permission } from './common';
 import { PhoneInput } from './auth';
 import { Key, LocalizedNoun, LocalizedText } from './config';
+import { SupportSession } from './support';
+import { SUPPORT_ROLE_KEY } from '../support';
 
 /**
  * People and access in a tenant (spec 4.2, 5.3, module M3, spec 11.2 People group). Roles and
@@ -12,7 +14,8 @@ import { Key, LocalizedNoun, LocalizedText } from './config';
 /** A role: permissions from spec Appendix E, and whose records they reach (spec 4.2). */
 export const RoleDefinition = z
   .strictObject({
-    key: Key,
+    // Vendor support shows as `vendor_support` (decision D93), so no tenant's role takes the key.
+    key: Key.refine((key) => key !== SUPPORT_ROLE_KEY, 'This key is kept for vendor support'),
     name: LocalizedText,
     scope: DataScope,
     permissions: z.array(Permission).min(1),
@@ -324,6 +327,8 @@ export const MeResult = z.object({
   deviceId: z.uuid().nullable(),
   /** The holiday calendar the person keeps (M13); null keeps the default. */
   calendarKey: Key.nullable().default(null),
+  /** Set for vendor support under a grant (decision D93), who is no user of the tenant. */
+  support: SupportSession.nullable().default(null),
 });
 
 export type RoleDefinition = z.output<typeof RoleDefinition>;

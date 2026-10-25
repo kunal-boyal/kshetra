@@ -175,6 +175,8 @@ export const AccessClaims = z.object({
   cell: z.string().min(1),
   rev: z.int().min(0),
   did: z.uuid().optional(),
+  /** The support grant a vendor staff member entered under (decision D93); `sub` is then theirs. */
+  sg: z.uuid().optional(),
 });
 
 export type DeviceInfo = z.infer<typeof DeviceInfo>;

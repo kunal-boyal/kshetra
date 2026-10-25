@@ -40,6 +40,18 @@ export function notificationMessage(
       return values.status === 'ready'
         ? { title: 'notify.export_ready_title', body: 'notify.export_ready_body', params }
         : { title: 'notify.export_failed_title', body: 'notify.export_failed_body', params };
+    case 'support.requested':
+      return {
+        title: 'notify.support_requested_title',
+        body: 'notify.support_requested_body',
+        params,
+      };
+    case 'support.emergency':
+      return {
+        title: 'notify.support_emergency_title',
+        body: 'notify.support_emergency_body',
+        params,
+      };
     case 'plan.today':
       return { title: 'notify.plan_today_title', body: 'notify.plan_today_body', params };
     case 'approval.waiting':

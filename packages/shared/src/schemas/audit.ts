@@ -107,6 +107,10 @@ export const AUDIT_ACTIONS = [
   'billing.mandate_started',
   'user.second_factor_reset',
   'sso.changed',
+  'support.requested',
+  'support.approved',
+  'support.declined',
+  'support.ended',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

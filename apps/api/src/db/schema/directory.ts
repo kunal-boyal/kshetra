@@ -1,9 +1,10 @@
-import { MODULE_KEYS, PLATFORM_ROLES, TENANT_STATUSES } from '@thelamp/shared';
+import { MODULE_KEYS, PLATFORM_ROLES, SUPPORT_SCOPES, TENANT_STATUSES } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
   bigint,
   boolean,
+  check,
   date,
   index,
   integer,
@@ -133,9 +134,9 @@ export const refreshTokens = directory.table(
   'refresh_tokens',
   {
     id: uuid('id').primaryKey(),
-    membershipId: uuid('membership_id')
-      .notNull()
-      .references(() => memberships.id),
+    // A member's session; null for vendor support under a grant (decision D93).
+    membershipId: uuid('membership_id').references(() => memberships.id),
+    supportGrantId: uuid('support_grant_id').references((): AnyPgColumn => supportGrants.id),
     // The device joins with device binding; web sessions never have one.
     deviceId: uuid('device_id'),
     tokenHash: text('token_hash').notNull().unique(),
@@ -147,7 +148,13 @@ export const refreshTokens = directory.table(
     secondFactor: boolean('second_factor').notNull().default(false),
     createdAt: createdAt(),
   },
-  (table) => [index('refresh_tokens_family_idx').on(table.familyId)],
+  (table) => [
+    index('refresh_tokens_family_idx').on(table.familyId),
+    check(
+      'refresh_tokens_one_holder',
+      sql`(${table.membershipId} is null) <> (${table.supportGrantId} is null)`,
+    ),
+  ],
 );
 
 /**
@@ -220,6 +227,50 @@ export const platformSessions = directory.table(
     createdAt: createdAt(),
   },
   (table) => [index('platform_sessions_family_idx').on(table.familyId)],
+);
+
+export const supportScope = directory.enum('support_scope', SUPPORT_SCOPES);
+
+/**
+ * Support access (spec 10.3, module M22, decision D93): a staff member asks to enter a tenant with
+ * a reason, the scope and hours wanted, and whether it's an emergency. The tenant's admin, or for
+ * an emergency a second vendor admin, approves it, which sets its start and end, or declines it.
+ * Either side may end it early. Where it stands is `supportStatus()` of these columns.
+ */
+export const supportGrants = directory.table(
+  'support_grants',
+  {
+    id: uuid('id').primaryKey(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    platformUserId: uuid('platform_user_id')
+      .notNull()
+      .references(() => platformUsers.id),
+    reason: text('reason').notNull(),
+    scope: supportScope('scope').notNull(),
+    hours: integer('hours').notNull(),
+    emergency: boolean('emergency').notNull().default(false),
+    grantedScope: supportScope('granted_scope'),
+    // The tenant's admin who approved, or for an emergency the second vendor admin.
+    approvedByUserId: uuid('approved_by_user_id'),
+    approvedByStaffId: uuid('approved_by_staff_id').references(() => platformUsers.id),
+    // Names as they were, since the directory can't read a tenant's people.
+    approvedByName: text('approved_by_name'),
+    startsAt: timestamp('starts_at', { withTimezone: true }),
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    declinedAt: timestamp('declined_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    // Who declined or ended it: someone at the tenant, or vendor staff.
+    closedByUserId: uuid('closed_by_user_id'),
+    closedByStaffId: uuid('closed_by_staff_id').references(() => platformUsers.id),
+    closedByName: text('closed_by_name'),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index('support_grants_tenant_idx').on(table.tenantId, table.createdAt),
+    index('support_grants_staff_idx').on(table.platformUserId, table.createdAt),
+  ],
 );
 
 /**

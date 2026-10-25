@@ -3,13 +3,15 @@ import {
   AppError,
   effectivePermissions,
   isOpenTenant,
+  SUPPORT_ROLE_KEY,
+  supportPermissions,
   type TenantPermission,
 } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
 import { type Access, AccessResolver, type AuthContext } from '../../platform/auth';
 import { Database } from '../../platform/database';
-import { Entitlements, TenantDirectory } from '../../platform/planes';
+import { Entitlements, SupportGrants, TenantDirectory } from '../../platform/planes';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 const revoked = () => new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
@@ -26,6 +28,7 @@ export class IamAccess extends AccessResolver {
     private readonly tenants: TenantDirectory,
     private readonly config: TenantConfigService,
     private readonly entitlements: Entitlements,
+    private readonly support: SupportGrants,
   ) {
     super();
   }
@@ -44,6 +47,8 @@ export class IamAccess extends AccessResolver {
         "Your organisation's subscription is suspended. Ask an admin about billing.",
       );
     }
+
+    if (auth.supportGrantId) return this.supportAccess(auth, auth.supportGrantId, status);
 
     const found = await this.database.forTenant(auth.tenantId, async (tx) => {
       const [user] = await tx
@@ -87,10 +92,49 @@ export class IamAccess extends AccessResolver {
       scope: user.scope,
       permissions: effectivePermissions(user.permissions as TenantPermission[], found.modulesOff),
       modulesOff: found.modulesOff,
-      // Unpaid past grace (BR-48), or a dedicated install whose licence lapsed (BR-49).
-      readOnly:
-        status === 'read_only' ||
-        ((await this.entitlements.forTenant(auth.tenantId)).readOnly ?? false),
+      readOnly: await this.readOnly(auth.tenantId, status),
+    };
+  }
+
+  /** Unpaid past grace (BR-48), or a dedicated install whose licence lapsed (BR-49). */
+  private async readOnly(tenantId: string, status: string): Promise<boolean> {
+    return (
+      status === 'read_only' || ((await this.entitlements.forTenant(tenantId)).readOnly ?? false)
+    );
+  }
+
+  /**
+   * Vendor support under a grant (module M22, decision D93): no user of the tenant, so nothing is
+   * read from its people. While the grant is open, the session reaches the whole tenant with every
+   * permission but those withheld; a read grant's writes are refused by the guard.
+   */
+  private async supportAccess(auth: AuthContext, grantId: string, status: string): Promise<Access> {
+    const grant = await this.support.open(grantId);
+    if (
+      !grant ||
+      grant.tenantId !== auth.tenantId ||
+      grant.staffId !== auth.userId ||
+      grant.staffRevision !== auth.revision
+    ) {
+      throw revoked();
+    }
+    const { modulesOff } = await this.database.forTenant(auth.tenantId, (tx) =>
+      this.config.settings(tx, auth.tenantId),
+    );
+    return {
+      ...auth,
+      roleId: grant.id,
+      roleKey: SUPPORT_ROLE_KEY,
+      scope: 'tenant',
+      permissions: effectivePermissions(supportPermissions(), modulesOff),
+      modulesOff,
+      readOnly: await this.readOnly(auth.tenantId, status),
+      support: {
+        grantId: grant.id,
+        staffName: grant.staffName,
+        write: grant.write,
+        endsAt: grant.endsAt,
+      },
     };
   }
 

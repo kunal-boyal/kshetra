@@ -38,7 +38,7 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { designations, devices, roles, users } from '../../db/schema/iam';
-import type { Access } from '../../platform/auth';
+import type { Access, SupportAccess } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { AuditLog, userActor } from '../../platform/audit';
 import { Outbox } from '../../platform/outbox';
@@ -196,6 +196,7 @@ export class UsersService {
 
   /** `GET /v1/me`: the caller's own profile and access. */
   async me(tx: TenantTx, access: Access): Promise<MeResult> {
+    if (access.support) return this.supportMe(access, access.support);
     const user = await this.read(tx, access.tenantId, access.userId);
     return {
       userId: access.userId,
@@ -209,6 +210,30 @@ export class UsersService {
       permissions: TENANT_PERMISSIONS.filter((permission) => access.permissions.has(permission)),
       deviceId: access.deviceId ?? null,
       calendarKey: user.calendarKey,
+      support: null,
+    };
+  }
+
+  /** Vendor support under a grant (decision D93), who is no user of the tenant. */
+  private supportMe(access: Access, support: SupportAccess): MeResult {
+    return {
+      userId: access.userId,
+      tenantId: access.tenantId,
+      cell: access.cell,
+      code: 'SUPPORT',
+      name: support.staffName,
+      designation: access.roleKey,
+      role: access.roleKey,
+      scope: access.scope,
+      permissions: TENANT_PERMISSIONS.filter((permission) => access.permissions.has(permission)),
+      deviceId: null,
+      calendarKey: null,
+      support: {
+        grantId: support.grantId,
+        staffName: support.staffName,
+        scope: support.write ? 'write' : 'read',
+        endsAt: support.endsAt.toISOString(),
+      },
     };
   }
 

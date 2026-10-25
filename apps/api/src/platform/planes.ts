@@ -2,6 +2,7 @@ import type {
   BillableSeats,
   DeviceInfo,
   ModuleKey,
+  SupportScopeKey,
   TenantStatus,
   UsageMetric,
 } from '@thelamp/shared';
@@ -126,4 +127,52 @@ export abstract class SecondFactors {
 export abstract class PeopleEmails {
   abstract find(tenantId: string, email: string): Promise<string | null>;
   abstract emailOf(tenantId: string, userId: string): Promise<string | null>;
+}
+
+/** An approved support grant that is open now (module M22, decision D93). */
+export interface OpenSupportGrant {
+  id: string;
+  tenantId: string;
+  staffId: string;
+  staffName: string;
+  /** The staff member's auth revision; a change to their access ends the session. */
+  staffRevision: number;
+  write: boolean;
+  endsAt: Date;
+}
+
+/**
+ * Vendor support's grants, kept by the directory: the cell asks on every request of a support
+ * session whether its grant is still open.
+ */
+export abstract class SupportGrants {
+  abstract open(grantId: string): Promise<OpenSupportGrant | null>;
+}
+
+/** A change to a support grant made on the vendor's side, for the tenant to see (decision D93). */
+export interface SupportChange {
+  action: 'support.requested' | 'support.approved' | 'support.ended';
+  grantId: string;
+  /** The staff member who made the change. */
+  byStaffId: string;
+  /** The staff member the grant is for. */
+  staffName: string;
+  reason: string;
+  scope: SupportScopeKey;
+  hours: number;
+  emergency: boolean;
+  endsAt: Date | null;
+}
+
+/**
+ * Where the directory tells a tenant's cell of what vendor staff did with a grant: an entry in the
+ * tenant's audit log, and its admins hear of a request or an emergency entry.
+ */
+export abstract class SupportNotices {
+  abstract record(tenantId: string, change: SupportChange): Promise<void>;
+}
+
+/** A person's name, which the cell keeps, for records the directory writes about them. */
+export abstract class PeopleNames {
+  abstract nameOf(tenantId: string, userId: string): Promise<string | null>;
 }
