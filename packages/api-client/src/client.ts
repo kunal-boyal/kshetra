@@ -16,6 +16,7 @@ import {
   SelectTenantResult,
   type Session,
   SignedIn,
+  SsoDiscoverResult,
   type SyncEntity,
   SyncPullResult,
   type TenantSummary,
@@ -341,6 +342,14 @@ export function createClient(options: ClientOptions) {
       });
       if (result.status === 'signed_in') await signedIn(result);
       return result;
+    },
+
+    /**
+     * Where a work email signs in with its organisation's single sign-on, or null when its domain
+     * has none (decision D91). The browser goes there itself; the session comes back in the cookie.
+     */
+    async ssoDiscover(email: string): Promise<string | null> {
+      return (await directory('sso/discover', SsoDiscoverResult, { email })).url;
     },
 
     /** A new authenticator secret, for someone signing in without one (decision D91). */

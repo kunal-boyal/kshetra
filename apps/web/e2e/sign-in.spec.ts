@@ -230,3 +230,32 @@ test('sets up an authenticator for an admin, shows the recovery codes once, and 
   await page.getByRole('button', { name: 'I have saved them' }).click();
   await expect(page.getByRole('heading', { name: 'Hello, Anita Rao' })).toBeVisible();
 });
+
+test('finds the organisation for single sign-on from a work email, and passes axe', async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.route('**/auth/v1/sso/discover', (route) =>
+    route.fulfill({ json: { url: `${ORIGIN}/sso-start` } }),
+  );
+  await page.route('**/sso-start', (route) => route.fulfill({ body: 'Identity provider' }));
+  await page.goto('/sign-in');
+  await page.getByRole('button', { name: 'Sign in with SSO' }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in with your organisation' })).toBeVisible();
+  await page.getByLabel('Work email').fill('anita@sunrise.example');
+  await expectAccessible(page);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(`${ORIGIN}/sso-start`);
+});
+
+for (const theme of ['light', 'outdoor'] as const) {
+  test(`says why single sign-on came back, accessibly, in the ${theme} theme`, async ({ page }) => {
+    await mockApi(page);
+    await page.addInitScript((value) => localStorage.setItem('theme', value), theme);
+    await page.goto('/sign-in?sso=refused');
+    await expect(
+      page.getByText('Your organisation’s sign-in didn’t complete.', { exact: false }),
+    ).toBeVisible();
+    await expectAccessible(page);
+  });
+}

@@ -256,6 +256,38 @@ describe('a SAML connection (D91)', () => {
     const token = await restore(ok.headers['set-cookie']);
     expect((await asUser('GET', '/v1/me', token)).json().userId).toBe(o.person.id);
 
+    // Saving again without the certificate keeps it, and signing in still works.
+    const resaved = await asUser('PUT', '/v1/sso', o.admin, {
+      settings: {
+        protocol: 'saml',
+        entryPoint: 'https://idp.example/sso',
+        idpIssuer: 'https://idp.example/',
+      },
+      domains: ['saml.example'],
+      enabled: true,
+      enforced: false,
+    });
+    expect(resaved.json().connection).toMatchObject({ hasIdpCertificate: true });
+    expect(
+      (
+        await post(
+          await start(),
+          sign(response({ acsUrl, entityId, email: 'anita@saml.example' }), key, cert),
+        )
+      ).headers.location,
+    ).toBe(`${WEB_URL}/`);
+    // A first connection needs one.
+    const fresh = await organisation('fresh-saml.example');
+    const missing = await asUser('PUT', '/v1/sso', fresh.admin, {
+      settings: { protocol: 'saml', entryPoint: 'https://idp.example/sso', idpIssuer: 'x' },
+      domains: ['fresh-saml.example'],
+      enabled: true,
+      enforced: false,
+    });
+    expect(missing.json().error.details).toEqual([
+      { path: 'settings.idpCertificate', issue: 'Paste the identity provider’s certificate' },
+    ]);
+
     // An assertion changed after signing is refused.
     const forged = signed.replace('anita@saml.example', 'admin@saml.example');
     expect((await post(await start(), forged)).headers.location).toBe(

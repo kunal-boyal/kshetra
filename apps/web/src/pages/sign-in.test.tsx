@@ -4,10 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { WebClient } from '../client';
 import { LanguageProvider } from '../i18n';
 import { createAppRouter } from '../router';
+import { browser } from './sign-in';
 
 const TENANT = { id: '01a10000-0000-7000-8000-000000000001', name: 'Sunrise Traders', cellUrl: '' };
 const OTHER = { id: '01a10000-0000-7000-8000-000000000009', name: 'Harit Agri Inputs' };
@@ -56,6 +57,9 @@ function fakeClient(verify: () => Promise<unknown>) {
           ? { status: 'signed_in', recoveryCodes: ['K7Q2M-XW4PA', 'ZZ2AB-CD3EF'] }
           : { status: 'signed_in' };
       },
+    ),
+    ssoDiscover: vi.fn(async (email: string) =>
+      email.endsWith('@sunrise.example') ? 'http://127.0.0.1:3000/auth/v1/sso/sunrise/start' : null,
     ),
     switchTenant: vi.fn(),
     signOut: vi.fn(async () => {}),
@@ -255,5 +259,55 @@ describe('signing in on the web', () => {
     renderApp(client);
     await enterNumberAndCode();
     expect(await screen.findByRole('alert')).toHaveTextContent('Use the mobile app for this.');
+  });
+});
+
+describe('signing in with single sign-on (decision D91)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('finds the organisation from a work email and sends the browser to its sign-in', async () => {
+    const go = vi.spyOn(browser, 'go').mockImplementation(() => {});
+    const client = fakeClient(async () => ({}));
+    renderApp(client);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Sign in with SSO' }));
+    expect(screen.getByRole('heading', { name: 'Sign in with your organisation' })).toBeVisible();
+    const proceed = screen.getByRole('button', { name: 'Continue' });
+    expect(proceed).toBeDisabled();
+    await user.type(screen.getByLabelText('Work email *'), 'someone@elsewhere.example');
+    await user.click(proceed);
+    expect(await screen.findByText(/doesn’t use single sign-on for this email/)).toBeVisible();
+    expect(go).not.toHaveBeenCalled();
+    await user.clear(screen.getByLabelText('Work email *'));
+    await user.type(screen.getByLabelText('Work email *'), 'anita@sunrise.example');
+    await user.click(proceed);
+    expect(client.ssoDiscover).toHaveBeenLastCalledWith('anita@sunrise.example');
+    expect(go).toHaveBeenCalledWith('http://127.0.0.1:3000/auth/v1/sso/sunrise/start');
+    await user.click(screen.getByRole('button', { name: 'Sign in with your mobile number' }));
+    expect(await screen.findByLabelText('Mobile number *')).toBeVisible();
+  });
+
+  it('says why a single sign-on came back without signing in', async () => {
+    window.history.replaceState({}, '', '/sign-in?sso=no_person');
+    renderApp(fakeClient(async () => ({})));
+    expect(
+      await screen.findByRole('heading', { name: 'Sign in with your organisation' }),
+    ).toBeVisible();
+    expect(screen.getByText(/Nobody here has that work email/)).toBeVisible();
+  });
+
+  it('moves to single sign-on when the organisation requires it', async () => {
+    const client = fakeClient(async () => {
+      throw new ApiError(403, 'SSO_REQUIRED', 'Sign in with SSO.');
+    });
+    renderApp(client);
+    await enterNumberAndCode();
+    expect(
+      await screen.findByRole('heading', { name: 'Sign in with your organisation' }),
+    ).toBeVisible();
+    expect(screen.getByLabelText('Work email *')).toBeVisible();
   });
 });

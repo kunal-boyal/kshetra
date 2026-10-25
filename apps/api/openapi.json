@@ -32857,8 +32857,7 @@
                 "required": [
                   "protocol",
                   "entryPoint",
-                  "idpIssuer",
-                  "idpCertificate"
+                  "idpIssuer"
                 ],
                 "additionalProperties": false
               }

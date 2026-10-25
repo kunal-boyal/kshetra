@@ -3083,7 +3083,7 @@ export const en = {
     '{amount} has been overdue since {since}, so your organisation can only read for now. Pay before {suspend} to avoid suspension.',
   'billing.standing_suspended': '{amount} has been overdue since {since}.',
   'error.SSO_REQUIRED':
-    'Your organisation signs you in with its own sign-in. Choose Sign in with SSO.',
+    'Your organisation signs you in with its own sign-in. Enter your work email to continue.',
   'error.SECOND_FACTOR_REQUIRED':
     'Sign in again with your authenticator to open this organisation.',
   'signin.totp_title': 'Enter your authenticator code',
@@ -3127,6 +3127,54 @@ export const en = {
     'Removed. They set up a new authenticator at their next sign-in.',
   'console.second_factor_none': 'They had no authenticator; their sessions have ended.',
   'console.reset': 'Reset',
+  'signin.sso_link': 'Sign in with SSO',
+  'signin.sso_title': 'Sign in with your organisation',
+  'signin.sso_intro': 'Enter your work email, and we take you to your organisation’s sign-in page.',
+  'signin.sso_email': 'Work email',
+  'signin.sso_continue': 'Continue',
+  'signin.sso_none':
+    'Your organisation doesn’t use single sign-on for this email. Sign in with your mobile number.',
+  'signin.sso_back': 'Sign in with your mobile number',
+  'signin.sso_failed_expired': 'The sign-in took too long. Try again.',
+  'signin.sso_failed_refused':
+    'Your organisation’s sign-in didn’t complete. Try again, or ask your administrator.',
+  'signin.sso_failed_domain': 'That email isn’t one your organisation signs in with SSO.',
+  'signin.sso_failed_no_person':
+    'Nobody here has that work email. Ask your administrator to add it to your profile.',
+  'signin.sso_failed_unavailable':
+    'Single sign-on isn’t available for your organisation right now. Sign in with your mobile number.',
+  'sso.title': 'Single sign-on',
+  'sso.intro':
+    'Let people sign in to the portal with your organisation’s own identity provider, through OIDC or SAML. People are matched by the work email on their profile; nobody is added automatically. Phones keep signing in with a code.',
+  'sso.provider_title': 'For your identity provider',
+  'sso.provider_intro': 'Register the product with your identity provider using these.',
+  'sso.redirect_uri': 'Redirect URI (OIDC)',
+  'sso.entity_id': 'Entity ID (SAML)',
+  'sso.acs_url': 'Assertion consumer URL (SAML)',
+  'sso.metadata_url': 'Metadata (SAML)',
+  'sso.copy': 'Copy {name}',
+  'sso.copy_button': 'Copy',
+  'sso.copied': 'Copied',
+  'sso.connection': 'Connection',
+  'sso.protocol': 'Protocol',
+  'sso.issuer': 'Issuer URL',
+  'sso.issuer_help': 'Where the provider’s .well-known/openid-configuration is',
+  'sso.client_id': 'Client ID',
+  'sso.client_secret': 'Client secret',
+  'sso.kept': 'Saved. Leave it blank to keep it.',
+  'sso.entry_point': 'Sign-in URL',
+  'sso.idp_issuer': 'Provider’s entity ID',
+  'sso.certificate': 'Signing certificate',
+  'sso.certificate_help': 'The provider’s certificate, as PEM',
+  'sso.domains': 'Email domains',
+  'sso.domains_help': 'One a line, such as sunrise-agro.example',
+  'sso.enabled': 'On',
+  'sso.enabled_help': 'People in these domains can choose Sign in with SSO',
+  'sso.enforced': 'Required',
+  'sso.enforced_help':
+    'People in these domains can’t sign in to the portal with a code; phones still can',
+  'sso.save': 'Save single sign-on',
+  'sso.saved': 'Saved',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;

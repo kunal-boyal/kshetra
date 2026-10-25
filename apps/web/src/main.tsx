@@ -29,7 +29,8 @@ const client = webClient(() => {
   queryClient.clear();
   forgetTenants();
   applyBrand(null);
-  void router.navigate({ to: '/sign-in' });
+  // Someone already there stays, with any reason single sign-on came back with (decision D91).
+  if (window.location.pathname !== '/sign-in') void router.navigate({ to: '/sign-in' });
 });
 const router = createAppRouter({ client, queryClient });
 
