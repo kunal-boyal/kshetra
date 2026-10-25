@@ -12,6 +12,7 @@ import {
 import {
   CreateUserBody,
   IdParams,
+  SecondFactorStatus,
   UpdateUserBody,
   UserListQuery,
   UserListResult,
@@ -130,6 +131,49 @@ export class UsersController {
         { route: 'POST /v1/users/:id/reset-device', by: access.userId, userId },
         async () => {
           await this.users.resetDevice(tx, access, userId);
+          return { status: 204, body: null };
+        },
+      ),
+    );
+  }
+
+  @Get(':id/second-factor')
+  @Contract({
+    tag: 'People',
+    summary: 'Whether a user needs an authenticator on the web, and has one',
+    params: IdParams,
+    response: SecondFactorStatus,
+  })
+  @Requires('user.manage')
+  secondFactor(@CurrentAccess() access: Access, @Param('id') id: string) {
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.users.secondFactor(tx, access, pathId(id)),
+    );
+  }
+
+  @Post(':id/second-factor/reset')
+  @Contract({
+    tag: 'People',
+    summary: "Remove a user's authenticator; they set one up at their next web sign-in",
+    params: IdParams,
+    idempotencyKey: true,
+  })
+  @Requires('user.manage')
+  @HttpCode(204)
+  async resetSecondFactor(
+    @CurrentAccess() access: Access,
+    @Param('id') id: string,
+    @Headers('idempotency-key') key: string | undefined,
+  ): Promise<void> {
+    const userId = pathId(id);
+    await this.database.forTenant(access.tenantId, (tx) =>
+      idempotent(
+        tx,
+        access.tenantId,
+        requireIdempotencyKey(key),
+        { route: 'POST /v1/users/:id/second-factor/reset', by: access.userId, userId },
+        async () => {
+          await this.users.resetSecondFactor(tx, access, userId);
           return { status: 204, body: null };
         },
       ),

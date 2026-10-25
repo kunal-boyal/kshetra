@@ -354,3 +354,12 @@ export type UserListResult = z.infer<typeof UserListResult>;
 export type RoleListResult = z.infer<typeof RoleListResult>;
 export type DesignationListResult = z.infer<typeof DesignationListResult>;
 export type MeResult = z.infer<typeof MeResult>;
+
+/**
+ * Whether someone needs an authenticator to sign in on the web, and has one set up (decision
+ * D91). Their admins see it on their page, and can reset it.
+ */
+export const SecondFactorStatus = z
+  .object({ required: z.boolean(), enrolled: z.boolean() })
+  .meta({ id: 'SecondFactorStatus' });
+export type SecondFactorStatus = z.infer<typeof SecondFactorStatus>;

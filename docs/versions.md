@@ -71,7 +71,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | tailwindcss, @tailwindcss/vite | 4.3.3 | Layout utilities, with the tokens mapped into the theme |
 | lucide-react | 1.52.0 | Icons (decision D18) |
 | @fontsource/mukta | 5.3.0 | Added 2026-10-23: the web's face, Mukta, in 400, 500, 600 and 700 for Latin and Devanagari (decision D72); replaces Noto Sans and Noto Sans Devanagari |
-| qrcode-generator | 2.0.4 | Added 2026-10-24: the QR code vendor staff scan into their authenticator app on the console's setup page (decision D88); MIT, no dependencies, its own types. Chosen over `qrcode`, which brings pngjs, yargs and dijkstrajs |
+| qrcode-generator | 2.0.4 | Added 2026-10-24: the QR code vendor staff scan into their authenticator app on the console's setup page (decision D88), and tenant admins on the web's (D91), from `QrCode` in `@thelamp/ui-web` since 2026-10-25; MIT, no dependencies, its own types. Chosen over `qrcode`, which brings pngjs, yargs and dijkstrajs |
 | pdfkit | 0.20.2 | Added 2026-10-25: draws the vendor's GST invoices as PDFs (decision D90), in the standard Helvetica with no font files; MIT, released 2026-09-07. Chosen with Kunal over pdf-lib, which has had no release since 2021 |
 | @types/pdfkit | 0.17.7 | Added 2026-10-25: pdfkit's types, which it doesn't ship; the API's dev dependency |
 | @playwright/test | 1.63.0 | End-to-end tests, in Chromium |

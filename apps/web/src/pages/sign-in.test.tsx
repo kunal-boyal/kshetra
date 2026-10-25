@@ -39,6 +39,24 @@ function fakeClient(verify: () => Promise<unknown>) {
       signIn();
       return session;
     }),
+    totpSetup: vi.fn(async () => ({
+      secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+      uri: 'otpauth://totp/The%20Lamp:x?secret=JBSWY3DPEHPK3PXP',
+    })),
+    totpVerify: vi.fn(
+      async (
+        _ticket: string,
+        answer: { code: string } | { recoveryCode: string },
+      ): Promise<{ status: 'signed_in'; recoveryCodes?: string[] }> => {
+        if ('code' in answer && answer.code === '000000') {
+          throw new ApiError(400, 'OTP_INVALID', 'Check the code.');
+        }
+        signIn();
+        return 'code' in answer && answer.code === '111111'
+          ? { status: 'signed_in', recoveryCodes: ['K7Q2M-XW4PA', 'ZZ2AB-CD3EF'] }
+          : { status: 'signed_in' };
+      },
+    ),
     switchTenant: vi.fn(),
     signOut: vi.fn(async () => {}),
     restore: vi.fn(async () => session),
@@ -147,6 +165,55 @@ describe('signing in on the web', () => {
     await user.click(screen.getByRole('button', { name: /Sunrise Traders/ }));
     expect(client.selectTenant).toHaveBeenCalledWith('t'.repeat(43), TENANT.id);
     expect(await screen.findByRole('heading', { name: 'Hello, Anita Rao' })).toBeInTheDocument();
+  });
+
+  it('sets up an authenticator for someone who can change access, and shows the recovery codes once', async () => {
+    const client = fakeClient(async () => ({
+      status: 'second_factor',
+      ticket: 's'.repeat(43),
+      enrolled: false,
+      tenant: { id: TENANT.id, name: TENANT.name },
+    }));
+    renderApp(client);
+    const user = await enterNumberAndCode();
+    expect(await screen.findByRole('heading', { name: 'Set up your authenticator' })).toBeVisible();
+    expect(screen.getByText(/You can change who does what in Sunrise Traders/)).toBeVisible();
+    expect(
+      await screen.findByRole('img', { name: 'QR code for your authenticator app' }),
+    ).toBeVisible();
+    expect(screen.getByText('JBSW Y3DP EHPK 3PXP JBSW Y3DP EHPK 3PXP')).toBeVisible();
+    await user.type(screen.getByLabelText('Authenticator code *'), '000000');
+    await user.click(screen.getByRole('button', { name: 'Confirm and sign in' }));
+    expect(
+      await screen.findByText('That code is not right. Check it and try again.'),
+    ).toBeVisible();
+    await user.type(screen.getByLabelText('Authenticator code *'), '111111');
+    await user.click(screen.getByRole('button', { name: 'Confirm and sign in' }));
+    const codes = await screen.findByRole('list', { name: 'Your recovery codes' });
+    expect(codes).toHaveTextContent('K7Q2M-XW4PA');
+    await user.click(screen.getByRole('button', { name: 'I have saved them' }));
+    expect(await screen.findByRole('heading', { name: 'Hello, Anita Rao' })).toBeInTheDocument();
+    expect(client.totpVerify).toHaveBeenLastCalledWith('s'.repeat(43), { code: '111111' });
+  });
+
+  it('signs in with a recovery code instead of the authenticator', async () => {
+    const client = fakeClient(async () => ({
+      status: 'second_factor',
+      ticket: 's'.repeat(43),
+      enrolled: true,
+      tenant: { id: TENANT.id, name: TENANT.name },
+    }));
+    renderApp(client);
+    const user = await enterNumberAndCode();
+    expect(
+      await screen.findByRole('heading', { name: 'Enter your authenticator code' }),
+    ).toBeVisible();
+    expect(client.totpSetup).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Use a recovery code instead' }));
+    await user.type(screen.getByLabelText('Recovery code *'), 'k7q2m-xw4pa');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByRole('heading', { name: 'Hello, Anita Rao' })).toBeInTheDocument();
+    expect(client.totpVerify).toHaveBeenCalledWith('s'.repeat(43), { recoveryCode: 'K7Q2M-XW4PA' });
   });
 
   it('says what went wrong, in the chosen language', async () => {

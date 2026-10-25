@@ -13,11 +13,14 @@ import {
   OtpRequestResult,
   OtpVerifyResult,
   RefreshResult,
+  SelectTenantResult,
   type Session,
   SignedIn,
   type SyncEntity,
   SyncPullResult,
   type TenantSummary,
+  TotpSetupResult,
+  TotpVerifyResult,
   WEB_CLIENT,
   WEB_CLIENT_HEADER,
 } from '@thelamp/shared';
@@ -328,15 +331,31 @@ export function createClient(options: ClientOptions) {
       return result;
     },
 
+    /** Picks a tenant with the ticket: signed in, or an authenticator code next (D91). */
     async selectTenant(ticket: string, tenantId: string) {
       const device = await options.device?.();
-      return signedIn(
-        await directory('select-tenant', SignedIn, {
-          ticket,
-          tenantId,
-          ...(device ? { device } : {}),
-        }),
-      );
+      const result = await directory('select-tenant', SelectTenantResult, {
+        ticket,
+        tenantId,
+        ...(device ? { device } : {}),
+      });
+      if (result.status === 'signed_in') await signedIn(result);
+      return result;
+    },
+
+    /** A new authenticator secret, for someone signing in without one (decision D91). */
+    totpSetup(ticket: string) {
+      return directory('totp/setup', TotpSetupResult, { ticket });
+    },
+
+    /**
+     * Signs in with the authenticator's code, or a recovery code. The first code after setting up
+     * returns the recovery codes, once.
+     */
+    async totpVerify(ticket: string, answer: { code: string } | { recoveryCode: string }) {
+      const result = await directory('totp/verify', TotpVerifyResult, { ticket, ...answer });
+      await signedIn(result);
+      return result;
     },
 
     async switchTenant(tenantId: string) {

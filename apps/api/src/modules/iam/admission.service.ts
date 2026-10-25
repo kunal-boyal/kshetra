@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import { AppError, newId } from '@thelamp/shared';
+import { AppError, needsSecondFactor, newId } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
 import { type AuditActor, AuditLog } from '../../platform/audit';
@@ -39,14 +39,14 @@ export class IamAdmission extends CellAdmission {
       }
       if (!device) {
         const [role] = await tx
-          .select({ mobileOnly: roles.mobileOnly })
+          .select({ mobileOnly: roles.mobileOnly, permissions: roles.permissions })
           .from(roles)
           .where(and(eq(roles.tenantId, tenantId), eq(roles.id, user.roleId)));
         if (role?.mobileOnly) {
           throw new AppError('USE_MOBILE_APP', 'Use the mobile app to sign in.');
         }
         await this.signedIn(tx, tenantId, actor, userId, null, 'web');
-        return {};
+        return { secondFactor: needsSecondFactor(role?.permissions ?? []) };
       }
 
       const keyHash = createHash('sha256').update(device.key).digest('hex');

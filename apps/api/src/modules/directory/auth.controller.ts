@@ -21,9 +21,14 @@ import {
   RefreshBody,
   RefreshResult,
   SelectTenantBody,
+  SelectTenantResult,
   type Session,
   SignedIn,
   SwitchTenantBody,
+  TotpSetupBody,
+  TotpSetupResult,
+  TotpVerifyBody,
+  TotpVerifyResult,
   WEB_CLIENT,
   WEB_CLIENT_HEADER,
 } from '@thelamp/shared';
@@ -33,6 +38,7 @@ import { Public } from '../../platform/auth';
 import { Contract } from '../../platform/routes';
 import { CONFIG } from '../../platform/tokens';
 import { OtpService } from './otp.service';
+import { SecondFactorService } from './second-factor.service';
 import { SessionsService } from './sessions.service';
 import { SigningKey } from './signing-key';
 
@@ -56,6 +62,7 @@ export class AuthController {
   constructor(
     private readonly otp: OtpService,
     private readonly sessions: SessionsService,
+    private readonly secondFactor: SecondFactorService,
     private readonly keys: SigningKey,
     @Inject(CONFIG) private readonly config: Config,
   ) {
@@ -103,7 +110,7 @@ export class AuthController {
     tag: 'Sign-in',
     summary: 'Choose a tenant with the ticket from the code',
     body: SelectTenantBody,
-    response: SignedIn,
+    response: SelectTenantResult,
   })
   @Header('Cache-Control', 'no-store')
   async selectTenant(
@@ -114,6 +121,40 @@ export class AuthController {
   ) {
     const { ticket, tenantId, device } = SelectTenantBody.parse(body);
     const result = await this.sessions.selectTenant(ticket, tenantId, device, address);
+    return result.status === 'signed_in'
+      ? { ...result, session: this.handOver(request, reply, result.session) }
+      : result;
+  }
+
+  @Post('totp/setup')
+  @HttpCode(200)
+  @Contract({
+    tag: 'Sign-in',
+    summary: 'A new authenticator secret, at the first sign-in that needs one',
+    body: TotpSetupBody,
+    response: TotpSetupResult,
+  })
+  @Header('Cache-Control', 'no-store')
+  totpSetup(@Body() body: unknown) {
+    return this.secondFactor.setup(TotpSetupBody.parse(body).ticket);
+  }
+
+  @Post('totp/verify')
+  @HttpCode(200)
+  @Contract({
+    tag: 'Sign-in',
+    summary: 'Sign in with the authenticator code, or a recovery code',
+    body: TotpVerifyBody,
+    response: TotpVerifyResult,
+  })
+  @Header('Cache-Control', 'no-store')
+  async totpVerify(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { ticket, code, recoveryCode } = TotpVerifyBody.parse(body);
+    const result = await this.secondFactor.verify(ticket, { code, recoveryCode });
     return { ...result, session: this.handOver(request, reply, result.session) };
   }
 

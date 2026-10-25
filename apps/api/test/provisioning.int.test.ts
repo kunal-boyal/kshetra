@@ -147,7 +147,13 @@ describe('the seed and the phase 0 exit check (spec 15)', () => {
         payload: { ticket: verified.ticket, tenantId: tenants.get(slug) },
         remoteAddress: newAddress(),
       });
-      const me = (await as(chosen.json().session.accessToken).get('/v1/me')).json();
+      // Anita is Sunrise's admin, so her web sign-in there asks for her authenticator (D91).
+      const session =
+        chosen.json().status === 'second_factor'
+          ? (await world.secondFactor(anita, chosen.json())).session
+          : chosen.json().session;
+      expect(chosen.json().status).toBe(slug === 'sunrise' ? 'second_factor' : 'signed_in');
+      const me = (await as(session.accessToken).get('/v1/me')).json();
       expect(me).toMatchObject({
         tenantId: tenants.get(slug),
         name: 'Anita Rao',

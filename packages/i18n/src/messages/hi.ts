@@ -3071,4 +3071,46 @@ export const hi: Record<MessageKey, Message> = {
   'billing.standing_read_only':
     '{amount} {since} से बाक़ी है, इसलिए अभी आपका संगठन सिर्फ़ देख सकता है। निलंबन से बचने के लिए {suspend} से पहले भुगतान करें।',
   'billing.standing_suspended': '{amount} {since} से बाक़ी है।',
+  'error.SECOND_FACTOR_REQUIRED':
+    'इस संगठन को खोलने के लिए अपने ऑथेंटिकेटर के साथ फिर से साइन इन करें।',
+  'signin.totp_title': 'अपने ऑथेंटिकेटर का कोड डालें',
+  'signin.totp_intro':
+    'आप {organisation} में यह बदल सकते हैं कि कौन क्या करे, इसलिए हम आपके ऑथेंटिकेटर ऐप का कोड भी माँगते हैं।',
+  'signin.totp_label': 'ऑथेंटिकेटर कोड',
+  'signin.totp_help': 'आपका ऑथेंटिकेटर ऐप अभी जो 6 अंक दिखा रहा है',
+  'signin.use_recovery': 'इसके बजाय रिकवरी कोड इस्तेमाल करें',
+  'signin.use_totp': 'इसके बजाय ऑथेंटिकेटर इस्तेमाल करें',
+  'signin.recovery_label': 'रिकवरी कोड',
+  'signin.recovery_help': 'ऑथेंटिकेटर चालू करते समय सहेजे गए कोड में से एक, जैसे K7Q2M-XW4PA',
+  'signin.setup_title': 'अपना ऑथेंटिकेटर चालू करें',
+  'signin.setup_intro':
+    'आप {organisation} में यह बदल सकते हैं कि कौन क्या करे, इसलिए साइन इन में एक और क़दम है। इस कोड को किसी ऑथेंटिकेटर ऐप से स्कैन करें, जैसे Google Authenticator, Microsoft Authenticator या 1Password, फिर वह जो 6 अंक दिखाए उन्हें डालें।',
+  'signin.qr_label': 'आपके ऑथेंटिकेटर ऐप के लिए QR कोड',
+  'signin.setup_key': 'या यह की ऐप में टाइप करें',
+  'signin.confirm': 'पुष्टि करें और साइन इन करें',
+  'signin.codes_title': 'अपने रिकवरी कोड सहेजें',
+  'signin.codes_intro':
+    'फ़ोन खो जाने पर हर कोड से एक बार साइन इन हो सकता है। इन्हें फ़ोन से अलग किसी सुरक्षित जगह रखें। ये सिर्फ़ अभी दिखाए जा रहे हैं।',
+  'signin.copy_codes': 'कोड कॉपी करें',
+  'signin.copied': 'कॉपी हो गए',
+  'signin.codes_saved': 'मैंने इन्हें सहेज लिया है',
+  'signin.codes_label': 'आपके रिकवरी कोड',
+  'people.second_factor': 'ऑथेंटिकेटर',
+  'people.second_factor_on': 'चालू है',
+  'people.second_factor_off': 'अभी चालू नहीं: वे अपने अगले वेब साइन इन पर इसे चालू करेंगे।',
+  'people.second_factor_not_needed': 'इस भूमिका के लिए ज़रूरी नहीं।',
+  'people.second_factor_reset': 'ऑथेंटिकेटर रीसेट करें',
+  'people.second_factor_reset_question':
+    '{name} का ऑथेंटिकेटर रीसेट करें? वे हर जगह से साइन आउट हो जाएँगे और अगले वेब साइन इन पर नया चालू करेंगे।',
+  'people.second_factor_reset_done':
+    'रीसेट हो गया। वे अपने अगले साइन इन पर नया ऑथेंटिकेटर चालू करेंगे।',
+  'console.second_factor_reset': 'ऑथेंटिकेटर रीसेट करें',
+  'console.second_factor_intro':
+    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है।',
+  'console.member_phone': 'उनका मोबाइल नंबर',
+  'console.second_factor_reason': 'आपने कैसे पुष्टि की कि यह वही हैं',
+  'console.second_factor_removed':
+    'हटा दिया गया। वे अपने अगले साइन इन पर नया ऑथेंटिकेटर चालू करेंगे।',
+  'console.second_factor_none': 'उनका कोई ऑथेंटिकेटर नहीं था; उनके सेशन ख़त्म हो गए हैं।',
+  'console.reset': 'रीसेट करें',
 };

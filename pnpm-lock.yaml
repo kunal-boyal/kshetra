@@ -465,9 +465,6 @@ importers:
       lucide-react:
         specifier: 'catalog:'
         version: 1.52.0(@types/react@19.3.0)(react@19.3.0)
-      qrcode-generator:
-        specifier: 2.0.4
-        version: 2.0.4
       react:
         specifier: 'catalog:'
         version: 19.3.0
@@ -1044,6 +1041,9 @@ importers:
       lucide-react:
         specifier: 'catalog:'
         version: 1.52.0(@types/react@19.3.0)(react@19.3.0)
+      qrcode-generator:
+        specifier: 2.0.4
+        version: 2.0.4
     devDependencies:
       '@testing-library/jest-dom':
         specifier: 'catalog:'

@@ -5,12 +5,14 @@ import {
   newId,
   type OtpVerifyResult,
   type RefreshResult,
+  type SecondFactor,
+  type SelectTenantResult,
   type Session,
   type SignedIn,
   type TenantSummary,
 } from '@thelamp/shared';
 import { and, eq, isNull } from 'drizzle-orm';
-import { identities, memberships, refreshTokens } from '../../db/schema/directory';
+import { identities, memberships, refreshTokens, totpSecrets } from '../../db/schema/directory';
 import { CellAdmission } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
 import { DirectoryDatabase, type DirectoryDb, type DirectoryTx } from './directory.database';
@@ -22,6 +24,12 @@ import { SigningKey } from './signing-key';
 export const REFRESH_TOKEN_DAYS = 30;
 /** A person in several tenants has five minutes to choose one after the code (M1, rule 4). */
 export const TICKET_SECONDS = 5 * 60;
+
+/** What a sign-in waiting for its authenticator code holds (decision D91). */
+interface Pending {
+  membershipId: string;
+  deviceId: string | null;
+}
 
 const revoked = () => new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
 
@@ -68,7 +76,7 @@ export class SessionsService {
     tenantId: string,
     device?: DeviceInfo,
     ip?: string,
-  ): Promise<SignedIn> {
+  ): Promise<SelectTenantResult> {
     const identityId = await this.client.redis.getdel(`ticket:${digest(ticket)}`);
     if (!identityId) {
       throw new AppError('OTP_EXPIRED', 'This sign-in has expired. Request a new code.');
@@ -88,7 +96,13 @@ export class SessionsService {
       if (!claimed) return null;
       await this.spend(tx, claimed.token);
       const { membership, token } = claimed;
-      const session = await this.issue(tx, membership, token.familyId, token.deviceId);
+      const session = await this.issue(
+        tx,
+        membership,
+        token.familyId,
+        token.deviceId,
+        token.secondFactor,
+      );
       return { session, tenant: this.summary(membership) };
     });
     if (!result) throw revoked();
@@ -114,18 +128,28 @@ export class SessionsService {
       );
       if (!target) return 'forbidden' as const;
       // Refused admission rolls this back, and the old session carries on.
-      const { deviceId } = await this.cell.admit({
+      const { deviceId, secondFactor } = await this.cell.admit({
         tenantId: target.tenantId,
         userId: target.userId,
         ...(device ? { device } : {}),
         ...(ip ? { ip } : {}),
       });
+      // A session that never gave an authenticator code can't carry on as an admin (D91).
+      if (secondFactor && !target.tenantDemo && !claimed.token.secondFactor) {
+        return 'second_factor' as const;
+      }
       // One app holds one tenant at a time, so the old session ends.
       await this.endFamily(tx, claimed.token.familyId);
-      const session = await this.issue(tx, target, newId(), deviceId);
+      const session = await this.issue(tx, target, newId(), deviceId, claimed.token.secondFactor);
       return { session, target };
     });
     if (result === 'revoked') throw revoked();
+    if (result === 'second_factor') {
+      throw new AppError(
+        'SECOND_FACTOR_REQUIRED',
+        'Sign in again with your authenticator to open this organisation.',
+      );
+    }
     if (result === 'forbidden') {
       throw new AppError('FORBIDDEN', 'You do not have access to this organisation.');
     }
@@ -190,14 +214,72 @@ export class SessionsService {
     row: MembershipRow,
     device: DeviceInfo | undefined,
     ip: string | undefined,
-  ): Promise<SignedIn> {
-    const { deviceId } = await this.cell.admit({
+  ): Promise<SignedIn | SecondFactor> {
+    const { deviceId, secondFactor } = await this.cell.admit({
       tenantId: row.tenantId,
       userId: row.userId,
       ...(device ? { device } : {}),
       ...(ip ? { ip } : {}),
     });
+    if (secondFactor && !row.tenantDemo) {
+      // The session waits for the authenticator code, on a ticket of its own (D91).
+      const ticket = newSecret();
+      const pending: Pending = { membershipId: row.membershipId, deviceId: deviceId ?? null };
+      await this.client.redis.set(
+        `second:${digest(ticket)}`,
+        JSON.stringify(pending),
+        'EX',
+        TICKET_SECONDS,
+      );
+      const [totp] = await this.database.db
+        .select({ enabledAt: totpSecrets.enabledAt })
+        .from(totpSecrets)
+        .where(eq(totpSecrets.identityId, row.identityId));
+      return {
+        status: 'second_factor',
+        ticket,
+        enrolled: Boolean(totp?.enabledAt),
+        tenant: { id: row.tenantId, name: row.tenantName },
+      };
+    }
     return this.signedIn(row, await this.issue(this.database.db, row, newId(), deviceId));
+  }
+
+  /** The sign-in a second-factor ticket holds, while it lasts; the ticket stays unspent. */
+  async pending(ticket: string): Promise<{ membership: MembershipRow; deviceId: string | null }> {
+    const held = await this.client.redis.get(`second:${digest(ticket)}`);
+    if (!held) throw new AppError('OTP_EXPIRED', 'This sign-in has expired. Request a new code.');
+    const pending = JSON.parse(held) as Pending;
+    const [membership] = await activeMemberships(
+      this.database.db,
+      eq(memberships.id, pending.membershipId),
+    );
+    if (!membership) throw revoked();
+    return { membership, deviceId: pending.deviceId };
+  }
+
+  /** Spends a second-factor ticket once its code checked out, and starts the session. */
+  async finish(ticket: string): Promise<SignedIn> {
+    const held = await this.client.redis.getdel(`second:${digest(ticket)}`);
+    if (!held) throw new AppError('OTP_EXPIRED', 'This sign-in has expired. Request a new code.');
+    const pending = JSON.parse(held) as Pending;
+    const [membership] = await activeMemberships(
+      this.database.db,
+      eq(memberships.id, pending.membershipId),
+    );
+    if (!membership) throw revoked();
+    const session = await this.issue(this.database.db, membership, newId(), pending.deviceId, true);
+    return this.signedIn(membership, session);
+  }
+
+  /** Ends every session of a person, in every tenant, as resetting their authenticator does. */
+  async endAll(identityId: string): Promise<void> {
+    const families = await this.database.db
+      .selectDistinct({ familyId: refreshTokens.familyId })
+      .from(refreshTokens)
+      .innerJoin(memberships, eq(memberships.id, refreshTokens.membershipId))
+      .where(and(eq(memberships.identityId, identityId), isNull(refreshTokens.revokedAt)));
+    for (const { familyId } of families) await this.endFamily(this.database.db, familyId);
   }
 
   private signedIn(row: MembershipRow, session: Session): SignedIn {
@@ -213,6 +295,7 @@ export class SessionsService {
     row: MembershipRow,
     familyId: string,
     deviceId: string | null | undefined,
+    secondFactor = false,
   ): Promise<Session> {
     const refreshToken = newSecret();
     const refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 86_400_000);
@@ -224,6 +307,7 @@ export class SessionsService {
       familyId,
       authRevision: row.authRevision,
       expiresAt: refreshTokenExpiresAt,
+      secondFactor,
     });
     const access = await this.keys.sign({
       userId: row.userId,

@@ -2,13 +2,15 @@ import { ApiError } from '@thelamp/api-client';
 import { Button, Card, Icon, TextField } from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
 import { Building2, ChevronRight } from 'lucide-react';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import type { SecondFactor } from '@thelamp/shared';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import markUrl from '@thelamp/design-tokens/assets/Logos/mark-small.svg?url';
 import { PRODUCT_NAME } from '../layout/brand';
 import { LanguagePicker } from '../layout/preferences-menu';
 import { saveTenants } from '../preferences';
+import { SecondFactorStep } from './second-factor';
 
 /** How long before a new code may be asked for; the server allows 3 every 10 minutes (M1). */
 const RESEND_SECONDS = 30;
@@ -16,9 +18,23 @@ const RESEND_SECONDS = 30;
 type Step =
   | { name: 'phone' }
   | { name: 'code'; phone: string }
-  | { name: 'choose'; ticket: string; tenants: { id: string; name: string }[] };
+  | { name: 'choose'; ticket: string; tenants: { id: string; name: string }[] }
+  | { name: 'second'; ticket: string; enrolled: boolean; organisation: string };
 
-/** Signing in with a mobile number and a one-time code (spec 8.1, module M1). */
+/** The authenticator step a sign-in by someone who can change access goes to (decision D91). */
+function secondStep(result: SecondFactor): Step {
+  return {
+    name: 'second',
+    ticket: result.ticket,
+    enrolled: result.enrolled,
+    organisation: result.tenant.name,
+  };
+}
+
+/**
+ * Signing in with a mobile number and a one-time code (spec 8.1, module M1), then an
+ * authenticator code for those who can change access (decision D91).
+ */
 export function SignInPage() {
   const { client } = useApp();
   const navigate = useNavigate();
@@ -72,16 +88,30 @@ export function SignInPage() {
         return;
       }
       saveTenants([]);
+      if (result.status === 'second_factor') {
+        setStep(secondStep(result));
+        return;
+      }
       await navigate({ to: '/' });
     });
   }
 
   function choose(ticket: string, tenantId: string) {
     void run(async () => {
-      await client.selectTenant(ticket, tenantId);
+      const result = await client.selectTenant(ticket, tenantId);
+      if (result.status === 'second_factor') {
+        setStep(secondStep(result));
+        return;
+      }
       await navigate({ to: '/' });
     });
   }
+
+  const signedIn = useCallback(() => void navigate({ to: '/' }), [navigate]);
+  const expired = useCallback(() => {
+    setStep({ name: 'phone' });
+    setError(t('error.OTP_EXPIRED'));
+  }, [t]);
 
   return (
     <main className="ks ks-auth">
@@ -165,6 +195,16 @@ export function SignInPage() {
                   )}
                 </div>
               </form>
+            ) : null}
+
+            {step.name === 'second' ? (
+              <SecondFactorStep
+                ticket={step.ticket}
+                enrolled={step.enrolled}
+                organisation={step.organisation}
+                onSignedIn={signedIn}
+                onExpired={expired}
+              />
             ) : null}
 
             {step.name === 'choose' ? (

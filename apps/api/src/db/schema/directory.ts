@@ -143,10 +143,28 @@ export const refreshTokens = directory.table(
     authRevision: integer('auth_revision').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    // The sign-in that started the family passed an authenticator code (decision D91).
+    secondFactor: boolean('second_factor').notNull().default(false),
     createdAt: createdAt(),
   },
   (table) => [index('refresh_tokens_family_idx').on(table.familyId)],
 );
+
+/**
+ * A person's authenticator (spec 10.3, decision D91): the TOTP secret sealed under `COLUMN_KEY`,
+ * when it was set up (null while being set up), the last step used, so no code works twice, and
+ * the hashes of the unused recovery codes. One per person, whatever their tenants.
+ */
+export const totpSecrets = directory.table('totp_secrets', {
+  identityId: uuid('identity_id')
+    .primaryKey()
+    .references(() => identities.id),
+  secretSealed: text('secret_sealed').notNull(),
+  enabledAt: timestamp('enabled_at', { withTimezone: true }),
+  lastStep: bigint('last_step', { mode: 'number' }),
+  recoveryHashes: text('recovery_hashes').array().notNull().default([]),
+  createdAt: createdAt(),
+});
 
 export const platformRole = directory.enum('platform_role', PLATFORM_ROLES);
 

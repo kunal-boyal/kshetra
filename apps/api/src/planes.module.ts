@@ -13,6 +13,7 @@ import { MeteringModule } from './modules/metering/metering.module';
 import { CellSeatCounts } from './modules/metering/seat-counts';
 import { DirectoryModule } from './modules/directory/directory.module';
 import { DirectoryMembers } from './modules/directory/members';
+import { SecondFactorService } from './modules/directory/second-factor.service';
 import { DirectoryTenants } from './modules/directory/tenants';
 import { AccessResolver } from './platform/auth';
 import { Outbox } from './platform/outbox';
@@ -22,6 +23,7 @@ import {
   Entitlements,
   MembershipSync,
   SeatCounts,
+  SecondFactors,
   TenantContacts,
   TenantDirectory,
   UsageRecorder,
@@ -54,6 +56,7 @@ import {
     { provide: UsageRecorder, useExisting: UsageService },
     { provide: SeatCounts, useExisting: CellSeatCounts },
     { provide: TenantContacts, useExisting: IamContacts },
+    { provide: SecondFactors, useExisting: SecondFactorService },
   ],
   exports: [
     CellAdmission,
@@ -64,6 +67,7 @@ import {
     UsageRecorder,
     SeatCounts,
     TenantContacts,
+    SecondFactors,
   ],
 })
 export class PlanesModule implements OnModuleInit {

@@ -12,9 +12,23 @@ Put it in `private/`, which git ignores, so customer documents stay off the repo
 {
   "label": "Invoice 1 from the pilot customer",
   "lines": [
-    { "item": "Item code", "unit": "case", "perUnit": "12", "quantity": "2", "price": "400.00", "discount": "10", "taxRate": "18" }
+    {
+      "item": "Item code",
+      "unit": "case",
+      "perUnit": "12",
+      "quantity": "2",
+      "price": "400.00",
+      "discount": "10",
+      "taxRate": "18"
+    }
   ],
-  "totals": { "taxable": "8640.00", "tax": "1555.20", "cgst": "777.60", "sgst": "777.60", "total": "10195.20" }
+  "totals": {
+    "taxable": "8640.00",
+    "tax": "1555.20",
+    "cgst": "777.60",
+    "sgst": "777.60",
+    "total": "10195.20"
+  }
 }
 ```
 

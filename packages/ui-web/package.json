@@ -18,15 +18,16 @@
   },
   "dependencies": {
     "@thelamp/design-tokens": "workspace:*",
-    "lucide-react": "catalog:"
+    "lucide-react": "catalog:",
+    "qrcode-generator": "2.0.4"
   },
   "peerDependencies": {
     "react": "catalog:"
   },
   "devDependencies": {
-    "@thelamp/config": "workspace:*",
     "@testing-library/jest-dom": "catalog:",
     "@testing-library/react": "catalog:",
+    "@thelamp/config": "workspace:*",
     "@types/react": "catalog:",
     "eslint": "catalog:",
     "jsdom": "catalog:",

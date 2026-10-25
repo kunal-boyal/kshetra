@@ -1,5 +1,11 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { CreateUserBody, type DeviceInfo, newId, type UserResult } from '@thelamp/shared';
+import {
+  CreateUserBody,
+  type DeviceInfo,
+  newId,
+  normalisePhone,
+  type UserResult,
+} from '@thelamp/shared';
 import { loadTemplate } from '@thelamp/templates';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { sql } from 'drizzle-orm';
@@ -16,6 +22,7 @@ import { CellSetup } from '../src/modules/provisioning/cell-setup.service';
 import { TerritoriesService } from '../src/modules/territories/territories.service';
 import { Database } from '../src/platform/database';
 import { RedisClient } from '../src/platform/redis';
+import { totpAt, totpStep } from '../src/platform/totp';
 
 /** The API's settings for a test, pointed at the run's PostgreSQL and Redis. */
 export function testConfig(overrides: Record<string, string> = {}): Config {
@@ -92,6 +99,15 @@ export class DirectoryFixtures {
       name,
     ]);
     return rows[0].id;
+  }
+
+  /** Lets a person's authenticator code for this moment work again, as tests sign in often. */
+  async forgetTotpStep(phone: string): Promise<void> {
+    await this.client.query(
+      `update directory.totp_secrets set last_step = null
+        where identity_id = (select id from directory.identities where phone_e164 = $1)`,
+      [normalisePhone(phone)],
+    );
   }
 
   async tenant(name: string, status = 'active', cellName = 'local'): Promise<string> {
@@ -237,14 +253,51 @@ export class World {
     });
   }
 
-  /** Signs a one-tenant user in, with a phone or on the web, and returns the session. */
+  /** Authenticator secrets of the people this world signed in, by number (decision D91). */
+  private readonly totp = new Map<string, string>();
+
+  /**
+   * Signs a one-tenant user in, with a phone or on the web, and returns the session. Someone who
+   * can change access gives an authenticator code on the web, set up the first time; as tests
+   * sign the same people in many times a minute, the last step used is forgotten first.
+   */
   async signIn(
     phone: string,
     device?: DeviceInfo,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const response = await this.verify(phone, device);
-    expect(response.json()).toMatchObject({ status: 'signed_in' });
-    return response.json().session;
+    const body = response.json();
+    if (body.status === 'second_factor') return (await this.secondFactor(phone, body)).session;
+    expect(body).toMatchObject({ status: 'signed_in' });
+    return body.session;
+  }
+
+  /** Completes a sign-in waiting for an authenticator code, setting one up if need be. */
+  async secondFactor(
+    phone: string,
+    challenge: { ticket: string; enrolled: boolean },
+  ): Promise<{ session: { accessToken: string; refreshToken: string }; recoveryCodes?: string[] }> {
+    let secret = this.totp.get(phone);
+    if (!challenge.enrolled || !secret) {
+      const setUp = await this.app.inject({
+        method: 'POST',
+        url: '/auth/v1/totp/setup',
+        payload: { ticket: challenge.ticket },
+        remoteAddress: newAddress(),
+      });
+      expect(setUp.statusCode, setUp.body).toBe(200);
+      secret = setUp.json().secret as string;
+      this.totp.set(phone, secret);
+    }
+    await this.directory.forgetTotpStep(phone);
+    const verified = await this.app.inject({
+      method: 'POST',
+      url: '/auth/v1/totp/verify',
+      payload: { ticket: challenge.ticket, code: totpAt(secret, totpStep()) },
+      remoteAddress: newAddress(),
+    });
+    expect(verified.json(), verified.body).toMatchObject({ status: 'signed_in' });
+    return verified.json();
   }
 
   async end(): Promise<void> {

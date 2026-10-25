@@ -10,6 +10,8 @@ export interface MembershipRow {
   authRevision: number;
   tenantId: string;
   tenantName: string;
+  /** A tenant for showing the product (D70), whose admins sign in without an authenticator. */
+  tenantDemo: boolean;
   cellName: string;
   cellUrl: string;
 }
@@ -24,6 +26,7 @@ export function activeMemberships(db: DirectoryDb | DirectoryTx, where: SQL | un
       authRevision: memberships.authRevision,
       tenantId: tenants.id,
       tenantName: tenants.name,
+      tenantDemo: tenants.demo,
       cellName: cells.name,
       cellUrl: cells.apiBaseUrl,
     })

@@ -7,6 +7,7 @@ export { Checkbox, ChoiceGroup, SelectField, TextAreaField } from './fields';
 export type { CheckboxProps, SelectFieldProps, TextAreaFieldProps } from './fields';
 export { Icon } from './icon';
 export { KpiTile } from './kpi';
+export { QrCode } from './qr-code';
 export type { KpiTileProps } from './kpi';
 export type { IconProps } from './icon';
 export { Card, EmptyState, IconChip, Notice } from './surfaces';

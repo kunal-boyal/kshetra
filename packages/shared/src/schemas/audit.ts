@@ -105,6 +105,7 @@ export const AUDIT_ACTIONS = [
   'whatsapp.consent_changed',
   'billing.account_changed',
   'billing.mandate_started',
+  'user.second_factor_reset',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

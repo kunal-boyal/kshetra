@@ -1,11 +1,10 @@
 import { Link } from '@tanstack/react-router';
 import { ApiError } from '@thelamp/api-client';
-import { Button, Card, Notice, TextField } from '@thelamp/ui-web';
+import { Button, Card, Notice, QrCode, TextField } from '@thelamp/ui-web';
 import { type FormEvent, useState } from 'react';
 import { markUrl, PRODUCT_NAME } from '../brand';
 import { useConsole } from '../context';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
-import { QrCode } from '../qr-code';
 
 type Step =
   { name: 'password' } | { name: 'authenticator'; secret: string; uri: string } | { name: 'done' };
