@@ -1,4 +1,10 @@
-import type { ConsoleTenant, ModuleKey } from '@thelamp/shared';
+import {
+  BILLING_TIME_ZONE,
+  type ConsoleTenant,
+  type InvoiceResult,
+  type ModuleKey,
+  todayIn,
+} from '@thelamp/shared';
 import { type BadgeVariant, StatusBadge } from '@thelamp/ui-web';
 import { useLanguage } from '../i18n';
 
@@ -41,4 +47,24 @@ export function PlanStatusBadge({ active }: { active: boolean }) {
 /** A module's name in the product's own words; the console has no tenant terms. */
 export function moduleName(key: ModuleKey, t: ReturnType<typeof useLanguage>['t']): string {
   return t(`admin.module_${key}`);
+}
+
+/** Today on the vendor's clock, which billing's days follow (decision D90). */
+export const billingToday = () => todayIn(BILLING_TIME_ZONE, new Date());
+
+/** An invoice's state: paid, unpaid, or overdue once its due day has passed unpaid. */
+export function InvoiceStatusBadge({
+  invoice,
+}: {
+  invoice: Pick<InvoiceResult, 'status' | 'dueOn'>;
+}) {
+  const { t } = useLanguage();
+  if (invoice.status === 'paid') {
+    return <StatusBadge variant="success">{t('console.invoice_paid')}</StatusBadge>;
+  }
+  return invoice.dueOn < billingToday() ? (
+    <StatusBadge variant="danger">{t('console.invoice_overdue')}</StatusBadge>
+  ) : (
+    <StatusBadge variant="pending">{t('console.invoice_unpaid')}</StatusBadge>
+  );
 }

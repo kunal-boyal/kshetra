@@ -2,7 +2,15 @@ import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { ADMIN, fakeClient, OPEN, PLAN, renderConsole, TENANT } from '../test-support';
+import {
+  ADMIN,
+  billingAnswer,
+  fakeClient,
+  OPEN,
+  PLAN,
+  renderConsole,
+  TENANT,
+} from '../test-support';
 
 const ON_GROWTH = {
   plan: { id: PLAN.id, key: PLAN.key, name: PLAN.name },
@@ -21,6 +29,7 @@ const SUPPORT = {
 describe("a tenant's plan in the console (D89)", () => {
   it('shows the plan, the modules open, what was added and the caps in use', async () => {
     const client = fakeClient(SUPPORT, (_method, path) => {
+      if (billingAnswer(path)) return billingAnswer(path);
       if (path.endsWith('/entitlements')) return ON_GROWTH;
       if (path.includes('/usage')) return { items: [] };
       return { ...TENANT, plan: ON_GROWTH.plan };
@@ -65,6 +74,7 @@ describe("a tenant's plan in the console (D89)", () => {
           ],
         };
       }
+      if (billingAnswer(path)) return billingAnswer(path);
       if (path.endsWith('/entitlements')) return entitled;
       if (path.includes('/usage')) return { items: [] };
       return TENANT;
@@ -111,6 +121,7 @@ describe("a tenant's plan in the console (D89)", () => {
         return OPEN;
       }
       if (path === '/platform/v1/plans') return { items: [PLAN] };
+      if (billingAnswer(path)) return billingAnswer(path);
       if (path.endsWith('/entitlements')) return { ...ON_GROWTH, ownLimits: { storageGb: null } };
       if (path.includes('/usage')) return { items: [] };
       return TENANT;
@@ -131,6 +142,7 @@ describe("a tenant's plan in the console (D89)", () => {
 describe("a tenant's usage in the console (M22)", () => {
   it('shows each month newest first, in the reader’s figures', async () => {
     const client = fakeClient(ADMIN, (_method, path) => {
+      if (billingAnswer(path)) return billingAnswer(path);
       if (path.endsWith('/entitlements')) return OPEN;
       if (path.includes('/usage')) {
         expect(path).toContain('months=6');
@@ -171,6 +183,7 @@ describe("a tenant's usage in the console (M22)", () => {
 
   it('says when nothing has been measured yet', async () => {
     const client = fakeClient(ADMIN, (_method, path) => {
+      if (billingAnswer(path)) return billingAnswer(path);
       if (path.endsWith('/entitlements')) return OPEN;
       if (path.includes('/usage')) return { items: [] };
       return TENANT;

@@ -49,6 +49,59 @@ const PLAN = {
   createdAt: '2026-10-20T10:00:00.000Z',
 };
 
+const INVOICE = {
+  id: '01a10000-0000-7000-8000-0000000000e1',
+  number: 'TL/26-27/00042',
+  tenant: { id: TENANT.id, name: TENANT.name, slug: TENANT.slug },
+  kind: 'monthly',
+  period: { from: '2026-10-01', to: '2026-10-31' },
+  issuedOn: '2026-11-04',
+  dueOn: '2099-11-19',
+  seller: {
+    legalName: 'Example Field Software Private Limited',
+    gstin: '27ZZZZZ0000Z1ZQ',
+    address: 'Unit 4, Example Business Park, Pune 411045',
+    stateCode: '27',
+    stateName: 'Maharashtra',
+    email: 'billing@vendor.example',
+    sac: '998314',
+  },
+  buyer: {
+    legalName: 'Sunrise Agro Private Limited',
+    gstin: null,
+    address: 'Plot 9, MIDC, Nashik 422010',
+    stateCode: '27',
+    stateName: 'Maharashtra',
+  },
+  lines: [
+    {
+      description: 'Seats on the Growth plan, October 2026 (per seat per month, prorated by day)',
+      quantity: '11.4839',
+      rate: '499.00',
+      amount: '5730.47',
+    },
+  ],
+  subtotal: '5730.47',
+  gstRate: '18',
+  cgst: '515.74',
+  sgst: '515.74',
+  igst: '0.00',
+  total: '6761.95',
+  paid: '1000.00',
+  status: 'issued',
+  example: true,
+  payments: [
+    {
+      id: '01a10000-0000-7000-8000-0000000000f1',
+      amount: '1000.00',
+      method: 'upi',
+      reference: 'UTR 4471',
+      receivedOn: '2026-11-05',
+      recordedAt: '2026-11-05T10:00:00.000Z',
+    },
+  ],
+};
+
 /** Answers the console's calls as the API would; `signedIn` starts with a live session cookie. */
 async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
   let session = signedIn;
@@ -116,6 +169,59 @@ async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
     }),
   );
   await page.route('**/platform/v1/plans', (route) => route.fulfill({ json: { items: [PLAN] } }));
+  await page.route('**/platform/v1/billing/settings', (route) =>
+    route.fulfill({
+      json: {
+        seller: INVOICE.seller,
+        invoicePrefix: 'EX',
+        gstRate: '18',
+        paymentTermsDays: 15,
+        graceDays: 7,
+        readOnlyDays: 14,
+        example: true,
+        ready: true,
+      },
+    }),
+  );
+  await page.route(`**/platform/v1/tenants/${TENANT.id}/billing`, (route) =>
+    route.fulfill({
+      json: {
+        account: {
+          legalName: 'Sunrise Agro Private Limited',
+          gstin: null,
+          address: 'Plot 9, MIDC, Nashik 422010',
+          stateCode: '27',
+          email: 'accounts@sunrise.example',
+          language: 'en',
+          mandate: 'failed',
+        },
+        subscription: {
+          id: '01a10000-0000-7000-8000-0000000000d1',
+          plan: { id: PLAN.id, key: PLAN.key, name: PLAN.name },
+          cycle: 'month',
+          committedSeats: null,
+          status: 'active',
+          startedOn: '2026-10-01',
+          term: null,
+          endsOn: null,
+        },
+        outstanding: '5761.95',
+        dunning: {
+          overdueSince: '2026-11-04',
+          stage: 'grace',
+          readOnlyOn: '2026-11-11',
+          suspendOn: '2026-11-25',
+          outstanding: '5761.95',
+        },
+      },
+    }),
+  );
+  await page.route('**/platform/v1/invoices?**', (route) =>
+    route.fulfill({ json: { items: [INVOICE], nextCursor: null } }),
+  );
+  await page.route(`**/platform/v1/invoices/${INVOICE.id}`, (route) =>
+    route.fulfill({ json: INVOICE }),
+  );
   await page.route('**/platform/v1/templates', (route) =>
     route.fulfill({
       json: {
@@ -198,6 +304,9 @@ for (const [path, heading] of [
   ['/plans', 'Plans'],
   ['/plans/new', 'New plan'],
   [`/plans/${PLAN.id}`, 'Growth'],
+  ['/billing', 'Billing'],
+  ['/billing/settings', 'Billing settings'],
+  [`/invoices/${INVOICE.id}`, 'Invoice TL/26-27/00042'],
   ['/staff', 'Staff'],
 ] as const) {
   for (const theme of ['light', 'dark'] as const) {
@@ -229,5 +338,17 @@ test('changing a tenant’s plan passes axe, with its usage beside it', async ({
   await page.getByRole('button', { name: 'Change the plan' }).click();
   await page.getByLabel('People active at once').selectOption('own');
   await expect(page.getByLabel(/^People/).last()).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('a tenant’s billing, cancelling its subscription, passes axe', async ({ page }) => {
+  await mockApi(page, { signedIn: true });
+  await page.goto(`/tenants/${TENANT.id}`);
+  await expect(page.getByText(/Overdue since 4 Nov 2026: in grace/)).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Invoices' })).toContainText('TL/26-27/00042');
+  await page.getByRole('button', { name: 'Cancel the subscription' }).click();
+  await expect(
+    page.getByRole('group', { name: /Cancel Sunrise Agro’s subscription/ }),
+  ).toBeVisible();
   await expectAccessible(page);
 });

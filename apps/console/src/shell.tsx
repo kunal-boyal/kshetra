@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { Button } from '@thelamp/ui-web';
-import { Building2, Languages, LogOut, Tags, Users } from 'lucide-react';
+import { Building2, Languages, LogOut, Receipt, Tags, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Brand } from './brand';
 import { useConsole } from './context';
@@ -11,7 +11,7 @@ function NavLink({
   icon,
   children,
 }: {
-  to: '/' | '/plans' | '/staff';
+  to: '/' | '/plans' | '/billing' | '/staff';
   icon: ReactNode;
   children: ReactNode;
 }) {
@@ -51,6 +51,11 @@ export function Shell() {
           <li>
             <NavLink to="/plans" icon={<Tags size={18} aria-hidden="true" />}>
               {t('console.plans')}
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/billing" icon={<Receipt size={18} aria-hidden="true" />}>
+              {t('console.billing')}
             </NavLink>
           </li>
           {managesStaff ? (
