@@ -7,11 +7,12 @@ import { useConsole } from '../context';
 import { useConsoleMutations, useTenant } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { holds, TenantStatusBadge, VIEWER_TIME_ZONE } from './shared';
+import { BillingCard } from './tenant-billing';
 import { PlanCard, UsageCard } from './tenant-plan';
 
 /**
- * One tenant: where it lives, what it started from, its trial, its plan and usage, and suspending
- * or reopening it.
+ * One tenant: where it lives, what it started from, its trial, its plan, billing and usage, and
+ * suspending or reopening it.
  */
 export function TenantPage({ tenantId }: { tenantId: string }) {
   const { client } = useConsole();
@@ -80,6 +81,7 @@ export function TenantPage({ tenantId }: { tenantId: string }) {
         </dl>
       </Card>
       <PlanCard tenant={row} />
+      <BillingCard tenant={row} />
       <UsageCard tenantId={row.id} />
       {failure ? (
         <p className="ks-help error" role="alert">

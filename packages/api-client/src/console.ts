@@ -136,25 +136,36 @@ export function createConsoleClient(options: ConsoleClientOptions) {
       schema: z.ZodType<T>,
       body?: unknown,
     ): Promise<T> {
-      const attempt = async (accessToken: string) =>
-        send(path, {
-          method,
-          headers: { authorization: `Bearer ${accessToken}` },
-          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        });
-      let response = await attempt(await token());
-      if (response.status === 401) {
-        const error = await errorFrom(response.clone());
-        if (error.code === 'TOKEN_EXPIRED') {
-          session = null;
-          response = await attempt(await token());
-        } else if (error.code === 'SESSION_REVOKED') {
-          signedOut();
-        }
-      }
-      return read(response, schema);
+      return read(await authorised(method, path, body), schema);
+    },
+
+    /** A file the console downloads, such as an invoice's PDF. */
+    async file(path: string): Promise<Blob> {
+      const response = await authorised('GET', path);
+      if (!response.ok) throw await errorFrom(response);
+      return response.blob();
     },
   };
+
+  async function authorised(method: string, path: string, body?: unknown): Promise<Response> {
+    const attempt = async (accessToken: string) =>
+      send(path, {
+        method,
+        headers: { authorization: `Bearer ${accessToken}` },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+    let response = await attempt(await token());
+    if (response.status === 401) {
+      const error = await errorFrom(response.clone());
+      if (error.code === 'TOKEN_EXPIRED') {
+        session = null;
+        response = await attempt(await token());
+      } else if (error.code === 'SESSION_REVOKED') {
+        signedOut();
+      }
+    }
+    return response;
+  }
 }
 
 export type ConsoleClient = ReturnType<typeof createConsoleClient>;

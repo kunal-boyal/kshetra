@@ -57,6 +57,26 @@ describe('the console client (decision D88)', () => {
     expect(calls).toBe(2);
   });
 
+  it('downloads a file with the token, and turns a refusal into an ApiError', async () => {
+    const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/platform/v1/session')) return json(200, session('one'));
+      if (url.endsWith('/missing/pdf')) return failure(404, 'NOT_FOUND');
+      expect((init?.headers as Record<string, string>).authorization).toBe('Bearer one');
+      return new Response('%PDF-1.3', {
+        status: 200,
+        headers: { 'content-type': 'application/pdf' },
+      });
+    });
+    const client = createConsoleClient({ baseUrl: '', fetch: asFetch(fetch) });
+    await client.signIn(STAFF.email, 'a long password', '123456');
+    const file = await client.file('/platform/v1/invoices/one/pdf');
+    expect(file.type).toBe('application/pdf');
+    expect(await file.text()).toBe('%PDF-1.3');
+    await expect(client.file('/platform/v1/invoices/missing/pdf')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
   it('signs out when the cookie no longer works, or the server revokes the session', async () => {
     const onSignedOut = vi.fn();
     const fetch = vi.fn(async (url: string) =>

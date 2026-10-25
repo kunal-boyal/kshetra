@@ -2,7 +2,15 @@ import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { ADMIN, fakeClient, OPEN, PLAN, renderConsole, TENANT } from '../test-support';
+import {
+  ADMIN,
+  billingAnswer,
+  fakeClient,
+  OPEN,
+  PLAN,
+  renderConsole,
+  TENANT,
+} from '../test-support';
 
 const SUPPORT = {
   ...ADMIN,
@@ -84,6 +92,7 @@ describe('tenants in the console (M22)', () => {
         return { items: [PLAN, { ...PLAN, id: PLAN.id.replace('c1', 'c2'), active: false }] };
       }
       // The new tenant's page reads its plan and usage once it opens.
+      if (billingAnswer(path)) return billingAnswer(path);
       if (path.endsWith('/entitlements')) return OPEN;
       if (path.includes('/usage')) return { items: [] };
       if (method === 'POST') {
@@ -135,6 +144,7 @@ describe('tenants in the console (M22)', () => {
         status = 'suspended';
       }
       if (method === 'POST' && path.endsWith('/reactivate')) status = 'trial';
+      if (billingAnswer(path)) return billingAnswer(path);
       if (path.endsWith('/entitlements')) return OPEN;
       if (path.includes('/usage')) return { items: [] };
       return { ...TENANT, status };

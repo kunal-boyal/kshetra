@@ -65,6 +65,68 @@ export const OPEN = {
   ownLimits: {},
 };
 
+/** An unpaid monthly invoice for Sunrise Agro, within Maharashtra (decision D90). */
+export const INVOICE = {
+  id: '01a10000-0000-7000-8000-0000000000e1',
+  number: 'TL/26-27/00042',
+  tenant: { id: TENANT.id, name: TENANT.name, slug: TENANT.slug },
+  kind: 'monthly' as const,
+  period: { from: '2026-10-01', to: '2026-10-31' },
+  issuedOn: '2026-11-04',
+  dueOn: '2099-11-19',
+  seller: {
+    legalName: 'Example Field Software Private Limited',
+    gstin: '27ZZZZZ0000Z1ZQ',
+    address: 'Unit 4, Example Business Park, Pune 411045',
+    stateCode: '27',
+    stateName: 'Maharashtra',
+    email: 'billing@vendor.example',
+    sac: '998314',
+  },
+  buyer: {
+    legalName: 'Sunrise Agro Private Limited',
+    gstin: null,
+    address: 'Plot 9, MIDC, Nashik 422010',
+    stateCode: '27',
+    stateName: 'Maharashtra',
+  },
+  lines: [
+    {
+      description: 'Seats on the Growth plan, October 2026 (per seat per month, prorated by day)',
+      quantity: '11.4839',
+      rate: '499.00',
+      amount: '5730.47',
+    },
+  ],
+  subtotal: '5730.47',
+  gstRate: '18',
+  cgst: '515.74',
+  sgst: '515.74',
+  igst: '0.00',
+  total: '6761.95',
+  paid: '0.00',
+  status: 'issued' as const,
+  example: false,
+  payments: [] as {
+    id: string;
+    amount: string;
+    method: 'bank_transfer' | 'mandate' | 'cheque' | 'upi' | 'other';
+    reference: string | null;
+    receivedOn: string;
+    recordedAt: string;
+  }[],
+};
+
+/** A tenant with no billing details, subscription or invoices (decision D90). */
+export const NO_BILLING = { account: null, subscription: null, outstanding: '0.00', dunning: null };
+
+/** The tenant page's billing reads, answered as for a tenant with no billing yet. */
+export function billingAnswer(path: string): unknown {
+  if (path.endsWith('/billing')) return NO_BILLING;
+  if (path.startsWith('/platform/v1/invoices?')) return { items: [], nextCursor: null };
+  return undefined;
+}
+
 type Handler = (method: string, path: string, body: unknown) => unknown;
 
 /** A console client that answers from `handler` and never touches a network. */
@@ -84,6 +146,9 @@ export function fakeClient(staff: StaffResult | null, handler: Handler = () => (
     }),
     setUp: vi.fn(async () => ({ secret: 'JBSWY3DPEHPK3PXP', uri: 'otpauth://totp/x' })),
     confirm: vi.fn(async () => ({ ...ADMIN, status: 'active' as const })),
+    file: vi.fn<(path: string) => Promise<Blob>>(
+      async () => new Blob(['%PDF-1.3'], { type: 'application/pdf' }),
+    ),
     request: vi.fn(async (method: string, path: string, _schema: unknown, body?: unknown) => {
       const answer = handler(method, path, body);
       if (answer instanceof ApiError) throw answer;

@@ -7,6 +7,9 @@ import {
   type RouterHistory,
 } from '@tanstack/react-router';
 import type { ConsoleContext } from './context';
+import { BillingPage } from './pages/billing';
+import { BillingSettingsPage } from './pages/billing-settings';
+import { InvoicePage } from './pages/invoice';
 import { NewTenantPage } from './pages/new-tenant';
 import { NewPlanPage, PlanPage } from './pages/plan';
 import { PlansPage } from './pages/plans';
@@ -69,12 +72,41 @@ const plan = createRoute({
     return <PlanPage key={planId} planId={planId} />;
   },
 });
+const billing = createRoute({
+  getParentRoute: () => app,
+  path: '/billing',
+  component: BillingPage,
+});
+const billingSettings = createRoute({
+  getParentRoute: () => app,
+  path: '/billing/settings',
+  component: BillingSettingsPage,
+});
+const invoice = createRoute({
+  getParentRoute: () => app,
+  path: '/invoices/$invoiceId',
+  component: function InvoiceRoute() {
+    const { invoiceId } = invoice.useParams();
+    return <InvoicePage key={invoiceId} invoiceId={invoiceId} />;
+  },
+});
 const staff = createRoute({ getParentRoute: () => app, path: '/staff', component: StaffPage });
 
 const routeTree = root.addChildren([
   signIn,
   setup,
-  app.addChildren([tenants, newTenant, tenant, plans, newPlan, plan, staff]),
+  app.addChildren([
+    tenants,
+    newTenant,
+    tenant,
+    plans,
+    newPlan,
+    plan,
+    billing,
+    billingSettings,
+    invoice,
+    staff,
+  ]),
 ]);
 
 export function createConsoleRouter(context: ConsoleContext, history?: RouterHistory) {

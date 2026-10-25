@@ -1,12 +1,21 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type BillingAccountBody,
+  type BillingSettingsBody,
+  BillingSettingsResult,
   CellListResult,
   ConsoleTenant,
   ConsoleTenantList,
   type CreatePlanBody,
   CreateTenantBody,
   InviteStaffResult,
+  InvoiceListResult,
+  InvoiceResult,
+  MandateResult,
   type PlanBody,
+  type RecordPaymentBody,
+  type SubscriptionBody,
+  TenantBillingResult,
   PlanListResult,
   PlanResult,
   StaffListResult,
@@ -93,6 +102,50 @@ export function useUsage(tenantId: string) {
   });
 }
 
+/** The seller's details and the dunning periods (decision D90). */
+export function useBillingSettings() {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['billing-settings'],
+    queryFn: () => client.request('GET', '/platform/v1/billing/settings', BillingSettingsResult),
+  });
+}
+
+/** A tenant's billing details, subscription and what it owes. */
+export function useTenantBilling(tenantId: string) {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['tenant-billing', tenantId],
+    queryFn: () =>
+      client.request('GET', `/platform/v1/tenants/${tenantId}/billing`, TenantBillingResult),
+  });
+}
+
+/** Invoices newest first, a page at a time, for every tenant or one. */
+export function useInvoices(filters: { tenantId?: string; status?: 'issued' | 'paid' }) {
+  const { client } = useConsole();
+  return useInfiniteQuery({
+    queryKey: ['invoices', filters],
+    initialPageParam: '',
+    queryFn: ({ pageParam }) => {
+      const query = new URLSearchParams({ limit: '50' });
+      if (filters.tenantId) query.set('tenantId', filters.tenantId);
+      if (filters.status) query.set('status', filters.status);
+      if (pageParam) query.set('cursor', pageParam);
+      return client.request('GET', `/platform/v1/invoices?${query}`, InvoiceListResult);
+    },
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
+}
+
+export function useInvoice(id: string) {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['invoice', id],
+    queryFn: () => client.request('GET', `/platform/v1/invoices/${id}`, InvoiceResult),
+  });
+}
+
 export function useStaff() {
   const { client } = useConsole();
   return useQuery({
@@ -144,6 +197,72 @@ export function useConsoleMutations() {
       }) =>
         client.request('PUT', `/platform/v1/tenants/${tenantId}/plan`, TenantEntitlements, body),
       onSuccess: () => refresh(['entitlements', 'tenant', 'tenants', 'plans']),
+    }),
+    saveBillingSettings: useMutation({
+      mutationFn: (body: z.input<typeof BillingSettingsBody>) =>
+        client.request('PUT', '/platform/v1/billing/settings', BillingSettingsResult, body),
+      onSuccess: () => refresh(['billing-settings']),
+    }),
+    saveBillingAccount: useMutation({
+      mutationFn: ({
+        tenantId,
+        body,
+      }: {
+        tenantId: string;
+        body: z.input<typeof BillingAccountBody>;
+      }) =>
+        client.request(
+          'PUT',
+          `/platform/v1/tenants/${tenantId}/billing-account`,
+          TenantBillingResult,
+          body,
+        ),
+      onSuccess: () => refresh(['tenant-billing']),
+    }),
+    subscribe: useMutation({
+      mutationFn: ({
+        tenantId,
+        body,
+      }: {
+        tenantId: string;
+        body: z.input<typeof SubscriptionBody>;
+      }) =>
+        client.request(
+          'PUT',
+          `/platform/v1/tenants/${tenantId}/subscription`,
+          TenantBillingResult,
+          body,
+        ),
+      // Subscribing moves the tenant's plan and status, and an annual one issues an invoice.
+      onSuccess: () =>
+        refresh(['tenant-billing', 'tenant', 'tenants', 'entitlements', 'invoices', 'plans']),
+    }),
+    cancelSubscription: useMutation({
+      mutationFn: ({ tenantId, reason }: { tenantId: string; reason: string }) =>
+        client.request(
+          'POST',
+          `/platform/v1/tenants/${tenantId}/subscription/cancel`,
+          TenantBillingResult,
+          { reason },
+        ),
+      onSuccess: () => refresh(['tenant-billing']),
+    }),
+    authorise: useMutation({
+      mutationFn: (tenantId: string) =>
+        client.request('POST', `/platform/v1/tenants/${tenantId}/mandate`, MandateResult),
+      onSuccess: () => refresh(['tenant-billing', 'invoices', 'invoice']),
+    }),
+    recordPayment: useMutation({
+      mutationFn: ({
+        invoiceId,
+        body,
+      }: {
+        invoiceId: string;
+        body: z.input<typeof RecordPaymentBody>;
+      }) =>
+        client.request('POST', `/platform/v1/invoices/${invoiceId}/payments`, InvoiceResult, body),
+      // Paying can move the tenant out of grace or read only.
+      onSuccess: () => refresh(['invoice', 'invoices', 'tenant-billing', 'tenant', 'tenants']),
     }),
     invite: useMutation({
       mutationFn: (body: { id: string; email: string; name: string; role: string }) =>
