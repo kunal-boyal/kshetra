@@ -53,7 +53,7 @@ catalog:
 # loads one React. Move them together, with the SDK; see docs/versions.md.
 catalogs:
   mobile:
-    '@jest/globals': ^29.7.0
+    '@jest/globals': ^30.5.2
     '@testing-library/react-native': ^14.0.1
     '@types/react': ~19.2.2
     expo: ~57.0.30
