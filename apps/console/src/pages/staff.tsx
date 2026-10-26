@@ -27,13 +27,14 @@ const STATUS_BADGE: Record<StaffResult['status'], BadgeVariant> = {
 
 /**
  * The vendor's staff (decision D88): who may use the console and in what role, inviting someone
- * with a setup link shown once, and disabling someone for good.
+ * with a setup link shown once, resetting a lost password or authenticator with a new link
+ * (decision D101), and disabling someone for good.
  */
 export function StaffPage() {
   const { client } = useConsole();
   const { t, locale } = useLanguage();
   const staff = useStaff();
-  const { invite, disable } = useConsoleMutations();
+  const { invite, disable, resetSignIn } = useConsoleMutations();
   const [id, setId] = useState(newId);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -43,6 +44,7 @@ export function StaffPage() {
   const [link, setLink] = useState<{ name: string; url: string }>();
   const [copied, setCopied] = useState(false);
   const [disabling, setDisabling] = useState<StaffResult>();
+  const [resetting, setResetting] = useState<StaffResult>();
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -87,9 +89,14 @@ export function StaffPage() {
       header: t('console.col_actions'),
       render: (row) =>
         row.status !== 'disabled' && row.id !== client.staff?.id ? (
-          <Button variant="ghost" size="sm" onClick={() => setDisabling(row)}>
-            {t('console.disable')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setResetting(row)}>
+              {t('console.reset_sign_in')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setDisabling(row)}>
+              {t('console.disable')}
+            </Button>
+          </div>
         ) : null,
     },
   ];
@@ -123,6 +130,36 @@ export function StaffPage() {
           }
         >
           <p className="ks-muted">{t('console.disable_note')}</p>
+        </Confirm>
+      ) : null}
+      {resetting ? (
+        <Confirm
+          question={t('console.reset_question', { name: resetting.name })}
+          action={
+            <Button
+              variant="danger"
+              busy={resetSignIn.isPending}
+              onClick={async () => {
+                try {
+                  const result = await resetSignIn.mutateAsync(resetting.id);
+                  setLink({ name: result.staff.name, url: result.setupUrl });
+                  setCopied(false);
+                  setResetting(undefined);
+                } catch (error) {
+                  setFailure(errorMessage(error, t));
+                }
+              }}
+            >
+              {t('console.reset_sign_in')}
+            </Button>
+          }
+          cancel={
+            <Button variant="ghost" onClick={() => setResetting(undefined)}>
+              {t('common.cancel')}
+            </Button>
+          }
+        >
+          <p className="ks-muted">{t('console.reset_note')}</p>
         </Confirm>
       ) : null}
       {staff.isError ? (

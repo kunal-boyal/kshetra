@@ -442,6 +442,7 @@ for (const [path, heading] of [
   ['/billing/settings', 'Billing settings'],
   [`/invoices/${INVOICE.id}`, 'Invoice TL/26-27/00042'],
   ['/staff', 'Staff'],
+  ['/account', 'Your account'],
   ['/support', 'Support access'],
   ['/announcements', 'Announcements'],
   ['/health', 'Health'],

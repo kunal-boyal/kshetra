@@ -243,6 +243,7 @@ export {
   StaffSession,
   StaffSetupBody,
   StaffSetupResult,
+  StaffPasswordBody,
   StaffSignInBody,
   SuspendTenantBody,
   TerminateTenantBody,
@@ -905,6 +906,7 @@ export {
   type SupportStatus as SupportStatusKey,
 } from './support';
 export { providerUsedMfa, SESSION_LIMITS, type SessionKind, sessionExpiresAt } from './sessions';
+export { passwordWords, passwordWordsIssue } from './passwords';
 export {
   SupportDecisionBody,
   SupportEntryQuery,

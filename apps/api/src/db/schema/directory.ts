@@ -184,7 +184,7 @@ export const refreshTokens = directory.table(
 /**
  * A person's authenticator (spec 10.3, decision D91): the TOTP secret sealed under `COLUMN_KEY`,
  * when it was set up (null while being set up), the last step used, so no code works twice, and
- * the hashes of the unused recovery codes. One per person, whatever their tenants.
+ * the salted scrypt hashes of the unused recovery codes. One per person, whatever their tenants.
  */
 export const totpSecrets = directory.table('totp_secrets', {
   identityId: uuid('identity_id')

@@ -389,5 +389,15 @@ export function useConsoleMutations() {
         client.request('POST', `/platform/v1/staff/${id}/disable`, StaffResult),
       onSuccess: () => refresh(['staff']),
     }),
+    /** Starts someone's sign-in again; the new setup link is shown once (decision D101). */
+    resetSignIn: useMutation({
+      mutationFn: (id: string) =>
+        client.request('POST', `/platform/v1/staff/${id}/reset`, InviteStaffResult),
+      onSuccess: () => refresh(['staff']),
+    }),
+    changePassword: useMutation({
+      mutationFn: (body: { currentPassword: string; newPassword: string; code: string }) =>
+        client.changePassword(body),
+    }),
   };
 }

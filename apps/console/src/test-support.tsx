@@ -169,6 +169,11 @@ export function fakeClient(staff: StaffResult | null, handler: Handler = () => (
     }),
     setUp: vi.fn(async () => ({ secret: 'JBSWY3DPEHPK3PXP', uri: 'otpauth://totp/x' })),
     confirm: vi.fn(async () => ({ ...ADMIN, status: 'active' as const })),
+    changePassword: vi.fn(async (body: unknown) => {
+      const answer = handler('POST', '/platform/v1/me/password', body);
+      if (answer instanceof ApiError) throw answer;
+      return current;
+    }),
     file: vi.fn<(path: string) => Promise<Blob>>(
       async () => new Blob(['%PDF-1.3'], { type: 'application/pdf' }),
     ),

@@ -194,6 +194,10 @@ const schema = z
         }
       }),
     EMAIL_PROVIDER: z.enum(['smtp', 'console', 'memory']).default('smtp'),
+    // New staff passwords are checked against Have I Been Pwned's breached passwords (decision
+    // D101): `pwned` asks its range API, which sees only five hex digits of the password's SHA-1;
+    // `off` skips the check, for working offline; `memory` knows a few, for tests.
+    PASSWORD_BREACH_CHECK: z.enum(['pwned', 'off', 'memory']).default('pwned'),
     // Payments for invoices (decision D90): `off` until the Razorpay account exists, when invoices
     // are paid by bank transfer and recorded in the console; `console` approves every mandate and
     // charge locally and on the demo, and `memory` lets tests decide.
@@ -285,6 +289,13 @@ const schema = z
       });
     }
     if (config.NODE_ENV === 'production') {
+      if (config.PASSWORD_BREACH_CHECK !== 'pwned') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['PASSWORD_BREACH_CHECK'],
+          message: 'Production checks new passwords against breached ones.',
+        });
+      }
       if (['console', 'mailpit', 'memory'].includes(config.OTP_PROVIDER)) {
         ctx.addIssue({
           code: 'custom',
@@ -413,6 +424,7 @@ const schema = z
       ['EMAIL_PROVIDER', config.EMAIL_PROVIDER],
       ['WHATSAPP_PROVIDER', config.WHATSAPP_PROVIDER],
       ['PAYMENT_PROVIDER', config.PAYMENT_PROVIDER],
+      ['PASSWORD_BREACH_CHECK', config.PASSWORD_BREACH_CHECK],
     ] as const) {
       if (value === 'memory' && config.NODE_ENV !== 'test') {
         ctx.addIssue({

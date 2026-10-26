@@ -3,6 +3,7 @@ import type { Config } from '../config';
 import { ApiCalls } from './api-calls';
 import { HealthCounters } from './health-counters';
 import { AuditLog } from './audit';
+import { BreachedPasswords, createBreachedPasswords } from './breached-passwords';
 import { Database } from './database';
 import { createObjectStore, ObjectStore } from './object-store';
 import { Outbox } from './outbox';
@@ -37,6 +38,7 @@ export class PlatformModule {
         Queues,
         Schedules,
         { provide: ObjectStore, useFactory: () => createObjectStore(config) },
+        { provide: BreachedPasswords, useFactory: () => createBreachedPasswords(config) },
       ],
       exports: [
         CONFIG,
@@ -53,6 +55,7 @@ export class PlatformModule {
         Queues,
         Schedules,
         ObjectStore,
+        BreachedPasswords,
       ],
     };
   }

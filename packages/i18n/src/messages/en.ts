@@ -2916,6 +2916,19 @@ export const en = {
   'console.copy_link': 'Copy the link',
   'console.copied': 'Copied',
   'console.disable': 'Disable',
+  'console.reset_sign_in': 'Reset sign-in',
+  'console.reset_question': 'Reset {name}’s sign-in?',
+  'console.reset_note':
+    'Their password and authenticator are removed and their sessions end. You get a new setup link to send them.',
+  'console.account': 'Your account',
+  'console.change_password_title': 'Change your password',
+  'console.change_password_note':
+    'Give your current password and a code from your authenticator. Your other sessions end.',
+  'console.current_password': 'Current password',
+  'console.new_password_help':
+    'At least 12 characters, without your name, your email or the product’s name. Passwords known from data breaches are refused.',
+  'console.change_password': 'Change password',
+  'console.password_changed': 'Your password is changed, and your other sessions have ended.',
   'console.disable_question': 'Disable {name}?',
   'console.disable_note':
     'They are signed out at once and can never sign in again. Invite them afresh if needed.',

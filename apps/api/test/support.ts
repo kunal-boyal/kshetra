@@ -23,7 +23,18 @@ import { StaffService } from '../src/modules/console/staff.service';
 import { TerritoriesService } from '../src/modules/territories/territories.service';
 import { Database } from '../src/platform/database';
 import { RedisClient } from '../src/platform/redis';
-import { totpAt, totpStep } from '../src/platform/totp';
+import { TOTP_STEP_SECONDS, totpAt, totpStep } from '../src/platform/totp';
+
+/**
+ * The authenticator's step now, after waiting out its last two seconds: a code for the step
+ * before it stays good only until this one ends, so a test that spends that code first and this
+ * step's next gets both in while each is good (decision D101).
+ */
+export async function settledStep(): Promise<number> {
+  const left = TOTP_STEP_SECONDS * 1000 - (Date.now() % (TOTP_STEP_SECONDS * 1000));
+  if (left < 2000) await new Promise((resolve) => setTimeout(resolve, left + 50));
+  return totpStep();
+}
 
 /**
  * A vendor staff member, invited, set up and signed in to the console, with their role; named
@@ -41,13 +52,16 @@ export async function staffToken(
     .invite({ id: newId(), email, name: `Staff ${role}`, role }, null);
   const token = setupUrl.split('#')[1]!;
   const { secret } = (
-    await post('/platform/v1/setup', { token, password: 'a long staff password' })
+    await post('/platform/v1/setup', { token, password: 'a long vendor passphrase' })
   ).json();
-  await post('/platform/v1/setup/confirm', { token, code: totpAt(secret, totpStep()) });
+  await post('/platform/v1/setup/confirm', {
+    token,
+    code: totpAt(secret, (await settledStep()) - 1),
+  });
   const signedIn = await post('/platform/v1/session', {
     email,
-    password: 'a long staff password',
-    code: totpAt(secret, totpStep() + 1),
+    password: 'a long vendor passphrase',
+    code: totpAt(secret, totpStep()),
   });
   return signedIn.json().accessToken;
 }
@@ -68,6 +82,7 @@ export function testConfig(overrides: Record<string, string> = {}): Config {
     EMAIL_PROVIDER: 'memory',
     WHATSAPP_PROVIDER: 'memory',
     PAYMENT_PROVIDER: 'memory',
+    PASSWORD_BREACH_CHECK: 'memory',
     // One approved template, so tests see both a template and an event without one.
     WHATSAPP_TEMPLATES: JSON.stringify({ 'plan.today': { en: 'plan_today_en' } }),
     OTP_PEPPER: 'a-test-pepper-of-16+',

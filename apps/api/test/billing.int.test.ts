@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StaffService } from '../src/modules/console/staff.service';
 import { totpAt, totpStep } from '../src/platform/totp';
 import { MeteringService } from '../src/modules/metering/metering.service';
-import { newPhone, startApp, testConfig, World } from './support';
+import { newPhone, settledStep, startApp, testConfig, World } from './support';
 
 /**
  * Plans, entitlements, seats and usage (modules M22 and M23, BR-45, decision D89): plans in the
@@ -58,13 +58,13 @@ async function staffToken(): Promise<string> {
     method: 'POST',
     url: '/platform/v1/setup/confirm',
     remoteAddress: address(),
-    payload: { token, code: totpAt(secret, totpStep()) },
+    payload: { token, code: totpAt(secret, (await settledStep()) - 1) },
   });
   const signedIn = await app.inject({
     method: 'POST',
     url: '/platform/v1/session',
     remoteAddress: address(),
-    payload: { email, password: 'a long staff password', code: totpAt(secret, totpStep() + 1) },
+    payload: { email, password: 'a long staff password', code: totpAt(secret, totpStep()) },
   });
   expect(signedIn.statusCode, signedIn.body).toBe(200);
   return signedIn.json().accessToken;

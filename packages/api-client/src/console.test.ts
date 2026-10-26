@@ -57,6 +57,33 @@ describe('the console client (decision D88)', () => {
     expect(calls).toBe(2);
   });
 
+  it('changes the password and goes on with the session that comes back (D101)', async () => {
+    const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/platform/v1/session')) return json(200, session('one'));
+      if (url.endsWith('/me/password')) {
+        expect((init?.headers as Record<string, string>).authorization).toBe('Bearer one');
+        expect(JSON.parse(init!.body as string)).toEqual({
+          currentPassword: 'a long password',
+          newPassword: 'a quiet orange tractor',
+          code: '654321',
+        });
+        return json(200, session('two'));
+      }
+      const auth = (init?.headers as Record<string, string>).authorization;
+      return json(200, { ok: auth === 'Bearer two' });
+    });
+    const client = createConsoleClient({ baseUrl: '', fetch: asFetch(fetch) });
+    await client.signIn(STAFF.email, 'a long password', '123456');
+    await client.changePassword({
+      currentPassword: 'a long password',
+      newPassword: 'a quiet orange tractor',
+      code: '654321',
+    });
+    expect(await client.request('GET', '/platform/v1/me', z.object({ ok: z.boolean() }))).toEqual({
+      ok: true,
+    });
+  });
+
   it('downloads a file with the token, and turns a refusal into an ApiError', async () => {
     const fetch = vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith('/platform/v1/session')) return json(200, session('one'));

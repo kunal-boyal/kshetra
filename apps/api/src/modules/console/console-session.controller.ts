@@ -19,6 +19,7 @@ import {
   StaffConfirmBody,
   StaffIdParams,
   StaffListResult,
+  StaffPasswordBody,
   StaffResult,
   StaffSession,
   StaffSetupBody,
@@ -136,6 +137,31 @@ export class ConsoleSessionController {
     return this.staff.me(staff);
   }
 
+  @ForStaff()
+  @Post('me/password')
+  @HttpCode(200)
+  @Contract({
+    tag: 'Platform console',
+    summary: 'Change your password, ending every session but the new one',
+    body: StaffPasswordBody,
+    response: StaffSession,
+  })
+  @Header('Cache-Control', 'no-store')
+  async changePassword(
+    @CurrentStaff() staff: StaffAccess,
+    @Body() body: unknown,
+    @ClientIp() ip: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { session, refreshToken } = await this.staff.changePassword(
+      staff,
+      StaffPasswordBody.parse(body),
+      ip,
+    );
+    void reply.setCookie(this.cookieName, refreshToken, this.cookieOptions());
+    return session;
+  }
+
   @ForStaff('platform.staff.manage')
   @Get('staff')
   @Contract({ tag: 'Platform console', summary: 'List vendor staff', response: StaffListResult })
@@ -168,6 +194,20 @@ export class ConsoleSessionController {
   })
   disable(@CurrentStaff() staff: StaffAccess, @Param() params: unknown) {
     return this.staff.disable(staff, StaffIdParams.parse(params).id);
+  }
+
+  @ForStaff('platform.staff.manage')
+  @Post('staff/:id/reset')
+  @HttpCode(200)
+  @Contract({
+    tag: 'Platform console',
+    summary: 'Reset a staff member’s password and authenticator; the new setup link is shown once',
+    params: StaffIdParams,
+    response: InviteStaffResult,
+  })
+  @Header('Cache-Control', 'no-store')
+  reset(@CurrentStaff() staff: StaffAccess, @Param() params: unknown) {
+    return this.staff.reset(staff, StaffIdParams.parse(params).id);
   }
 
   /** The session cookie, only for the console's own requests (see the class comment). */

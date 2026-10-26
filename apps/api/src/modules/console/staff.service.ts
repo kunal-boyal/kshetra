@@ -3,9 +3,12 @@ import {
   AppError,
   type InviteStaffBody,
   newId,
+  passwordWords,
+  passwordWordsIssue,
   PLATFORM_ROLE_PERMISSIONS,
   type PlatformRoleKey,
   type StaffClaims,
+  type StaffPasswordBody,
   type StaffResult,
   type StaffSession,
 } from '@thelamp/shared';
@@ -19,7 +22,8 @@ import { CONFIG } from '../../platform/tokens';
 import { DirectoryDatabase, type DirectoryTx } from '../directory/directory.database';
 import { digest, newSecret } from '../directory/secrets';
 import { SigningKey } from '../directory/signing-key';
-import { DECOY_HASH, hashPassword, verifyPassword } from './passwords';
+import { BreachedPasswords } from '../../platform/breached-passwords';
+import { DECOY_HASH, hashPassword, needsRehash, verifyPassword } from '../../platform/passwords';
 import { PlatformAudit } from '../directory/platform-audit';
 import { matchTotp, newTotpSecret, otpauthUri } from '../../platform/totp';
 
@@ -27,7 +31,10 @@ import { matchTotp, newTotpSecret, otpauthUri } from '../../platform/totp';
 export const STAFF_SESSION_HOURS = 12;
 /** An invitation's setup link works for 72 hours. */
 export const SETUP_HOURS = 72;
-/** Ten wrong tries lock the account for 15 minutes. */
+/**
+ * Ten wrong tries lock the account for 15 minutes. A locked account answers as wrong details do,
+ * so the lock says nothing about whether an email is known (decision D101).
+ */
 export const LOCK = { after: 10, minutes: 15 } as const;
 
 export const STAFF_LIMITS = {
@@ -41,6 +48,10 @@ type StaffRow = typeof platformUsers.$inferSelect;
 /** One answer for every wrong email, password or code, so none says which part was wrong. */
 const refused = () =>
   new AppError('UNAUTHENTICATED', 'Check your email, password and authenticator code.');
+const wrongCurrent = () =>
+  new AppError('VALIDATION', 'Check the highlighted fields.', [
+    { path: 'currentPassword', issue: 'Check your current password and authenticator code' },
+  ]);
 const setupRefused = () =>
   new AppError('UNAUTHENTICATED', 'This setup link has expired or been used. Ask for a new one.');
 
@@ -57,6 +68,7 @@ export class StaffService extends StaffResolver {
     private readonly cipher: ColumnCipher,
     private readonly limiter: RateLimiter,
     private readonly audit: PlatformAudit,
+    private readonly breached: BreachedPasswords,
     @Inject(CONFIG) private readonly config: Config,
   ) {
     super();
@@ -131,6 +143,7 @@ export class StaffService extends StaffResolver {
   ): Promise<{ secret: string; uri: string }> {
     await this.limiter.hit(STAFF_LIMITS.setupsPerAddress, ip);
     const row = await this.byToken(this.database.db, token);
+    await this.checkNew(password, row, 'password');
     const secret = newTotpSecret();
     await this.database.db
       .update(platformUsers)
@@ -171,7 +184,11 @@ export class StaffService extends StaffResolver {
     });
   }
 
-  /** Signs in with the email, password and a fresh code; the session's refresh token goes back. */
+  /**
+   * Signs in with the email, password and a fresh code; the session's refresh token goes back.
+   * The row is locked while the attempt is judged, so wrong tries are counted and a code is
+   * spent exactly once however many attempts arrive together (decision D101).
+   */
   async signIn(
     email: string,
     password: string,
@@ -180,43 +197,120 @@ export class StaffService extends StaffResolver {
   ): Promise<{ session: StaffSession; refreshToken: string }> {
     await this.limiter.hit(STAFF_LIMITS.signInsPerAddress, ip);
     await this.limiter.hit(STAFF_LIMITS.signInsPerEmail, email.toLowerCase());
-    const [row] = await this.database.db
-      .select()
-      .from(platformUsers)
-      .where(sql`lower(${platformUsers.email}) = lower(${email})`);
-    // An unknown email costs as much as a known one.
-    const passwordOk = await verifyPassword(password, row?.passwordHash ?? DECOY_HASH);
-    if (!row || row.status !== 'active' || !row.totpSecret) throw refused();
-    if (row.lockedUntil && row.lockedUntil.getTime() > Date.now()) {
-      throw new AppError('RATE_LIMITED', 'Too many wrong tries. Wait 15 minutes.', undefined, {
-        retryAfterSeconds: Math.ceil((row.lockedUntil.getTime() - Date.now()) / 1000),
-      });
-    }
-    const step = passwordOk
-      ? matchTotp(this.cipher.open(row.totpSecret, this.where(row.id)), code, row.totpLastStep)
-      : null;
-    if (step === null) {
-      const failures = row.failedSignIns + 1;
-      await this.database.db
-        .update(platformUsers)
-        .set({
-          failedSignIns: failures >= LOCK.after ? 0 : failures,
-          ...(failures >= LOCK.after
-            ? { lockedUntil: new Date(Date.now() + LOCK.minutes * 60_000) }
-            : {}),
-        })
-        .where(eq(platformUsers.id, row.id));
-      throw refused();
-    }
-    return this.database.db.transaction(async (tx) => {
+    const signedIn = await this.database.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(platformUsers)
+        .where(sql`lower(${platformUsers.email}) = lower(${email})`)
+        .for('update');
+      const step = await this.attempt(tx, row, password, code);
+      if (!row || step === null) return null;
+      // A hash made at an older cost is made again now, while the password is at hand.
+      const rehash =
+        row.passwordHash && needsRehash(row.passwordHash)
+          ? { passwordHash: await hashPassword(password) }
+          : {};
       const [saved] = await tx
         .update(platformUsers)
-        .set({ totpLastStep: step, failedSignIns: 0, lockedUntil: null, lastSignInAt: new Date() })
+        .set({ ...rehash, totpLastStep: step, lastSignInAt: new Date() })
         .where(eq(platformUsers.id, row.id))
         .returning();
       await this.audit.record(tx, null, 'staff.signed_in', 'platform_user', row.id, {}, ip);
       return this.issue(tx, saved!, newId());
     });
+    if (!signedIn) throw refused();
+    return signedIn;
+  }
+
+  /**
+   * Changes the signed-in staff member's password, given the current one and a fresh code
+   * (decision D101). Every session ends, and the new one goes back.
+   */
+  async changePassword(
+    staff: StaffAccess,
+    body: StaffPasswordBody,
+    ip: string,
+  ): Promise<{ session: StaffSession; refreshToken: string }> {
+    await this.limiter.hit(STAFF_LIMITS.signInsPerAddress, ip);
+    const [current] = await this.database.db
+      .select()
+      .from(platformUsers)
+      .where(eq(platformUsers.id, staff.staffId));
+    if (!current) throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
+    // Checked before the row is locked, as the breach check goes out to the internet.
+    await this.checkNew(body.newPassword, current, 'newPassword');
+    const changed = await this.database.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(platformUsers)
+        .where(eq(platformUsers.id, staff.staffId))
+        .for('update');
+      const step = await this.attempt(tx, row, body.currentPassword, body.code);
+      if (!row || step === null) return 'wrong' as const;
+      if (body.newPassword === body.currentPassword) return 'same' as const;
+      const [saved] = await tx
+        .update(platformUsers)
+        .set({
+          passwordHash: await hashPassword(body.newPassword),
+          totpLastStep: step,
+          authRevision: sql`${platformUsers.authRevision} + 1`,
+        })
+        .where(eq(platformUsers.id, row.id))
+        .returning();
+      await this.endSessions(tx, row.id);
+      await this.audit.record(tx, staff, 'staff.password_changed', 'platform_user', row.id, {}, ip);
+      return this.issue(tx, saved!, newId());
+    });
+    if (changed === 'wrong') throw wrongCurrent();
+    if (changed === 'same') {
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+        { path: 'newPassword', issue: 'Choose a password other than your current one' },
+      ]);
+    }
+    return changed;
+  }
+
+  /**
+   * Starts someone's sign-in again when they lost their password or authenticator (decision
+   * D101): both are removed, their sessions end, and a new setup link is returned once. Nobody
+   * resets themselves.
+   */
+  async reset(by: StaffAccess, id: string): Promise<{ staff: StaffResult; setupUrl: string }> {
+    if (by.staffId === id) {
+      throw new AppError('FORBIDDEN', 'Ask another platform admin to reset your sign-in.');
+    }
+    const token = newSecret();
+    const row = await this.database.db.transaction(async (tx) => {
+      const [found] = await tx
+        .select({ status: platformUsers.status })
+        .from(platformUsers)
+        .where(eq(platformUsers.id, id))
+        .for('update');
+      if (!found) throw new AppError('NOT_FOUND', 'There is no such staff member.');
+      if (found.status === 'disabled') {
+        throw new AppError('CONFLICT', 'This account is disabled for good.');
+      }
+      const [saved] = await tx
+        .update(platformUsers)
+        .set({
+          status: 'invited',
+          passwordHash: null,
+          totpSecret: null,
+          totpConfirmedAt: null,
+          totpLastStep: null,
+          failedSignIns: 0,
+          lockedUntil: null,
+          setupTokenHash: digest(token),
+          setupExpiresAt: new Date(Date.now() + SETUP_HOURS * 3_600_000),
+          authRevision: sql`${platformUsers.authRevision} + 1`,
+        })
+        .where(eq(platformUsers.id, id))
+        .returning();
+      await this.endSessions(tx, id);
+      await this.audit.record(tx, by, 'staff.reset', 'platform_user', id, {});
+      return saved!;
+    });
+    return { staff: this.result(row), setupUrl: `${this.config.CONSOLE_URL}/setup#${token}` };
   }
 
   /** Spends a refresh token for a new session; a spent one ends its whole family. */
@@ -293,10 +387,7 @@ export class StaffService extends StaffResolver {
         .where(eq(platformUsers.id, id))
         .returning();
       if (!saved) throw new AppError('NOT_FOUND', 'There is no such staff member.');
-      await tx
-        .update(platformSessions)
-        .set({ revokedAt: new Date() })
-        .where(and(eq(platformSessions.platformUserId, id), isNull(platformSessions.revokedAt)));
+      await this.endSessions(tx, id);
       await this.audit.record(tx, by, 'staff.disabled', 'platform_user', id, {});
       return this.result(saved);
     });
@@ -365,6 +456,59 @@ export class StaffService extends StaffResolver {
       },
       refreshToken,
     };
+  }
+
+  /**
+   * Judges a sign-in attempt on a locked row: the step of a good code after a good password, or
+   * null, counting the wrong try. An unknown email costs as much as a known one, and a locked
+   * account answers as a wrong try does, without counting it.
+   */
+  private async attempt(
+    tx: DirectoryTx,
+    row: StaffRow | undefined,
+    password: string,
+    code: string,
+  ): Promise<number | null> {
+    const passwordOk = await verifyPassword(password, row?.passwordHash ?? DECOY_HASH);
+    if (!row || row.status !== 'active' || !row.totpSecret) return null;
+    if (row.lockedUntil && row.lockedUntil.getTime() > Date.now()) return null;
+    const step = passwordOk
+      ? matchTotp(this.cipher.open(row.totpSecret, this.where(row.id)), code, row.totpLastStep)
+      : null;
+    const failures = step === null ? row.failedSignIns + 1 : 0;
+    await tx
+      .update(platformUsers)
+      .set({
+        failedSignIns: failures >= LOCK.after ? 0 : failures,
+        lockedUntil: failures >= LOCK.after ? new Date(Date.now() + LOCK.minutes * 60_000) : null,
+      })
+      .where(eq(platformUsers.id, row.id));
+    return step;
+  }
+
+  /**
+   * Refuses a new password built on the product's or the person's names, or known from a
+   * breach, as a field error at `path`.
+   */
+  private async checkNew(password: string, row: StaffRow, path: string): Promise<void> {
+    const words = passwordWords({
+      product: [this.config.PRODUCT_NAME, this.config.PRODUCT_SLUG],
+      email: row.email,
+      name: row.name,
+    });
+    const issue =
+      passwordWordsIssue(password, words) ??
+      ((await this.breached.seen(password))
+        ? 'This password is known from a data breach; choose another'
+        : null);
+    if (issue) throw new AppError('VALIDATION', 'Check the highlighted fields.', [{ path, issue }]);
+  }
+
+  private async endSessions(tx: DirectoryTx, staffId: string) {
+    await tx
+      .update(platformSessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(platformSessions.platformUserId, staffId), isNull(platformSessions.revokedAt)));
   }
 
   private async endFamily(db: DirectoryTx | DirectoryDatabase['db'], familyId: string) {

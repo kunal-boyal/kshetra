@@ -2,7 +2,8 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 /**
  * One-time codes from an authenticator app (RFC 6238 over RFC 4226): HMAC-SHA1, 30-second steps,
- * six digits, the step before and after accepted for clock drift, and no step used twice.
+ * six digits, the step before accepted for a slow clock or a slow typist (decision D101), and no
+ * step used twice.
  */
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -64,8 +65,8 @@ export function totpAt(secret: string, step: number, digits = 6): string {
 }
 
 /**
- * The step a code matches, within one step either side of now and after `lastStep`, the last one
- * used; null when it matches none. Compared in constant time.
+ * The step a code matches, now or the step before, and after `lastStep`, the last one used; null
+ * when it matches none. Compared in constant time.
  */
 export function matchTotp(
   secret: string,
@@ -74,7 +75,7 @@ export function matchTotp(
   now: number = Date.now(),
 ): number | null {
   const current = totpStep(now);
-  for (const step of [current - 1, current, current + 1]) {
+  for (const step of [current - 1, current]) {
     if (lastStep !== null && step <= lastStep) continue;
     const expected = Buffer.from(totpAt(secret, step));
     const given = Buffer.from(code);

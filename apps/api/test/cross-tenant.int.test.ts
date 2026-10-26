@@ -541,6 +541,12 @@ const FIXTURES: Record<string, Fixture> = {
     role: 'platform_admin',
   }),
   'POST /platform/v1/staff/:id/disable': consoleShutsB('POST', '/platform/v1/staff/:id/disable'),
+  'POST /platform/v1/staff/:id/reset': consoleShutsB('POST', '/platform/v1/staff/:id/reset'),
+  'POST /platform/v1/me/password': consoleShutsB('POST', '/platform/v1/me/password', {
+    currentPassword: 'b password b password',
+    newPassword: 'another b password b',
+    code: '123456',
+  }),
   'GET /platform/v1/tenants': consoleShutsB('GET', '/platform/v1/tenants'),
   'GET /platform/v1/tenants/:id': consoleShutsB('GET', '/platform/v1/tenants/:id'),
   'POST /platform/v1/tenants': consoleShutsB('POST', '/platform/v1/tenants', {

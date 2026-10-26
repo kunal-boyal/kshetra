@@ -2902,6 +2902,19 @@ export const hi: Record<MessageKey, Message> = {
   'console.copy_link': 'लिंक कॉपी करें',
   'console.copied': 'कॉपी हो गया',
   'console.disable': 'बंद करें',
+  'console.reset_sign_in': 'साइन-इन रीसेट करें',
+  'console.reset_question': '{name} का साइन-इन रीसेट करें?',
+  'console.reset_note':
+    'उनका पासवर्ड और ऑथेंटिकेटर हट जाएगा और उनके सेशन ख़त्म होंगे। आपको उन्हें भेजने के लिए नया सेटअप लिंक मिलेगा।',
+  'console.account': 'आपका खाता',
+  'console.change_password_title': 'अपना पासवर्ड बदलें',
+  'console.change_password_note':
+    'अपना मौजूदा पासवर्ड और ऑथेंटिकेटर का कोड दें। आपके बाक़ी सेशन ख़त्म हो जाएँगे।',
+  'console.current_password': 'मौजूदा पासवर्ड',
+  'console.new_password_help':
+    'कम से कम 12 अक्षर, आपके नाम, ईमेल या प्रोडक्ट के नाम के बिना। डेटा लीक में मिले पासवर्ड नहीं चलेंगे।',
+  'console.change_password': 'पासवर्ड बदलें',
+  'console.password_changed': 'आपका पासवर्ड बदल गया है, और आपके बाक़ी सेशन ख़त्म हो गए हैं।',
   'console.disable_question': '{name} को बंद करें?',
   'console.disable_note':
     'वे तुरंत साइन आउट हो जाएँगे और फिर कभी साइन इन नहीं कर पाएँगे। ज़रूरत हो तो उन्हें नए सिरे से बुलाएँ।',

@@ -9,6 +9,7 @@ import {
   Megaphone,
   Receipt,
   Tags,
+  UserRound,
   Users,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -106,6 +107,10 @@ export function Shell() {
               : null}
           </p>
           <div className="ks-appbar-tools">
+            <Link to="/account" className="ks-btn ghost sm">
+              <UserRound size={16} aria-hidden="true" />
+              {t('console.account')}
+            </Link>
             <Button
               variant="ghost"
               size="sm"

@@ -7,6 +7,7 @@ import {
   type RouterHistory,
 } from '@tanstack/react-router';
 import type { ConsoleContext } from './context';
+import { AccountPage } from './pages/account';
 import { BillingPage } from './pages/billing';
 import { BillingSettingsPage } from './pages/billing-settings';
 import { InvoicePage } from './pages/invoice';
@@ -94,6 +95,11 @@ const invoice = createRoute({
   },
 });
 const staff = createRoute({ getParentRoute: () => app, path: '/staff', component: StaffPage });
+const account = createRoute({
+  getParentRoute: () => app,
+  path: '/account',
+  component: AccountPage,
+});
 const health = createRoute({ getParentRoute: () => app, path: '/health', component: HealthPage });
 const announcements = createRoute({
   getParentRoute: () => app,
@@ -120,6 +126,7 @@ const routeTree = root.addChildren([
     billingSettings,
     invoice,
     staff,
+    account,
     support,
     announcements,
     health,

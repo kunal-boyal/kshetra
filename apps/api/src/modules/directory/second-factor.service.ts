@@ -5,6 +5,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { identities, memberships, totpSecrets } from '../../db/schema/directory';
 import { ColumnCipher } from '../../platform/column-cipher';
+import { hashPassword, RECOVERY_CODE_COST, verifyPassword } from '../../platform/passwords';
 import { SecondFactors } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
 import { CONFIG } from '../../platform/tokens';
@@ -26,7 +27,30 @@ function recoveryCode(): string {
   const text = toBase32(randomBytes(7)).slice(0, 10);
   return `${text.slice(0, 5)}-${text.slice(5)}`;
 }
-const recoveryDigest = (code: string) => digest(code.replace('-', '').toUpperCase());
+const recoveryText = (code: string) => code.replace('-', '').toUpperCase();
+
+/** Ten new recovery codes and their salted scrypt hashes, which alone are kept (decision D101). */
+async function newRecoveryCodes(): Promise<{ codes: string[]; hashes: string[] }> {
+  const codes = Array.from({ length: RECOVERY_CODES }, recoveryCode);
+  const hashes = await Promise.all(
+    codes.map((code) => hashPassword(recoveryText(code), RECOVERY_CODE_COST)),
+  );
+  return { codes, hashes };
+}
+
+/**
+ * The kept hash a recovery code matches, or undefined. Codes handed out before decision D101
+ * were kept as plain SHA-256 digests; those still match until used or replaced.
+ */
+async function matchingRecoveryHash(code: string, hashes: string[]): Promise<string | undefined> {
+  const text = recoveryText(code);
+  for (const hash of hashes) {
+    if (hash.startsWith('scrypt$') ? await verifyPassword(text, hash) : hash === digest(text)) {
+      return hash;
+    }
+  }
+  return undefined;
+}
 
 /**
  * The second factor of web sign-in for people who can change access (spec M1, decision D91): a
@@ -113,18 +137,20 @@ export class SecondFactorService extends SecondFactors {
           row.lastStep,
         );
         if (step === null) throw wrongCode();
-        const fresh = row.enabledAt ? null : Array.from({ length: RECOVERY_CODES }, recoveryCode);
+        const fresh = row.enabledAt ? null : await newRecoveryCodes();
         await tx
           .update(totpSecrets)
           .set({
             lastStep: step,
-            ...(fresh ? { enabledAt: new Date(), recoveryHashes: fresh.map(recoveryDigest) } : {}),
+            ...(fresh ? { enabledAt: new Date(), recoveryHashes: fresh.hashes } : {}),
           })
           .where(eq(totpSecrets.identityId, identityId));
-        return fresh;
+        return fresh?.codes ?? null;
       }
-      const hash = recoveryDigest(answer.recoveryCode ?? '');
-      if (!row.enabledAt || !row.recoveryHashes.includes(hash)) {
+      const hash = row.enabledAt
+        ? await matchingRecoveryHash(answer.recoveryCode ?? '', row.recoveryHashes)
+        : undefined;
+      if (!hash) {
         throw new AppError(
           'OTP_INVALID',
           'This recovery code is not one of yours, or it was used already.',
@@ -194,12 +220,12 @@ export class SecondFactorService extends SecondFactors {
         row.lastStep,
       );
       if (step === null) throw wrongCode();
-      const fresh = Array.from({ length: RECOVERY_CODES }, recoveryCode);
+      const fresh = await newRecoveryCodes();
       await tx
         .update(totpSecrets)
-        .set({ lastStep: step, enabledAt: new Date(), recoveryHashes: fresh.map(recoveryDigest) })
+        .set({ lastStep: step, enabledAt: new Date(), recoveryHashes: fresh.hashes })
         .where(eq(totpSecrets.identityId, identityId));
-      return fresh;
+      return fresh.codes;
     });
   }
 
