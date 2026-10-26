@@ -25,6 +25,7 @@ import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { pathId } from './actor';
 import { UsersService } from './users.service';
+import { FromReplica } from '../../platform/replica';
 
 /** People (spec 11.2, module M3). */
 @Controller('v1/users')
@@ -34,6 +35,7 @@ export class UsersController {
     private readonly users: UsersService,
   ) {}
 
+  @FromReplica()
   @Get()
   @Contract({
     tag: 'People',

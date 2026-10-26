@@ -9,6 +9,7 @@ import { Contract } from '../../platform/routes';
 import { pathId } from '../iam/actor';
 import { CatalogueService } from './catalogue.service';
 import { ItemsService } from './items.service';
+import { FromReplica } from '../../platform/replica';
 
 /** True when an `If-None-Match` header names this ETag, weak or strong. */
 function matches(header: string | undefined, etag: string): boolean {
@@ -30,6 +31,7 @@ export class CatalogueController {
     private readonly catalogue: CatalogueService,
   ) {}
 
+  @FromReplica()
   @Get()
   @Contract({
     tag: 'Catalogue',

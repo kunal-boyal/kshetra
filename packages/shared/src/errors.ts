@@ -40,6 +40,8 @@ export const ERROR_HTTP_STATUS = {
   /** The organisation now lives on another cell: refresh the session to learn where. */
   TENANT_MOVED: 401,
   RATE_LIMITED: 429,
+  /** A report or export read for longer than its statement timeout (spec 10.3, decision D98). */
+  REPORT_TIMEOUT: 422,
   SYNC_RESET: 410,
   OTP_INVALID: 400,
   OTP_EXPIRED: 400,

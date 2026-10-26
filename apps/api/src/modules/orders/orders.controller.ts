@@ -22,6 +22,7 @@ import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { pathId } from '../iam/actor';
 import { OrdersService } from './orders.service';
+import { FromReplica } from '../../platform/replica';
 
 /** Orders (M10, spec 11.2, decision D78). */
 @Controller('v1/orders')
@@ -54,6 +55,7 @@ export class OrdersController {
     return result.body;
   }
 
+  @FromReplica()
   @Get()
   @Contract({
     tag: 'Orders',

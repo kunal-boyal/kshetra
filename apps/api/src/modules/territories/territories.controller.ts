@@ -27,6 +27,7 @@ import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { pathId } from '../iam/actor';
 import { TerritoriesService } from './territories.service';
+import { FromReplica } from '../../platform/replica';
 
 /** Territories (spec 11.2, M4). */
 @Controller('v1/territories')
@@ -36,6 +37,7 @@ export class TerritoriesController {
     private readonly territories: TerritoriesService,
   ) {}
 
+  @FromReplica()
   @Get()
   @Contract({
     tag: 'Territories',

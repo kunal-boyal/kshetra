@@ -28979,6 +28979,7 @@
                   "TENANT_MOVING",
                   "TENANT_MOVED",
                   "RATE_LIMITED",
+                  "REPORT_TIMEOUT",
                   "SYNC_RESET",
                   "OTP_INVALID",
                   "OTP_EXPIRED",

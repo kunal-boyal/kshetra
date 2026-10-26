@@ -1364,7 +1364,7 @@ audit_log(id, tid, actor_id, actor_kind enum(user,platform,system,api_client), a
 | `audit_log`, `notifications`, `webhook_deliveries` | Monthly partitions; retention by dropping partitions. |
 | `outbox_events` | Dispatched rows deleted after 3 days. |
 
-Exports, reports and bulk reads from the public API run on the read replica. Writes, and reads that must see their own writes, use the primary.
+Exports, reports and bulk reads from the public API run on the read replica. Writes, and reads that must see their own writes, use the primary. The replica's reads are read only, in one snapshot, with each statement stopped after its timeout; a cell without a replica reads its primary the same way (D98).
 
 ## 11. API and sync
 
@@ -1482,6 +1482,7 @@ App upgrades: local database migrations are versioned and run at app start befor
 | `SEAT_LIMIT` | 402 | Tell admins to add seats |
 | `TENANT_READ_ONLY`, `TENANT_SUSPENDED` | 423 | Explain and point admins to billing |
 | `RATE_LIMITED` | 429 | Back off per `Retry-After` |
+| `REPORT_TIMEOUT` | 422 | A report or export read for longer than its statement timeout; narrow it, or export it instead (D98) |
 | `SYNC_RESET` | 410 | Run a full refresh |
 | `OTP_INVALID`, `OTP_EXPIRED` | 400 | Retype, or request a new code |
 | `UPGRADE_REQUIRED` | 426 | Blocking update screen |
@@ -2149,7 +2150,8 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 |---|---|
 | `NODE_ENV`, `PORT`, `CELL_ID`, `PRODUCT_SLUG`, `PRODUCT_NAME` | Runtime basics; the name appears on photos' stamps |
 | `CELL_API_URL`, `CELL_REGION` | Where apps reach this cell, as the directory hands it out at sign-in, and its region |
-| `DATABASE_URL`, `DATABASE_REPLICA_URL`, `DATABASE_MIGRATOR_URL`, `DB_POOL_MAX` | Application role, read replica, migration role, pool size |
+| `DATABASE_URL`, `DATABASE_REPLICA_URL` or `DATABASE_REPLICA_HOST`, `DATABASE_MIGRATOR_URL`, `DB_POOL_MAX` | Application role; the read replica, as a URL or as a host that takes the application role's URL (D98); migration role; pool size |
+| `REPORT_STATEMENT_TIMEOUT_MS`, `EXPORT_STATEMENT_TIMEOUT_MS` | How long one statement of a report on screen (30 s) or of an export (5 min) may run (D98) |
 | `DIRECTORY_DATABASE_URL` | Directory schema connection, used by the directory module only |
 | `REDIS_URL` | TLS URL in cloud environments |
 | `OUTBOX_RELAY`, `OUTBOX_POLL_MS`, `SCHEDULER_TICK_MS` | Whether a process runs the outbox relay (the worker does by default) and how often it polls; how often the scheduler looks for tenants' scheduled moments |

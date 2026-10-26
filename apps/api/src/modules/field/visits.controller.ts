@@ -17,6 +17,7 @@ import { Contract } from '../../platform/routes';
 import { pathId } from '../iam/actor';
 import { SubmissionsService } from './submissions.service';
 import { VisitsService } from './visits.service';
+import { FromReplica } from '../../platform/replica';
 
 const DEVICE_TIME = {
   name: 'X-Device-Time',
@@ -130,6 +131,7 @@ export class VisitsController {
     return result.body;
   }
 
+  @FromReplica()
   @Get('submissions')
   @Contract({
     tag: 'Field',

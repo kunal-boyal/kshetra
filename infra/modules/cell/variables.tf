@@ -91,7 +91,7 @@ variable "db_multi_az" {
 }
 
 variable "db_replica" {
-  description = "A read replica for reports and exports."
+  description = "A read replica for reports, exports and API clients' list reads (decision D98)."
   type        = bool
   default     = false
 }

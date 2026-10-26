@@ -241,15 +241,22 @@ export class ExportsService implements OnModuleInit {
       return;
     }
     try {
+      // The rows come from the replica, with the export's longer statement timeout (D98); the
+      // file is stored and the job finished on the primary.
+      const report = job.report as ReportKey;
+      const data = await this.database.read(
+        tenantId,
+        (tx) =>
+          this.reports.everyRow(
+            tx,
+            access,
+            report,
+            job.filters as ReportFilters,
+            job.locale as Locale,
+          ),
+        { timeoutMs: this.config.EXPORT_STATEMENT_TIMEOUT_MS },
+      );
       await this.database.forTenant(tenantId, async (tx) => {
-        const report = job.report as ReportKey;
-        const data = await this.reports.everyRow(
-          tx,
-          access,
-          report,
-          job.filters as ReportFilters,
-          job.locale as Locale,
-        );
         const format = job.format as keyof typeof TYPES;
         const bytes =
           format === 'csv'

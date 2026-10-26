@@ -118,6 +118,9 @@ locals {
     },
     { WEB_URL = var.web_url },
     var.console_url == null ? {} : { CONSOLE_URL = var.console_url },
+    # Reports, exports and API clients' list reads go to the replica (decision D98), as the same
+    # role as DATABASE_URL.
+    var.db_replica ? { DATABASE_REPLICA_HOST = aws_db_instance.replica[0].address } : {},
     var.environment,
   )
   secret = aws_secretsmanager_secret.app.arn

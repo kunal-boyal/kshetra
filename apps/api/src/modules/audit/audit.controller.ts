@@ -4,6 +4,7 @@ import { type Access, CurrentAccess, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';
 import { AuditService } from './audit.service';
+import { FromReplica } from '../../platform/replica';
 
 /** `GET /v1/audit` (spec 11.2): the audit log, newest first. */
 @Controller('v1/audit')
@@ -13,6 +14,7 @@ export class AuditController {
     private readonly audit: AuditService,
   ) {}
 
+  @FromReplica()
   @Get()
   @Contract({
     tag: 'Audit',

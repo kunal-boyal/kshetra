@@ -20,6 +20,7 @@ import { idempotent } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { pathId } from '../iam/actor';
 import { AccountsService } from './accounts.service';
+import { FromReplica } from '../../platform/replica';
 
 const ContactParams = z.strictObject({ id: z.uuid(), contactId: z.uuid() });
 
@@ -34,6 +35,7 @@ export class AccountsController {
     private readonly accounts: AccountsService,
   ) {}
 
+  @FromReplica()
   @Get()
   @Contract({
     tag: 'Accounts',

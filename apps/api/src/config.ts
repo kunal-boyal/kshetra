@@ -54,6 +54,14 @@ const schema = z
     // The directory module's own role (decision D23); phases 0 to 2 run it inside the API.
     DIRECTORY_DATABASE_URL: z.url(),
     DB_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
+    // The read replica that reports, exports and API clients' list reads use (spec 11, decision
+    // D98): a whole URL, or only its host, which takes DATABASE_URL's role and database. Unset,
+    // those reads go to the primary, still read only.
+    DATABASE_REPLICA_URL: z.url().optional(),
+    DATABASE_REPLICA_HOST: z.string().min(1).optional(),
+    // How long one statement of a report on screen, or of an export, may run (spec 10.3).
+    REPORT_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(600_000).default(30_000),
+    EXPORT_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(3_600_000).default(300_000),
     REDIS_URL: z.url(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     // The Redis key prefix of the job queues; tests give each process its own, so one test file's

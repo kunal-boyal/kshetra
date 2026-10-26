@@ -54,6 +54,7 @@ export const en = {
     'Your organisation is being moved to a new server. You can look around; changes can be made again shortly.',
   'error.TENANT_MOVED': 'Your organisation has moved to a new server. Try again.',
   'error.RATE_LIMITED': 'Too many attempts. Wait a moment, then try again.',
+  'error.REPORT_TIMEOUT': 'This took too long to read. Narrow it down, or export it instead.',
   'error.SYNC_RESET': 'Your phone needs a full refresh. It is starting now.',
   'error.OTP_INVALID': 'That code is not right. Check it and try again.',
   'error.OTP_EXPIRED': 'This code has expired. Ask for a new one.',

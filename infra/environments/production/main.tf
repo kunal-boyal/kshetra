@@ -88,8 +88,9 @@ module "environment" {
   alarm_email          = var.alarm_email
   environment          = var.environment
   # Lean for the pilot (decision D67); raise these, not the modules, as tenants grow:
-  # db_multi_az, db_replica, redis_nodes = 2, nat_per_zone, endpoints, and the API's count.
-  cell                 = { id = "cell1" }
+  # db_multi_az, redis_nodes = 2, nat_per_zone, endpoints, and the API's count. Production reads
+  # reports and exports from a replica (decision D98); staging reads them from its primary.
+  cell                 = { id = "cell1", db_replica = true }
   create_oidc_provider = true
 }
 
