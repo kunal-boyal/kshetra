@@ -53,44 +53,46 @@ const provision = (slug: string, demo: boolean, template = 'agri') =>
 const DEMO_TIMEOUT_MS = 600_000;
 
 describe('demo content (decision D70)', () => {
-  it('fills a new demo tenant through the services, and refuses anything else', async () => {
-    const slug = `demo-content-${Date.now().toString(36)}`;
-    const { tenantId } = await provision(slug, true);
-    const lines: string[] = [];
-    // Ten days take in a Saturday, two holidays and decided requests.
-    const counts = await new DemoContent(app, {
-      slug,
-      days: 10,
-      seed: 3,
-      log: (line) => lines.push(line),
-    }).run();
+  it(
+    'fills a new demo tenant through the services, and refuses anything else',
+    async () => {
+      const slug = `demo-content-${Date.now().toString(36)}`;
+      const { tenantId } = await provision(slug, true);
+      const lines: string[] = [];
+      // Ten days take in a Saturday, two holidays and decided requests.
+      const counts = await new DemoContent(app, {
+        slug,
+        days: 10,
+        seed: 3,
+        log: (line) => lines.push(line),
+      }).run();
 
-    // Nothing was refused along the way, and every kind of record was made.
-    expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
-    expect(counts.shifts).toBeGreaterThan(0);
-    expect(counts.visits).toBeGreaterThan(0);
-    expect(counts.entries).toBeGreaterThan(0);
-    expect(counts.photos).toBeGreaterThan(0);
-    const [made] = await sql<{ people: number; places: number; trails: number; facts: number }>(
-      `select (select count(*)::int from cell.users where tenant_id = $1) as people,
+      // Nothing was refused along the way, and every kind of record was made.
+      expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
+      expect(counts.shifts).toBeGreaterThan(0);
+      expect(counts.visits).toBeGreaterThan(0);
+      expect(counts.entries).toBeGreaterThan(0);
+      expect(counts.photos).toBeGreaterThan(0);
+      const [made] = await sql<{ people: number; places: number; trails: number; facts: number }>(
+        `select (select count(*)::int from cell.users where tenant_id = $1) as people,
               (select count(*)::int from cell.accounts where tenant_id = $1) as places,
               (select count(*)::int from cell.shift_trails where tenant_id = $1) as trails,
               (select count(*)::int from cell.metric_facts_daily where tenant_id = $1) as facts`,
-      [tenantId],
-    );
-    expect(made!.people).toBeGreaterThan(10);
-    expect(made!.places).toBeGreaterThan(0);
-    expect(made!.trails).toBeGreaterThan(0);
-    expect(made!.facts).toBeGreaterThan(0);
+        [tenantId],
+      );
+      expect(made!.people).toBeGreaterThan(10);
+      expect(made!.places).toBeGreaterThan(0);
+      expect(made!.trails).toBeGreaterThan(0);
+      expect(made!.facts).toBeGreaterThan(0);
 
-    // Phase 2 (decision D86): orders decided along the chain and delivered, statements with
-    // invoices and payments, holidays, leave, fixed days and claims, decided and paid.
-    expect(counts.orders).toBeGreaterThan(0);
-    expect(counts.deliveries).toBeGreaterThan(0);
-    expect(counts.claims).toBeGreaterThan(0);
-    expect(counts.decisions).toBeGreaterThan(0);
-    const [phase2] = await sql<Record<string, number>>(
-      `select (select count(*)::int from cell.price_lists where tenant_id = $1) as lists,
+      // Phase 2 (decision D86): orders decided along the chain and delivered, statements with
+      // invoices and payments, holidays, leave, fixed days and claims, decided and paid.
+      expect(counts.orders).toBeGreaterThan(0);
+      expect(counts.deliveries).toBeGreaterThan(0);
+      expect(counts.claims).toBeGreaterThan(0);
+      expect(counts.decisions).toBeGreaterThan(0);
+      const [phase2] = await sql<Record<string, number>>(
+        `select (select count(*)::int from cell.price_lists where tenant_id = $1) as lists,
               (select count(*)::int from cell.orders where tenant_id = $1 and status = 'fulfilled') as delivered,
               (select count(*)::int from cell.orders where tenant_id = $1 and status = 'submitted') as waiting,
               (select count(*)::int from cell.orders where tenant_id = $1
@@ -102,47 +104,51 @@ describe('demo content (decision D70)', () => {
               (select count(*)::int from cell.holidays where tenant_id = $1) as holidays,
               (select count(*)::int from cell.expense_claims where tenant_id = $1 and state in ('approved', 'paid')) as approved_claims,
               (select count(*)::int from cell.workflow_instances where tenant_id = $1 and status = 'approved') as approved`,
-      [tenantId],
-    );
-    expect(phase2!.lists).toBe(2);
-    expect(phase2!.delivered).toBeGreaterThan(0);
-    // The last two days' orders wait for their decisions; there are none just after midnight
-    // after a Sunday, before the day's work starts.
-    if (phase2!.recent! > 0) expect(phase2!.waiting).toBeGreaterThan(0);
-    expect(phase2!.invoices).toBeGreaterThan(0);
-    expect(phase2!.payments).toBeGreaterThan(0);
-    expect(phase2!.balances).toBeGreaterThan(0);
-    expect(phase2!.holidays).toBe(2);
-    expect(phase2!.approved_claims).toBeGreaterThan(0);
-    expect(phase2!.approved).toBeGreaterThan(0);
+        [tenantId],
+      );
+      expect(phase2!.lists).toBe(2);
+      expect(phase2!.delivered).toBeGreaterThan(0);
+      // The last two days' orders wait for their decisions; there are none just after midnight
+      // after a Sunday, before the day's work starts.
+      if (phase2!.recent! > 0) expect(phase2!.waiting).toBeGreaterThan(0);
+      expect(phase2!.invoices).toBeGreaterThan(0);
+      expect(phase2!.payments).toBeGreaterThan(0);
+      expect(phase2!.balances).toBeGreaterThan(0);
+      expect(phase2!.holidays).toBe(2);
+      expect(phase2!.approved_claims).toBeGreaterThan(0);
+      expect(phase2!.approved).toBeGreaterThan(0);
 
-    // A tenant is filled once, and only a demo tenant.
-    await expect(
-      new DemoContent(app, { slug, days: 1, seed: 3, log: () => {} }).run(),
-    ).rejects.toThrow(/has content already/);
-    const realSlug = `real-agro-${Date.now().toString(36)}`;
-    await provision(realSlug, false);
-    await expect(
-      new DemoContent(app, { slug: realSlug, days: 1, seed: 3, log: () => {} }).run(),
-    ).rejects.toThrow(/isn't a demo tenant/);
-  }, DEMO_TIMEOUT_MS);
+      // A tenant is filled once, and only a demo tenant.
+      await expect(
+        new DemoContent(app, { slug, days: 1, seed: 3, log: () => {} }).run(),
+      ).rejects.toThrow(/has content already/);
+      const realSlug = `real-agro-${Date.now().toString(36)}`;
+      await provision(realSlug, false);
+      await expect(
+        new DemoContent(app, { slug: realSlug, days: 1, seed: 3, log: () => {} }).run(),
+      ).rejects.toThrow(/isn't a demo tenant/);
+    },
+    DEMO_TIMEOUT_MS,
+  );
 
-  it('fills a pharma demo tenant in its own words, without a refusal (decision D97)', async () => {
-    const slug = `demo-pharma-${Date.now().toString(36)}`;
-    const { tenantId } = await provision(slug, true, 'pharma');
-    const lines: string[] = [];
-    const counts = await new DemoContent(app, {
-      slug,
-      days: 10,
-      seed: 5,
-      log: (line) => lines.push(line),
-    }).run();
-    expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
-    expect(counts.entries).toBeGreaterThan(0);
-    expect(counts.orders).toBeGreaterThan(0);
+  it(
+    'fills a pharma demo tenant in its own words, without a refusal (decision D97)',
+    async () => {
+      const slug = `demo-pharma-${Date.now().toString(36)}`;
+      const { tenantId } = await provision(slug, true, 'pharma');
+      const lines: string[] = [];
+      const counts = await new DemoContent(app, {
+        slug,
+        days: 10,
+        seed: 5,
+        log: (line) => lines.push(line),
+      }).run();
+      expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
+      expect(counts.entries).toBeGreaterThan(0);
+      expect(counts.orders).toBeGreaterThan(0);
 
-    const [made] = await sql<Record<string, number>>(
-      `select (select count(*)::int from cell.accounts a join cell.account_types t
+      const [made] = await sql<Record<string, number>>(
+        `select (select count(*)::int from cell.accounts a join cell.account_types t
                  on t.tenant_id = a.tenant_id and t.id = a.type_id
                 where a.tenant_id = $1 and t.key = 'doctor' and a.name like 'Dr. %') as doctors,
               (select count(*)::int from cell.accounts a join cell.account_types t
@@ -162,33 +168,37 @@ describe('demo content (decision D70)', () => {
                 where o.tenant_id = $1 and t.key in ('doctor', 'hospital')) as doctor_orders,
               (select count(*)::int from cell.metric_facts_daily
                 where tenant_id = $1 and metric_key = 'samples_distributed' and value > 0) as samples`,
-      [tenantId],
-    );
-    expect(made!.doctors).toBeGreaterThan(0);
-    expect(made!.classed).toBe(made!.doctors);
-    expect(made!.calls).toBeGreaterThan(0);
-    // Samples are signed for; orders are taken from chemists and stockists, never doctors.
-    expect(made!.unsigned_samples).toBe(0);
-    expect(made!.doctor_orders).toBe(0);
-    expect(made!.samples).toBeGreaterThan(0);
-  }, DEMO_TIMEOUT_MS);
+        [tenantId],
+      );
+      expect(made!.doctors).toBeGreaterThan(0);
+      expect(made!.classed).toBe(made!.doctors);
+      expect(made!.calls).toBeGreaterThan(0);
+      // Samples are signed for; orders are taken from chemists and stockists, never doctors.
+      expect(made!.unsigned_samples).toBe(0);
+      expect(made!.doctor_orders).toBe(0);
+      expect(made!.samples).toBeGreaterThan(0);
+    },
+    DEMO_TIMEOUT_MS,
+  );
 
-  it('fills an FMCG demo tenant, asking why only where no order was taken (decision D97)', async () => {
-    const slug = `demo-fmcg-${Date.now().toString(36)}`;
-    const { tenantId } = await provision(slug, true, 'fmcg');
-    const lines: string[] = [];
-    const counts = await new DemoContent(app, {
-      slug,
-      days: 10,
-      seed: 9,
-      log: (line) => lines.push(line),
-    }).run();
-    expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
-    expect(counts.orders).toBeGreaterThan(0);
-    expect(counts.proposals).toBeGreaterThan(0);
+  it(
+    'fills an FMCG demo tenant, asking why only where no order was taken (decision D97)',
+    async () => {
+      const slug = `demo-fmcg-${Date.now().toString(36)}`;
+      const { tenantId } = await provision(slug, true, 'fmcg');
+      const lines: string[] = [];
+      const counts = await new DemoContent(app, {
+        slug,
+        days: 10,
+        seed: 9,
+        log: (line) => lines.push(line),
+      }).run();
+      expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
+      expect(counts.orders).toBeGreaterThan(0);
+      expect(counts.proposals).toBeGreaterThan(0);
 
-    const [made] = await sql<Record<string, number>>(
-      `with calls as (
+      const [made] = await sql<Record<string, number>>(
+        `with calls as (
          select s.data, exists (select 1 from cell.orders o
                                  where o.tenant_id = s.tenant_id and o.visit_id = s.visit_id) as ordered
            from cell.submissions s join cell.forms f on f.tenant_id = s.tenant_id and f.id = s.form_id
@@ -203,14 +213,16 @@ describe('demo content (decision D70)', () => {
                 where tenant_id = $1 and metric_key = 'new_outlets' and value > 0) as new_outlets,
               (select count(*)::int from cell.metric_facts_daily
                 where tenant_id = $1 and metric_key = 'productive_calls' and value > 0) as productive`,
-      [tenantId],
-    );
-    expect(made!.ordered).toBeGreaterThan(0);
-    expect(made!.unordered).toBeGreaterThan(0);
-    // The reason is kept exactly when the visit took no order.
-    expect(made!.mismatched).toBe(0);
-    expect(made!.supplied).toBeGreaterThan(0);
-    expect(made!.new_outlets).toBeGreaterThan(0);
-    expect(made!.productive).toBeGreaterThan(0);
-  }, DEMO_TIMEOUT_MS);
+        [tenantId],
+      );
+      expect(made!.ordered).toBeGreaterThan(0);
+      expect(made!.unordered).toBeGreaterThan(0);
+      // The reason is kept exactly when the visit took no order.
+      expect(made!.mismatched).toBe(0);
+      expect(made!.supplied).toBeGreaterThan(0);
+      expect(made!.new_outlets).toBeGreaterThan(0);
+      expect(made!.productive).toBeGreaterThan(0);
+    },
+    DEMO_TIMEOUT_MS,
+  );
 });
