@@ -3554,7 +3554,7 @@ export const en = {
   'notify.data_request_refused_body': 'Your organisation refused your request: {response}',
   'data_requests.title': 'Data requests',
   'data_requests.intro':
-    'People may ask for a copy of their personal data, for a correction, or for its erasure once they have left. Answer each within 30 days. Erasure anonymises them: their name, contact details, locations, selfies and notifications go; their visits, orders and other records stay.',
+    'People may ask for a copy of their personal data, for a correction, or for its erasure once they have left. Answer each within 30 days. Erasure anonymises them: their name, contact details, locations, selfies and notifications go; the records of their work stay.',
   'data_requests.open_title': 'Open',
   'data_requests.closed_title': 'Answered',
   'data_requests.none_open': 'No open requests.',
@@ -3582,7 +3582,7 @@ export const en = {
   'data_requests.complete': 'Mark done',
   'data_requests.erase': 'Erase their data',
   'data_requests.erase_question':
-    'Erase {name}’s personal data? Their name, contact details, locations, selfies and notifications go for good; their visits, orders and other records stay.',
+    'Erase {name}’s personal data? Their name, contact details, locations, selfies and notifications go for good; the records of their work stay.',
   'data_requests.refuse': 'Refuse',
   'data_requests.response': 'Answer to them',
   'data_requests.response_help': 'They see it on their phone. Say why if you refuse.',
