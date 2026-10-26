@@ -178,6 +178,19 @@ variable "console_url" {
   default     = null
 }
 
+variable "origin_secret" {
+  description = "The header value CloudFront sends with what it passes to the cell, so the cell's WAF leaves those requests to CloudFront's own (decision D98); null when nothing passes through CloudFront."
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "sign_in_per_5_minutes" {
+  description = "Sign-in attempts one address may make in 5 minutes before the WAF blocks it (spec 13). Phones behind a carrier's shared address count together, so keep it generous."
+  type        = number
+  default     = 300
+}
+
 variable "alarm_email" {
   description = "Where alarms go; null keeps them on the SNS topic only."
   type        = string

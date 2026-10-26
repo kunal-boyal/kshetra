@@ -12,6 +12,7 @@ export default defineConfig({
     'src/licence.ts',
     'src/archive.ts',
     'src/tenant-move.ts',
+    'src/restore-check.ts',
     'src/seed.ts',
     'src/load-fixtures.ts',
     'src/e2e-fixtures.ts',

@@ -77,6 +77,21 @@ resource "aws_acm_certificate_validation" "edge" {
   )
 }
 
+# CloudFront proves a request came through it with this header, so the cell's WAF throttles only
+# what comes straight to it, and CloudFront's WAF the rest, per viewer (decision D98). Made once:
+# the random password would change every plan, so its first value is kept.
+data "aws_secretsmanager_random_password" "origin" {
+  password_length     = 40
+  exclude_punctuation = true
+}
+
+resource "terraform_data" "origin_secret" {
+  input = data.aws_secretsmanager_random_password.origin.random_password
+  lifecycle {
+    ignore_changes = [input]
+  }
+}
+
 module "cell" {
   source                       = "../cell"
   name                         = "${var.name}-${var.cell.id}"
@@ -113,28 +128,39 @@ module "cell" {
     "MSG91_AUTH_KEY",
     "SMTP_URL",
   ], var.extra_secret_keys)
-  alarm_email = var.alarm_email
-  tags        = local.tags
+  origin_secret = sensitive(terraform_data.origin_secret.output)
+  alarm_email   = var.alarm_email
+  tags          = local.tags
 }
 
 module "web" {
-  source          = "../web"
+  source = "../web"
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
   name            = var.name
   domain          = var.web_domain
   certificate_arn = aws_acm_certificate_validation.edge.certificate_arn
   api_domain      = var.api_domain
+  origin_secret   = sensitive(terraform_data.origin_secret.output)
   tags            = local.tags
 }
 
 # The platform console (decision D88): the same kind of site, passing /platform to the cell.
 module "console" {
-  count           = var.console_domain == null ? 0 : 1
-  source          = "../web"
+  count  = var.console_domain == null ? 0 : 1
+  source = "../web"
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
   name            = "${var.name}-console"
   domain          = var.console_domain
   certificate_arn = aws_acm_certificate_validation.edge.certificate_arn
   api_domain      = var.api_domain
   api_paths       = ["/platform/*"]
+  origin_secret   = sensitive(terraform_data.origin_secret.output)
   tags            = local.tags
 }
 
