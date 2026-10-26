@@ -214,6 +214,9 @@ export function RulesPage() {
           {number('rawLocationRetentionDays', 7, 90, t('admin.unit_days'))}
           {number('trailRetentionDays', 90, 1095, t('admin.unit_days'))}
           {number('evidencePhotoRetentionMonths', 3, 60, t('admin.unit_months'))}
+          {number('notificationRetentionDays', 30, 365, t('admin.unit_days'))}
+          {number('importFileRetentionDays', 7, 180, t('admin.unit_days'))}
+          {number('auditRetentionYears', 1, 7, t('admin.unit_years'))}
         </>,
       )}
       {group(

@@ -120,6 +120,12 @@ export const TenantSettings = z.strictObject({
   rawLocationRetentionDays: range(7, RAW_LOCATION_RETENTION_DAYS_MAX),
   trailRetentionDays: range(90, 1095),
   evidencePhotoRetentionMonths: range(3, 60),
+  /** How long notifications and their deliveries are kept (M21, decision D95). */
+  notificationRetentionDays: range(30, 365),
+  /** How long uploaded import files are kept; the import's record stays. */
+  importFileRetentionDays: range(7, 180),
+  /** How long the audit log is kept (D9). */
+  auditRetentionYears: range(1, 7),
   reviewAutoApproval: z.boolean(),
   /** A person's month of plan items waits for their manager's approval before it counts (M8). */
   journeyPlanApproval: z.boolean(),
@@ -174,6 +180,9 @@ export const SETTING_DEFAULTS: TenantSettings = {
   rawLocationRetentionDays: 35,
   trailRetentionDays: 365,
   evidencePhotoRetentionMonths: 12,
+  notificationRetentionDays: 90,
+  importFileRetentionDays: 30,
+  auditRetentionYears: 3,
   reviewAutoApproval: false,
   journeyPlanApproval: false,
   targetUnlockByAdmin: false,

@@ -384,4 +384,25 @@ export class NotificationsService {
         },
       });
   }
+
+  /**
+   * Notification retention (decision D95): removes a tenant's notifications from before
+   * `before`, with their deliveries. Returns how many notifications went.
+   */
+  async removeOlderThan(tx: TenantTx, tenantId: string, before: Date): Promise<number> {
+    const old = and(eq(notifications.tenantId, tenantId), lt(notifications.createdAt, before));
+    await tx
+      .delete(notificationDeliveries)
+      .where(
+        and(
+          eq(notificationDeliveries.tenantId, tenantId),
+          inArray(
+            notificationDeliveries.notificationId,
+            tx.select({ id: notifications.id }).from(notifications).where(old),
+          ),
+        ),
+      );
+    const removed = await tx.delete(notifications).where(old).returning({ id: notifications.id });
+    return removed.length;
+  }
 }

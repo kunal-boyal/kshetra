@@ -51,3 +51,29 @@ export function locationRetention(settings: {
     trailsBefore: daysBefore(settings.today, settings.trailRetentionDays),
   };
 }
+
+/** The keeping times of the classes the nightly governance job removes (decision D95). */
+export interface RecordRetention {
+  notificationRetentionDays: number;
+  importFileRetentionDays: number;
+  auditRetentionYears: number;
+}
+
+/**
+ * The moments before which each class goes (BR-41, decision D95): notifications and import files
+ * by days, the audit log by whole years back from `now`, on the calendar, so a leap year changes
+ * nothing.
+ */
+export function recordCutoffs(
+  settings: RecordRetention,
+  now: Date,
+): { notifications: Date; importFiles: Date; audit: Date } {
+  const day = 86_400_000;
+  const audit = new Date(now);
+  audit.setUTCFullYear(audit.getUTCFullYear() - settings.auditRetentionYears);
+  return {
+    notifications: new Date(now.getTime() - settings.notificationRetentionDays * day),
+    importFiles: new Date(now.getTime() - settings.importFileRetentionDays * day),
+    audit,
+  };
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  recordCutoffs,
   daysBefore,
   LOCATION_PARTITION_KEEP_DAYS,
   LOCATION_SETTLE_DAYS,
@@ -51,5 +52,21 @@ describe('location retention (BR-41)', () => {
   it('counts days across months and leap years', () => {
     expect(daysBefore('2028-03-01', 1)).toBe('2028-02-29');
     expect(daysBefore('2027-01-01', 365)).toBe('2026-01-01');
+  });
+});
+
+describe('record retention (decision D95)', () => {
+  it('counts notifications and import files in days, and the audit in calendar years', () => {
+    const now = new Date('2028-02-29T10:00:00.000Z');
+    expect(
+      recordCutoffs(
+        { notificationRetentionDays: 90, importFileRetentionDays: 30, auditRetentionYears: 3 },
+        now,
+      ),
+    ).toEqual({
+      notifications: new Date('2027-12-01T10:00:00.000Z'),
+      importFiles: new Date('2028-01-30T10:00:00.000Z'),
+      audit: new Date('2025-03-01T10:00:00.000Z'),
+    });
   });
 });

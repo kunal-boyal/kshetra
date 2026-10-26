@@ -484,6 +484,13 @@
       "when": 1793001148604,
       "tag": "0068_tenant_termination",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793003057526,
+      "tag": "0069_audit_retention",
+      "breakpoints": true
     }
   ]
 }
