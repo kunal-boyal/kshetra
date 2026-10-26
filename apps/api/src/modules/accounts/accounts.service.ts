@@ -56,6 +56,7 @@ import { Outbox } from '../../platform/outbox';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { pointOf, pointSql } from '../../platform/geo';
+import { onLocalDate } from '../../platform/local-day';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
 import { Scopes } from '../iam/scopes';
@@ -1052,6 +1053,46 @@ export class AccountsService {
       )
       .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, [...new Set(ids)])));
     return new Map(rows.map((row) => [row.id, row]));
+  }
+
+  /**
+   * The accounts a person created or proposed on a date on the tenant's clock, for the metric
+   * engine's `new_accounts` (decision D97).
+   */
+  async createdFor(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    date: string,
+    timezone: string,
+  ): Promise<{ typeKey: string; status: 'pending' | 'active' | 'inactive' }[]> {
+    return tx
+      .select({ typeKey: accountTypes.key, status: accounts.status })
+      .from(accounts)
+      .innerJoin(
+        accountTypes,
+        and(eq(accountTypes.tenantId, accounts.tenantId), eq(accountTypes.id, accounts.typeId)),
+      )
+      .where(
+        and(
+          eq(accounts.tenantId, tenantId),
+          eq(accounts.createdBy, userId),
+          onLocalDate(accounts.createdAt, date, timezone),
+        ),
+      );
+  }
+
+  /** Who created an account and when, so the metric engine can recompute that day. */
+  async creation(
+    tx: TenantTx,
+    tenantId: string,
+    id: string,
+  ): Promise<{ createdBy: string | null; createdAt: Date } | undefined> {
+    const [row] = await tx
+      .select({ createdBy: accounts.createdBy, createdAt: accounts.createdAt })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), eq(accounts.id, id)));
+    return row;
   }
 
   /** Accounts by ID as other records name them: code and name, whoever sees them. */

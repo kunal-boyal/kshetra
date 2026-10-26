@@ -5,6 +5,7 @@ import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
+import { AccountsService } from '../accounts/accounts.service';
 import { People } from '../iam/people';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { MetricsEngine } from './metrics-engine';
@@ -40,6 +41,7 @@ export class PerformanceUpkeep implements OnModuleInit {
     private readonly people: People,
     private readonly engine: MetricsEngine,
     private readonly performance: PerformanceService,
+    private readonly accounts: AccountsService,
   ) {}
 
   /** Recomputes the day a moment falls on, on the tenant's clock. */
@@ -90,6 +92,18 @@ export class PerformanceUpkeep implements OnModuleInit {
       async (event, tx) => {
         const payload = event.payload as EventPayload<'order.placed'>;
         await this.at(tx, event.tenantId, payload.userId, payload.placedAt);
+      },
+    );
+    // New accounts (decision D97): made or proposed, and every change of status after.
+    this.outbox.consume(
+      ['account.created', 'account.updated'],
+      'performance.accounts',
+      async (event, tx) => {
+        const payload = event.payload as EventPayload<'account.created'>;
+        const made = await this.accounts.creation(tx, event.tenantId, payload.accountId);
+        if (made?.createdBy) {
+          await this.at(tx, event.tenantId, made.createdBy, made.createdAt.toISOString());
+        }
       },
     );
     this.outbox.consume(['visit.ended'], 'performance.visits', async (event, tx) => {

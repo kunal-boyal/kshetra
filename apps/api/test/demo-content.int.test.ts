@@ -7,7 +7,7 @@ import { DemoContent } from '../src/demo/content';
 import { TenantProvisioner } from '../src/modules/provisioning/provisioner';
 import { newPhone, startApp, testConfig, World } from './support';
 
-/** The demo content generator (decision D70), on the agri and pharma templates (D97). */
+/** The demo content generator (decision D70), on the agri, pharma and FMCG templates (D97). */
 
 const urls = inject('databaseUrls');
 let app: NestFastifyApplication;
@@ -165,5 +165,46 @@ describe('demo content (decision D70)', () => {
     expect(made!.unsigned_samples).toBe(0);
     expect(made!.doctor_orders).toBe(0);
     expect(made!.samples).toBeGreaterThan(0);
+  }, 300_000);
+
+  it('fills an FMCG demo tenant, asking why only where no order was taken (decision D97)', async () => {
+    const slug = `demo-fmcg-${Date.now().toString(36)}`;
+    const { tenantId } = await provision(slug, true, 'fmcg');
+    const lines: string[] = [];
+    const counts = await new DemoContent(app, {
+      slug,
+      days: 10,
+      seed: 9,
+      log: (line) => lines.push(line),
+    }).run();
+    expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
+    expect(counts.orders).toBeGreaterThan(0);
+    expect(counts.proposals).toBeGreaterThan(0);
+
+    const [made] = await sql<Record<string, number>>(
+      `with calls as (
+         select s.data, exists (select 1 from cell.orders o
+                                 where o.tenant_id = s.tenant_id and o.visit_id = s.visit_id) as ordered
+           from cell.submissions s join cell.forms f on f.tenant_id = s.tenant_id and f.id = s.form_id
+          where s.tenant_id = $1 and f.key = 'outlet_visit')
+       select (select count(*)::int from calls where ordered) as ordered,
+              (select count(*)::int from calls where not ordered) as unordered,
+              (select count(*)::int from calls where ordered = (data ? 'no_order_reason')) as mismatched,
+              (select count(*)::int from cell.accounts a join cell.account_types t
+                 on t.tenant_id = a.tenant_id and t.id = a.type_id
+                where a.tenant_id = $1 and t.key = 'outlet' and a.parent_account_id is not null) as supplied,
+              (select count(*)::int from cell.metric_facts_daily
+                where tenant_id = $1 and metric_key = 'new_outlets' and value > 0) as new_outlets,
+              (select count(*)::int from cell.metric_facts_daily
+                where tenant_id = $1 and metric_key = 'productive_calls' and value > 0) as productive`,
+      [tenantId],
+    );
+    expect(made!.ordered).toBeGreaterThan(0);
+    expect(made!.unordered).toBeGreaterThan(0);
+    // The reason is kept exactly when the visit took no order.
+    expect(made!.mismatched).toBe(0);
+    expect(made!.supplied).toBeGreaterThan(0);
+    expect(made!.new_outlets).toBeGreaterThan(0);
+    expect(made!.productive).toBeGreaterThan(0);
   }, 300_000);
 });

@@ -4,6 +4,7 @@ import { todayIn } from '@thelamp/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { metricFactAccounts, metricFactsDaily } from '../../db/schema/metrics';
 import type { TenantTx } from '../../platform/database';
+import { AccountsService } from '../accounts/accounts.service';
 import { SubmissionsService } from '../field/submissions.service';
 import { VisitsService } from '../field/visits.service';
 import { MetricsService } from '../metrics/metrics.service';
@@ -26,6 +27,7 @@ export class MetricsEngine {
     private readonly visits: VisitsService,
     private readonly planning: PlanningService,
     private readonly orders: OrdersService,
+    private readonly accounts: AccountsService,
   ) {}
 
   /** Recomputes every metric for one person and date on the tenant's clock. */
@@ -48,6 +50,7 @@ export class MetricsEngine {
       planItems,
       orders,
       external: await externalValuesFor(tx, tenantId, userId, date),
+      newAccounts: await this.accounts.createdFor(tx, tenantId, userId, date, timezone),
     });
     const day = and(
       eq(metricFactsDaily.tenantId, tenantId),

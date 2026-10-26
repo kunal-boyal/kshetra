@@ -317,9 +317,61 @@ const PHARMA: Flavour = {
   activityChance: 0.05,
 };
 
+const FMCG: Flavour = {
+  suppliers: [
+    (parts) => `${parts.surname} Distributors, ${parts.town}`,
+    (parts) => `Shree ${parts.surname} Enterprises`,
+    (parts) => `${parts.town} Trading Company`,
+  ],
+  shops: [
+    (parts) => `${parts.surname} Kirana Stores`,
+    (parts) => `${parts.town} General Stores`,
+    (parts) => `Om Sai Provision Stores, ${parts.town}`,
+    (parts) => `${parts.surname} Super Market`,
+    (parts) => `Shree Ganesh Cosmetics, ${parts.town}`,
+    (parts) => `New ${parts.surname} Medical and General`,
+  ],
+  byTypeName: [],
+  products: [
+    { code: 'CRM-200', product: 'Crunchy Marie biscuits', pack: '200 g', mrp: '30', taxRate: '18' },
+    { code: 'TEA-250', product: 'Chai Bahar tea', pack: '250 g', mrp: '140', taxRate: '5' },
+    { code: 'DTG-1KG', product: 'Ujjwal detergent', pack: '1 kg', mrp: '110', taxRate: '18' },
+    { code: 'SOP-100', product: 'Neelam soap', pack: '100 g', mrp: '38', taxRate: '18' },
+    { code: 'NDL-70', product: 'Jhatpat noodles', pack: '70 g', mrp: '14', taxRate: '12' },
+    { code: 'HOL-200', product: 'Kesh coconut hair oil', pack: '200 ml', mrp: '95', taxRate: '18' },
+  ],
+  outcomes: [
+    'Owner took the new scheme on Ujjwal; display placed at the counter.',
+    'Stock of Crunchy Marie is low; order taken for two cases.',
+    'Outlet closed for lunch; met the owner after twenty minutes.',
+    'Competition gave a free display rack; offered our visibility scheme.',
+    'Collected the pending payment for the distributor.',
+    'Planogram fixed: our soaps now at eye level.',
+    'Owner wants the noodles in smaller packs for his customers.',
+  ],
+  observations: [
+    'Shelf share of our soaps is about a third of the category.',
+    'Tea is kept behind the counter; asked for a front display.',
+    'Competitor biscuits are two rupees cheaper on the same pack.',
+  ],
+  rejections: [
+    'The photo doesn’t show the shelf. Please take one with our products in view.',
+    'The stock count looks wrong. Please count again on the next visit.',
+    'Please write why there was no order; “ok” isn’t enough.',
+  ],
+  gatherings: [
+    'Main Bazaar, Niphad',
+    'Station Road, Sinnar',
+    'Bus Stand Road, Dindori',
+    'Market Yard, Chandwad',
+  ],
+  topics: ['Retailer meet', 'Scheme launch', 'Display contest'],
+  activityChance: 0.08,
+};
+
 /** The flavour of a tenant's industry template; any other template takes agri's. */
 export function flavourOf(templateKey: string): Flavour {
-  return templateKey === 'pharma' ? PHARMA : AGRI;
+  return templateKey === 'pharma' ? PHARMA : templateKey === 'fmcg' ? FMCG : AGRI;
 }
 
 function parts(dice: Dice, town: string): Parts {

@@ -273,7 +273,9 @@ export class DemoRequests {
           this.counts.decisions++;
           continue;
         }
-        if (!['leave', 'regularisation', 'expense'].includes(item.requestType)) continue;
+        if (!['leave', 'regularisation', 'expense', 'new_account'].includes(item.requestType)) {
+          continue;
+        }
         const reject = kit.dice.chance(item.requestType === 'expense' ? 0.05 : 0.08);
         try {
           const decided = await kit.tx((tx) =>

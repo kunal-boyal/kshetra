@@ -214,19 +214,33 @@ describe("a person's day (spec 5.7)", () => {
     });
   });
 
-  it('leaves out sources that wait for their records', () => {
+  it('leaves out a ratio whose part is missing', () => {
     const metrics = [
-      metric('new_shops', 'count', { type: 'new_accounts', accountType: 'customer' }),
       metric('visits', 'count', { type: 'submission_count', forms: ['visit'] }),
       metric('per_shop', 'count', {
         type: 'ratio',
         numerator: 'visits',
-        denominator: 'new_shops',
+        denominator: 'shops',
       }),
     ];
     const map = new Map(metrics.map((m) => [m.key, m]));
-    expect(metrics.map((m) => computed(m, map))).toEqual([false, true, false]);
+    expect(metrics.map((m) => computed(m, map))).toEqual([true, false]);
     expect(calculateDayFacts(metrics, day()).map((fact) => fact.key)).toEqual(['visits']);
+  });
+
+  it('counts new accounts of a type once approved, proposals apart (decision D97)', () => {
+    const facts = calculateDayFacts(
+      [metric('new_shops', 'count', { type: 'new_accounts', accountType: 'customer' })],
+      day({
+        newAccounts: [
+          { typeKey: 'customer', status: 'active' },
+          { typeKey: 'customer', status: 'pending' },
+          { typeKey: 'customer', status: 'inactive' },
+          { typeKey: 'depot', status: 'active' },
+        ],
+      }),
+    );
+    expect(facts[0]).toMatchObject({ value: '1.000', pending: '1.000' });
   });
 
   it('sums a product lines column, such as samples given (decision D97)', () => {

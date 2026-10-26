@@ -20,6 +20,7 @@ export const COMPUTED_SOURCES = [
   'plan_compliance_percent',
   'visit_duration',
   'active_days',
+  'new_accounts',
   'order_value',
   'order_quantity',
   'order_lines',
@@ -101,6 +102,11 @@ export interface DayRecords {
    * accounts whose first slot they held. Absent where none were loaded.
    */
   external?: readonly { metricKey: string; value: string }[];
+  /**
+   * Accounts the person created or proposed that day, with their type and status now (decision
+   * D97). Absent where none were loaded.
+   */
+  newAccounts?: readonly { typeKey: string; status: 'pending' | 'active' | 'inactive' }[];
 }
 
 /** One metric's fact for one person and day. */
@@ -306,6 +312,15 @@ export function calculateDay(
       return fact(key, count(productive.length), {
         accounts: [...new Set(productive.map((visit) => visit.account.id))].sort(),
       });
+    }
+    case 'new_accounts': {
+      // Counted once approved; proposals waiting for their decision are shown apart.
+      const ofType = (day.newAccounts ?? []).filter(
+        (account) => account.typeKey === source.accountType,
+      );
+      const active = ofType.filter((account) => account.status === 'active').length;
+      const pending = ofType.filter((account) => account.status === 'pending').length;
+      return fact(key, count(active), { pending: count(pending) });
     }
     case 'external': {
       let total = 0n;
