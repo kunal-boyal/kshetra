@@ -86,4 +86,18 @@ export class AuditLog implements OnApplicationBootstrap {
       supportGrantId: actor.supportGrantId ?? null,
     });
   }
+
+  /**
+   * Removes a tenant's entries from before `before`, as audit retention does (decision D95). The
+   * log is append-only for the application; a function its owner runs removes them, and refuses a
+   * cutoff less than a year back.
+   */
+  async purgeBefore(tx: TenantTx, tenantId: string, before: Date): Promise<number> {
+    const [row] = (
+      await tx.execute(
+        sql`select cell.purge_audit_log(${tenantId}, ${before.toISOString()}::timestamptz) as removed`,
+      )
+    ).rows as { removed: string }[];
+    return Number(row?.removed ?? 0);
+  }
 }

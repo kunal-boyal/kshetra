@@ -9159,6 +9159,21 @@
                           "minimum": 3,
                           "maximum": 60
                         },
+                        "notificationRetentionDays": {
+                          "type": "integer",
+                          "minimum": 30,
+                          "maximum": 365
+                        },
+                        "importFileRetentionDays": {
+                          "type": "integer",
+                          "minimum": 7,
+                          "maximum": 180
+                        },
+                        "auditRetentionYears": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 7
+                        },
                         "reviewAutoApproval": {
                           "type": "boolean"
                         },
@@ -9243,6 +9258,9 @@
                         "rawLocationRetentionDays",
                         "trailRetentionDays",
                         "evidencePhotoRetentionMonths",
+                        "notificationRetentionDays",
+                        "importFileRetentionDays",
+                        "auditRetentionYears",
                         "reviewAutoApproval",
                         "journeyPlanApproval",
                         "targetUnlockByAdmin",
@@ -17097,6 +17115,21 @@
                     "minimum": 3,
                     "maximum": 60
                   },
+                  "notificationRetentionDays": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 365
+                  },
+                  "importFileRetentionDays": {
+                    "type": "integer",
+                    "minimum": 7,
+                    "maximum": 180
+                  },
+                  "auditRetentionYears": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 7
+                  },
                   "reviewAutoApproval": {
                     "type": "boolean"
                   },
@@ -17329,6 +17362,21 @@
                       "minimum": 3,
                       "maximum": 60
                     },
+                    "notificationRetentionDays": {
+                      "type": "integer",
+                      "minimum": 30,
+                      "maximum": 365
+                    },
+                    "importFileRetentionDays": {
+                      "type": "integer",
+                      "minimum": 7,
+                      "maximum": 180
+                    },
+                    "auditRetentionYears": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 7
+                    },
                     "reviewAutoApproval": {
                       "type": "boolean"
                     },
@@ -17413,6 +17461,9 @@
                     "rawLocationRetentionDays",
                     "trailRetentionDays",
                     "evidencePhotoRetentionMonths",
+                    "notificationRetentionDays",
+                    "importFileRetentionDays",
+                    "auditRetentionYears",
                     "reviewAutoApproval",
                     "journeyPlanApproval",
                     "targetUnlockByAdmin",
@@ -34552,6 +34603,21 @@
             "type": "integer",
             "minimum": 3,
             "maximum": 60
+          },
+          "notificationRetentionDays": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 365
+          },
+          "importFileRetentionDays": {
+            "type": "integer",
+            "minimum": 7,
+            "maximum": 180
+          },
+          "auditRetentionYears": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
           },
           "reviewAutoApproval": {
             "type": "boolean"

@@ -388,9 +388,10 @@ export {
   LOCATION_SETTLE_DAYS,
   locationRetention,
   RAW_LOCATION_RETENTION_DAYS_MAX,
+  recordCutoffs,
   SYNC_WINDOW_HOURS_MAX,
 } from './retention';
-export type { LocationRetention } from './retention';
+export type { LocationRetention, RecordRetention } from './retention';
 export { matchName, nameSimilarity, nameWords, normaliseName } from './names';
 export type { NameMatch } from './names';
 export { isOpenTenant, OPEN_TENANT_STATUSES, TENANT_STATUSES } from './tenants';

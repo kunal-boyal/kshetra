@@ -760,6 +760,25 @@ export class ImportsService implements OnModuleInit {
       finishedAt: job.finishedAt?.toISOString() ?? null,
     };
   }
+
+  /**
+   * Import file retention (decision D95): the files of imports started before `before` are
+   * removed; each import's record, with its outcome, stays. Returns how many files went.
+   */
+  async expireFiles(tx: TenantTx, tenantId: string, before: Date): Promise<number> {
+    const old = await tx
+      .select({ fileMediaId: importJobs.fileMediaId })
+      .from(importJobs)
+      .where(and(eq(importJobs.tenantId, tenantId), lt(importJobs.createdAt, before)));
+    let removed = 0;
+    for (const { fileMediaId } of old) {
+      if (await this.media.objectKey(tx, tenantId, fileMediaId)) {
+        await this.media.expire(tx, tenantId, fileMediaId);
+        removed += 1;
+      }
+    }
+    return removed;
+  }
 }
 
 type ImportResultTarget = ImportResult['target'];

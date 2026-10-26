@@ -2299,6 +2299,7 @@ export const en = {
   'admin.unit_hours': 'hours',
   'admin.unit_days': 'days',
   'admin.unit_months': 'months',
+  'admin.unit_years': 'years',
   'admin.rule_timezone': 'Time zone',
   'admin.rule_currency': 'Currency',
   'admin.rule_currency_help': 'A three-letter code, such as INR.',
@@ -2324,6 +2325,9 @@ export const en = {
   'admin.rule_rawLocationRetentionDays': 'Keep raw locations for',
   'admin.rule_trailRetentionDays': 'Keep routes for',
   'admin.rule_evidencePhotoRetentionMonths': 'Keep photos for',
+  'admin.rule_notificationRetentionDays': 'Keep notifications for',
+  'admin.rule_importFileRetentionDays': 'Keep uploaded import files for',
+  'admin.rule_auditRetentionYears': 'Keep the audit log for',
   'admin.rule_mapsWebKey': 'Your Google Maps key for the web',
   'admin.rule_mapsWebKey_help':
     "Optional. Leave empty to use ours. Limit your key to this portal's address in Google Cloud.",

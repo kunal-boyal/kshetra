@@ -2293,6 +2293,7 @@ export const hi: Record<MessageKey, Message> = {
   'admin.unit_hours': 'घंटे',
   'admin.unit_days': 'दिन',
   'admin.unit_months': 'महीने',
+  'admin.unit_years': 'वर्ष',
   'admin.rule_timezone': 'समय क्षेत्र',
   'admin.rule_currency': 'मुद्रा',
   'admin.rule_currency_help': 'तीन अक्षरों का कोड, जैसे INR।',
@@ -2318,6 +2319,9 @@ export const hi: Record<MessageKey, Message> = {
   'admin.rule_rawLocationRetentionDays': 'कच्ची जगहें इतने समय रखें',
   'admin.rule_trailRetentionDays': 'रास्ते इतने समय रखें',
   'admin.rule_evidencePhotoRetentionMonths': 'फ़ोटो इतने समय रखें',
+  'admin.rule_notificationRetentionDays': 'सूचनाएँ इतने समय रखें',
+  'admin.rule_importFileRetentionDays': 'अपलोड की गई इम्पोर्ट फ़ाइलें इतने समय रखें',
+  'admin.rule_auditRetentionYears': 'ऑडिट लॉग इतने समय रखें',
   'admin.rule_mapsWebKey': 'वेब के लिए आपकी Google Maps कुंजी',
   'admin.rule_mapsWebKey_help':
     'वैकल्पिक। हमारी कुंजी के लिए खाली छोड़ें। Google Cloud में अपनी कुंजी इस पोर्टल के पते तक सीमित करें।',

@@ -240,6 +240,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - `LocationArchive` (`apps/api/src/modules/field/location-archive.ts`) runs in `field.nightly`: each settled day's raw points go to the object store as Parquet (`location_archive` media, recorded in `cell.location_archives`), an archived day's points are deleted after the raw retention, and trails and archive files after the trail retention. Never delete points of a day that isn't archived.
 - `cell.drop_empty_location_partitions()` runs with the partitions job and drops only empty partitions older than `LOCATION_PARTITION_KEEP_DAYS`.
 - Evidence photos and signatures expire in `PhotosService.expireEvidence()` (`media.retention`, nightly per tenant) by the keeping time they were captured under; `MediaService.expire()` removes a file with its derivatives and marks the row deleted. Retention is the app's; the bucket's lifecycle rules only tidy.
+- Notifications, uploaded import files and the audit log follow the tenant's `notificationRetentionDays`, `importFileRetentionDays` and `auditRetentionYears` (decision D95): `RecordRetention` (`src/modules/governance/record-retention.ts`) runs nightly with the cutoffs from `recordCutoffs()`, and each owning module removes its own (`NotificationsService.removeOlderThan()`, `ImportsService.expireFiles()`, `AuditLog.purgeBefore()`, which goes through `cell.purge_audit_log()` as the log is append-only).
 - Audit archiving as `locations.archived` and every deletion run as `retention.applied`.
 
 ## Visits and submissions (decision D49)
