@@ -372,3 +372,6 @@ export const SecondFactorStatus = z
   .object({ required: z.boolean(), enrolled: z.boolean() })
   .meta({ id: 'SecondFactorStatus' });
 export type SecondFactorStatus = z.infer<typeof SecondFactorStatus>;
+
+/** `POST /v1/users/sign-out-everyone`: how many people's sessions ended (decision D101). */
+export const SignedOutEveryoneResult = z.object({ people: z.int().min(0) });

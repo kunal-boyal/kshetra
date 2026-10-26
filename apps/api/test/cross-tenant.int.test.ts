@@ -772,6 +772,27 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(reply);
     },
   },
+  'GET /auth/v1/sessions': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/auth/v1/sessions')),
+  },
+  'POST /auth/v1/sessions/:id/end': {
+    kind: 'by ID',
+    run: async () => {
+      const [theirs] = await admin<{ family_id: string }>(
+        `select rt.family_id from directory.refresh_tokens rt
+           join directory.memberships m on m.id = rt.membership_id
+          where m.tenant_id = $1 limit 1`,
+        [a.tenantId],
+      );
+      await sameAsNowhere((id) => asB('POST', `/auth/v1/sessions/${id}/end`), theirs!.family_id);
+    },
+  },
+  'POST /auth/v1/sessions/end-others': {
+    kind: 'own tenant',
+    // B's admin ends the session of its first sign-in, which nothing uses again.
+    run: async () => holdsNothingOfA(await asB('POST', '/auth/v1/sessions/end-others')),
+  },
   'POST /auth/v1/select-tenant': {
     kind: 'sign-in',
     run: async () => {
@@ -980,6 +1001,14 @@ const FIXTURES: Record<string, Fixture> = {
   'POST /v1/users/:id/reset-device': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('POST', `/v1/users/${id}/reset-device`), a.member.id),
+  },
+  'POST /v1/users/sign-out-everyone': {
+    kind: 'own tenant',
+    run: async () => {
+      holdsNothingOfA(await asB('POST', '/v1/users/sign-out-everyone'));
+      // B's phone was signed out with everyone else; later fixtures need it again.
+      bPhoneToken = (await world.signIn(b.member.phone, b.memberDevice)).accessToken;
+    },
   },
   'POST /v1/users/:id/sign-out-everywhere': {
     kind: 'by ID',

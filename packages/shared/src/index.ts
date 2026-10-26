@@ -89,6 +89,9 @@ export {
 export type { AuditAction, AuditActorKind } from './schemas/audit';
 export {
   AccessClaims,
+  OwnSession,
+  OwnSessionsResult,
+  SessionIdParams,
   ChooseTenant,
   DeviceInfo,
   JwksResult,
@@ -123,6 +126,7 @@ export {
   CreateRoleBody,
   CreateTransferBody,
   CreateUserBody,
+  SignedOutEveryoneResult,
   DesignationDefinition,
   DesignationListResult,
   DesignationResult,
@@ -907,6 +911,7 @@ export {
 } from './support';
 export { providerUsedMfa, SESSION_LIMITS, type SessionKind, sessionExpiresAt } from './sessions';
 export { passwordWords, passwordWordsIssue } from './passwords';
+export { describeAgent } from './agents';
 export {
   SupportDecisionBody,
   SupportEntryQuery,

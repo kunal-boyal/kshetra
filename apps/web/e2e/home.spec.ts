@@ -255,13 +255,44 @@ test('runs under its Content-Security-Policy, which nothing on the page breaks (
   expect(violations).toEqual([]);
 });
 
-test('/security shows the authenticator and passes axe (D101)', async ({ page }) => {
+test('/security shows the authenticator and the sessions, and passes axe (D101)', async ({
+  page,
+}) => {
   await mockSignedIn(page);
   await page.route('**/auth/v1/authenticator', (route) =>
     route.fulfill({ json: { enrolled: false, required: false } }),
   );
+  await page.route('**/auth/v1/sessions', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: '01a10000-0000-7000-8000-00000000f001',
+            kind: 'web',
+            agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/141.0.0.0 Safari/537.36',
+            ip: '203.0.113.7',
+            startedAt: '2026-10-27T04:00:00.000Z',
+            lastUsedAt: '2026-10-27T05:00:00.000Z',
+            current: true,
+          },
+          {
+            id: '01a10000-0000-7000-8000-00000000f002',
+            kind: 'phone',
+            agent: 'okhttp/4.12.0',
+            ip: '198.51.100.4',
+            startedAt: '2026-10-20T04:00:00.000Z',
+            lastUsedAt: '2026-10-26T05:00:00.000Z',
+            current: false,
+          },
+        ],
+      },
+    }),
+  );
   await page.goto('/security');
   await expect(page.getByRole('heading', { level: 1, name: 'Sign-in security' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Set up an authenticator' })).toBeVisible();
+  // Where the person is signed in, with the other session ready to end (D101).
+  await expect(page.getByRole('table', { name: 'Where you’re signed in' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign out everywhere else' })).toBeVisible();
   await expectAccessible(page);
 });

@@ -28,6 +28,8 @@ export interface AccessTokenInput {
   scopes?: readonly string[];
   /** How long the token lasts, when not the usual. */
   seconds?: number;
+  /** The session, its refresh-token family (decision D101); API clients' tokens have none. */
+  sessionId?: string;
 }
 
 /**
@@ -94,6 +96,7 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
       ...(input.deviceId ? { did: input.deviceId } : {}),
       ...(input.supportGrantId ? { sg: input.supportGrantId } : {}),
       ...(input.scopes ? { scp: [...input.scopes] } : {}),
+      ...(input.sessionId ? { sid: input.sessionId } : {}),
     })
       .setProtectedHeader({ alg: 'ES256', kid: this.publicJwk.kid!, typ: 'JWT' })
       .setSubject(input.userId)
@@ -110,7 +113,7 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
    * platform audience, so no cell takes it and the console takes no tenant user's.
    */
   async signStaff(
-    input: { staffId: string; role: string; revision: number },
+    input: { staffId: string; role: string; revision: number; sessionId?: string },
     now: Date = new Date(),
   ): Promise<{ token: string; expiresAt: Date }> {
     await this.load();
@@ -118,7 +121,11 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
     const issuedAt = Math.floor(now.getTime() / 1000);
     const expiresAt = new Date((issuedAt + ACCESS_TOKEN_SECONDS) * 1000);
     const { issuer, staffAudience } = tokenParties(this.config);
-    const token = await new SignJWT({ role: input.role, rev: input.revision })
+    const token = await new SignJWT({
+      role: input.role,
+      rev: input.revision,
+      ...(input.sessionId ? { sid: input.sessionId } : {}),
+    })
       .setProtectedHeader({ alg: 'ES256', kid: this.publicJwk.kid!, typ: 'JWT' })
       .setSubject(input.staffId)
       .setIssuer(issuer)

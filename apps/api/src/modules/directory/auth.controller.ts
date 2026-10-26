@@ -79,7 +79,7 @@ export class AuthController {
     const { phone, code, device } = OtpVerifyBody.parse(body);
     const result = await this.otp.verify(phone, code, address, device);
     return result.status === 'signed_in'
-      ? { ...result, session: this.cookie.handOver(request, reply, result.session) }
+      ? { ...result, session: await this.cookie.handOver(request, reply, result.session) }
       : result;
   }
 
@@ -101,7 +101,7 @@ export class AuthController {
     const { ticket, tenantId, device } = SelectTenantBody.parse(body);
     const result = await this.sessions.selectTenant(ticket, tenantId, device, address);
     return result.status === 'signed_in'
-      ? { ...result, session: this.cookie.handOver(request, reply, result.session) }
+      ? { ...result, session: await this.cookie.handOver(request, reply, result.session) }
       : result;
   }
 
@@ -134,7 +134,7 @@ export class AuthController {
   ) {
     const { ticket, code, recoveryCode } = TotpVerifyBody.parse(body);
     const result = await this.secondFactor.verify(ticket, { code, recoveryCode });
-    return { ...result, session: this.cookie.handOver(request, reply, result.session) };
+    return { ...result, session: await this.cookie.handOver(request, reply, result.session) };
   }
 
   @Post('token/refresh')
@@ -153,7 +153,10 @@ export class AuthController {
   ) {
     const { refreshToken } = RefreshBody.parse(body ?? {});
     const result = await this.sessions.refresh(this.refreshToken(request, refreshToken));
-    return { ...result, session: this.cookie.handOver(request, reply, result.session) };
+    return {
+      ...result,
+      session: await this.cookie.handOver(request, reply, result.session, { endPrevious: false }),
+    };
   }
 
   @Post('switch-tenant')
@@ -178,7 +181,7 @@ export class AuthController {
       device,
       address,
     );
-    return { ...result, session: this.cookie.handOver(request, reply, result.session) };
+    return { ...result, session: await this.cookie.handOver(request, reply, result.session) };
   }
 
   @Post('logout')

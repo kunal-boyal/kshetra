@@ -5,6 +5,7 @@ import { HealthCounters } from './health-counters';
 import { AuditLog } from './audit';
 import { BreachedPasswords, createBreachedPasswords } from './breached-passwords';
 import { Database } from './database';
+import { EndedSessions } from './ended-sessions';
 import { createObjectStore, ObjectStore } from './object-store';
 import { Outbox } from './outbox';
 import { Queues } from './queues';
@@ -41,6 +42,7 @@ export class PlatformModule {
         { provide: ObjectStore, useFactory: () => createObjectStore(config) },
         { provide: BreachedPasswords, useFactory: () => createBreachedPasswords(config) },
         SecurityLog,
+        EndedSessions,
       ],
       exports: [
         CONFIG,
@@ -59,6 +61,7 @@ export class PlatformModule {
         ObjectStore,
         BreachedPasswords,
         SecurityLog,
+        EndedSessions,
       ],
     };
   }

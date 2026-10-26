@@ -13,6 +13,7 @@ export const AUDIT_ACTIONS = [
   'user.updated',
   'user.device_reset',
   'user.signed_out_everywhere',
+  'user.signed_out_everyone',
   'user_fields.replaced',
   'transfer.scheduled',
   'transfer.applied',

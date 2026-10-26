@@ -4,6 +4,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from '../../config';
 import { sessionCookie } from '../../platform/session-cookie';
 import { CONFIG } from '../../platform/tokens';
+import { SessionsService } from './sessions.service';
 
 /** Whether a request says it is the web portal's, which keeps its refresh token in a cookie. */
 export function isWeb(request: FastifyRequest): boolean {
@@ -21,7 +22,10 @@ export class WebCookie {
   readonly name: string;
   private readonly attributes: ReturnType<typeof sessionCookie>['options'];
 
-  constructor(@Inject(CONFIG) config: Config) {
+  constructor(
+    private readonly sessions: SessionsService,
+    @Inject(CONFIG) config: Config,
+  ) {
     const cookie = sessionCookie(config, 'refresh');
     this.name = cookie.name;
     this.attributes = cookie.options;
@@ -43,10 +47,21 @@ export class WebCookie {
   /**
    * Moves the refresh token out of the session into the cookie, for the web. A request that isn't
    * the web's keeps its session as it is, unless `web` says the caller is the web anyway, as a
-   * browser coming back from an identity provider is.
+   * browser coming back from an identity provider is. The session whose cookie this one replaces
+   * ends, so a new sign-in never leaves the browser's last one running (ASVS V7.2.4, D101).
    */
-  handOver(request: FastifyRequest, reply: FastifyReply, session: Session, web = false): Session {
+  async handOver(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    session: Session,
+    { web = false, endPrevious = true }: { web?: boolean; endPrevious?: boolean } = {},
+  ): Promise<Session> {
     if ((!web && !isWeb(request)) || !session.refreshToken) return session;
+    // A refresh replaces the cookie within the same session, which goes on.
+    const previous = this.read(request);
+    if (endPrevious && previous && previous !== session.refreshToken) {
+      await this.sessions.logout(previous);
+    }
     void reply.setCookie(this.name, session.refreshToken, {
       ...this.options(),
       expires: new Date(session.refreshTokenExpiresAt),

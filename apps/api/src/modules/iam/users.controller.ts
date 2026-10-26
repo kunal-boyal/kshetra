@@ -12,6 +12,7 @@ import {
 import {
   CreateUserBody,
   IdParams,
+  SignedOutEveryoneResult,
   SecondFactorStatus,
   UpdateUserBody,
   UserListQuery,
@@ -180,6 +181,34 @@ export class UsersController {
         },
       ),
     );
+  }
+
+  @Post('sign-out-everyone')
+  @Contract({
+    tag: 'People',
+    summary: 'End every session of everyone in the organisation but your own',
+    response: SignedOutEveryoneResult,
+    idempotencyKey: true,
+  })
+  @Requires('user.sign_out_all')
+  @HttpCode(200)
+  async signOutEveryone(
+    @CurrentAccess() access: Access,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    const result = await this.database.forTenant(access.tenantId, (tx) =>
+      idempotent(
+        tx,
+        access.tenantId,
+        requireIdempotencyKey(key),
+        { route: 'POST /v1/users/sign-out-everyone', by: access.userId },
+        async () => ({
+          status: 200,
+          body: { people: await this.users.signOutEveryone(tx, access) },
+        }),
+      ),
+    );
+    return result.body;
   }
 
   @Post(':id/sign-out-everywhere')

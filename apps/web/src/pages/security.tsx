@@ -6,6 +6,7 @@ import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { NOTHING, read, write } from '../people/data';
 import { PageHeader, Section } from '../people/shared';
+import { OwnSessions } from './own-sessions';
 
 /** The secret as people type it: groups of four. */
 const grouped = (secret: string) => secret.match(/.{1,4}/g)?.join(' ') ?? secret;
@@ -43,7 +44,7 @@ function CodeField({
 /**
  * Sign-in security (decision D101): anyone may set up an authenticator app, which the portal then
  * asks for after the SMS code; where their role needs one it stays on. Recovery codes are shown
- * once, as at sign-in.
+ * once, as at sign-in. Below, where the person is signed in.
  */
 export function SecurityPage() {
   const { client } = useApp();
@@ -222,6 +223,7 @@ export function SecurityPage() {
           </div>
         )}
       </Section>
+      <OwnSessions />
     </div>
   );
 }

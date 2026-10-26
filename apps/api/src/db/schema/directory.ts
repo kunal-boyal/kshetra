@@ -170,6 +170,10 @@ export const refreshTokens = directory.table(
     // through the organisation's SSO, whose sessions are shorter (decision D101).
     familyStartedAt: timestamp('family_started_at', { withTimezone: true }).notNull().defaultNow(),
     sso: boolean('sso').notNull().default(false),
+    // Where the token was issued, for the person's list of where they are signed in (decision
+    // D101): the browser or app as it named itself, cut short, and the address.
+    userAgent: text('user_agent'),
+    ip: text('ip'),
     createdAt: createdAt(),
   },
   (table) => [

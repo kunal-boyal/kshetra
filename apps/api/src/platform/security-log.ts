@@ -1,7 +1,7 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { Injectable, Logger } from '@nestjs/common';
 import type { ErrorCode } from '@thelamp/shared';
 import type { FastifyRequest } from 'fastify';
+import { currentRequest } from './request-context';
 
 /**
  * Security events (ASVS V16.3, decision D101), one JSON line each in the `Security` context on
@@ -63,14 +63,6 @@ export const SECURITY_CODES: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'SUPPORT_READ_ONLY',
 ]);
 
-/** The request being served, for whatever is logged while serving it. */
-const current = new AsyncLocalStorage<FastifyRequest>();
-
-/** Runs the rest of a request's handling with it as the current request. */
-export function withRequest(request: FastifyRequest, next: () => void): void {
-  current.run(request, next);
-}
-
 /** The tenant and caller of a request, as log lines name them. */
 export function callerOf(request: FastifyRequest): { tenantId?: string; actor?: string } {
   const access = request.access;
@@ -91,7 +83,7 @@ export class SecurityLog {
 
   /** Writes one event, with the current request's ID, address, tenant and caller where known. */
   record(event: SecurityEvent): void {
-    const request = current.getStore();
+    const request = currentRequest();
     this.logger.log({
       ...(request
         ? {

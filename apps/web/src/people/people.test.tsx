@@ -493,6 +493,22 @@ describe('the people table', () => {
   });
 });
 
+describe('signing everyone out (D101)', () => {
+  it('asks first, then says how many people were signed out', async () => {
+    const client = fakeClient({ 'POST /v1/users/sign-out-everyone': () => ({ people: 12 }) });
+    renderAt('/people', client);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Sign everyone out' }));
+    expect(writes(client)).toEqual([]);
+    const confirm = screen.getByRole('group', { name: /Sign everyone else out/ });
+    await user.click(within(confirm).getByRole('button', { name: 'Sign everyone out' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('12 people were signed out.');
+    expect(writes(client).map(([method, path]) => `${method} ${path}`)).toEqual([
+      'POST /v1/users/sign-out-everyone',
+    ]);
+  });
+});
+
 describe("a person's page", () => {
   it('shows their month so far and their shifts, with how each ended', async () => {
     renderAt(`/people/${RAHUL}`, fakeClient());

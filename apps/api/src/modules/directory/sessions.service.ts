@@ -7,13 +7,14 @@ import {
   type RefreshResult,
   type SecondFactor,
   type SelectTenantResult,
+  type OwnSession,
   type Session,
   sessionExpiresAt,
   SESSION_LIMITS,
   type SignedIn,
   type TenantSummary,
 } from '@thelamp/shared';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, ne } from 'drizzle-orm';
 import {
   identities,
   memberships,
@@ -22,8 +23,10 @@ import {
   supportGrants,
   totpSecrets,
 } from '../../db/schema/directory';
+import { EndedSessions } from '../../platform/ended-sessions';
 import { CellAdmission, PeopleEmails } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
+import { currentRequest } from '../../platform/request-context';
 import { SecurityLog } from '../../platform/security-log';
 import { DirectoryDatabase, type DirectoryDb, type DirectoryTx } from './directory.database';
 import { activeMemberships, type MembershipRow } from './memberships';
@@ -75,6 +78,7 @@ export class SessionsService {
     private readonly cell: CellAdmission,
     private readonly emails: PeopleEmails,
     private readonly security: SecurityLog,
+    private readonly ended: EndedSessions,
   ) {}
 
   /** After a verified code: one tenant signs straight in; several get a ticket to choose with. */
@@ -268,6 +272,81 @@ export class SessionsService {
       .update(refreshTokens)
       .set({ revokedAt: new Date() })
       .where(and(eq(refreshTokens.familyId, familyId), isNull(refreshTokens.revokedAt)));
+    // Its access tokens are refused too, once the ending commits (decision D101).
+    this.database.whenCommitted(db as DirectoryTx, () => void this.ended.end([familyId]));
+  }
+
+  /** The member behind a tenant's user, whose own sessions these are. */
+  private async membershipOf(tenantId: string, userId: string): Promise<string> {
+    const [row] = await this.database.db
+      .select({ id: memberships.id })
+      .from(memberships)
+      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, userId)));
+    if (!row) throw new AppError('NOT_FOUND', 'This was not found.');
+    return row.id;
+  }
+
+  /**
+   * Where someone is signed in to this tenant (ASVS V7.5.2, decision D101): each live session,
+   * with when it began, when it was last refreshed, and from which browser or app and address.
+   */
+  async own(tenantId: string, userId: string, currentId?: string): Promise<OwnSession[]> {
+    const membershipId = await this.membershipOf(tenantId, userId);
+    // A live family has one unspent token, the one its last refresh made.
+    const rows = await this.database.db
+      .select()
+      .from(refreshTokens)
+      .where(
+        and(
+          eq(refreshTokens.membershipId, membershipId),
+          isNull(refreshTokens.revokedAt),
+          gt(refreshTokens.expiresAt, new Date()),
+        ),
+      )
+      .orderBy(desc(refreshTokens.createdAt));
+    return rows.map((row) => ({
+      id: row.familyId,
+      kind: row.deviceId ? 'phone' : row.sso ? 'sso' : 'web',
+      agent: row.userAgent,
+      ip: row.ip,
+      startedAt: row.familyStartedAt.toISOString(),
+      lastUsedAt: row.createdAt.toISOString(),
+      current: row.familyId === currentId,
+    }));
+  }
+
+  /** Ends one of someone's own sessions; another's, or one already over, is not found. */
+  async endOwn(tenantId: string, userId: string, sessionId: string): Promise<void> {
+    const membershipId = await this.membershipOf(tenantId, userId);
+    const [live] = await this.database.db
+      .select({ familyId: refreshTokens.familyId })
+      .from(refreshTokens)
+      .where(
+        and(
+          eq(refreshTokens.familyId, sessionId),
+          eq(refreshTokens.membershipId, membershipId),
+          isNull(refreshTokens.revokedAt),
+        ),
+      )
+      .limit(1);
+    if (!live) throw new AppError('NOT_FOUND', 'This session has ended already.');
+    await this.endFamily(this.database.db, sessionId);
+  }
+
+  /** Ends every one of someone's sessions in this tenant but the one asking. */
+  async endOthers(tenantId: string, userId: string, currentId: string | undefined): Promise<void> {
+    const membershipId = await this.membershipOf(tenantId, userId);
+    const families = await this.database.db
+      .selectDistinct({ familyId: refreshTokens.familyId })
+      .from(refreshTokens)
+      .where(
+        and(
+          eq(refreshTokens.membershipId, membershipId),
+          isNull(refreshTokens.revokedAt),
+          ...(currentId ? [ne(refreshTokens.familyId, currentId)] : []),
+        ),
+      );
+    for (const { familyId } of families) await this.endFamily(this.database.db, familyId);
   }
 
   private async start(
@@ -477,6 +556,7 @@ export class SessionsService {
       cell: grant.cellName,
       revision: grant.staffRevision,
       supportGrantId: grant.id,
+      sessionId: familyId,
     });
     return {
       tokenType: 'Bearer',
@@ -507,6 +587,16 @@ export class SessionsService {
     return { id: row.tenantId, name: row.tenantName, cellUrl: row.cellUrl };
   }
 
+  /** Where the request issuing a token came from, for the person's list of sessions. */
+  private place(): { userAgent: string | null; ip: string | null } {
+    const request = currentRequest();
+    const agent = request?.headers['user-agent'];
+    return {
+      userAgent: typeof agent === 'string' ? agent.slice(0, 300) : null,
+      ip: request?.clientIp || null,
+    };
+  }
+
   private async issue(
     db: DirectoryDb | DirectoryTx,
     row: MembershipRow,
@@ -531,12 +621,14 @@ export class SessionsService {
       secondFactor,
       familyStartedAt: family.startedAt,
       sso: family.sso,
+      ...this.place(),
     });
     const access = await this.keys.sign({
       userId: row.userId,
       tenantId: row.tenantId,
       cell: row.cellName,
       revision: row.authRevision,
+      sessionId: familyId,
       ...(deviceId ? { deviceId } : {}),
     });
     return {

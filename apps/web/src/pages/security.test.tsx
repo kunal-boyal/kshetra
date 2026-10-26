@@ -42,6 +42,58 @@ describe('sign-in security (D101)', () => {
     ]);
   });
 
+  it('lists where the person is signed in, and ends one or all the others (D101)', async () => {
+    let live = [
+      {
+        id: '01a10000-0000-7000-8000-00000000f001',
+        kind: 'web',
+        agent:
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+        ip: '203.0.113.7',
+        startedAt: '2026-10-27T04:00:00.000Z',
+        lastUsedAt: '2026-10-27T05:00:00.000Z',
+        current: true,
+      },
+      {
+        id: '01a10000-0000-7000-8000-00000000f002',
+        kind: 'phone',
+        agent: 'okhttp/4.12.0',
+        ip: '198.51.100.4',
+        startedAt: '2026-10-20T04:00:00.000Z',
+        lastUsedAt: '2026-10-26T05:00:00.000Z',
+        current: false,
+      },
+    ];
+    const client = fakeClient(
+      {
+        '/auth/v1/authenticator': { enrolled: false, required: false },
+        '/auth/v1/sessions': () => ({ items: live }),
+      },
+      {
+        'POST /auth/v1/sessions/01a10000-0000-7000-8000-00000000f002/end': () => {
+          live = live.filter((session) => session.current);
+          return undefined;
+        },
+      },
+    );
+    renderAt('/security', client);
+    const user = userEvent.setup();
+    const table = await screen.findByRole('table', { name: 'Where you’re signed in' });
+    const here = await within(table).findByRole('row', { name: /Chrome on macOS/ });
+    expect(within(here).getByText('This browser')).toBeVisible();
+    expect(within(here).queryByRole('button', { name: 'End' })).toBeNull();
+    const phone = within(table).getByRole('row', { name: /The app, on a phone/ });
+    expect(within(phone).getByText('198.51.100.4')).toBeVisible();
+
+    await user.click(within(phone).getByRole('button', { name: 'End' }));
+    const confirm = screen.getByRole('group', { name: /End this session\?/ });
+    await user.click(within(confirm).getByRole('button', { name: 'End' }));
+    expect(await screen.findByText('That session has ended.')).toBeVisible();
+    expect(within(table).queryByRole('row', { name: /The app, on a phone/ })).toBeNull();
+    // With nothing else signed in, there is nothing else to end.
+    expect(screen.queryByRole('button', { name: 'Sign out everywhere else' })).toBeNull();
+  });
+
   it('keeps an admin’s on, and lets anyone else turn theirs off with a code', async () => {
     const admin = fakeClient({
       '/auth/v1/authenticator': { enrolled: true, required: true },

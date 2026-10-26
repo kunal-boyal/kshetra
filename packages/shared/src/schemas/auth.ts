@@ -194,8 +194,31 @@ export const AccessClaims = z.object({
   sg: z.uuid().optional(),
   /** An API client's scopes (spec 11.1, decision D94); `sub` is then the client's ID. */
   scp: z.array(z.string()).optional(),
+  /** The session, its refresh-token family; a session ended early refuses its tokens (D101). */
+  sid: z.uuid().optional(),
 });
 
+/** One place someone is signed in (ASVS V7.5.2, decision D101): a refresh-token family. */
+export const OwnSession = z
+  .object({
+    id: z.uuid(),
+    kind: z.enum(['web', 'phone', 'sso']),
+    /** The browser or app as it named itself, cut short; `describeAgent()` reads it. */
+    agent: z.string().nullable(),
+    ip: z.string().nullable(),
+    startedAt: z.iso.datetime(),
+    /** When it last refreshed: in use within the last 15 minutes, or idle since. */
+    lastUsedAt: z.iso.datetime(),
+    /** The session asking. */
+    current: z.boolean(),
+  })
+  .meta({ id: 'OwnSession' });
+
+export const OwnSessionsResult = z.object({ items: z.array(OwnSession) });
+
+export const SessionIdParams = z.strictObject({ id: z.uuid() });
+
+export type OwnSession = z.infer<typeof OwnSession>;
 export type DeviceInfo = z.infer<typeof DeviceInfo>;
 export type OtpRequestResult = z.infer<typeof OtpRequestResult>;
 export type Session = z.infer<typeof Session>;
