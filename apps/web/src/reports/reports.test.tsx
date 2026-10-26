@@ -39,6 +39,17 @@ const EXPORT = {
 const pages = {
   '/v1/reports/activity_log': { ...PAGE, report: 'activity_log', rows: [], nextCursor: null },
   '/v1/reports/attendance_register': PAGE,
+  '/v1/reports/gps_audit_trail': {
+    ...PAGE,
+    report: 'gps_audit_trail',
+    columns: [
+      { key: 'captured_at', label: 'Captured at', kind: 'datetime' },
+      { key: 'battery', label: 'Battery', kind: 'percent' },
+      { key: 'gap_minutes', label: 'Gap before (min)', kind: 'number' },
+    ],
+    rows: [{ captured_at: '2026-10-21T04:30:00.000Z', battery: 74, gap_minutes: 18 }],
+    nextCursor: null,
+  },
   '/v1/exports': { items: [EXPORT] },
   '/v1/users': { items: [{ id: ASHA, code: 'SUN-004', name: 'Asha Rao' }], nextCursor: null },
   '/v1/territories': { items: [] },
@@ -64,6 +75,7 @@ describe('reports (M18)', () => {
       .map((option) => option.textContent);
     expect(offered).toEqual(expect.arrayContaining(['Visit compliance', 'Location summary']));
     expect(offered).not.toContain('Audit log');
+    expect(offered).not.toContain('GPS audit trail');
     expect(offered.some((name) => name?.endsWith('statement'))).toBe(false);
     // Field users can't export; this reader can't either.
     expect(screen.queryByRole('button', { name: 'Download as Excel' })).toBeNull();
@@ -83,6 +95,36 @@ describe('reports (M18)', () => {
         expect.anything(),
       ),
     );
+  });
+
+  it('reads the GPS audit trail only once a person is chosen (D99)', async () => {
+    const client = fakeClient(pages, {}, [
+      'report.view',
+      'user.view',
+      'trail.view',
+      'export.create',
+    ]);
+    renderAt('/reports', client);
+    const user = userEvent.setup();
+    expect(await screen.findByText('Nothing to show')).toBeVisible();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Report' }), 'GPS audit trail');
+    expect(await screen.findByText('Choose a person')).toBeVisible();
+    expect(screen.getByText(/Points are kept for 35 days/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Download as Excel' })).toBeNull();
+    const asked = () =>
+      client.request.mock.calls.filter(([, path]) =>
+        String(path).startsWith('/v1/reports/gps_audit_trail'),
+      );
+    expect(asked()).toEqual([]);
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Person' }),
+      'Asha Rao (SUN-004)',
+    );
+    const table = await screen.findByRole('table', { name: /GPS audit trail/ });
+    expect(within(table).getByRole('row', { name: /74%/ })).toHaveTextContent('18');
+    expect(asked()[0]![1]).toContain(`userId=${ASHA}`);
+    expect(screen.getByRole('button', { name: 'Download as Excel' })).toBeVisible();
   });
 
   it('asks for a file, and lists the files with a link to each ready one', async () => {

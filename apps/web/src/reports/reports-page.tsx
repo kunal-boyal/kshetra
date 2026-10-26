@@ -3,6 +3,7 @@ import {
   type ExportFormat,
   type ExportResult,
   type ExportStatus,
+  REPORT_FOR_ONE_PERSON,
   REPORT_KEYS,
   REPORT_MODULE,
   REPORT_PERMISSION,
@@ -145,7 +146,9 @@ export function ReportsPage() {
   const [exportError, setExportError] = useState<unknown>();
   const people = useUsers({ status: 'active' }, 200);
   const territories = useTerritories();
-  const page = useReport(report, filters, locale);
+  // A report read one person at a time waits until one is chosen (decision D99).
+  const needsPerson = REPORT_FOR_ONE_PERSON.includes(report) && !filters.userId;
+  const page = useReport(report, filters, locale, !needsPerson);
   const startExport = useStartExport();
   const pages = page.data?.pages ?? [];
   const columns = pages[0]?.columns ?? [];
@@ -264,7 +267,12 @@ export function ReportsPage() {
           </>
         ) : null}
       </div>
-      {canExport ? (
+      {report === 'gps_audit_trail' && bundle ? (
+        <Notice>
+          {t('report.points_kept', { days: bundle.settings.rawLocationRetentionDays })}
+        </Notice>
+      ) : null}
+      {canExport && !needsPerson ? (
         <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
@@ -288,7 +296,11 @@ export function ReportsPage() {
           {errorMessage(exportError, t)}
         </p>
       ) : null}
-      {page.isError ? (
+      {needsPerson ? (
+        <EmptyState icon={<Icon icon={Sheet} />} title={t('report.needs_person_title')}>
+          {t('report.needs_person')}
+        </EmptyState>
+      ) : page.isError ? (
         <p className="ks-help error" role="alert">
           {errorMessage(page.error, t)}
         </p>

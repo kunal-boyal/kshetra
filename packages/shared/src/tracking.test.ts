@@ -11,6 +11,7 @@ import {
   punchFixIssue,
   simplifyTrail,
   trailGaps,
+  gapBefore,
 } from './tracking';
 
 const H = 3_600_000;
@@ -122,6 +123,19 @@ describe('trails (spec 12.1)', () => {
     expect(trailGaps([at(0), at(5), at(16), at(20)])).toEqual([
       { from: START + 5 * 60_000, to: START + 16 * 60_000 },
     ]);
+  });
+
+  it('marks a point after a silence as the trail counts gaps, within one shift (decision D99)', () => {
+    const point = (shiftId: string, minutes: number) => ({
+      shiftId,
+      capturedAt: START + minutes * 60_000,
+    });
+    expect(gapBefore(null, point('a', 0))).toBeNull();
+    expect(gapBefore(point('a', 5), point('a', 15))).toBeNull();
+    expect(gapBefore(point('a', 5), point('a', 16))).toBe(11);
+    expect(gapBefore(point('a', 5), point('a', 47.5))).toBe(42);
+    // A new shift begins without a gap, however long the night was.
+    expect(gapBefore(point('a', 5), point('b', 600))).toBeNull();
   });
 
   it('simplifies a straight walk to its ends, and keeps a turn', () => {

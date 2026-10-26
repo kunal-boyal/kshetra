@@ -9,6 +9,7 @@ import {
   type ReportKey,
   type ReportPage,
   type ReportQuery,
+  REPORT_FOR_ONE_PERSON,
   REPORT_MODULE,
   REPORT_PERMISSION,
 } from '@thelamp/shared';
@@ -26,6 +27,7 @@ import { ExpenseRegisterReport } from './expense-register';
 import { LeaveRegisterReport } from './leave-register';
 import { VisitComplianceReport } from './visit-compliance';
 import { CoverageFrequencyReport } from './coverage-frequency';
+import { GpsAuditTrailReport } from './gps-audit-trail';
 import { LocationSummaryReport } from './location-summary';
 import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
@@ -62,6 +64,7 @@ export class ReportsService {
     visitCompliance: VisitComplianceReport,
     coverageFrequency: CoverageFrequencyReport,
     locationSummary: LocationSummaryReport,
+    gpsAuditTrail: GpsAuditTrailReport,
     ordersRegister: OrdersRegisterReport,
     accountStatement: AccountStatementReport,
     auditLog: AuditLogReport,
@@ -76,6 +79,7 @@ export class ReportsService {
         visitCompliance,
         coverageFrequency,
         locationSummary,
+        gpsAuditTrail,
         ordersRegister,
         accountStatement,
         auditLog,
@@ -124,7 +128,7 @@ export class ReportsService {
    * its filters name are reachable.
    */
   async check(tx: TenantTx, access: Access, key: ReportKey, filters: ReportFilters): Promise<void> {
-    this.source(access, key);
+    this.source(access, key, filters);
     await this.whose(tx, access, filters);
   }
 
@@ -150,13 +154,21 @@ export class ReportsService {
     };
   }
 
-  /** A report, unless its module is switched off for the caller's tenant (spec 5.13). */
-  private source(access: Access, key: ReportKey): ReportSource {
+  /**
+   * A report, unless its module is switched off for the caller's tenant (spec 5.13), the caller
+   * may not see its records, or it reads one person at a time and the filters name nobody (D99).
+   */
+  private source(access: Access, key: ReportKey, filters: ReportFilters): ReportSource {
     const module = REPORT_MODULE[key];
     if (module && access.modulesOff.includes(module)) throw moduleDisabled();
     const permission = REPORT_PERMISSION[key];
     if (permission && !access.permissions.has(permission)) {
       throw new AppError('FORBIDDEN', 'You may not see this report.');
+    }
+    if (REPORT_FOR_ONE_PERSON.includes(key) && !filters.userId) {
+      throw new AppError('VALIDATION', 'This report reads one person at a time.', [
+        { path: 'userId', issue: 'Choose a person' },
+      ]);
     }
     return this.sources.get(key)!;
   }
@@ -184,7 +196,7 @@ export class ReportsService {
     query: ReportQuery,
   ): Promise<ReportPage> {
     const { cursor, limit, locale, ...filters } = query;
-    const source = this.source(access, key);
+    const source = this.source(access, key, filters);
     const context = await this.context(tx, access, filters, locale);
     const columns = await this.columns(tx, source, context);
     const found = await source.page(tx, context, cursor, limit);
@@ -215,7 +227,7 @@ export class ReportsService {
     rows: ReportRow[];
     truncated: boolean;
   }> {
-    const source = this.source(access, key);
+    const source = this.source(access, key, filters);
     const context = await this.context(tx, access, filters, locale);
     const columns = await this.columns(tx, source, context);
     const rows: ReportRow[] = [];

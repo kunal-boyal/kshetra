@@ -21,6 +21,7 @@ export const REPORT_KEYS = [
   'visit_compliance',
   'coverage_frequency',
   'location_summary',
+  'gps_audit_trail',
   'orders_register',
   'account_statement',
   'audit_log',
@@ -41,7 +42,14 @@ export const REPORT_PERMISSION: Partial<Record<(typeof REPORT_KEYS)[number], Ten
   orders_register: 'order.view',
   account_statement: 'finance.view',
   audit_log: 'audit.view',
+  gps_audit_trail: 'trail.view',
 };
+
+/**
+ * Reports read for one person at a time (decision D99): a month of everyone's GPS points is too
+ * many rows to read or file, so the GPS audit trail needs `userId`.
+ */
+export const REPORT_FOR_ONE_PERSON: readonly (typeof REPORT_KEYS)[number][] = ['gps_audit_trail'];
 
 /** What every report can be narrowed by (M18), within the caller's scope. */
 export const ReportFilters = z.strictObject({

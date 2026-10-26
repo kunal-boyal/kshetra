@@ -678,7 +678,7 @@ Standard reports, each filterable by period, team, territory, user and account t
 | Expense register | Claims with policy, amounts, approvals and payout status |
 | Leave register | Requests, days and balances |
 | Location summary | Per shift: distance, points, gaps and pauses, and the opening and closing odometer readings where recorded (D96) |
-| GPS audit trail | Every point of a shift: capture and receive times, coordinates, accuracy, speed, battery, source, and the gaps over 10 minutes; only for days whose raw points are still kept (BR-41, D96) |
+| GPS audit trail | Every point one person sent in the month: capture and receive times, the shift, coordinates, accuracy, speed, battery, source, and the gaps over 10 minutes; one person at a time, for those who may view trails, and only for days whose raw points are still kept (BR-41, D96, D99) |
 | Account statement | Statement with running balance |
 | Audit log | Filtered audit entries |
 

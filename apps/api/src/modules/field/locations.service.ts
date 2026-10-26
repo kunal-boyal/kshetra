@@ -6,13 +6,31 @@ import {
   pointRejection,
   TRAIL_ACCURACY_M,
 } from '@thelamp/shared';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lt, or, type SQL, sql } from 'drizzle-orm';
 import { locationPoints, shifts, userLastPosition } from '../../db/schema/field';
 import type { Access } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { pointSql } from '../../platform/geo';
 import { RedisClient } from '../../platform/redis';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+
+/** A point as the GPS audit trail shows it. */
+export interface AuditPoint {
+  id: string;
+  shiftId: string;
+  shiftStartedAt: Date;
+  userId: string;
+  capturedAt: Date;
+  receivedAt: Date;
+  lat: number;
+  lng: number;
+  accuracy: number;
+  /** Metres a second, as the phone reported it. */
+  speed: number | null;
+  source: 'foreground' | 'background';
+  /** Percent. */
+  battery: number | null;
+}
 
 /** The Redis channel a tenant's live positions go out on, for the live map (M17). */
 export const positionsChannel = (tenantId: string) => `positions:${tenantId}`;
@@ -147,6 +165,60 @@ export class LocationsService {
       });
     }
     return { accepted: accepted.map((point) => point.id), rejected };
+  }
+
+  /**
+   * The GPS audit trail (M18, decision D99): every point the people in `people` sent, captured in
+   * `[from, to)`, in capture order after `after`, with the shift it belongs to. Points are found
+   * through the people's shifts that overlap the range, so only their partitions and index entries
+   * are read, never the whole tenant's month.
+   */
+  async auditPoints(
+    tx: TenantTx,
+    tenantId: string,
+    people: SQL,
+    from: Date,
+    to: Date,
+    after: { capturedAt: Date; id: string } | null,
+    limit: number,
+  ): Promise<AuditPoint[]> {
+    const rows = await tx
+      .select({
+        id: locationPoints.id,
+        shiftId: locationPoints.shiftId,
+        shiftStartedAt: shifts.startedAt,
+        userId: locationPoints.userId,
+        capturedAt: locationPoints.capturedAt,
+        receivedAt: locationPoints.receivedAt,
+        lat: sql<number>`ST_Y(${locationPoints.point}::geometry)`,
+        lng: sql<number>`ST_X(${locationPoints.point}::geometry)`,
+        accuracy: locationPoints.accuracy,
+        speed: locationPoints.speed,
+        source: locationPoints.source,
+        battery: locationPoints.battery,
+      })
+      .from(locationPoints)
+      .innerJoin(
+        shifts,
+        and(eq(shifts.tenantId, locationPoints.tenantId), eq(shifts.id, locationPoints.shiftId)),
+      )
+      .where(
+        and(
+          eq(locationPoints.tenantId, tenantId),
+          eq(shifts.tenantId, tenantId),
+          sql`${shifts.userId} in (${people})`,
+          lt(shifts.startedAt, to),
+          or(isNull(shifts.endedAt), gte(shifts.endedAt, from)),
+          gte(locationPoints.capturedAt, from),
+          lt(locationPoints.capturedAt, to),
+          after
+            ? sql`(${locationPoints.capturedAt}, ${locationPoints.id}) > (${after.capturedAt}, ${after.id}::uuid)`
+            : undefined,
+        ),
+      )
+      .orderBy(asc(locationPoints.capturedAt), asc(locationPoints.id))
+      .limit(limit);
+    return rows.map((row) => ({ ...row, lat: Number(row.lat), lng: Number(row.lng) }));
   }
 
   /**
