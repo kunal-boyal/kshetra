@@ -152,6 +152,8 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - External metric values are `ExternalMetricsImport` (`apps/api/src/modules/performance/external-values.ts`, permission `metric.record`): stored per metric, subject and day in `cell.external_metric_values`, credited to a person or to the account's first-slot holder that day (`AccountsService.creditedOn()`), and summed by the engine for `external` metrics.
 - Each client's requests a minute are `limits.apiPerMinute` (`ApiClientLimits`), else `API_DEFAULT_PER_MINUTE`.
 - `GET /v1/openapi.json` and `GET /v1/docs` (Scalar) document the API from the running routes; Scalar's browser bundle is copied into `dist/docs` at build, and the package stays a dev dependency.
+- Webhooks live in `apps/api/src/modules/webhooks` (`webhook.manage`): `WebhooksService` keeps subscriptions with sealed secrets, fans each event out as one message a subscription (`fanOut()`, from the outbox consumer in `webhooks.upkeep.ts`) and tries messages on the `webhooks` queue (`deliver()`); `WebhookSender` checks addresses and signs as Standard Webhooks do. A subscribable event goes in `WEBHOOK_EVENTS` with its projection in `webhookData()` (`packages/shared/src/webhooks.ts`): IDs, keys and statuses, never personal details. Integration tests run no workers, so they call `deliver()` against a local receiver.
+- `cell.webhook_deliveries` is partitioned by month outside Drizzle (`src/db/webhook-deliveries.ts`, migration 0064), like the audit log: `cell.ensure_webhook_delivery_partitions()` runs daily and old partitions are dropped after three months.
 
 ## Billing (decision D90)
 
