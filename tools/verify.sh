@@ -24,7 +24,9 @@ step 'Phone unit tests'
 pnpm --filter @thelamp/ui-mobile test
 pnpm --filter @thelamp/mobile test
 step 'Integration tests'
-pnpm test:int
+# Four files at a time: the suite shares one PostgreSQL in Docker, and run wider, its long files
+# (the contract test, the demo content) outlast their access tokens and timeouts.
+pnpm --filter @thelamp/api test:int -- --maxWorkers=4
 step 'End to end (web, with axe)'
 pnpm test:e2e
 step 'Terraform'
