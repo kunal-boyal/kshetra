@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { TenantPermission } from '../access';
 import type { SwitchableModule } from '../modules';
+import { AUDIT_ACTIONS, AUDIT_ACTOR_KINDS } from './audit';
 import { Key } from './config';
 import { Period } from './planning';
 
@@ -54,6 +55,9 @@ export const ReportFilters = z.strictObject({
   accountType: Key.optional(),
   /** The activity log only: one form, whose fields become columns. */
   form: Key.optional(),
+  /** The audit log only: one action, and who acted (decision D95). */
+  auditAction: z.enum(AUDIT_ACTIONS).optional(),
+  auditActorKind: z.enum(AUDIT_ACTOR_KINDS).optional(),
 });
 
 /** `GET /v1/reports/{key}`: the filters, and a page. */

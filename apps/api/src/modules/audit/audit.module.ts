@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IamModule } from '../iam/iam.module';
+import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { AuditController } from './audit.controller';
 import { AuditService } from './audit.service';
 import { UserHistoryController } from './user-history.controller';
@@ -9,7 +10,7 @@ import { UserHistoryController } from './user-history.controller';
  * `AuditLog` from the platform, in the same transaction as each change.
  */
 @Module({
-  imports: [IamModule],
+  imports: [IamModule, TenantConfigModule],
   controllers: [AuditController, UserHistoryController],
   providers: [AuditService],
   exports: [AuditService],
