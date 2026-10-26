@@ -242,6 +242,45 @@ const ANSWERS: Record<string, unknown> = {
       },
     ],
   },
+  '/v1/data-requests': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000a1',
+        person: { id: '01a10000-0000-7000-8000-000000000004', name: 'Ravi Shah', code: 'SUN-004' },
+        kind: 'access',
+        status: 'received',
+        details: 'Everything you hold about me',
+        response: null,
+        raisedBy: { self: true, name: 'Ravi Shah' },
+        dueOn: '2099-11-25',
+        createdAt: '2026-10-26T05:00:00.000Z',
+        closedAt: null,
+        closedBy: null,
+        archive: {
+          status: 'ready',
+          bytes: 1024,
+          sha256: null,
+          expiresAt: '2099-11-02T00:00:00.000Z',
+        },
+        download: null,
+      },
+    ],
+  },
+  '/v1/data-requests/01a10000-0000-7000-8000-0000000000a1': {
+    id: '01a10000-0000-7000-8000-0000000000a1',
+    person: { id: '01a10000-0000-7000-8000-000000000004', name: 'Ravi Shah', code: 'SUN-004' },
+    kind: 'erasure',
+    status: 'received',
+    details: 'Asked by letter after leaving',
+    response: null,
+    raisedBy: { self: false, name: 'Anita Rao' },
+    dueOn: '2099-11-25',
+    createdAt: '2026-10-26T05:00:00.000Z',
+    closedAt: null,
+    closedBy: null,
+    archive: null,
+    download: null,
+  },
   '/v1/data-exports/signing-key': {
     keyId: '0123456789abcdef',
     algorithm: 'Ed25519',
@@ -659,6 +698,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'api-clients',
     'webhooks',
     'data-exports',
+    'data-requests',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -714,6 +754,8 @@ for (const path of [
   'api-clients',
   'webhooks',
   'data-export',
+  'data-requests',
+  'data-requests/01a10000-0000-7000-8000-0000000000a1',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {

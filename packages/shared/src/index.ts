@@ -1012,3 +1012,23 @@ export {
   DataExportResult,
   DataExportStatus,
 } from './schemas/data-exports';
+export {
+  DATA_REQUEST_DUE_DAYS,
+  DATA_REQUEST_KINDS,
+  DATA_REQUEST_REMINDER_DAYS,
+  DATA_REQUEST_STATUSES,
+  dataRequestCloseIssue,
+  dataRequestDueOn,
+  dataRequestRaiseIssue,
+  dataRequestReminderDue,
+} from './data-requests';
+export type { DataRequestKind as DataRequestKindKey, DataRequestStatus } from './data-requests';
+export {
+  CloseDataRequestBody,
+  DataRequestKind,
+  DataRequestList,
+  DataRequestQuery,
+  DataRequestResult,
+  LogDataRequestBody,
+  RaiseDataRequestBody,
+} from './schemas/data-requests';

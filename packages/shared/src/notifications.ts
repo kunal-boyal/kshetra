@@ -78,6 +78,22 @@ export const NOTIFICATION_KINDS = {
   'support.requested': { category: 'support', external: ['email'], urgent: false, inbox: true },
   /** Vendor support entered in an emergency, approved by a second vendor admin. */
   'support.emergency': { category: 'support', external: ['email'], urgent: true, inbox: true },
+  /** Someone asks about their personal data; the admins answer within 30 days (decision D95). */
+  'data_request.received': {
+    category: 'approvals',
+    external: ['email'],
+    urgent: false,
+    inbox: true,
+  },
+  /** A personal data request is due within 7 days. */
+  'data_request.due_soon': {
+    category: 'approvals',
+    external: ['email'],
+    urgent: false,
+    inbox: true,
+  },
+  /** The person hears how their request was answered. */
+  'data_request.closed': { category: 'approvals', external: ['push'], urgent: false, inbox: true },
 } as const satisfies Record<string, NotificationKind>;
 
 export type NotificationEvent = keyof typeof NOTIFICATION_KINDS;

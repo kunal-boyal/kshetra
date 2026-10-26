@@ -15,7 +15,13 @@ import {
   type StartShiftBody,
 } from '@thelamp/shared';
 import { and, asc, desc, eq, inArray, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm';
-import { shiftPauses, shifts, shiftTrails, userLastPosition } from '../../db/schema/field';
+import {
+  locationPoints,
+  shiftPauses,
+  shifts,
+  shiftTrails,
+  userLastPosition,
+} from '../../db/schema/field';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
@@ -696,5 +702,24 @@ export class ShiftsService {
       });
     }
     return stale.length;
+  }
+
+  /**
+   * An erased person's whereabouts (decision D95): every location point, route and last known
+   * position goes; their shifts, with punch times, stay as the attendance record. Points already
+   * archived to files go with those files' own retention.
+   */
+  async erasePerson(tx: TenantTx, tenantId: string, userId: string): Promise<number> {
+    const points = await tx
+      .delete(locationPoints)
+      .where(and(eq(locationPoints.tenantId, tenantId), eq(locationPoints.userId, userId)))
+      .returning({ id: locationPoints.id });
+    await tx
+      .delete(shiftTrails)
+      .where(and(eq(shiftTrails.tenantId, tenantId), eq(shiftTrails.userId, userId)));
+    await tx
+      .delete(userLastPosition)
+      .where(and(eq(userLastPosition.tenantId, tenantId), eq(userLastPosition.userId, userId)));
+    return points.length;
   }
 }

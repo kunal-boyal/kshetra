@@ -46,6 +46,34 @@ export function notificationMessage(
         body: 'notify.support_requested_body',
         params,
       };
+    case 'data_request.received':
+      return values.kind === 'erasure'
+        ? { title: 'notify.data_request_title', body: 'notify.data_request_erasure_body', params }
+        : values.kind === 'correction'
+          ? {
+              title: 'notify.data_request_title',
+              body: 'notify.data_request_correction_body',
+              params,
+            }
+          : { title: 'notify.data_request_title', body: 'notify.data_request_access_body', params };
+    case 'data_request.due_soon':
+      return {
+        title: 'notify.data_request_due_title',
+        body: 'notify.data_request_due_body',
+        params,
+      };
+    case 'data_request.closed':
+      return values.outcome === 'completed'
+        ? {
+            title: 'notify.data_request_completed_title',
+            body: 'notify.data_request_completed_body',
+            params,
+          }
+        : {
+            title: 'notify.data_request_refused_title',
+            body: 'notify.data_request_refused_body',
+            params,
+          };
     case 'support.emergency':
       return {
         title: 'notify.support_emergency_title',

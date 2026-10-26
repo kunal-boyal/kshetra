@@ -113,9 +113,9 @@ export class MediaService {
 
   /**
    * The files a tenant's archive carries (decision D95): every one stored and kept, but exports,
-   * which are copies of what the archive holds already.
+   * which are copies of what the archive holds already; a personal archive's, only the person's.
    */
-  async forArchive(tx: TenantTx, tenantId: string) {
+  async forArchive(tx: TenantTx, tenantId: string, userId?: string) {
     return tx
       .select({
         id: media.id,
@@ -129,7 +129,8 @@ export class MediaService {
         and(
           eq(media.tenantId, tenantId),
           inArray(media.status, ['uploaded', 'processed']),
-          notInArray(media.kind, ['export_file', 'tenant_export']),
+          notInArray(media.kind, ['export_file', 'tenant_export', 'personal_export']),
+          ...(userId ? [eq(media.userId, userId)] : []),
         ),
       )
       .orderBy(asc(media.id));
@@ -219,5 +220,25 @@ export class MediaService {
       .update(media)
       .set({ status: 'deleted' })
       .where(and(eq(media.tenantId, tenantId), eq(media.id, id)));
+  }
+
+  /**
+   * An erased person's selfies (decision D95): the photos of themselves, taken at punch-in, are
+   * removed; photos of the work they did stay with that work. Returns how many went.
+   */
+  async eraseSelfies(tx: TenantTx, tenantId: string, userId: string): Promise<number> {
+    const rows = await tx
+      .select({ id: media.id })
+      .from(media)
+      .where(
+        and(
+          eq(media.tenantId, tenantId),
+          eq(media.userId, userId),
+          eq(media.kind, 'selfie'),
+          ne(media.status, 'deleted'),
+        ),
+      );
+    for (const row of rows) await this.expire(tx, tenantId, row.id);
+    return rows.length;
   }
 }

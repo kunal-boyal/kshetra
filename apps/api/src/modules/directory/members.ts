@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { newId } from '@thelamp/shared';
 import { and, eq, ne } from 'drizzle-orm';
-import { identities, memberships } from '../../db/schema/directory';
+import { identities, memberships, refreshTokens, totpSecrets } from '../../db/schema/directory';
 import { type MemberState, MembershipSync } from '../../platform/planes';
 import { DirectoryDatabase, type DirectoryTx } from './directory.database';
 
@@ -81,5 +81,26 @@ export class DirectoryMembers extends MembershipSync {
       .where(eq(identities.phoneE164, phone));
     if (!identity) throw new Error('An identity was created but could not be read back.');
     return identity.id;
+  }
+
+  async forget(tenantId: string, userId: string): Promise<void> {
+    await this.database.db.transaction(async (tx) => {
+      const [membership] = await tx
+        .select({ id: memberships.id, identityId: memberships.identityId })
+        .from(memberships)
+        .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, userId)))
+        .for('update');
+      if (!membership) return;
+      await tx.delete(refreshTokens).where(eq(refreshTokens.membershipId, membership.id));
+      await tx.delete(memberships).where(eq(memberships.id, membership.id));
+      const [other] = await tx
+        .select({ id: memberships.id })
+        .from(memberships)
+        .where(eq(memberships.identityId, membership.identityId))
+        .limit(1);
+      if (other) return;
+      await tx.delete(totpSecrets).where(eq(totpSecrets.identityId, membership.identityId));
+      await tx.delete(identities).where(eq(identities.id, membership.identityId));
+    });
   }
 }

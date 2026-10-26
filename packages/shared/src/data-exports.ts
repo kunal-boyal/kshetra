@@ -23,9 +23,12 @@ export const ArchiveManifest = z.strictObject({
   version: z.literal(ARCHIVE_VERSION),
   /**
    * `export` for the tenant's own copy, with secrets left out; `move` for moving the tenant to
-   * another cell (decision D95), which carries everything the new cell needs to serve it.
+   * another cell (decision D95), which carries everything the new cell needs to serve it;
+   * `personal` for one person's own rows and files, answering their access request.
    */
-  purpose: z.enum(['export', 'move']),
+  purpose: z.enum(['export', 'move', 'personal']),
+  /** For a `personal` archive: the person whose own data it holds (decision D95). */
+  subject: z.uuid().optional(),
   product: z.string(),
   tenant: z.strictObject({ id: z.uuid(), name: z.string() }),
   cell: z.string(),

@@ -28,6 +28,7 @@ export const mediaKind = cell.enum('media_kind', [
   'logo',
   'location_archive',
   'tenant_export',
+  'personal_export',
 ]);
 
 export const mediaSource = cell.enum('media_source', MEDIA_SOURCES);

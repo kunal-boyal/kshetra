@@ -9,7 +9,7 @@ import { Outbox } from '../../platform/outbox';
 import { TenantDirectory } from '../../platform/planes';
 import { CONFIG } from '../../platform/tokens';
 import { MediaService } from '../media/media.service';
-import { type ArchiveFacts, TenantArchive } from './tenant-archive';
+import { type ArchiveFacts, type Reference, TenantArchive } from './tenant-archive';
 
 /** The last migration in this build; a move needs both cells on the same one. */
 const SCHEMA = journal.entries[journal.entries.length - 1]!.tag;
@@ -30,12 +30,6 @@ export interface ImportReport {
   tables: number;
   rows: number;
   files: number;
-}
-
-interface Reference {
-  child: string;
-  parent: string;
-  columns: string[];
 }
 
 /**
@@ -143,7 +137,7 @@ export class TenantMoves {
           throw new AppError('CONFLICT', `This cell holds rows of the tenant already, in ${name}.`);
         }
       }
-      const references = await this.references(tx);
+      const references = await this.archive.references(tx);
       let rows = 0;
       for (const name of this.order(names, references)) {
         const table = manifest.tables.find((item) => item.name === name)!;
@@ -213,22 +207,6 @@ export class TenantMoves {
         .rows as { removed: string }[];
       return Number(result?.removed ?? 0);
     });
-  }
-
-  /** The references between the cell's tables, from the catalogue. */
-  private async references(tx: TenantTx): Promise<Reference[]> {
-    const result = await tx.execute(sql`
-      select child.relname as child, parent.relname as parent,
-             array(
-               select a.attname::text from pg_attribute a
-                where a.attrelid = c.conrelid and a.attnum = any(c.conkey)
-             ) as columns
-        from pg_constraint c
-        join pg_class child on child.oid = c.conrelid
-        join pg_class parent on parent.oid = c.confrelid
-        join pg_namespace n on n.oid = child.relnamespace
-       where c.contype = 'f' and n.nspname = 'cell' and c.conparentid = 0`);
-    return result.rows as unknown as Reference[];
   }
 
   /** The tables in an order where each comes after those it refers to; a cycle is refused. */

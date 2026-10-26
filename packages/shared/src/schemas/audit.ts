@@ -120,6 +120,11 @@ export const AUDIT_ACTIONS = [
   'webhook.replayed',
   'data_export.created',
   'data_export.downloaded',
+  'data_request.raised',
+  'data_request.archived',
+  'data_request.downloaded',
+  'data_request.closed',
+  'user.erased',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
