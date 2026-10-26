@@ -254,3 +254,14 @@ test('runs under its Content-Security-Policy, which nothing on the page breaks (
   ).toBeVisible();
   expect(violations).toEqual([]);
 });
+
+test('/security shows the authenticator and passes axe (D101)', async ({ page }) => {
+  await mockSignedIn(page);
+  await page.route('**/auth/v1/authenticator', (route) =>
+    route.fulfill({ json: { enrolled: false, required: false } }),
+  );
+  await page.goto('/security');
+  await expect(page.getByRole('heading', { level: 1, name: 'Sign-in security' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Set up an authenticator' })).toBeVisible();
+  await expectAccessible(page);
+});

@@ -2,11 +2,13 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { inflateRawSync } from 'node:zlib';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { newId } from '@thelamp/shared';
 import { OAuth2Server } from 'oauth2-mock-server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SignedXml } from 'xml-crypto';
+import { totpAt, totpStep } from '../src/platform/totp';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
 
 /**
@@ -19,8 +21,9 @@ const WEB_URL = 'http://127.0.0.1:5173';
 let app: NestFastifyApplication;
 let world: World;
 let provider: OAuth2Server;
-/** The email the mock provider puts in its next ID token. */
+/** The email the mock provider puts in its next ID token, and how it says the person signed in. */
 let nextEmail = '';
+let nextAmr: string[] | undefined;
 
 beforeAll(async () => {
   app = await startApp(testConfig({ WEB_URL }));
@@ -31,6 +34,8 @@ beforeAll(async () => {
   provider.service.on('beforeTokenSigning', (token) => {
     token.payload.email = nextEmail;
     token.payload.email_verified = true;
+    if (nextAmr) token.payload.amr = nextAmr;
+    else delete token.payload.amr;
   });
 });
 
@@ -71,22 +76,33 @@ const oidcSettings = () => ({
   clientSecret: 'a client secret from the provider',
 });
 
+/** The binder cookie a start set, as the browser sends it back (decision D101). */
+function binderOf(reply: { headers: Record<string, unknown> }): string {
+  const set = reply.headers['set-cookie'];
+  const found = (Array.isArray(set) ? set : [set]).find((each) => String(each).includes('_sso='));
+  return String(found).split(';')[0]!;
+}
+
 /** Follows an OIDC sign-in from our start, through the mock provider, back to our callback. */
-async function oidcSignIn(slug: string, email: string) {
+async function oidcSignIn(slug: string, email: string, amr?: string[]) {
   const started = await app.inject({ method: 'GET', url: `/auth/v1/sso/${slug}/start` });
+  const binder = binderOf(started);
   expect(started.statusCode, started.body).toBe(302);
   const authorise = String(started.headers.location);
   expect(authorise.startsWith(provider.issuer.url!)).toBe(true);
   expect(new URL(authorise).searchParams.get('code_challenge_method')).toBe('S256');
   nextEmail = email;
+  nextAmr = amr;
   const back = await fetch(authorise, { redirect: 'manual' });
   const callback = new URL(back.headers.get('location')!);
   expect(callback.origin + callback.pathname).toBe(`${WEB_URL}/auth/v1/sso/${slug}/oidc/callback`);
   return {
     callbackPath: callback.pathname + callback.search,
+    binder,
     reply: await app.inject({
       method: 'GET',
       url: callback.pathname + callback.search,
+      headers: { cookie: binder },
       remoteAddress: address(),
     }),
   };
@@ -94,7 +110,8 @@ async function oidcSignIn(slug: string, email: string) {
 
 /** The session a reply's refresh cookie holds, as the portal restores it. */
 async function restore(cookie: string | string[] | undefined) {
-  const header = (Array.isArray(cookie) ? cookie[0] : cookie)!.split(';')[0]!;
+  const all = Array.isArray(cookie) ? cookie : [cookie];
+  const header = all.find((each) => String(each).includes('_refresh='))!.split(';')[0]!;
   const refreshed = await app.inject({
     method: 'POST',
     url: '/auth/v1/token/refresh',
@@ -126,7 +143,7 @@ describe('an OIDC connection (D91)', () => {
       `${WEB_URL}/auth/v1/sso/${o.slug}/oidc/callback`,
     );
 
-    const { reply, callbackPath } = await oidcSignIn(o.slug, 'Anita@Careful.example');
+    const { reply, callbackPath, binder } = await oidcSignIn(o.slug, 'Anita@Careful.example');
     expect(reply.statusCode).toBe(302);
     expect(reply.headers.location).toBe(`${WEB_URL}/`);
     const token = await restore(reply.headers['set-cookie']);
@@ -134,7 +151,11 @@ describe('an OIDC connection (D91)', () => {
     expect(me.json()).toMatchObject({ userId: o.person.id, deviceId: null });
 
     // The same answer twice is refused: its state is spent.
-    const replay = await app.inject({ method: 'GET', url: callbackPath });
+    const replay = await app.inject({
+      method: 'GET',
+      url: callbackPath,
+      headers: { cookie: binder },
+    });
     expect(replay.headers.location).toBe(`${WEB_URL}/sign-in?sso=expired`);
     // Someone the tenant doesn't have, or from another domain, isn't let in or created.
     expect((await oidcSignIn(o.slug, 'nobody@careful.example')).reply.headers.location).toBe(
@@ -209,6 +230,82 @@ describe('an OIDC connection (D91)', () => {
   });
 });
 
+describe('SSO and the second factor (D101)', () => {
+  it('asks an admin for our authenticator unless the provider says it asked for one', async () => {
+    const o = await organisation('mfa.example');
+    const bossPhone = newPhone();
+    const boss = await world.user(o.tenantId, {
+      phone: bossPhone,
+      designation: 'head',
+      role: 'tenant_admin',
+      email: 'boss@mfa.example',
+    });
+    await asUser('PUT', '/v1/sso', o.admin, {
+      settings: oidcSettings(),
+      domains: ['mfa.example'],
+      enabled: true,
+      enforced: false,
+    });
+
+    // A password alone at the provider: our authenticator next, on a ticket in the fragment.
+    const plain = await oidcSignIn(o.slug, 'boss@mfa.example', ['pwd']);
+    const location = new URL(String(plain.reply.headers.location));
+    expect(location.origin + location.pathname + location.search).toBe(
+      `${WEB_URL}/sign-in?sso=second_factor`,
+    );
+    const fragment = new URLSearchParams(location.hash.slice(1));
+    expect(fragment.get('enrolled')).toBe('0');
+    const ticket = fragment.get('ticket')!;
+    const setUp = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/totp/setup',
+      payload: { ticket },
+      remoteAddress: address(),
+    });
+    const { secret } = setUp.json();
+    const verified = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/totp/verify',
+      headers: WEB,
+      payload: { ticket, code: totpAt(secret, totpStep()) },
+      remoteAddress: address(),
+    });
+    expect(verified.statusCode, verified.body).toBe(200);
+    // An SSO session comes back to the provider after 12 hours, however used.
+    const hours =
+      (Date.parse(verified.json().session.refreshTokenExpiresAt) - Date.now()) / 3_600_000;
+    expect(hours).toBeCloseTo(12, 0);
+    const token = await restore(verified.headers['set-cookie']);
+    expect((await asUser('GET', '/v1/me', token)).json().userId).toBe(boss.id);
+
+    // The provider's own second factor is enough.
+    const strong = await oidcSignIn(o.slug, 'boss@mfa.example', ['pwd', 'mfa']);
+    expect(strong.reply.headers.location).toBe(`${WEB_URL}/`);
+  });
+
+  it('counts an answer only in the browser that started the sign-in', async () => {
+    const o = await organisation('binder.example');
+    await asUser('PUT', '/v1/sso', o.admin, {
+      settings: oidcSettings(),
+      domains: ['binder.example'],
+      enabled: true,
+      enforced: false,
+    });
+    const started = await app.inject({ method: 'GET', url: `/auth/v1/sso/${o.slug}/start` });
+    nextEmail = 'anita@binder.example';
+    nextAmr = undefined;
+    const back = await fetch(String(started.headers.location), { redirect: 'manual' });
+    const callback = new URL(back.headers.get('location')!);
+    // Sent to a victim's browser, which has no binder: refused, so nobody is signed into it.
+    const elsewhere = await app.inject({
+      method: 'GET',
+      url: callback.pathname + callback.search,
+      remoteAddress: address(),
+    });
+    expect(elsewhere.headers.location).toBe(`${WEB_URL}/sign-in?sso=expired`);
+  });
+});
+
 describe('a SAML connection (D91)', () => {
   it('signs in with a signed assertion, and refuses one that is not', async () => {
     const o = await organisation('saml.example');
@@ -232,26 +329,37 @@ describe('a SAML connection (D91)', () => {
     });
     expect(metadata.body).toContain(entityId);
 
+    // A start: the RelayState, the browser's binder, and the ID of the request it sent.
     const start = async () => {
       const started = await app.inject({ method: 'GET', url: `/auth/v1/sso/${o.slug}/start` });
       const location = new URL(String(started.headers.location));
       expect(location.origin + location.pathname).toBe('https://idp.example/sso');
-      return location.searchParams.get('RelayState')!;
+      const request = inflateRawSync(
+        Buffer.from(location.searchParams.get('SAMLRequest')!, 'base64'),
+      ).toString('utf8');
+      return {
+        relay: location.searchParams.get('RelayState')!,
+        binder: binderOf(started),
+        requestId: /ID="([^"]+)"/.exec(request)![1]!,
+      };
     };
-    const post = (relay: string, xml: string) =>
+    const post = (begun: { relay: string; binder: string }, xml: string) =>
       app.inject({
         method: 'POST',
         url: `/auth/v1/sso/${o.slug}/saml/acs`,
-        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        headers: { 'content-type': 'application/x-www-form-urlencoded', cookie: begun.binder },
         payload: new URLSearchParams({
           SAMLResponse: Buffer.from(xml).toString('base64'),
-          RelayState: relay,
+          RelayState: begun.relay,
         }).toString(),
         remoteAddress: address(),
       });
+    const answer = (begun: { requestId: string }, email = 'anita@saml.example') =>
+      sign(response({ acsUrl, entityId, email, inResponseTo: begun.requestId }), key, cert);
 
-    const signed = sign(response({ acsUrl, entityId, email: 'anita@saml.example' }), key, cert);
-    const ok = await post(await start(), signed);
+    const first = await start();
+    const signed = answer(first);
+    const ok = await post(first, signed);
     expect(ok.headers.location).toBe(`${WEB_URL}/`);
     const token = await restore(ok.headers['set-cookie']);
     expect((await asUser('GET', '/v1/me', token)).json().userId).toBe(o.person.id);
@@ -268,14 +376,8 @@ describe('a SAML connection (D91)', () => {
       enforced: false,
     });
     expect(resaved.json().connection).toMatchObject({ hasIdpCertificate: true });
-    expect(
-      (
-        await post(
-          await start(),
-          sign(response({ acsUrl, entityId, email: 'anita@saml.example' }), key, cert),
-        )
-      ).headers.location,
-    ).toBe(`${WEB_URL}/`);
+    const again = await start();
+    expect((await post(again, answer(again))).headers.location).toBe(`${WEB_URL}/`);
     // A first connection needs one.
     const fresh = await organisation('fresh-saml.example');
     const missing = await asUser('PUT', '/v1/sso', fresh.admin, {
@@ -289,20 +391,49 @@ describe('a SAML connection (D91)', () => {
     ]);
 
     // An assertion changed after signing is refused.
-    const forged = signed.replace('anita@saml.example', 'admin@saml.example');
-    expect((await post(await start(), forged)).headers.location).toBe(
-      `${WEB_URL}/sign-in?sso=refused`,
-    );
+    const third = await start();
+    const forged = answer(third).replace('anita@saml.example', 'admin@saml.example');
+    expect((await post(third, forged)).headers.location).toBe(`${WEB_URL}/sign-in?sso=refused`);
     // So is one signed by another key.
     const stranger = idpKeys();
+    const fourth = await start();
     const foreign = sign(
-      response({ acsUrl, entityId, email: 'anita@saml.example' }),
+      response({ acsUrl, entityId, email: 'anita@saml.example', inResponseTo: fourth.requestId }),
       stranger.key,
       stranger.cert,
     );
-    expect((await post(await start(), foreign)).headers.location).toBe(
-      `${WEB_URL}/sign-in?sso=refused`,
-    );
+    expect((await post(fourth, foreign)).headers.location).toBe(`${WEB_URL}/sign-in?sso=refused`);
+
+    // A response captured on its way can't be used again, even with a fresh start: it answers
+    // a request already answered (decision D101).
+    const fifth = await start();
+    expect((await post(fifth, signed)).headers.location).toBe(`${WEB_URL}/sign-in?sso=refused`);
+    // Nor in a browser that didn't start the sign-in.
+    const sixth = await start();
+    expect(
+      (await post({ relay: sixth.relay, binder: 'thelamp_sso=forged' }, answer(sixth))).headers
+        .location,
+    ).toBe(`${WEB_URL}/sign-in?sso=expired`);
+    // Nor signed with SHA-1.
+    const seventh = await start();
+    expect(
+      (
+        await post(
+          seventh,
+          sign(
+            response({
+              acsUrl,
+              entityId,
+              email: 'anita@saml.example',
+              inResponseTo: seventh.requestId,
+            }),
+            key,
+            cert,
+            'sha1',
+          ),
+        )
+      ).headers.location,
+    ).toBe(`${WEB_URL}/sign-in?sso=refused`);
   });
 });
 
@@ -334,18 +465,26 @@ function idpKeys(): { key: string; cert: string } {
   };
 }
 
-function response(input: { acsUrl: string; entityId: string; email: string }): string {
+function response(input: {
+  acsUrl: string;
+  entityId: string;
+  email: string;
+  inResponseTo: string;
+}): string {
   const now = new Date();
   const at = (minutes: number) => new Date(now.getTime() + minutes * 60_000).toISOString();
-  return `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_r${newId().replaceAll('-', '')}" Version="2.0" IssueInstant="${at(0)}" Destination="${input.acsUrl}"><saml:Issuer>https://idp.example/</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status><saml:Assertion ID="_a${newId().replaceAll('-', '')}" Version="2.0" IssueInstant="${at(0)}"><saml:Issuer>https://idp.example/</saml:Issuer><saml:Subject><saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">${input.email}</saml:NameID><saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><saml:SubjectConfirmationData NotOnOrAfter="${at(5)}" Recipient="${input.acsUrl}"/></saml:SubjectConfirmation></saml:Subject><saml:Conditions NotBefore="${at(-1)}" NotOnOrAfter="${at(5)}"><saml:AudienceRestriction><saml:Audience>${input.entityId}</saml:Audience></saml:AudienceRestriction></saml:Conditions><saml:AuthnStatement AuthnInstant="${at(0)}"><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement></saml:Assertion></samlp:Response>`;
+  return `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_r${newId().replaceAll('-', '')}" Version="2.0" IssueInstant="${at(0)}" Destination="${input.acsUrl}" InResponseTo="${input.inResponseTo}"><saml:Issuer>https://idp.example/</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status><saml:Assertion ID="_a${newId().replaceAll('-', '')}" Version="2.0" IssueInstant="${at(0)}"><saml:Issuer>https://idp.example/</saml:Issuer><saml:Subject><saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">${input.email}</saml:NameID><saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><saml:SubjectConfirmationData NotOnOrAfter="${at(5)}" Recipient="${input.acsUrl}" InResponseTo="${input.inResponseTo}"/></saml:SubjectConfirmation></saml:Subject><saml:Conditions NotBefore="${at(-1)}" NotOnOrAfter="${at(5)}"><saml:AudienceRestriction><saml:Audience>${input.entityId}</saml:Audience></saml:AudienceRestriction></saml:Conditions><saml:AuthnStatement AuthnInstant="${at(0)}"><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement></saml:Assertion></samlp:Response>`;
 }
 
 /** Signs the assertion inside a response, as an identity provider does. */
-function sign(xml: string, key: string, cert: string): string {
+function sign(xml: string, key: string, cert: string, hash: 'sha256' | 'sha1' = 'sha256'): string {
   const signature = new SignedXml({
     privateKey: key,
     publicCert: cert,
-    signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+    signatureAlgorithm:
+      hash === 'sha1'
+        ? 'http://www.w3.org/2000/09/xmldsig#rsa-sha1'
+        : 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
     canonicalizationAlgorithm: 'http://www.w3.org/2001/10/xml-exc-c14n#',
   });
   signature.addReference({
@@ -354,7 +493,10 @@ function sign(xml: string, key: string, cert: string): string {
       'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
       'http://www.w3.org/2001/10/xml-exc-c14n#',
     ],
-    digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
+    digestAlgorithm:
+      hash === 'sha1'
+        ? 'http://www.w3.org/2000/09/xmldsig#sha1'
+        : 'http://www.w3.org/2001/04/xmlenc#sha256',
   });
   signature.computeSignature(xml, {
     location: {

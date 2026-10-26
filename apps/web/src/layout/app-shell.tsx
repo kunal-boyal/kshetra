@@ -15,6 +15,7 @@ import {
   Network,
   Repeat,
   Settings,
+  ShieldCheck,
   Store,
   Target,
   Trophy,
@@ -24,7 +25,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useApp } from '../context';
 import { applyBrand } from '../brand';
-import { useConfig } from '../data';
+import { useConfig, useMe } from '../data';
 import { useOrganisation } from '../settings/data';
 import { useUnread } from '../notifications/data';
 import { errorMessage, useLanguage } from '../i18n';
@@ -76,6 +77,7 @@ export function AppShell() {
   const { t, setTerms } = useLanguage();
   const config = useConfig(client, queryClient);
   const organisation = useOrganisation();
+  const me = useMe(client);
   const [error, setError] = useState<string>();
   const tenant = client.session?.tenant;
   const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
@@ -253,6 +255,16 @@ export function AppShell() {
           </p>
           <div className="ks-appbar-tools" aria-label={t('shell.account_menu')}>
             <NotificationsLink />
+            {me.data?.support ? null : (
+              <Link
+                to="/security"
+                className="ks-btn ghost sm"
+                aria-label={t('shell.security')}
+                title={t('shell.security')}
+              >
+                <Icon icon={ShieldCheck} size="sm" />
+              </Link>
+            )}
             <LanguagePicker />
             <ThemePicker />
             {others.map((choice) => (

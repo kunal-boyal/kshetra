@@ -163,8 +163,13 @@ export const refreshTokens = directory.table(
     authRevision: integer('auth_revision').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
-    // The sign-in that started the family passed an authenticator code (decision D91).
+    // The sign-in that started the family passed an authenticator code (decision D91), or the
+    // identity provider said it did one (D101).
     secondFactor: boolean('second_factor').notNull().default(false),
+    // When the family's sign-in was, which its absolute limit counts from, and whether it came
+    // through the organisation's SSO, whose sessions are shorter (decision D101).
+    familyStartedAt: timestamp('family_started_at', { withTimezone: true }).notNull().defaultNow(),
+    sso: boolean('sso').notNull().default(false),
     createdAt: createdAt(),
   },
   (table) => [

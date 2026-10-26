@@ -736,6 +736,36 @@ const FIXTURES: Record<string, Fixture> = {
       expect(forged.json().error.code).toBe('OTP_EXPIRED');
     },
   },
+  // A person's own authenticator (decision D101): B's admin reaches only their own, and A's
+  // people never appear.
+  'GET /auth/v1/authenticator': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/auth/v1/authenticator')),
+  },
+  'POST /auth/v1/authenticator/setup': {
+    kind: 'own tenant',
+    run: async () => {
+      const reply = await asB('POST', '/auth/v1/authenticator/setup');
+      expect(reply.json().error.code).toBe('CONFLICT');
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /auth/v1/authenticator/confirm': {
+    kind: 'own tenant',
+    run: async () => {
+      const reply = await asB('POST', '/auth/v1/authenticator/confirm', { code: '123456' });
+      expect(reply.json().error.code).toBe('CONFLICT');
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /auth/v1/authenticator/remove': {
+    kind: 'own tenant',
+    run: async () => {
+      const reply = await asB('POST', '/auth/v1/authenticator/remove', { code: '123456' });
+      expect(reply.json().error.code).toBe('CONFLICT');
+      holdsNothingOfA(reply);
+    },
+  },
   'POST /auth/v1/select-tenant': {
     kind: 'sign-in',
     run: async () => {
@@ -1846,7 +1876,8 @@ const FIXTURES: Record<string, Fixture> = {
         `/auth/v1/sso/t-${a.tenantId}/oidc/callback?code=x&state=${'y'.repeat(43)}`,
       );
       expect(reply.headers.location).toMatch(/sign-in\?sso=expired$/);
-      expect(reply.headers['set-cookie']).toBeUndefined();
+      // No session; only the spent binder is cleared (decision D101).
+      expect(String(reply.headers['set-cookie'] ?? '')).not.toContain('_refresh=');
     },
   },
   'POST /auth/v1/sso/:tenant/saml/acs': {
@@ -1857,7 +1888,8 @@ const FIXTURES: Record<string, Fixture> = {
         RelayState: 'z'.repeat(43),
       });
       expect(reply.headers.location).toMatch(/sign-in\?sso=expired$/);
-      expect(reply.headers['set-cookie']).toBeUndefined();
+      // No session; only the spent binder is cleared (decision D101).
+      expect(String(reply.headers['set-cookie'] ?? '')).not.toContain('_refresh=');
     },
   },
   'GET /auth/v1/sso/:tenant/saml/metadata': {

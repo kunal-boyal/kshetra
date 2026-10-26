@@ -3,7 +3,7 @@ import { createLocalJWKSet, jwtVerify } from 'jose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { MemoryOtpSender } from '../src/modules/directory/otp-sender';
 import { SigningKey } from '../src/modules/directory/signing-key';
-import { newAddress, newPhone, startApp, testConfig, World } from './support';
+import { newAddress, newDevice, newPhone, startApp, testConfig, World } from './support';
 
 let app: NestFastifyApplication;
 let world: World;
@@ -43,7 +43,11 @@ async function signIn(phone: string) {
   await requestCode(phone);
   const response = await verifyCode(phone, sender.lastCode(phone)!);
   expect(response.json().status).toBe('signed_in');
-  return response.json().session as { accessToken: string; refreshToken: string };
+  return response.json().session as {
+    accessToken: string;
+    refreshToken: string;
+    refreshTokenExpiresAt: string;
+  };
 }
 
 const wrong = (code: string) => String((Number(code) + 1) % 1_000_000).padStart(6, '0');
@@ -265,6 +269,29 @@ describe('sessions', () => {
       [revised.membershipIds[0]],
     );
     expect((await refresh(two.refreshToken)).json().error.code).toBe('SESSION_REVOKED');
+  });
+
+  it('last 12 hours unused and 7 days at most on the web, 30 and 90 on a phone (D101)', async () => {
+    const person = await member('Kaveri Agro');
+    const hours = (at: string) => (Date.parse(at) - Date.now()) / 3_600_000;
+    const web = await signIn(person.phone);
+    expect(hours(web.refreshTokenExpiresAt)).toBeCloseTo(12, 0);
+    const phone = (await world.signIn(person.phone, newDevice())) as unknown as {
+      refreshTokenExpiresAt: string;
+    };
+    expect(hours(phone.refreshTokenExpiresAt) / 24).toBeCloseTo(30, 0);
+
+    // Refreshing keeps a web session going, but never past 7 days from its sign-in.
+    const refreshed = await refresh(web.refreshToken);
+    expect(refreshed.statusCode, refreshed.body).toBe(200);
+    await world.directory.client.query(
+      `update directory.refresh_tokens set family_started_at = now() - interval '7 days 1 minute'
+        where membership_id = $1 and device_id is null`,
+      [person.membershipIds[0]],
+    );
+    expect((await refresh(refreshed.json().session.refreshToken)).json().error.code).toBe(
+      'SESSION_REVOKED',
+    );
   });
 
   it('end when the refresh token expires', async () => {

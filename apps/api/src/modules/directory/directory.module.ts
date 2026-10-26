@@ -11,6 +11,7 @@ import { CellHealthService } from './cell-health.service';
 import { OAuthController } from './oauth.controller';
 import { AnnouncementsService } from './announcements.service';
 import { AuthController } from './auth.controller';
+import { AuthenticatorController } from './authenticator.controller';
 import { DirectoryDatabase } from './directory.database';
 import { DirectoryMembers } from './members';
 import { OtpService } from './otp.service';
@@ -57,6 +58,7 @@ export class DirectoryHealth {
 @Module({
   controllers: [
     AuthController,
+    AuthenticatorController,
     SsoController,
     SsoSettingsController,
     SupportConsoleController,

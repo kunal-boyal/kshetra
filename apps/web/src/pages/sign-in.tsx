@@ -31,6 +31,25 @@ function ssoFailure(): SsoFailure | undefined {
   return SSO_FAILURES.find((failure) => failure === reason);
 }
 
+/**
+ * An SSO sign-in that came back for our authenticator code, as the provider asked for none
+ * (decision D101): the ticket comes in the fragment, which no server sees, and leaves the address
+ * bar at once.
+ */
+function ssoSecondFactor(): Step | undefined {
+  if (new URLSearchParams(window.location.search).get('sso') !== 'second_factor') return undefined;
+  const held = new URLSearchParams(window.location.hash.slice(1));
+  const ticket = held.get('ticket');
+  window.history.replaceState(null, '', window.location.pathname);
+  if (!ticket) return undefined;
+  return {
+    name: 'second',
+    ticket,
+    enrolled: held.get('enrolled') === '1',
+    organisation: held.get('tenant') ?? '',
+  };
+}
+
 /** Whether a vendor support link came back here spent or expired (decision D93). */
 function supportLinkSpent(): boolean {
   return new URLSearchParams(window.location.search).get('support') === 'expired';
@@ -56,7 +75,9 @@ export function SignInPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [failure] = useState(ssoFailure);
-  const [step, setStep] = useState<Step>(failure ? { name: 'sso' } : { name: 'phone' });
+  const [step, setStep] = useState<Step>(
+    () => ssoSecondFactor() ?? (failure ? { name: 'sso' } : { name: 'phone' }),
+  );
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [email, setEmail] = useState('');

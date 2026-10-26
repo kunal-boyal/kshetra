@@ -145,6 +145,21 @@ export const TotpVerifyResult = SignedIn.extend({
   recoveryCodes: z.array(z.string()).optional(),
 });
 
+/**
+ * `GET /auth/v1/authenticator`: whether the person signed in has an authenticator, and whether
+ * their role needs one (decisions D91 and D101). Anyone may set one up; it is then always asked
+ * for on the web.
+ */
+export const AuthenticatorStatus = z.object({ enrolled: z.boolean(), required: z.boolean() });
+
+/** A code from the authenticator, to confirm a new one or to remove it. */
+export const AuthenticatorCodeBody = z.strictObject({
+  code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+});
+
+/** A new authenticator confirmed: its recovery codes, shown once. */
+export const AuthenticatorConfirmResult = z.object({ recoveryCodes: z.array(z.string()) });
+
 export const SelectTenantBody = z.strictObject({
   ticket: Secret,
   tenantId: z.uuid(),
@@ -192,5 +207,7 @@ export type SecondFactor = z.infer<typeof SecondFactor>;
 export type SelectTenantResult = z.infer<typeof SelectTenantResult>;
 export type TotpVerifyResult = z.infer<typeof TotpVerifyResult>;
 export type TotpSetupResult = z.infer<typeof TotpSetupResult>;
+export type AuthenticatorStatus = z.infer<typeof AuthenticatorStatus>;
+export type AuthenticatorConfirmResult = z.infer<typeof AuthenticatorConfirmResult>;
 export type RefreshResult = z.infer<typeof RefreshResult>;
 export type AccessClaims = z.infer<typeof AccessClaims>;
