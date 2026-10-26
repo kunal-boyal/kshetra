@@ -1,4 +1,10 @@
 import { createClient, memoryStore } from '@thelamp/api-client';
+import type { TenantSummary } from '@thelamp/shared';
+
+/** Where the cell answers; locally it is proxied through this page's own origin. */
+function cellUrl(tenant: TenantSummary): string {
+  return import.meta.env.VITE_CELL_URL ?? (import.meta.env.DEV ? '' : tenant.cellUrl);
+}
 
 /**
  * The API client for this page. On the web the refresh token lives in the directory's cookie and
@@ -14,11 +20,25 @@ export function webClient(onSignedOut: () => void) {
       typeof navigator !== 'undefined' && navigator.locks
         ? navigator.locks.request(name, work)
         : work(),
-    // Locally the cell is proxied through this page's own origin.
-    cellUrl: (tenant) =>
-      import.meta.env.VITE_CELL_URL ?? (import.meta.env.DEV ? '' : tenant.cellUrl),
+    cellUrl,
     onSignedOut,
   });
 }
 
 export type WebClient = ReturnType<typeof webClient>;
+
+/**
+ * Where an organisation's own systems reach the API (decision D94): tokens from the directory,
+ * everything else from the organisation's cell, as absolute addresses to copy.
+ */
+export function apiAddresses(client: Pick<WebClient, 'session'>) {
+  const here = typeof window === 'undefined' ? '' : window.location.origin;
+  const tenant = client.session?.tenant;
+  const directory = import.meta.env.VITE_DIRECTORY_URL || here;
+  const cell = (tenant ? cellUrl(tenant) : '') || here;
+  return {
+    tokenUrl: `${directory}/auth/v1/oauth/token`,
+    apiUrl: `${cell}/v1`,
+    docsUrl: `${cell}/v1/docs`,
+  };
+}

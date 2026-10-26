@@ -50,8 +50,10 @@ import { LevelsPage } from './settings/levels-page';
 import { MetricEditorPage } from './settings/metric-editor-page';
 import { MetricsPage } from './settings/metrics-page';
 import { BillingPage } from './settings/billing-page';
+import { ApiClientsPage } from './settings/api-clients-page';
 import { SsoPage } from './settings/sso-page';
 import { SupportPage } from './settings/support-page';
+import { WebhooksPage } from './settings/webhooks-page';
 import { ModulesPage } from './settings/modules-page';
 import { OrganisationPage } from './settings/organisation-page';
 import { ReportsPage } from './reports/reports-page';
@@ -341,6 +343,16 @@ const supportSettings = createRoute({
   path: '/support',
   component: SupportPage,
 });
+const apiClientSettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/api-clients',
+  component: ApiClientsPage,
+});
+const webhookSettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/webhooks',
+  component: WebhooksPage,
+});
 const roles = createRoute({ getParentRoute: () => settings, path: '/roles', component: RolesPage });
 const designations = createRoute({
   getParentRoute: () => settings,
@@ -494,6 +506,8 @@ const tree = root.addChildren([
       billingSettings,
       ssoSettings,
       supportSettings,
+      apiClientSettings,
+      webhookSettings,
       settingsIndex,
       roles,
       designations,

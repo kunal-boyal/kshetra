@@ -6,6 +6,7 @@ import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, write } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section } from '../people/shared';
+import { Copyable } from './secret';
 
 /**
  * Single sign-on for the portal (spec M1, D5, decision D91), on the SSO module: what the
@@ -34,30 +35,6 @@ export function SsoPage() {
           <ConnectionForm current={sso.data} />
         </>
       )}
-    </div>
-  );
-}
-
-/** A value the identity provider's admin copies, with a button to copy it. */
-function Copyable({ label, value }: { label: string; value: string }) {
-  const { t } = useLanguage();
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <code className="break-all">{value}</code>
-      <Button
-        size="sm"
-        variant="ghost"
-        aria-label={t('sso.copy', { name: label })}
-        onClick={() => {
-          navigator.clipboard.writeText(value).then(
-            () => setCopied(true),
-            () => setCopied(false),
-          );
-        }}
-      >
-        {copied ? t('sso.copied') : t('sso.copy_button')}
-      </Button>
     </div>
   );
 }
