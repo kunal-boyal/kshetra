@@ -7,6 +7,7 @@ import {
   type ImportListResult,
   type ImportProblem,
   type ImportResult,
+  IMPORT_DEFAULT_ROWS,
   issueAt,
   newId,
   type UpdateImportMappingBody,
@@ -19,6 +20,7 @@ import { AuditLog, userActor } from '../../platform/audit';
 import { type Access, AccessResolver, moduleDisabled } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
+import { Entitlements } from '../../platform/planes';
 import { Queues } from '../../platform/queues';
 import { CONFIG } from '../../platform/tokens';
 import { MediaService } from '../media/media.service';
@@ -29,7 +31,6 @@ import {
   findHeaderRow,
   isEmptyCell,
   MAX_FILE_BYTES,
-  MAX_ROWS,
   normaliseHeader,
   readRows,
   suggestMapping,
@@ -93,6 +94,7 @@ export class ImportsService implements OnModuleInit {
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
     private readonly access: AccessResolver,
+    private readonly entitlements: Entitlements,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -101,20 +103,25 @@ export class ImportsService implements OnModuleInit {
       (work: (tenantId: string, id: string) => Promise<void>) =>
       async (data: { tenantId?: string; [field: string]: unknown }) =>
         work(String(data.tenantId), String(data.importId));
+    // Each tenant runs its plan's slots of imports at once (decision D98).
+    const heavy = { perTenant: true };
     this.queues.handle(
       'imports',
       'imports.read',
       run((tenant, id) => this.read(tenant, id)),
+      heavy,
     );
     this.queues.handle(
       'imports',
       'imports.check',
       run((tenant, id) => this.check(tenant, id)),
+      heavy,
     );
     this.queues.handle(
       'imports',
       'imports.commit',
       run((tenant, id) => this.write(tenant, id)),
+      heavy,
     );
   }
 
@@ -497,11 +504,14 @@ export class ImportsService implements OnModuleInit {
       const headers = headersOf(sheet.rows[headerIndex] ?? []);
       const job2 = { headerRow: headerIndex + 1, headers, mapping: {} };
       const total = importRows(sheet.rows, job2).length;
-      if (total > MAX_ROWS) {
+      // The plan's rows an import may hold, else the default (decision D98).
+      const { limits } = await this.entitlements.forTenant(tenantId);
+      const most = limits.importRows ?? IMPORT_DEFAULT_ROWS;
+      if (total > most) {
         await this.fail(
           tx,
           job,
-          `The file has more than ${MAX_ROWS} rows. Split it, and import each part.`,
+          `The file has more than ${most} rows. Split it, and import each part.`,
         );
         return;
       }

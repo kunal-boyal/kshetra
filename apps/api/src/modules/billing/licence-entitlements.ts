@@ -35,7 +35,16 @@ export class LicenceEntitlements extends Entitlements {
     const licensed = tenantId === this.terms.tenantId;
     return Promise.resolve({
       modules: licensed ? this.terms.modules : ['core'],
-      limits: { users: this.terms.users, storageGb: null, apiPerMinute: null },
+      // A dedicated install serves one tenant: only its people are capped.
+      limits: {
+        users: this.terms.users,
+        storageGb: null,
+        apiPerMinute: null,
+        requestsPerMinute: null,
+        queueSlots: null,
+        importRows: null,
+        exportRows: null,
+      },
       readOnly: !licensed || state === 'expired',
     });
   }

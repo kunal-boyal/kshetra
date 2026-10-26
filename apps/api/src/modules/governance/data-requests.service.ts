@@ -69,8 +69,11 @@ export class DataRequestsService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.queues.handle('exports', ARCHIVE, (data) =>
-      this.runArchive(String(data.tenantId), String(data.requestId)),
+    this.queues.handle(
+      'exports',
+      ARCHIVE,
+      (data) => this.runArchive(String(data.tenantId), String(data.requestId)),
+      { perTenant: true },
     );
     this.queues.handle('maintenance', UPKEEP, (data) => this.upkeep(String(data.tenantId)));
     this.schedules.everyForTenants({

@@ -3,6 +3,8 @@ import {
   AppError,
   AVAILABLE_MODULES,
   type ModuleKey,
+  PLAN_LIMIT_KEYS,
+  type PlanLimitValues,
   SWITCHABLE_MODULES,
   type SwitchableModule,
   type TenantEntitlements,
@@ -125,18 +127,13 @@ export class EntitlementsService extends EntitlementsSeam {
   }
 
   private entitled(found: Awaited<ReturnType<EntitlementsService['read']>>): Entitled {
-    const limits = {
-      users:
-        found.limits.users !== undefined ? found.limits.users : (found.plan?.limits.users ?? null),
-      storageGb:
-        found.limits.storageGb !== undefined
-          ? found.limits.storageGb
-          : (found.plan?.limits.storageGb ?? null),
-      apiPerMinute:
-        found.limits.apiPerMinute !== undefined
-          ? found.limits.apiPerMinute
-          : (found.plan?.limits.apiPerMinute ?? null),
-    };
+    // The tenant's own limit where it has one (null lifts the cap), else the plan's.
+    const limits = Object.fromEntries(
+      PLAN_LIMIT_KEYS.map((key) => [
+        key,
+        found.limits[key] !== undefined ? found.limits[key] : (found.plan?.limits[key] ?? null),
+      ]),
+    ) as PlanLimitValues;
     if (!found.plan) return { modules: null, limits };
     const modules = new Set<ModuleKey>(['core', ...found.plan.modules]);
     for (const extra of found.extraModules) {

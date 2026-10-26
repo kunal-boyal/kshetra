@@ -55,8 +55,11 @@ export class DataExportsService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.queues.handle('exports', RUN, (data) =>
-      this.run(String(data.tenantId), String(data.exportId)),
+    this.queues.handle(
+      'exports',
+      RUN,
+      (data) => this.run(String(data.tenantId), String(data.exportId)),
+      { perTenant: true },
     );
     this.queues.handle('exports', EXPIRE, (data) => this.expire(String(data.tenantId)));
     this.schedules.everyForTenants({

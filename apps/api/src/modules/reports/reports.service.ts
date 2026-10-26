@@ -198,8 +198,8 @@ export class ReportsService {
   }
 
   /**
-   * The report's name, columns and every row, for a file; at most `EXPORT_MAX_ROWS`, past which
-   * `truncated` says so.
+   * The report's name, columns and every row, for a file; at most `most` (by default
+   * `EXPORT_MAX_ROWS`, else the plan's, decision D98), past which `truncated` says so.
    */
   async everyRow(
     tx: TenantTx,
@@ -207,6 +207,7 @@ export class ReportsService {
     key: ReportKey,
     filters: ReportFilters,
     locale: Locale,
+    most = EXPORT_MAX_ROWS,
   ): Promise<{
     name: string;
     timezone: string;
@@ -223,13 +224,13 @@ export class ReportsService {
       const found = await source.page(tx, context, cursor, 500);
       rows.push(...found.rows);
       cursor = found.nextCursor ?? undefined;
-    } while (cursor !== undefined && rows.length < EXPORT_MAX_ROWS);
+    } while (cursor !== undefined && rows.length < most);
     return {
       name: context.text(`report.name_${key}`),
       timezone: context.timezone,
       columns,
-      rows: rows.slice(0, EXPORT_MAX_ROWS),
-      truncated: rows.length > EXPORT_MAX_ROWS || cursor !== undefined,
+      rows: rows.slice(0, most),
+      truncated: rows.length > most || cursor !== undefined,
     };
   }
 

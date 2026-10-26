@@ -42,7 +42,15 @@ describe('licences (spec M23, BR-49)', () => {
     const licensed = new LicenceEntitlements(path, vendor.publicKey);
     expect(await licensed.forTenant(TERMS.tenantId, new Date('2027-04-15T06:00:00Z'))).toEqual({
       modules: ['core', 'orders'],
-      limits: { users: 40, storageGb: null, apiPerMinute: null },
+      limits: {
+        users: 40,
+        storageGb: null,
+        apiPerMinute: null,
+        requestsPerMinute: null,
+        queueSlots: null,
+        importRows: null,
+        exportRows: null,
+      },
       readOnly: false,
     });
     expect(

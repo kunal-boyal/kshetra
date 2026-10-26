@@ -16,6 +16,12 @@ export const USAGE_METRICS = [
 ] as const;
 export type UsageMetric = (typeof USAGE_METRICS)[number];
 
+/** Heavy jobs a tenant runs at once without a plan's `queueSlots` (spec 10.3, decision D98). */
+export const QUEUE_DEFAULT_SLOTS = 2;
+
+/** Rows one import may hold without a plan's `importRows` (decision D98). */
+export const IMPORT_DEFAULT_ROWS = 20_000;
+
 /** A person's active time, as calendar dates on the tenant's clock; `to` is null while active. */
 export interface SeatInterval {
   userId: string;

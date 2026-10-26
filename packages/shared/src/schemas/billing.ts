@@ -8,13 +8,52 @@ import { Key, LocalizedText, Money } from './config';
  * Prices are per seat; a plan's modules are what its tenants may use (spec 5.13).
  */
 
-/** What a plan caps; null leaves it open. */
+/** Each limit's allowed values; the schemas below take them from here. */
+const limit = {
+  users: () => z.int().min(1).max(1_000_000),
+  storageGb: () => z.int().min(1).max(1_000_000),
+  apiPerMinute: () => z.int().min(1).max(100_000),
+  requestsPerMinute: () => z.int().min(60).max(1_000_000),
+  queueSlots: () => z.int().min(1).max(20),
+  importRows: () => z.int().min(100).max(200_000),
+  exportRows: () => z.int().min(1_000).max(1_000_000),
+};
+
+/** The limits a plan can set, in the order the console shows them. */
+export const PLAN_LIMIT_KEYS = Object.keys(limit) as (keyof typeof limit)[];
+export type PlanLimitKey = (typeof PLAN_LIMIT_KEYS)[number];
+/** Every limit's value in force, null where open or keeping its default. */
+export type PlanLimitValues = Record<PlanLimitKey, number | null>;
+
+/** What a plan caps; null leaves it open, or for some keeps a default. */
 export const PlanLimits = z.strictObject({
   /** People who may be active at once (BR-45); past it, adding someone answers SEAT_LIMIT. */
-  users: z.int().min(1).max(1_000_000).nullable().default(null),
-  storageGb: z.int().min(1).max(1_000_000).nullable().default(null),
+  users: limit.users().nullable().default(null),
+  storageGb: limit.storageGb().nullable().default(null),
   /** Requests a minute each API client may make (decision D94); null keeps the default. */
-  apiPerMinute: z.int().min(1).max(100_000).nullable().default(null),
+  apiPerMinute: limit.apiPerMinute().nullable().default(null),
+  /**
+   * Requests a minute the whole tenant may make, people and API clients together (spec 10.3,
+   * decision D98); null leaves it open.
+   */
+  requestsPerMinute: limit.requestsPerMinute().nullable().default(null),
+  /** Heavy jobs (imports, exports, recomputes) the tenant may run at once; null keeps 2. */
+  queueSlots: limit.queueSlots().nullable().default(null),
+  /** Rows one import may hold; null keeps 20,000. */
+  importRows: limit.importRows().nullable().default(null),
+  /** Rows one export may hold; null keeps 100,000. */
+  exportRows: limit.exportRows().nullable().default(null),
+});
+
+/** Every limit, null where open. */
+const LimitsInForce = z.object({
+  users: z.int().nullable(),
+  storageGb: z.int().nullable(),
+  apiPerMinute: z.int().nullable(),
+  requestsPerMinute: z.int().nullable(),
+  queueSlots: z.int().nullable(),
+  importRows: z.int().nullable(),
+  exportRows: z.int().nullable(),
 });
 
 export const PlanAddon = z.strictObject({
@@ -36,7 +75,15 @@ export const PlanBody = z
       .array(z.enum(MODULE_KEYS))
       .refine((modules) => modules.includes('core'), 'Every plan includes core')
       .refine((modules) => new Set(modules).size === modules.length, 'List each module once'),
-    limits: PlanLimits.default({ users: null, storageGb: null, apiPerMinute: null }),
+    limits: PlanLimits.default({
+      users: null,
+      storageGb: null,
+      apiPerMinute: null,
+      requestsPerMinute: null,
+      queueSlots: null,
+      importRows: null,
+      exportRows: null,
+    }),
     addons: z.array(PlanAddon).max(20).default([]),
     active: z.boolean().default(true),
   })
@@ -53,11 +100,7 @@ export const PlanResult = z
     priceMonth: z.string(),
     priceYear: z.string(),
     modules: z.array(z.enum(MODULE_KEYS)),
-    limits: z.object({
-      users: z.int().nullable(),
-      storageGb: z.int().nullable(),
-      apiPerMinute: z.int().nullable(),
-    }),
+    limits: LimitsInForce,
     addons: z.array(z.object({ key: Key, name: LocalizedText, price: z.string() })),
     active: z.boolean(),
     /** Tenants on the plan now. */
@@ -79,9 +122,13 @@ export const TenantPlanBody = z.strictObject({
   extraModules: z.array(z.enum(SWITCHABLE_MODULES)).default([]),
   limits: z
     .strictObject({
-      users: z.int().min(1).max(1_000_000).nullable().optional(),
-      storageGb: z.int().min(1).max(1_000_000).nullable().optional(),
-      apiPerMinute: z.int().min(1).max(100_000).nullable().optional(),
+      users: limit.users().nullable().optional(),
+      storageGb: limit.storageGb().nullable().optional(),
+      apiPerMinute: limit.apiPerMinute().nullable().optional(),
+      requestsPerMinute: limit.requestsPerMinute().nullable().optional(),
+      queueSlots: limit.queueSlots().nullable().optional(),
+      importRows: limit.importRows().nullable().optional(),
+      exportRows: limit.exportRows().nullable().optional(),
     })
     .default({}),
 });
@@ -94,17 +141,9 @@ export const TenantEntitlements = z
     /** Every module the tenant may switch on; all of them without a plan. */
     modules: z.array(z.enum(MODULE_KEYS)),
     /** The limits in force: the tenant's own where it has them, else the plan's. */
-    limits: z.object({
-      users: z.int().nullable(),
-      storageGb: z.int().nullable(),
-      apiPerMinute: z.int().nullable(),
-    }),
+    limits: LimitsInForce,
     /** Limits set for this tenant alone; a missing key follows the plan, null lifts the cap. */
-    ownLimits: z.object({
-      users: z.int().nullable().optional(),
-      storageGb: z.int().nullable().optional(),
-      apiPerMinute: z.int().nullable().optional(),
-    }),
+    ownLimits: LimitsInForce.partial(),
   })
   .meta({ id: 'TenantEntitlements' });
 

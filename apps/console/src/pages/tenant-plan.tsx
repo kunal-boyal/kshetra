@@ -8,6 +8,11 @@ import {
   USAGE_METRICS,
   type UsageMetric,
   API_DEFAULT_PER_MINUTE,
+  EXPORT_MAX_ROWS,
+  IMPORT_DEFAULT_ROWS,
+  type PlanLimitKey,
+  PLAN_LIMIT_KEYS,
+  QUEUE_DEFAULT_SLOTS,
 } from '@thelamp/shared';
 import {
   Button,
@@ -27,8 +32,15 @@ import { useConsoleMutations, useEntitlements, usePlans, useUsage } from '../dat
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 import { holds, moduleName } from './shared';
 
-type Limit = 'users' | 'storageGb' | 'apiPerMinute';
-const LIMITS: readonly Limit[] = ['users', 'storageGb', 'apiPerMinute'];
+type Limit = PlanLimitKey;
+const LIMITS = PLAN_LIMIT_KEYS;
+/** What an open limit means where it isn't "no limit" but a default (decisions D94, D98). */
+const DEFAULTS: Partial<Record<Limit, number>> = {
+  apiPerMinute: API_DEFAULT_PER_MINUTE,
+  queueSlots: QUEUE_DEFAULT_SLOTS,
+  importRows: IMPORT_DEFAULT_ROWS,
+  exportRows: EXPORT_MAX_ROWS,
+};
 type LimitMode = 'plan' | 'none' | 'own';
 type Translate = ReturnType<typeof useLanguage>['t'];
 
@@ -87,6 +99,21 @@ export function PlanCard({ tenant }: { tenant: ConsoleTenant }) {
         value: formatNumber(now.limits.apiPerMinute ?? API_DEFAULT_PER_MINUTE, { locale }),
       }),
     ],
+    [
+      t('console.request_limit'),
+      limit(now.limits.requestsPerMinute, (value) =>
+        t('console.per_minute', { value: formatNumber(value, { locale }) }),
+      ),
+    ],
+    [
+      t('console.slots_limit'),
+      formatNumber(now.limits.queueSlots ?? QUEUE_DEFAULT_SLOTS, { locale }),
+    ],
+    [
+      t('console.import_limit'),
+      formatNumber(now.limits.importRows ?? IMPORT_DEFAULT_ROWS, { locale }),
+    ],
+    [t('console.export_limit'), formatNumber(now.limits.exportRows ?? EXPORT_MAX_ROWS, { locale })],
   ];
 
   return (
@@ -136,16 +163,19 @@ function PlanEditor({
   const { setPlan } = useConsoleMutations();
   const [planId, setPlanId] = useState(now.plan?.id ?? '');
   const [extra, setExtra] = useState<SwitchableModule[]>(now.extraModules);
-  const [modes, setModes] = useState<Record<Limit, LimitMode>>({
-    users: modeOf(now.ownLimits, 'users'),
-    storageGb: modeOf(now.ownLimits, 'storageGb'),
-    apiPerMinute: modeOf(now.ownLimits, 'apiPerMinute'),
-  });
-  const [values, setValues] = useState<Record<Limit, string>>({
-    users: now.ownLimits.users?.toString() ?? '',
-    storageGb: now.ownLimits.storageGb?.toString() ?? '',
-    apiPerMinute: now.ownLimits.apiPerMinute?.toString() ?? '',
-  });
+  const [modes, setModes] = useState(
+    () =>
+      Object.fromEntries(LIMITS.map((key) => [key, modeOf(now.ownLimits, key)])) as Record<
+        Limit,
+        LimitMode
+      >,
+  );
+  const [values, setValues] = useState(
+    () =>
+      Object.fromEntries(
+        LIMITS.map((key) => [key, now.ownLimits[key]?.toString() ?? '']),
+      ) as Record<Limit, string>,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string>();
 
@@ -222,14 +252,14 @@ function PlanEditor({
           planValue={
             chosen?.limits[key] == null ? null : formatNumber(chosen.limits[key], { locale })
           }
-          // No API limit means the default, not none (decision D94).
-          {...(key === 'apiPerMinute'
+          // Some limits left open keep a default rather than none (decisions D94, D98).
+          {...(DEFAULTS[key] !== undefined
             ? {
                 openLabel: t('console.limit_follow_default', {
-                  value: formatNumber(API_DEFAULT_PER_MINUTE, { locale }),
+                  value: formatNumber(DEFAULTS[key], { locale }),
                 }),
                 noneLabel: t('console.limit_default', {
-                  value: formatNumber(API_DEFAULT_PER_MINUTE, { locale }),
+                  value: formatNumber(DEFAULTS[key], { locale }),
                 }),
               }
             : {})}
@@ -268,12 +298,20 @@ const LIMIT_LABEL = {
   users: 'console.people_limit',
   storageGb: 'console.storage_limit',
   apiPerMinute: 'console.api_limit',
-} as const;
+  requestsPerMinute: 'console.request_limit',
+  queueSlots: 'console.slots_limit',
+  importRows: 'console.import_limit',
+  exportRows: 'console.export_limit',
+} as const satisfies Record<Limit, string>;
 const LIMIT_VALUE_LABEL = {
   users: 'console.limit_people_value',
   storageGb: 'console.limit_storage_value',
   apiPerMinute: 'console.limit_api_value',
-} as const;
+  requestsPerMinute: 'console.limit_api_value',
+  queueSlots: 'console.limit_slots_value',
+  importRows: 'console.limit_rows_value',
+  exportRows: 'console.limit_rows_value',
+} as const satisfies Record<Limit, string>;
 
 function LimitField({
   label,

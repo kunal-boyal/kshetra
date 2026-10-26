@@ -15,8 +15,6 @@ export type Cell = string | boolean | Date | null;
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
 /** Largest a spreadsheet may unpack to, so a small file can't fill the worker's memory. */
 const MAX_UNPACKED_BYTES = 200 * 1024 * 1024;
-/** Rows after the header, for now; plans will set their own limits (M19). */
-export const MAX_ROWS = 20_000;
 /** The header is somewhere in the first rows (M19). */
 const HEADER_SEARCH_ROWS = 15;
 

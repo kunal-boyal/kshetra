@@ -12,6 +12,7 @@ import { ApiClientLimits } from './api-client-limits';
 import { RedisClient } from './redis';
 import { OutboxRelay } from './relay';
 import { Schedules } from './schedules';
+import { TenantSlots } from './tenant-slots';
 import { CONFIG } from './tokens';
 
 /** Settings and shared infrastructure every module can inject. */
@@ -32,6 +33,7 @@ export class PlatformModule {
         AuditLog,
         Outbox,
         OutboxRelay,
+        TenantSlots,
         Queues,
         Schedules,
         { provide: ObjectStore, useFactory: () => createObjectStore(config) },
@@ -47,6 +49,7 @@ export class PlatformModule {
         AuditLog,
         Outbox,
         OutboxRelay,
+        TenantSlots,
         Queues,
         Schedules,
         ObjectStore,
