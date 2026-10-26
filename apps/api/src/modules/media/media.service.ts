@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { newId } from '@thelamp/shared';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, notInArray, sql } from 'drizzle-orm';
 import { media } from '../../db/schema/media';
 import type { TenantTx } from '../../platform/database';
 import { ObjectStore } from '../../platform/object-store';
@@ -58,6 +58,36 @@ export class MediaService {
     return { id, sha256, size: file.bytes.byteLength };
   }
 
+  /**
+   * Stores a file already on disk, whose size and SHA-256 the caller worked out while writing it,
+   * without reading it into memory: a tenant's archive can be larger than the process should hold.
+   */
+  async storeFile(
+    tx: TenantTx,
+    tenantId: string,
+    file: Omit<NewFile, 'bytes'> & { path: string; size: number; sha256: string },
+  ): Promise<StoredFile> {
+    const id = newId();
+    const objectKey = `t/${tenantId}/${file.kind}/${id}`;
+    await this.objects.putFile(objectKey, file.path, file.contentType);
+    await tx.insert(media).values({
+      id,
+      tenantId,
+      userId: file.userId,
+      kind: file.kind,
+      objectKey,
+      fileName: file.fileName,
+      contentType: file.contentType,
+      size: file.size,
+      sha256: file.sha256,
+      status: 'uploaded',
+      ownerType: file.ownerType,
+      ownerId: file.ownerId,
+      retentionClass: file.retentionClass,
+    });
+    return { id, sha256: file.sha256, size: file.size };
+  }
+
   /** A stored file's bytes, with how it was stored. */
   /** Bytes the tenant keeps in storage now, derivatives included; deleted files count no more. */
   async storedBytes(tx: TenantTx, tenantId: string): Promise<number> {
@@ -79,6 +109,29 @@ export class MediaService {
       .where(and(eq(media.tenantId, tenantId), eq(media.id, id)));
     if (!row) throw new Error(`There is no file ${id}.`);
     return { ...row, bytes: await this.objects.get(row.objectKey) };
+  }
+
+  /**
+   * The files a tenant's archive carries (decision D95): every one stored and kept, but exports,
+   * which are copies of what the archive holds already.
+   */
+  async forArchive(tx: TenantTx, tenantId: string) {
+    return tx
+      .select({
+        id: media.id,
+        kind: media.kind,
+        contentType: media.contentType,
+        fileName: media.fileName,
+      })
+      .from(media)
+      .where(
+        and(
+          eq(media.tenantId, tenantId),
+          inArray(media.status, ['uploaded', 'processed']),
+          notInArray(media.kind, ['export_file', 'tenant_export']),
+        ),
+      )
+      .orderBy(asc(media.id));
   }
 
   /** Where a stored file is in the object store, to link to it; null for nobody's. */

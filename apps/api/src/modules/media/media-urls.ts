@@ -18,8 +18,12 @@ export class MediaUrls {
     private readonly objects: ObjectStore,
   ) {}
 
-  async read(key: string): Promise<{ url: string; expiresAt: string }> {
-    const expires = new Date(Date.now() + READ_LINK_SECONDS * 1000);
+  /** A link that reads `key` for `seconds`, five minutes unless a caller needs longer. */
+  async read(
+    key: string,
+    seconds = READ_LINK_SECONDS,
+  ): Promise<{ url: string; expiresAt: string }> {
+    const expires = new Date(Date.now() + seconds * 1000);
     const {
       CLOUDFRONT_DOMAIN: domain,
       CLOUDFRONT_KEY_ID: keyPairId,
@@ -33,7 +37,7 @@ export class MediaUrls {
             privateKey,
             dateLessThan: expires.toISOString(),
           })
-        : await this.objects.presignGet(key, READ_LINK_SECONDS);
+        : await this.objects.presignGet(key, seconds);
     return { url, expiresAt: expires.toISOString() };
   }
 }

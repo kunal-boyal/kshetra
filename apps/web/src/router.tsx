@@ -51,6 +51,7 @@ import { MetricEditorPage } from './settings/metric-editor-page';
 import { MetricsPage } from './settings/metrics-page';
 import { BillingPage } from './settings/billing-page';
 import { ApiClientsPage } from './settings/api-clients-page';
+import { DataExportPage } from './settings/data-export-page';
 import { SsoPage } from './settings/sso-page';
 import { SupportPage } from './settings/support-page';
 import { WebhooksPage } from './settings/webhooks-page';
@@ -348,6 +349,11 @@ const apiClientSettings = createRoute({
   path: '/api-clients',
   component: ApiClientsPage,
 });
+const dataExportSettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/data-export',
+  component: DataExportPage,
+});
 const webhookSettings = createRoute({
   getParentRoute: () => settings,
   path: '/webhooks',
@@ -508,6 +514,7 @@ const tree = root.addChildren([
       supportSettings,
       apiClientSettings,
       webhookSettings,
+      dataExportSettings,
       settingsIndex,
       roles,
       designations,

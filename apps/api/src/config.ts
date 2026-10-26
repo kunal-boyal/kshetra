@@ -190,6 +190,18 @@ const schema = z
           .refine((value) => Buffer.from(value, 'base64').length === 32, 'Use 32 bytes in base64')
           .optional(),
       ),
+    // The seed of the Ed25519 key tenant data exports are signed with (decision D95): 32 random
+    // bytes in base64. Production needs it; elsewhere one is derived from OTP_PEPPER.
+    ARCHIVE_SIGNING_KEY: z
+      .string()
+      .optional()
+      .transform((value) => value || undefined)
+      .pipe(
+        z
+          .string()
+          .refine((value) => Buffer.from(value, 'base64').length === 32, 'Use 32 bytes in base64')
+          .optional(),
+      ),
     // Where the platform console runs, for the setup links sent to vendor staff (decision D88).
     CONSOLE_URL: z.url().default('http://127.0.0.1:5174'),
     // Where the web portal runs, which passes /auth through to the API: single sign-on sends
@@ -285,6 +297,13 @@ const schema = z
           code: 'custom',
           path: ['COLUMN_KEY'],
           message: 'Production needs a column key of its own, not one derived from the pepper.',
+        });
+      }
+      if (!config.ARCHIVE_SIGNING_KEY) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['ARCHIVE_SIGNING_KEY'],
+          message: 'Production needs an archive signing key of its own, kept across restarts.',
         });
       }
       if (config.OTP_PEPPER.length < 32) {

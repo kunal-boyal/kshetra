@@ -118,6 +118,8 @@ export const AUDIT_ACTIONS = [
   'webhook.updated',
   'webhook.secret_rotated',
   'webhook.replayed',
+  'data_export.created',
+  'data_export.downloaded',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

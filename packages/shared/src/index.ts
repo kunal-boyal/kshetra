@@ -988,3 +988,21 @@ export {
   WebhookResult,
   WebhookSecret,
 } from './schemas/webhooks';
+export {
+  ARCHIVE_FORMAT,
+  ARCHIVE_MANIFEST,
+  ARCHIVE_SIGNATURE,
+  ARCHIVE_VERSION,
+  ArchiveManifest,
+  archiveKeyId,
+  DATA_EXPORT_KEEP_DAYS,
+  DATA_EXPORT_LINK_HOURS,
+  dataExportExpiry,
+} from './data-exports';
+export {
+  ArchiveSigningKey,
+  CreateDataExportBody,
+  DataExportList,
+  DataExportResult,
+  DataExportStatus,
+} from './schemas/data-exports';
