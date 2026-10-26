@@ -65,6 +65,15 @@ export class Outbox {
     });
   }
 
+  /** How many of a tenant's events wait to be delivered, as a tenant about to move must have none. */
+  async waiting(tx: TenantTx, tenantId: string): Promise<number> {
+    const [row] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(outboxEvents)
+      .where(and(eq(outboxEvents.tenantId, tenantId), isNull(outboxEvents.dispatchedAt)));
+    return row?.count ?? 0;
+  }
+
   /**
    * Hands one event to its consumers, unless it is done or another process holds it. Each
    * consumer runs in a savepoint, so a failing one leaves nothing half done. Returns true when

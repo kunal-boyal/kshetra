@@ -265,7 +265,8 @@ export function createClient(options: ClientOptions) {
 
   /**
    * A call to the tenant's cell, with the access token. A token that is about to expire, or that
-   * the server calls expired, is refreshed once and the call repeated.
+   * the server calls expired, is refreshed once and the call repeated; so is a call to a cell the
+   * tenant has moved from, as the refresh names the new one.
    */
   async function cell(method: string, path: string, request: RequestOptions = {}) {
     const attempt = async (state: SessionState) =>
@@ -295,7 +296,8 @@ export function createClient(options: ClientOptions) {
     let response = await attempt(state);
     if (response.status === 401) {
       const error = await failure(response);
-      if (error.code !== 'TOKEN_EXPIRED') {
+      // A tenant moved to another cell (decision D95): a refresh hands back its new address.
+      if (error.code !== 'TOKEN_EXPIRED' && error.code !== 'TENANT_MOVED') {
         if (error.code === 'SESSION_REVOKED') await signedOut();
         throw error;
       }

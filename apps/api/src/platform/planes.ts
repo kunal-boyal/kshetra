@@ -55,8 +55,39 @@ export abstract class MembershipSync {
 }
 
 /** The tenant's status as the directory records it. Cells check it on every request (M1, rule 7). */
+/** Where a tenant stands: its status, the cell it lives on, and whether it is being moved. */
+export interface TenantStanding {
+  status: TenantStatus;
+  cell: string;
+  /** Being moved to another cell (decision D95): it reads, and writes wait. */
+  moving: boolean;
+  /** The cell it is being moved to, while it is. */
+  movingTo: string | null;
+}
+
+/** A cell as the directory lists it (spec 9.3). */
+export interface CellEntry {
+  name: string;
+  region: string;
+  apiBaseUrl: string;
+  capacityUsers: number;
+}
+
 export abstract class TenantDirectory {
   abstract status(tenantId: string): Promise<TenantStatus | undefined>;
+  abstract standing(tenantId: string): Promise<TenantStanding | undefined>;
+  abstract bySlug(
+    slug: string,
+  ): Promise<{ id: string; status: TenantStatus; demo: boolean } | undefined>;
+  /** Registers a cell, or keeps the entry it already has. Returns its ID. */
+  abstract ensureCell(cell: CellEntry): Promise<string>;
+  /**
+   * Moving a tenant between cells (decision D95): marks it as moving to `toCell`, which freezes its
+   * writes; then either moves its entry there once the new cell holds it, or calls the move off.
+   */
+  abstract startMove(tenantId: string, toCell: string): Promise<void>;
+  abstract finishMove(tenantId: string): Promise<void>;
+  abstract cancelMove(tenantId: string): Promise<void>;
   /** The open tenants on a cell, for work the cell schedules for each of them (spec 12.3). */
   abstract openTenants(cellName: string): Promise<string[]>;
   /** The tenant's display name, as sign-in shows it. */

@@ -11,6 +11,7 @@ export default defineConfig({
     'src/invite-staff.ts',
     'src/licence.ts',
     'src/archive.ts',
+    'src/tenant-move.ts',
     'src/seed.ts',
     'src/load-fixtures.ts',
     'src/e2e-fixtures.ts',

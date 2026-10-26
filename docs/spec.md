@@ -1038,7 +1038,7 @@ Cells:
 - A cell contains its API service, workers, scheduler, a PostgreSQL primary and read replica, Redis and an S3 bucket or prefix. A shared cell is sized for about 20,000 concurrent field users.
 - The directory maps each tenant to one cell and places new tenants in the cell with the most headroom.
 - A dedicated cell serves one tenant: the licence model, data held in the customer's own AWS account, or a customer who requires physical isolation.
-- Moving a tenant between cells uses the tenant export and import tooling (phase 3): freeze writes, export, import, verify counts and checksums, switch the directory entry, unfreeze.
+- Moving a tenant between cells uses the tenant export and import tooling (`pnpm tenant-move`, decision D95): freeze writes (`TENANT_MOVING`), export a signed move archive, import it, verify counts and checksums, switch the directory entry, unfreeze. A cell answers `TENANT_MOVED` for a tenant that lives elsewhere, and phones whose sync cursor names another cell take a full copy.
 - Releases roll out cell by cell, starting with an internal canary cell.
 
 Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group concurrency on heavy queues (imports, exports, metrics); statement timeouts on report queries; import and export size limits by plan; exports and reports served from the read replica.
@@ -1134,7 +1134,7 @@ Columns are condensed; `tid` stands for `tenant_id`. PK = primary key, UQ = uniq
 
 ```text
 ── Directory schema (global; no RLS; directory role only) ────────────────────────
-tenants(id, slug UQ, name, status enum(trial,active,grace,read_only,suspended,terminated), cell_id,
+tenants(id, slug UQ, name, status enum(trial,active,grace,read_only,suspended,terminated), cell_id, moving_to_cell_id NULL,
         plan_id, template_key, template_version, created_at)
 cells(id, name, region, api_base_url, kind enum(shared,dedicated), status, capacity_users)
 identities(id, phone_e164 UQ, email UQ NULL, created_at, last_login_at)

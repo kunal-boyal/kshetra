@@ -35,6 +35,10 @@ export const ERROR_HTTP_STATUS = {
   SEAT_LIMIT: 402,
   TENANT_READ_ONLY: 423,
   TENANT_SUSPENDED: 423,
+  /** The organisation is being moved to another cell: reads work, writes wait (decision D95). */
+  TENANT_MOVING: 423,
+  /** The organisation now lives on another cell: refresh the session to learn where. */
+  TENANT_MOVED: 401,
   RATE_LIMITED: 429,
   SYNC_RESET: 410,
   OTP_INVALID: 400,

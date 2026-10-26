@@ -20,12 +20,18 @@ import { CONFIG } from '../../platform/tokens';
 import { MediaService } from '../media/media.service';
 
 /**
- * Tables left out of an archive (decision D95): plumbing that holds nothing of the tenant's own,
+ * Tables left out of an export (decision D95): plumbing that holds nothing of the tenant's own,
  * and stored answers to repeated requests, which can carry a secret shown once.
  */
 export const ARCHIVE_SKIPPED_TABLES = ['idempotency_keys', 'outbox_events', 'sync_tombstones'];
 
-/** Columns left out of an archive: secrets, and what stands in for them. */
+/**
+ * Tables left out of a move: tombstones only, as a moved tenant's phones take a full copy. Stored
+ * answers move, so a phone's upload sent again lands once; so do events not yet delivered.
+ */
+export const MOVE_SKIPPED_TABLES = ['sync_tombstones'];
+
+/** Columns left out of an export, but not a move: secrets, and what stands in for them. */
 export const ARCHIVE_SECRET_COLUMNS: Record<string, readonly string[]> = {
   api_clients: ['secret_hash'],
   devices: ['device_key_hash', 'push_token'],
@@ -68,33 +74,45 @@ export class TenantArchive {
 
   /**
    * `tx` must read one snapshot (repeatable read) in the tenant, as `Database.forTenant` opens it;
-   * the archive holds exactly what it sees.
+   * the archive holds exactly what it sees. A `move` also carries secrets, stored answers, events
+   * not yet delivered and photos' derived copies, for the cell the tenant moves to.
    */
-  async write(tx: TenantTx, tenantId: string, path: string): Promise<ArchiveFacts> {
+  async write(
+    tx: TenantTx,
+    tenantId: string,
+    path: string,
+    purpose: ArchiveManifest['purpose'] = 'export',
+  ): Promise<ArchiveFacts> {
+    const move = purpose === 'move';
     const out = createWriteStream(path);
     const archive = new ArchiveFile(out);
     const tables: ArchiveManifest['tables'] = [];
-    for (const name of await this.tableNames(tx)) {
-      tables.push(await this.writeTable(tx, archive, tenantId, name));
+    for (const name of await this.tableNames(tx, move ? MOVE_SKIPPED_TABLES : undefined)) {
+      tables.push(await this.writeTable(tx, archive, tenantId, name, move));
     }
     const files: ArchiveManifest['media'] = [];
     for (const file of await this.media.forArchive(tx, tenantId)) {
-      const { bytes } = await this.media.read(tx, tenantId, file.id);
-      const entryPath = `media/${file.id}`;
-      await archive.add(entryPath, bytes, false);
-      files.push({
-        id: file.id,
-        path: entryPath,
-        kind: file.kind,
-        contentType: file.contentType,
-        fileName: file.fileName,
-        bytes: bytes.byteLength,
-        sha256: createHash('sha256').update(bytes).digest('hex'),
-      });
+      const variants = [null, ...(move ? Object.keys(file.derivatives) : [])];
+      for (const variant of variants) {
+        const bytes = await this.media.variantBytes(tx, tenantId, file.id, variant);
+        const entryPath = variant ? `media/${file.id}.${variant}` : `media/${file.id}`;
+        await archive.add(entryPath, bytes, false);
+        files.push({
+          id: file.id,
+          variant,
+          path: entryPath,
+          kind: file.kind,
+          contentType: file.contentType,
+          fileName: file.fileName,
+          bytes: bytes.byteLength,
+          sha256: createHash('sha256').update(bytes).digest('hex'),
+        });
+      }
     }
     const manifest: ArchiveManifest = {
       format: ARCHIVE_FORMAT,
       version: ARCHIVE_VERSION,
+      purpose,
       product: this.config.PRODUCT_NAME,
       tenant: { id: tenantId, name: (await this.directory.displayName(tenantId)) ?? '' },
       cell: this.config.CELL_ID,
@@ -104,10 +122,12 @@ export class TenantArchive {
       tables,
       media: files,
       omitted: {
-        tables: [...ARCHIVE_SKIPPED_TABLES],
-        columns: Object.entries(ARCHIVE_SECRET_COLUMNS).flatMap(([table, columns]) =>
-          columns.map((column) => `${table}.${column}`),
-        ),
+        tables: [...(move ? MOVE_SKIPPED_TABLES : ARCHIVE_SKIPPED_TABLES)],
+        columns: move
+          ? []
+          : Object.entries(ARCHIVE_SECRET_COLUMNS).flatMap(([table, columns]) =>
+              columns.map((column) => `${table}.${column}`),
+            ),
       },
     };
     const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
@@ -125,7 +145,10 @@ export class TenantArchive {
   }
 
   /** The tenant's tables: partitioned ones once, through their parent; plumbing left out. */
-  async tableNames(tx: TenantTx): Promise<string[]> {
+  async tableNames(
+    tx: TenantTx,
+    skipped: readonly string[] = ARCHIVE_SKIPPED_TABLES,
+  ): Promise<string[]> {
     const result = await tx.execute(sql`
       select c.relname as name
         from pg_class c
@@ -140,7 +163,7 @@ export class TenantArchive {
        order by c.relname`);
     return (result.rows as { name: string }[])
       .map((row) => row.name)
-      .filter((name) => !ARCHIVE_SKIPPED_TABLES.includes(name));
+      .filter((name) => !skipped.includes(name));
   }
 
   private async writeTable(
@@ -148,10 +171,11 @@ export class TenantArchive {
     archive: ArchiveFile,
     tenantId: string,
     name: string,
+    move: boolean,
   ): Promise<ArchiveManifest['tables'][number]> {
     const path = `tables/${name}.jsonl`;
     const entry = archive.open(path);
-    const secrets = ARCHIVE_SECRET_COLUMNS[name] ?? [];
+    const secrets = move ? [] : (ARCHIVE_SECRET_COLUMNS[name] ?? []);
     // Rows go out as Postgres writes them, so numbers keep every digit; secrets are taken out.
     const row = secrets.length
       ? `(to_jsonb(t) - array[${secrets.map((column) => `'${column}'`).join(', ')}]::text[])::text`

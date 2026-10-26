@@ -67,6 +67,11 @@ export const tenants = directory.table('tenants', {
   cellId: uuid('cell_id')
     .notNull()
     .references(() => cells.id),
+  /**
+   * The cell the tenant is being moved to (decision D95). While it is set the tenant reads and its
+   * writes wait; switching to that cell clears it.
+   */
+  movingToCellId: uuid('moving_to_cell_id').references(() => cells.id),
   // The tenant's plan (module M23, decision D89); none leaves every module open.
   planId: uuid('plan_id').references((): AnyPgColumn => plans.id),
   templateKey: text('template_key').notNull(),

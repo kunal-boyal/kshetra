@@ -133,6 +133,28 @@ describe('refreshing', () => {
     expect(await store.load()).toMatchObject({ accessToken: 'a2', refreshToken: 'r2' });
   });
 
+  it('follows a tenant moved to another cell: refreshes, then calls the new cell', async () => {
+    const moved = { ...TENANT, cellUrl: 'https://cell-b.test' };
+    const server = fakeServer((url) => {
+      if (url.endsWith('/auth/v1/token/refresh')) {
+        return json(200, { session: session('a2', 'r2'), tenant: moved });
+      }
+      return url.startsWith('https://cell-b.test')
+        ? json(200, ME)
+        : json(401, { error: { code: 'TENANT_MOVED', message: 'Moved', requestId: 'x' } });
+    });
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    const client = createClient({ directoryUrl: '', platform: 'app', store, fetch: server.fetch });
+    expect((await client.me()).userId).toBe(USER);
+    expect(server.calls.map(({ url }) => url)).toEqual([
+      'https://cell.test/v1/me',
+      '/auth/v1/token/refresh',
+      'https://cell-b.test/v1/me',
+    ]);
+    expect((await store.load())?.tenant.cellUrl).toBe('https://cell-b.test');
+  });
+
   it('refreshes ahead of a token about to run out, inside the lock', async () => {
     const order: string[] = [];
     const server = fakeServer((url) => {

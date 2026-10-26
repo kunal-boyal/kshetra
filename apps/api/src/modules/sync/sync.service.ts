@@ -102,13 +102,14 @@ export class SyncService {
       tenantId: access.tenantId,
       userId: access.userId,
       epoch: this.config.SYNC_EPOCH,
+      cell: this.config.CELL_ID,
       entities: {},
     };
   }
 
   /**
-   * The caller's cursor. One that can't be read, belongs to someone else or another epoch, or
-   * names transactions that haven't happened (the database was restored) starts over.
+   * The caller's cursor. One that can't be read, belongs to someone else, another epoch or another
+   * cell, or names transactions that haven't happened (the database was restored) starts over.
    */
   private read(raw: string, access: Access, newest: number): CursorState {
     const cursor = decodeCursor(raw);
@@ -116,14 +117,16 @@ export class SyncService {
       !cursor ||
       cursor.tenantId !== access.tenantId ||
       cursor.userId !== access.userId ||
-      cursor.epoch !== this.config.SYNC_EPOCH
+      cursor.epoch !== this.config.SYNC_EPOCH ||
+      (cursor.cell !== undefined && cursor.cell !== this.config.CELL_ID)
     ) {
       throw syncReset();
     }
     for (const state of Object.values(cursor.entities)) {
       if (state.since > newest || (state.pass && state.pass.next > newest)) throw syncReset();
     }
-    return cursor;
+    // An older cursor learns its cell, so a later move resets it too.
+    return { ...cursor, cell: this.config.CELL_ID };
   }
 
   private async page(

@@ -122,6 +122,7 @@ export class MediaService {
         kind: media.kind,
         contentType: media.contentType,
         fileName: media.fileName,
+        derivatives: media.derivatives,
       })
       .from(media)
       .where(
@@ -132,6 +133,63 @@ export class MediaService {
         ),
       )
       .orderBy(asc(media.id));
+  }
+
+  /** A stored file's bytes, or one derived copy's, such as a thumbnail, by its variant. */
+  async variantBytes(
+    tx: TenantTx,
+    tenantId: string,
+    id: string,
+    variant: string | null,
+  ): Promise<Uint8Array> {
+    const [row] = await tx
+      .select({ objectKey: media.objectKey, derivatives: media.derivatives })
+      .from(media)
+      .where(and(eq(media.tenantId, tenantId), eq(media.id, id)));
+    const key = variant ? row?.derivatives[variant] : row?.objectKey;
+    if (!key) throw new Error(`There is no file ${id}${variant ? ` ${variant}` : ''}.`);
+    return this.objects.get(key);
+  }
+
+  /**
+   * Puts a moved tenant's file back where its row says it lives (decision D95), unless the store
+   * holds it already, as when both cells share a bucket.
+   */
+  async restore(
+    tx: TenantTx,
+    tenantId: string,
+    id: string,
+    variant: string | null,
+    bytes: Uint8Array,
+  ): Promise<void> {
+    const [row] = await tx
+      .select({
+        objectKey: media.objectKey,
+        derivatives: media.derivatives,
+        contentType: media.contentType,
+      })
+      .from(media)
+      .where(and(eq(media.tenantId, tenantId), eq(media.id, id)));
+    const key = variant ? row?.derivatives[variant] : row?.objectKey;
+    if (!row || !key) throw new Error(`The archive has a file ${id} its rows don't name.`);
+    if ((await this.objects.size(key)) === bytes.byteLength) return;
+    await this.objects.put(key, bytes, variant ? 'image/jpeg' : row.contentType);
+  }
+
+  /**
+   * Removes every object a tenant's files are kept under, originals and derived copies, as a
+   * purge of the tenant does (decision D95). The rows go with the rest of the tenant's.
+   */
+  async removeAllObjects(tx: TenantTx, tenantId: string): Promise<void> {
+    const rows = await tx
+      .select({ objectKey: media.objectKey, derivatives: media.derivatives })
+      .from(media)
+      .where(and(eq(media.tenantId, tenantId), ne(media.status, 'deleted')));
+    for (const row of rows) {
+      for (const key of [row.objectKey, ...Object.values(row.derivatives)]) {
+        await this.objects.delete(key);
+      }
+    }
   }
 
   /** Where a stored file is in the object store, to link to it; null for nobody's. */

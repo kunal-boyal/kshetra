@@ -73,6 +73,8 @@ export interface Access extends AuthContext {
   modulesOff: readonly SwitchableModule[];
   /** The tenant may only read (BR-48, BR-49): writes answer `TENANT_READ_ONLY`. */
   readOnly: boolean;
+  /** The tenant is being moved to another cell (decision D95): writes answer `TENANT_MOVING`. */
+  moving?: boolean;
   /** Set when vendor support is calling; nobody at the tenant is. */
   support?: SupportAccess;
   /** Set when an API client is calling; nobody at the tenant is. */
@@ -370,6 +372,13 @@ export class AuthGuard implements CanActivate {
           throw new AppError('FORBIDDEN', 'This API client’s scopes don’t reach this.');
         }
       }
+    }
+    // Nothing is written while the tenant moves, not even what a read-only tenant may write.
+    if (access.moving && !READS.has(request.method)) {
+      throw new AppError(
+        'TENANT_MOVING',
+        'Your organisation is being moved to a new server. Changes can be made again shortly.',
+      );
     }
     if (
       access.readOnly &&

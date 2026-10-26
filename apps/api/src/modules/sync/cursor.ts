@@ -44,6 +44,11 @@ const Cursor = z.object({
   userId: z.uuid(),
   /** `SYNC_EPOCH` when the cursor was made; raising it sends every phone a full copy. */
   epoch: z.string().max(64),
+  /**
+   * The cell that made it (decision D95): its transaction numbers mean nothing on another, so a
+   * tenant moved to another cell sends its phones a full copy. Older cursors lack it.
+   */
+  cell: z.string().max(64).optional(),
   entities: z.partialRecord(SyncEntity, EntityState),
 });
 
