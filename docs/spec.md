@@ -329,7 +329,7 @@ A metric definition holds a key, names, unit (`count`, `currency`, `quantity`, `
 | `product_line_sum` | Sum of a product-lines column (for example samples given), optionally for a product filter |
 | `distinct_accounts_visited` | Distinct accounts with at least one approved qualifying visit, filtered by type or segment |
 | `coverage_percent` | Distinct accounts visited ÷ accounts assigned in scope × 100 |
-| `frequency_compliance_percent` | Accounts that met their visit-frequency norm ÷ accounts with a norm × 100 |
+| `frequency_compliance_percent` | Accounts that met their visit-frequency norm ÷ accounts with a norm × 100; an account's visits are the days in the period with an approved submission of the counted forms at it, and its norm the highest its segments carry (D97) |
 | `plan_compliance_percent` | Completed plan items ÷ plan items due × 100 |
 | `visit_duration` | Sum or average of checked-in time at accounts |
 | `order_value` | Sum of order totals in the listed statuses, before or after tax |
@@ -1829,7 +1829,7 @@ Each template is a JSON file at `packages/templates/<key>/template.json`, valida
   - Stockist: `drug_licence_no`, `gstin`; slots `abm` and `rsm`.
   - Hospital: `beds`, `type`; doctors may link to it.
 - Forms:
-  - Doctor call: Doctor account, visit session; `products_detailed`* (multi select from the catalogue), `samples` (product lines with quantity), `gifts` (product lines), `rx_commitment` (long text), `next_call_date`; the doctor's `signature` is required when samples are given; photos optional.
+  - Doctor call: Doctor account, visit session; `products_detailed`* (product lines without quantities, D97), `samples` (product lines with quantity), `gifts` (product lines), `rx_commitment` (long text), `next_call_date`; the doctor's `signature` is required when samples are given; photos optional.
   - Chemist call: Chemist account; `stock_check` (product lines with quantity), an order within the visit, `remarks`.
   - Stockist visit: Stockist account; `purpose`, `outcome`*, `collection` (currency).
   - CME or camp: no account; `topic`*, `doctors_attended`* (number), `venue`*; photos required.

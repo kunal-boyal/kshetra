@@ -29,6 +29,8 @@ From the repository root, with Docker running:
    infra/scripts/demo.sh provision --name "Demo Agro" --slug demo-agro --template agri --status active --admin-name "Demo Admin" --admin-phone +919800000001
    ```
 
+   For a pharma prospect, use `--template pharma` (for example `--name "Demo Pharma" --slug demo-pharma`); each demo tenant gets its own content in its industry's words (decision D97).
+
    A prospect's own branding goes in at the same time: `--logo <file on this machine>` (PNG, JPEG or WebP) and `--brand-colour '#486A38'`, checked as Settings checks them.
 
 7. Fill it with a few weeks of fictional work, so every screen has something to show (about half an hour on the instance):
@@ -50,10 +52,10 @@ From the repository root, with Docker running:
 
 `pnpm --filter @thelamp/api demo:content --tenant <slug>` (locally) or `demo.sh content` (on the instance) fills a demo tenant that has only its admin. It reads the tenant's own configuration, so it works for any template, and makes:
 
-- territories down to markets around Nashik (real towns), and a team: a head manager, two group managers and eight field people, the demo numbers among them (the second number a group manager, the third one of his field people); the rest are fictional and never sign in;
-- distributors and shops in each market, with codes, locations and slots; a few fictional products when a form offers the catalogue;
+- territories down to markets around Nashik (real towns), and a team: a head manager of the second-lowest manager level, two group managers of the lowest and eight field people, the demo numbers among them (the second number a group manager, the third one of his field people); the rest are fictional and never sign in;
+- the accounts of each market, with codes, locations, slots and the fields their types require: suppliers, the businesses they supply and people such as farmers or doctors, named in the words of the tenant's industry (agri or pharma, decision D97); a few fictional products when a form offers the catalogue or lists items;
 - each month's targets, set and locked by the managers;
-- every working day (Sundays off, a few absences): the managers' plans, punch-in, a trail of points, planned visits with a form and photos, farmer activities in villages, punch-out, and the managers' reviews, except the last two days', which wait; today stops at the present, so people are on duty;
+- every working day (Sundays off, a few absences): the managers' plans, punch-in, a trail of points, planned visits to the accounts each person holds with an order now and then and a form with photos (item lines, dates within the field's limits, and a signature where the form needs one), activities without an account such as farmer meetings or CMEs, punch-out, and the managers' reviews, except the last two days', which wait; today stops at the present, so people are on duty;
 - what the nightly jobs would do: missed plans and everyone's attendance.
 
 It runs the app's own services as each person, on a simulated clock set to each moment, so every rule applies and the events work out attendance, metrics and leaderboards. At the end it releases the fictional phones of the demo numbers, so real phones can sign in with them.

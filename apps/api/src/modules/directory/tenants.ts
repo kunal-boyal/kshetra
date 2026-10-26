@@ -163,9 +163,14 @@ export class DirectoryTenants extends TenantDirectory {
 
   async bySlug(
     slug: string,
-  ): Promise<{ id: string; status: TenantStatus; demo: boolean } | undefined> {
+  ): Promise<{ id: string; status: TenantStatus; demo: boolean; templateKey: string } | undefined> {
     const [tenant] = await this.database.db
-      .select({ id: tenants.id, status: tenants.status, demo: tenants.demo })
+      .select({
+        id: tenants.id,
+        status: tenants.status,
+        demo: tenants.demo,
+        templateKey: tenants.templateKey,
+      })
       .from(tenants)
       .where(eq(tenants.slug, slug));
     return tenant;

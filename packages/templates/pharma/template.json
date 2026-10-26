@@ -1,0 +1,1756 @@
+{
+  "$schema": "../schema.json",
+  "key": "pharma",
+  "version": 1,
+  "name": {
+    "en": "Pharma",
+    "hi": "फ़ार्मा"
+  },
+  "description": {
+    "en": "For pharmaceutical companies: doctors by class, chemists, stockists and hospitals; doctor calls with products detailed, samples signed for and gifts; chemist calls with orders; CMEs and camps; coverage and call frequency by class.",
+    "hi": "दवा कंपनियों के लिए: श्रेणी के हिसाब से डॉक्टर, केमिस्ट, स्टॉकिस्ट और अस्पताल; डॉक्टर कॉल जिनमें उत्पादों की जानकारी, हस्ताक्षर के साथ सैंपल और गिफ़्ट दर्ज होते हैं; ऑर्डर के साथ केमिस्ट कॉल; सीएमई और कैंप; श्रेणी के हिसाब से कवरेज और कॉल फ़्रीक्वेंसी।"
+  },
+  "terminology": {
+    "term.field_user": {
+      "en": {
+        "one": "MR",
+        "other": "MRs"
+      },
+      "hi": {
+        "one": "एमआर",
+        "other": "एमआर"
+      }
+    },
+    "term.activity": {
+      "en": {
+        "one": "Call",
+        "other": "Calls"
+      },
+      "hi": {
+        "one": "कॉल",
+        "other": "कॉल"
+      }
+    },
+    "term.journey_plan": {
+      "en": {
+        "one": "Tour plan",
+        "other": "Tour plans"
+      },
+      "hi": {
+        "one": "टूर प्लान",
+        "other": "टूर प्लान"
+      }
+    },
+    "term.order": {
+      "en": {
+        "one": "POB",
+        "other": "POBs"
+      },
+      "hi": {
+        "one": "पीओबी",
+        "other": "पीओबी"
+      }
+    }
+  },
+  "roles": [
+    {
+      "key": "tenant_admin",
+      "name": {
+        "en": "Admin",
+        "hi": "एडमिन"
+      },
+      "scope": "tenant",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "review_rules.manage",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "target.unlock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "metric.record",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.manage",
+        "user.reset_device",
+        "user.sign_out_all",
+        "role.manage",
+        "designation.manage",
+        "territory.manage",
+        "account.view",
+        "account.manage",
+        "account.import",
+        "account.approve",
+        "settings.manage",
+        "terminology.manage",
+        "form.manage",
+        "metric.manage",
+        "workflow.manage",
+        "policy.manage",
+        "notification_template.manage",
+        "module.manage",
+        "catalogue.manage",
+        "price_list.manage",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.decide",
+        "order.line_decide",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "calendar.manage",
+        "leave_type.manage",
+        "expense_policy.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run",
+        "audit.view",
+        "api_client.manage",
+        "webhook.manage",
+        "billing.manage"
+      ]
+    },
+    {
+      "key": "business_head",
+      "name": {
+        "en": "Business head",
+        "hi": "बिज़नेस हेड"
+      },
+      "scope": "tenant",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "review_rules.manage",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "target.unlock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "metric.record",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.manage",
+        "user.reset_device",
+        "user.sign_out_all",
+        "role.manage",
+        "designation.manage",
+        "territory.manage",
+        "account.view",
+        "account.manage",
+        "account.import",
+        "account.approve",
+        "settings.manage",
+        "terminology.manage",
+        "form.manage",
+        "metric.manage",
+        "workflow.manage",
+        "policy.manage",
+        "notification_template.manage",
+        "module.manage",
+        "catalogue.manage",
+        "price_list.manage",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.decide",
+        "order.line_decide",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "calendar.manage",
+        "leave_type.manage",
+        "expense_policy.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run",
+        "audit.view"
+      ]
+    },
+    {
+      "key": "manager",
+      "name": {
+        "en": "Manager",
+        "hi": "मैनेजर"
+      },
+      "scope": "team",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.reset_device",
+        "user.sign_out_all",
+        "account.view",
+        "account.approve",
+        "order.create",
+        "order.view",
+        "order.decide",
+        "finance.view",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "payslip.view",
+        "report.view",
+        "export.create"
+      ]
+    },
+    {
+      "key": "field_user",
+      "name": {
+        "en": "Field user",
+        "hi": "फ़ील्ड यूज़र"
+      },
+      "scope": "self",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "target.view",
+        "leaderboard.view",
+        "account.view",
+        "order.create",
+        "order.view",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "payslip.view",
+        "finance.view"
+      ],
+      "mobileOnly": true
+    },
+    {
+      "key": "back_office",
+      "name": {
+        "en": "Back office",
+        "hi": "बैक ऑफ़िस"
+      },
+      "scope": "tenant",
+      "permissions": [
+        "user.view",
+        "account.view",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run"
+      ]
+    },
+    {
+      "key": "viewer",
+      "name": {
+        "en": "Viewer",
+        "hi": "व्यूअर"
+      },
+      "scope": "tenant",
+      "permissions": [
+        "target.view",
+        "performance.view_team",
+        "leaderboard.view",
+        "account.view",
+        "order.view",
+        "report.view"
+      ]
+    }
+  ],
+  "designations": [
+    {
+      "key": "business_head",
+      "name": {
+        "en": {
+          "one": "Business Head",
+          "other": "Business Heads"
+        },
+        "hi": {
+          "one": "बिज़नेस हेड",
+          "other": "बिज़नेस हेड"
+        }
+      },
+      "level": 1,
+      "defaultRole": "business_head",
+      "canHaveReports": true
+    },
+    {
+      "key": "zsm",
+      "name": {
+        "en": {
+          "one": "ZSM",
+          "other": "ZSMs"
+        },
+        "hi": {
+          "one": "ज़ेडएसएम",
+          "other": "ज़ेडएसएम"
+        }
+      },
+      "level": 2,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "rsm",
+      "name": {
+        "en": {
+          "one": "RSM",
+          "other": "RSMs"
+        },
+        "hi": {
+          "one": "आरएसएम",
+          "other": "आरएसएम"
+        }
+      },
+      "level": 3,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "abm",
+      "name": {
+        "en": {
+          "one": "ABM",
+          "other": "ABMs"
+        },
+        "hi": {
+          "one": "एबीएम",
+          "other": "एबीएम"
+        }
+      },
+      "level": 4,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "mr",
+      "name": {
+        "en": {
+          "one": "MR",
+          "other": "MRs"
+        },
+        "hi": {
+          "one": "एमआर",
+          "other": "एमआर"
+        }
+      },
+      "level": 5,
+      "defaultRole": "field_user",
+      "canHaveReports": false,
+      "ranked": true
+    }
+  ],
+  "geographyLevels": [
+    {
+      "key": "zone",
+      "name": {
+        "en": {
+          "one": "Zone",
+          "other": "Zones"
+        },
+        "hi": {
+          "one": "ज़ोन",
+          "other": "ज़ोन"
+        }
+      }
+    },
+    {
+      "key": "region",
+      "name": {
+        "en": {
+          "one": "Region",
+          "other": "Regions"
+        },
+        "hi": {
+          "one": "रीजन",
+          "other": "रीजन"
+        }
+      }
+    },
+    {
+      "key": "hq",
+      "name": {
+        "en": {
+          "one": "HQ",
+          "other": "HQs"
+        },
+        "hi": {
+          "one": "मुख्यालय",
+          "other": "मुख्यालय"
+        }
+      }
+    },
+    {
+      "key": "patch",
+      "name": {
+        "en": {
+          "one": "Patch",
+          "other": "Patches"
+        },
+        "hi": {
+          "one": "पैच",
+          "other": "पैच"
+        }
+      }
+    }
+  ],
+  "userFields": [
+    {
+      "key": "hq",
+      "type": "short_text",
+      "label": {
+        "en": "HQ",
+        "hi": "मुख्यालय"
+      }
+    }
+  ],
+  "accountTypes": [
+    {
+      "key": "doctor",
+      "name": {
+        "en": {
+          "one": "Doctor",
+          "other": "Doctors"
+        },
+        "hi": {
+          "one": "डॉक्टर",
+          "other": "डॉक्टर"
+        }
+      },
+      "icon": "stethoscope",
+      "parentTypes": ["hospital"],
+      "code": {
+        "mode": "auto",
+        "prefix": "DR"
+      },
+      "fields": [
+        {
+          "key": "speciality",
+          "type": "single_select",
+          "label": {
+            "en": "Speciality",
+            "hi": "विशेषज्ञता"
+          },
+          "options": [
+            {
+              "key": "general_physician",
+              "label": {
+                "en": "General physician",
+                "hi": "जनरल फ़िज़िशियन"
+              }
+            },
+            {
+              "key": "paediatrics",
+              "label": {
+                "en": "Paediatrics",
+                "hi": "बाल रोग"
+              }
+            },
+            {
+              "key": "gynaecology",
+              "label": {
+                "en": "Gynaecology",
+                "hi": "स्त्री रोग"
+              }
+            },
+            {
+              "key": "cardiology",
+              "label": {
+                "en": "Cardiology",
+                "hi": "हृदय रोग"
+              }
+            },
+            {
+              "key": "diabetology",
+              "label": {
+                "en": "Diabetology",
+                "hi": "मधुमेह रोग"
+              }
+            },
+            {
+              "key": "orthopaedics",
+              "label": {
+                "en": "Orthopaedics",
+                "hi": "हड्डी रोग"
+              }
+            },
+            {
+              "key": "dermatology",
+              "label": {
+                "en": "Dermatology",
+                "hi": "त्वचा रोग"
+              }
+            },
+            {
+              "key": "ent",
+              "label": {
+                "en": "ENT",
+                "hi": "नाक, कान, गला"
+              }
+            },
+            {
+              "key": "other",
+              "label": {
+                "en": "Other",
+                "hi": "अन्य"
+              }
+            }
+          ]
+        },
+        {
+          "key": "qualification",
+          "type": "short_text",
+          "label": {
+            "en": "Qualification",
+            "hi": "योग्यता"
+          }
+        },
+        {
+          "key": "class",
+          "type": "single_select",
+          "label": {
+            "en": "Class",
+            "hi": "श्रेणी"
+          },
+          "required": true,
+          "options": [
+            {
+              "key": "a",
+              "label": {
+                "en": "A",
+                "hi": "ए"
+              }
+            },
+            {
+              "key": "b",
+              "label": {
+                "en": "B",
+                "hi": "बी"
+              }
+            },
+            {
+              "key": "c",
+              "label": {
+                "en": "C",
+                "hi": "सी"
+              }
+            }
+          ]
+        },
+        {
+          "key": "registration_no",
+          "type": "short_text",
+          "label": {
+            "en": "Registration number",
+            "hi": "पंजीकरण नंबर"
+          }
+        }
+      ],
+      "location": {
+        "required": false,
+        "geofenceRadiusM": 150,
+        "geofencePolicy": "advisory",
+        "fieldUsersMayPropose": true
+      },
+      "creation": "field_users_with_approval",
+      "slots": [
+        {
+          "key": "mr",
+          "name": {
+            "en": "MR",
+            "hi": "एमआर"
+          },
+          "designations": ["mr"],
+          "priority": 1
+        },
+        {
+          "key": "abm",
+          "name": {
+            "en": "ABM",
+            "hi": "एबीएम"
+          },
+          "designations": ["abm"],
+          "priority": 2
+        }
+      ],
+      "segmentRules": [
+        {
+          "segment": "class_a",
+          "name": {
+            "en": "Class A",
+            "hi": "श्रेणी ए"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "class",
+                "op": "eq",
+                "value": "a"
+              }
+            ]
+          }
+        },
+        {
+          "segment": "class_b",
+          "name": {
+            "en": "Class B",
+            "hi": "श्रेणी बी"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "class",
+                "op": "eq",
+                "value": "b"
+              }
+            ]
+          }
+        },
+        {
+          "segment": "class_c",
+          "name": {
+            "en": "Class C",
+            "hi": "श्रेणी सी"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "class",
+                "op": "eq",
+                "value": "c"
+              }
+            ]
+          }
+        }
+      ],
+      "visitFrequencyNorms": [
+        {
+          "segment": "class_a",
+          "visitsPerMonth": 4
+        },
+        {
+          "segment": "class_b",
+          "visitsPerMonth": 2
+        },
+        {
+          "segment": "class_c",
+          "visitsPerMonth": 1
+        }
+      ]
+    },
+    {
+      "key": "chemist",
+      "name": {
+        "en": {
+          "one": "Chemist",
+          "other": "Chemists"
+        },
+        "hi": {
+          "one": "केमिस्ट",
+          "other": "केमिस्ट"
+        }
+      },
+      "icon": "pill",
+      "parentTypes": ["stockist"],
+      "code": {
+        "mode": "auto",
+        "prefix": "CH"
+      },
+      "fields": [
+        {
+          "key": "drug_licence_no",
+          "type": "short_text",
+          "label": {
+            "en": "Drug licence number",
+            "hi": "ड्रग लाइसेंस नंबर"
+          }
+        }
+      ],
+      "location": {
+        "required": false,
+        "geofencePolicy": "advisory",
+        "fieldUsersMayPropose": true
+      },
+      "creation": "admins",
+      "slots": [
+        {
+          "key": "mr",
+          "name": {
+            "en": "MR",
+            "hi": "एमआर"
+          },
+          "designations": ["mr"],
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "key": "stockist",
+      "name": {
+        "en": {
+          "one": "Stockist",
+          "other": "Stockists"
+        },
+        "hi": {
+          "one": "स्टॉकिस्ट",
+          "other": "स्टॉकिस्ट"
+        }
+      },
+      "icon": "warehouse",
+      "code": {
+        "mode": "manual"
+      },
+      "fields": [
+        {
+          "key": "drug_licence_no",
+          "type": "short_text",
+          "label": {
+            "en": "Drug licence number",
+            "hi": "ड्रग लाइसेंस नंबर"
+          }
+        },
+        {
+          "key": "gstin",
+          "type": "short_text",
+          "label": {
+            "en": "GSTIN",
+            "hi": "जीएसटीआईएन"
+          },
+          "pattern": "[0-9]{2}[A-Z0-9]{13}"
+        },
+        {
+          "key": "credit_limit",
+          "type": "currency",
+          "label": {
+            "en": "Credit limit",
+            "hi": "क्रेडिट सीमा"
+          }
+        }
+      ],
+      "location": {
+        "required": false,
+        "geofenceRadiusM": 300,
+        "geofencePolicy": "advisory",
+        "fieldUsersMayPropose": true
+      },
+      "creation": "admins",
+      "slots": [
+        {
+          "key": "abm",
+          "name": {
+            "en": "ABM",
+            "hi": "एबीएम"
+          },
+          "designations": ["abm"],
+          "priority": 1
+        },
+        {
+          "key": "rsm",
+          "name": {
+            "en": "RSM",
+            "hi": "आरएसएम"
+          },
+          "designations": ["rsm"],
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "key": "hospital",
+      "name": {
+        "en": {
+          "one": "Hospital",
+          "other": "Hospitals"
+        },
+        "hi": {
+          "one": "अस्पताल",
+          "other": "अस्पताल"
+        }
+      },
+      "icon": "hospital",
+      "code": {
+        "mode": "auto",
+        "prefix": "HS"
+      },
+      "fields": [
+        {
+          "key": "beds",
+          "type": "number",
+          "label": {
+            "en": "Beds",
+            "hi": "बिस्तर"
+          },
+          "min": 0
+        },
+        {
+          "key": "type",
+          "type": "single_select",
+          "label": {
+            "en": "Type",
+            "hi": "प्रकार"
+          },
+          "options": [
+            {
+              "key": "private",
+              "label": {
+                "en": "Private",
+                "hi": "निजी"
+              }
+            },
+            {
+              "key": "government",
+              "label": {
+                "en": "Government",
+                "hi": "सरकारी"
+              }
+            },
+            {
+              "key": "nursing_home",
+              "label": {
+                "en": "Nursing home",
+                "hi": "नर्सिंग होम"
+              }
+            },
+            {
+              "key": "clinic",
+              "label": {
+                "en": "Clinic",
+                "hi": "क्लिनिक"
+              }
+            }
+          ]
+        }
+      ],
+      "location": {
+        "required": false,
+        "geofenceRadiusM": 200,
+        "geofencePolicy": "advisory",
+        "fieldUsersMayPropose": true
+      },
+      "creation": "admins",
+      "slots": [
+        {
+          "key": "mr",
+          "name": {
+            "en": "MR",
+            "hi": "एमआर"
+          },
+          "designations": ["mr"],
+          "priority": 1
+        },
+        {
+          "key": "abm",
+          "name": {
+            "en": "ABM",
+            "hi": "एबीएम"
+          },
+          "designations": ["abm"],
+          "priority": 2
+        }
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "key": "doctor_call",
+      "name": {
+        "en": {
+          "one": "Doctor call",
+          "other": "Doctor calls"
+        },
+        "hi": {
+          "one": "डॉक्टर कॉल",
+          "other": "डॉक्टर कॉल"
+        }
+      },
+      "description": {
+        "en": "A call on a doctor: the products detailed, samples and gifts given, and what the doctor committed to",
+        "hi": "डॉक्टर से कॉल: किन उत्पादों की जानकारी दी, कौन से सैंपल और गिफ़्ट दिए, और डॉक्टर ने क्या भरोसा दिया"
+      },
+      "icon": "stethoscope",
+      "accountLink": {
+        "mode": "required",
+        "accountTypes": ["doctor"]
+      },
+      "visitSession": true,
+      "photos": {
+        "min": 0,
+        "max": 3
+      },
+      "signature": "optional",
+      "signatureRequiredWhen": {
+        "clauses": [
+          {
+            "field": "samples",
+            "op": "is_not_empty"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "key": "products_detailed",
+          "type": "product_lines",
+          "label": {
+            "en": "Products detailed",
+            "hi": "जिन उत्पादों की जानकारी दी"
+          },
+          "required": true,
+          "quantities": false,
+          "maxLines": 10
+        },
+        {
+          "key": "samples",
+          "type": "product_lines",
+          "label": {
+            "en": "Samples given",
+            "hi": "दिए गए सैंपल"
+          },
+          "maxLines": 10
+        },
+        {
+          "key": "gifts",
+          "type": "product_lines",
+          "label": {
+            "en": "Gifts given",
+            "hi": "दिए गए गिफ़्ट"
+          },
+          "maxLines": 5
+        },
+        {
+          "key": "rx_commitment",
+          "type": "long_text",
+          "label": {
+            "en": "Prescription commitment",
+            "hi": "प्रिस्क्रिप्शन का भरोसा"
+          }
+        },
+        {
+          "key": "next_call_date",
+          "type": "date",
+          "label": {
+            "en": "Next call",
+            "hi": "अगली कॉल"
+          },
+          "minDaysFromToday": 1,
+          "maxDaysFromToday": 60
+        }
+      ]
+    },
+    {
+      "key": "chemist_call",
+      "name": {
+        "en": {
+          "one": "Chemist call",
+          "other": "Chemist calls"
+        },
+        "hi": {
+          "one": "केमिस्ट कॉल",
+          "other": "केमिस्ट कॉल"
+        }
+      },
+      "description": {
+        "en": "A call on a chemist: a stock check, and an order taken in the visit",
+        "hi": "केमिस्ट से कॉल: स्टॉक की जाँच, और विज़िट में लिया गया ऑर्डर"
+      },
+      "icon": "pill",
+      "accountLink": {
+        "mode": "required",
+        "accountTypes": ["chemist"]
+      },
+      "visitSession": true,
+      "fields": [
+        {
+          "key": "stock_check",
+          "type": "product_lines",
+          "label": {
+            "en": "Stock check",
+            "hi": "स्टॉक की जाँच"
+          },
+          "maxLines": 20
+        },
+        {
+          "key": "remarks",
+          "type": "long_text",
+          "label": {
+            "en": "Remarks",
+            "hi": "टिप्पणी"
+          }
+        }
+      ]
+    },
+    {
+      "key": "stockist_visit",
+      "name": {
+        "en": {
+          "one": "Stockist visit",
+          "other": "Stockist visits"
+        },
+        "hi": {
+          "one": "स्टॉकिस्ट विज़िट",
+          "other": "स्टॉकिस्ट विज़िट"
+        }
+      },
+      "description": {
+        "en": "A visit to a stockist for stock, orders or collection",
+        "hi": "स्टॉक, ऑर्डर या वसूली के लिए स्टॉकिस्ट से मुलाक़ात"
+      },
+      "icon": "warehouse",
+      "accountLink": {
+        "mode": "required",
+        "accountTypes": ["stockist"]
+      },
+      "visitSession": true,
+      "fields": [
+        {
+          "key": "purpose",
+          "type": "single_select",
+          "label": {
+            "en": "Purpose",
+            "hi": "उद्देश्य"
+          },
+          "options": [
+            {
+              "key": "stock_review",
+              "label": {
+                "en": "Stock review",
+                "hi": "स्टॉक की समीक्षा"
+              }
+            },
+            {
+              "key": "collection",
+              "label": {
+                "en": "Collection",
+                "hi": "वसूली"
+              }
+            },
+            {
+              "key": "expiry_returns",
+              "label": {
+                "en": "Expiry and returns",
+                "hi": "एक्सपायरी और वापसी"
+              }
+            },
+            {
+              "key": "relationship",
+              "label": {
+                "en": "Relationship or follow-up",
+                "hi": "संबंध या फ़ॉलो-अप"
+              }
+            }
+          ]
+        },
+        {
+          "key": "outcome",
+          "type": "long_text",
+          "label": {
+            "en": "Outcome",
+            "hi": "परिणाम"
+          },
+          "required": true
+        },
+        {
+          "key": "collection",
+          "type": "currency",
+          "label": {
+            "en": "Collection",
+            "hi": "वसूली"
+          }
+        }
+      ]
+    },
+    {
+      "key": "cme_camp",
+      "name": {
+        "en": {
+          "one": "CME or camp",
+          "other": "CMEs and camps"
+        },
+        "hi": {
+          "one": "सीएमई या कैंप",
+          "other": "सीएमई और कैंप"
+        }
+      },
+      "description": {
+        "en": "A continuing medical education meeting or a health camp",
+        "hi": "सतत चिकित्सा शिक्षा (सीएमई) मीटिंग या स्वास्थ्य कैंप"
+      },
+      "icon": "presentation",
+      "photos": {
+        "min": 1,
+        "max": 5
+      },
+      "fields": [
+        {
+          "key": "topic",
+          "type": "short_text",
+          "label": {
+            "en": "Topic",
+            "hi": "विषय"
+          },
+          "required": true
+        },
+        {
+          "key": "doctors_attended",
+          "type": "number",
+          "label": {
+            "en": "Doctors attended",
+            "hi": "उपस्थित डॉक्टर"
+          },
+          "required": true,
+          "min": 1,
+          "max": 500
+        },
+        {
+          "key": "venue",
+          "type": "short_text",
+          "label": {
+            "en": "Venue",
+            "hi": "स्थान"
+          },
+          "required": true
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "key": "doctor_calls",
+      "name": {
+        "en": {
+          "one": "Doctor call",
+          "other": "Doctor calls"
+        },
+        "hi": {
+          "one": "डॉक्टर कॉल",
+          "other": "डॉक्टर कॉल"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "submission_count",
+        "forms": ["doctor_call"]
+      }
+    },
+    {
+      "key": "doctors_covered",
+      "name": {
+        "en": {
+          "one": "Doctor covered",
+          "other": "Doctors covered"
+        },
+        "hi": {
+          "one": "कवर किए गए डॉक्टर",
+          "other": "कवर किए गए डॉक्टर"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "distinct_accounts_visited",
+        "forms": ["doctor_call"],
+        "accountTypes": ["doctor"]
+      }
+    },
+    {
+      "key": "doctor_coverage",
+      "name": {
+        "en": {
+          "one": "Doctor coverage",
+          "other": "Doctor coverage"
+        },
+        "hi": {
+          "one": "डॉक्टर कवरेज",
+          "other": "डॉक्टर कवरेज"
+        }
+      },
+      "unit": "percent",
+      "source": {
+        "type": "coverage_percent",
+        "forms": ["doctor_call"],
+        "accountTypes": ["doctor"]
+      }
+    },
+    {
+      "key": "coverage_class_a",
+      "name": {
+        "en": {
+          "one": "Class A coverage",
+          "other": "Class A coverage"
+        },
+        "hi": {
+          "one": "श्रेणी ए कवरेज",
+          "other": "श्रेणी ए कवरेज"
+        }
+      },
+      "unit": "percent",
+      "source": {
+        "type": "coverage_percent",
+        "forms": ["doctor_call"],
+        "accountTypes": ["doctor"],
+        "segment": "class_a"
+      }
+    },
+    {
+      "key": "coverage_class_b",
+      "name": {
+        "en": {
+          "one": "Class B coverage",
+          "other": "Class B coverage"
+        },
+        "hi": {
+          "one": "श्रेणी बी कवरेज",
+          "other": "श्रेणी बी कवरेज"
+        }
+      },
+      "unit": "percent",
+      "source": {
+        "type": "coverage_percent",
+        "forms": ["doctor_call"],
+        "accountTypes": ["doctor"],
+        "segment": "class_b"
+      }
+    },
+    {
+      "key": "coverage_class_c",
+      "name": {
+        "en": {
+          "one": "Class C coverage",
+          "other": "Class C coverage"
+        },
+        "hi": {
+          "one": "श्रेणी सी कवरेज",
+          "other": "श्रेणी सी कवरेज"
+        }
+      },
+      "unit": "percent",
+      "source": {
+        "type": "coverage_percent",
+        "forms": ["doctor_call"],
+        "accountTypes": ["doctor"],
+        "segment": "class_c"
+      }
+    },
+    {
+      "key": "call_frequency",
+      "name": {
+        "en": {
+          "one": "Call frequency compliance",
+          "other": "Call frequency compliance"
+        },
+        "hi": {
+          "one": "कॉल फ़्रीक्वेंसी पालन",
+          "other": "कॉल फ़्रीक्वेंसी पालन"
+        }
+      },
+      "unit": "percent",
+      "source": {
+        "type": "frequency_compliance_percent",
+        "forms": ["doctor_call"],
+        "accountTypes": ["doctor"]
+      }
+    },
+    {
+      "key": "chemist_calls",
+      "name": {
+        "en": {
+          "one": "Chemist call",
+          "other": "Chemist calls"
+        },
+        "hi": {
+          "one": "केमिस्ट कॉल",
+          "other": "केमिस्ट कॉल"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "submission_count",
+        "forms": ["chemist_call"]
+      }
+    },
+    {
+      "key": "samples_distributed",
+      "name": {
+        "en": {
+          "one": "Sample distributed",
+          "other": "Samples distributed"
+        },
+        "hi": {
+          "one": "बाँटे गए सैंपल",
+          "other": "बाँटे गए सैंपल"
+        }
+      },
+      "unit": "quantity",
+      "source": {
+        "type": "product_line_sum",
+        "forms": ["doctor_call"],
+        "field": "samples",
+        "column": "quantity"
+      }
+    },
+    {
+      "key": "pob_value",
+      "name": {
+        "en": {
+          "one": "POB value",
+          "other": "POB value"
+        },
+        "hi": {
+          "one": "पीओबी मूल्य",
+          "other": "पीओबी मूल्य"
+        }
+      },
+      "unit": "currency",
+      "source": {
+        "type": "order_value",
+        "statuses": ["accepted", "partially_accepted", "partially_fulfilled", "fulfilled"],
+        "amount": "before_tax"
+      }
+    },
+    {
+      "key": "active_days",
+      "name": {
+        "en": {
+          "one": "Active day",
+          "other": "Active days"
+        },
+        "hi": {
+          "one": "सक्रिय दिन",
+          "other": "सक्रिय दिन"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "active_days",
+        "forms": ["doctor_call", "chemist_call", "stockist_visit", "cme_camp"]
+      }
+    },
+    {
+      "key": "prescription_value",
+      "name": {
+        "en": {
+          "one": "Prescription value",
+          "other": "Prescription value"
+        },
+        "hi": {
+          "one": "प्रिस्क्रिप्शन मूल्य",
+          "other": "प्रिस्क्रिप्शन मूल्य"
+        }
+      },
+      "unit": "currency",
+      "source": {
+        "type": "external"
+      }
+    }
+  ],
+  "score": {
+    "cap": 1,
+    "metrics": [
+      {
+        "metric": "doctor_calls",
+        "weight": 30
+      },
+      {
+        "metric": "doctor_coverage",
+        "weight": 30
+      },
+      {
+        "metric": "call_frequency",
+        "weight": 20
+      },
+      {
+        "metric": "pob_value",
+        "weight": 20
+      }
+    ]
+  },
+  "workflows": {
+    "fallbackRole": "business_head",
+    "definitions": [
+      {
+        "requestType": "journey_plan",
+        "steps": [
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "abm"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "leave",
+        "steps": [
+          {
+            "approver": {
+              "type": "reporting_manager"
+            }
+          },
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "rsm"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "regularisation",
+        "steps": [
+          {
+            "approver": {
+              "type": "reporting_manager"
+            }
+          },
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "rsm"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "expense",
+        "steps": [
+          {
+            "approver": {
+              "type": "reporting_manager"
+            }
+          },
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "rsm"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "new_account",
+        "steps": [
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "abm"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "order",
+        "steps": [
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "abm"
+            }
+          },
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "rsm"
+            },
+            "lineDecisions": true
+          }
+        ]
+      }
+    ]
+  },
+  "people": {
+    "calendars": [
+      {
+        "key": "standard",
+        "name": {
+          "en": "Standard",
+          "hi": "सामान्य"
+        },
+        "weeklyOffs": [7]
+      }
+    ],
+    "defaultCalendar": "standard",
+    "attendance": {
+      "rule": "punch_is_present"
+    },
+    "leaveTypes": [
+      {
+        "key": "casual",
+        "name": {
+          "en": "Casual leave",
+          "hi": "आकस्मिक अवकाश"
+        },
+        "paid": true,
+        "annualQuota": 12,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true
+      },
+      {
+        "key": "sick",
+        "name": {
+          "en": "Sick leave",
+          "hi": "बीमारी अवकाश"
+        },
+        "paid": true,
+        "annualQuota": 12,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true,
+        "attachmentAfterDays": 2
+      },
+      {
+        "key": "unpaid",
+        "name": {
+          "en": "Unpaid leave",
+          "hi": "अवैतनिक अवकाश"
+        },
+        "paid": false,
+        "annualQuota": 0,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true
+      }
+    ],
+    "expensePolicies": [
+      {
+        "key": "fuel",
+        "name": {
+          "en": "Fuel",
+          "hi": "ईंधन"
+        },
+        "category": "travel",
+        "calculation": "per_km",
+        "rate": {
+          "flat": "3.50"
+        },
+        "odometerPhotosRequired": true
+      },
+      {
+        "key": "daily_allowance",
+        "name": {
+          "en": "Daily allowance",
+          "hi": "दैनिक भत्ता"
+        },
+        "category": "daily_allowance",
+        "calculation": "per_day",
+        "rate": {
+          "byDesignation": {
+            "business_head": "900",
+            "zsm": "750",
+            "rsm": "600",
+            "abm": "450",
+            "mr": "300"
+          }
+        }
+      }
+    ]
+  },
+  "catalogue": {
+    "units": [
+      {
+        "key": "strip",
+        "name": {
+          "en": {
+            "one": "Strip",
+            "other": "Strips"
+          },
+          "hi": {
+            "one": "स्ट्रिप",
+            "other": "स्ट्रिप"
+          }
+        },
+        "base": true
+      },
+      {
+        "key": "box",
+        "name": {
+          "en": {
+            "one": "Box",
+            "other": "Boxes"
+          },
+          "hi": {
+            "one": "बॉक्स",
+            "other": "बॉक्स"
+          }
+        },
+        "base": false
+      }
+    ],
+    "rounding": "per_unit_first",
+    "itemFields": [
+      {
+        "key": "composition",
+        "type": "short_text",
+        "label": {
+          "en": "Composition",
+          "hi": "संरचना"
+        }
+      },
+      {
+        "key": "schedule",
+        "type": "single_select",
+        "label": {
+          "en": "Schedule",
+          "hi": "शेड्यूल"
+        },
+        "options": [
+          {
+            "key": "h",
+            "label": {
+              "en": "H",
+              "hi": "एच"
+            }
+          },
+          {
+            "key": "h1",
+            "label": {
+              "en": "H1",
+              "hi": "एच1"
+            }
+          },
+          {
+            "key": "otc",
+            "label": {
+              "en": "Over the counter",
+              "hi": "बिना पर्चे के"
+            }
+          }
+        ]
+      }
+    ],
+    "rejectionReasons": [
+      {
+        "key": "overdue",
+        "name": {
+          "en": "Overdue",
+          "hi": "भुगतान बकाया"
+        }
+      },
+      {
+        "key": "credit_limit_exceeded",
+        "name": {
+          "en": "Credit limit exceeded",
+          "hi": "क्रेडिट सीमा पार"
+        }
+      },
+      {
+        "key": "no_stock",
+        "name": {
+          "en": "No stock",
+          "hi": "स्टॉक नहीं है"
+        }
+      },
+      {
+        "key": "near_expiry",
+        "name": {
+          "en": "Near expiry",
+          "hi": "एक्सपायरी नज़दीक"
+        }
+      }
+    ]
+  },
+  "imports": {
+    "users": {
+      "aliases": {
+        "code": ["employeeid", "employeecode", "empid"],
+        "mobile": ["phoneno", "mobile", "mobileno", "contactno"],
+        "reports_to": ["reporting", "reportingmanager", "reportsto", "manager"],
+        "joining_date": ["dateofjoining", "doj"],
+        "custom.hq": ["hq", "headquarters"]
+      }
+    },
+    "accounts": {
+      "doctor": {
+        "aliases": {
+          "code": ["doctorcode", "drcode"],
+          "name": ["doctorname", "nameofdoctor", "drname"],
+          "custom.speciality": ["speciality", "specialty", "spl"],
+          "custom.qualification": ["qualification", "degree"],
+          "custom.class": ["class", "category", "doctorclass"],
+          "custom.registration_no": ["registrationno", "regno", "mciregno"],
+          "slot.mr": ["mr", "mrname"],
+          "slot.abm": ["abm", "abmname"]
+        },
+        "emptyValues": ["-", "NA"]
+      },
+      "chemist": {
+        "aliases": {
+          "code": ["chemistcode"],
+          "name": ["chemistname", "nameofchemist", "pharmacyname"],
+          "custom.drug_licence_no": ["dlno", "druglicenceno", "druglicenseno"],
+          "slot.mr": ["mr", "mrname"]
+        },
+        "emptyValues": ["-", "NA"]
+      }
+    },
+    "items": {
+      "aliases": {
+        "product_name": ["brand", "brandname", "productname"],
+        "item_name": ["itemname", "skuname"],
+        "pack_label": ["packsize", "pack"],
+        "mrp": ["mrp", "mrpperstrip"],
+        "price": ["pts", "ptsperstrip", "ptr"],
+        "tax_rate": ["gstrate", "gst"],
+        "hsn": ["hsncode", "hsn"],
+        "case_factor": ["stripsperbox", "unitsperbox"],
+        "custom.composition": ["composition", "molecule", "salt"],
+        "custom.schedule": ["schedule"]
+      },
+      "fractions": ["tax_rate"]
+    }
+  }
+}

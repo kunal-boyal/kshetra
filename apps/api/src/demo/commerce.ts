@@ -18,6 +18,7 @@ import { TenantConfigService } from '../modules/tenant-config/tenant-config.serv
 import { ApprovalsService } from '../modules/workflow/approvals.service';
 import { userActor } from '../platform/audit';
 import { addDays, type DemoKit, type FieldPerson, type Person, type Place } from './kit';
+import { personType } from './names';
 
 /** An order the demo follows until it is delivered or turned down. */
 interface Followed {
@@ -58,16 +59,13 @@ export class DemoCommerce {
       (item) => item.active,
     );
     if (this.items.length === 0) return;
+    // People, such as doctors at a hospital, belong to their parent but buy nothing from it.
     const places = team.flatMap((person) => person.places);
-    const supplierIds = new Set(
-      places.flatMap((place) => (place.parentId ? [place.parentId] : [])),
-    );
+    const buyers = places.filter((place) => place.parentId && !personType(place.type));
+    const supplierIds = new Set(buyers.map((place) => place.parentId!));
     this.suppliers = places.filter((place) => supplierIds.has(place.id));
     const supplierTypes = new Set(this.suppliers.map((place) => place.type));
-    this.orderTypes = new Set([
-      ...supplierTypes,
-      ...places.filter((place) => place.parentId).map((place) => place.type),
-    ]);
+    this.orderTypes = new Set([...supplierTypes, ...buyers.map((place) => place.type)]);
 
     const lists = kit.get(PriceListsService);
     const actor = userActor(admin.access);
@@ -136,22 +134,22 @@ export class DemoCommerce {
     }
   }
 
-  /** Whether the person takes an order at a place, now and then. */
+  /** Whether the person takes an order at a place, now and then; true when one was placed. */
   async atVisit(
     person: FieldPerson,
     place: Place,
     visitId: string,
     at: number,
     fix: { location: GeoPoint; accuracy: number; mocked: boolean; capturedAt: string },
-  ): Promise<void> {
+  ): Promise<boolean> {
     const { kit } = this;
-    if (!this.orderTypes.has(place.type) || !kit.dice.chance(0.45)) return;
+    if (!this.orderTypes.has(place.type) || !kit.dice.chance(0.45)) return false;
     const date = new Date(at).toISOString().slice(0, 10);
     try {
       const offers = await kit.tx((tx) =>
         kit.get(PriceListsService).forAccount(tx, person.access, place.id, date),
       );
-      if (offers.items.length === 0) return;
+      if (offers.items.length === 0) return false;
       const chosen = kit.dice.shuffle(offers.items).slice(0, kit.dice.int(1, 4));
       const lines = chosen.flatMap((offer) => {
         const item = this.items.find((entry) => entry.id === offer.itemId);
@@ -177,7 +175,7 @@ export class DemoCommerce {
           },
         ];
       });
-      if (lines.length === 0) return;
+      if (lines.length === 0) return false;
       const placed = await kit.tx((tx) =>
         kit.get(OrdersService).place(
           tx,
@@ -199,8 +197,10 @@ export class DemoCommerce {
         company: placed.supplier.kind === 'company',
         placedOn: date,
       });
+      return true;
     } catch (error) {
       kit.once('order', error);
+      return false;
     }
   }
 

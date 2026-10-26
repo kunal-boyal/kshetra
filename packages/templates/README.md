@@ -6,6 +6,7 @@ A template is a tenant's starting configuration (spec 5.14 and Appendix A). The 
 |---|---|---|
 | Generic | [`generic/template.json`](generic/template.json) | Customers, visit and meeting forms, and metrics for visits, coverage and order value (spec A.1) |
 | Agri inputs | [`agri/template.json`](agri/template.json) | Distributors, retailers and farmers; farmer meetings, demos and distributor visits with sales, collection and liquidation; orders by the case (spec A.2) |
+| Pharma | [`pharma/template.json`](pharma/template.json) | Doctors by class, chemists, stockists and hospitals; doctor calls with products detailed, samples signed for and gifts; chemist calls with orders; CMEs and camps; coverage and call frequency by class (spec A.3) |
 
 ## What a template holds
 
@@ -70,10 +71,11 @@ The spec doesn't fix these, so the templates hold reasonable starting points. Re
 - Leave types: casual leave (12 days), sick leave (12 days, attachment after 2 days) and unpaid leave
 - The standard holiday calendar, with Sunday off; dated holidays are imported each year (spec B.7)
 - Agri inputs: fuel at ₹3.50 per km; a daily allowance of ₹250 to ₹750 by designation; the crop list
+- Pharma: fuel at ₹3.50 per km; a daily allowance of ₹300 to ₹900 by designation; the specialities; the order chain (ABM, then the RSM by line); visits a month by class (A 4, B 2, C 1)
 - The Hindi text, which needs a review by a native speaker before the pilot
 
 ## Not in templates yet
 
 - **Notification template choices and report presets** (spec 5.14). They arrive as optional sections with notifications (M16) and reports (M18) in phase 1.
 - **Workflow step conditions**, such as "only when `amount > 5000`" (spec 5.9). They arrive with the workflow engine in phase 2.
-- **What the pharma and FMCG templates need** (phase 3): a signature required only when samples are given, an order taken within a visit, and a field shown only when no order was placed.
+- **The FMCG template** (phase 3 step 8c). What it and pharma need from the form engine arrived in decision D97: a signature required by a condition (`signatureRequiredWhen`), whether the visit took an order (`visit_ordered` in conditions), and product lines without quantities (`quantities: false`).
