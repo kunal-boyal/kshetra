@@ -6,7 +6,7 @@ import { useAccess } from '../people/data';
  * Settings (spec 8.2, M2): the organisation, its rules, words and modules, then its roles,
  * designations, people fields, forms, catalogue and price lists, and the account types, territory levels and
  * metrics they work with, the holiday calendars, leave types and expense policies, who approves each kind of request, the whole configuration as a file
- * to export and import, single sign-on, vendor support's access, API clients and webhooks, the organisation's data export, and billing.
+ * to export and import, single sign-on, vendor support's access, API clients and webhooks, the organisation's data export, people's data requests, and billing.
  */
 export function SettingsLayout() {
   const { t } = useLanguage();
@@ -68,6 +68,9 @@ export function SettingsLayout() {
       : []),
     ...(access.can('settings.manage')
       ? [{ to: '/settings/data-export', label: t('data_export.title') }]
+      : []),
+    ...(access.can('settings.manage')
+      ? [{ to: '/settings/data-requests', label: t('data_requests.title') }]
       : []),
     ...(access.can('api_client.manage')
       ? [{ to: '/settings/api-clients', label: t('api_clients.title') }]

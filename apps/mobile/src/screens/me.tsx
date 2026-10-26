@@ -9,6 +9,7 @@ import {
   LogOut,
   ReceiptText,
   Repeat,
+  Shield,
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -144,6 +145,14 @@ export function MeScreen() {
           ) : null}
         </ListGroup>
       ) : null}
+
+      <ListGroup>
+        <ListRow
+          icon={Shield}
+          label={t('my_data.open')}
+          onPress={() => router.push('/data-requests')}
+        />
+      </ListGroup>
 
       {status ? (
         <ListGroup>

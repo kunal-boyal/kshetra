@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { LocalizedNoun, TenantPermission, UserStatus } from '@thelamp/shared';
 import type { z } from 'zod';
 import { and, asc, eq, gte, inArray, isNull, ne, or, type SQL, sql } from 'drizzle-orm';
-import { designations, reportingClosure, roles, users } from '../../db/schema/iam';
+import { designations, devices, reportingClosure, roles, users } from '../../db/schema/iam';
 import type { TenantTx } from '../../platform/database';
 
 /** What other modules may know of a person, whatever the caller's scope: no contact details. */
@@ -256,5 +256,35 @@ export class People {
       )
       .orderBy(asc(users.code));
     return found.map((row) => row.id);
+  }
+
+  /**
+   * Anonymises a deactivated person (decision D95): their name gives way to "Former employee"
+   * and their code, their phone number, email and custom fields go, and their phones forget their
+   * push tokens. Everything they did keeps pointing at this row, so the records stay whole.
+   */
+  async anonymise(tx: TenantTx, tenantId: string, userId: string): Promise<void> {
+    const [person] = await tx
+      .select({ code: users.code, status: users.status })
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.id, userId)))
+      .for('update');
+    if (!person) throw new Error(`There is no person ${userId}.`);
+    if (person.status === 'active') throw new Error('An active person is not erased.');
+    await tx
+      .update(users)
+      .set({
+        name: `Former employee ${person.code}`,
+        phoneE164: null,
+        email: null,
+        custom: {},
+        authRevision: sql`${users.authRevision} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(users.tenantId, tenantId), eq(users.id, userId)));
+    await tx
+      .update(devices)
+      .set({ pushToken: null })
+      .where(and(eq(devices.tenantId, tenantId), eq(devices.userId, userId)));
   }
 }

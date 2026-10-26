@@ -53,6 +53,11 @@ export interface MemberState {
 /** What a cell tells the directory whenever a user's sign-in facts change. */
 export abstract class MembershipSync {
   abstract sync(member: MemberState): Promise<void>;
+  /**
+   * Forgets an erased person (decision D95): their membership and sessions go, and their phone
+   * number too unless they belong to another organisation.
+   */
+  abstract forget(tenantId: string, userId: string): Promise<void>;
 }
 
 /** The tenant's status as the directory records it. Cells check it on every request (M1, rule 7). */

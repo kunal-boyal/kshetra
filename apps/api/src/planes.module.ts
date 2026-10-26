@@ -124,5 +124,9 @@ export class PlanesModule implements OnModuleInit {
         });
       },
     );
+    this.outbox.consume(['user.erased'], 'directory.forget', async (event) => {
+      const { userId } = event.payload as EventPayload<'user.erased'>;
+      await this.members.forget(event.tenantId, userId);
+    });
   }
 }

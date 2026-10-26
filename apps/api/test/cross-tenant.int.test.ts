@@ -89,6 +89,8 @@ let aWebhookId: string;
 let aWebhookMessageId: string;
 /** A data export of A's, still waiting, as no worker runs here. */
 let aDataExportId: string;
+/** A personal data request of A's, logged for its member. */
+let aDataRequestId: string;
 let aInvoiceId: string;
 let aItemId: string;
 let aPriceListId: string;
@@ -450,6 +452,51 @@ const FIXTURES: Record<string, Fixture> = {
   'GET /v1/data-exports/:id': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/data-exports/${id}`), aDataExportId),
+  },
+  'GET /v1/me/data-requests': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asBPhone('GET', '/v1/me/data-requests')),
+  },
+  'POST /v1/me/data-requests': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asBPhone('POST', '/v1/me/data-requests', {
+        id: newId(),
+        kind: 'correction',
+      });
+      expect(reply.statusCode, reply.body).toBe(201);
+      holdsNothingOfA(reply);
+    },
+  },
+  'GET /v1/data-requests': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/data-requests?status=all')),
+  },
+  'POST /v1/data-requests': {
+    kind: 'write',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', '/v1/data-requests', { id: newId(), userId: id, kind: 'erasure' }),
+        a.member.id,
+      ),
+  },
+  'GET /v1/data-requests/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/data-requests/${id}`), aDataRequestId),
+  },
+  'POST /v1/data-requests/:id/archive': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => asB('POST', `/v1/data-requests/${id}/archive`), aDataRequestId),
+  },
+  'POST /v1/data-requests/:id/close': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', `/v1/data-requests/${id}/close`, { outcome: 'refused', response: 'No' }),
+        aDataRequestId,
+      ),
   },
   'GET /health': {
     kind: 'not tenant data',
@@ -2480,6 +2527,13 @@ beforeAll(async () => {
   aDataExportId = newId();
   const exported = await send(aToken, 'POST', '/v1/data-exports', { id: aDataExportId });
   expect(exported.statusCode, exported.body).toBe(201);
+  aDataRequestId = newId();
+  const requested = await send(aToken, 'POST', '/v1/data-requests', {
+    id: aDataRequestId,
+    userId: a.member.id,
+    kind: 'access',
+  });
+  expect(requested.statusCode, requested.body).toBe(201);
   const transfer = await send(aToken, 'POST', `/v1/users/${a.member.id}/transfers`, {
     effectiveDate: NEXT_MONTH,
     designation: 'executive',

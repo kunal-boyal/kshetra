@@ -52,6 +52,7 @@ import { MetricsPage } from './settings/metrics-page';
 import { BillingPage } from './settings/billing-page';
 import { ApiClientsPage } from './settings/api-clients-page';
 import { DataExportPage } from './settings/data-export-page';
+import { DataRequestPage, DataRequestsPage } from './settings/data-requests-page';
 import { SsoPage } from './settings/sso-page';
 import { SupportPage } from './settings/support-page';
 import { WebhooksPage } from './settings/webhooks-page';
@@ -349,6 +350,19 @@ const apiClientSettings = createRoute({
   path: '/api-clients',
   component: ApiClientsPage,
 });
+const dataRequestSettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/data-requests',
+  component: DataRequestsPage,
+});
+const dataRequest = createRoute({
+  getParentRoute: () => settings,
+  path: '/data-requests/$requestId',
+  component: function DataRequestRoute() {
+    const { requestId } = dataRequest.useParams();
+    return <DataRequestPage key={requestId} requestId={requestId} />;
+  },
+});
 const dataExportSettings = createRoute({
   getParentRoute: () => settings,
   path: '/data-export',
@@ -515,6 +529,8 @@ const tree = root.addChildren([
       apiClientSettings,
       webhookSettings,
       dataExportSettings,
+      dataRequestSettings,
+      dataRequest,
       settingsIndex,
       roles,
       designations,

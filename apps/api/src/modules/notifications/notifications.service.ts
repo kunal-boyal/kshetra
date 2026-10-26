@@ -405,4 +405,33 @@ export class NotificationsService {
     const removed = await tx.delete(notifications).where(old).returning({ id: notifications.id });
     return removed.length;
   }
+
+  /**
+   * An erased person's notifications, preferences, push tokens and WhatsApp consent (decision
+   * D95): nothing is sent to them again, and nothing they were sent stays.
+   */
+  async erasePerson(tx: TenantTx, tenantId: string, userId: string): Promise<void> {
+    const theirs = and(eq(notifications.tenantId, tenantId), eq(notifications.userId, userId));
+    await tx
+      .delete(notificationDeliveries)
+      .where(
+        and(
+          eq(notificationDeliveries.tenantId, tenantId),
+          inArray(
+            notificationDeliveries.notificationId,
+            tx.select({ id: notifications.id }).from(notifications).where(theirs),
+          ),
+        ),
+      );
+    await tx.delete(notifications).where(theirs);
+    await tx
+      .delete(notificationPrefs)
+      .where(and(eq(notificationPrefs.tenantId, tenantId), eq(notificationPrefs.userId, userId)));
+    await tx
+      .delete(pushTokens)
+      .where(and(eq(pushTokens.tenantId, tenantId), eq(pushTokens.userId, userId)));
+    await tx
+      .delete(whatsappConsents)
+      .where(and(eq(whatsappConsents.tenantId, tenantId), eq(whatsappConsents.userId, userId)));
+  }
 }

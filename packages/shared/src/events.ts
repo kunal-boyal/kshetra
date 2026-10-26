@@ -209,6 +209,8 @@ export const EVENT_PAYLOADS = {
   'user.created': UserEventPayload,
   'user.updated': UserEventPayload,
   'user.deactivated': UserEventPayload,
+  /** A person's personal data was erased (decision D95): the directory forgets them. */
+  'user.erased': z.object({ userId: z.uuid() }),
   'tenant.provisioned': TenantProvisionedPayload,
   'shift.started': ShiftEventPayload,
   'shift.ended': ShiftEventPayload,

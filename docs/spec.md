@@ -713,7 +713,7 @@ Rules: BR-42, BR-43.
 - Audit viewer for tenant admins with filters and export.
 - Retention jobs per data class (raw locations, trails, photos, exports, notifications, audit) driven by tenant settings.
 - Tenant data export: every table and media file for the tenant as a signed archive: a ZIP of JSON lines and files with a manifest of checksums signed with the cell's Ed25519 key, kept for seven days (decision D95).
-- Requests from employees about their personal data (access, correction, erasure where lawful) are logged and handled by the tenant admin through a simple workflow.
+- Requests from employees about their personal data (access, correction, erasure where lawful) are logged and handled by the tenant admin through a simple workflow: raised on the phone or logged in the portal, answered within 30 days with a reminder a week before; access with a signed archive of the person's own data; erasure, once they are deactivated, anonymising them and keeping the business records (decision D95).
 
 ### M22. Platform console (vendor)
 
@@ -1343,6 +1343,10 @@ outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, attempts, 
        dispatched_at NULL)
 data_exports(tid, id, status, requested_by NULL, requester_name, file_media_id NULL, size, sha256, table_count,
             row_count, file_count, key_id, error NULL, created_at, finished_at NULL, expires_at NULL)
+data_requests(tid, id, user_id, kind access|correction|erasure, status received|completed|refused, details,
+            response NULL, self, raised_by_name, due_on, archive_status NULL, archive_media_id NULL,
+            archive_size NULL, archive_sha256 NULL, archive_expires_at NULL, created_at, closed_at NULL,
+            closed_by_name NULL)
        IX(next_attempt_at) WHERE dispatched_at IS NULL
 idempotency_keys(tid, key, request_hash, response jsonb, created_at)       PK(tid, key) · purged after 7 days
 sync_tombstones(tid, entity, entity_id, row_version, created_at)
@@ -1413,7 +1417,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Reports | `GET /v1/dashboard?period` (the home dashboard, decision D63), `GET /v1/reports/:key?period&managerId&territoryId&userId&accountType&form&locale` (decision D62) |
 | Imports and exports | `POST /v1/imports`, `GET /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports`, `GET /v1/exports/:id` |
 | Integrations | `GET /v1/api-clients`, `POST /v1/api-clients`, `GET /v1/webhooks`, `POST /v1/webhooks`, `PATCH /v1/webhooks/:id`, `POST /v1/webhooks/:id/rotate`, `POST /v1/webhooks/:id/test`, `GET /v1/webhooks/:id/deliveries`, `POST /v1/webhooks/:id/messages/:messageId/replay`, `POST /v1/bulk/users`, `POST /v1/bulk/accounts`, `POST /v1/bulk/items`, `POST /v1/bulk/ledger-entries`, `POST /v1/bulk/external-metrics` |
-| Audit and data | `GET /v1/audit`, `GET /v1/data-exports`, `POST /v1/data-exports`, `GET /v1/data-exports/:id`, `GET /v1/data-exports/signing-key` |
+| Audit and data | `GET /v1/audit`, `GET /v1/me/data-requests`, `POST /v1/me/data-requests`, `GET /v1/data-requests`, `POST /v1/data-requests`, `GET /v1/data-requests/:id`, `POST /v1/data-requests/:id/archive`, `POST /v1/data-requests/:id/close`, `GET /v1/data-exports`, `POST /v1/data-exports`, `GET /v1/data-exports/:id`, `GET /v1/data-exports/signing-key` |
 | Platform console | `POST /platform/v1/tenants`, `PATCH /platform/v1/tenants/:id`, `GET /platform/v1/usage`, `POST /platform/v1/support-grants`, plus plans, invoices and feature flags |
 
 ### 11.3 Mobile sync protocol

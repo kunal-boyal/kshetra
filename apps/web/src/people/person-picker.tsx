@@ -30,6 +30,7 @@ export function PersonPicker({
   error,
   exclude,
   designations,
+  anyone = false,
 }: {
   label: string;
   value: PickedPerson | null;
@@ -41,6 +42,8 @@ export function PersonPicker({
   exclude?: string;
   /** Only people with one of these designations, such as those who may fill a slot. */
   designations?: readonly string[];
+  /** Anyone, those who have left too, such as for a personal data request. */
+  anyone?: boolean;
 }) {
   const { client } = useApp();
   const { t } = useLanguage();
@@ -51,11 +54,11 @@ export function PersonPicker({
   // One designation narrows the search on the server; several, here.
   const only = designations?.length === 1 ? `&designation=${designations[0]}` : '';
   const matches = useQuery({
-    queryKey: ['person-picker', settled, only],
+    queryKey: ['person-picker', settled, only, anyone],
     queryFn: () =>
       read(
         client,
-        `/v1/users?status=active&limit=${MATCHES * 2}&q=${encodeURIComponent(settled)}${only}`,
+        `/v1/users?${anyone ? '' : 'status=active&'}limit=${MATCHES * 2}&q=${encodeURIComponent(settled)}${only}`,
         UserListResult,
       ),
     enabled: searching && settled !== '',

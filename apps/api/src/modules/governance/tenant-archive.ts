@@ -48,6 +48,12 @@ const SCHEMA = journal.entries[journal.entries.length - 1]!.tag;
 /** An identifier from the catalogue, quoted for SQL. */
 const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
 
+export interface Reference {
+  child: string;
+  parent: string;
+  columns: string[];
+}
+
 export interface ArchiveFacts {
   bytes: number;
   sha256: string;
@@ -82,16 +88,24 @@ export class TenantArchive {
     tenantId: string,
     path: string,
     purpose: ArchiveManifest['purpose'] = 'export',
+    subject?: string,
   ): Promise<ArchiveFacts> {
     const move = purpose === 'move';
+    if ((purpose === 'personal') !== (subject !== undefined)) {
+      throw new Error('A personal archive names its person, and only it does.');
+    }
+    const filters = subject ? await this.personFilters(tx, subject) : null;
     const out = createWriteStream(path);
     const archive = new ArchiveFile(out);
     const tables: ArchiveManifest['tables'] = [];
     for (const name of await this.tableNames(tx, move ? MOVE_SKIPPED_TABLES : undefined)) {
-      tables.push(await this.writeTable(tx, archive, tenantId, name, move));
+      const filter = filters ? filters.get(name) : null;
+      // A personal archive holds only tables with rows that point at the person.
+      if (filter === undefined) continue;
+      tables.push(await this.writeTable(tx, archive, tenantId, name, move, filter));
     }
     const files: ArchiveManifest['media'] = [];
-    for (const file of await this.media.forArchive(tx, tenantId)) {
+    for (const file of await this.media.forArchive(tx, tenantId, subject)) {
       const variants = [null, ...(move ? Object.keys(file.derivatives) : [])];
       for (const variant of variants) {
         const bytes = await this.media.variantBytes(tx, tenantId, file.id, variant);
@@ -113,6 +127,7 @@ export class TenantArchive {
       format: ARCHIVE_FORMAT,
       version: ARCHIVE_VERSION,
       purpose,
+      ...(subject ? { subject } : {}),
       product: this.config.PRODUCT_NAME,
       tenant: { id: tenantId, name: (await this.directory.displayName(tenantId)) ?? '' },
       cell: this.config.CELL_ID,
@@ -166,12 +181,54 @@ export class TenantArchive {
       .filter((name) => !skipped.includes(name));
   }
 
+  /** The references between the cell's tables, from the catalogue. */
+  async references(tx: TenantTx): Promise<Reference[]> {
+    const result = await tx.execute(sql`
+      select child.relname as child, parent.relname as parent,
+             array(
+               select a.attname::text from pg_attribute a
+                where a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+             ) as columns
+        from pg_constraint c
+        join pg_class child on child.oid = c.conrelid
+        join pg_class parent on parent.oid = c.confrelid
+        join pg_namespace n on n.oid = child.relnamespace
+       where c.contype = 'f' and n.nspname = 'cell' and c.conparentid = 0`);
+    return result.rows as unknown as Reference[];
+  }
+
+  /**
+   * For a personal archive (decision D95): each table's rows that point at the person, by every
+   * column that refers to them, their own row in `users`, and the audit entries they made or that
+   * are about them. Tables that never point at a person are left out.
+   */
+  private async personFilters(tx: TenantTx, userId: string): Promise<Map<string, string>> {
+    // A checked UUID: the request that names the person came through the API's own schema.
+    if (!/^[0-9a-f-]{36}$/.test(userId)) throw new Error('Not a person’s ID.');
+    const id = `'${userId}'`;
+    const filters = new Map<string, string[]>();
+    for (const reference of await this.references(tx)) {
+      if (reference.parent !== 'users') continue;
+      const columns = reference.columns.filter((column) => column !== 'tenant_id');
+      const list = filters.get(reference.child) ?? [];
+      list.push(...columns.map((column) => `t.${quote(column)} = ${id}`));
+      filters.set(reference.child, list);
+    }
+    filters.set('users', [`t.id = ${id}`, ...(filters.get('users') ?? [])]);
+    filters.set('audit_log', [
+      `t.actor_id = ${id}`,
+      `(t.target_type = 'user' and t.target_id = ${id})`,
+    ]);
+    return new Map([...filters].map(([table, list]) => [table, list.join(' or ')]));
+  }
+
   private async writeTable(
     tx: TenantTx,
     archive: ArchiveFile,
     tenantId: string,
     name: string,
     move: boolean,
+    filter: string | null = null,
   ): Promise<ArchiveManifest['tables'][number]> {
     const path = `tables/${name}.jsonl`;
     const entry = archive.open(path);
@@ -183,7 +240,7 @@ export class TenantArchive {
     // The tenant ID is a checked UUID (`forTenant` refuses anything else); RLS holds it too.
     await tx.execute(
       sql.raw(
-        `declare archive_rows no scroll cursor for select ${row} as line from cell.${quote(name)} t where t.tenant_id = '${tenantId}'`,
+        `declare archive_rows no scroll cursor for select ${row} as line from cell.${quote(name)} t where t.tenant_id = '${tenantId}'${filter ? ` and (${filter})` : ''}`,
       ),
     );
     let rows = 0;
