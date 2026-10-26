@@ -5,6 +5,7 @@ import type {
   DataExportResult,
   DeviceInfo,
   ModuleKey,
+  PlanLimitValues,
   SupportScopeKey,
   TenantStatus,
   UsageMetric,
@@ -107,8 +108,8 @@ export abstract class TenantDirectory {
 /** What a tenant may use (module M23, decision D89): `modules` is null when no plan limits them. */
 export interface Entitled {
   modules: readonly ModuleKey[] | null;
-  /** `apiPerMinute`: requests a minute each API client may make; null keeps the default. */
-  limits: { users: number | null; storageGb: number | null; apiPerMinute: number | null };
+  /** Each of `PlanLimits`, null where open or keeping its default (decisions D94, D98). */
+  limits: PlanLimitValues;
   /** A dedicated install whose licence expired past its grace (BR-49): reads only. */
   readOnly?: boolean;
 }

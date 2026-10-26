@@ -52,7 +52,15 @@ export const PLAN = {
   priceMonth: '499.00',
   priceYear: '4990.00',
   modules: ['core' as const, 'leave_attendance' as const, 'orders' as const],
-  limits: { users: 25, storageGb: 50, apiPerMinute: 300 },
+  limits: {
+    users: 25,
+    storageGb: 50,
+    apiPerMinute: 300,
+    requestsPerMinute: 10_000,
+    queueSlots: 2,
+    importRows: null,
+    exportRows: null,
+  },
   addons: [{ key: 'sms_pack', name: { en: 'SMS pack', hi: 'SMS पैक' }, price: '250.00' }],
   active: true,
   tenants: 3,
@@ -64,7 +72,15 @@ export const OPEN = {
   plan: null,
   extraModules: [],
   modules: ['core', 'leave_attendance', 'orders', 'account_finance', 'expenses'],
-  limits: { users: null, storageGb: null, apiPerMinute: null },
+  limits: {
+    users: null,
+    storageGb: null,
+    apiPerMinute: null,
+    requestsPerMinute: null,
+    queueSlots: null,
+    importRows: null,
+    exportRows: null,
+  },
   ownLimits: {},
 };
 

@@ -126,8 +126,11 @@ export class PerformanceUpkeep implements OnModuleInit {
         ),
       );
     });
-    this.queues.handle('maintenance', 'performance.recompute', (data) =>
-      this.recomputeFrom(String(data.tenantId), String(data.from)),
+    this.queues.handle(
+      'maintenance',
+      'performance.recompute',
+      (data) => this.recomputeFrom(String(data.tenantId), String(data.from)),
+      { perTenant: true },
     );
     this.queues.handle('maintenance', 'performance.nightly', (data) =>
       this.nightly(String(data.tenantId)),

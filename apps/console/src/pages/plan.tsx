@@ -2,6 +2,9 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { formatNumber } from '@thelamp/i18n';
 import {
   API_DEFAULT_PER_MINUTE,
+  EXPORT_MAX_ROWS,
+  IMPORT_DEFAULT_ROWS,
+  QUEUE_DEFAULT_SLOTS,
   AVAILABLE_MODULES,
   MODULE_KEYS,
   type ModuleKey,
@@ -35,6 +38,10 @@ interface PlanDraft {
   users: string;
   storageGb: string;
   apiPerMinute: string;
+  requestsPerMinute: string;
+  queueSlots: string;
+  importRows: string;
+  exportRows: string;
   active: boolean;
   addons: AddonDraft[];
 }
@@ -50,6 +57,10 @@ function draftOf(plan: PlanResult | undefined): PlanDraft {
     users: plan?.limits.users?.toString() ?? '',
     storageGb: plan?.limits.storageGb?.toString() ?? '',
     apiPerMinute: plan?.limits.apiPerMinute?.toString() ?? '',
+    requestsPerMinute: plan?.limits.requestsPerMinute?.toString() ?? '',
+    queueSlots: plan?.limits.queueSlots?.toString() ?? '',
+    importRows: plan?.limits.importRows?.toString() ?? '',
+    exportRows: plan?.limits.exportRows?.toString() ?? '',
     active: plan?.active ?? true,
     addons: (plan?.addons ?? []).map((addon) => ({
       row: newId(),
@@ -73,6 +84,10 @@ function bodyOf(draft: PlanDraft) {
       users: draft.users ? Number(draft.users) : null,
       storageGb: draft.storageGb ? Number(draft.storageGb) : null,
       apiPerMinute: draft.apiPerMinute ? Number(draft.apiPerMinute) : null,
+      requestsPerMinute: draft.requestsPerMinute ? Number(draft.requestsPerMinute) : null,
+      queueSlots: draft.queueSlots ? Number(draft.queueSlots) : null,
+      importRows: draft.importRows ? Number(draft.importRows) : null,
+      exportRows: draft.exportRows ? Number(draft.exportRows) : null,
     },
     addons: draft.addons.map((addon) => ({
       key: addon.key.trim(),
@@ -273,6 +288,37 @@ function PlanForm({ plan }: { plan?: PlanResult }) {
               onChange={(event) => change({ apiPerMinute: event.target.value.replace(/\D/g, '') })}
               error={errors['limits.apiPerMinute']}
             />
+            <TextField
+              label={t('console.request_limit')}
+              help={t('console.limit_blank_help')}
+              numeric
+              inputMode="numeric"
+              value={draft.requestsPerMinute}
+              onChange={(event) =>
+                change({ requestsPerMinute: event.target.value.replace(/\D/g, '') })
+              }
+              error={errors['limits.requestsPerMinute']}
+            />
+            {(
+              [
+                ['queueSlots', 'console.slots_limit', QUEUE_DEFAULT_SLOTS],
+                ['importRows', 'console.import_limit', IMPORT_DEFAULT_ROWS],
+                ['exportRows', 'console.export_limit', EXPORT_MAX_ROWS],
+              ] as const
+            ).map(([key, label, fallback]) => (
+              <TextField
+                key={key}
+                label={t(label)}
+                help={t('console.limit_default_help', {
+                  value: formatNumber(fallback, { locale }),
+                })}
+                numeric
+                inputMode="numeric"
+                value={draft[key]}
+                onChange={(event) => change({ [key]: event.target.value.replace(/\D/g, '') })}
+                error={errors[`limits.${key}`]}
+              />
+            ))}
           </div>
           <ChoiceGroup legend={t('console.addons')} error={errors.addons}>
             <div className="flex flex-col gap-4">

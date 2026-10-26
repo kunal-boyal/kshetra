@@ -17,7 +17,15 @@ describe('plans in the console (M23)', () => {
       id: PLAN.id.replace('c1', 'c2'),
       key: 'starter',
       name: { en: 'Starter', hi: 'स्टार्टर' },
-      limits: { users: null, storageGb: null, apiPerMinute: null },
+      limits: {
+        users: null,
+        storageGb: null,
+        apiPerMinute: null,
+        requestsPerMinute: null,
+        queueSlots: null,
+        importRows: null,
+        exportRows: null,
+      },
       active: false,
       tenants: 0,
     };
@@ -74,6 +82,9 @@ describe('plans in the console (M23)', () => {
     expect(screen.getByRole('checkbox', { name: /Core/ })).toBeDisabled();
     await user.click(screen.getByRole('checkbox', { name: 'Expenses' }));
     await user.type(screen.getByLabelText(/^People active at once/), '40');
+    // The whole organisation's requests and its heavy jobs at once (decision D98).
+    await user.type(screen.getByLabelText(/^Requests a minute for the whole/), '2000');
+    await user.type(screen.getByLabelText(/^Heavy jobs at once/), '1');
     await user.click(screen.getByRole('button', { name: 'Add an add-on' }));
     await user.type(screen.getByLabelText(/^Add-on key/), 'sms_pack');
     await user.type(screen.getByLabelText(/^Price a month/), '250');
@@ -93,7 +104,15 @@ describe('plans in the console (M23)', () => {
       priceMonth: '350',
       priceYear: '3500',
       modules: ['core', 'expenses'],
-      limits: { users: 40, storageGb: null, apiPerMinute: null },
+      limits: {
+        users: 40,
+        storageGb: null,
+        apiPerMinute: null,
+        requestsPerMinute: 2000,
+        queueSlots: 1,
+        importRows: null,
+        exportRows: null,
+      },
       addons: [{ key: 'sms_pack', name: { en: 'SMS pack', hi: 'SMS पैक' }, price: '250' }],
       active: true,
     });
@@ -128,7 +147,15 @@ describe('plans in the console (M23)', () => {
       priceMonth: '525.50',
       priceYear: '4990.00',
       modules: ['core', 'leave_attendance', 'orders'],
-      limits: { users: 25, storageGb: 50, apiPerMinute: 300 },
+      limits: {
+        users: 25,
+        storageGb: 50,
+        apiPerMinute: 300,
+        requestsPerMinute: 10_000,
+        queueSlots: 2,
+        importRows: null,
+        exportRows: null,
+      },
       addons: [],
       active: false,
     });

@@ -16,7 +16,15 @@ const ON_GROWTH = {
   plan: { id: PLAN.id, key: PLAN.key, name: PLAN.name },
   extraModules: ['expenses'],
   modules: ['core', 'leave_attendance', 'orders', 'expenses'],
-  limits: { users: 25, storageGb: 50, apiPerMinute: 300 },
+  limits: {
+    users: 25,
+    storageGb: 50,
+    apiPerMinute: 300,
+    requestsPerMinute: 10_000,
+    queueSlots: null,
+    importRows: 50_000,
+    exportRows: null,
+  },
   ownLimits: {},
 };
 
@@ -46,6 +54,13 @@ describe("a tenant's plan in the console (D89)", () => {
     expect(within(card).getByText('12 of 25 active')).toBeInTheDocument();
     expect(within(card).getByText('50 GB')).toBeInTheDocument();
     expect(within(card).getByText('300 a minute')).toBeInTheDocument();
+    // The whole organisation's requests, and the heavy-job, import and export limits (D98), the
+    // open ones at their defaults.
+    expect(within(card).getByText('10,000 a minute')).toBeInTheDocument();
+    const fact = (label: string) => within(card).getByText(label).nextElementSibling;
+    expect(fact('Heavy jobs at once')).toHaveTextContent('2');
+    expect(fact('Rows per import')).toHaveTextContent('50,000');
+    expect(fact('Rows per export')).toHaveTextContent('1,00,000');
     // Support reads the plan but doesn't change it.
     expect(screen.queryByRole('button', { name: 'Change the plan' })).not.toBeInTheDocument();
   });

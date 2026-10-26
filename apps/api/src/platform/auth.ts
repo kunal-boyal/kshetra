@@ -359,6 +359,8 @@ export class AuthGuard implements CanActivate {
     });
     request.access = access;
     this.apiCalls.count(access.tenantId);
+    // The tenant's requests a minute by plan, everyone's together (decision D98).
+    await this.clientLimits.tenant(access.tenantId);
     if (access.apiClient) {
       // Each client within its plan's requests a minute (decision D94).
       await this.clientLimits.hit(access.tenantId, access.apiClient.id);

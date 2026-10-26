@@ -1041,7 +1041,7 @@ Cells:
 - Moving a tenant between cells uses the tenant export and import tooling (`pnpm tenant-move`, decision D95): freeze writes (`TENANT_MOVING`), export a signed move archive, import it, verify counts and checksums, switch the directory entry, unfreeze. A cell answers `TENANT_MOVED` for a tenant that lives elsewhere, and phones whose sync cursor names another cell take a full copy.
 - Releases roll out cell by cell, starting with an internal canary cell.
 
-Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group concurrency on heavy queues (imports, exports, metrics); statement timeouts on report queries; import and export size limits by plan; exports and reports served from the read replica.
+Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group concurrency on heavy queues (imports, exports, metrics); statement timeouts on report queries; import and export size limits by plan; exports and reports served from the read replica. Plans set them as `requestsPerMinute` (the whole tenant's requests, people and API clients together; open without one), `queueSlots` (its heavy jobs running at once on a queue; 2 without one), `importRows` (20,000 without one) and `exportRows` (100,000 without one); the console sets them per plan and per tenant (D98).
 
 ### 9.6 Backend modules
 

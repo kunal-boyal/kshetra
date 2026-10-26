@@ -2,6 +2,7 @@ import {
   ANNOUNCEMENT_TONES,
   type CellFiguresShape,
   MODULE_KEYS,
+  type PlanLimitValues,
   PLATFORM_ROLES,
   SUPPORT_SCOPES,
   TENANT_STATUSES,
@@ -367,9 +368,10 @@ export const plans = directory.table('plans', {
   priceMonth: numeric('price_month', { precision: 18, scale: 2 }).notNull(),
   priceYear: numeric('price_year', { precision: 18, scale: 2 }).notNull(),
   modules: text('modules').array().$type<(typeof MODULE_KEYS)[number][]>().notNull(),
-  // `apiPerMinute` came with API clients (decision D94); plans made before have none.
+  // `apiPerMinute` came with API clients (decision D94), and the request, queue, import and export
+  // limits with decision D98; plans made before have none of them.
   limits: jsonb('limits')
-    .$type<{ users: number | null; storageGb: number | null; apiPerMinute?: number | null }>()
+    .$type<{ users: number | null; storageGb: number | null } & Partial<PlanLimitValues>>()
     .notNull(),
   addons: jsonb('addons')
     .$type<{ key: string; name: { en: string; hi: string }; price: string }[]>()
@@ -386,10 +388,7 @@ export const tenantEntitlements = directory.table('tenant_entitlements', {
     .primaryKey()
     .references(() => tenants.id),
   extraModules: text('extra_modules').array().$type<string[]>().notNull().default([]),
-  limits: jsonb('limits')
-    .$type<{ users?: number | null; storageGb?: number | null; apiPerMinute?: number | null }>()
-    .notNull()
-    .default({}),
+  limits: jsonb('limits').$type<Partial<PlanLimitValues>>().notNull().default({}),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

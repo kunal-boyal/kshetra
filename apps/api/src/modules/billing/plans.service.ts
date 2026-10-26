@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { AppError, type CreatePlanBody, type PlanBody, type PlanResult } from '@thelamp/shared';
+import {
+  AppError,
+  type CreatePlanBody,
+  PLAN_LIMIT_KEYS,
+  type PlanBody,
+  type PlanLimitValues,
+  type PlanResult,
+} from '@thelamp/shared';
 import { asc, eq, sql } from 'drizzle-orm';
 import { plans, tenants } from '../../db/schema/directory';
 import type { StaffAccess } from '../../platform/auth';
@@ -108,7 +115,9 @@ function result(row: PlanRow, tenantCount: number): PlanResult {
     priceMonth: row.priceMonth,
     priceYear: row.priceYear,
     modules: row.modules,
-    limits: { ...row.limits, apiPerMinute: row.limits.apiPerMinute ?? null },
+    limits: Object.fromEntries(
+      PLAN_LIMIT_KEYS.map((key) => [key, row.limits[key] ?? null]),
+    ) as PlanLimitValues,
     addons: row.addons,
     active: row.active,
     tenants: tenantCount,

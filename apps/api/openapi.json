@@ -2229,7 +2229,11 @@
                     "default": {
                       "users": null,
                       "storageGb": null,
-                      "apiPerMinute": null
+                      "apiPerMinute": null,
+                      "requestsPerMinute": null,
+                      "queueSlots": null,
+                      "importRows": null,
+                      "exportRows": null
                     },
                     "type": "object",
                     "properties": {
@@ -2266,6 +2270,58 @@
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 100000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "requestsPerMinute": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 60,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "queueSlots": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 20
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "importRows": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 200000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "exportRows": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1000,
+                            "maximum": 1000000
                           },
                           {
                             "type": "null"
@@ -4057,6 +4113,54 @@
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 100000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "requestsPerMinute": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 60,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "queueSlots": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 20
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "importRows": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 200000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "exportRows": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1000,
+                            "maximum": 1000000
                           },
                           {
                             "type": "null"
@@ -35306,12 +35410,64 @@
                     "type": "null"
                   }
                 ]
+              },
+              "requestsPerMinute": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "queueSlots": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "importRows": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "exportRows": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
               "users",
               "storageGb",
-              "apiPerMinute"
+              "apiPerMinute",
+              "requestsPerMinute",
+              "queueSlots",
+              "importRows",
+              "exportRows"
             ],
             "additionalProperties": false
           },
@@ -35403,7 +35559,11 @@
             "default": {
               "users": null,
               "storageGb": null,
-              "apiPerMinute": null
+              "apiPerMinute": null,
+              "requestsPerMinute": null,
+              "queueSlots": null,
+              "importRows": null,
+              "exportRows": null
             },
             "type": "object",
             "properties": {
@@ -35440,6 +35600,58 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 100000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "requestsPerMinute": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 1000000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "queueSlots": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "importRows": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 200000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "exportRows": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 1000000
                   },
                   {
                     "type": "null"
@@ -39932,12 +40144,64 @@
                     "type": "null"
                   }
                 ]
+              },
+              "requestsPerMinute": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "queueSlots": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "importRows": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "exportRows": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
               "users",
               "storageGb",
-              "apiPerMinute"
+              "apiPerMinute",
+              "requestsPerMinute",
+              "queueSlots",
+              "importRows",
+              "exportRows"
             ],
             "additionalProperties": false
           },
@@ -39969,6 +40233,54 @@
                 ]
               },
               "apiPerMinute": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "requestsPerMinute": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "queueSlots": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "importRows": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "exportRows": {
                 "anyOf": [
                   {
                     "type": "integer",

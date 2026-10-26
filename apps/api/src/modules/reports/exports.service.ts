@@ -5,6 +5,7 @@ import {
   type ExportListResult,
   type ExportResult,
   exportExpiry,
+  EXPORT_MAX_ROWS,
   type Locale,
   type ReportFilters,
   type ReportKey,
@@ -16,6 +17,7 @@ import { AuditLog, userActor } from '../../platform/audit';
 import { type Access, AccessResolver } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
+import { Entitlements } from '../../platform/planes';
 import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
 import { CONFIG } from '../../platform/tokens';
@@ -58,12 +60,17 @@ export class ExportsService implements OnModuleInit {
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
     private readonly access: AccessResolver,
+    private readonly entitlements: Entitlements,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
   onModuleInit(): void {
-    this.queues.handle('exports', 'exports.run', (data) =>
-      this.run(String(data.tenantId), String(data.exportId)),
+    // Each tenant runs its plan's slots of exports at once (decision D98).
+    this.queues.handle(
+      'exports',
+      'exports.run',
+      (data) => this.run(String(data.tenantId), String(data.exportId)),
+      { perTenant: true },
     );
     this.queues.handle('exports', 'exports.expire', (data) => this.expire(String(data.tenantId)));
     this.schedules.everyForTenants({
@@ -244,6 +251,8 @@ export class ExportsService implements OnModuleInit {
       // The rows come from the replica, with the export's longer statement timeout (D98); the
       // file is stored and the job finished on the primary.
       const report = job.report as ReportKey;
+      // The plan's rows an export may hold, else the default (decision D98).
+      const { limits } = await this.entitlements.forTenant(tenantId);
       const data = await this.database.read(
         tenantId,
         (tx) =>
@@ -253,6 +262,7 @@ export class ExportsService implements OnModuleInit {
             report,
             job.filters as ReportFilters,
             job.locale as Locale,
+            limits.exportRows ?? EXPORT_MAX_ROWS,
           ),
         { timeoutMs: this.config.EXPORT_STATEMENT_TIMEOUT_MS },
       );
