@@ -29,6 +29,7 @@ import { Scopes } from '../iam/scopes';
 import { AttendanceService } from './attendance.service';
 import { LocationsService } from './locations.service';
 import { ShiftsService } from './shifts.service';
+import { FromReplica } from '../../platform/replica';
 
 const DEVICE_TIME = {
   name: 'X-Device-Time',
@@ -202,6 +203,7 @@ export class FieldController {
     return result;
   }
 
+  @FromReplica()
   @Get('attendance')
   @Contract({
     tag: 'Field',

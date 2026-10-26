@@ -15,7 +15,21 @@ resource "aws_sns_topic_subscription" "email" {
 
 locals {
   lb = { LoadBalancer = aws_lb.this.arn_suffix, TargetGroup = aws_lb_target_group.api.arn_suffix }
-  simple_alarms = {
+  # Reports and exports read the replica (decision D98); a replica far behind shows stale figures.
+  replica_alarms = var.db_replica ? {
+    replica-lag = {
+      description = "The read replica is more than a minute behind for 10 minutes"
+      namespace   = "AWS/RDS"
+      metric      = "ReplicaLag"
+      statistic   = "Maximum"
+      extended    = null
+      threshold   = 60
+      periods     = 10
+      comparison  = "GreaterThanThreshold"
+      dimensions  = { DBInstanceIdentifier = aws_db_instance.replica[0].identifier }
+    }
+  } : {}
+  simple_alarms = merge(local.replica_alarms, {
     p95-latency = {
       description = "API p95 latency above 1 second for 10 minutes"
       namespace   = "AWS/ApplicationELB"
@@ -82,7 +96,7 @@ locals {
       comparison  = "GreaterThanThreshold"
       dimensions  = { ReplicationGroupId = aws_elasticache_replication_group.this.id }
     }
-  }
+  })
 }
 
 resource "aws_cloudwatch_metric_alarm" "simple" {

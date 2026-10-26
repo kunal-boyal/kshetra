@@ -1,4 +1,6 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
+import { AppError } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
@@ -21,26 +23,49 @@ export interface TransactionOptions {
   readOnly?: boolean;
 }
 
+/** The replica's URL: the setting itself, or DATABASE_URL with the replica's host. */
+export function replicaUrl(
+  config: Pick<Config, 'DATABASE_URL' | 'DATABASE_REPLICA_URL' | 'DATABASE_REPLICA_HOST'>,
+): string | null {
+  if (config.DATABASE_REPLICA_URL) return config.DATABASE_REPLICA_URL;
+  if (!config.DATABASE_REPLICA_HOST) return null;
+  const url = new URL(config.DATABASE_URL);
+  url.hostname = config.DATABASE_REPLICA_HOST;
+  return url.toString();
+}
+
 @Injectable()
 export class Database implements OnModuleDestroy {
   private readonly logger = new Logger(Database.name);
   private readonly afterCommitTasks = new WeakMap<TenantTx, (() => Promise<void>)[]>();
   readonly pool: pg.Pool;
   readonly db: Db;
+  /** The read replica's pool, when the cell has one (decision D98). */
+  readonly replica: pg.Pool | null;
+  private readonly replicaDb: Db;
+  /** Set while a request's reads are to go to the replica (`@FromReplica()`). */
+  private readonly replicaReads = new AsyncLocalStorage<number>();
 
-  constructor(@Inject(CONFIG) config: Config) {
-    this.pool = new pg.Pool({
-      connectionString: config.DATABASE_URL,
-      max: config.DB_POOL_MAX,
-      connectionTimeoutMillis: 2_000,
-      idleTimeoutMillis: 30_000,
-      application_name: `api:${config.CELL_ID}`,
-    });
-    // An idle connection that drops must not take the process down; the pool replaces it.
-    this.pool.on('error', (error) =>
-      this.logger.warn(`Idle database connection failed: ${error.message}`),
-    );
+  constructor(@Inject(CONFIG) private readonly config: Config) {
+    const pool = (connectionString: string, role: string) => {
+      const made = new pg.Pool({
+        connectionString,
+        max: config.DB_POOL_MAX,
+        connectionTimeoutMillis: 2_000,
+        idleTimeoutMillis: 30_000,
+        application_name: `${role}:${config.CELL_ID}`,
+      });
+      // An idle connection that drops must not take the process down; the pool replaces it.
+      made.on('error', (error) =>
+        this.logger.warn(`Idle database connection failed: ${error.message}`),
+      );
+      return made;
+    };
+    this.pool = pool(config.DATABASE_URL, 'api');
     this.db = drizzle(this.pool, { schema });
+    const replica = replicaUrl(config);
+    this.replica = replica ? pool(replica, 'api-replica') : null;
+    this.replicaDb = this.replica ? drizzle(this.replica, { schema }) : this.db;
   }
 
   /**
@@ -56,6 +81,8 @@ export class Database implements OnModuleDestroy {
     if (!UUID.test(tenantId)) {
       throw new Error('A tenant ID must be a UUID.');
     }
+    const timeoutMs = this.replicaReads.getStore();
+    if (timeoutMs !== undefined) return this.read(tenantId, work, { timeoutMs });
     const committed: (() => Promise<void>)[] = [];
     const result = await this.db.transaction(
       async (tx) => {
@@ -76,6 +103,53 @@ export class Database implements OnModuleDestroy {
       }
     }
     return result;
+  }
+
+  /**
+   * Runs `work` as `forTenant` does, but only reading: on the read replica when the cell has one,
+   * in one `repeatable read` snapshot, with each statement stopped after `timeoutMs` (spec 10.3,
+   * decision D98). Reports, exports and API clients' list reads go this way; anything that must
+   * see its own writes, or writes, uses `forTenant`. A statement stopped for time answers
+   * `REPORT_TIMEOUT`.
+   */
+  async read<T>(
+    tenantId: string,
+    work: (tx: TenantTx) => Promise<T>,
+    options: { timeoutMs?: number } = {},
+  ): Promise<T> {
+    if (!UUID.test(tenantId)) {
+      throw new Error('A tenant ID must be a UUID.');
+    }
+    const timeout = options.timeoutMs ?? this.config.REPORT_STATEMENT_TIMEOUT_MS;
+    try {
+      return await this.replicaDb.transaction(
+        async (tx) => {
+          this.afterCommitTasks.set(tx, []);
+          await tx.execute(sql`select set_config('app.tenant_id', ${tenantId}, true)`);
+          await tx.execute(sql`select set_config('statement_timeout', ${String(timeout)}, true)`);
+          return work(tx);
+        },
+        { isolationLevel: 'repeatable read', accessMode: 'read only' },
+      );
+    } catch (error) {
+      // Drizzle wraps the driver's error; Postgres's code for a cancelled statement is 57014.
+      const failed = error as { code?: string; cause?: { code?: string } };
+      if ((failed.code ?? failed.cause?.code) === '57014') {
+        throw new AppError(
+          'REPORT_TIMEOUT',
+          'This took too long to read. Narrow it down, or export it instead.',
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Runs `work` with every `forTenant` inside it reading through `read`, as a request marked
+   * `@FromReplica()` does for an API client. Writing inside it fails.
+   */
+  onReplica<T>(work: () => T, timeoutMs = this.config.REPORT_STATEMENT_TIMEOUT_MS): T {
+    return this.replicaReads.run(timeoutMs, work);
   }
 
   /**
@@ -105,7 +179,7 @@ export class Database implements OnModuleDestroy {
     return result;
   }
 
-  /** For readiness: can the API reach the database at all? */
+  /** For readiness: can the API reach the database at all? The replica isn't needed to serve. */
   async ping(): Promise<boolean> {
     try {
       await this.pool.query('select 1');
@@ -117,5 +191,6 @@ export class Database implements OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     await this.pool.end();
+    await this.replica?.end();
   }
 }

@@ -1,5 +1,5 @@
 import { type DynamicModule, Module, type Type } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import type { Config } from './config';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -41,6 +41,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { HEALTH_CHECKS, HealthController, type HealthChecks } from './platform/health.controller';
 import { API_ROUTES, DocsController } from './platform/docs.controller';
+import { ReplicaReads } from './platform/replica';
 import { routeRegistry } from './platform/routes';
 import { PlatformModule } from './platform/platform.module';
 import { RedisClient } from './platform/redis';
@@ -103,6 +104,8 @@ export class AppModule {
         // access token unless it is marked @Public().
         { provide: APP_GUARD, useClass: AppVersionGuard },
         { provide: APP_GUARD, useClass: AuthGuard },
+        // API clients' list reads marked @FromReplica() go to the read replica (decision D98).
+        { provide: APP_INTERCEPTOR, useClass: ReplicaReads },
         // What the documentation describes: every route the API serves (decision D94).
         { provide: API_ROUTES, useFactory: () => routeRegistry(apiControllers()) },
         {

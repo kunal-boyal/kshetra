@@ -44,7 +44,8 @@ export class ReportsController {
   @SignedIn()
   home(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = DashboardQuery.parse(query);
-    return this.database.forTenant(access.tenantId, (tx) =>
+    // Reports read the replica, a statement at a time within their timeout (decision D98).
+    return this.database.read(access.tenantId, (tx) =>
       this.dashboard.read(tx, access, input.period),
     );
   }
@@ -62,7 +63,7 @@ export class ReportsController {
     const parsed = ReportKeyParam.safeParse({ key });
     if (!parsed.success) throw notFound();
     const input = ReportQuery.parse(query);
-    return this.database.forTenant(access.tenantId, (tx) =>
+    return this.database.read(access.tenantId, (tx) =>
       this.reports.page(tx, access, parsed.data.key, input),
     );
   }
