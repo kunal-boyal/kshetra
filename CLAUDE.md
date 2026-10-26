@@ -238,6 +238,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Live positions go out on Redis (`positions:<tenantId>`) after the ingest commits, for the live map (M17).
 - On the phone (decision D48), `Tracking` in `@thelamp/api-client/sync` keeps the open shift and buffers points, dropping what the server would refuse; points upload only once their shift's punch-in has left the outbox. Punches go through `punchIn()`, `punchOut()`, `pauseShift()` and `resumeShift()` in `apps/mobile/src/tracking.ts`, which save on the phone and queue in one transaction. The background task is defined in `src/background.ts`, imported first by the root layout. Tracking starts only from a punch-in, a resume or "Record again", never by itself (BR-37). Background location needs a development build (`eas build --profile development`, on Kunal's account); Expo Go can't run it.
 
+## Observability (decision D98)
+
+- Error reports go to Sentry only once a DSN is set: `SENTRY_DSN` for the API, worker and scheduler (`startErrorReports()` and `reportError()` in `apps/api/src/platform/error-reports.ts`, called by the error filter for 5xx and by the queues for a job's last failed try), `VITE_SENTRY_DSN` for the web portal and the console (`src/error-reports.ts`, loaded only when a build has one), and `EXPO_PUBLIC_SENTRY_DSN` for the phone (`src/error-reports.ts`). Every event passes `scrub()` from `@thelamp/shared` first; errors only, no traces, replays or personal details. In Jest, `@sentry/react-native` is mocked.
+- The scheduler's minute of health also becomes CloudWatch metrics when `CLOUDWATCH_METRICS` is on (`cellMetricLines()` in `modules/scheduling/cell-metrics.ts`, the embedded metric format on standard output), and the cell's alarms in `infra/modules/cell/alarms.tf` read them. A new figure goes in `CellFigures`, the reporter, and the metric lines if an alarm needs it.
+- `pnpm verify` validates every Terraform environment set up on the machine, borrowing another environment's providers, offline, when one lacks this platform's.
+
 ## Retention (decision D69)
 
 - BR-41's rules are pure functions in `packages/shared/src/retention.ts`: `locationRetention()` says which of a tenant's days are archived, purged and expired. A day is archived only after `LOCATION_SETTLE_DAYS`, the longest sync window and a day, so no phone can still send points for it.

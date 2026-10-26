@@ -59,6 +59,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | @aws-sdk/cloudfront-signer | 3.1149.0 | Added 2026-10-12: CloudFront signed read links in AWS (decision D44) |
 | hyparquet-writer | 0.17.0 | Added 2026-10-23: writes the raw location archive as Snappy-compressed Parquet, in plain JavaScript with no native parts (decision D69) |
 | hyparquet | 1.31.5 | Added 2026-10-23, for tests only: reads the archive back, from the same authors as the writer |
+| @sentry/node | 10.76.2 | Added 2026-10-26: error reports from the API, worker and scheduler, off until `SENTRY_DSN` (decision D98). The newest release at least two weeks old; 11.x arrived on 2026-10-23. Started with `skipOpenTelemetrySetup`, errors only. Two packages it brings are held by `overrides` in `pnpm-workspace.yaml`: `@opentelemetry/api` at 1.9.1 (1.10.0 arrived on 2026-10-20) and `es-module-lexer` 3.0.3 under `import-in-the-middle` (3.0.4 arrived on 2026-10-15); lift them once those are two weeks old. |
 
 ## Web (`apps/web`, `packages/ui-web`, `packages/api-client`, added 2026-10-06)
 
@@ -68,6 +69,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | vite | 8.3.3 | The dev server and build, with @vitejs/plugin-react 6.1.2 |
 | @tanstack/react-router | 1.170.41 | Routes defined in code |
 | @tanstack/react-query | 5.104.1 | Server state, such as the config bundle with its ETag |
+| @sentry/react | 10.76.2 | Added 2026-10-26, in the catalog for the web portal and the console: error reports, off until `VITE_SENTRY_DSN`, and loaded only when a build has one (decision D98) |
 | tailwindcss, @tailwindcss/vite | 4.3.3 | Layout utilities, with the tokens mapped into the theme |
 | lucide-react | 1.52.0 | Icons (decision D18) |
 | @fontsource/mukta | 5.3.0 | Added 2026-10-23: the web's face, Mukta, in 400, 500, 600 and 700 for Latin and Devanagari (decision D72); replaces Noto Sans and Noto Sans Devanagari |
@@ -94,6 +96,7 @@ Expo SDK 57 is the current stable SDK; SDK 58 is still in beta. The SDK fixes mo
 | Package | Version | Notes |
 |---|---|---|
 | expo | 57.0.30 | SDK 57; moved from 57.0.26 on 2026-10-14, from 57.0.28 on 2026-10-16 and from 57.0.29 on 2026-10-21, each time through the `mobile` catalog, with the modules the patch names. `expo install --check` is clean |
+| @sentry/react-native | 7.11.0 | Added 2026-10-26 through `expo install`, the version SDK 57 pins: error reports and native crashes from the phone, off until `EXPO_PUBLIC_SENTRY_DSN` (decision D98). Native crash reports need a development build made after it; source maps wait for the Sentry account and its Expo config plugin |
 | react-native | 0.86.3 | The New Architecture |
 | react, react-dom | 19.2.3 | The SDK's React; the web stays on 19.3 |
 | expo-router | 57.0.28 | Routes in `src/app` |
@@ -123,7 +126,7 @@ The EAS command-line tool (eas-cli 24.11.0) is installed globally on Kunal's mac
 
 ## Install scripts
 
-pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-workspace.yaml` approves it. Only esbuild is approved, because it sets up the native binary that drizzle-kit, Vite and tsdown need. ssh2, cpu-features, protobufjs and msgpackr-extract are denied: the first two only serve Docker over SSH, protobufjs only prints notices, and msgpackr-extract is an optional native speed-up that BullMQ's MessagePack works without. Review any new request before approving it.
+pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-workspace.yaml` approves it. Only esbuild is approved, because it sets up the native binary that drizzle-kit, Vite and tsdown need. ssh2, cpu-features, protobufjs and msgpackr-extract are denied: the first two only serve Docker over SSH, protobufjs only prints notices, and msgpackr-extract is an optional native speed-up that BullMQ's MessagePack works without. `@sentry/cli`, which `@sentry/react-native` brings, is denied too: its binary uploads source maps, which wait for the Sentry account (decision D98). Review any new request before approving it.
 
 ## Local services (`docker-compose.yml`)
 

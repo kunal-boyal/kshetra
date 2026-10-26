@@ -15,6 +15,7 @@ import {
 } from '@thelamp/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
+import { reportError } from './error-reports';
 
 const MESSAGES: Partial<Record<ErrorCode, string>> = {
   VALIDATION: 'Some of the request is not valid.',
@@ -105,6 +106,11 @@ export class ErrorFilter implements ExceptionFilter {
       const detail =
         exception instanceof Error ? (exception.stack ?? exception.message) : String(exception);
       this.logger.error({ requestId: request.id, error: detail });
+      reportError(exception, {
+        requestId: String(request.id),
+        route: request.routeOptions?.url,
+        tenant: request.access?.tenantId,
+      });
     }
     if (headers) void reply.headers(headers);
     void reply.status(status).send(body);

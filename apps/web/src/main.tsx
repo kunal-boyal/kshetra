@@ -13,7 +13,10 @@ import { LanguageProvider } from './i18n';
 import { applyBrand, applySavedBrand } from './brand';
 import { applyLocale, applyTheme, forgetTenants, savedLocale, savedTheme } from './preferences';
 import { createAppRouter } from './router';
+import { startErrorReports } from './error-reports';
 import { PRODUCT_NAME } from './layout/brand';
+
+startErrorReports();
 
 // Language and theme apply before the first paint, so nothing flashes.
 applyLocale(savedLocale());

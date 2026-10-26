@@ -16,6 +16,8 @@ jest.mock('./src/storage', () => {
 });
 jest.mock('./src/fonts', () => ({ useAppFonts: () => ({ ready: true }) }));
 jest.mock('expo-system-ui', () => ({ setBackgroundColorAsync: async () => undefined }));
+// Error reports are off without a DSN; the SDK's native parts never load in Jest (decision D98).
+jest.mock('@sentry/react-native', () => ({ init: jest.fn() }));
 
 // Maps draw natively; in tests a map is a view with its label, and a marker one with its title.
 jest.mock('react-native-maps', () => {

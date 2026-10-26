@@ -1713,7 +1713,7 @@ Run on every release candidate with a signed, production-like build, on at least
 
 Service level objectives per cell: API availability 99.9%; p95 latency within the section 3.2 targets; location ingest lag under 2 minutes; queue wait under 5 minutes for notifications and metrics.
 
-Alarms: 5xx rate above 2% for 5 minutes; p95 latency above target for 10 minutes; unhealthy targets; queue backlog thresholds per queue; database CPU, free storage, connections and replica lag; Redis memory; OTP failure rate above 5%; notification failure rate above 10% per channel; location ingest below 30% of its usual rate during working hours (often a bad app release or a phone-maker update).
+Alarms: 5xx rate above 2% for 5 minutes; p95 latency above target for 10 minutes; unhealthy targets; queue backlog thresholds per queue; database CPU, free storage, connections and replica lag; Redis memory; OTP failure rate above 5%; notification failure rate above 10% per channel; location ingest below 30% of its usual rate during working hours (often a bad app release or a phone-maker update). The app's own figures reach CloudWatch from the scheduler's minute of health (D98): a job or an outbox event waiting more than 5 minutes, a phone's upload waiting more than an hour, the cell not reporting for 3 minutes, and location points below the band CloudWatch learns for that hour and weekday.
 
 Support dashboards per tenant: active users, sync health (devices with parked items, oldest queued item), tracking coverage and error rates.
 
@@ -2166,7 +2166,8 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `OCR_PROVIDER` | `none`, or a provider available in-region |
 | `PAYMENT_PROVIDER`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Billing, directory plane only |
 | `LICENCE_PUBLIC_KEY`, `LICENCE_FILE_PATH` | Dedicated deployments |
-| `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT` | Observability |
+| `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `OTEL_EXPORTER_OTLP_ENDPOINT` | Observability: error reports go to Sentry only when `SENTRY_DSN` is set, scrubbed of numbers, addresses, codes, tokens and signed URLs (D98) |
+| `CLOUDWATCH_METRICS` | The scheduler writes each minute of the cell's health as CloudWatch metrics, for the alarms (D98) |
 | `CORS_ORIGINS` | Allowed web origins |
 | `MIN_APP_VERSION_ANDROID`, `MIN_APP_VERSION_IOS` | The oldest app version each platform may use; older apps get `UPGRADE_REQUIRED` (M1, rule 8). Unset allows every version. |
 

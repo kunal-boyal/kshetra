@@ -14,7 +14,9 @@ import { ConsoleProvider } from './context';
 import { LanguageProvider } from './i18n';
 import { applyLocale, applyTheme, savedLocale, savedTheme } from './preferences';
 import { createConsoleRouter } from './router';
+import { startErrorReports } from './error-reports';
 
+startErrorReports();
 applyLocale(savedLocale());
 applyTheme(savedTheme());
 document.title = `${PRODUCT_NAME} console`;

@@ -115,6 +115,10 @@ locals {
       # Off until the Razorpay account exists (decision D90): invoices are paid by transfer and
       # recorded in the console.
       PAYMENT_PROVIDER = "off"
+      # The scheduler's minute of health becomes CloudWatch metrics for the alarms, and error
+      # reports name the environment once a SENTRY_DSN is set in `environment` (decision D98).
+      CLOUDWATCH_METRICS = "true"
+      SENTRY_ENVIRONMENT = var.name
     },
     { WEB_URL = var.web_url },
     var.console_url == null ? {} : { CONSOLE_URL = var.console_url },

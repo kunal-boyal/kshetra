@@ -3,6 +3,7 @@ import { ModuleRef } from '@nestjs/core';
 import { QUEUE_DEFAULT_SLOTS } from '@thelamp/shared';
 import { DelayedError, type Job, type JobsOptions, Queue, Worker } from 'bullmq';
 import type { Config } from '../config';
+import { reportError } from './error-reports';
 import { Entitlements } from './planes';
 import { TenantSlots } from './tenant-slots';
 import { CONFIG } from './tokens';
@@ -153,9 +154,13 @@ export class Queues implements OnModuleDestroy {
         ...this.options,
         concurrency: CONCURRENCY[name],
       });
-      worker.on('failed', (job, error) =>
-        this.logger.warn(`${name}/${job?.name ?? '?'} failed: ${error.message}`),
-      );
+      worker.on('failed', (job, error) => {
+        this.logger.warn(`${name}/${job?.name ?? '?'} failed: ${error.message}`);
+        // Only a job's last try is reported; earlier ones are retried (decision D98).
+        if (job && job.attemptsMade >= (job.opts.attempts ?? 1)) {
+          reportError(error, { queue: name, job: job.name, tenant: job.data.tenantId });
+        }
+      });
       worker.on('error', (error) => this.logger.warn(`The ${name} worker: ${error.message}`));
       this.workers.push(worker);
     }
