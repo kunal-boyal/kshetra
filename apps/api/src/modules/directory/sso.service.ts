@@ -15,6 +15,7 @@ import { memberships, ssoConnections, tenants } from '../../db/schema/directory'
 import { ColumnCipher } from '../../platform/column-cipher';
 import { Entitlements, PeopleEmails } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
+import { publicFetch, publicUrlIssue } from '../../platform/outbound';
 import { CONFIG } from '../../platform/tokens';
 import { DirectoryDatabase } from './directory.database';
 import { activeMemberships } from './memberships';
@@ -140,6 +141,16 @@ export class SsoService {
       if (settings.protocol === 'oidc' && !settings.clientSecret) {
         throw new AppError('VALIDATION', 'Check the highlighted fields.', [
           { path: 'settings.clientSecret', issue: 'Enter the client secret' },
+        ]);
+      }
+      // The issuer is fetched from the cell, so in production it must be public (decision D101).
+      const issuerIssue =
+        settings.protocol === 'oidc' && this.config.NODE_ENV === 'production'
+          ? await publicUrlIssue(settings.issuer)
+          : null;
+      if (issuerIssue) {
+        throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+          { path: 'settings.issuer', issue: issuerIssue },
         ]);
       }
       if (settings.protocol === 'saml' && !settings.idpCertificate) {
@@ -383,14 +394,17 @@ export class SsoService {
   }
 
   private discovery(settings: Extract<Stored, { protocol: 'oidc' }>) {
-    // Plain HTTP only off production, for a local or test identity provider.
-    const insecure = this.config.NODE_ENV !== 'production';
+    // In production every call to the identity provider goes to a public address, connected to
+    // as checked (decision D101); off production, plain HTTP for a local or test provider.
+    const production = this.config.NODE_ENV === 'production';
     return oidc.discovery(
       new URL(settings.issuer),
       settings.clientId,
       settings.clientSecret,
       undefined,
-      insecure ? { execute: [oidc.allowInsecureRequests] } : undefined,
+      production
+        ? { [oidc.customFetch]: publicFetch as oidc.CustomFetch }
+        : { execute: [oidc.allowInsecureRequests] },
     );
   }
 

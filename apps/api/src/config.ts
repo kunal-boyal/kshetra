@@ -74,6 +74,9 @@ const schema = z
     REPORT_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(600_000).default(30_000),
     EXPORT_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(3_600_000).default(300_000),
     REDIS_URL: z.url(),
+    // ElastiCache's AUTH token, kept out of REDIS_URL so the URL can stay a plain setting
+    // (decision D101); `redisUrl()` puts it in.
+    REDIS_PASSWORD: z.string().min(16).optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     // The Redis key prefix of the job queues; tests give each process its own, so one test file's
     // workers never take another's jobs.
@@ -331,6 +334,32 @@ const schema = z
           path: ['ARCHIVE_SIGNING_KEY'],
           message: 'Production needs an archive signing key of its own, kept across restarts.',
         });
+      }
+      // A live cell talks to its database, Redis and mail server over TLS only (decision D101).
+      if (config.CELL_PURPOSE === 'live') {
+        for (const key of ['DATABASE_URL', 'DIRECTORY_DATABASE_URL'] as const) {
+          if (new URL(config[key]).searchParams.get('sslmode') !== 'verify-full') {
+            ctx.addIssue({
+              code: 'custom',
+              path: [key],
+              message: 'Production connects with sslmode=verify-full.',
+            });
+          }
+        }
+        if (!config.REDIS_URL.startsWith('rediss://') || !config.REDIS_PASSWORD) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['REDIS_URL'],
+            message: 'Production uses rediss:// with REDIS_PASSWORD.',
+          });
+        }
+        if (config.EMAIL_PROVIDER === 'smtp' && !config.SMTP_URL.startsWith('smtps://')) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['SMTP_URL'],
+            message: 'Production sends mail over smtps://.',
+          });
+        }
       }
       if (config.OTP_PEPPER.length < 32) {
         ctx.addIssue({

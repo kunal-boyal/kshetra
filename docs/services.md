@@ -52,6 +52,19 @@ The whole product on one EC2 instance in Kunal's personal AWS sandbox, on the Fr
 | Systems Manager | Session Manager and Run Command reach the instance with no SSH; Parameter Store holds its settings |
 | Let's Encrypt, through Caddy | The domain's certificate |
 
+### What the cell's tasks reach (decision D101)
+
+The tasks' security group lets them out only on HTTPS (443) and SMTP over TLS (465), and to the database (5432) and Redis (6379) in their own groups; DNS goes to the VPC's resolver.
+
+| Process | Reaches |
+|---|---|
+| `api` | The database and Redis; AWS's APIs (S3, Secrets Manager, CloudWatch); MSG91 for sign-in codes; tenants' OIDC identity providers, through the outbound guard |
+| `worker` | The database and Redis; AWS's APIs; MSG91, Expo push and SES; Sentry once set; tenants' webhook receivers, through the outbound guard |
+| `scheduler` | The database and Redis; CloudWatch, through its log stream |
+| `migrate`, `bootstrap` | The database |
+
+Tenants name some destinations themselves: webhook receivers (M20) and OIDC issuers (M1). Those go through the outbound guard (`publicFetch` in `apps/api/src/platform/outbound.ts`): HTTPS on 443 to a public address, never a special-purpose range, connected to as checked.
+
 ## Outside providers
 
 | Provider | What for | Needed from | Settings (Appendix F) |

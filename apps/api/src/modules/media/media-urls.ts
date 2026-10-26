@@ -36,6 +36,8 @@ export class MediaUrls {
             keyPairId,
             privateKey,
             dateLessThan: expires.toISOString(),
+            // SHA-256 rather than the default SHA-1 (decision D101).
+            algorithm: 'SHA256',
           })
         : await this.objects.presignGet(key, seconds);
     return { url, expiresAt: expires.toISOString() };

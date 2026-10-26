@@ -72,6 +72,10 @@ aws secretsmanager put-secret-value --secret-id <secret_arn> --secret-string fil
 shred -u cell-secret.json media-signing.pem
 ```
 
+Two secrets need nothing from you (decision D101): Terraform makes Redis's AUTH token once and keeps it in `<cell>/redis` (the tasks read it as `REDIS_PASSWORD`), and keeps CloudFront's `X-Origin-Verify` value in `<cell>/origin` (the API reads it as `ORIGIN_SECRET`). A live cell refuses to start unless its database URLs use `sslmode=verify-full`, `REDIS_URL` is `rediss://` with that password, and `SMTP_URL` is `smtps://`.
+
+The image pins Amazon's RDS certificate bundle by checksum. When Amazon publishes a new bundle the build fails: read what changed, then take the new checksum in `apps/api/Dockerfile`.
+
 Settings that aren't secret, such as `MSG91_OTP_TEMPLATE_ID`, `MSG91_SENDER`, `MSG91_SMS_TEMPLATES` and `MAIL_FROM`, go in `terraform.tfvars` under `environment`.
 
 ### 3. GitHub
