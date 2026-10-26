@@ -7,8 +7,10 @@ packages:
 # and tsdown. ssh2 and cpu-features only serve Docker over SSH, protobufjs only prints notices, and
 # msgpackr-extract is an optional native speed-up that BullMQ's MessagePack works without.
 # vue-demi only picks a Vue version for Scalar's components; the API serves Scalar's prebuilt
-# browser bundle, which doesn't need it (decision D94).
+# browser bundle, which doesn't need it (decision D94). @sentry/cli's binary uploads source maps,
+# which waits for the Sentry account (decision D98).
 allowBuilds:
+  '@sentry/cli': false
   cpu-features: false
   esbuild: true
   msgpackr-extract: false
@@ -44,6 +46,8 @@ catalog:
   lucide-react: ^1.52.0
   react: ^19.3.0
   react-dom: ^19.3.0
+  # Error reports from the web portal and the console, off until a DSN (decision D98).
+  '@sentry/react': 10.76.2
 
 # Mobile: the versions Expo SDK 57 pins, shared by apps/mobile and packages/ui-mobile so the app
 # loads one React. Move them together, with the SDK; see docs/versions.md.
@@ -73,3 +77,10 @@ catalogs:
 minimumReleaseAgeExclude:
   - '@vitejs/plugin-react@6.1.2'
   - vite@8.3.3
+
+# Packages others bring in, held where their newest release is too new to take (decision D98).
+overrides:
+  # Sentry's OpenTelemetry parts want 1.9; 1.10 arrived on 2026-10-20.
+  '@opentelemetry/api': 1.9.1
+  # import-in-the-middle, under Sentry's tracing, takes es-module-lexer 3; 3.0.4 arrived on 2026-10-15.
+  'import-in-the-middle>es-module-lexer': 3.0.3

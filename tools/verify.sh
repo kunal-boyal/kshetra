@@ -28,9 +28,23 @@ step 'End to end (web, with axe)'
 pnpm test:e2e
 step 'Terraform'
 terraform fmt -recursive -check infra
+# Whether an environment holds its providers for this machine, such as darwin_arm64.
+platform=$(terraform version -json | sed -n 's/.*"platform": *"\([^"]*\)".*/\1/p')
+providers() { compgen -G "$1.terraform/providers/registry.terraform.io/*/*/*/$platform" >/dev/null; }
+# Providers one environment on this machine already holds, for others set up without theirs.
+cache=''
+for environment in infra/environments/*/; do
+  if providers "$environment"; then cache="$PWD/$environment.terraform/providers"; fi
+done
 for environment in infra/environments/*/; do
   # Only environments set up on this machine: validating the rest would fetch their providers.
-  if [[ -d "$environment/.terraform" ]]; then terraform -chdir="$environment" validate; fi
+  [[ -d "$environment/.terraform" ]] || continue
+  if ! providers "$environment" && [[ -n "$cache" ]]; then
+    # Offline, from the cache, keeping the committed lock file as it is.
+    terraform -chdir="$environment" init -backend=false -input=false -lockfile=readonly \
+      -plugin-dir="$cache" >/dev/null
+  fi
+  terraform -chdir="$environment" validate
 done
 step 'Shell scripts'
 if command -v shellcheck >/dev/null; then shellcheck infra/scripts/*.sh; else echo 'shellcheck is not installed: skipped'; fi

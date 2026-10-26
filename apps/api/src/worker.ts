@@ -4,9 +4,11 @@ import { NestFactory } from '@nestjs/core';
 import { createLogger } from './app';
 import { AppModule } from './app.module';
 import { loadConfig } from './config';
+import { startErrorReports } from './platform/error-reports';
 import { Queues } from './platform/queues';
 
 const config = loadConfig({ ...process.env, OUTBOX_RELAY: process.env.OUTBOX_RELAY ?? 'true' });
+startErrorReports(config, 'worker');
 const app = await NestFactory.createApplicationContext(AppModule.forRoot(config), {
   logger: createLogger(config),
 });

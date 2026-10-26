@@ -38,6 +38,7 @@ export { EVENT_PAYLOADS, EVENT_TYPES, TenantProvisionedPayload, UserEventPayload
 export type { EventPayload, EventType } from './events';
 export { isId, newId } from './ids';
 export { maskPhone, normalisePhone } from './phone';
+export { scrub, scrubText } from './scrub';
 export {
   cancellable,
   DEFAULT_REJECTION_REASONS,

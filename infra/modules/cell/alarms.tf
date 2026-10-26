@@ -1,5 +1,7 @@
-# The alarms of spec 14.6 that infrastructure can see. Queue backlogs, OTP and notification
-# failure rates and the location ingest rate need the app's own metrics, which come later.
+# The alarms of spec 14.6. Infrastructure's own metrics come from AWS; the app's (queue backlogs,
+# the outbox, phones' uploads, location ingest) from the scheduler's minute of health, written in
+# CloudWatch's embedded metric format (decision D98). OTP and notification failure rates wait for
+# their own figures.
 
 resource "aws_sns_topic" "alarms" {
   name = "${var.name}-alarms"
@@ -29,7 +31,44 @@ locals {
       dimensions  = { DBInstanceIdentifier = aws_db_instance.replica[0].identifier }
     }
   } : {}
-  simple_alarms = merge(local.replica_alarms, {
+  app           = { Cell = var.cell_id }
+  app_namespace = "${var.product_slug}/cell"
+  app_alarms = {
+    queue-backlog = {
+      description = "A background job has waited more than 5 minutes, for 5 minutes"
+      namespace   = local.app_namespace
+      metric      = "QueueOldestWaitSeconds"
+      statistic   = "Maximum"
+      extended    = null
+      threshold   = 300
+      periods     = 5
+      comparison  = "GreaterThanThreshold"
+      dimensions  = local.app
+    }
+    outbox-backlog = {
+      description = "An event has waited more than 5 minutes for its consumers, for 5 minutes"
+      namespace   = local.app_namespace
+      metric      = "OutboxOldestSeconds"
+      statistic   = "Maximum"
+      extended    = null
+      threshold   = 300
+      periods     = 5
+      comparison  = "GreaterThanThreshold"
+      dimensions  = local.app
+    }
+    sync-lag = {
+      description = "A phone's upload has waited more than an hour, for 15 minutes"
+      namespace   = local.app_namespace
+      metric      = "UploadOldestSeconds"
+      statistic   = "Maximum"
+      extended    = null
+      threshold   = 3600
+      periods     = 15
+      comparison  = "GreaterThanThreshold"
+      dimensions  = local.app
+    }
+  }
+  simple_alarms = merge(local.replica_alarms, local.app_alarms, {
     p95-latency = {
       description = "API p95 latency above 1 second for 10 minutes"
       namespace   = "AWS/ApplicationELB"
@@ -156,4 +195,55 @@ resource "aws_cloudwatch_metric_alarm" "server_errors" {
     }
   }
   tags = var.tags
+}
+
+# The scheduler reports every minute; silence for three means it, or the cell, has stopped.
+resource "aws_cloudwatch_metric_alarm" "not_reporting" {
+  alarm_name          = "${var.name}-not-reporting"
+  alarm_description   = "The cell has not reported its health for 3 minutes"
+  namespace           = local.app_namespace
+  metric_name         = "Reported"
+  statistic           = "SampleCount"
+  period              = 60
+  evaluation_periods  = 3
+  threshold           = 1
+  comparison_operator = "LessThanThreshold"
+  dimensions          = local.app
+  treat_missing_data  = "breaching"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+  tags                = var.tags
+}
+
+# Location points far below their usual rate, often a bad app release or a phone maker's update
+# (spec 14.6). CloudWatch learns the usual rate by hour and weekday, so nights and Sundays pass.
+resource "aws_cloudwatch_metric_alarm" "ingest_drop" {
+  alarm_name          = "${var.name}-ingest-drop"
+  alarm_description   = "Location points well below their usual rate for 30 minutes"
+  comparison_operator = "LessThanLowerThreshold"
+  evaluation_periods  = 6
+  threshold_metric_id = "usual"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+  tags                = var.tags
+
+  metric_query {
+    id          = "points"
+    return_data = true
+    metric {
+      namespace   = local.app_namespace
+      metric_name = "PointsAccepted"
+      dimensions  = local.app
+      period      = 300
+      stat        = "Sum"
+    }
+  }
+
+  metric_query {
+    id          = "usual"
+    expression  = "ANOMALY_DETECTION_BAND(points, 3)"
+    label       = "Usual rate"
+    return_data = true
+  }
 }

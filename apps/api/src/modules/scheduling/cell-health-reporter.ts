@@ -7,6 +7,7 @@ import { HealthCounters, minuteOf } from '../../platform/health-counters';
 import { CellHealthRecorder } from '../../platform/planes';
 import { QUEUE_NAMES, Queues } from '../../platform/queues';
 import { CONFIG } from '../../platform/tokens';
+import { cellMetricLines } from './cell-metrics';
 
 const MINUTE_MS = 60_000;
 
@@ -56,6 +57,16 @@ export class CellHealthReporter implements OnModuleDestroy {
     const minute = new Date(Math.floor(now.getTime() / MINUTE_MS) * MINUTE_MS - MINUTE_MS);
     const figures = await this.measure(minute, now);
     await this.recorder.record(this.config.CELL_ID, minute, figures);
+    // In AWS, the same figures become CloudWatch metrics for the alarms (decision D98).
+    if (this.config.CLOUDWATCH_METRICS) {
+      for (const line of cellMetricLines(figures, {
+        namespace: `${this.config.PRODUCT_SLUG}/cell`,
+        cell: this.config.CELL_ID,
+        at: minute,
+      })) {
+        process.stdout.write(`${line}\n`);
+      }
+    }
     return figures;
   }
 

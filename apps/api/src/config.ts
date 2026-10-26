@@ -77,6 +77,13 @@ const schema = z
     // What the cell is for (decision D70). A `demo` cell shows the product to prospects: it may run
     // without SMS, email or push providers, printing those messages with numbers masked instead.
     CELL_PURPOSE: z.enum(['live', 'demo']).default('live'),
+    // Error reports to Sentry (decision D98): off until a DSN is set. The environment and release
+    // name where an error came from, such as the cell and the image's commit.
+    SENTRY_DSN: z.url().optional(),
+    SENTRY_ENVIRONMENT: z.string().min(1).max(64).optional(),
+    SENTRY_RELEASE: z.string().min(1).max(200).optional(),
+    // The scheduler writes each minute's health as CloudWatch metrics, for the alarms (D98).
+    CLOUDWATCH_METRICS: z.stringbool().default(false),
     // Fixed sign-in codes for named numbers, as JSON: {"+919800000001": "482913"} (decision D70).
     // They work only for people whose every tenant is a demo tenant, so a leaked code opens no
     // real tenant. Keep it in the cell's secret, never in the repository.
