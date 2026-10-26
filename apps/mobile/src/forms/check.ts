@@ -1,4 +1,9 @@
-import { checkFormValues, type FormDefinition, type Values } from '@thelamp/forms';
+import {
+  checkFormValues,
+  type FormDefinition,
+  signatureRequired,
+  type Values,
+} from '@thelamp/forms';
 import type { MessageKey } from '@thelamp/i18n';
 import type { EntryData } from './fields';
 import { issueText } from './issues';
@@ -16,14 +21,17 @@ export interface EntryParts {
 /**
  * Checks an entry before it is submitted (spec 5.6), the way the server will: its values with
  * `checkFormValues`, looking up what the phone holds, then the form's own needs: the account it
- * links to, its photos and its signature. Returns the values as they will be sent, and each
- * problem by path, in the reader's words.
+ * links to, its photos and its signature. `visitOrdered` says whether the visit the entry is made
+ * in took an order, for the form's `visit_ordered` conditions (decision D97); leave it out outside
+ * a visit. Returns the values as they will be sent, and each problem by path, in the reader's
+ * words.
  */
 export function checkEntry(
   form: FormDefinition,
   parts: EntryParts,
   data: Pick<EntryData, 'accounts' | 'contacts' | 'items' | 'today'>,
   t: Translate,
+  visitOrdered?: boolean,
 ): { values: Values; issues: Map<string, string> } {
   const accountTypes = new Map(data.accounts.map((account) => [account.id, account.type]));
   const items = new Map(data.items.map((item) => [item.id, item]));
@@ -36,6 +44,7 @@ export function checkEntry(
     activeItem: (id) => items.get(id)?.active ?? false,
     catalogueEntry: (source, id) =>
       source === 'catalogue_items' ? (items.get(id)?.active ?? false) : products.has(id),
+    ...(visitOrdered === undefined ? {} : { visitOrdered }),
   });
   const issues = new Map(checked.issues.map((issue) => [issue.path, issueText(issue.issue, t)]));
   const link = form.accountLink;
@@ -55,7 +64,10 @@ export function checkEntry(
       issues.set('photos', t('entry.issue_photos_max', { count: form.photos.max }));
     }
   }
-  if (form.signature === 'required' && (parts.signature?.length ?? 0) === 0) {
+  if (
+    signatureRequired(form, checked.values, { visitOrdered }) &&
+    (parts.signature?.length ?? 0) === 0
+  ) {
     issues.set('signature', t('entry.issue_signature'));
   }
   return { values: checked.values, issues };

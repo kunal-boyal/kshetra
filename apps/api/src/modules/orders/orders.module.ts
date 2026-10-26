@@ -9,6 +9,7 @@ import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { OrderCredit } from './order-credit';
+import { VisitOrdersProvider } from './visit-orders.provider';
 import { OrderRequests } from './order.requests';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
@@ -28,7 +29,7 @@ import { OrdersSync } from './orders.sync';
     WorkflowModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, OrderRequests, OrderCredit, OrdersSync],
+  providers: [OrdersService, OrderRequests, OrderCredit, OrdersSync, VisitOrdersProvider],
   exports: [OrdersService, OrderCredit],
 })
 export class OrdersModule {}

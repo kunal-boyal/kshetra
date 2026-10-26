@@ -1,4 +1,10 @@
-import { conditionHolds, type FormDefinition, type Values } from '@thelamp/forms';
+import {
+  conditionHolds,
+  type FormDefinition,
+  signatureRequired,
+  type Values,
+  VISIT_ORDERED,
+} from '@thelamp/forms';
 import { type MessageKey, translate } from '@thelamp/i18n';
 import type { Locale } from '@thelamp/shared';
 import { Checkbox, ChoiceGroup, SelectField, TextAreaField, TextField } from '@thelamp/ui-web';
@@ -27,6 +33,9 @@ export function PhonePreview({ form }: { form: FormDefinition }) {
   const { t } = useLanguage();
   const [locale, setLocale] = useState<Locale>('en');
   const [values, setValues] = useState<Values>({});
+  // In a visit, whether it took an order, which conditions may ask (decision D97).
+  const [ordered, setOrdered] = useState(false);
+  const facts: Values = form.visitSession ? { [VISIT_ORDERED]: ordered } : {};
   const say = usePhoneText(locale);
   const headingId = useId();
   return (
@@ -46,6 +55,13 @@ export function PhonePreview({ form }: { form: FormDefinition }) {
         />
       </div>
       <p className="ks-muted">{t('builder.preview_help')}</p>
+      {form.visitSession ? (
+        <Checkbox
+          label={t('builder.visit_ordered')}
+          checked={ordered}
+          onChange={(event) => setOrdered(event.target.checked)}
+        />
+      ) : null}
       <div className="flex flex-col gap-4" lang={locale}>
         <p className="heading-lg">{form.name[locale].one || form.name.en.one || '—'}</p>
         {form.accountLink.mode !== 'none' ? (
@@ -60,6 +76,7 @@ export function PhonePreview({ form }: { form: FormDefinition }) {
           onChange={setValues}
           locale={locale}
           say={say}
+          outer={facts}
         />
         {form.photos ? (
           <Placeholder
@@ -69,7 +86,7 @@ export function PhonePreview({ form }: { form: FormDefinition }) {
         ) : null}
         {form.signature !== 'none' ? (
           <Placeholder
-            label={`${say('builder.signature')}${form.signature === 'required' ? ' *' : ''}`}
+            label={`${say('builder.signature')}${signatureRequired(form, values, form.visitSession ? { visitOrdered: ordered } : {}) ? ' *' : ''}`}
             note={say('builder.preview_signature')}
           />
         ) : null}
@@ -273,7 +290,17 @@ function PreviewFields({
           case 'contact_picker':
             return <Placeholder key={key} label={label} note={say('builder.preview_pick')} />;
           case 'product_lines':
-            return <Placeholder key={key} label={label} note={say('builder.preview_lines')} />;
+            return (
+              <Placeholder
+                key={key}
+                label={label}
+                note={say(
+                  field.quantities === false
+                    ? 'builder.preview_lines_plain'
+                    : 'builder.preview_lines',
+                )}
+              />
+            );
           case 'repeating_group':
             return (
               <fieldset

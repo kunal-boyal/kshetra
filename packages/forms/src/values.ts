@@ -291,6 +291,11 @@ export interface FormValueContext extends ValueContext {
   activeItem?: (id: string) => boolean;
   /** Whether a catalogue entry may be chosen in a select that offers catalogue entries. */
   catalogueEntry?: (source: 'catalogue_products' | 'catalogue_items', id: string) => boolean;
+  /**
+   * For a form filled in a visit: whether the visit took an order, which conditions may ask as
+   * `visit_ordered` (decision D97).
+   */
+  visitOrdered?: boolean;
 }
 
 /** A product line: an item, how many, and the value column's figure when the field has one. */
@@ -330,6 +335,11 @@ function lines(
     seen.add(itemId);
     if (context.activeItem && !context.activeItem(itemId)) {
       return at('itemId', 'This item is not in the catalogue');
+    }
+    // Without quantities, each line is one of its item (decision D97).
+    if (!field.quantities) {
+      value.push({ itemId, quantity: 1 });
+      return;
     }
     const quantity = typeof entry.quantity === 'string' ? Number(entry.quantity) : entry.quantity;
     if (typeof quantity !== 'number' || !Number.isFinite(quantity) || quantity < 0) {
@@ -491,7 +501,8 @@ export function checkFormValues(
   context: FormValueContext,
   path: readonly PropertyKey[] = [],
 ): { values: Values; issues: ErrorDetail[] } {
-  return checkFieldList(form.fields, input, {}, context, path);
+  const facts = context.visitOrdered === undefined ? {} : { visit_ordered: context.visitOrdered };
+  return checkFieldList(form.fields, input, facts, context, path);
 }
 
 /** A photo a submission's values hold, where it sits, and whether its field takes gallery photos. */

@@ -1,5 +1,5 @@
 import { ApiError } from '@thelamp/api-client';
-import { type FormDefinition, type FormField, FormView } from '@thelamp/forms';
+import { type FormDefinition, type FormField, FormView, VISIT_ORDERED } from '@thelamp/forms';
 import {
   Button,
   Checkbox,
@@ -18,8 +18,8 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useDesignations, useRoles, write } from '../people/data';
 import { PageHeader } from '../people/shared';
 import { useForms, useRefreshForms } from './data';
-import { keysOf, newForm, tidy } from './drafts';
-import { FieldList } from './field-editor';
+import { type AnyFormField, keysOf, newForm, tidy } from './drafts';
+import { ConditionEditor, FieldList } from './field-editor';
 import { PhonePreview } from './preview';
 
 export function NewFormPage() {
@@ -88,6 +88,17 @@ function FormBuilder({ form }: { form?: FormView }) {
   const [locked] = useState(() => (form ? keysOf(form.fields) : new Set<string>()));
   const link = draft.accountLink;
   const linked = link.mode === 'none' ? [] : link.accountTypes;
+  // What conditions see before the first field: in a visit, whether it took an order (D97).
+  const facts: AnyFormField[] = draft.visitSession
+    ? [
+        {
+          key: VISIT_ORDERED,
+          type: 'yes_no',
+          label: { en: t('builder.visit_ordered'), hi: t('builder.visit_ordered') },
+          required: false,
+        },
+      ]
+    : [];
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -383,10 +394,39 @@ function FormBuilder({ form }: { form?: FormView }) {
                 value,
                 label: t(`builder.signature_${value}`),
               }))}
-              onChange={(event) =>
-                set({ signature: event.target.value as FormDefinition['signature'] })
-              }
+              onChange={(event) => {
+                const signature = event.target.value as FormDefinition['signature'];
+                // Only an optional signature is required by a condition.
+                setDraft(({ signatureRequiredWhen, ...current }) => ({
+                  ...current,
+                  signature,
+                  ...(signature === 'optional' && signatureRequiredWhen
+                    ? { signatureRequiredWhen }
+                    : {}),
+                }));
+              }}
             />
+            {draft.signature === 'optional' ? (
+              <ConditionEditor
+                condition={draft.signatureRequiredWhen}
+                earlier={[...facts, ...draft.fields]}
+                legend={t('builder.signature_when')}
+                addLabel={t('builder.add_signature_condition')}
+                onChange={(signatureRequiredWhen) =>
+                  setDraft((current) => {
+                    const next = { ...current };
+                    if (signatureRequiredWhen) next.signatureRequiredWhen = signatureRequiredWhen;
+                    else delete next.signatureRequiredWhen;
+                    return next;
+                  })
+                }
+              />
+            ) : null}
+            {at('signatureRequiredWhen') ? (
+              <p className="ks-help error" role="alert">
+                {at('signatureRequiredWhen')}
+              </p>
+            ) : null}
           </section>
 
           <section className="flex flex-col gap-4" aria-labelledby="form-fields">
@@ -403,6 +443,7 @@ function FormBuilder({ form }: { form?: FormView }) {
               onChange={(fields) => set({ fields: fields as FormField[] })}
               context={{ accountTypes, problems, taken: keysOf(draft.fields), locked }}
               path="definition.fields"
+              outer={facts}
             />
           </section>
 
