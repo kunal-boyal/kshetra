@@ -501,6 +501,8 @@ Tracking also stops on pause, permission loss, GPS switched off, sign-out, sessi
 
 Punch-in and punch-out work offline and sync later inside the sync window.
 
+Odometer (tenant setting: off by default, optional or required, decision D96): at punch-in and punch-out the user enters the vehicle's odometer reading and takes a live photo of it. The shift keeps both readings and photos; a closing reading below the opening one is refused. The readings are a declared figure shown beside the tracked distance, never in place of it.
+
 Derived data: shift distance from accurate fixes, on-duty time, gaps longer than 10 minutes, and a compacted trail (section 12.1).
 
 Rules: BR-36, BR-37, BR-44.
@@ -674,11 +676,14 @@ Standard reports, each filterable by period, team, territory, user and account t
 | Orders register | One row per order line with full pricing and decisions |
 | Expense register | Claims with policy, amounts, approvals and payout status |
 | Leave register | Requests, days and balances |
-| Location summary | Per shift: distance, points, gaps and pauses |
+| Location summary | Per shift: distance, points, gaps and pauses, and the opening and closing odometer readings where recorded (D96) |
+| GPS audit trail | Every point of a shift: capture and receive times, coordinates, accuracy, speed, battery, source, and the gaps over 10 minutes; only for days whose raw points are still kept (BR-41, D96) |
 | Account statement | Statement with running balance |
 | Audit log | Filtered audit entries |
 
 Exports run as background jobs, produce XLSX or CSV, neutralise spreadsheet formula injection, and are downloaded from links that expire after 7 days. Every export is limited to the requester's scope and recorded in the audit log. Scheduled email reports arrive in version 2.
+
+Printing (D96): the report on screen, an order and an account statement can be printed or saved as a PDF, with the tenant's legal name (section 5.1), the period and filters, the scope it was read in and the time it was printed. A printed report holds what the screen shows; the whole report is the export.
 
 ### M19. Imports
 
@@ -1723,8 +1728,8 @@ Each phase ends with a working product and its exit criteria. Durations are plan
 | 0. Foundation (3–4 weeks) | Monorepo, CI, local environment and `CLAUDE.md`; directory module with OTP sign-in, tokens and tenant switching; tenant context and RLS; IAM with roles, scopes, designations and closure tables; audit; outbox; config bundle; terminology resolver and i18n; templates package with the generic and agri templates; provisioning CLI; web and mobile shells with sign-in | A user signs in on a phone and on the web into either of two seeded tenants; the cross-tenant contract test passes; both templates validate |
 | 1. Field core, the MVP (8–10 weeks) | M2–M9; M16 with push and SMS; M17; M18 with home dashboards, activity log, attendance register and target against achievement; M19 for users, territories, accounts and targets; mobile offline sync; location pipeline with compaction; media pipeline; form builder with the version 1 field types | One tenant runs a pilot week: punch-in, tracking, planned and ad hoc visits with photos, review, metrics and leaderboard updates, imports that reconcile with the source files; the device protocol passes on two Android brands |
 | 2. Commerce and people (6–8 weeks) | M10, M11, M12, M13; M15 with the workflow engine for every request type; WhatsApp channel; remaining standard reports and exports; M19 for catalogue, price lists, finance and HR data | Order totals reconcile with three real invoices to the paisa; leave, regularisation and claims pass through configured chains; the attendance register matches a manual check |
-| 3. SaaS readiness (6–8 weeks) | M20, M21, M22, M23; pharma and FMCG templates; SSO; TOTP for admins; partition automation and archive; read-replica routing; tenant export, import and cell-move tooling; WAF, alarms and a restore drill; penetration test; Play and App Store releases | A new tenant is onboarded from the console in under a day; billing charges a test tenant end to end; no high or critical penetration test findings remain open; apps are approved in both stores, or managed distribution is in place |
-| 4. Growth (ongoing) | M14 payroll inputs, a scheme and promotion engine for orders, calculated form fields, scheduled reports, custom dashboards, leave accrual, approval delegation, ERP connectors (Tally, SAP, Zoho Books), the building materials template, regional languages, travel claims from tracked distance, anomaly detection on evidence | Driven by customer demand |
+| 3. SaaS readiness (6–8 weeks) | M20, M21, M22, M23; pharma and FMCG templates; SSO; TOTP for admins; partition automation and archive; read-replica routing; tenant export, import and cell-move tooling; WAF, alarms and a restore drill; penetration test; Play and App Store releases; from the review of an outside demo (D96), odometer readings at punch-in and punch-out, the GPS audit trail report and printing to PDF | A new tenant is onboarded from the console in under a day; billing charges a test tenant end to end; no high or critical penetration test findings remain open; apps are approved in both stores, or managed distribution is in place |
+| 4. Growth (ongoing) | M14 payroll inputs, a scheme and promotion engine for orders, calculated form fields, scheduled reports, custom dashboards, leave accrual, approval delegation, ERP connectors (Tally, SAP, Zoho Books), the building materials template, regional languages, travel claims from tracked distance, anomaly detection on evidence; from the review of an outside demo (D96), invoice and receipt registers with ageing worked out from open invoices (with the ERP connectors), product forecasts per account by item and month, liquidation returns by item, one workbook of every report, example files for each import, and a search across screens and records | Driven by customer demand |
 
 The MVP is phase 0 plus phase 1, for one paying pilot customer on one template, with apps distributed through internal or closed testing tracks.
 
