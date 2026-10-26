@@ -58,7 +58,7 @@ catalogs:
     '@types/react': ~19.2.2
     expo: ~57.0.30
     # jest-expo 57 runs on Jest 29.
-    jest: ^29.7.0
+    jest: ^30.5.2
     jest-expo: ~57.0.6
     lucide-react-native: ^1.52.0
     react: 19.2.3
