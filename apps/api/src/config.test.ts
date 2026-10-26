@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from './config';
+import { redisUrl } from './platform/redis';
 
 const required = {
   DATABASE_URL: 'postgres://cell_app:x@localhost:5433/kshetra',
@@ -188,11 +189,47 @@ describe('loadConfig', () => {
       PUSH_PROVIDER: 'expo',
       SMS_PROVIDER: 'msg91',
       EMAIL_PROVIDER: 'smtp',
+      DATABASE_URL: 'postgres://cell_app:x@db.example.test:5432/thelamp?sslmode=verify-full',
+      DIRECTORY_DATABASE_URL:
+        'postgres://directory_app:x@db.example.test:5432/thelamp?sslmode=verify-full',
+      REDIS_URL: 'rediss://cache.example.test:6379',
+      REDIS_PASSWORD: 'an-elasticache-auth-token',
+      SMTP_URL: 'smtps://user:pw@email-smtp.example.test:465',
     };
     // Off is a real answer in production; printing to the console isn't.
     expect(loadConfig(production).WHATSAPP_PROVIDER).toBe('off');
     expect(() => loadConfig({ ...production, WHATSAPP_PROVIDER: 'console' })).toThrow(
       /WHATSAPP_PROVIDER/,
+    );
+  });
+
+  it('keeps a live cell’s database, Redis and mail on TLS (decision D101)', () => {
+    const live = {
+      ...required,
+      NODE_ENV: 'production',
+      CELL_API_URL: 'https://api.example.test',
+      JWT_SIGNING_KEY: 'a key',
+      OTP_PEPPER: 'a-production-pepper-of-32-characters',
+      COLUMN_KEY: Buffer.alloc(32, 1).toString('base64'),
+      ARCHIVE_SIGNING_KEY: Buffer.alloc(32, 2).toString('base64'),
+      OTP_PROVIDER: 'msg91',
+      MSG91_AUTH_KEY: 'key',
+      MSG91_OTP_TEMPLATE_ID: 'otp',
+      PUSH_PROVIDER: 'expo',
+      SMS_PROVIDER: 'msg91',
+      EMAIL_PROVIDER: 'smtp',
+    };
+    expect(() => loadConfig(live)).toThrow(/sslmode=verify-full/);
+    expect(() => loadConfig(live)).toThrow(/rediss:\/\/ with REDIS_PASSWORD/);
+    expect(() => loadConfig(live)).toThrow(/smtps:\/\//);
+  });
+
+  it('puts the Redis AUTH token into its address', () => {
+    expect(
+      redisUrl({ REDIS_URL: 'rediss://cache.example.test:6379', REDIS_PASSWORD: 'tok/en+1' }),
+    ).toBe('rediss://:tok%2Fen+1@cache.example.test:6379');
+    expect(redisUrl({ REDIS_URL: 'redis://localhost:6380', REDIS_PASSWORD: undefined })).toBe(
+      'redis://localhost:6380',
     );
   });
 

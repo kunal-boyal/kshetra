@@ -39,11 +39,41 @@ resource "aws_vpc_security_group_ingress_rule" "tasks_from_alb" {
   ip_protocol                  = "tcp"
 }
 
-# Out to the database, Redis, AWS's APIs and the providers (MSG91, Expo, SES).
-resource "aws_vpc_security_group_egress_rule" "tasks_out" {
+# Out only as the cell needs (decision D101): HTTPS to AWS's APIs, the providers (MSG91, Expo,
+# Firebase, Sentry) and tenants' webhooks and identity providers, SMTP over TLS to SES, and the
+# database and Redis in their own groups. DNS goes to the VPC's resolver, which no group filters.
+resource "aws_vpc_security_group_egress_rule" "tasks_https" {
+  for_each          = { ipv4 = "0.0.0.0/0", ipv6 = "::/0" }
+  security_group_id = aws_security_group.tasks.id
+  cidr_ipv4         = each.key == "ipv4" ? each.value : null
+  cidr_ipv6         = each.key == "ipv6" ? each.value : null
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "tasks_smtp" {
   security_group_id = aws_security_group.tasks.id
   cidr_ipv4         = "0.0.0.0/0"
-  ip_protocol       = "-1"
+  from_port         = 465
+  to_port           = 465
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "tasks_database" {
+  security_group_id            = aws_security_group.tasks.id
+  referenced_security_group_id = aws_security_group.database.id
+  from_port                    = 5432
+  to_port                      = 5432
+  ip_protocol                  = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "tasks_redis" {
+  security_group_id            = aws_security_group.tasks.id
+  referenced_security_group_id = aws_security_group.redis.id
+  from_port                    = 6379
+  to_port                      = 6379
+  ip_protocol                  = "tcp"
 }
 
 resource "aws_security_group" "database" {

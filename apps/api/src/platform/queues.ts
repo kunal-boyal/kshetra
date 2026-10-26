@@ -3,6 +3,7 @@ import { ModuleRef } from '@nestjs/core';
 import { QUEUE_DEFAULT_SLOTS } from '@thelamp/shared';
 import { DelayedError, type Job, type JobsOptions, Queue, Worker } from 'bullmq';
 import type { Config } from '../config';
+import { redisUrl } from './redis';
 import { reportError } from './error-reports';
 import { Entitlements } from './planes';
 import { TenantSlots } from './tenant-slots';
@@ -79,7 +80,7 @@ export class Queues implements OnModuleDestroy {
   private get options() {
     return {
       // BullMQ's blocking reads need unlimited retries per request.
-      connection: { url: this.config.REDIS_URL, maxRetriesPerRequest: null },
+      connection: { url: redisUrl(this.config), maxRetriesPerRequest: null },
       prefix: this.config.QUEUE_PREFIX ?? `${this.config.PRODUCT_SLUG}:bull`,
     };
   }

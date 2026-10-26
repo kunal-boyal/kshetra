@@ -71,6 +71,31 @@ resource "aws_elasticache_subnet_group" "this" {
   tags       = var.tags
 }
 
+# Redis's AUTH token, made once and kept, as the random password would change every plan; the
+# tasks read it from a secret of its own as REDIS_PASSWORD (decision D101).
+data "aws_secretsmanager_random_password" "redis" {
+  password_length     = 64
+  exclude_punctuation = true
+}
+
+resource "terraform_data" "redis_token" {
+  input = data.aws_secretsmanager_random_password.redis.random_password
+  lifecycle {
+    ignore_changes = [input]
+  }
+}
+
+resource "aws_secretsmanager_secret" "redis" {
+  name        = "${var.name}/redis"
+  description = "The AUTH token of this cell's Redis"
+  tags        = var.tags
+}
+
+resource "aws_secretsmanager_secret_version" "redis" {
+  secret_id     = aws_secretsmanager_secret.redis.id
+  secret_string = terraform_data.redis_token.output
+}
+
 resource "aws_elasticache_replication_group" "this" {
   replication_group_id       = var.name
   description                = "Queues, rate limits and live positions for ${var.name}"
@@ -84,6 +109,9 @@ resource "aws_elasticache_replication_group" "this" {
   security_group_ids         = [aws_security_group.redis.id]
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
+  # Clients must authenticate as well as use TLS (decision D101).
+  auth_token                 = terraform_data.redis_token.output
+  auth_token_update_strategy = "ROTATE"
   snapshot_retention_limit   = 1
   # BullMQ needs every key kept until its job is done.
   parameter_group_name = aws_elasticache_parameter_group.this.name

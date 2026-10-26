@@ -17,6 +17,9 @@ describe('webhook addresses and signatures (decision D94)', () => {
     );
     expect(await production.urlIssue('https://10.20.30.40/hooks')).toMatch(/private networks/);
     expect(await production.urlIssue('https://[::1]/hooks')).toMatch(/private networks/);
+    // IPv4 loopback written as IPv6, which the old check let through (decision D101).
+    expect(await production.urlIssue('https://[::ffff:7f00:1]/hooks')).toMatch(/private networks/);
+    expect(await production.urlIssue('https://93.184.215.14:8443/hooks')).toMatch(/standard HTTPS/);
     expect(await production.urlIssue('https://169.254.169.254/latest')).toMatch(/private networks/);
     expect(await production.urlIssue('https://user:pass@93.184.215.14/hooks')).toBe(
       'Leave the user name and password out of it',

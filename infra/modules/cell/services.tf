@@ -73,9 +73,12 @@ resource "aws_iam_role_policy" "execution_secret" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["secretsmanager:GetSecretValue"]
-      Resource = concat([aws_secretsmanager_secret.app.arn], aws_secretsmanager_secret.origin[*].arn)
+      Effect = "Allow"
+      Action = ["secretsmanager:GetSecretValue"]
+      Resource = concat(
+        [aws_secretsmanager_secret.app.arn, aws_secretsmanager_secret.redis.arn],
+        aws_secretsmanager_secret.origin[*].arn,
+      )
     }]
   })
 }
@@ -210,6 +213,9 @@ resource "aws_ecs_task_definition" "process" {
     environment  = [for key, value in each.value.environment : { name = key, value = value }]
     secrets = concat(
       [for key in each.value.secrets : { name = key, valueFrom = "${local.secret}:${key}::" }],
+      contains(["api", "worker", "scheduler"], each.key)
+      ? [{ name = "REDIS_PASSWORD", valueFrom = aws_secretsmanager_secret.redis.arn }]
+      : [],
       each.key == "api" && var.origin_secret != null
       ? [{ name = "ORIGIN_SECRET", valueFrom = aws_secretsmanager_secret.origin[0].arn }]
       : [],

@@ -14,10 +14,20 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
     # Expo pins its native modules; they move with an SDK upgrade (`expo install --check`).
+    # Majors the project holds back on purpose wait for a decision (docs/versions.md): TypeScript
+    # until typescript-eslint supports 7, Jest with Expo's, Sentry at 10 (decision D98).
     ignore:
       - dependency-name: 'expo*'
       - dependency-name: '@expo/*'
       - dependency-name: 'react-native*'
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'jest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@jest/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@sentry/*'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /

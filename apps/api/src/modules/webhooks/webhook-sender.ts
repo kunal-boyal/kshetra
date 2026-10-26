@@ -1,34 +1,11 @@
 import { createHmac, randomBytes } from 'node:crypto';
-import { lookup } from 'node:dns/promises';
-import { BlockList, isIP } from 'node:net';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Config } from '../../config';
+import { publicFetch, publicUrlIssue } from '../../platform/outbound';
 import { CONFIG } from '../../platform/tokens';
 
 /** How long a receiver has to answer. */
 const TIMEOUT_MS = 10_000;
-
-/** Addresses a webhook may never reach in production: loopback, private, link-local and the like. */
-const PRIVATE = new BlockList();
-for (const [address, prefix] of [
-  ['0.0.0.0', 8],
-  ['10.0.0.0', 8],
-  ['100.64.0.0', 10],
-  ['127.0.0.0', 8],
-  ['169.254.0.0', 16],
-  ['172.16.0.0', 12],
-  ['192.168.0.0', 16],
-] as const) {
-  PRIVATE.addSubnet(address, prefix, 'ipv4');
-}
-for (const [address, prefix] of [
-  ['::', 128],
-  ['::1', 128],
-  ['fc00::', 7],
-  ['fe80::', 10],
-] as const) {
-  PRIVATE.addSubnet(address, prefix, 'ipv6');
-}
 
 /** A new signing secret, in the Standard Webhooks form: `whsec_` and 24 random bytes in base64. */
 export function newWebhookSecret(): string {
@@ -62,9 +39,9 @@ export interface SendOutcome {
 /**
  * Posts webhook messages (module M20, decision D94), signed, to receivers the tenant named. A
  * receiver must answer 2xx within ten seconds; a redirect counts as a failure. In production it
- * must be HTTPS and never resolve to a private address, so a webhook can't reach into the cell's
- * own network; off production plain HTTP and local receivers are allowed, for development and
- * tests.
+ * goes through the outbound guard (`publicFetch`): HTTPS on 443 to a public address, so a webhook
+ * can't reach into the cell's own network; off production plain HTTP and local receivers are
+ * allowed, for development and tests.
  */
 @Injectable()
 export class WebhookSender {
@@ -76,34 +53,18 @@ export class WebhookSender {
 
   /** What is wrong with a receiver's address, or null when a webhook may post to it. */
   async urlIssue(url: string): Promise<string | null> {
+    // In production, the outbound guard's rules: https on 443 to a public address (D101).
+    if (this.production) return publicUrlIssue(url);
     let parsed: URL;
     try {
       parsed = new URL(url);
     } catch {
       return 'Write a full address, such as https://erp.example.com/hooks';
     }
-    if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && !this.production)) {
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')
       return 'Use an https:// address';
-    }
     if (parsed.username || parsed.password) return 'Leave the user name and password out of it';
-    if (!this.production) return null;
-    const host = parsed.hostname.replace(/^\[|\]$/g, '');
-    let addresses: string[];
-    try {
-      addresses = isIP(host)
-        ? [host]
-        : (await lookup(host, { all: true })).map((found) => found.address);
-    } catch {
-      return 'This address can’t be found';
-    }
-    if (addresses.length === 0) return 'This address can’t be found';
-    const blocked = addresses.some((address) =>
-      PRIVATE.check(
-        address.replace(/^::ffff:/, ''),
-        isIP(address.replace(/^::ffff:/, '')) === 6 ? 'ipv6' : 'ipv4',
-      ),
-    );
-    return blocked ? 'Use a public address; private networks can’t be reached' : null;
+    return null;
   }
 
   /** One try: the body exactly as stored, signed with the subscription's secret. */
@@ -120,7 +81,9 @@ export class WebhookSender {
     const text = JSON.stringify(body);
     const timestamp = Math.floor(now.getTime() / 1000);
     try {
-      const response = await fetch(url, {
+      // In production the connection goes to the address the guard checked, never another the
+      // name resolves to by the time it's made (decision D101).
+      const response = await (this.production ? publicFetch : fetch)(url, {
         method: 'POST',
         redirect: 'manual',
         signal: AbortSignal.timeout(TIMEOUT_MS),

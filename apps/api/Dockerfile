@@ -33,7 +33,10 @@ WORKDIR /app
 RUN apt-get update \
  && apt-get install -y --no-install-recommends fonts-noto-core fontconfig \
  && rm -rf /var/lib/apt/lists/*
-ADD --chown=node:node https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem certs/rds-global-bundle.pem
+# Pinned by checksum (decision D101): when Amazon publishes a new bundle the build fails, and the
+# new checksum is taken after reading what changed.
+ADD --checksum=sha256:90a6f1a7978a1b1b096dca6c57511ca48d3b8cf052f8e704baf358f34ea2f21b --chown=node:node \
+    https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem certs/rds-global-bundle.pem
 COPY --from=build --chown=node:node /deploy/package.json ./
 COPY --from=build --chown=node:node /deploy/node_modules ./node_modules
 COPY --from=build --chown=node:node /repo/apps/api/dist ./dist

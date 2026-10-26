@@ -265,14 +265,15 @@ describe('monthly subscriptions (BR-47)', () => {
     const total = invoice!.total;
     const pay = (body: object) =>
       send('POST', `/platform/v1/invoices/${invoice!.id}/payments`, staff, body);
-    const part = { id: newId(), amount: '100', method: 'bank_transfer', receivedOn: INVOICE_DAY };
-    expect((await pay(part)).json()).toMatchObject({ status: 'issued', paid: '100.00' });
+    // A part of a rupee less than the whole, whatever the month's seats came to.
+    const part = { id: newId(), amount: '1', method: 'bank_transfer', receivedOn: INVOICE_DAY };
+    expect((await pay(part)).json()).toMatchObject({ status: 'issued', paid: '1.00' });
     // The same payment again is recorded once; changed, it is refused.
-    expect((await pay(part)).json().paid).toBe('100.00');
-    expect((await pay({ ...part, amount: '101' })).json().error.code).toBe('IDEMPOTENCY_CONFLICT');
+    expect((await pay(part)).json().paid).toBe('1.00');
+    expect((await pay({ ...part, amount: '2' })).json().error.code).toBe('IDEMPOTENCY_CONFLICT');
     const over = await pay({ ...part, id: newId(), amount: total });
     expect(over.json().error.details[0].path).toBe('amount');
-    const rest = (BigInt(total.replace('.', '')) - 10_000n).toString();
+    const rest = (BigInt(total.replace('.', '')) - 100n).toString().padStart(3, '0');
     const paid = await pay({
       id: newId(),
       amount: `${rest.slice(0, -2)}.${rest.slice(-2)}`,
