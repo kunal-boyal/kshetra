@@ -24,6 +24,7 @@ import {
 } from '../../db/schema/directory';
 import { CellAdmission, PeopleEmails } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
+import { SecurityLog } from '../../platform/security-log';
 import { DirectoryDatabase, type DirectoryDb, type DirectoryTx } from './directory.database';
 import { activeMemberships, type MembershipRow } from './memberships';
 import { digest, newSecret } from './secrets';
@@ -73,6 +74,7 @@ export class SessionsService {
     private readonly client: RedisClient,
     private readonly cell: CellAdmission,
     private readonly emails: PeopleEmails,
+    private readonly security: SecurityLog,
   ) {}
 
   /** After a verified code: one tenant signs straight in; several get a ticket to choose with. */
@@ -214,6 +216,14 @@ export class SessionsService {
       .for('update');
     if (!token) return null;
     if (token.revokedAt) {
+      // Only a copy is presented twice: the family ends, and that is a security event (D101).
+      this.security.record({
+        event: 'session_reused',
+        plane: 'directory',
+        subject: token.supportGrantId
+          ? `support:${token.supportGrantId}`
+          : `membership:${token.membershipId}`,
+      });
       await this.endFamily(tx, token.familyId);
       return null;
     }
@@ -282,7 +292,9 @@ export class SessionsService {
         enrolled,
       );
     }
-    return this.signedIn(row, await this.issue(this.database.db, row, newId(), deviceId));
+    const session = await this.issue(this.database.db, row, newId(), deviceId);
+    this.signInLogged(row, 'sms_code', device ? ['sms_code', 'bound_device'] : ['sms_code']);
+    return this.signedIn(row, session);
   }
 
   /** Whether a person has set an authenticator up, as an admin must and anyone may. */
@@ -358,10 +370,16 @@ export class SessionsService {
         enrolled,
       );
     }
-    return this.signedIn(
+    const session = await this.issue(
+      this.database.db,
       row,
-      await this.issue(this.database.db, row, newId(), null, providerMfa, fresh(true)),
+      newId(),
+      null,
+      providerMfa,
+      fresh(true),
     );
+    this.signInLogged(row, 'sso', providerMfa ? ['sso', 'provider_mfa'] : ['sso']);
+    return this.signedIn(row, session);
   }
 
   /** The sign-in a second-factor ticket holds, while it lasts; the ticket stays unspent. */
@@ -377,8 +395,14 @@ export class SessionsService {
     return { membership, deviceId: pending.deviceId };
   }
 
-  /** Spends a second-factor ticket once its code checked out, and starts the session. */
-  async finish(ticket: string): Promise<SignedIn> {
+  /**
+   * Spends a second-factor ticket once its code checked out, and starts the session; `used`
+   * says which kind of code it was.
+   */
+  async finish(
+    ticket: string,
+    used: 'authenticator' | 'recovery_code' = 'authenticator',
+  ): Promise<SignedIn> {
     const held = await this.client.redis.getdel(`second:${digest(ticket)}`);
     if (!held) throw new AppError('OTP_EXPIRED', 'This sign-in has expired. Request a new code.');
     const pending = JSON.parse(held) as Pending;
@@ -395,6 +419,8 @@ export class SessionsService {
       true,
       fresh(pending.sso ?? false),
     );
+    const first = pending.sso ? 'sso' : 'sms_code';
+    this.signInLogged(membership, first, [first, used]);
     return this.signedIn(membership, session);
   }
 
@@ -415,6 +441,14 @@ export class SessionsService {
   async supportSignIn(grant: SupportGrantRow): Promise<SignedIn> {
     if (!grantOpen(grant)) throw revoked();
     const session = await this.issueSupport(this.database.db, grant, newId());
+    this.security.record({
+      event: 'signed_in',
+      plane: 'directory',
+      tenantId: grant.tenantId,
+      actor: `support:${grant.id}`,
+      method: 'support_grant',
+      factors: ['staff_session', 'support_grant'],
+    });
     return { status: 'signed_in', tenant: this.grantSummary(grant), session };
   }
 
@@ -451,6 +485,18 @@ export class SessionsService {
       refreshToken,
       refreshTokenExpiresAt: refreshTokenExpiresAt.toISOString(),
     };
+  }
+
+  /** A finished sign-in, with how it was made (ASVS V16.3.1, decision D101). */
+  private signInLogged(row: MembershipRow, method: string, factors: string[]): void {
+    this.security.record({
+      event: 'signed_in',
+      plane: 'directory',
+      tenantId: row.tenantId,
+      actor: `user:${row.userId}`,
+      method,
+      factors,
+    });
   }
 
   private signedIn(row: MembershipRow, session: Session): SignedIn {

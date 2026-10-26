@@ -23,6 +23,7 @@ import { z } from 'zod';
 import type { Config } from '../../config';
 import { Public } from '../../platform/auth';
 import { Contract } from '../../platform/routes';
+import { SecurityLog } from '../../platform/security-log';
 import { CONFIG } from '../../platform/tokens';
 import { SSO_STATE_SECONDS, SsoRefused, SsoService } from './sso.service';
 import { WebCookie } from './web-cookie';
@@ -47,6 +48,7 @@ export class SsoController {
   constructor(
     private readonly sso: SsoService,
     private readonly cookie: WebCookie,
+    private readonly security: SecurityLog,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -79,7 +81,7 @@ export class SsoController {
       void reply.setCookie(cookie.name, binder, cookie.options);
       return reply.redirect(url, 302);
     } catch (error) {
-      return this.failed(reply, error);
+      return this.failed(reply, error, tenant);
     }
   }
 
@@ -110,7 +112,7 @@ export class SsoController {
       );
       return this.into(request, reply, outcome);
     } catch (error) {
-      return this.failed(reply, error);
+      return this.failed(reply, error, tenant);
     }
   }
 
@@ -141,7 +143,7 @@ export class SsoController {
       );
       return this.into(request, reply, outcome);
     } catch (error) {
-      return this.failed(reply, error);
+      return this.failed(reply, error, tenant);
     }
   }
 
@@ -184,8 +186,15 @@ export class SsoController {
   }
 
   /** Back to the sign-in page, saying why; anything unexpected says the provider refused. */
-  private failed(reply: FastifyReply, error: unknown) {
+  private failed(reply: FastifyReply, error: unknown, slug: string) {
     const failure = error instanceof SsoRefused ? error.failure : 'refused';
+    this.security.record({
+      event: 'sign_in_failed',
+      plane: 'directory',
+      method: 'sso',
+      subject: `tenant:${slug}`,
+      reason: failure,
+    });
     return reply.redirect(`${this.config.WEB_URL}/sign-in?sso=${failure}`, 302);
   }
 }

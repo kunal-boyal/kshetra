@@ -197,9 +197,11 @@ variable "alarm_email" {
   default     = null
 }
 
+# How long the cell's process and WAF logs are kept: 180 days, as CERT-In's directions of April
+# 2022 ask of logs kept in India (decision D101).
 variable "log_retention_days" {
   type    = number
-  default = 30
+  default = 180
 }
 
 variable "tags" {

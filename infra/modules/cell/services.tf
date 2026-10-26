@@ -42,7 +42,56 @@ resource "aws_cloudwatch_log_group" "process" {
   for_each          = toset(["api", "worker", "scheduler", "migrate", "bootstrap"])
   name              = "/${var.name}/${each.key}"
   retention_in_days = var.log_retention_days
+  kms_key_id        = aws_kms_key.logs.arn
   tags              = var.tags
+}
+
+data "aws_caller_identity" "current" {}
+
+# The cell's logs, security events among them, are encrypted under a key of their own (ASVS
+# V16.4.2, decision D101): CloudWatch Logs may use it only for this cell's log groups, and the
+# processes, which only write to standard output, never hold it.
+resource "aws_kms_key" "logs" {
+  description             = "${var.name} logs"
+  enable_key_rotation     = true
+  deletion_window_in_days = 30
+  policy                  = data.aws_iam_policy_document.logs_key.json
+  tags                    = var.tags
+}
+
+resource "aws_kms_alias" "logs" {
+  name          = "alias/${var.name}-logs"
+  target_key_id = aws_kms_key.logs.key_id
+}
+
+data "aws_iam_policy_document" "logs_key" {
+  # The account administers the key, as every key policy must allow.
+  statement {
+    sid       = "Account"
+    actions   = ["kms:*"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+  statement {
+    sid       = "CellLogGroups"
+    actions   = ["kms:Encrypt*", "kms:Decrypt*", "kms:ReEncrypt*", "kms:GenerateDataKey*", "kms:Describe*"]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${data.aws_region.current.region}.amazonaws.com"]
+    }
+    condition {
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values = [
+        "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:/${var.name}/*",
+        "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:aws-waf-logs-${var.name}",
+      ]
+    }
+  }
 }
 
 data "aws_iam_policy_document" "ecs_tasks" {

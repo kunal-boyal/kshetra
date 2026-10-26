@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { formatDate, formatMoney, type MessageKey, translate } from '@thelamp/i18n';
-import type { Locale } from '@thelamp/shared';
+import { type Locale, maskEmail } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { billingAccounts, billingNotices, tenants } from '../../db/schema/directory';
 import { TenantContacts } from '../../platform/planes';
 import { DirectoryDatabase } from '../directory/directory.database';
-import { EmailSender, maskEmail } from '../notifications/senders';
+import { EmailSender } from '../notifications/senders';
 
 export type BillingNotice =
   | 'invoice_issued'

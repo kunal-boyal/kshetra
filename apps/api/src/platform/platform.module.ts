@@ -13,6 +13,7 @@ import { ApiClientLimits } from './api-client-limits';
 import { RedisClient } from './redis';
 import { OutboxRelay } from './relay';
 import { Schedules } from './schedules';
+import { SecurityLog } from './security-log';
 import { TenantSlots } from './tenant-slots';
 import { CONFIG } from './tokens';
 
@@ -39,6 +40,7 @@ export class PlatformModule {
         Schedules,
         { provide: ObjectStore, useFactory: () => createObjectStore(config) },
         { provide: BreachedPasswords, useFactory: () => createBreachedPasswords(config) },
+        SecurityLog,
       ],
       exports: [
         CONFIG,
@@ -56,6 +58,7 @@ export class PlatformModule {
         Schedules,
         ObjectStore,
         BreachedPasswords,
+        SecurityLog,
       ],
     };
   }

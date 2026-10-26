@@ -7,6 +7,7 @@ import {
   type NotificationEventKey,
   smsSegments,
   WHATSAPP_CONSENT_VERSION,
+  maskEmail,
 } from '@thelamp/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Config } from '../../config';
@@ -23,7 +24,6 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { NotificationsService } from './notifications.service';
 import {
   EmailSender,
-  maskEmail,
   maskToken,
   PushSender,
   type SendResult,

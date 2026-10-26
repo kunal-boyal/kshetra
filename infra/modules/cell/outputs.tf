@@ -66,3 +66,8 @@ output "media_distribution_domain" {
 output "alarm_topic_arn" {
   value = aws_sns_topic.alarms.arn
 }
+
+# The one-off tasks' logs, which a deploy may read when a migration fails.
+output "one_off_log_group_arns" {
+  value = [for key in ["migrate", "bootstrap"] : aws_cloudwatch_log_group.process[key].arn]
+}

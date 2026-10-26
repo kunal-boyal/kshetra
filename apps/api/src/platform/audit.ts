@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { auditLog } from '../db/audit-log';
 import type { Access } from './auth';
 import { Database, type TenantTx } from './database';
+import { SecurityLog } from './security-log';
 
 /** Who made a change, and from where. */
 export interface AuditActor {
@@ -54,7 +55,10 @@ export interface AuditRecord {
 export class AuditLog implements OnApplicationBootstrap {
   private readonly logger = new Logger(AuditLog.name);
 
-  constructor(private readonly database: Database) {}
+  constructor(
+    private readonly database: Database,
+    private readonly security: SecurityLog,
+  ) {}
 
   /** Makes sure this month's partition exists before the first entry needs it. */
   async onApplicationBootstrap(): Promise<void> {
@@ -85,6 +89,21 @@ export class AuditLog implements OnApplicationBootstrap {
       deviceId: actor.deviceId ?? null,
       supportGrantId: actor.supportGrantId ?? null,
     });
+    // A copy outside the database, without the values, once the change commits (decision D101).
+    this.database.whenCommitted(tx, () =>
+      this.security.record({
+        event: 'audit',
+        plane: 'cell',
+        tenantId,
+        actor: actor.supportGrantId
+          ? `support:${actor.supportGrantId}`
+          : actor.id
+            ? `${actor.kind}:${actor.id}`
+            : actor.kind,
+        action: entry.action,
+        target: `${entry.target.type}:${entry.target.id ?? ''}`,
+      }),
+    );
   }
 
   /**

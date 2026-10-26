@@ -1598,7 +1598,7 @@ Account and user search use PostgreSQL trigram indexes on name and code within t
 | Mobile | Tokens in the secure store; app data in the OS sandbox; Play Integrity and App Attest verdicts recorded per device and shown to reviewers; certificate pinning evaluated after launch |
 | Vendor access | Support grants (M22); every vendor action audited and visible to the tenant |
 | Supply chain | Lockfile, Renovate or Dependabot, `pnpm audit` in CI, licence check, signed container images |
-| Logging | No phone numbers, OTPs, tokens or signed URLs in logs; Sentry scrubbing rules; tenant and request IDs on every log line |
+| Logging | No phone numbers, OTPs, tokens or signed URLs in logs; Sentry scrubbing rules; tenant and request IDs on every log line, with the caller and address on access lines; security events (refusals, sign-ins with their factors, failed sign-ins, reused sessions) and a copy of every audit entry logged outside the database; logs encrypted and kept 180 days in India (D101) |
 | Testing | SAST (Semgrep CE with the project's own rules) and dependency scanning (`pnpm audit`, Dependabot) before every merge and nightly in CI (D100); an external penetration test before general availability and yearly, including attempts to cross tenants with crafted IDs |
 
 ### 13.2 Threats and mitigations
