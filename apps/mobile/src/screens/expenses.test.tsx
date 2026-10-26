@@ -82,6 +82,7 @@ const claim = (id: string, patch: object) => ({
   rate: null,
   odometerOpen: null,
   odometerClose: null,
+  shiftId: null,
   billAmount: '412.50',
   calculated: '412.50',
   amount: '412.50',
