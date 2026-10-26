@@ -241,6 +241,9 @@ export {
   StaffSetupResult,
   StaffSignInBody,
   SuspendTenantBody,
+  TerminateTenantBody,
+  ConsoleDataExportBody,
+  TenantExportParams,
   TemplateListResult,
   TemplateSummary,
   TenantIdParams,
@@ -998,6 +1001,8 @@ export {
   DATA_EXPORT_KEEP_DAYS,
   DATA_EXPORT_LINK_HOURS,
   dataExportExpiry,
+  deletionDue,
+  TERMINATION_KEEP_DAYS,
 } from './data-exports';
 export {
   ArchiveSigningKey,

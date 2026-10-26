@@ -3514,6 +3514,26 @@ export const en = {
   'data_export.key_id': 'Key ID',
   'data_export.public_key': 'Public key',
   'data_export.sha256': 'Archive SHA-256',
+  'console.termination_title': 'Termination',
+  'console.termination_intro':
+    'Terminating closes {name} for good. A final export of all its data is prepared now, for you to send the customer, and its data is deleted 30 days later. Its invoices are kept.',
+  'console.terminate': 'Terminate',
+  'console.terminate_question':
+    'Terminate {name}? Its data is deleted on {date}, unless you undo this before then.',
+  'console.terminate_reason': 'Why',
+  'console.terminate_slug': 'Type {slug} to confirm',
+  'console.terminated_on': 'Terminated on {date}. Its data is deleted on {deletes}.',
+  'console.deleted_on': 'Its data was deleted on {date}. Its invoices are kept.',
+  'console.final_exports': 'Exports for the customer',
+  'console.export_by': '{time}, asked by {name}',
+  'console.no_exports': 'No exports yet.',
+  'console.copy_export_link': 'Copy a download link',
+  'console.link_label': 'Download link',
+  'console.link_copied': 'Copied. The link lasts 24 hours; send it to the customer.',
+  'console.export_again': 'Prepare another export',
+  'console.undo_termination': 'Undo termination',
+  'console.undo_question':
+    'Undo the termination of {name}? It is suspended again, and nothing is deleted.',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;

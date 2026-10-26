@@ -12,7 +12,7 @@ import {
 import { and, desc, eq, inArray, lt } from 'drizzle-orm';
 import { dataExports } from '../../db/schema/governance';
 import { ArchiveSigner } from '../../platform/archive-signer';
-import { AuditLog, userActor } from '../../platform/audit';
+import { type AuditActor, AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
 import { Queues } from '../../platform/queues';
@@ -117,50 +117,57 @@ export class DataExportsService implements OnModuleInit {
 
   /** Asks for an archive; one already being prepared answers `CONFLICT`. */
   async create(tx: TenantTx, access: Access, id: string): Promise<DataExportResult> {
+    const requesterName = access.support
+      ? access.support.staffName
+      : ((await this.people.facts(tx, access.tenantId, [access.userId])).get(access.userId)?.name ??
+        '');
+    return this.ask(
+      tx,
+      access.tenantId,
+      id,
+      { userId: access.support ? null : access.userId, name: requesterName },
+      userActor(access),
+    );
+  }
+
+  /**
+   * Asks for an archive for whoever names it: a tenant's admin, or vendor staff from the console,
+   * as for a terminated tenant's final export (decision D95).
+   */
+  async ask(
+    tx: TenantTx,
+    tenantId: string,
+    id: string,
+    requester: { userId: string | null; name: string },
+    actor: AuditActor,
+  ): Promise<DataExportResult> {
     const [existing] = await tx
       .select()
       .from(dataExports)
-      .where(and(eq(dataExports.tenantId, access.tenantId), eq(dataExports.id, id)));
-    if (existing) return this.result(tx, access.tenantId, existing, false);
+      .where(and(eq(dataExports.tenantId, tenantId), eq(dataExports.id, id)));
+    if (existing) return this.result(tx, tenantId, existing, false);
     const [busy] = await tx
       .select({ id: dataExports.id })
       .from(dataExports)
       .where(
-        and(
-          eq(dataExports.tenantId, access.tenantId),
-          inArray(dataExports.status, ['queued', 'running']),
-        ),
+        and(eq(dataExports.tenantId, tenantId), inArray(dataExports.status, ['queued', 'running'])),
       )
       .for('update');
     if (busy) {
       throw new AppError('CONFLICT', 'An export of your data is being prepared already.');
     }
-    const requesterName = access.support
-      ? access.support.staffName
-      : ((await this.people.facts(tx, access.tenantId, [access.userId])).get(access.userId)?.name ??
-        '');
     const [row] = await tx
       .insert(dataExports)
-      .values({
-        tenantId: access.tenantId,
-        id,
-        requestedBy: access.support ? null : access.userId,
-        requesterName,
-      })
+      .values({ tenantId, id, requestedBy: requester.userId, requesterName: requester.name })
       .returning();
-    await this.audit.record(tx, access.tenantId, userActor(access), {
+    await this.audit.record(tx, tenantId, actor, {
       action: 'data_export.created',
       target: { type: 'data_export', id },
     });
     this.database.afterCommit(tx, () =>
-      this.queues.add(
-        'exports',
-        RUN,
-        { tenantId: access.tenantId, exportId: id },
-        { jobId: jobId(id) },
-      ),
+      this.queues.add('exports', RUN, { tenantId, exportId: id }, { jobId: jobId(id) }),
     );
-    return this.result(tx, access.tenantId, row!, false);
+    return this.result(tx, tenantId, row!, false);
   }
 
   /** The tenant's exports, newest first; links come only from `get`. */
@@ -177,14 +184,18 @@ export class DataExportsService implements OnModuleInit {
 
   /** One export, with a day's link while its archive is kept; reading the link is audited. */
   async get(tx: TenantTx, access: Access, id: string): Promise<DataExportResult> {
-    const result = await this.result(
-      tx,
-      access.tenantId,
-      await this.find(tx, access.tenantId, id),
-      true,
-    );
+    return this.read(tx, access.tenantId, id, userActor(access));
+  }
+
+  async read(
+    tx: TenantTx,
+    tenantId: string,
+    id: string,
+    actor: AuditActor,
+  ): Promise<DataExportResult> {
+    const result = await this.result(tx, tenantId, await this.find(tx, tenantId, id), true);
     if (result.download) {
-      await this.audit.record(tx, access.tenantId, userActor(access), {
+      await this.audit.record(tx, tenantId, actor, {
         action: 'data_export.downloaded',
         target: { type: 'data_export', id },
       });

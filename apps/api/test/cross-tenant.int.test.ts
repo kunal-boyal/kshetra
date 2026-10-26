@@ -505,6 +505,28 @@ const FIXTURES: Record<string, Fixture> = {
     'POST',
     '/platform/v1/tenants/:id/reactivate',
   ),
+  'POST /platform/v1/tenants/:id/terminate': consoleShutsB(
+    'POST',
+    '/platform/v1/tenants/:id/terminate',
+    { reason: 'B tries to end A', confirmSlug: 'alpha' },
+  ),
+  'POST /platform/v1/tenants/:id/undo-termination': consoleShutsB(
+    'POST',
+    '/platform/v1/tenants/:id/undo-termination',
+  ),
+  'GET /platform/v1/tenants/:id/data-exports': consoleShutsB(
+    'GET',
+    '/platform/v1/tenants/:id/data-exports',
+  ),
+  'POST /platform/v1/tenants/:id/data-exports': consoleShutsB(
+    'POST',
+    '/platform/v1/tenants/:id/data-exports',
+    { id: newId() },
+  ),
+  'GET /platform/v1/tenants/:id/data-exports/:exportId': consoleShutsB(
+    'GET',
+    `/platform/v1/tenants/:id/data-exports/${newId()}`,
+  ),
   'GET /platform/v1/plans': consoleShutsB('GET', '/platform/v1/plans'),
   'POST /platform/v1/plans': consoleShutsB('POST', '/platform/v1/plans', {
     id: newId(),

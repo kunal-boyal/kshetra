@@ -717,7 +717,7 @@ Rules: BR-42, BR-43.
 
 ### M22. Platform console (vendor)
 
-- Tenants: create from a template, choose a cell (shared or dedicated), plan and trial length; suspend, reactivate, and terminate with the export and deletion procedure.
+- Tenants: create from a template, choose a cell (shared or dedicated), plan and trial length; suspend, reactivate, and terminate with the export and deletion procedure: a suspended tenant is terminated with its slug typed again, a final export is prepared for the customer, and its data is deleted 30 days later, its invoices kept, with a deletion certificate in the platform audit (decision D95).
 - Plans, entitlements, feature flags and limits per tenant.
 - Usage per tenant per month: active users, seats, storage, SMS and WhatsApp volumes, API calls.
 - Support access: a vendor user requests access to a tenant with a reason; the tenant admin approves it for a fixed time (default 4 hours). Emergency access needs a second vendor admin and notifies the tenant admin. Grants are read-only unless they say otherwise.
@@ -1135,6 +1135,7 @@ Columns are condensed; `tid` stands for `tenant_id`. PK = primary key, UQ = uniq
 ```text
 ── Directory schema (global; no RLS; directory role only) ────────────────────────
 tenants(id, slug UQ, name, status enum(trial,active,grace,read_only,suspended,terminated), cell_id, moving_to_cell_id NULL,
+        terminated_at NULL, deleted_at NULL,
         plan_id, template_key, template_version, created_at)
 cells(id, name, region, api_base_url, kind enum(shared,dedicated), status, capacity_users)
 identities(id, phone_e164 UQ, email UQ NULL, created_at, last_login_at)

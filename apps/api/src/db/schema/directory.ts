@@ -83,6 +83,12 @@ export const tenants = directory.table('tenants', {
   demo: boolean('demo').notNull().default(false),
   // When a tenant on trial stops being one; billing decides what follows (module M23).
   trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
+  /**
+   * When it was terminated (decision D95): its data is deleted 30 days later, when `deleted_at` is
+   * set. The row stays, as its invoices must.
+   */
+  terminatedAt: timestamp('terminated_at', { withTimezone: true }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: createdAt(),
 });
 

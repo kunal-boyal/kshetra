@@ -2,6 +2,7 @@ import type {
   ApiScopeKey,
   BillableSeats,
   CellFiguresShape,
+  DataExportResult,
   DeviceInfo,
   ModuleKey,
   SupportScopeKey,
@@ -230,4 +231,23 @@ export interface ApiClientCheck {
  */
 export abstract class ApiClientCredentials {
   abstract check(clientId: string, clientSecret: string): Promise<ApiClientCheck | null>;
+}
+
+/** Vendor staff, as the cell records what they do for a tenant from the console. */
+export interface StaffActor {
+  staffId: string;
+  name: string;
+}
+
+/**
+ * A tenant's data exports and its erasure, which the console reaches on the tenant's cell (module
+ * M21, decision D95): the final export of a terminated tenant, a day's link to it to send the
+ * customer, and, 30 days on, every row and file the tenant held there.
+ */
+export abstract class TenantArchives {
+  abstract request(tenantId: string, id: string, by: StaffActor): Promise<DataExportResult>;
+  abstract list(tenantId: string): Promise<DataExportResult[]>;
+  /** One export, with a day's link while it is kept; reading the link is audited. */
+  abstract read(tenantId: string, id: string, by: StaffActor): Promise<DataExportResult>;
+  abstract erase(tenantId: string): Promise<{ rows: number; files: number }>;
 }

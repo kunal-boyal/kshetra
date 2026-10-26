@@ -19,6 +19,8 @@ import { DirectoryModule } from './modules/directory/directory.module';
 import { DirectoryMembers } from './modules/directory/members';
 import { SecondFactorService } from './modules/directory/second-factor.service';
 import { DirectoryTenants } from './modules/directory/tenants';
+import { CellTenantArchives } from './modules/governance/cell-tenant-archives';
+import { GovernanceModule } from './modules/governance/governance.module';
 import { AccessResolver } from './platform/auth';
 import { Outbox } from './platform/outbox';
 import { CONFIG } from './platform/tokens';
@@ -34,6 +36,7 @@ import {
   SecondFactors,
   SupportGrants,
   SupportNotices,
+  TenantArchives,
   TenantContacts,
   TenantDirectory,
   UsageRecorder,
@@ -48,7 +51,7 @@ import {
  */
 @Global()
 @Module({
-  imports: [DirectoryModule, IamModule, BillingModule, MeteringModule],
+  imports: [DirectoryModule, IamModule, BillingModule, MeteringModule, GovernanceModule],
   providers: [
     { provide: CellAdmission, useExisting: IamAdmission },
     { provide: MembershipSync, useExisting: DirectoryMembers },
@@ -73,6 +76,7 @@ import {
     { provide: SupportGrants, useExisting: SupportService },
     { provide: CellHealthRecorder, useExisting: CellHealthService },
     { provide: ApiClientCredentials, useExisting: ApiClientsService },
+    { provide: TenantArchives, useExisting: CellTenantArchives },
   ],
   exports: [
     CellAdmission,
@@ -90,6 +94,7 @@ import {
     SupportGrants,
     CellHealthRecorder,
     ApiClientCredentials,
+    TenantArchives,
   ],
 })
 export class PlanesModule implements OnModuleInit {

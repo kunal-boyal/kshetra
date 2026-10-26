@@ -111,6 +111,13 @@ export const ConsoleTenant = z
     demo: z.boolean(),
     /** People who may sign in now. */
     activeUsers: z.int().min(0),
+    /**
+     * Termination (decision D95): when it happened, when the data goes, and when it went; null
+     * for a tenant that isn't terminated.
+     */
+    terminatedAt: z.iso.datetime().nullable(),
+    deletesAt: z.iso.datetime().nullable(),
+    deletedAt: z.iso.datetime().nullable(),
     createdAt: z.iso.datetime(),
   })
   .meta({ id: 'ConsoleTenant' });
@@ -146,6 +153,20 @@ export const CreateTenantBody = ProvisionTenantInput.extend({
 export const SuspendTenantBody = z.strictObject({
   reason: z.string().trim().min(3).max(500),
 });
+
+/**
+ * Terminating says why, and repeats the tenant's slug, as nothing else in the console is undone
+ * by deleting everything 30 days later (decision D95).
+ */
+export const TerminateTenantBody = z.strictObject({
+  reason: z.string().trim().min(3).max(500),
+  confirmSlug: z.string().trim().min(1).max(60),
+});
+
+/** `POST /platform/v1/tenants/{id}/data-exports`: the export's own ID. */
+export const ConsoleDataExportBody = z.strictObject({ id: z.uuid() });
+
+export const TenantExportParams = z.strictObject({ id: z.uuid(), exportId: z.uuid() });
 
 export const TemplateSummary = z.object({
   key: Key,
@@ -188,3 +209,4 @@ export const SecondFactorResetResult = z.object({
   /** Whether the person had an authenticator to remove; their sessions end either way. */
   removed: z.boolean(),
 });
+export type TerminateTenantBody = z.output<typeof TerminateTenantBody>;
