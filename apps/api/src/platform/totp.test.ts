@@ -30,13 +30,14 @@ describe('TOTP (RFC 6238)', () => {
     expect(fromBase32(newTotpSecret())).toHaveLength(20);
   });
 
-  it('takes a step either side of now, never one already used', () => {
+  it('takes the step now or the one before, never a later one or one already used', () => {
     const secret = newTotpSecret();
     const now = 1_800_000_000_000;
     const step = totpStep(now);
     expect(matchTotp(secret, totpAt(secret, step), null, now)).toBe(step);
     expect(matchTotp(secret, totpAt(secret, step - 1), null, now)).toBe(step - 1);
-    expect(matchTotp(secret, totpAt(secret, step + 1), null, now)).toBe(step + 1);
+    // A code from a later step is refused, so a code seen early can't be saved up (D101).
+    expect(matchTotp(secret, totpAt(secret, step + 1), null, now)).toBeNull();
     expect(matchTotp(secret, totpAt(secret, step - 2), null, now)).toBeNull();
     // A code used once doesn't work again, nor does an earlier one.
     expect(matchTotp(secret, totpAt(secret, step), step, now)).toBeNull();

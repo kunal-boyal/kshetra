@@ -57,4 +57,33 @@ describe('vendor staff in the console (D88)', () => {
       await within(table).findByRole('row', { name: /Ravi Shah.*Disabled/ }),
     ).toBeInTheDocument();
   });
+
+  it('resets someone’s sign-in after asking, showing the new setup link once (D101)', async () => {
+    const client = fakeClient(ADMIN, (method, path) => {
+      if (method === 'POST' && path === `/platform/v1/staff/${RAVI.id}/reset`) {
+        return {
+          staff: { ...RAVI, status: 'invited' as const },
+          setupUrl: 'https://console.example/setup#a-new-link',
+        };
+      }
+      return { items: [ADMIN, RAVI] };
+    });
+    renderConsole('/staff', client);
+    const table = await screen.findByRole('table', { name: 'Staff' });
+    const user = userEvent.setup();
+    await user.click(
+      within(await within(table).findByRole('row', { name: /Ravi Shah/ })).getByRole('button', {
+        name: 'Reset sign-in',
+      }),
+    );
+    const confirm = screen.getByRole('group', { name: 'Reset Ravi Shah’s sign-in?' });
+    expect(within(confirm).getByText(/password and authenticator are removed/)).toBeInTheDocument();
+    await user.click(within(confirm).getByRole('button', { name: 'Reset sign-in' }));
+    expect(await screen.findByText('https://console.example/setup#a-new-link')).toBeInTheDocument();
+    expect(client.request).toHaveBeenCalledWith(
+      'POST',
+      `/platform/v1/staff/${RAVI.id}/reset`,
+      expect.anything(),
+    );
+  });
 });

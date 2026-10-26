@@ -58,6 +58,16 @@ export const StaffSignInBody = z.strictObject({
   code: TotpCode,
 });
 
+/**
+ * `POST /platform/v1/me/password`: a new password, given the current one and a fresh code
+ * (decision D101). Every session ends; the one answering takes over.
+ */
+export const StaffPasswordBody = z.strictObject({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: StaffPassword,
+  code: TotpCode,
+});
+
 /** A console session: the access token lives in memory, the refresh token in a cookie. */
 export const StaffSession = z.object({
   accessToken: z.string(),
@@ -194,6 +204,7 @@ export type ConsoleTenant = z.infer<typeof ConsoleTenant>;
 export type CreateTenantBody = z.output<typeof CreateTenantBody>;
 export type ConsoleTenantQuery = z.output<typeof ConsoleTenantQuery>;
 export type InviteStaffBody = z.output<typeof InviteStaffBody>;
+export type StaffPasswordBody = z.output<typeof StaffPasswordBody>;
 export type TemplateSummary = z.infer<typeof TemplateSummary>;
 export type CellSummary = z.infer<typeof CellSummary>;
 

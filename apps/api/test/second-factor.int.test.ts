@@ -1,12 +1,13 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { newId } from '@thelamp/shared';
+import { newId, normalisePhone } from '@thelamp/shared';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { tenants } from '../src/db/schema/directory';
 import { StaffService } from '../src/modules/console/staff.service';
 import { DirectoryDatabase } from '../src/modules/directory/directory.database';
+import { digest } from '../src/modules/directory/secrets';
 import { totpAt, totpStep } from '../src/platform/totp';
-import { newDevice, newPhone, startApp, testConfig, World } from './support';
+import { newDevice, newPhone, settledStep, startApp, testConfig, World } from './support';
 
 /**
  * The second factor of web sign-in (spec M1, decision D91): anyone whose role can change access
@@ -81,7 +82,8 @@ describe('setting up and using an authenticator (D91)', () => {
 
     const wrong = await post('/auth/v1/totp/verify', { ticket: first.ticket, code: '000000' });
     expect(wrong.json().error.code).toBe('OTP_INVALID');
-    const step = totpStep();
+    // The step before now first, so this step's code is left for the next sign-in.
+    const step = (await settledStep()) - 1;
     const done = await post(
       '/auth/v1/totp/verify',
       { ticket: first.ticket, code: totpAt(secret, step) },
@@ -126,12 +128,33 @@ describe('setting up and using an authenticator (D91)', () => {
       recoveryCode: codes[0]!.toLowerCase(),
     });
     expect(recovered.json()).toMatchObject({ status: 'signed_in' });
+    // Recovery codes are kept only as salted scrypt hashes, one fewer now.
+    const { rows } = await world.directory.client.query(
+      `select recovery_hashes from directory.totp_secrets
+        where identity_id = (select id from directory.identities where phone_e164 = $1)`,
+      [normalisePhone(o.adminPhone)],
+    );
+    expect(rows[0].recovery_hashes).toHaveLength(9);
+    for (const hash of rows[0].recovery_hashes) expect(hash).toMatch(/^scrypt\$14\$8\$1\$/);
     const fourth = await challenge(o.adminPhone);
     const reused = await post('/auth/v1/totp/verify', {
       ticket: fourth.ticket,
       recoveryCode: codes[0],
     });
     expect(reused.json().error.code).toBe('OTP_INVALID');
+
+    // A code handed out before decision D101, kept as a plain digest, still works once.
+    await world.directory.client.query(
+      `update directory.totp_secrets set recovery_hashes = array[$2]
+        where identity_id = (select id from directory.identities where phone_e164 = $1)`,
+      [normalisePhone(o.adminPhone), digest('ABCDE23456')],
+    );
+    const fifth = await challenge(o.adminPhone);
+    const legacy = await post('/auth/v1/totp/verify', {
+      ticket: fifth.ticket,
+      recoveryCode: 'abcde-23456',
+    });
+    expect(legacy.json()).toMatchObject({ status: 'signed_in' });
   });
 
   it('ends a sign-in after five wrong codes', async () => {
@@ -272,11 +295,14 @@ async function staffToken(): Promise<string> {
   const { secret } = (
     await post('/platform/v1/setup', { token, password: 'a long staff password' })
   ).json();
-  await post('/platform/v1/setup/confirm', { token, code: totpAt(secret, totpStep()) });
+  await post('/platform/v1/setup/confirm', {
+    token,
+    code: totpAt(secret, (await settledStep()) - 1),
+  });
   const signedIn = await post('/platform/v1/session', {
     email,
     password: 'a long staff password',
-    code: totpAt(secret, totpStep() + 1),
+    code: totpAt(secret, totpStep()),
   });
   return signedIn.json().accessToken;
 }
@@ -295,7 +321,7 @@ describe('an authenticator for anyone, and changing access only on the web (D101
     const wrong = await asUser('POST', '/auth/v1/authenticator/confirm', token, { code: '000000' });
     expect(wrong.json().error.code).toBe('OTP_INVALID');
     const confirmed = await asUser('POST', '/auth/v1/authenticator/confirm', token, {
-      code: totpAt(secret, totpStep()),
+      code: totpAt(secret, (await settledStep()) - 1),
     });
     expect(confirmed.statusCode, confirmed.body).toBe(200);
     expect(confirmed.json().recoveryCodes).toHaveLength(10);
@@ -306,7 +332,7 @@ describe('an authenticator for anyone, and changing access only on the web (D101
 
     // Removed with a code from it, the web signs in by SMS code alone again.
     const removed = await asUser('POST', '/auth/v1/authenticator/remove', token, {
-      code: totpAt(secret, totpStep() + 1),
+      code: totpAt(secret, totpStep()),
     });
     expect(removed.statusCode, removed.body).toBe(204);
     expect((await world.verify(o.managerPhone)).json().status).toBe('signed_in');

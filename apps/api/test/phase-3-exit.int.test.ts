@@ -5,7 +5,7 @@ import { BillingCycle } from '../src/modules/billing/billing-cycle';
 import { type MemoryGateway, PaymentGateway } from '../src/modules/billing/gateway';
 import { StaffService } from '../src/modules/console/staff.service';
 import { totpAt, totpStep } from '../src/platform/totp';
-import { newDevice, newPhone, startApp, testConfig, World } from './support';
+import { newDevice, newPhone, settledStep, startApp, testConfig, World } from './support';
 
 /**
  * Phase 3's exit checks that code can prove (spec 15, decision D100): a new tenant is onboarded
@@ -57,13 +57,13 @@ async function staffToken(): Promise<string> {
     method: 'POST',
     url: '/platform/v1/setup/confirm',
     remoteAddress: address(),
-    payload: { token, code: totpAt(secret, totpStep()) },
+    payload: { token, code: totpAt(secret, (await settledStep()) - 1) },
   });
   const signedIn = await app.inject({
     method: 'POST',
     url: '/platform/v1/session',
     remoteAddress: address(),
-    payload: { email, password, code: totpAt(secret, totpStep() + 1) },
+    payload: { email, password, code: totpAt(secret, totpStep()) },
   });
   expect(signedIn.statusCode, signedIn.body).toBe(200);
   return signedIn.json().accessToken;

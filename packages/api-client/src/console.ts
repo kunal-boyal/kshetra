@@ -1,5 +1,6 @@
 import {
   CONSOLE_CLIENT,
+  type StaffPasswordBody,
   StaffResult,
   StaffSession,
   StaffSetupResult,
@@ -123,6 +124,18 @@ export function createConsoleClient(options: ConsoleClientOptions) {
         body: JSON.stringify({ token: setupToken, code }),
       });
       return read(response, StaffResult);
+    },
+
+    /**
+     * A new password, given the current one and a fresh code (decision D101). Every session ends;
+     * this one goes on with the token that comes back.
+     */
+    async changePassword(body: StaffPasswordBody) {
+      session = await read(
+        await authorised('POST', '/platform/v1/me/password', body),
+        StaffSession,
+      );
+      return session.staff;
     },
 
     /**

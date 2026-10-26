@@ -20,7 +20,7 @@ import { StaffService } from '../src/modules/console/staff.service';
 import { totpAt, totpStep } from '../src/platform/totp';
 import { DirectoryDatabase } from '../src/modules/directory/directory.database';
 import { EmailSender, type MemoryEmailSender } from '../src/modules/notifications/senders';
-import { newPhone, startApp, testConfig, World } from './support';
+import { newPhone, settledStep, startApp, testConfig, World } from './support';
 
 /**
  * Billing (module M23, BR-47 to BR-49, decision D90): subscriptions, monthly invoices in arrears,
@@ -73,13 +73,13 @@ async function staffToken(): Promise<string> {
     method: 'POST',
     url: '/platform/v1/setup/confirm',
     remoteAddress: address(),
-    payload: { token, code: totpAt(secret, totpStep()) },
+    payload: { token, code: totpAt(secret, (await settledStep()) - 1) },
   });
   const signedIn = await app.inject({
     method: 'POST',
     url: '/platform/v1/session',
     remoteAddress: address(),
-    payload: { email, password: 'a long staff password', code: totpAt(secret, totpStep() + 1) },
+    payload: { email, password: 'a long staff password', code: totpAt(secret, totpStep()) },
   });
   return signedIn.json().accessToken;
 }

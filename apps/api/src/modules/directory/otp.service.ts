@@ -23,6 +23,10 @@ export const OTP_LIMITS = {
   requestsPerNumber: { name: 'otp-request-number', max: 3, windowSeconds: 600 },
   requestsPerAddress: { name: 'otp-request-ip', max: 20, windowSeconds: 3600 },
   verificationsPerAddress: { name: 'otp-verify-ip', max: 30, windowSeconds: 3600 },
+  // Wrong codes for one number, across its challenges and from any address (decision D101):
+  // without these, a number's three challenges every ten minutes allow over 2,000 guesses a day.
+  wrongCodesPerNumberHour: { name: 'otp-wrong-number-hour', max: 10, windowSeconds: 3600 },
+  wrongCodesPerNumberDay: { name: 'otp-wrong-number-day', max: 20, windowSeconds: 86_400 },
 } as const satisfies Record<string, RateLimit>;
 
 function parsePhone(raw: string): string {
@@ -103,6 +107,8 @@ export class OtpService {
   ): Promise<OtpVerifyResult> {
     const phone = parsePhone(rawPhone);
     await this.limiter.hit(OTP_LIMITS.verificationsPerAddress, address);
+    await this.limiter.check(OTP_LIMITS.wrongCodesPerNumberHour, phone);
+    await this.limiter.check(OTP_LIMITS.wrongCodesPerNumberDay, phone);
 
     // The outcome is decided inside the transaction and thrown after it commits, so a wrong
     // attempt is counted even though the request fails.
@@ -125,7 +131,7 @@ export class OtpService {
       if (!sameDigest(challenge.codeHmac, codeHmac(this.config.OTP_PEPPER, challenge.id, code))) {
         const attempts = challenge.attempts + 1;
         await tx.update(otpChallenges).set({ attempts }).where(eq(otpChallenges.id, challenge.id));
-        return attempts >= OTP.maxAttempts ? 'expired' : 'invalid';
+        return attempts >= OTP.maxAttempts ? 'wrong-expired' : 'invalid';
       }
       await tx
         .update(otpChallenges)
@@ -135,7 +141,13 @@ export class OtpService {
       return challenge.channel === 'none' ? 'invalid' : 'verified';
     });
 
-    if (outcome === 'expired') {
+    if (outcome === 'wrong-expired' || outcome === 'invalid') {
+      // Only wrong codes count towards the number's own limits, so its owner isn't locked out by
+      // signing in (decision D101).
+      await this.limiter.hit(OTP_LIMITS.wrongCodesPerNumberHour, phone).catch(() => undefined);
+      await this.limiter.hit(OTP_LIMITS.wrongCodesPerNumberDay, phone).catch(() => undefined);
+    }
+    if (outcome === 'expired' || outcome === 'wrong-expired') {
       throw new AppError('OTP_EXPIRED', 'This code has expired. Request a new one.');
     }
     if (outcome === 'invalid') {

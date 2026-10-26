@@ -141,6 +141,21 @@ describe('verifying a code', () => {
     expect((await verifyCode(person.phone, code)).json().error.code).toBe('OTP_EXPIRED');
   });
 
+  it('caps wrong codes for a number across its codes: ten an hour (decision D101)', async () => {
+    const person = await member('Chaitanya Krishi');
+    for (let round = 0; round < 2; round += 1) {
+      await requestCode(person.phone);
+      const code = sender.lastCode(person.phone)!;
+      for (let i = 0; i < 5; i += 1) await verifyCode(person.phone, wrong(code));
+    }
+    // Even the right code waits now, whichever address it comes from.
+    await requestCode(person.phone);
+    const limited = await verifyCode(person.phone, sender.lastCode(person.phone)!);
+    expect(limited.statusCode).toBe(429);
+    expect(limited.json().error.code).toBe('RATE_LIMITED');
+    expect(Number(limited.headers['retry-after'])).toBeLessThanOrEqual(3600);
+  });
+
   it('expires a code after five minutes', async () => {
     const person = await member('Dhara Inputs');
     await requestCode(person.phone);

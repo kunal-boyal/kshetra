@@ -201,6 +201,14 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...production, WHATSAPP_PROVIDER: 'console' })).toThrow(
       /WHATSAPP_PROVIDER/,
     );
+    // New staff passwords are checked against breached ones in production (decision D101).
+    expect(loadConfig(production).PASSWORD_BREACH_CHECK).toBe('pwned');
+    expect(() => loadConfig({ ...production, PASSWORD_BREACH_CHECK: 'off' })).toThrow(
+      /PASSWORD_BREACH_CHECK/,
+    );
+    expect(() => loadConfig({ ...required, PASSWORD_BREACH_CHECK: 'memory' })).toThrow(
+      /tests only/,
+    );
   });
 
   it('keeps a live cell’s database, Redis and mail on TLS (decision D101)', () => {

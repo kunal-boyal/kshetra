@@ -425,13 +425,13 @@ Each module lists what it does, the rules it applies (section 7) and its accepta
 | Mobile app, every role | Mobile number and a 6-digit one-time code by SMS, with WhatsApp as a fallback channel |
 | Web portal | Mobile number and OTP, or email and OTP. A tenant on the SSO module can require OIDC or SAML for web users. |
 | Tenant admins on the web | A TOTP authenticator code in addition to OTP, for anyone whose role can change access (role, user, settings, module or billing management); set up at the first such sign-in, with ten single-use recovery codes. Anyone else may set one up from Sign-in security, and is then asked for it too. After SSO, the identity provider's own second factor counts; without one, ours is asked for. Phones keep OTP and device binding, and their tokens never carry the permissions that change access (D101). |
-| Platform console | Email, password and TOTP for vendor staff, or the vendor's own identity provider |
+| Platform console | Email, password and TOTP for vendor staff, or the vendor's own identity provider. Passwords of 12 characters or more, without the product's or the person's names and not known from breaches; staff change their own, and a platform admin resets a lost password or authenticator with a new setup link (D101). |
 
 Flow and rules:
 
 1. The user enters a mobile number, normalised to E.164 with the tenant's default country.
 2. The service answers identically whether or not the number is registered. A code is sent only when an active user with that number exists in an active tenant.
-3. Codes expire after 5 minutes and allow 5 attempts. Limits: 3 code requests per 10 minutes per number, 20 per hour per IP, 30 verifications per hour per IP. Codes are stored only as an HMAC with a server secret and compared in constant time.
+3. Codes expire after 5 minutes and allow 5 attempts. Limits: 3 code requests per 10 minutes per number, 20 per hour per IP, 30 verifications per hour per IP, and 10 wrong codes an hour and 20 a day per number, across its codes (D101). Codes are stored only as an HMAC with a server secret and compared in constant time.
 4. When a number belongs to users in several tenants, the user picks a tenant after verifying, without a second code, and can switch later from the profile screen.
 5. Mobile sign-in binds the device when the tenant has device binding on. Another phone receives `DEVICE_NOT_BOUND` until a manager (within scope) or an admin resets the binding. Web sessions are never bound.
 6. Access tokens last 15 minutes. Refresh tokens rotate on every use; reusing an already-rotated refresh token revokes the whole token family. A web session ends after 12 hours unused and 7 days after its sign-in, an SSO session 12 hours after, and a phone's after 30 days unused and 90 after its sign-in (D101).

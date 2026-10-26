@@ -1,7 +1,10 @@
+import { createHash } from 'node:crypto';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { newId, type PlatformRoleKey } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { StaffService } from '../src/modules/console/staff.service';
+import { STAFF_LIMITS, StaffService } from '../src/modules/console/staff.service';
+import { hashPassword } from '../src/platform/passwords';
+import { RedisClient } from '../src/platform/redis';
 import { totpAt, totpStep } from '../src/platform/totp';
 import { newPhone, startApp, testConfig, World } from './support';
 
@@ -48,8 +51,16 @@ function send(
   });
 }
 
-/** The code an authenticator shows now, or a step ahead. */
-const code = (secret: string, ahead = 0) => totpAt(secret, totpStep() + ahead);
+/** The code an authenticator shows now. */
+const code = (secret: string) => totpAt(secret, totpStep());
+
+/** Clears an email's sign-in limit, so a test can go on trying after ten. */
+const forgetEmailLimit = (email: string) =>
+  app
+    .get(RedisClient)
+    .redis.del(
+      `rl:${STAFF_LIMITS.signInsPerEmail.name}:${createHash('sha256').update(email.toLowerCase()).digest('hex').slice(0, 32)}`,
+    );
 
 /** Forgets the last code used, as the clock moving on would, so a test can sign in again. */
 const forgetLastCode = (email: string) =>
@@ -92,6 +103,19 @@ describe('vendor staff (decision D88)', () => {
 
     const short = await send('POST', '/platform/v1/setup', { body: { token, password: 'short' } });
     expect(short.json().error.code).toBe('VALIDATION');
+    // Nor one known from a breach, nor one built on the person's or the product's name (D101).
+    const breached = await send('POST', '/platform/v1/setup', {
+      body: { token, password: 'password1234' },
+    });
+    expect(breached.json().error.details).toEqual([
+      { path: 'password', issue: 'This password is known from a data breach; choose another' },
+    ]);
+    for (const password of ['ravi shah setting up', 'my own The Lamp password']) {
+      const named = await send('POST', '/platform/v1/setup', { body: { token, password } });
+      expect(named.json().error.details).toEqual([
+        { path: 'password', issue: 'Leave out your name, your email and the product’s name' },
+      ]);
+    }
     const setUp = await send('POST', '/platform/v1/setup', { body: { token, password: PASSWORD } });
     const { secret, uri } = setUp.json();
     expect(uri).toContain(`secret=${secret}`);
@@ -136,10 +160,10 @@ describe('vendor staff (decision D88)', () => {
     });
     expect(replay.json().error.code).toBe('UNAUTHENTICATED');
     const badPassword = await send('POST', '/platform/v1/session', {
-      body: { email, password: 'not the password', code: code(secret, 1) },
+      body: { email, password: 'not the password', code: code(secret) },
     });
     const nobody = await send('POST', '/platform/v1/session', {
-      body: { email: 'nobody@vendor.example', password: PASSWORD, code: code(secret, 1) },
+      body: { email: 'nobody@vendor.example', password: PASSWORD, code: code(secret) },
     });
     const withoutId = (reply: typeof badPassword) => ({
       ...reply.json().error,
@@ -169,17 +193,172 @@ describe('vendor staff (decision D88)', () => {
     expect(after.json().error.code).toBe('SESSION_REVOKED');
   });
 
-  it('locks an account after ten wrong tries', async () => {
-    const { email } = await staffMember();
-    let last = 0;
-    for (let attempt = 0; attempt < 11; attempt++) {
-      last = (
-        await send('POST', '/platform/v1/session', {
-          body: { email, password: 'wrong password!', code: '123456' },
-        })
-      ).statusCode;
+  it('locks an account after ten wrong tries, answering as wrong details do (D101)', async () => {
+    const { email, secret } = await staffMember();
+    await forgetEmailLimit(email);
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const reply = await send('POST', '/platform/v1/session', {
+        body: { email, password: 'wrong password!', code: '123456' },
+      });
+      expect(reply.json().error.code).toBe('UNAUTHENTICATED');
     }
-    expect(last).toBe(429);
+    const locked = await world.directory.client.query(
+      'select locked_until from directory.platform_users where email = $1',
+      [email],
+    );
+    expect(locked.rows[0].locked_until).not.toBeNull();
+
+    // The right details answer as an unknown email does, so the lock says nothing.
+    await forgetEmailLimit(email);
+    await forgetLastCode(email);
+    const right = await send('POST', '/platform/v1/session', {
+      body: { email, password: PASSWORD, code: code(secret) },
+    });
+    const nobody = await send('POST', '/platform/v1/session', {
+      body: { email: 'nobody@vendor.example', password: PASSWORD, code: code(secret) },
+    });
+    expect({ ...right.json().error, requestId: undefined }).toEqual({
+      ...nobody.json().error,
+      requestId: undefined,
+    });
+    // Once the lock ends, they sign in.
+    await world.directory.client.query(
+      `update directory.platform_users set locked_until = now() - interval '1 second' where email = $1`,
+      [email],
+    );
+    const after = await send('POST', '/platform/v1/session', {
+      body: { email, password: PASSWORD, code: code(secret) },
+    });
+    expect(after.statusCode, after.body).toBe(200);
+  });
+
+  it('remakes a password hash made at an older cost when its owner signs in (D101)', async () => {
+    const { email, secret } = await staffMember();
+    await world.directory.client.query(
+      'update directory.platform_users set password_hash = $2 where email = $1',
+      [email, await hashPassword(PASSWORD, { log2N: 15, r: 8, p: 1, keyLength: 32 })],
+    );
+    await forgetLastCode(email);
+    const signedIn = await send('POST', '/platform/v1/session', {
+      body: { email, password: PASSWORD, code: code(secret) },
+    });
+    expect(signedIn.statusCode, signedIn.body).toBe(200);
+    const { rows } = await world.directory.client.query(
+      'select password_hash from directory.platform_users where email = $1',
+      [email],
+    );
+    expect(rows[0].password_hash).toMatch(/^scrypt\$15\$8\$3\$/);
+  });
+
+  it('changes a password with the current one and a fresh code, ending the sessions (D101)', async () => {
+    const member = await staffMember();
+    const change = (body: object) =>
+      send('POST', '/platform/v1/me/password', { token: member.token, body });
+    const NEW = 'a quiet orange tractor';
+    await forgetLastCode(member.email);
+    const wrong = await change({
+      currentPassword: 'not the password',
+      newPassword: NEW,
+      code: code(member.secret),
+    });
+    expect(wrong.json().error.details).toEqual([
+      { path: 'currentPassword', issue: 'Check your current password and authenticator code' },
+    ]);
+    const breached = await change({
+      currentPassword: PASSWORD,
+      newPassword: 'correct horse battery staple',
+      code: code(member.secret),
+    });
+    expect(breached.json().error.details).toEqual([
+      { path: 'newPassword', issue: 'This password is known from a data breach; choose another' },
+    ]);
+    const named = await change({
+      currentPassword: PASSWORD,
+      newPassword: 'meera keeps the keys',
+      code: code(member.secret),
+    });
+    expect(named.json().error.details).toEqual([
+      { path: 'newPassword', issue: 'Leave out your name, your email and the product’s name' },
+    ]);
+    const same = await change({
+      currentPassword: PASSWORD,
+      newPassword: PASSWORD,
+      code: code(member.secret),
+    });
+    expect(same.json().error.details).toEqual([
+      { path: 'newPassword', issue: 'Choose a password other than your current one' },
+    ]);
+
+    const changed = await change({
+      currentPassword: PASSWORD,
+      newPassword: NEW,
+      code: code(member.secret),
+    });
+    expect(changed.statusCode, changed.body).toBe(200);
+    expect(changed.headers['cache-control']).toBe('no-store');
+    expect(changed.cookies.find((each) => each.name === 'thelamp_console')).toBeDefined();
+    // The old access token and session cookie are done; the new token works.
+    expect((await send('GET', '/platform/v1/me', { token: member.token })).json().error.code).toBe(
+      'SESSION_REVOKED',
+    );
+    const oldCookie = member.signedIn.cookies.find((each) => each.name === 'thelamp_console')!;
+    const refreshed = await send('POST', '/platform/v1/session/refresh', {
+      headers: { ...CONSOLE, cookie: `thelamp_console=${oldCookie.value}` },
+    });
+    expect(refreshed.json().error.code).toBe('SESSION_REVOKED');
+    const token = changed.json().accessToken as string;
+    expect((await send('GET', '/platform/v1/me', { token })).statusCode).toBe(200);
+
+    // Only the new password signs in now.
+    await forgetLastCode(member.email);
+    const old = await send('POST', '/platform/v1/session', {
+      body: { email: member.email, password: PASSWORD, code: code(member.secret) },
+    });
+    expect(old.json().error.code).toBe('UNAUTHENTICATED');
+    const fresh = await send('POST', '/platform/v1/session', {
+      body: { email: member.email, password: NEW, code: code(member.secret) },
+    });
+    expect(fresh.statusCode, fresh.body).toBe(200);
+  });
+
+  it('lets an admin reset someone’s sign-in with a new setup link, never their own (D101)', async () => {
+    const admin = await staffMember();
+    const other = await staffMember('support');
+    const adminId = (await send('GET', '/platform/v1/me', { token: admin.token })).json().id;
+    const otherId = (await send('GET', '/platform/v1/me', { token: other.token })).json().id;
+    expect(
+      (await send('POST', `/platform/v1/staff/${otherId}/reset`, { token: other.token }))
+        .statusCode,
+    ).toBe(403);
+    const own = await send('POST', `/platform/v1/staff/${adminId}/reset`, { token: admin.token });
+    expect(own.json().error.code).toBe('FORBIDDEN');
+
+    const reset = await send('POST', `/platform/v1/staff/${otherId}/reset`, {
+      token: admin.token,
+    });
+    expect(reset.statusCode, reset.body).toBe(200);
+    expect(reset.headers['cache-control']).toBe('no-store');
+    expect(reset.json().staff).toMatchObject({ id: otherId, status: 'invited' });
+    // Their session ended, and the old password and authenticator sign in no more.
+    expect((await send('GET', '/platform/v1/me', { token: other.token })).json().error.code).toBe(
+      'SESSION_REVOKED',
+    );
+    await forgetLastCode(other.email);
+    const old = await send('POST', '/platform/v1/session', {
+      body: { email: other.email, password: PASSWORD, code: code(other.secret) },
+    });
+    expect(old.json().error.code).toBe('UNAUTHENTICATED');
+
+    // The new link sets both up again.
+    const token = (reset.json().setupUrl as string).split('#')[1]!;
+    const setUp = await send('POST', '/platform/v1/setup', {
+      body: { token, password: 'another long passphrase' },
+    });
+    expect(setUp.statusCode, setUp.body).toBe(200);
+    const confirmed = await send('POST', '/platform/v1/setup/confirm', {
+      body: { token, code: code(setUp.json().secret) },
+    });
+    expect(confirmed.json()).toMatchObject({ id: otherId, status: 'active' });
   });
 
   it('lets platform admins invite and disable staff, whose sessions end at once', async () => {
