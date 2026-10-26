@@ -197,13 +197,17 @@ export function queuedClaim(
   return { policy: claim.policy, expenseDate: claim.expenseDate, amount, state: 'pending' };
 }
 
-/** Saves a claim on the phone and queues it, after its photos. */
+/**
+ * Saves a claim on the phone and queues it, after its photos, and after any other upload it needs
+ * first, such as the punch-out whose readings it begins from (decision D99).
+ */
 export async function queueClaim(
   sync: { db: SqlDatabase; outbox: Outbox },
   owner: string,
   body: CreateExpenseClaimBody,
+  after: readonly string[] = [],
 ): Promise<void> {
-  const photos = [...body.receiptIds, ...body.odometerPhotoIds];
+  const photos = [...body.receiptIds, ...body.odometerPhotoIds, ...after];
   await sync.db.transaction(async (tx) => {
     await sync.outbox.enqueue(tx, {
       id: body.id,

@@ -3,6 +3,11 @@ import {
   AppError,
   clockSkewed,
   type EndShiftBody,
+  shiftOdometerKm,
+  odometerIssue,
+  type PunchOdometer,
+  todayIn,
+  type OdometerSetting,
   onDutyMs,
   type PauseShiftBody,
   POINT_EARLY_MS,
@@ -36,6 +41,8 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 type ShiftRow = Awaited<ReturnType<ShiftsService['rows']>>[number];
 
+type ShiftOdometerEnd = { reading: string; photoId: string | null };
+
 const iso = (date: Date | null) => (date ? date.toISOString() : null);
 
 /**
@@ -63,6 +70,10 @@ export class ShiftsService {
         startAccuracy: shifts.startAccuracy,
         consentVersion: shifts.consentVersion,
         selfieMediaId: shifts.selfieMediaId,
+        startOdometer: shifts.startOdometer,
+        startOdometerMediaId: shifts.startOdometerMediaId,
+        endOdometer: shifts.endOdometer,
+        endOdometerMediaId: shifts.endOdometerMediaId,
         endedAt: shifts.endedAt,
         endLocation: pointOf(shifts.endPoint),
         endAccuracy: shifts.endAccuracy,
@@ -93,27 +104,64 @@ export class ShiftsService {
               ),
             )
             .orderBy(asc(shiftPauses.pausedAt));
-    return rows.map(({ clockSkew, ...row }) => ({
-      ...row,
-      startLocation: row.startLocation!,
-      startedAt: row.startedAt.toISOString(),
-      endedAt: iso(row.endedAt),
-      pauses: pauses
-        .filter((pause) => pause.shiftId === row.id)
-        .map((pause) => ({
-          id: pause.id,
-          pausedAt: pause.pausedAt.toISOString(),
-          resumedAt: iso(pause.resumedAt),
-          reason: pause.reason,
-        })),
-      flags: clockSkew ? ['clock_skew' as const] : [],
-    }));
+    return rows.map(
+      ({
+        clockSkew,
+        startOdometer,
+        startOdometerMediaId,
+        endOdometer,
+        endOdometerMediaId,
+        ...row
+      }) => ({
+        ...row,
+        startLocation: row.startLocation!,
+        startedAt: row.startedAt.toISOString(),
+        endedAt: iso(row.endedAt),
+        pauses: pauses
+          .filter((pause) => pause.shiftId === row.id)
+          .map((pause) => ({
+            id: pause.id,
+            pausedAt: pause.pausedAt.toISOString(),
+            resumedAt: iso(pause.resumedAt),
+            reason: pause.reason,
+          })),
+        odometer: {
+          start:
+            startOdometer === null
+              ? null
+              : { reading: startOdometer, photoId: startOdometerMediaId },
+          end: endOdometer === null ? null : { reading: endOdometer, photoId: endOdometerMediaId },
+          distanceKm: shiftOdometerKm(startOdometer, endOdometer),
+        },
+        flags: clockSkew ? ['clock_skew' as const] : [],
+      }),
+    );
   }
 
   async view(tx: TenantTx, tenantId: string, id: string): Promise<ShiftResult> {
     const [row] = await this.rows(tx, tenantId, eq(shifts.id, id));
     if (!row) throw notFound();
     return (await this.views(tx, tenantId, [row]))[0]!;
+  }
+
+  /**
+   * The punch readings of one of the caller's own shifts, and its day on the tenant's clock, for
+   * a fuel claim that begins from them (decision D99).
+   */
+  async odometerFor(
+    tx: TenantTx,
+    access: Access,
+    id: string,
+    timezone: string,
+  ): Promise<{ date: string; start: ShiftOdometerEnd | null; end: ShiftOdometerEnd | null }> {
+    const own = await this.own(tx, access, id);
+    const [row] = await this.rows(tx, access.tenantId, eq(shifts.id, own.id));
+    const [view] = await this.views(tx, access.tenantId, [row!]);
+    return {
+      date: todayIn(timezone, own.startedAt),
+      start: view!.odometer.start,
+      end: view!.odometer.end,
+    };
   }
 
   /** The caller's own shift; another person's is out of scope, a missing one not found. */
@@ -124,6 +172,7 @@ export class ShiftsService {
         userId: shifts.userId,
         startedAt: shifts.startedAt,
         endedAt: shifts.endedAt,
+        startOdometer: shifts.startOdometer,
       })
       .from(shifts)
       .where(and(eq(shifts.tenantId, access.tenantId), eq(shifts.id, id)))
@@ -218,6 +267,7 @@ export class ShiftsService {
       throw new AppError('PHOTO_REQUIRED', 'Take a selfie to punch in.');
     }
     if (body.selfieMediaId) await this.photos.attachable(tx, access, body.selfieMediaId, 'selfie');
+    const odometer = await this.odometer(tx, access, settings.odometer, body.odometer, 'in');
     const open = await tx
       .select({ id: shifts.id })
       .from(shifts)
@@ -241,13 +291,22 @@ export class ShiftsService {
       startAccuracy: body.accuracy,
       consentVersion: body.consentVersion,
       selfieMediaId: body.selfieMediaId ?? null,
+      startOdometer: odometer?.reading ?? null,
+      startOdometerMediaId: odometer?.photoId ?? null,
       clockSkew: clockSkewed(clockSkewSeconds(deviceTime, new Date(now))),
     });
+    if (odometer) {
+      await this.photos.attach(tx, tenantId, [odometer.photoId], { type: 'shift', id: body.id });
+    }
     await this.audit.record(tx, tenantId, userActor(access), {
       action: 'shift.started',
       target: { type: 'shift', id: body.id },
       before: null,
-      after: { startedAt: body.startedAt, consentVersion: body.consentVersion },
+      after: {
+        startedAt: body.startedAt,
+        consentVersion: body.consentVersion,
+        ...(odometer ? { odometer: odometer.reading } : {}),
+      },
     });
     await this.outbox.publish(tx, tenantId, 'shift.started', body.id, {
       shiftId: body.id,
@@ -282,6 +341,21 @@ export class ShiftsService {
         { path: 'endedAt', issue: 'Use a time after the shift started' },
       ]);
     }
+    const odometer = await this.odometer(
+      tx,
+      access,
+      settings.odometer,
+      body.odometer,
+      'out',
+      shift.startOdometer,
+    );
+    if (odometer) {
+      await tx
+        .update(shifts)
+        .set({ endOdometer: odometer.reading, endOdometerMediaId: odometer.photoId })
+        .where(and(eq(shifts.tenantId, tenantId), eq(shifts.id, id)));
+      await this.photos.attach(tx, tenantId, [odometer.photoId], { type: 'shift', id });
+    }
     const limit = shift.startedAt.getTime() + settings.maxShiftHours * 3_600_000;
     const tooLong = endedAt > limit;
     const skewed = clockSkewed(clockSkewSeconds(deviceTime, new Date(now)));
@@ -299,9 +373,41 @@ export class ShiftsService {
       after: {
         endedAt: new Date(tooLong ? limit : endedAt).toISOString(),
         endReason: tooLong ? 'max_length' : 'punch_out',
+        ...(odometer ? { odometer: odometer.reading } : {}),
       },
     });
     return this.view(tx, tenantId, id);
+  }
+
+  /**
+   * The odometer reading a punch keeps (decision D99): none where the tenant asks for none; one
+   * with its photo where it does, refused when required and missing, or when a closing reading is
+   * below the opening one.
+   */
+  private async odometer(
+    tx: TenantTx,
+    access: Access,
+    setting: OdometerSetting,
+    given: PunchOdometer | undefined,
+    punch: 'in' | 'out',
+    opening: string | null = null,
+  ): Promise<PunchOdometer | undefined> {
+    const issue = odometerIssue(setting, given?.reading, opening);
+    if (issue === 'required') {
+      throw new AppError(
+        'PHOTO_REQUIRED',
+        `Enter the odometer reading and take its photo to punch ${punch}.`,
+        [{ path: 'odometer', issue: 'Enter the reading and take its photo' }],
+      );
+    }
+    if (issue === 'below_opening') {
+      throw new AppError('VALIDATION', 'The closing reading is below the opening one.', [
+        { path: 'odometer.reading', issue: `Write ${opening} or more, the opening reading` },
+      ]);
+    }
+    if (setting === 'off' || !given) return undefined;
+    await this.photos.attachable(tx, access, given.photoId, 'odometer');
+    return given;
   }
 
   /** Ends a shift: open pauses end with it, time on duty is counted, and the event goes out. */
@@ -514,6 +620,8 @@ export class ShiftsService {
         endedAt: shifts.endedAt,
         endReason: shifts.endReason,
         onDutySeconds: shifts.onDutySeconds,
+        startOdometer: shifts.startOdometer,
+        endOdometer: shifts.endOdometer,
         pointCount: shiftTrails.pointCount,
         keptCount: shiftTrails.keptCount,
         gaps: sql<number | null>`jsonb_array_length(${shiftTrails.gaps})`,

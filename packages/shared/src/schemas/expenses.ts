@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { EXPENSE_CALCULATIONS, EXPENSE_CATEGORIES, EXPENSE_DESCRIPTION } from '../expenses';
 import { ApprovalResult } from './approvals';
 import { Key, LocalizedText, Money } from './config';
+import { OdometerReading } from './field';
 
 /**
  * Expenses (M12, spec 5.10, BR-29, BR-30, decision D83): the tenant's policies as versions, and
@@ -58,9 +59,7 @@ export const ExpensePoliciesBody = z.strictObject({
 });
 
 /** Odometer readings, to a tenth of a kilometre. */
-const Reading = z
-  .string()
-  .regex(/^(?:0|[1-9]\d{0,8})(?:\.\d)?$/, 'Write a reading such as 12045 or 12045.5');
+const Reading = OdometerReading;
 
 /** Days, whole or half. */
 const Days = z
@@ -88,6 +87,11 @@ export const CreateExpenseClaimBody = z
     receiptIds: z.array(z.uuid()).max(10).default([]),
     /** `odometer` photos, opening and closing. */
     odometerPhotoIds: z.array(z.uuid()).max(4).default([]),
+    /**
+     * Per-km policies: the person's shift whose punch readings and photos the claim begins from
+     * (decision D99). Readings left out take the shift's; a reading changed from it is flagged.
+     */
+    shiftId: z.uuid().optional(),
   })
   .meta({ id: 'CreateExpenseClaimBody' });
 
@@ -112,8 +116,14 @@ export const ExpenseClaimResult = z
     amount: Money,
     capped: z.boolean(),
     receipts: z.array(z.uuid()),
+    /** The claim's own odometer photos, or its shift's punch photos (decision D99). */
     odometerPhotos: z.array(z.uuid()),
-    /** What reviewers should look at, such as `duplicate_receipt` or `receipt_missing`. */
+    /** The shift the claim's readings began from, if any. */
+    shiftId: z.uuid().nullable(),
+    /**
+     * What reviewers should look at, such as `duplicate_receipt`, `receipt_missing`, or
+     * `odometer_changed` when a reading differs from its shift's (D99).
+     */
     flags: z.array(z.string()),
     state: ExpenseState,
     approval: ApprovalResult.nullable(),

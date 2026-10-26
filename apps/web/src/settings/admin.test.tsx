@@ -82,12 +82,14 @@ describe('rules (M2, spec 5.1)', () => {
     await user.clear(radius);
     await user.type(radius, '450');
     await user.click(screen.getByRole('checkbox', { name: /Ask for a selfie/ }));
+    // Odometer readings at the punches (decision D99).
+    await user.selectOptions(screen.getByRole('combobox', { name: /^Odometer at/ }), 'required');
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Saved.')).toBeVisible();
     expect(writesOf(client)[0]![3]).toMatchObject({
-      body: { geofenceRadiusMeters: 450, attendanceSelfie: true },
+      body: { geofenceRadiusMeters: 450, attendanceSelfie: true, odometer: 'required' },
     });
-    expect(Object.keys((writesOf(client)[0]![3] as { body: object }).body)).toHaveLength(2);
+    expect(Object.keys((writesOf(client)[0]![3] as { body: object }).body)).toHaveLength(3);
   });
 });
 

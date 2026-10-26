@@ -501,7 +501,7 @@ Tracking also stops on pause, permission loss, GPS switched off, sign-out, sessi
 
 Punch-in and punch-out work offline and sync later inside the sync window.
 
-Odometer (tenant setting: off by default, optional or required, decision D96): at punch-in and punch-out the user enters the vehicle's odometer reading and takes a live photo of it. The shift keeps both readings and photos; a closing reading below the opening one is refused. The readings are a declared figure shown beside the tracked distance, never in place of it.
+Odometer (tenant setting: off by default, optional or required, decisions D96 and D99): at punch-in and punch-out the user enters the vehicle's odometer reading and takes a live photo of it. The shift keeps both readings and photos; a closing reading below the opening one is refused. The readings are a declared figure shown beside the tracked distance, never in place of it. A per-km claim for the day may start from them (M12).
 
 Derived data: shift distance from accurate fixes, on-duty time, gaps longer than 10 minutes, and a compacted trail (section 12.1).
 
@@ -608,6 +608,7 @@ Rules: BR-20, BR-21, BR-22.
 ### M12. Expenses
 
 - Claims against a policy: date (not in the future), description, quantity (days, odometer readings or visits) or bill amount, receipts and odometer photos.
+- A per-km claim may start from the day's shift: its odometer readings and photos (M5). The claimant may change the readings; a claim whose readings differ from the shift's is flagged to the approver (D99).
 - The amount is calculated by the policy version in force on the expense date, with caps (BR-29).
 - Receipts can be added while the claim is pending. Optional OCR suggests a bill amount and flags mismatches; duplicate receipt photos are flagged.
 - Approval through the `expense` workflow. Back office marks approved claims as paid or exports them for payroll.
@@ -1204,7 +1205,8 @@ forms(id, tid, key, current_version, active)                                 UQ(
 form_versions(tid, form_id, version, definition jsonb, published_at, published_by)
                                                                              PK(tid, form_id, version)
 shifts(id, tid, user_id, device_id, started_at, start_point, start_accuracy, consent_version,
-       selfie_media_id NULL, ended_at NULL, end_point NULL, end_accuracy NULL,
+       selfie_media_id NULL, start_odometer NULL, start_odometer_media_id NULL, ended_at NULL,
+       end_point NULL, end_accuracy NULL, end_odometer NULL, end_odometer_media_id NULL,
        end_reason enum(punch_out,auto_closed,max_length,admin) NULL, distance_m NULL,
        on_duty_seconds NULL, clock_skew, compacted_at NULL, received_at)
        IX(tid, user_id, started_at) · UQ(tid, user_id) WHERE ended_at IS NULL
@@ -1304,8 +1306,8 @@ expense_policies(tid, key, current_version, active, position)                PK(
 expense_policy_versions(tid, policy_key, version, definition jsonb, valid_from) PK(tid, policy_key, version)
 expense_claims(id, tid, user_id, policy_key, policy_version, expense_date, description, quantity,
        rate, odometer_open NULL, odometer_close NULL, bill_amount NULL, calculated, amount, capped,
-       status, paid_at NULL, paid_by NULL, payment_reference NULL, workflow_instance_id, created_at,
-       decided_at)                                       receipts and odometer photos are media owned by the claim
+       shift_id NULL, odometer_changed, status, paid_at NULL, paid_by NULL, payment_reference NULL,
+       workflow_instance_id, created_at, decided_at)     receipts and odometer photos are media owned by the claim
 
 ── Workflow, notifications, integration and operations ──────────────────────────
 workflow_definitions(id, tid, request_type, version, steps jsonb, fallback_role_id, active)

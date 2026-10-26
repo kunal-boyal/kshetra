@@ -61,6 +61,15 @@ export const shifts = cell
       startAccuracy: real('start_accuracy').notNull(),
       consentVersion: text('consent_version').notNull(),
       selfieMediaId: uuid('selfie_media_id'),
+      /**
+       * The vehicle's odometer at punch-in and punch-out, in kilometres to a tenth, with a photo of
+       * each, where the tenant asks for them (decision D99). A declared figure, shown beside the
+       * tracked distance, never in its place.
+       */
+      startOdometer: numeric('start_odometer', { precision: 12, scale: 1 }),
+      startOdometerMediaId: uuid('start_odometer_media_id'),
+      endOdometer: numeric('end_odometer', { precision: 12, scale: 1 }),
+      endOdometerMediaId: uuid('end_odometer_media_id'),
       endedAt: at('ended_at'),
       endPoint: geographyPoint('end_point'),
       endAccuracy: real('end_accuracy'),

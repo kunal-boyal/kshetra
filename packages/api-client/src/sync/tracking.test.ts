@@ -111,4 +111,29 @@ describe('tracking on the phone (spec 12.1)', () => {
     ).rejects.toThrow('offline');
     expect(await tracking.waiting(ME)).toBe(2);
   });
+
+  it('keeps a shift’s odometer readings for the day’s fuel claim, after it closes', async () => {
+    const other = '01a10000-0000-7000-8000-0000000000d2';
+    await db.transaction(async (tx) => {
+      await tracking.openOdometer(tx, ME, { shiftId: SHIFT, date: '2026-10-13', reading: '12045' });
+      await tracking.openOdometer(tx, ME, { shiftId: other, date: '2026-10-13', reading: null });
+    });
+    expect(await tracking.odometersOn(ME, '2026-10-13')).toEqual([]);
+    await db.transaction((tx) => tracking.closeOdometer(tx, ME, SHIFT, '12098.5', 'upload-1'));
+    expect(await tracking.odometersOn(ME, '2026-10-13')).toEqual([
+      {
+        shiftId: SHIFT,
+        date: '2026-10-13',
+        open: '12045',
+        close: '12098.5',
+        closeUploadId: 'upload-1',
+      },
+    ]);
+    expect(await tracking.odometersOn('tenant-a:someone-else', '2026-10-13')).toEqual([]);
+    // Two months on, old readings are let go.
+    await db.transaction((tx) =>
+      tracking.openOdometer(tx, ME, { shiftId: 'later', date: '2026-12-20', reading: '13000' }),
+    );
+    expect(await tracking.odometer(ME, SHIFT)).toBeNull();
+  });
 });

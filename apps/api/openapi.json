@@ -9283,6 +9283,14 @@
                         "attendanceSelfie": {
                           "type": "boolean"
                         },
+                        "odometer": {
+                          "type": "string",
+                          "enum": [
+                            "off",
+                            "optional",
+                            "required"
+                          ]
+                        },
                         "deviceBinding": {
                           "type": "boolean",
                           "description": "One phone per user until a manager or an admin resets it (BR-38)"
@@ -9397,6 +9405,7 @@
                         "syncWindowHours",
                         "maxShiftHours",
                         "attendanceSelfie",
+                        "odometer",
                         "deviceBinding",
                         "rawLocationRetentionDays",
                         "trailRetentionDays",
@@ -17873,6 +17882,14 @@
                   "attendanceSelfie": {
                     "type": "boolean"
                   },
+                  "odometer": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "optional",
+                      "required"
+                    ]
+                  },
                   "deviceBinding": {
                     "type": "boolean",
                     "description": "One phone per user until a manager or an admin resets it (BR-38)"
@@ -18120,6 +18137,14 @@
                     "attendanceSelfie": {
                       "type": "boolean"
                     },
+                    "odometer": {
+                      "type": "string",
+                      "enum": [
+                        "off",
+                        "optional",
+                        "required"
+                      ]
+                    },
                     "deviceBinding": {
                       "type": "boolean",
                       "description": "One phone per user until a manager or an admin resets it (BR-38)"
@@ -18234,6 +18259,7 @@
                     "syncWindowHours",
                     "maxShiftHours",
                     "attendanceSelfie",
+                    "odometer",
                     "deviceBinding",
                     "rawLocationRetentionDays",
                     "trailRetentionDays",
@@ -18428,6 +18454,27 @@
                     "type": "string",
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "odometer": {
+                    "description": "When the tenant asks for odometer readings (setting `odometer`)",
+                    "type": "object",
+                    "properties": {
+                      "reading": {
+                        "type": "string",
+                        "pattern": "^(?:0|[1-9]\\d{0,8})(?:\\.\\d)?$"
+                      },
+                      "photoId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "An `odometer` photo, taken with the camera"
+                      }
+                    },
+                    "required": [
+                      "reading",
+                      "photoId"
+                    ],
+                    "additionalProperties": false
                   }
                 },
                 "required": [
@@ -18525,6 +18572,27 @@
                     "type": "string",
                     "format": "date-time",
                     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "odometer": {
+                    "description": "When the tenant asks for odometer readings; not below the opening one",
+                    "type": "object",
+                    "properties": {
+                      "reading": {
+                        "type": "string",
+                        "pattern": "^(?:0|[1-9]\\d{0,8})(?:\\.\\d)?$"
+                      },
+                      "photoId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "An `odometer` photo, taken with the camera"
+                      }
+                    },
+                    "required": [
+                      "reading",
+                      "photoId"
+                    ],
+                    "additionalProperties": false
                   }
                 },
                 "required": [
@@ -27556,6 +27624,11 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
         "required": [
@@ -29251,6 +29324,18 @@
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
           },
+          "shiftId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "flags": {
             "type": "array",
             "items": {
@@ -29331,6 +29416,7 @@
           "capped",
           "receipts",
           "odometerPhotos",
+          "shiftId",
           "flags",
           "state",
           "approval",
@@ -35883,6 +35969,14 @@
           "attendanceSelfie": {
             "type": "boolean"
           },
+          "odometer": {
+            "type": "string",
+            "enum": [
+              "off",
+              "optional",
+              "required"
+            ]
+          },
           "deviceBinding": {
             "type": "boolean",
             "description": "One phone per user until a manager or an admin resets it (BR-38)"
@@ -38047,6 +38141,87 @@
               "additionalProperties": false
             }
           },
+          "odometer": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "reading": {
+                        "type": "string"
+                      },
+                      "photoId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "reading",
+                      "photoId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "end": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "reading": {
+                        "type": "string"
+                      },
+                      "photoId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "reading",
+                      "photoId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "distanceKm": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "start",
+              "end",
+              "distanceKm"
+            ],
+            "additionalProperties": false
+          },
           "flags": {
             "type": "array",
             "items": {
@@ -38072,6 +38247,7 @@
           "distanceM",
           "onDutySeconds",
           "pauses",
+          "odometer",
           "flags"
         ],
         "additionalProperties": false

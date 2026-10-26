@@ -65,6 +65,36 @@ const toState = (record: StateRecord): ShiftState => ({
   pauseId: record.pause_id,
 });
 
+/** A shift's odometer readings as the phone keeps them (decision D99). */
+export interface ShiftOdometer {
+  shiftId: string;
+  /** The punch-in's day on the tenant's clock. */
+  date: string;
+  open: string | null;
+  close: string | null;
+  /** The punch-out's upload, which a claim from these readings waits for. */
+  closeUploadId: string | null;
+}
+
+interface OdometerRecord {
+  shift_id: string;
+  date: string;
+  open_reading: string | null;
+  close_reading: string | null;
+  close_upload_id: string | null;
+}
+
+const toOdometer = (record: OdometerRecord): ShiftOdometer => ({
+  shiftId: record.shift_id,
+  date: record.date,
+  open: record.open_reading,
+  close: record.close_reading,
+  closeUploadId: record.close_upload_id,
+});
+
+/** Readings older than this go, as no claim starts from them any more. */
+const ODOMETER_KEEP_DAYS = 62;
+
 /** At most this many points go in one upload (spec 12.1). */
 export const FLUSH_LIMIT = 200;
 
@@ -101,6 +131,57 @@ export class Tracking {
   /** Closes the shift on the phone; its points stay until they upload. */
   async close(tx: SqlExecutor, owner: string): Promise<void> {
     await tx.run('DELETE FROM shift_state WHERE owner = ?', [owner]);
+  }
+
+  /** Keeps the opening reading of a shift punched in on the phone, with the shift's day. */
+  async openOdometer(
+    tx: SqlExecutor,
+    owner: string,
+    shift: { shiftId: string; date: string; reading: string | null },
+  ): Promise<void> {
+    await tx.run(
+      `INSERT OR REPLACE INTO shift_odometer (owner, shift_id, date, open_reading, close_reading, close_upload_id)
+       VALUES (?, ?, ?, ?, NULL, NULL)`,
+      [owner, shift.shiftId, shift.date, shift.reading],
+    );
+    const before = new Date(Date.parse(`${shift.date}T00:00:00Z`) - ODOMETER_KEEP_DAYS * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    await tx.run('DELETE FROM shift_odometer WHERE owner = ? AND date < ?', [owner, before]);
+  }
+
+  /** Keeps the closing reading, and the punch-out's upload that carries it. */
+  async closeOdometer(
+    tx: SqlExecutor,
+    owner: string,
+    shiftId: string,
+    reading: string | null,
+    uploadId: string,
+  ): Promise<void> {
+    await tx.run(
+      'UPDATE shift_odometer SET close_reading = ?, close_upload_id = ? WHERE owner = ? AND shift_id = ?',
+      [reading, uploadId, owner, shiftId],
+    );
+  }
+
+  /** A shift's readings, or null when the phone kept none. */
+  async odometer(owner: string, shiftId: string): Promise<ShiftOdometer | null> {
+    const record = await this.db.get<OdometerRecord>(
+      'SELECT * FROM shift_odometer WHERE owner = ? AND shift_id = ?',
+      [owner, shiftId],
+    );
+    return record ? toOdometer(record) : null;
+  }
+
+  /** The day's shifts with both readings in, latest first, for a fuel claim. */
+  async odometersOn(owner: string, date: string): Promise<ShiftOdometer[]> {
+    const records = await this.db.all<OdometerRecord>(
+      `SELECT * FROM shift_odometer
+        WHERE owner = ? AND date = ? AND open_reading IS NOT NULL AND close_reading IS NOT NULL
+        ORDER BY rowid DESC`,
+      [owner, date],
+    );
+    return records.map(toOdometer);
   }
 
   /**

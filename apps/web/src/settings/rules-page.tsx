@@ -190,6 +190,16 @@ export function RulesPage() {
           {number('syncWindowHours', 24, 168, t('admin.unit_hours'))}
           {number('maxShiftHours', 8, 24, t('admin.unit_hours'))}
           {flag('attendanceSelfie')}
+          <SelectField
+            label={t('admin.rule_odometer')}
+            help={t('admin.rule_odometer_help')}
+            value={value('odometer')}
+            options={(['off', 'optional', 'required'] as const).map((choice) => ({
+              value: choice,
+              label: t(`admin.odometer_${choice}`),
+            }))}
+            onChange={(event) => set('odometer', event.target.value)}
+          />
           {flag('deviceBinding')}
         </>,
       )}

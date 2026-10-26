@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { shiftOdometerKm } from '@thelamp/shared';
 import type { TenantTx } from '../../platform/database';
 import { ShiftsService } from '../field/shifts.service';
 import { People } from '../iam/people';
@@ -14,7 +15,8 @@ import {
 
 /**
  * The location summary (M18): each shift begun in the month, with its time on duty, distance,
- * the points received and kept, its gaps and pauses, and how it ended.
+ * the points received and kept, its gaps and pauses, how it ended, and the odometer readings at
+ * its punches where recorded, beside the tracked distance and never in its place (D99).
  */
 @Injectable()
 export class LocationSummaryReport extends ReportSource {
@@ -35,6 +37,9 @@ export class LocationSummaryReport extends ReportSource {
       { key: 'user_name', label: 'report.col_user_name', kind: 'text' },
       { key: 'on_duty_minutes', label: 'report.col_on_duty_minutes', kind: 'number' },
       { key: 'distance_km', label: 'report.col_distance_km', kind: 'number' },
+      { key: 'odometer_open', label: 'report.col_odometer_open', kind: 'number' },
+      { key: 'odometer_close', label: 'report.col_odometer_close', kind: 'number' },
+      { key: 'odometer_km', label: 'report.col_odometer_km', kind: 'number' },
       { key: 'points', label: 'report.col_points', kind: 'number' },
       { key: 'kept_points', label: 'report.col_kept_points', kind: 'number' },
       { key: 'gaps', label: 'report.col_gaps', kind: 'number' },
@@ -84,6 +89,12 @@ export class LocationSummaryReport extends ReportSource {
           fact?.distanceM === null || fact?.distanceM === undefined
             ? null
             : Math.round(fact.distanceM / 100) / 10,
+        odometer_open: row.startOdometer === null ? null : Number(row.startOdometer),
+        odometer_close: row.endOdometer === null ? null : Number(row.endOdometer),
+        odometer_km: (() => {
+          const km = shiftOdometerKm(row.startOdometer, row.endOdometer);
+          return km === null ? null : Number(km);
+        })(),
         points: row.pointCount,
         kept_points: row.keptCount,
         gaps: row.gaps,

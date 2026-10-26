@@ -15,6 +15,7 @@ import {
   rateFor,
   receiptHoldsApproval,
   todayIn,
+  scaled,
 } from '@thelamp/shared';
 import { and, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
 import { expenseClaims } from '../../db/schema/expenses';
@@ -22,6 +23,7 @@ import { users } from '../../db/schema/iam';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
+import { ShiftsService } from '../field/shifts.service';
 import { VisitsService } from '../field/visits.service';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
@@ -76,6 +78,7 @@ export class ExpenseClaimsService implements OnModuleInit {
     private readonly approvals: ApprovalsService,
     private readonly requestTypes: RequestTypes,
     private readonly visits: VisitsService,
+    private readonly shifts: ShiftsService,
     private readonly people: People,
     private readonly scopes: Scopes,
     private readonly photos: PhotosService,
@@ -134,6 +137,16 @@ export class ExpenseClaimsService implements OnModuleInit {
       sql`select pg_advisory_xact_lock(hashtextextended(${`expense:${tenantId}:${userId}`}, 0))`,
     );
     const settings = await this.config.settings(tx, tenantId);
+    // A per-km claim may begin from a shift's punch readings and photos (decision D99).
+    const fromShift = body.shiftId
+      ? await this.fromShift(tx, access, body.shiftId, body.expenseDate, settings.timezone)
+      : null;
+    const odometerOpen = body.odometerOpen ?? fromShift?.start.reading;
+    const odometerClose = body.odometerClose ?? fromShift?.end.reading;
+    const odometerChanged =
+      fromShift !== null &&
+      (scaled(odometerOpen ?? '0', 1) !== scaled(fromShift.start.reading, 1) ||
+        scaled(odometerClose ?? '0', 1) !== scaled(fromShift.end.reading, 1));
     const designation = (await this.people.facts(tx, tenantId, [userId])).get(userId)?.designation;
     const rate = policy.calculation === 'actual' ? null : rateFor(policy.rate, designation ?? '');
     const visits =
@@ -145,8 +158,8 @@ export class ExpenseClaimsService implements OnModuleInit {
     const base = claimBase({
       calculation: policy.calculation,
       rate,
-      odometerOpen: body.odometerOpen,
-      odometerClose: body.odometerClose,
+      odometerOpen,
+      odometerClose,
       days: body.days,
       visits,
       billAmount: body.billAmount,
@@ -168,9 +181,9 @@ export class ExpenseClaimsService implements OnModuleInit {
       expenseDate: body.expenseDate,
       today: todayIn(settings.timezone),
       days: body.days,
-      odometerOpen: body.odometerOpen,
-      odometerClose: body.odometerClose,
-      odometerPhotos: body.odometerPhotoIds.length,
+      odometerOpen,
+      odometerClose,
+      odometerPhotos: body.odometerPhotoIds.length + (fromShift?.photos ?? 0),
       billAmount: body.billAmount,
       visits,
       amount: capped.amount,
@@ -197,8 +210,10 @@ export class ExpenseClaimsService implements OnModuleInit {
       description: body.description,
       quantity: base.quantity,
       rate,
-      odometerOpen: body.odometerOpen ?? null,
-      odometerClose: body.odometerClose ?? null,
+      odometerOpen: odometerOpen ?? null,
+      odometerClose: odometerClose ?? null,
+      shiftId: body.shiftId ?? null,
+      odometerChanged,
       billAmount: body.billAmount ?? null,
       calculated: base.amount,
       amount: capped.amount,
@@ -408,6 +423,28 @@ export class ExpenseClaimsService implements OnModuleInit {
     return row?.total ?? '0';
   }
 
+  /** The caller's shift a claim begins from: of the claim's day, with both readings in. */
+  private async fromShift(
+    tx: TenantTx,
+    access: Access,
+    shiftId: string,
+    expenseDate: string,
+    timezone: string,
+  ) {
+    const shift = await this.shifts.odometerFor(tx, access, shiftId, timezone);
+    if (shift.date !== expenseDate) {
+      throw invalid([issueAt(['shiftId'], 'This shift is from another day')]);
+    }
+    if (!shift.start || !shift.end) {
+      throw invalid([issueAt(['shiftId'], 'This shift has no opening and closing readings')]);
+    }
+    return {
+      start: shift.start,
+      end: shift.end,
+      photos: [shift.start.photoId, shift.end.photoId].filter((id) => id !== null).length,
+    };
+  }
+
   /** The caller's own photos of a kind, uploaded and not attached to another record. */
   private async checkPhotos(
     tx: TenantTx,
@@ -456,6 +493,13 @@ export class ExpenseClaimsService implements OnModuleInit {
       OWNER,
       rows.map((row) => row.id),
     );
+    // A claim begun from a shift shows the shift's punch photos (decision D99).
+    const shiftPhotos = await this.photos.ownedBy(
+      tx,
+      tenantId,
+      'shift',
+      rows.flatMap((row) => (row.shiftId ? [row.shiftId] : [])),
+    );
     const people = await this.people.facts(
       tx,
       tenantId,
@@ -481,6 +525,7 @@ export class ExpenseClaimsService implements OnModuleInit {
           ...(receipts.some((photo) => photo.duplicateOfId !== null) ? ['duplicate_receipt'] : []),
           ...(policy && receiptHoldsApproval(policy, receipts.length) ? ['receipt_missing'] : []),
           ...(row.capped ? ['capped'] : []),
+          ...(row.odometerChanged ? ['odometer_changed'] : []),
         ];
         return {
           id: row.id,
@@ -503,9 +548,10 @@ export class ExpenseClaimsService implements OnModuleInit {
           amount: row.amount,
           capped: row.capped,
           receipts: receipts.map((photo) => photo.id),
-          odometerPhotos: mine
+          odometerPhotos: [...mine, ...shiftPhotos.filter((photo) => photo.ownerId === row.shiftId)]
             .filter((photo) => photo.kind === 'odometer')
             .map((photo) => photo.id),
+          shiftId: row.shiftId,
           flags,
           state: row.state as ExpenseClaimResult['state'],
           approval: row.workflowInstanceId

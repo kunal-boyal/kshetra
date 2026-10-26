@@ -80,6 +80,12 @@ export const expenseClaims = cell
       rate: numeric('rate', { precision: 18, scale: 2 }),
       odometerOpen: numeric('odometer_open', { precision: 12, scale: 1 }),
       odometerClose: numeric('odometer_close', { precision: 12, scale: 1 }),
+      /**
+       * The shift whose punch readings and photos a per-km claim began from (decision D99), and
+       * whether the person changed a reading from the shift's, which the approver sees.
+       */
+      shiftId: uuid('shift_id'),
+      odometerChanged: boolean('odometer_changed').notNull().default(false),
       billAmount: numeric('bill_amount', { precision: 18, scale: 2 }),
       /** Before caps. */
       calculated: numeric('calculated', { precision: 18, scale: 2 }).notNull(),

@@ -1,5 +1,5 @@
 import { spacing } from '@thelamp/design-tokens';
-import { punchFixIssue } from '@thelamp/shared';
+import { punchFixIssue, type PunchOdometer } from '@thelamp/shared';
 import { Button, Card, Notice, Screen, Text } from '@thelamp/ui-mobile';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
@@ -13,20 +13,30 @@ import { useLanguage } from '../i18n';
 import { currentFix, type Fix } from '../location';
 import { useSync } from '../sync';
 import { punchIn, startTracking } from '../tracking';
+import { OdometerStep } from './odometer-step';
 
 const SELFIE_REQUEST = 'punch-in-selfie';
+const ODOMETER_REQUEST = 'punch-in-odometer';
+
+/** What the steps have gathered so far. */
+interface Gathered {
+  fix: Fix;
+  selfieMediaId?: string;
+  odometer?: PunchOdometer;
+}
 
 type Step =
   | { name: 'consent' }
   | { name: 'locating' }
-  | { name: 'selfie'; fix: Fix }
-  | { name: 'background'; fix: Fix; selfieMediaId?: string }
+  | ({ name: 'selfie' } & Gathered)
+  | ({ name: 'odometer' } & Gathered)
+  | ({ name: 'background' } & Gathered)
   | { name: 'saving' };
 
 /**
  * Punching in (M5): the consent sheet in the person's language, a fresh fix of 250 m or better
- * that isn't mocked, a selfie when the tenant asks, and the background permission, explained in
- * the app before the system asks (spec 12.1). The shift is saved on the phone first and sent when
+ * that isn't mocked, a selfie and the odometer when the tenant asks (decision D99), and the
+ * background permission, explained in the app before the system asks (spec 12.1). The shift is saved on the phone first and sent when
  * there is signal; tracking starts at once.
  */
 export function PunchInScreen() {
@@ -56,11 +66,23 @@ export function PunchInScreen() {
       setStep({ name: 'consent' });
       return;
     }
-    setStep(
-      settings?.attendanceSelfie
-        ? { name: 'selfie', fix: state.fix }
-        : { name: 'background', fix: state.fix },
-    );
+    setStep(after('locating', { fix: state.fix }));
+  }
+
+  /** The step after `from`, skipping what the tenant doesn't ask for. */
+  function after(from: 'locating' | 'selfie' | 'odometer', gathered: Gathered): Step {
+    // Only what was gathered goes on: the step it came from may carry its own name.
+    const { fix, selfieMediaId, odometer } = gathered;
+    const kept: Gathered = {
+      fix,
+      ...(selfieMediaId ? { selfieMediaId } : {}),
+      ...(odometer ? { odometer } : {}),
+    };
+    if (from === 'locating' && settings?.attendanceSelfie) return { name: 'selfie', ...kept };
+    if (from !== 'odometer' && settings && settings.odometer !== 'off') {
+      return { name: 'odometer', ...kept };
+    }
+    return { name: 'background', ...kept };
   }
 
   // Back from the camera with the selfie.
@@ -72,13 +94,15 @@ export function PunchInScreen() {
       waitingForSelfie.current = false;
       setStep((current) =>
         current.name === 'selfie'
-          ? { name: 'background', fix: current.fix, selfieMediaId: mediaId }
+          ? after('selfie', { ...current, selfieMediaId: mediaId })
           : current,
       );
-    }, []),
+      // `after` reads the settings, which a focus brings back.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settings]),
   );
 
-  async function start(fix: Fix, selfieMediaId?: string) {
+  async function start({ fix, selfieMediaId, odometer }: Gathered) {
     if (!sync || !client.owner || !settings) return;
     setProblem(undefined);
     // The system asks only after the app has said why (spec 12.1, Play's prominent disclosure).
@@ -92,13 +116,20 @@ export function PunchInScreen() {
         fix,
         maxShiftHours: settings.maxShiftHours,
         intervalSeconds: settings.gpsIntervalSeconds,
+        timeZone: settings.timezone,
         ...(selfieMediaId ? { selfieMediaId } : {}),
+        ...(odometer ? { odometer } : {}),
       });
       await sync.runner.refresh();
       void sync.runner.sync();
     } catch {
       setProblem(t('shift.not_saved'));
-      setStep({ name: 'background', fix, ...(selfieMediaId ? { selfieMediaId } : {}) });
+      setStep({
+        name: 'background',
+        fix,
+        ...(selfieMediaId ? { selfieMediaId } : {}),
+        ...(odometer ? { odometer } : {}),
+      });
       return;
     }
     const started =
@@ -168,6 +199,17 @@ export function PunchInScreen() {
         </View>
       ) : null}
 
+      {step.name === 'odometer' && settings && settings.odometer !== 'off' ? (
+        <OdometerStep
+          setting={settings.odometer}
+          request={ODOMETER_REQUEST}
+          action={t('shift.odometer_continue')}
+          onDone={(odometer) =>
+            setStep(after('odometer', { ...step, ...(odometer ? { odometer } : {}) }))
+          }
+        />
+      ) : null}
+
       {step.name === 'background' || step.name === 'saving' ? (
         <Card style={styles.stack}>
           <Text variant="headingMd">{t('shift.background_title')}</Text>
@@ -177,9 +219,7 @@ export function PunchInScreen() {
             icon={MapPin}
             label={t('shift.punch_in')}
             busy={step.name === 'saving'}
-            onPress={() =>
-              step.name === 'background' ? void start(step.fix, step.selfieMediaId) : undefined
-            }
+            onPress={() => (step.name === 'background' ? void start(step) : undefined)}
           />
         </Card>
       ) : null}

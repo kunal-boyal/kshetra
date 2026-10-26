@@ -244,6 +244,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - The scheduler's minute of health also becomes CloudWatch metrics when `CLOUDWATCH_METRICS` is on (`cellMetricLines()` in `modules/scheduling/cell-metrics.ts`, the embedded metric format on standard output), and the cell's alarms in `infra/modules/cell/alarms.tf` read them. A new figure goes in `CellFigures`, the reporter, and the metric lines if an alarm needs it.
 - `pnpm verify` validates every Terraform environment set up on the machine, borrowing another environment's providers, offline, when one lacks this platform's.
 
+## Odometer readings (decision D99)
+
+- The `odometer` setting (`off`, `optional`, `required`) asks for a reading and a live photo at punch-in and punch-out; `ShiftsService` checks them with `odometerIssue()` and attaches the photo (media kind `odometer`) to the shift. The kilometres between are `shiftOdometerKm()`; both are in `packages/shared/src/tracking.ts`. Readings are shown beside the tracked distance, never in its place.
+- A per-km claim may name its day's shift (`shiftId`): `ExpenseClaimsService` takes the shift's readings through `ShiftsService.odometerFor()`, counts its photos (owner `shift`) and flags `odometer_changed` when the readings given differ.
+- On the phone, `OdometerStep` (`src/screens/odometer-step.tsx`) takes the reading and photo; punch-in asks after the selfie and `/punch-out` asks at the end. `Tracking.openOdometer()`, `closeOdometer()` and `odometersOn()` keep each shift's readings on the phone, and a new claim starts from them, waiting for the punch-out's upload.
+
 ## Retention (decision D69)
 
 - BR-41's rules are pure functions in `packages/shared/src/retention.ts`: `locationRetention()` says which of a tenant's days are archived, purged and expired. A day is archived only after `LOCATION_SETTLE_DAYS`, the longest sync window and a day, so no phone can still send points for it.
