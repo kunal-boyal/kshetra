@@ -51,6 +51,7 @@ import { MetricEditorPage } from './settings/metric-editor-page';
 import { MetricsPage } from './settings/metrics-page';
 import { BillingPage } from './settings/billing-page';
 import { ApiClientsPage } from './settings/api-clients-page';
+import { AuditLogPage } from './settings/audit-log-page';
 import { DataExportPage } from './settings/data-export-page';
 import { DataRequestPage, DataRequestsPage } from './settings/data-requests-page';
 import { SsoPage } from './settings/sso-page';
@@ -350,6 +351,11 @@ const apiClientSettings = createRoute({
   path: '/api-clients',
   component: ApiClientsPage,
 });
+const auditLogSettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/audit-log',
+  component: AuditLogPage,
+});
 const dataRequestSettings = createRoute({
   getParentRoute: () => settings,
   path: '/data-requests',
@@ -530,6 +536,7 @@ const tree = root.addChildren([
       webhookSettings,
       dataExportSettings,
       dataRequestSettings,
+      auditLogSettings,
       dataRequest,
       settingsIndex,
       roles,

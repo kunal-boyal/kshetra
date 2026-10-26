@@ -7,12 +7,16 @@ import {
   AppError,
   type UserHistoryQuery,
 } from '@thelamp/shared';
-import { and, desc, eq, gte, lt, or, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, ne, or, type SQL, sql } from 'drizzle-orm';
 import { auditLog } from '../../db/audit-log';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
+import { startOfLocalDate } from '../../platform/local-day';
+import { ApiClientsService } from '../iam/api-clients.service';
+import { People } from '../iam/people';
 import { Scopes } from '../iam/scopes';
 import { UsersService } from '../iam/users.service';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 /** The exact time an entry was written, to the microsecond, so paging never skips or repeats. */
 const exactTime = sql<string>`to_char(${auditLog.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
@@ -49,6 +53,9 @@ export class AuditService {
   constructor(
     private readonly scopes: Scopes,
     private readonly users: UsersService,
+    private readonly people: People,
+    private readonly clients: ApiClientsService,
+    private readonly config: TenantConfigService,
   ) {}
 
   async list(tx: TenantTx, access: Access, query: AuditListQuery): Promise<AuditListResult> {
@@ -59,18 +66,30 @@ export class AuditService {
       query.targetId ? eq(auditLog.targetId, query.targetId) : undefined,
       query.actorId ? eq(auditLog.actorId, query.actorId) : undefined,
       query.supportGrantId ? eq(auditLog.supportGrantId, query.supportGrantId) : undefined,
+      query.actorKind ? eq(auditLog.actorKind, query.actorKind) : undefined,
       query.from ? gte(auditLog.createdAt, new Date(query.from)) : undefined,
       query.to ? lt(auditLog.createdAt, new Date(query.to)) : undefined,
     ];
+    if (query.period) {
+      // The month on the tenant's clock, from its first moment to the next month's.
+      const { timezone } = await this.config.settings(tx, access.tenantId);
+      const [year, month] = query.period.split('-').map(Number) as [number, number];
+      const next = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10);
+      filters.push(
+        gte(auditLog.createdAt, startOfLocalDate(`${query.period}-01`, timezone)),
+        lt(auditLog.createdAt, startOfLocalDate(next, timezone)),
+      );
+    }
     if (access.scope !== 'tenant') {
       filters.push(sql`${auditLog.actorId} in (${await this.scopes.userIds(tx, access)})`);
     }
-    return this.page(tx, filters, query);
+    return this.page(tx, access.tenantId, filters, query);
   }
 
   /**
-   * The audit log report (M18): what people among `people` changed from `from` to `to`,
-   * oldest first, a page at a time.
+   * The audit log report (M18, decision D95): what people among `people` changed from `from` to
+   * `to`, and with `others` what the system, vendor staff and API clients changed too; one action
+   * or kind of actor if asked; oldest first, a page at a time.
    */
   async reportRows(
     tx: TenantTx,
@@ -80,14 +99,24 @@ export class AuditService {
     to: Date,
     offset: number,
     limit: number,
+    narrow: {
+      others: boolean;
+      action?: AuditAction | undefined;
+      actorKind?: string | undefined;
+    } = {
+      others: false,
+    },
   ) {
     return tx
       .select({
         id: auditLog.id,
+        actorKind: auditLog.actorKind,
         actorId: auditLog.actorId,
         action: auditLog.action,
         targetType: auditLog.targetType,
         targetId: auditLog.targetId,
+        before: auditLog.before,
+        after: auditLog.after,
         ip: auditLog.ip,
         createdAt: auditLog.createdAt,
       })
@@ -95,7 +124,13 @@ export class AuditService {
       .where(
         and(
           eq(auditLog.tenantId, tenantId),
-          sql`${auditLog.actorId} in (${people})`,
+          narrow.others
+            ? or(sql`${auditLog.actorId} in (${people})`, ne(auditLog.actorKind, 'user'))
+            : sql`${auditLog.actorId} in (${people})`,
+          narrow.action ? eq(auditLog.action, narrow.action) : undefined,
+          narrow.actorKind
+            ? eq(auditLog.actorKind, narrow.actorKind as AuditEntry['actor']['kind'])
+            : undefined,
           gte(auditLog.createdAt, from),
           lt(auditLog.createdAt, to),
         ),
@@ -103,6 +138,16 @@ export class AuditService {
       .orderBy(auditLog.createdAt, auditLog.id)
       .offset(offset)
       .limit(limit + 1);
+  }
+
+  /** The names of these API clients, by ID, for the report. */
+  async clientNames(tx: TenantTx, tenantId: string, ids: readonly string[]) {
+    const names = new Map<string, string>();
+    for (const id of new Set(ids)) {
+      const client = await this.clients.state(tx, tenantId, id);
+      if (client) names.set(id, client.name);
+    }
+    return names;
   }
 
   /**
@@ -119,6 +164,7 @@ export class AuditService {
     await this.users.get(tx, access, userId);
     return this.page(
       tx,
+      access.tenantId,
       [
         eq(auditLog.tenantId, access.tenantId),
         eq(auditLog.targetType, 'user'),
@@ -128,8 +174,31 @@ export class AuditService {
     );
   }
 
+  /** The people and API clients a page of entries names, by ID, for the audit viewer. */
+  private async actorNames(
+    tx: TenantTx,
+    tenant: string,
+    rows: readonly { actorKind: string; actorId: string | null }[],
+  ): Promise<Map<string, string>> {
+    const ids = (kind: string) =>
+      rows.filter((row) => row.actorKind === kind && row.actorId).map((row) => row.actorId!);
+    const names = new Map<string, string>();
+    const people = ids('user');
+    if (people.length > 0) {
+      for (const [id, person] of await this.people.facts(tx, tenant, people)) {
+        names.set(id, `${person.name} (${person.code})`);
+      }
+    }
+    for (const id of new Set(ids('api_client'))) {
+      const client = await this.clients.state(tx, tenant, id);
+      if (client) names.set(id, client.name);
+    }
+    return names;
+  }
+
   private async page(
     tx: TenantTx,
+    tenantId: string,
     filters: (SQL | undefined)[],
     query: { limit: number; cursor?: string | undefined },
   ): Promise<AuditListResult> {
@@ -163,10 +232,15 @@ export class AuditService {
       .limit(query.limit + 1);
     const page = rows.slice(0, query.limit);
     const last = page[page.length - 1];
+    const names = await this.actorNames(tx, tenantId, page);
     return {
       items: page.map((row): AuditEntry => ({
         id: row.id,
-        actor: { kind: row.actorKind, id: row.actorId },
+        actor: {
+          kind: row.actorKind,
+          id: row.actorId,
+          name: row.actorId ? (names.get(row.actorId) ?? null) : null,
+        },
         action: row.action as AuditAction,
         target: { type: row.targetType, id: row.targetId },
         before: row.before,

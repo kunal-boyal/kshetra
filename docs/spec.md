@@ -710,7 +710,7 @@ Rules: BR-42, BR-43.
 ### M21. Audit and data governance
 
 - Append-only audit log of configuration changes, master changes, review decisions, approvals, imports, exports, device resets, support access and sign-in events, with actor, action, target, before and after values, IP, device, and whether vendor staff acted under a support grant.
-- Audit viewer for tenant admins with filters and export.
+- Audit viewer for tenant admins with filters and export: by month, action, kind of actor and person, with the values before and after, exported through the audit log report (decision D95).
 - Retention jobs per data class (raw locations, trails, photos, exports, notifications, audit) driven by tenant settings.
 - Tenant data export: every table and media file for the tenant as a signed archive: a ZIP of JSON lines and files with a manifest of checksums signed with the cell's Ed25519 key, kept for seven days (decision D95).
 - Requests from employees about their personal data (access, correction, erasure where lawful) are logged and handled by the tenant admin through a simple workflow: raised on the phone or logged in the portal, answered within 30 days with a reminder a week before; access with a signed archive of the person's own data; erasure, once they are deactivated, anonymising them and keeping the business records (decision D95).

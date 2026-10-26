@@ -132,7 +132,12 @@ export type AuditActorKind = (typeof AUDIT_ACTOR_KINDS)[number];
 
 export const AuditEntry = z.object({
   id: z.uuid(),
-  actor: z.object({ kind: z.enum(AUDIT_ACTOR_KINDS), id: z.uuid().nullable() }),
+  actor: z.object({
+    kind: z.enum(AUDIT_ACTOR_KINDS),
+    id: z.uuid().nullable(),
+    /** Who it was, as the audit viewer shows it: a person, an API client; null otherwise. */
+    name: z.string().nullable().optional(),
+  }),
   action: z.enum(AUDIT_ACTIONS),
   target: z.object({ type: z.string(), id: z.uuid().nullable() }),
   before: z.unknown(),
@@ -157,6 +162,13 @@ export const AuditListQuery = z.strictObject({
   actorId: z.uuid().optional(),
   /** What vendor support did under one grant (decision D93). */
   supportGrantId: z.uuid().optional(),
+  /** Who acted: people, the system, vendor staff or API clients (decision D95). */
+  actorKind: z.enum(AUDIT_ACTOR_KINDS).optional(),
+  /** One month on the tenant's clock, as `YYYY-MM`. */
+  period: z
+    .string()
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+    .optional(),
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
 });

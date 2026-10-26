@@ -669,6 +669,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'billing.manage',
             'api_client.manage',
             'webhook.manage',
+            'audit.view',
           ],
         },
       },
@@ -756,6 +757,7 @@ for (const path of [
   'data-export',
   'data-requests',
   'data-requests/01a10000-0000-7000-8000-0000000000a1',
+  'audit-log',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {
@@ -787,6 +789,52 @@ test('opens a webhook’s delivery log and shows a new secret once, accessibly',
   await expect(
     page.getByRole('region', { name: 'Signing secret for https://erp.sunrise.example/hooks' }),
   ).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('the audit log shows changes before and after, accessibly', async ({ page }) => {
+  await mockSignedIn(page);
+  await page.route('**/v1/audit?**', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: '01a10000-0000-7000-8000-000000000201',
+            actor: {
+              kind: 'user',
+              id: '01a10000-0000-7000-8000-000000000002',
+              name: 'Anita Rao (SUN-002)',
+            },
+            action: 'settings.updated',
+            target: { type: 'settings', id: null },
+            before: { planNotificationTime: '08:00' },
+            after: { planNotificationTime: '07:30' },
+            ip: '10.0.0.4',
+            deviceId: null,
+            supportGrantId: null,
+            createdAt: '2026-10-26T05:00:00.000000Z',
+          },
+          {
+            id: '01a10000-0000-7000-8000-000000000202',
+            actor: { kind: 'system', id: null, name: null },
+            action: 'retention.applied',
+            target: { type: 'notification', id: null },
+            before: null,
+            after: { deleted: 3 },
+            ip: null,
+            deviceId: null,
+            supportGrantId: null,
+            createdAt: '2026-10-26T04:00:00.000000Z',
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await page.goto('/settings/audit-log');
+  const table = page.getByRole('table', { name: 'Entries' });
+  await table.getByText('Before and after').first().click();
+  await expect(table.getByText(/"planNotificationTime": "07:30"/)).toBeVisible();
   await expectAccessible(page);
 });
 
