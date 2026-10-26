@@ -20,6 +20,7 @@ import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section, useDates } from '../people/shared';
+import { Printable, PrintButton } from '../print';
 import { useOrder, useOrderWrites } from './data';
 import { ORDER_BADGE } from './orders-page';
 
@@ -143,49 +144,68 @@ function Showing({ order }: { order: OrderResult }) {
         <StatusBadge variant={ORDER_BADGE[order.status]}>
           {t(`orders.status_${order.status}`)}
         </StatusBadge>
+        <PrintButton printable="order" />
       </PageHeader>
-      <Notice icon={<Icon icon={Info} />}>{t('orders.not_an_invoice')}</Notice>
-      <Facts
-        items={[
-          [t('orders.account'), `${order.account.name} (${order.account.code})`],
-          [
-            t('orders.supplier'),
-            order.supplier.account
-              ? `${order.supplier.account.name} (${order.supplier.account.code})`
-              : t('orders.supplier_company'),
-          ],
-          ...(order.note ? [[t('orders.note'), order.note] as [string, string]] : []),
-          ...(order.rejectionReason
-            ? [[t('orders.rejected_for'), reasonName(order.rejectionReason)] as [string, string]]
-            : []),
+      <Printable
+        id="order"
+        title={t('print.order', { name: order.account.name })}
+        details={[
+          t('orders.placed_on', {
+            name: order.placedBy.name,
+            when: dates.dateTime(order.placedAt),
+          }),
+          t(`orders.status_${order.status}`),
+          t('print.reference', { id: order.id }),
         ]}
-      />
-      <DataTable
-        caption={t('orders.lines_caption')}
-        columns={columns}
-        rows={order.lines}
-        rowKey={(line) => line.id}
-      />
-      <Section title={t('orders.totals')}>
+      >
+        <Notice icon={<Icon icon={Info} />}>{t('orders.not_an_invoice')}</Notice>
         <Facts
           items={[
-            [t('orders.taxable'), money(order.totals.taxable)],
-            [t('orders.cgst'), money(order.totals.cgst)],
-            [t('orders.sgst'), money(order.totals.sgst)],
-            [t('orders.total'), money(order.totals.total)],
-            ...(['kg', 'L'] as const).flatMap((type) =>
-              order.measures[type]
-                ? [[t(`orders.measure_${type}`), number(order.measures[type])] as [string, string]]
-                : [],
-            ),
+            [t('orders.account'), `${order.account.name} (${order.account.code})`],
+            [
+              t('orders.supplier'),
+              order.supplier.account
+                ? `${order.supplier.account.name} (${order.supplier.account.code})`
+                : t('orders.supplier_company'),
+            ],
+            ...(order.note ? [[t('orders.note'), order.note] as [string, string]] : []),
+            ...(order.rejectionReason
+              ? [[t('orders.rejected_for'), reasonName(order.rejectionReason)] as [string, string]]
+              : []),
           ]}
         />
-      </Section>
-      {order.approval && order.approval.steps.length > 0 ? (
-        <Section title={t('approvals.chain')}>
-          <ApprovalSteps item={order.approval} />
+        <DataTable
+          caption={t('orders.lines_caption')}
+          columns={columns}
+          rows={order.lines}
+          rowKey={(line) => line.id}
+        />
+        <Section title={t('orders.totals')}>
+          <Facts
+            items={[
+              [t('orders.taxable'), money(order.totals.taxable)],
+              [t('orders.cgst'), money(order.totals.cgst)],
+              [t('orders.sgst'), money(order.totals.sgst)],
+              [t('orders.total'), money(order.totals.total)],
+              ...(['kg', 'L'] as const).flatMap((type) =>
+                order.measures[type]
+                  ? [
+                      [t(`orders.measure_${type}`), number(order.measures[type])] as [
+                        string,
+                        string,
+                      ],
+                    ]
+                  : [],
+              ),
+            ]}
+          />
         </Section>
-      ) : null}
+        {order.approval && order.approval.steps.length > 0 ? (
+          <Section title={t('approvals.chain')}>
+            <ApprovalSteps item={order.approval} />
+          </Section>
+        ) : null}
+      </Printable>
       {order.can.decideLines ? (
         <LineDecisions order={order} reasons={reasons} />
       ) : order.can.decide ? (

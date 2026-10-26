@@ -3,7 +3,7 @@ import { SETTING_DEFAULTS, type TenantPermission } from '@thelamp/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 import type { WebClient } from './client';
 import { LanguageProvider } from './i18n';
 import { createAppRouter } from './router';
@@ -109,3 +109,24 @@ export function renderAt(path: string, client: FakeClient) {
 /** Every call that isn't a read. */
 export const writesOf = (client: FakeClient) =>
   client.request.mock.calls.filter(([method]) => method !== 'GET');
+
+/**
+ * What the print dialog would see after `act` presses a Print button: the text of the one sheet
+ * under the body (decision D99). The dialog is the `browser` seam, replaced for the moment.
+ */
+export async function printedText(act: () => Promise<void>): Promise<string> {
+  const { browser } = await import('./browser');
+  let seen = '';
+  const print = vi.spyOn(browser, 'print').mockImplementation(() => {
+    const sheets = document.querySelectorAll('body > .ks-print-sheet');
+    expect(sheets).toHaveLength(1);
+    seen = sheets[0]!.textContent ?? '';
+  });
+  try {
+    await act();
+    expect(print).toHaveBeenCalledOnce();
+  } finally {
+    print.mockRestore();
+  }
+  return seen;
+}

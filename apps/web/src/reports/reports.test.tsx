@@ -1,7 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { browser } from '../browser';
 import { fakeClient, renderAt, writesOf } from '../test-support';
 
 const ASHA = '01a10000-0000-7000-8000-000000000004';
@@ -125,6 +126,49 @@ describe('reports (M18)', () => {
     expect(within(table).getByRole('row', { name: /74%/ })).toHaveTextContent('18');
     expect(asked()[0]![1]).toContain(`userId=${ASHA}`);
     expect(screen.getByRole('button', { name: 'Download as Excel' })).toBeVisible();
+  });
+
+  it('prints what the screen shows, headed with the organisation, filters and time (D99)', async () => {
+    const client = fakeClient(pages, {}, ['report.view', 'user.view']);
+    document.documentElement.dataset.theme = 'dark';
+    renderAt('/reports', client);
+    const user = userEvent.setup();
+    expect(await screen.findByText('Nothing to show')).toBeVisible();
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Report' }),
+      'Attendance register',
+    );
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Person' }),
+      'Asha Rao (SUN-004)',
+    );
+    await screen.findByRole('table', { name: /Attendance register/ });
+    // The dialog sees one sheet under the body, in the Light theme, and the rows on screen.
+    let seen: { sheets: number; text: string; theme: string | undefined } | undefined;
+    const print = vi.spyOn(browser, 'print').mockImplementation(() => {
+      const sheets = document.querySelectorAll('body > .ks-print-sheet');
+      seen = {
+        sheets: sheets.length,
+        text: sheets[0]?.textContent ?? '',
+        theme: document.documentElement.dataset.theme,
+      };
+    });
+    await user.click(screen.getByRole('button', { name: 'Print' }));
+    expect(print).toHaveBeenCalledOnce();
+    expect(seen?.sheets).toBe(1);
+    expect(seen?.theme).toBe('light');
+    expect(seen?.text).toContain('Sunrise Traders');
+    expect(seen?.text).toContain('Attendance register');
+    expect(seen?.text).toContain(`Month: ${PERIOD}`);
+    expect(seen?.text).toContain('Person: Asha Rao (SUN-004)');
+    expect(seen?.text).toContain('Read by Anita Rao, whose role reaches: Everyone');
+    expect(seen?.text).toMatch(/Printed /);
+    expect(seen?.text).toContain('8.5');
+    // Once the dialog closes, the page is as it was.
+    expect(document.querySelector('.ks-print-sheet')).toBeNull();
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    print.mockRestore();
+    delete document.documentElement.dataset.theme;
   });
 
   it('asks for a file, and lists the files with a link to each ready one', async () => {

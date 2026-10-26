@@ -184,6 +184,10 @@ Motion says what just happened and where things went. Feedback is quick, arrival
   - Left navigation at `nav-web` (248 px, collapsing to 64 px below `bp-md`).
   - A header period picker drives every period-based screen.
   - Content caps at `content-max`. Maps and wide tables may run full-bleed.
+- **Print (decision D99):**
+  - A report, an order or an account statement prints as one sheet (`ks-print-sheet`), always in the Light theme.
+  - The sheet opens with a heading (`ks-print-head`): the tenant's legal name, what it is, its period and filters, whose records the reader's role reaches, and when it was printed.
+  - The shell, buttons and fields never print. Tables drop their shadow and corners, repeat their header row on each page, and keep each row whole.
 
 ## Iconography
 

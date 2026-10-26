@@ -200,6 +200,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Web code calls the API only through `@thelamp/api-client`, which refreshes tokens and turns error responses into `ApiError` with a spec 11.4 code. Show errors with `errorMessage()` from `apps/web/src/i18n.tsx`.
 - Build screens from `@thelamp/ui-web` and the design system's `ks-*` classes; Tailwind is for layout. Text comes from `useLanguage().t`, in English and Hindi.
 - Each screen gets a Vitest test with Testing Library, and each page a Playwright test that runs axe.
+- Printing (decision D99): wrap what prints in `Printable` from `apps/web/src/print.tsx`, with its title and detail lines, and put a `PrintButton` beside it; the design system's print layout prints that sheet alone, in the Light theme. Never draw a PDF on the server for something the screen shows.
 - Lists use `DataTable` with cursor paging (a Load more button, as the API pages). Actions that can't be undone ask first, in place, with `Confirm`. Field errors come from the API's details by path, with `fieldErrors()` in `apps/web/src/people/shared.tsx`. Writes go through `write()` in `apps/web/src/people/data.ts`, which sends a fresh idempotency key.
 
 ## Background work (decision D39)
