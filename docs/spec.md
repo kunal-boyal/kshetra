@@ -1587,7 +1587,7 @@ Account and user search use PostgreSQL trigram indexes on name and code within t
 | Area | Control |
 |---|---|
 | Transport | TLS 1.2 or later everywhere (1.3 preferred); HSTS on web origins |
-| Edge | AWS WAF managed rules on load balancers and CloudFront; per-IP throttles on auth endpoints |
+| Edge | AWS WAF managed rules on load balancers and CloudFront; per-IP throttles on auth endpoints, by the viewer's address at CloudFront and by the caller's at the load balancer for requests that come straight to it; SQL injection rules counted before they block; WAF logs with credentials redacted (D98, docs/runbooks/web-firewall.md) |
 | Identity | OTP limits and enumeration resistance (M1), rotating refresh tokens with reuse detection, revocation checks per request, TOTP for admins, SSO for enterprise tenants |
 | Authorisation | One guard checks permission and scope on every endpoint; services check resource ownership; the cross-tenant contract test runs in CI |
 | Data | RLS per tenant; KMS encryption at rest for RDS, ElastiCache, S3 and backups; secrets in AWS Secrets Manager; SSO secrets, webhook secrets and TOTP seeds encrypted at column level |
@@ -1719,7 +1719,7 @@ Support dashboards per tenant: active users, sync health (devices with parked it
 
 Runbooks in `docs/runbooks/`: deploy; roll back; failed migration; point-in-time database restore; secret rotation; device reset; tenant onboarding; moving a tenant between cells; tenant offboarding; incident response with customer communication; OTP provider outage (switch to the secondary provider behind the `OtpSender` interface).
 
-Backups and recovery: RDS point-in-time recovery for 14 days and daily snapshots copied to ap-south-2; S3 versioning and cross-region replication for media; a quarterly restore drill with recorded timings.
+Backups and recovery: RDS point-in-time recovery for 14 days and daily snapshots copied to ap-south-2; S3 versioning and cross-region replication for media; a quarterly restore drill with recorded timings (`infra/scripts/restore-drill.sh`, docs/runbooks/restore-drills.md, D98).
 
 ---
 

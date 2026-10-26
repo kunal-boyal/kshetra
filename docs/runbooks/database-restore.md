@@ -17,6 +17,6 @@ RDS keeps 14 days of point-in-time recovery for each cell's database (spec 14.6,
 4. **Point the cell at it:** in the cell's secret, change the host in `DATABASE_URL`, `DIRECTORY_DATABASE_URL`, `DATABASE_MIGRATOR_URL` and `DATABASE_BOOTSTRAP_URL`. Then, in Terraform, import the restored instance in place of the old one (or rename it to the old identifier after the old one is renamed aside), so later applies keep managing it.
 5. **Raise `SYNC_EPOCH`** in the environment's settings: every phone's sync cursor is refused with `SYNC_RESET`, and each phone takes a full copy again, so none keeps rows the restore removed (decision D40).
 6. **Deploy** the current commit, which starts the services on the new settings, then check `/ready` and a sign-in.
-7. Record the timings: the spec's targets are 5 minutes of data at most (RPO) and 2 hours to recover (RTO). The quarterly restore drill runs this same runbook against staging.
+7. Record the timings: the spec's targets are 5 minutes of data at most (RPO) and 2 hours to recover (RTO). The quarterly drill rehearses steps 1 and 3 against staging with `infra/scripts/restore-drill.sh`, and checks the copy without touching the cell ([restore-drills.md](restore-drills.md)).
 
 Data that phones captured after the restore point and still hold in their outbox upload again, as every write is idempotent by its own ID.

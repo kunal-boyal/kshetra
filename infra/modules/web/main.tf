@@ -2,7 +2,7 @@
 # sits in a private bucket behind CloudFront, which also passes the app's API paths to the cell,
 # so the app and the API share one origin, as they do locally: the refresh token's cookie stays
 # first-party and no CORS is needed (decision D35).
-# CloudFront's certificate lives in us-east-1, so this module takes a provider for it there.
+# CloudFront's certificate and WAF live in us-east-1, so this module takes a provider for it there.
 
 variable "name" {
   type = string
@@ -27,6 +27,24 @@ variable "api_paths" {
   description = "The paths CloudFront passes to the cell: the portal's /v1 and /auth, or the console's /platform."
   type        = list(string)
   default     = ["/v1/*", "/auth/*"]
+}
+
+variable "origin_secret" {
+  description = "Sent to the cell as X-Origin-Verify with every request passed on, so the cell's WAF leaves throttling those to this one (decision D98)."
+  type        = string
+  sensitive   = true
+}
+
+variable "sign_in_pattern" {
+  description = "The paths of sign-in attempts, which the WAF throttles per viewer."
+  type        = string
+  default     = "^/(auth/v1/(otp|totp|oauth|sso|support)/|platform/v1/(session|setup)(/confirm)?$)"
+}
+
+variable "sign_in_per_5_minutes" {
+  description = "Sign-in attempts one viewer may make in 5 minutes before the WAF blocks it (spec 13)."
+  type        = number
+  default     = 300
 }
 
 variable "tags" {
@@ -110,6 +128,10 @@ resource "aws_cloudfront_distribution" "web" {
   origin {
     origin_id   = "api"
     domain_name = var.api_domain
+    custom_header {
+      name  = "X-Origin-Verify"
+      value = var.origin_secret
+    }
     custom_origin_config {
       http_port              = 80
       https_port             = 443
@@ -152,6 +174,8 @@ resource "aws_cloudfront_distribution" "web" {
       restriction_type = "none"
     }
   }
+
+  web_acl_id = aws_wafv2_web_acl.edge.arn
 
   viewer_certificate {
     acm_certificate_arn      = var.certificate_arn
@@ -196,4 +220,83 @@ output "distribution_arn" {
 output "distribution_domain" {
   description = "Point domain here."
   value       = aws_cloudfront_distribution.web.domain_name
+}
+
+# The viewer's side of the WAF review (decision D98): sign-in throttled per viewer, which the
+# cell's WAF can't see behind CloudFront, and AWS's IP-reputation list.
+resource "aws_wafv2_regex_pattern_set" "sign_in" {
+  provider = aws.us_east_1
+  name     = "${var.name}-sign-in"
+  scope    = "CLOUDFRONT"
+  regular_expression {
+    regex_string = var.sign_in_pattern
+  }
+  tags = var.tags
+}
+
+resource "aws_wafv2_web_acl" "edge" {
+  provider = aws.us_east_1
+  name     = "${var.name}-edge"
+  scope    = "CLOUDFRONT"
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "SignInPerViewer"
+    priority = 0
+    action {
+      block {}
+    }
+    statement {
+      rate_based_statement {
+        limit                 = var.sign_in_per_5_minutes
+        evaluation_window_sec = 300
+        aggregate_key_type    = "IP"
+        scope_down_statement {
+          regex_pattern_set_reference_statement {
+            arn = aws_wafv2_regex_pattern_set.sign_in.arn
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "SignInPerViewer"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "AWSManagedRulesAmazonIpReputationList"
+    priority = 1
+    override_action {
+      none {}
+    }
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesAmazonIpReputationList"
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesAmazonIpReputationList"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.name}-edge"
+    sampled_requests_enabled   = true
+  }
+  tags = var.tags
 }
