@@ -23,6 +23,11 @@ describe('column cipher (spec 13.2)', () => {
     const [version, iv, tag, body] = sealed.split(':');
     const flipped = `${version}:${iv}:${tag}:${body!.slice(0, -2)}AA`;
     expect(() => one.open(flipped, 'platform_users.totp_secret:a')).toThrow();
+    // A tag cut short is refused outright, never checked on fewer bytes.
+    const short = Buffer.from(tag!, 'base64url').subarray(0, 4).toString('base64url');
+    expect(() =>
+      one.open(`${version}:${iv}:${short}:${body}`, 'platform_users.totp_secret:a'),
+    ).toThrow(/tag length/i);
   });
 
   it('derives a stable key from the pepper when none is set', () => {

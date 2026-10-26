@@ -1,7 +1,7 @@
 # Checks (spec 14.3), lean enough for GitHub's free minutes on a private repository (decisions
 # D75 and D92): pull requests and merges to main run the quick checks only; integration, end-to-end,
 # the image and Terraform run on main nightly when something merged that day, or by hand on any
-# branch. Before each merge the full suite runs locally (`pnpm verify`) and its result goes in the
+# branch; static analysis and the dependency audit run every night (D100). Before each merge the full suite runs locally (`pnpm verify`) and its result goes in the
 # pull request.
 name: CI
 
@@ -14,6 +14,10 @@ on:
     - cron: '0 21 * * *'
   workflow_dispatch:
 
+# Every job only reads the repository.
+permissions:
+  contents: read
+
 concurrency:
   # A merge never cancels the nightly run.
   group: ci-${{ github.event_name }}-${{ github.ref }}
@@ -24,9 +28,9 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -36,6 +40,28 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
 
+  # Static analysis and known advisories (decision D100) run every night, changed or not, as the
+  # rules and the advisories move on without us.
+  semgrep:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    container: semgrep/semgrep:1.180.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: tools/semgrep/scan.sh
+
+  audit:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      # Reviewed exceptions are `auditConfig` in pnpm-workspace.yaml.
+      - run: pnpm audit --audit-level high
+
   # The nightly run goes ahead only when main changed in the last day.
   changed:
     if: github.event_name == 'schedule'
@@ -43,7 +69,7 @@ jobs:
     outputs:
       recent: ${{ steps.log.outputs.recent }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 50
       - id: log
@@ -56,9 +82,9 @@ jobs:
     # Testcontainers builds infra/docker/postgres and runs the API's tests against it.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -72,9 +98,9 @@ jobs:
     # Playwright with axe against the web app's production build (spec 14.4).
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -89,9 +115,9 @@ jobs:
     # The cell's container image builds (decision D67); deploys push it, pull requests only build.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/build-push-action@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: apps/api/Dockerfile
@@ -108,8 +134,8 @@ jobs:
     # ShellCheck; nothing is planned or applied here (decision D67).
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: 1.17.0
       - run: terraform fmt -recursive -check infra

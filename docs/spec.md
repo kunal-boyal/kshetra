@@ -1599,7 +1599,7 @@ Account and user search use PostgreSQL trigram indexes on name and code within t
 | Vendor access | Support grants (M22); every vendor action audited and visible to the tenant |
 | Supply chain | Lockfile, Renovate or Dependabot, `pnpm audit` in CI, licence check, signed container images |
 | Logging | No phone numbers, OTPs, tokens or signed URLs in logs; Sentry scrubbing rules; tenant and request IDs on every log line |
-| Testing | SAST and dependency scanning in CI; an external penetration test before general availability and yearly, including attempts to cross tenants with crafted IDs |
+| Testing | SAST (Semgrep CE with the project's own rules) and dependency scanning (`pnpm audit`, Dependabot) before every merge and nightly in CI (D100); an external penetration test before general availability and yearly, including attempts to cross tenants with crafted IDs |
 
 ### 13.2 Threats and mitigations
 

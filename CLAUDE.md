@@ -418,6 +418,12 @@ Migrations are append-only and backward compatible. They follow expand and contr
 - **Load:** k6 in `tools/k6`, with spec 3.2's targets as thresholds; sessions come from `load:fixtures`, one person per virtual user.
 - **Merging (decisions D75 and D92):** GitHub's free minutes cover only the quick checks, so pull requests and merges to main run formatting, types, lint and unit tests there; integration, end-to-end, the image and Terraform run on main nightly when something merged that day, or by hand, and deploys follow those full runs. Before merging, run `pnpm verify` locally and note its result and commit in the pull request. A pull request merges only with its quick checks green and `pnpm verify` passing; while GitHub refuses to start jobs because the month's minutes are used up, `pnpm verify` alone, with the refusal noted in the pull request.
 
+## Security scanning (decision D100)
+
+- `tools/semgrep/scan.sh` (in `pnpm verify` and nightly CI) runs Semgrep CE from its pinned image with the registry's packs and our rules in `tools/semgrep/rules.yml`. A new rule gets `ruleid:` and `ok:` cases in `tools/semgrep/rules.ts`. A finding that is safe says why beside it, with `nosemgrep: <rule id>`; never silence one without the reason.
+- `pnpm audit --audit-level high` fails on high and critical advisories. An exception goes in `auditConfig.ignoreGhsas` in `pnpm-workspace.yaml` only with its review in `docs/security/dependency-advisories.md`; remove it once the fix is two weeks old.
+- Actions in `.github/workflows` are pinned to a commit with the release in a comment; a tool fetched in CI is a pinned release checked against its digest, never a script piped to a shell, and `${{ }}` values reach `run:` scripts through `env:`.
+
 ## Deployment (decision D67)
 
 - One image, `apps/api/Dockerfile`, runs every cell process: the API by default, and `node dist/worker.mjs`, `dist/scheduler.mjs`, `dist/migrate.mjs` and `dist/bootstrap.mjs`. Build it from the root: `docker build -f apps/api/Dockerfile .`. The API bundles the workspace packages, so they stay in its `devDependencies`; a new npm package the API imports at runtime goes in `dependencies`.

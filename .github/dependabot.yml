@@ -1,0 +1,45 @@
+# Dependabot (decision D100): alerts and security updates are on for the repository; these are the
+# monthly version updates. Every update waits two weeks after its release (`cooldown`), as the
+# project's rule for new versions has it, and lands only through a pull request with `pnpm verify`.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    # Expo pins its native modules; they move with an SDK upgrade (`expo install --check`).
+    ignore:
+      - dependency-name: 'expo*'
+      - dependency-name: '@expo/*'
+      - dependency-name: 'react-native*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: docker
+    directories: [/apps/api, /infra/docker/postgres]
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: terraform
+    directories:
+      [/infra/environments/staging, /infra/environments/production, /infra/environments/demo]
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14

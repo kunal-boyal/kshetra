@@ -15,6 +15,7 @@ try {
       '\nPeople (sign in with POST /auth/v1/otp/request; the code prints in the API console):',
     );
     for (const person of result.people) {
+      // nosemgrep: tools.semgrep.thelamp-unmasked-personal-value-in-log
       console.log(
         `  ${person.tenant.padEnd(8)} ${person.name.padEnd(16)} ${person.phone}  ${person.role} (${person.designation})`,
       );

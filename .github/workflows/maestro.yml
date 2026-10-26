@@ -29,17 +29,17 @@ jobs:
             /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell \
             /usr/local/julia* /opt/az /usr/local/lib/android/sdk/system-images
           df -h /
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - run: pnpm install --frozen-lockfile
 
       - name: Start the services and the API
@@ -77,10 +77,17 @@ jobs:
           rm -rf app/build/intermediates app/build/tmp build
           df -h /
 
+      # A pinned release, checked against its published digest, never a script piped to a shell.
       - name: Install Maestro
+        env:
+          MAESTRO_VERSION: 2.11.0
+          MAESTRO_SHA256: 5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a
         run: |
-          curl -fsSL "https://get.maestro.mobile.dev" | bash
-          echo "$HOME/.maestro/bin" >>"$GITHUB_PATH"
+          curl -fsSLo maestro.zip "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip"
+          echo "$MAESTRO_SHA256  maestro.zip" | sha256sum --check
+          unzip -q maestro.zip -d "$HOME/.maestro-cli"
+          rm maestro.zip
+          echo "$HOME/.maestro-cli/maestro/bin" >>"$GITHUB_PATH"
 
       - name: Enable KVM
         run: |
@@ -89,7 +96,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run the flows on an emulator
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 35
           arch: x86_64
@@ -99,7 +106,7 @@ jobs:
           script: apps/mobile/.maestro/run.sh apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 
       - if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: maestro
           path: |
@@ -110,8 +117,12 @@ jobs:
 
       - if: failure() && github.event_name != 'pull_request'
         name: Open an issue
+        # Values reach the shell as variables, never spliced into the script.
         env:
           GH_TOKEN: ${{ github.token }}
+          REF_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue create --title "Maestro flows failed on ${{ github.ref_name }}" \
-            --body "The ${{ github.event_name }} run failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Its screenshots and logs are in the run's artifacts."
+          gh issue create --title "Maestro flows failed on $REF_NAME" \
+            --body "The $EVENT_NAME run failed: $RUN_URL. Its screenshots and logs are in the run's artifacts."

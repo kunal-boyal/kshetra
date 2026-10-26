@@ -24,7 +24,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 |---|---|---|
 | uuid | 14.0.2 | `packages/shared`, for UUID v7 ids |
 | libphonenumber-js | 1.13.14 | `packages/shared`, for E.164 phone numbers |
-| zod | 4.6.5 | Validation: the API's config and requests, and the configuration schemas in `packages/shared`, `forms`, `metrics` and `templates` |
+| zod | 4.6.7 | Raised 2026-10-26 for GHSA-mrhx-c7xc-m3w5, with an override lifting any zod 4 others bring (decision D100). Validation: the API's config and requests, and the configuration schemas in `packages/shared`, `forms`, `metrics` and `templates` |
 | ajv | 8.20.0 | `packages/templates` tests, which check each template against the generated `schema.json` |
 | re2js | 2.8.6 | Added 2026-10-13: `packages/forms`, which matches text fields' patterns in linear time, on the server and in the apps alike (decision D45) |
 
@@ -148,7 +148,9 @@ pnpm 12 runs a dependency's install script only when `allowBuilds` in `pnpm-work
 | Amazon ElastiCache | Valkey 8.1 | Redis-compatible, for BullMQ, rate limits and live positions |
 | MSG91 | Flow API v5 | One-time codes and SMS notifications through DLT templates; no SDK, `fetch` only |
 | k6 | 2.x (Homebrew) | Load tests in `tools/k6` (decision D68); installed on the machine, not in the workspace |
-| Maestro | 2.11.0 locally, the latest release in CI | The field app's flows (decision D68); installed from its release zip locally and its installer in CI |
+| Maestro | 2.11.0 | The field app's flows (decision D68); installed from its release zip, locally and in CI, where its SHA-256 is checked (decision D100) |
+| Semgrep CE | 1.180.0 (`semgrep/semgrep` image) | Static analysis (decision D100): `tools/semgrep/scan.sh` runs the image through Docker in `pnpm verify`, and inside it in the nightly CI job; nothing is installed on the machine |
+| GitHub Actions | pinned by commit | Each `uses:` names the commit its release tag pointed at, with the release in a comment (decision D100); Dependabot proposes newer ones |
 | Android emulator | API 35 (Android 15) | Locally arm64-v8a, in CI x86_64 through `reactivecircus/android-emulator-runner` |
 | JDK | 17 (Temurin in CI, Homebrew's `openjdk@17` locally) | For Gradle and Maestro |
 | AWS CLI | 2.38.5 (Homebrew) | Added 2026-10-23: `aws login` with the sandbox's `kunal-admin`, and `infra/scripts/demo.sh` |
