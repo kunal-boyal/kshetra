@@ -151,6 +151,12 @@ resource "aws_iam_role_policy" "task_media" {
         Resource = "${aws_s3_bucket.media.arn}/*"
       },
       { Effect = "Allow", Action = ["s3:ListBucket"], Resource = aws_s3_bucket.media.arn },
+      # Files are encrypted under the media key; uploads by presigned link use the task's rights.
+      {
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
+        Resource = aws_kms_key.media.arn
+      },
     ]
   })
 }

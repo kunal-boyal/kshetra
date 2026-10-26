@@ -22,11 +22,18 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Config } from '../../config';
 import { Public } from '../../platform/auth';
+import { type RateLimit, RateLimiter } from '../../platform/rate-limit';
 import { Contract } from '../../platform/routes';
 import { SecurityLog } from '../../platform/security-log';
 import { CONFIG } from '../../platform/tokens';
 import { SSO_STATE_SECONDS, SsoRefused, SsoService } from './sso.service';
 import { WebCookie } from './web-cookie';
+
+/** Each address's SSO lookups and starts (ASVS V2.4.1, decision D101). */
+export const SSO_LIMITS = {
+  discoveriesPerAddress: { name: 'sso-discover-ip', max: 60, windowSeconds: 600 },
+  startsPerAddress: { name: 'sso-start-ip', max: 30, windowSeconds: 600 },
+} as const satisfies Record<string, RateLimit>;
 
 const TenantSlugParams = z.strictObject({ tenant: z.string().regex(/^[a-z][a-z0-9-]{1,39}$/) });
 
@@ -49,6 +56,7 @@ export class SsoController {
     private readonly sso: SsoService,
     private readonly cookie: WebCookie,
     private readonly security: SecurityLog,
+    private readonly limiter: RateLimiter,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -60,7 +68,8 @@ export class SsoController {
     body: SsoDiscoverBody,
     response: SsoDiscoverResult,
   })
-  async discover(@Body() body: unknown) {
+  async discover(@Body() body: unknown, @ClientIp() ip: string) {
+    await this.limiter.hit(SSO_LIMITS.discoveriesPerAddress, ip);
     return { url: await this.sso.discover(SsoDiscoverBody.parse(body).email) };
   }
 
@@ -73,8 +82,10 @@ export class SsoController {
     redirect: 'to the identity provider',
   })
   @Header('Cache-Control', 'no-store')
-  async start(@Param() params: unknown, @Res() reply: FastifyReply) {
+  async start(@Param() params: unknown, @ClientIp() ip: string, @Res() reply: FastifyReply) {
     const { tenant } = TenantSlugParams.parse(params);
+    // Each start may reach out to the provider for its configuration (decision D101).
+    await this.limiter.hit(SSO_LIMITS.startsPerAddress, ip);
     try {
       const { url, binder } = await this.sso.start(tenant);
       const cookie = ssoBinderCookie(this.config, SSO_STATE_SECONDS);

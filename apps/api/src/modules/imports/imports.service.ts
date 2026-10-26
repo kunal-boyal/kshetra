@@ -162,7 +162,7 @@ export class ImportsService implements OnModuleInit {
     const file = await this.media.store(tx, access.tenantId, {
       kind: 'import_file',
       fileName: query.fileName,
-      contentType: kind === 'csv' ? 'text/csv' : XLSX,
+      contentType: kind === 'csv' ? 'text/csv; charset=utf-8' : XLSX,
       bytes,
       userId: access.userId,
       ownerType: 'import',

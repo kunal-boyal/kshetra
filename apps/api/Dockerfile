@@ -4,7 +4,9 @@
 # migration (`node dist/migrate.mjs`). Build from the repository root:
 #   docker build -f apps/api/Dockerfile -t thelamp-api .
 
-ARG NODE_IMAGE=node:24-bookworm-slim
+# Pinned by digest (ASVS V15.1.2, decision D101), so the same bytes build every time; Dependabot
+# proposes a newer one monthly, and a release is taken once it is two weeks old.
+ARG NODE_IMAGE=node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
 
 FROM ${NODE_IMAGE} AS build
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
@@ -21,9 +23,12 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
  && cd /deploy \
  && sed -i 's/^autoInstallPeers: true/autoInstallPeers: false/' pnpm-workspace.yaml \
  && rm -rf node_modules \
- && pnpm install --prod --no-frozen-lockfile --ignore-scripts
+ && pnpm install --prod --no-frozen-lockfile --ignore-scripts \
+ && pnpm sbom --sbom-format cyclonedx --sbom-type application --prod --out /deploy/sbom.cdx.json
 
 FROM ${NODE_IMAGE} AS runtime
+# `demo` keeps the demo's content generator (decision D70); every other image leaves it out.
+ARG PURPOSE=live
 # RDS requires TLS (rds.force_ssl), and its certificate authority isn't in Node's store: database
 # URLs use sslmode=verify-full against Amazon's bundle.
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 \
@@ -41,6 +46,13 @@ COPY --from=build --chown=node:node /deploy/package.json ./
 COPY --from=build --chown=node:node /deploy/node_modules ./node_modules
 COPY --from=build --chown=node:node /repo/apps/api/dist ./dist
 COPY --from=build --chown=node:node /repo/apps/api/drizzle ./drizzle
+# The npm packages inside, as CycloneDX (ASVS V15.1.2): read it with
+#   docker run --rm <image> cat sbom.cdx.json
+COPY --from=build --chown=node:node /deploy/sbom.cdx.json ./sbom.cdx.json
+# Development and test entry points stay out of what runs in AWS (ASVS V15.2.3, decision D101):
+# the seed, the load and end-to-end fixtures and the OpenAPI writer refuse live databases anyway.
+RUN rm dist/seed.mjs dist/load-fixtures.mjs dist/e2e-fixtures.mjs dist/openapi.mjs \
+ && if [ "$PURPOSE" != demo ]; then rm dist/demo-content.mjs; fi
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main.mjs"]

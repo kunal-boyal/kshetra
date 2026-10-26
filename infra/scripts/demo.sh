@@ -52,7 +52,7 @@ build() {
     aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
     # The instance is ARM (Graviton), like Apple silicon, so these build natively on a Mac.
     docker buildx build --platform linux/arm64 -f "$root/apps/api/Dockerfile" \
-      -t "$registry/thelamp-demo/api:$tag" --push "$root"
+      --build-arg PURPOSE=demo -t "$registry/thelamp-demo/api:$tag" --push "$root"
     docker buildx build --platform linux/arm64 "$root/infra/docker/postgres" \
       -t "$registry/thelamp-demo/postgres:$tag" --push
     docker buildx build --platform linux/arm64 -f "$root/infra/demo/edge.Dockerfile" \

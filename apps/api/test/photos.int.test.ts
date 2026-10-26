@@ -214,8 +214,11 @@ describe('uploading a photo (spec 12.2)', () => {
       status: 'rejected',
       rejectReason: 'This is not a JPEG photo.',
     });
-    const link = await t.api.asha.get(`/v1/media/${id}/url?variant=stamped`);
-    expect(link.json().error.code).toBe('MEDIA_NOT_READY');
+    // Neither its variants nor the original it failed with are shown (D101).
+    for (const variant of ['stamped', 'original']) {
+      const link = await t.api.asha.get(`/v1/media/${id}/url?variant=${variant}`);
+      expect(link.json().error.code).toBe('CONFLICT');
+    }
   });
 });
 
@@ -241,6 +244,11 @@ describe('reading photos', () => {
   it('gives links to whoever took it and those whose scope reaches them, nobody else', async () => {
     const t = await team('Photo Readers');
     const id = await upload(t.api.asha, await jpeg(4));
+    // Until it is checked, only its taker sees the original (D101).
+    expect((await t.api.asha.get(`/v1/media/${id}/url?variant=original`)).statusCode).toBe(200);
+    expect(
+      (await t.api.manager.get(`/v1/media/${id}/url?variant=original`)).json().error.code,
+    ).toBe('MEDIA_NOT_READY');
     await process(t, id);
     expect((await t.api.asha.get(`/v1/media/${id}/url`)).statusCode).toBe(200);
     expect((await t.api.manager.get(`/v1/media/${id}/url?variant=original`)).statusCode).toBe(200);

@@ -129,6 +129,18 @@ describe('the organisation (M2)', () => {
       'image/svg+xml',
     );
     expect(svg.statusCode).toBe(400);
+    // Named a PNG, an SVG or a TIFF is still refused: the bytes decide (D101).
+    for (const disguised of [
+      Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>'),
+      await sharp({ create: { width: 10, height: 10, channels: 3, background: '#000' } })
+        .tiff()
+        .toBuffer(),
+    ]) {
+      const refused = await t.admin('PUT', '/v1/organisation/logo', disguised, 'image/png');
+      expect(refused.json().error.details).toEqual([
+        { path: 'body', issue: 'This image could not be read' },
+      ]);
+    }
     expect(
       (
         await t.admin('PUT', '/v1/organisation/logo', Buffer.from('not an image'), 'image/png')

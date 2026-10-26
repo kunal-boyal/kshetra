@@ -293,8 +293,15 @@ export class PhotosService implements OnModuleInit {
     if (row.status === 'deleted') {
       throw new AppError('NOT_FOUND', 'This photo was removed when its keeping time ended.');
     }
+    // A file that failed its checks is never shown, and one not yet checked only to whoever took
+    // it, so nobody else is served bytes nobody has looked at (ASVS V5.4.3, decision D101).
+    if (row.status === 'rejected') {
+      throw new AppError('CONFLICT', 'This photo could not be used, so it is not shown.');
+    }
     const key = variant === 'original' ? row.objectKey : row.derivatives[variant];
-    const ready = variant === 'original' ? row.status !== 'pending' : row.status === 'processed';
+    const ready =
+      row.status === 'processed' ||
+      (variant === 'original' && row.status === 'uploaded' && row.userId === access.userId);
     if (!ready || !key) {
       throw new AppError(
         'MEDIA_NOT_READY',

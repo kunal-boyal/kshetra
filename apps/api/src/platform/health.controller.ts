@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Res } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Res } from '@nestjs/common';
 import { HealthResult, ReadyResult } from '@thelamp/shared';
 import type { FastifyReply } from 'fastify';
 import { Public } from './auth';
@@ -12,6 +12,8 @@ export type HealthChecks = Record<string, () => Promise<boolean>>;
 @Public()
 @Controller()
 export class HealthController {
+  private readonly logger = new Logger('Health');
+
   constructor(@Inject(HEALTH_CHECKS) private readonly checks: HealthChecks) {}
 
   /** Liveness: the process is up and answering. */
@@ -32,11 +34,11 @@ export class HealthController {
   async ready(@Res({ passthrough: true }) reply: FastifyReply) {
     const names = Object.keys(this.checks);
     const results = await Promise.all(names.map((name) => this.checks[name]!()));
-    const checks = Object.fromEntries(
-      names.map((name, i) => [name, results[i] ? 'ok' : 'unavailable']),
-    );
-    if (results.every(Boolean)) return { status: 'ready', checks };
+    const down = names.filter((_, i) => !results[i]);
+    if (down.length === 0) return { status: 'ready' };
+    // Which part is down is for the logs, not for whoever asks (decision D101).
+    this.logger.warn(`Not ready: ${down.join(', ')} not answering`);
     void reply.status(503);
-    return { status: 'not_ready', checks };
+    return { status: 'not_ready' };
   }
 }

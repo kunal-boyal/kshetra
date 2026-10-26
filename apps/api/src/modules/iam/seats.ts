@@ -22,10 +22,17 @@ export class Seats {
     return row?.active ?? 0;
   }
 
-  /** Refuses one more active person past the plan's limit (SEAT_LIMIT). */
+  /**
+   * Refuses one more active person past the plan's limit (SEAT_LIMIT). The tenant's seats are
+   * counted one change at a time, so two people made active together can't both take the last
+   * seat (ASVS V2.3.4, decision D101); the lock holds until the change commits.
+   */
   async assertRoom(tx: TenantTx, tenantId: string): Promise<void> {
     const { limits } = await this.entitlements.forTenant(tenantId);
     if (limits.users === null) return;
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`seats:${tenantId}`}, 0))`,
+    );
     if ((await this.active(tx, tenantId)) >= limits.users) {
       throw new AppError(
         'SEAT_LIMIT',

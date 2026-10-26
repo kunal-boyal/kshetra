@@ -73,6 +73,9 @@ const schema = z
     // How long one statement of a report on screen, or of an export, may run (spec 10.3).
     REPORT_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(600_000).default(30_000),
     EXPORT_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).max(3_600_000).default(300_000),
+    // Requests a minute one signed-in person or staff member may make, whatever their tenant's
+    // plan (ASVS V2.4.1, decision D101): ten a second, beyond any phone's sync or any screen.
+    USER_REQUESTS_PER_MINUTE: z.coerce.number().int().min(1).default(600),
     REDIS_URL: z.url(),
     // ElastiCache's AUTH token, kept out of REDIS_URL so the URL can stay a plain setting
     // (decision D101); `redisUrl()` puts it in.

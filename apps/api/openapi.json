@@ -5164,24 +5164,10 @@
                         "ready",
                         "not_ready"
                       ]
-                    },
-                    "checks": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {
-                        "type": "string",
-                        "enum": [
-                          "ok",
-                          "unavailable"
-                        ]
-                      }
                     }
                   },
                   "required": [
-                    "status",
-                    "checks"
+                    "status"
                   ],
                   "additionalProperties": false
                 }
