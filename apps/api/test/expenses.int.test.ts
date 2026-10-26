@@ -472,8 +472,9 @@ describe('odometer readings at punches (decision D99)', () => {
       distanceKm: '53.5',
     });
 
-    // The day's fuel claim takes the shift's readings and photos, as they are or changed.
-    const today = TODAY();
+    // The day's fuel claim takes the shift's readings and photos, as they are or changed. Its day
+    // is the shift's, which near midnight may not be today's.
+    const today = todayIn('Asia/Kolkata', new Date(startedAt));
     const fromShift = await claim(t.field, {
       policy: 'fuel',
       expenseDate: today,
