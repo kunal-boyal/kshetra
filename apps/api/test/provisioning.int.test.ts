@@ -148,12 +148,13 @@ describe('the seed and the phase 0 exit check (spec 15)', () => {
         payload: { ticket: verified.ticket, tenantId: tenants.get(slug) },
         remoteAddress: newAddress(),
       });
-      // Anita is Sunrise's admin, so her web sign-in there asks for her authenticator (D91).
+      // Anita is Sunrise's admin, so her web sign-in there asks for her authenticator (D91);
+      // having one, she gives it in Harit too, where her role alone wouldn't ask (D101).
       const session =
         chosen.json().status === 'second_factor'
           ? (await world.secondFactor(anita, chosen.json())).session
           : chosen.json().session;
-      expect(chosen.json().status).toBe(slug === 'sunrise' ? 'second_factor' : 'signed_in');
+      expect(chosen.json().status).toBe('second_factor');
       const me = (await as(session.accessToken).get('/v1/me')).json();
       expect(me).toMatchObject({
         tenantId: tenants.get(slug),
