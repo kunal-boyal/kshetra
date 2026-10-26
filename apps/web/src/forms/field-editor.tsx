@@ -456,9 +456,7 @@ function FieldSettings({
             label={t('builder.quantities')}
             detail={t('builder.quantities_help')}
             checked={field.quantities !== false}
-            onChange={(event) =>
-              event.target.checked ? unset('quantities') : set({ quantities: false })
-            }
+            onChange={(event) => set({ quantities: event.target.checked })}
           />
           {number('maxLines', t('builder.max_lines'))}
           <TextField

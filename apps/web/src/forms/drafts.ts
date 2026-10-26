@@ -59,7 +59,7 @@ export function newField(type: FieldType, taken: ReadonlySet<string>): AnyFormFi
     case 'account_picker':
       return { ...value, type, accountTypes: [] };
     case 'product_lines':
-      return { ...value, type, maxLines: 50 };
+      return { ...value, type, quantities: true, maxLines: 50 };
     case 'repeating_group':
       return {
         ...value,
