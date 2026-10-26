@@ -258,6 +258,29 @@
   .ks-auth-art { display: none; }
 }
 
+/* Print (decision D99): the browser's print draws one sheet, the tenant's legal name, what it is, its period, filters and scope, and when it was printed, over the content, in the Light theme and without the shell or controls. */
+.ks-print-sheet { display: none; }
+.ks-print-head { display: flex; flex-direction: column; gap: var(--space-1); padding-bottom: var(--space-3); margin-bottom: var(--space-4); border-bottom: 2px solid var(--text); }
+.ks-print-org { font-size: 18px; line-height: calc(24px + var(--ks-lead)); font-weight: 700; color: var(--text); }
+.ks-print-title { font-size: 22px; line-height: calc(28px + var(--ks-lead)); font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+.ks-print-meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: calc(16px + var(--ks-lead)); color: var(--text-muted); }
+@media print {
+  @page { margin: 12mm; }
+  body { background: var(--surface); }
+  .ks-rail, .ks-appbar, .ks-no-print { display: none !important; }
+  body:has(> .ks-print-sheet) > :not(.ks-print-sheet) { display: none !important; }
+  .ks-print-sheet { display: block; color: var(--text); background: var(--surface); }
+  .ks-print-sheet .ks-btn, .ks-print-sheet button, .ks-print-sheet .ks-input, .ks-print-sheet select { display: none !important; }
+  .ks-print-sheet .ks-card { box-shadow: none; border: 1px solid var(--border); break-inside: avoid; }
+  .ks-print-sheet .ks-table { box-shadow: none; border-radius: 0; font-size: 11px; line-height: calc(15px + var(--ks-lead)); }
+  .ks-print-sheet .ks-table thead { display: table-header-group; }
+  .ks-print-sheet .ks-table tr { break-inside: avoid; }
+  .ks-print-sheet .ks-table th { background: var(--surface); color: var(--text); padding: var(--space-1) var(--space-2); white-space: normal; }
+  .ks-print-sheet .ks-table td { height: auto; padding: var(--space-1) var(--space-2); }
+  .ks-print-sheet .ks-table tbody tr:hover td { background: none; }
+  .ks-print-sheet * { animation: none !important; transition: none !important; }
+}
+
 /* Reduced motion: when the OS asks, or the app sets data-motion="reduced", every animation is instant. */
 @media (prefers-reduced-motion: reduce) {
   .ks, .ks *, .ks *::before, .ks *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }

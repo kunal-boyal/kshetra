@@ -684,7 +684,7 @@ Standard reports, each filterable by period, team, territory, user and account t
 
 Exports run as background jobs, produce XLSX or CSV, neutralise spreadsheet formula injection, and are downloaded from links that expire after 7 days. Every export is limited to the requester's scope and recorded in the audit log. Scheduled email reports arrive in version 2.
 
-Printing (D96): the report on screen, an order and an account statement can be printed or saved as a PDF, with the tenant's legal name (section 5.1), the period and filters, the scope it was read in and the time it was printed. A printed report holds what the screen shows; the whole report is the export.
+Printing (D96, D99): the report on screen, an order and an account statement can be printed or saved as a PDF through the browser's print dialog, with the tenant's legal name (section 5.1), the period and filters, the scope it was read in and the time it was printed, in a print layout without the portal's frame or controls. A printed report holds what the screen shows; the whole report is the export.
 
 ### M19. Imports
 

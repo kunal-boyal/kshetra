@@ -2,7 +2,7 @@ import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { fakeClient, noun, renderAt, writesOf } from '../test-support';
+import { fakeClient, noun, printedText, renderAt, writesOf } from '../test-support';
 
 const ORDER = '01a10000-0000-7000-8000-0000000000f0';
 const SHOP = '01a10000-0000-7000-8000-000000000080';
@@ -187,6 +187,14 @@ describe('an order', () => {
     expect(totals).toHaveTextContent('Volume (L)30');
 
     const user = userEvent.setup();
+    // Printed, it holds the order and its totals, but none of the decisions (D99).
+    const printed = await printedText(() =>
+      user.click(screen.getByRole('button', { name: 'Print' })),
+    );
+    expect(printed).toContain('Sunrise Traders');
+    expect(printed).toContain(`Reference ${ORDER}`);
+    expect(printed).toContain('CGST₹1,069.95');
+    expect(printed).not.toContain('Reason');
     await user.click(screen.getByRole('button', { name: 'Reject' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Reason' }), 'overdue');
     await user.click(screen.getByRole('button', { name: 'Reject' }));

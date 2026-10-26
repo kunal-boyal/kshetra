@@ -2,7 +2,7 @@ import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { fakeClient, noun, renderAt, writesOf } from '../test-support';
+import { fakeClient, noun, printedText, renderAt, writesOf } from '../test-support';
 
 const SHOP = '01a10000-0000-7000-8000-000000000080';
 const DEPOT = '01a10000-0000-7000-8000-000000000081';
@@ -265,6 +265,14 @@ describe("an account's finance (M11, D79)", () => {
     expect(finance).toHaveTextContent('Opening balance₹1,000.00');
 
     const user = userEvent.setup();
+    // Printed, the statement stands alone, with its year (D99).
+    const printed = await printedText(() =>
+      user.click(within(finance).getByRole('button', { name: 'Print' })),
+    );
+    expect(printed).toContain(`Financial year: ${year}–${year + 1}`);
+    expect(printed).toContain('RCPT-1');
+    expect(printed).not.toContain('Outstanding');
+    expect(printed).not.toContain('Add an entry');
     const form = within(finance).getByRole('form', { name: 'Add an entry' });
     await user.type(within(form).getByRole('textbox', { name: /^Reference/ }), 'RCPT-2');
     await user.selectOptions(

@@ -203,7 +203,9 @@ function Account({ overview }: { overview: AccountOverview }) {
       {type?.contacts ? <Contacts overview={overview} manages={manages} /> : null}
       <SubmissionsSection accountId={account.id} />
       <AccountPlanSection accountId={account.id} />
-      {access.can('finance.view') ? <FinanceSection accountId={account.id} /> : null}
+      {access.can('finance.view') ? (
+        <FinanceSection accountId={account.id} accountName={`${account.name} (${account.code})`} />
+      ) : null}
 
       {overview.locationProposals.length > 0 ? (
         <Section title={t('account.proposals')}>

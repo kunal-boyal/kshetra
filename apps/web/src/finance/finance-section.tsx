@@ -27,6 +27,7 @@ import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
 import { Facts, fieldErrors, Section } from '../people/shared';
+import { Printable, PrintButton } from '../print';
 
 type Translate = ReturnType<typeof useLanguage>['t'];
 
@@ -42,7 +43,14 @@ export function bucketLabel(bucket: AgeingBucket, t: Translate): string {
  * ageing, and a financial year's statement with its opening, running and closing balances
  * (BR-21). Back office records a balance or a statement entry here.
  */
-export function FinanceSection({ accountId }: { accountId: string }) {
+export function FinanceSection({
+  accountId,
+  accountName,
+}: {
+  accountId: string;
+  /** The account's name and code, for a printed statement's title. */
+  accountName: string;
+}) {
   const { t, locale } = useLanguage();
   const { client, queryClient } = useApp();
   const access = useAccess();
@@ -134,23 +142,38 @@ export function FinanceSection({ accountId }: { accountId: string }) {
         <p className="ks-muted">{t('finance.no_balance')}</p>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid items-end gap-4 md:grid-cols-3">
         <SelectField
           label={t('finance.year')}
           value={String(year)}
           options={[0, 1, 2, 3, 4].map((back) => ({
             value: String(current - back),
-            label: t('finance.year_label', { from: current - back, to: current - back + 1 }),
+            // Years as text, so they aren't grouped like amounts (2,026).
+            label: t('finance.year_label', {
+              from: String(current - back),
+              to: String(current - back + 1),
+            }),
           }))}
           onChange={(event) => setYear(Number(event.target.value))}
         />
+        {statement.data ? (
+          <div>
+            <PrintButton printable="statement" />
+          </div>
+        ) : null}
       </div>
       {statement.isError ? (
         <p className="ks-help error" role="alert">
           {errorMessage(statement.error, t)}
         </p>
       ) : statement.data ? (
-        <>
+        <Printable
+          id="statement"
+          title={t('print.statement', { name: accountName })}
+          details={[
+            `${t('finance.year')}: ${t('finance.year_label', { from: String(year), to: String(year + 1) })}`,
+          ]}
+        >
           <Facts
             items={[
               [t('finance.opening'), money(statement.data.opening)],
@@ -169,7 +192,7 @@ export function FinanceSection({ accountId }: { accountId: string }) {
             rowKey={(entry) => entry.id}
             empty={<p className="ks-muted">{t('finance.no_entries')}</p>}
           />
-        </>
+        </Printable>
       ) : (
         <p className="ks-muted">{t('common.loading')}</p>
       )}

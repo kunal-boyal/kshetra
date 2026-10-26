@@ -31,6 +31,7 @@ import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess, useTerritories, useUsers } from '../people/data';
+import { Printable, PrintButton } from '../print';
 import { PageHeader, Section, useDates } from '../people/shared';
 import { download, useExports, useReport, useStartExport } from './data';
 
@@ -185,6 +186,28 @@ export function ReportsPage() {
     }
   }
 
+  // What a printed report says it holds (decision D99): its month and every filter set.
+  const nameOf = (options: { value: string; label: string }[], value: string | undefined) =>
+    value ? (options.find((option) => option.value === value)?.label ?? value) : undefined;
+  const territoryOptions = (territories.data ?? []).map((territory) => ({
+    value: territory.id,
+    label: `${territory.name} (${territory.code})`,
+  }));
+  const printDetails = [
+    [t('plan.month'), filters.period],
+    [t('report.filter_manager'), nameOf(personOptions, filters.managerId)],
+    [t('report.filter_user'), nameOf(personOptions, filters.userId)],
+    [t('report.filter_territory'), nameOf(territoryOptions, filters.territoryId)],
+    [
+      t('report.filter_account_type'),
+      bundle?.accountTypes.find((type) => type.key === filters.accountType)?.name[locale].one,
+    ],
+    [
+      t('report.filter_form'),
+      bundle?.forms.find((form) => form.key === filters.form)?.name[locale].one,
+    ],
+  ].flatMap(([label, value]) => (value ? [`${label}: ${value}`] : []));
+
   const tableColumns: Column<Row>[] = columns.map((column) => ({
     key: column.key,
     header: column.label,
@@ -235,10 +258,7 @@ export function ReportsPage() {
           label={t('report.filter_territory')}
           none={t('report.all')}
           value={filters.territoryId ?? ''}
-          options={(territories.data ?? []).map((territory) => ({
-            value: territory.id,
-            label: `${territory.name} (${territory.code})`,
-          }))}
+          options={territoryOptions}
           onChange={(event) => set({ territoryId: event.target.value })}
         />
         {report === 'activity_log' ? (
@@ -272,22 +292,27 @@ export function ReportsPage() {
           {t('report.points_kept', { days: bundle.settings.rawLocationRetentionDays })}
         </Notice>
       ) : null}
-      {canExport && !needsPerson ? (
+      {!needsPerson ? (
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="secondary"
-            icon={<Icon icon={FileSpreadsheet} />}
-            onClick={() => void exportAs('xlsx')}
-          >
-            {t('report.export_xlsx')}
-          </Button>
-          <Button
-            variant="secondary"
-            icon={<Icon icon={FileText} />}
-            onClick={() => void exportAs('csv')}
-          >
-            {t('report.export_csv')}
-          </Button>
+          <PrintButton printable="report" />
+          {canExport ? (
+            <>
+              <Button
+                variant="secondary"
+                icon={<Icon icon={FileSpreadsheet} />}
+                onClick={() => void exportAs('xlsx')}
+              >
+                {t('report.export_xlsx')}
+              </Button>
+              <Button
+                variant="secondary"
+                icon={<Icon icon={FileText} />}
+                onClick={() => void exportAs('csv')}
+              >
+                {t('report.export_csv')}
+              </Button>
+            </>
+          ) : null}
         </div>
       ) : null}
       {started ? <Notice>{t('report.export_started')}</Notice> : null}
@@ -307,29 +332,31 @@ export function ReportsPage() {
       ) : page.isPending ? (
         <p className="ks-muted">{t('common.loading')}</p>
       ) : (
-        <DataTable
-          caption={t('report.caption', {
-            report: t(`report.name_${report}`),
-            month: filters.period,
-          })}
-          columns={tableColumns}
-          rows={rows}
-          rowKey={(row) => JSON.stringify(row)}
-          empty={
-            <EmptyState icon={<Icon icon={Sheet} />} title={t('report.empty_title')}>
-              {t('report.empty_body')}
-            </EmptyState>
-          }
-          {...(page.hasNextPage
-            ? {
-                more: {
-                  label: t('common.load_more'),
-                  onClick: () => void page.fetchNextPage(),
-                  busy: page.isFetchingNextPage,
-                },
-              }
-            : {})}
-        />
+        <Printable id="report" title={t(`report.name_${report}`)} details={printDetails}>
+          <DataTable
+            caption={t('report.caption', {
+              report: t(`report.name_${report}`),
+              month: filters.period,
+            })}
+            columns={tableColumns}
+            rows={rows}
+            rowKey={(row) => JSON.stringify(row)}
+            empty={
+              <EmptyState icon={<Icon icon={Sheet} />} title={t('report.empty_title')}>
+                {t('report.empty_body')}
+              </EmptyState>
+            }
+            {...(page.hasNextPage
+              ? {
+                  more: {
+                    label: t('common.load_more'),
+                    onClick: () => void page.fetchNextPage(),
+                    busy: page.isFetchingNextPage,
+                  },
+                }
+              : {})}
+          />
+        </Printable>
       )}
       {canExport ? <Downloads /> : null}
     </div>

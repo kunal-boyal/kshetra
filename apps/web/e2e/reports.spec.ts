@@ -160,3 +160,40 @@ test('/reports passes axe in the outdoor theme', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'Asha Rao' })).toBeVisible();
   await expectAccessible(page);
 });
+
+test('/reports prints the report alone, headed, in the Light theme (D99)', async ({ page }) => {
+  await mockSignedIn(page);
+  await page.addInitScript(() => {
+    localStorage.setItem('theme', 'dark');
+    // The dialog, standing in: it records what the printed page holds while it is open.
+    window.print = () => {
+      const sheet = document.querySelector<HTMLElement>('body > .ks-print-sheet');
+      const shown = (element: Element | null) =>
+        element ? getComputedStyle(element).display !== 'none' : false;
+      (window as unknown as { printed: unknown }).printed = {
+        sheet: shown(sheet),
+        page: shown(document.getElementById('root')),
+        buttons: [...(sheet?.querySelectorAll('button') ?? [])].filter(shown).length,
+        theme: document.documentElement.dataset.theme,
+        text: sheet?.textContent ?? '',
+      };
+      // As a browser does once its dialog closes.
+      window.dispatchEvent(new Event('afterprint'));
+    };
+  });
+  await page.goto('/reports');
+  await expect(page.getByRole('cell', { name: 'Asha Rao' })).toBeVisible();
+  await page.emulateMedia({ media: 'print' });
+  await page.getByRole('button', { name: 'Print' }).click();
+  const printed = await page.evaluate(() => (window as unknown as { printed: unknown }).printed);
+  await page.emulateMedia({ media: 'screen' });
+  expect(printed).toEqual({
+    sheet: true,
+    page: false,
+    buttons: 0,
+    theme: 'light',
+    text: expect.stringContaining('Activity log'),
+  });
+  await expect(page.locator('.ks-print-sheet')).toHaveCount(0);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
