@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   AppError,
   effectivePermissions,
@@ -13,7 +13,14 @@ import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
 import { type Access, AccessResolver, type AuthContext } from '../../platform/auth';
 import { Database } from '../../platform/database';
-import { Entitlements, SupportGrants, TenantDirectory } from '../../platform/planes';
+import type { Config } from '../../config';
+import {
+  Entitlements,
+  SupportGrants,
+  TenantDirectory,
+  type TenantStanding,
+} from '../../platform/planes';
+import { CONFIG } from '../../platform/tokens';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ApiClientsService } from './api-clients.service';
 
@@ -32,6 +39,7 @@ export class IamAccess extends AccessResolver {
     private readonly config: TenantConfigService,
     private readonly entitlements: Entitlements,
     private readonly support: SupportGrants,
+    @Inject(CONFIG) private readonly cellConfig: Config,
     private readonly clients: ApiClientsService,
   ) {
     super();
@@ -43,8 +51,9 @@ export class IamAccess extends AccessResolver {
 
   /** Someone's access; `asRequest` refuses a phone-only role without a phone, as a request is. */
   private async load(auth: AuthContext, asRequest: boolean): Promise<Access> {
-    const status = await this.tenants.status(auth.tenantId);
-    if (!status) throw revoked();
+    const standing = await this.tenants.standing(auth.tenantId);
+    if (!standing) throw revoked();
+    const { status } = standing;
     if (!isOpenTenant(status)) {
       throw new AppError(
         'TENANT_SUSPENDED',
@@ -52,8 +61,13 @@ export class IamAccess extends AccessResolver {
       );
     }
 
-    if (auth.supportGrantId) return this.supportAccess(auth, auth.supportGrantId, status);
-    if (auth.scopes) return this.clientAccess(auth, auth.scopes, status);
+    // The tenant lives on another cell now (decision D95): a refresh of the session names it.
+    if (standing.cell !== this.cellConfig.CELL_ID) {
+      throw new AppError('TENANT_MOVED', 'Your organisation has moved to a new server. Try again.');
+    }
+
+    if (auth.supportGrantId) return this.supportAccess(auth, auth.supportGrantId, standing);
+    if (auth.scopes) return this.clientAccess(auth, auth.scopes, standing);
 
     const found = await this.database.forTenant(auth.tenantId, async (tx) => {
       const [user] = await tx
@@ -97,15 +111,21 @@ export class IamAccess extends AccessResolver {
       scope: user.scope,
       permissions: effectivePermissions(user.permissions as TenantPermission[], found.modulesOff),
       modulesOff: found.modulesOff,
-      readOnly: await this.readOnly(auth.tenantId, status),
+      ...(await this.state(auth.tenantId, standing)),
     };
   }
 
-  /** Unpaid past grace (BR-48), or a dedicated install whose licence lapsed (BR-49). */
-  private async readOnly(tenantId: string, status: string): Promise<boolean> {
-    return (
-      status === 'read_only' || ((await this.entitlements.forTenant(tenantId)).readOnly ?? false)
-    );
+  /**
+   * Read only: unpaid past grace (BR-48), or a dedicated install whose licence lapsed (BR-49).
+   * Moving: on its way to another cell (decision D95).
+   */
+  private async state(tenantId: string, standing: TenantStanding) {
+    return {
+      readOnly:
+        standing.status === 'read_only' ||
+        ((await this.entitlements.forTenant(tenantId)).readOnly ?? false),
+      ...(standing.moving ? { moving: true } : {}),
+    };
   }
 
   /**
@@ -116,7 +136,7 @@ export class IamAccess extends AccessResolver {
   private async clientAccess(
     auth: AuthContext,
     tokenScopes: readonly string[],
-    status: string,
+    standing: TenantStanding,
   ): Promise<Access> {
     const found = await this.database.forTenant(auth.tenantId, async (tx) => ({
       client: await this.clients.state(tx, auth.tenantId, auth.userId),
@@ -132,7 +152,7 @@ export class IamAccess extends AccessResolver {
       scope: 'tenant',
       permissions: effectivePermissions(scopePermissions(scopes), settings.modulesOff),
       modulesOff: settings.modulesOff,
-      readOnly: await this.readOnly(auth.tenantId, status),
+      ...(await this.state(auth.tenantId, standing)),
       apiClient: { id: client.id, name: client.name, scopes },
     };
   }
@@ -142,7 +162,11 @@ export class IamAccess extends AccessResolver {
    * read from its people. While the grant is open, the session reaches the whole tenant with every
    * permission but those withheld; a read grant's writes are refused by the guard.
    */
-  private async supportAccess(auth: AuthContext, grantId: string, status: string): Promise<Access> {
+  private async supportAccess(
+    auth: AuthContext,
+    grantId: string,
+    standing: TenantStanding,
+  ): Promise<Access> {
     const grant = await this.support.open(grantId);
     if (
       !grant ||
@@ -162,7 +186,7 @@ export class IamAccess extends AccessResolver {
       scope: 'tenant',
       permissions: effectivePermissions(supportPermissions(), modulesOff),
       modulesOff,
-      readOnly: await this.readOnly(auth.tenantId, status),
+      ...(await this.state(auth.tenantId, standing)),
       support: {
         grantId: grant.id,
         staffName: grant.staffName,

@@ -21,6 +21,11 @@ const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
 export const ArchiveManifest = z.strictObject({
   format: z.literal(ARCHIVE_FORMAT),
   version: z.literal(ARCHIVE_VERSION),
+  /**
+   * `export` for the tenant's own copy, with secrets left out; `move` for moving the tenant to
+   * another cell (decision D95), which carries everything the new cell needs to serve it.
+   */
+  purpose: z.enum(['export', 'move']),
   product: z.string(),
   tenant: z.strictObject({ id: z.uuid(), name: z.string() }),
   cell: z.string(),
@@ -43,6 +48,8 @@ export const ArchiveManifest = z.strictObject({
   media: z.array(
     z.strictObject({
       id: z.uuid(),
+      /** A derived copy, such as a thumbnail, which only a move carries; null for the original. */
+      variant: z.string().nullable(),
       path: z.string(),
       kind: z.string(),
       contentType: z.string(),

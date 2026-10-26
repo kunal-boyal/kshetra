@@ -75,6 +75,14 @@ export class ArchiveInvalid extends Error {}
  * size and SHA-256. Anything else throws `ArchiveInvalid`, saying what is wrong.
  */
 export function verifyArchive(archive: Uint8Array, publicKeyPem: string): ArchiveManifest {
+  return readArchive(archive, publicKeyPem).manifest;
+}
+
+/** A checked archive's manifest and its entries, by path; see `verifyArchive`. */
+export function readArchive(
+  archive: Uint8Array,
+  publicKeyPem: string,
+): { manifest: ArchiveManifest; entries: Record<string, Uint8Array> } {
   let entries: Record<string, Uint8Array>;
   try {
     entries = unzipSync(archive);
@@ -119,5 +127,5 @@ export function verifyArchive(archive: Uint8Array, publicKeyPem: string): Archiv
   const expected = new Set([ARCHIVE_MANIFEST, ARCHIVE_SIGNATURE, ...listed.map((e) => e.path)]);
   const extra = Object.keys(entries).filter((path) => !expected.has(path) && !path.endsWith('/'));
   if (extra.length > 0) throw new ArchiveInvalid(`${extra[0]} is not in the manifest.`);
-  return manifest;
+  return { manifest, entries };
 }

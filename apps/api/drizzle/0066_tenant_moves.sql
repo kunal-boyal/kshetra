@@ -1,0 +1,2 @@
+ALTER TABLE "directory"."tenants" ADD COLUMN "moving_to_cell_id" uuid;--> statement-breakpoint
+ALTER TABLE "directory"."tenants" ADD CONSTRAINT "tenants_moving_to_cell_id_cells_id_fk" FOREIGN KEY ("moving_to_cell_id") REFERENCES "directory"."cells"("id") ON DELETE no action ON UPDATE no action;

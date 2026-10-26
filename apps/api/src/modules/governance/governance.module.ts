@@ -6,12 +6,13 @@ import { MediaUrls } from '../media/media-urls';
 import { DataExportsController } from './data-exports.controller';
 import { DataExportsService } from './data-exports.service';
 import { TenantArchive } from './tenant-archive';
+import { TenantMoves } from './tenant-moves';
 
-/** Data governance (module M21, decision D95): the tenant's signed data export. */
+/** Data governance (module M21, decision D95): the tenant's signed data export, and moving it. */
 @Module({
   imports: [IamModule, MediaModule],
   controllers: [DataExportsController],
-  providers: [DataExportsService, TenantArchive, ArchiveSigner, MediaUrls],
-  exports: [TenantArchive, ArchiveSigner],
+  providers: [DataExportsService, TenantArchive, TenantMoves, ArchiveSigner, MediaUrls],
+  exports: [TenantArchive, TenantMoves, ArchiveSigner],
 })
 export class GovernanceModule {}

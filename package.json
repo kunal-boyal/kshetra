@@ -23,6 +23,7 @@
     "invite-staff": "pnpm --filter @thelamp/api invite-staff",
     "licence": "pnpm --filter @thelamp/api licence",
     "archive": "pnpm --filter @thelamp/api archive",
+    "tenant-move": "pnpm --filter @thelamp/api tenant-move",
     "openapi": "pnpm --filter @thelamp/api openapi",
     "tokens": "pnpm --filter @thelamp/tokens-tool build",
     "rename": "node tools/rename/src/cli.ts",

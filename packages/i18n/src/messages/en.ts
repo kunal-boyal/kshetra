@@ -50,6 +50,9 @@ export const en = {
     "Your organisation's subscription is read-only for now. Ask an admin about billing.",
   'error.TENANT_SUSPENDED':
     "Your organisation's subscription is suspended. Ask an admin about billing.",
+  'error.TENANT_MOVING':
+    'Your organisation is being moved to a new server. You can look around; changes can be made again shortly.',
+  'error.TENANT_MOVED': 'Your organisation has moved to a new server. Try again.',
   'error.RATE_LIMITED': 'Too many attempts. Wait a moment, then try again.',
   'error.SYNC_RESET': 'Your phone needs a full refresh. It is starting now.',
   'error.OTP_INVALID': 'That code is not right. Check it and try again.',
