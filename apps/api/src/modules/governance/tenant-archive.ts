@@ -238,7 +238,9 @@ export class TenantArchive {
       ? `(to_jsonb(t) - array[${secrets.map((column) => `'${column}'`).join(', ')}]::text[])::text`
       : 'to_jsonb(t)::text';
     // The tenant ID is a checked UUID (`forTenant` refuses anything else); RLS holds it too.
+    // DECLARE CURSOR takes no parameters, and the names are quoted, so this text is built.
     await tx.execute(
+      // nosemgrep: tools.semgrep.thelamp-sql-raw-interpolated
       sql.raw(
         `declare archive_rows no scroll cursor for select ${row} as line from cell.${quote(name)} t where t.tenant_id = '${tenantId}'${filter ? ` and (${filter})` : ''}`,
       ),

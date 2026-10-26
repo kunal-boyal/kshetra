@@ -131,7 +131,7 @@ export class TenantMoves {
       const names = manifest.tables.map((table) => table.name);
       for (const name of names) {
         const held = await tx.execute(
-          sql.raw(`select 1 from cell.${quote(name)} where tenant_id = '${tenantId}' limit 1`),
+          sql`select 1 from ${sql.raw(`cell.${quote(name)}`)} where tenant_id = ${tenantId} limit 1`,
         );
         if (held.rows.length > 0) {
           throw new AppError('CONFLICT', `This cell holds rows of the tenant already, in ${name}.`);
@@ -151,9 +151,7 @@ export class TenantMoves {
         await this.insert(tx, tenantId, name, lines, own);
         const [counted] = (
           await tx.execute(
-            sql.raw(
-              `select count(*)::int as n from cell.${quote(name)} where tenant_id = '${tenantId}'`,
-            ),
+            sql`select count(*)::int as n from ${sql.raw(`cell.${quote(name)}`)} where tenant_id = ${tenantId}`,
           )
         ).rows as { n: number }[];
         if (counted?.n !== table.rows) {

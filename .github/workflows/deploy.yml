@@ -38,7 +38,6 @@ jobs:
     with:
       environment: staging
       ref: ${{ inputs.ref || github.event.workflow_run.head_sha || github.sha }}
-    secrets: inherit
 
   production:
     needs: staging
@@ -47,4 +46,3 @@ jobs:
     with:
       environment: production
       ref: ${{ inputs.ref || github.event.workflow_run.head_sha || github.sha }}
-    secrets: inherit

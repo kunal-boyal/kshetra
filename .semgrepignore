@@ -1,0 +1,11 @@
+# What Semgrep never scans (decision D100). It replaces Semgrep's defaults, so it names them too.
+:include .gitignore
+node_modules/
+dist/
+build/
+coverage/
+apps/mobile/android/
+*.min.js
+pnpm-lock.yaml
+# The rules' own cases are wrong on purpose; `semgrep --test` checks them instead.
+tools/semgrep/rules.ts

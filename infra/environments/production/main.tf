@@ -45,9 +45,10 @@ variable "console_domain" {
   default = null
 }
 
+# Production's media has its own domain, so CloudFront serves it with TLS 1.2 or later; only the
+# default certificate, which can't be held to that, lacks one (decision D100).
 variable "media_domain" {
-  type    = string
-  default = null
+  type = string
 }
 
 variable "route53_zone_id" {

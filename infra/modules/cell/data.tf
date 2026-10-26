@@ -52,16 +52,17 @@ resource "aws_db_instance" "this" {
 }
 
 resource "aws_db_instance" "replica" {
-  count                        = var.db_replica ? 1 : 0
-  identifier                   = "${var.name}-replica"
-  replicate_source_db          = aws_db_instance.this.identifier
-  instance_class               = var.db_instance_class
-  storage_encrypted            = true
-  vpc_security_group_ids       = [aws_security_group.database.id]
-  parameter_group_name         = aws_db_parameter_group.this.name
-  performance_insights_enabled = true
-  skip_final_snapshot          = true
-  tags                         = var.tags
+  count                           = var.db_replica ? 1 : 0
+  identifier                      = "${var.name}-replica"
+  replicate_source_db             = aws_db_instance.this.identifier
+  instance_class                  = var.db_instance_class
+  storage_encrypted               = true
+  vpc_security_group_ids          = [aws_security_group.database.id]
+  parameter_group_name            = aws_db_parameter_group.this.name
+  performance_insights_enabled    = true
+  skip_final_snapshot             = true
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+  tags                            = var.tags
 }
 
 resource "aws_elasticache_subnet_group" "this" {

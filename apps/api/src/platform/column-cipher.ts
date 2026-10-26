@@ -3,6 +3,9 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Config } from '../config';
 import { CONFIG } from './tokens';
 
+/** GCM's full tag: a shorter one is refused, so a forged value can't pass on a guessed few bytes. */
+const TAG_BYTES = 16;
+
 /**
  * Secrets kept in a column, encrypted (spec 13.2): TOTP seeds now, SSO and webhook secrets later.
  * AES-256-GCM under `COLUMN_KEY`, with the column and row as associated data, so a value copied to
@@ -27,7 +30,9 @@ export class ColumnCipher {
   /** `where` names the column and row, such as `platform_users.totp_secret:<id>`. */
   seal(plain: string, where: string): string {
     const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', this.key, iv).setAAD(Buffer.from(where));
+    const cipher = createCipheriv('aes-256-gcm', this.key, iv, {
+      authTagLength: TAG_BYTES,
+    }).setAAD(Buffer.from(where));
     const sealed = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
     return ['v1', iv, cipher.getAuthTag(), sealed]
       .map((part) => (typeof part === 'string' ? part : part.toString('base64url')))
@@ -39,7 +44,9 @@ export class ColumnCipher {
     if (version !== 'v1' || !iv || !tag || sealed === undefined) {
       throw new Error('Not a sealed value.');
     }
-    const decipher = createDecipheriv('aes-256-gcm', this.key, Buffer.from(iv, 'base64url'))
+    const decipher = createDecipheriv('aes-256-gcm', this.key, Buffer.from(iv, 'base64url'), {
+      authTagLength: TAG_BYTES,
+    })
       .setAAD(Buffer.from(where))
       .setAuthTag(Buffer.from(tag, 'base64url'));
     return Buffer.concat([

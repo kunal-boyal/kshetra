@@ -34,7 +34,7 @@ catalog:
   typescript-eslint: ^8.71.0
   uuid: ^14.0.2
   vitest: ^5.0.3
-  zod: ^4.6.5
+  zod: ^4.6.6
   # Web: React and its tooling, one version for every web package.
   '@types/react': ^19.3.0
   '@types/react-dom': ^19.3.0
@@ -84,3 +84,16 @@ overrides:
   '@opentelemetry/api': 1.9.1
   # import-in-the-middle, under Sentry's tracing, takes es-module-lexer 3; 3.0.4 arrived on 2026-10-15.
   'import-in-the-middle>es-module-lexer': 3.0.3
+  # GHSA-mrhx-c7xc-m3w5 (decision D100): Expo's CLI and a lint plugin bring zod 4 below the fix.
+  'zod@>=4.0.0 <4.6.6': ^4.6.6
+
+# Advisories `pnpm audit` may pass over, each reviewed in docs/security/dependency-advisories.md
+# (decision D100). Remove an entry as soon as its fix is old enough to take.
+auditConfig:
+  ignoreGhsas:
+    # node-forge under Expo's CLI signs development builds only; no fixed release exists.
+    - GHSA-86w9-cpqp-85rv
+    # undici under jsdom (tests) and Scalar's build; the fixes arrived on 2026-10-15.
+    - GHSA-xjj6-f33q-929c
+    # zod 3 under Expo's CLI, which has no fixed release; every zod 4 is lifted by the override above.
+    - GHSA-mrhx-c7xc-m3w5

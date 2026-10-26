@@ -80,6 +80,9 @@ data "aws_cloudfront_cache_policy" "optimized" {
   name = "Managed-CachingOptimized"
 }
 
+# With its own domain, media is served with TLS 1.2 or later; production must have one (decision
+# D100). Without one, as staging may be, CloudFront's default certificate can't be held to that.
+# nosemgrep: terraform.aws.security.aws-cloudfront-insecure-tls.aws-insecure-cloudfront-distribution-tls-version
 resource "aws_cloudfront_distribution" "media" {
   enabled         = true
   comment         = "${var.name} media"

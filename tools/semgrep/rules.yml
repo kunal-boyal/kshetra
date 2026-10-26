@@ -1,0 +1,86 @@
+# The project's own Semgrep rules (decision D100): what the registry's packs can't know about this
+# code base. Each rule has cases in rules.ts beside it, which `semgrep --test` checks (tools/semgrep/scan.sh).
+rules:
+  - id: thelamp-sql-raw-interpolated
+    languages: [typescript]
+    severity: ERROR
+    message: >-
+      Text built into `sql.raw()` reaches the database unbound. Bind values with the `sql` template
+      (`${value}`), and pass only quoted identifiers through `sql.raw`. Where SQL can't take a
+      parameter, such as DECLARE CURSOR, say why the value is safe and add `nosemgrep` with this rule.
+    patterns:
+      - pattern: sql.raw(`...${$VALUE}...`)
+      - metavariable-pattern:
+          metavariable: $VALUE
+          patterns:
+            - pattern-not: quote(...)
+            - pattern-not: $X.map(quote).join(...)
+            # A constant, named in capitals, is the code's own.
+            - pattern-not-regex: ^[A-Z][A-Z0-9_]*$
+    paths:
+      include: [apps/api/src, tools/semgrep/rules.ts]
+
+  - id: thelamp-regexp-from-configuration
+    languages: [typescript]
+    severity: ERROR
+    message: >-
+      A pattern built at run time can backtrack without end on hostile text. Compile configured
+      patterns with `compilePattern` from @thelamp/forms (re2js, linear time), never `new RegExp`.
+    patterns:
+      - pattern-either:
+          - pattern: new RegExp($PATTERN, ...)
+          - pattern: RegExp($PATTERN, ...)
+      - pattern-not: new RegExp("...", ...)
+      - pattern-not: RegExp("...", ...)
+    paths:
+      include: [apps, packages, tools/semgrep/rules.ts]
+      exclude: ['*.test.ts', '*.test.tsx', '*/test/*', '*/e2e/*']
+
+  - id: thelamp-token-in-web-storage
+    languages: [typescript]
+    severity: ERROR
+    message: >-
+      The web never stores a token or session (decision D35): the refresh token lives in the
+      directory's httpOnly cookie and the access token in memory.
+    patterns:
+      - pattern-either:
+          - pattern: localStorage.setItem($KEY, ...)
+          - pattern: sessionStorage.setItem($KEY, ...)
+          - pattern: window.localStorage.setItem($KEY, ...)
+          - pattern: window.sessionStorage.setItem($KEY, ...)
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(token|session|secret|password|jwt).*
+    paths:
+      include: [apps/web, apps/console, packages/api-client, tools/semgrep/rules.ts]
+
+  - id: thelamp-unmasked-personal-value-in-log
+    languages: [typescript]
+    severity: ERROR
+    message: >-
+      Never log a phone number, one-time code, token, password or secret as it is. Name a number
+      with `maskPhone()`, an address with `maskEmail()` and a token with `maskToken()`.
+    patterns:
+      - pattern-either:
+          - pattern: $LOGGER.$METHOD(..., `...${$VALUE}...`, ...)
+          - pattern: $LOGGER.$METHOD(..., $VALUE, ...)
+      - metavariable-regex:
+          metavariable: $LOGGER
+          regex: (?i)(logger|console)$
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(log|info|warn|error|debug|verbose|fatal)$
+      - metavariable-pattern:
+          metavariable: $VALUE
+          patterns:
+            - pattern-either:
+                - pattern: $NAME
+                - pattern: $OBJECT.$NAME
+            - metavariable-regex:
+                metavariable: $NAME
+                regex: (?i)^(phone|mobile|otp|token|accesstoken|refreshtoken|idtoken|password|secret|clientsecret)$
+            - pattern-not-inside: maskPhone(...)
+            - pattern-not-inside: maskEmail(...)
+            - pattern-not-inside: maskToken(...)
+    paths:
+      include: [apps/api/src, tools/semgrep/rules.ts]
