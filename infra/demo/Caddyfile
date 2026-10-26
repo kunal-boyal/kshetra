@@ -3,10 +3,14 @@
 {$DOMAIN} {
 	encode zstd gzip
 
+	# As CloudFront sends them in the cells (decision D101).
 	header {
-		Strict-Transport-Security "max-age=31536000"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
 		-Server
 	}
 
@@ -16,6 +20,8 @@
 	}
 
 	handle {
+		# The portal's Content-Security-Policy, written when the image is built.
+		import csp.caddy
 		root * /srv
 		try_files {path} /index.html
 		file_server

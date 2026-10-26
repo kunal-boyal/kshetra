@@ -144,6 +144,8 @@ module "web" {
   certificate_arn = aws_acm_certificate_validation.edge.certificate_arn
   api_domain      = var.api_domain
   origin_secret   = sensitive(terraform_data.origin_secret.output)
+  maps            = true
+  media_origin    = "https://${coalesce(var.media_domain, module.cell.media_distribution_domain)}"
   tags            = local.tags
 }
 

@@ -1588,13 +1588,13 @@ Account and user search use PostgreSQL trigram indexes on name and code within t
 
 | Area | Control |
 |---|---|
-| Transport | TLS 1.2 or later everywhere (1.3 preferred); HSTS on web origins |
+| Transport | TLS 1.2 or later everywhere (1.3 preferred), forward-secret AEAD suites only at the load balancer, no plain-HTTP listener on the API; HSTS on web origins (D101) |
 | Edge | AWS WAF managed rules on load balancers and CloudFront; per-IP throttles on auth endpoints, by the viewer's address at CloudFront and by the caller's at the load balancer for requests that come straight to it; SQL injection rules counted before they block; WAF logs with credentials redacted (D98, docs/runbooks/web-firewall.md) |
 | Identity | OTP limits and enumeration resistance (M1), rotating refresh tokens with reuse detection, revocation checks per request, TOTP for admins, SSO for enterprise tenants |
 | Authorisation | One guard checks permission and scope on every endpoint; services check resource ownership; the cross-tenant contract test runs in CI |
 | Data | RLS per tenant; KMS encryption at rest for RDS, ElastiCache, S3 and backups; secrets in AWS Secrets Manager; SSO secrets, webhook secrets and TOTP seeds encrypted at column level |
 | Input and output | zod validation with length and range limits; parameterised SQL only; spreadsheet formula neutralisation (cells starting with `=`, `+`, `-`, `@`, tab or CR are prefixed with `'`); file type checked by content signature; PDFs generated from data only |
-| Web | Content Security Policy, same-site refresh cookie on web, CSRF protection on cookie-authenticated routes, CORS allowlist |
+| Web | Content Security Policy from one source for CloudFront, the previews and the demo (no inline script, no framing), HSTS, nosniff and a strict referrer policy; `__Host-` same-site refresh cookies on web and console, CSRF protection on cookie-authenticated routes, CORS allowlist; API answers `no-store` unless a route says otherwise (D101) |
 | Mobile | Tokens in the secure store; app data in the OS sandbox; Play Integrity and App Attest verdicts recorded per device and shown to reviewers; certificate pinning evaluated after launch |
 | Vendor access | Support grants (M22); every vendor action audited and visible to the tenant |
 | Supply chain | Lockfile, Renovate or Dependabot, `pnpm audit` in CI, licence check, signed container images |

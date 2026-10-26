@@ -19,6 +19,19 @@ describe('the HTTP API', () => {
     expect(isId(String(response.headers['x-request-id']))).toBe(true);
   });
 
+  it('sends every answer uncached, unsniffed and unframed (decision D101)', async () => {
+    const response = await app.inject({ method: 'GET', url: '/v1/nothing-here' });
+    expect(response.headers).toMatchObject({
+      'cache-control': 'no-store',
+      'x-content-type-options': 'nosniff',
+      'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+      'referrer-policy': 'no-referrer',
+    });
+    // A route that may be cached says so itself.
+    const document = await app.inject({ method: 'GET', url: '/v1/openapi.json' });
+    expect(document.headers['cache-control']).toBe('public, max-age=300');
+  });
+
   it('is ready when the databases and Redis answer', async () => {
     const response = await app.inject({ method: 'GET', url: '/ready' });
     expect(response.statusCode).toBe(200);

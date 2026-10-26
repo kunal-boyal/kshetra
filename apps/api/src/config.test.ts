@@ -34,11 +34,16 @@ describe('loadConfig', () => {
       ...required,
       PORT: '8080',
       DB_POOL_MAX: '25',
-      TRUST_PROXY: 'true',
+      TRUST_PROXY: '1',
     });
     expect(config.PORT).toBe(8080);
     expect(config.DB_POOL_MAX).toBe(25);
-    expect(config.TRUST_PROXY).toBe(true);
+    expect(config.TRUST_PROXY).toBe(1);
+  });
+
+  it('trusts a counted number of proxies, never all of them (decision D101)', () => {
+    expect(loadConfig({ ...required, TRUST_PROXY: 'false' }).TRUST_PROXY).toBe(false);
+    expect(() => loadConfig({ ...required, TRUST_PROXY: 'true' })).toThrow(/number of proxies/);
   });
 
   it('reads the CORS allowlist as a list of origins', () => {

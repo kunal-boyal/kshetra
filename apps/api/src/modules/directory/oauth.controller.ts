@@ -1,4 +1,5 @@
-import { Body, Controller, Header, HttpCode, Ip, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Header, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { ClientIp } from '../../platform/client-address';
 import {
   API_SCOPE_KEYS,
   API_TOKEN_SECONDS,
@@ -61,7 +62,7 @@ export class OAuthController {
   })
   async token(
     @Body() body: unknown,
-    @Ip() address: string,
+    @ClientIp() address: string,
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {

@@ -80,6 +80,31 @@ data "aws_cloudfront_cache_policy" "optimized" {
   name = "Managed-CachingOptimized"
 }
 
+# Files are what they say they are, never framed, and never tell where they were opened from
+# (decision D101).
+resource "aws_cloudfront_response_headers_policy" "media" {
+  name    = "${var.name}-media"
+  comment = "${var.name} media: nosniff, HSTS, no framing"
+  security_headers_config {
+    content_type_options {
+      override = true
+    }
+    strict_transport_security {
+      access_control_max_age_sec = 63072000
+      include_subdomains         = true
+      override                   = true
+    }
+    frame_options {
+      frame_option = "DENY"
+      override     = true
+    }
+    referrer_policy {
+      referrer_policy = "no-referrer"
+      override        = true
+    }
+  }
+}
+
 # With its own domain, media is served with TLS 1.2 or later; production must have one (decision
 # D100). Without one, as staging may be, CloudFront's default certificate can't be held to that.
 # nosemgrep: terraform.aws.security.aws-cloudfront-insecure-tls.aws-insecure-cloudfront-distribution-tls-version
@@ -97,13 +122,14 @@ resource "aws_cloudfront_distribution" "media" {
   }
 
   default_cache_behavior {
-    target_origin_id       = "media"
-    viewer_protocol_policy = "https-only"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = data.aws_cloudfront_cache_policy.optimized.id
-    trusted_key_groups     = [aws_cloudfront_key_group.media.id]
-    compress               = true
+    target_origin_id           = "media"
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
+    trusted_key_groups         = [aws_cloudfront_key_group.media.id]
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.media.id
+    compress                   = true
   }
 
   restrictions {

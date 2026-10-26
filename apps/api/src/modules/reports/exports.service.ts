@@ -282,6 +282,7 @@ export class ExportsService implements OnModuleInit {
           ownerType: 'export',
           ownerId: job.id,
           retentionClass: 'export_file',
+          download: true,
         });
         await this.finish(tx, job, {
           status: 'ready',
