@@ -1,6 +1,7 @@
 import type { ErrorDetail } from '@thelamp/shared';
 import agri from '../agri/template.json' with { type: 'json' };
 import generic from '../generic/template.json' with { type: 'json' };
+import pharma from '../pharma/template.json' with { type: 'json' };
 import type { Template } from './schema/template';
 import { validateTemplate } from './validate';
 
@@ -8,7 +9,7 @@ import { validateTemplate } from './validate';
  * Every template file, by key; a template's key is its folder's name. The files are imported,
  * not read from disk, so a bundled app carries them.
  */
-const FILES: Readonly<Record<string, unknown>> = { agri, generic };
+const FILES: Readonly<Record<string, unknown>> = { agri, generic, pharma };
 
 export const TEMPLATE_KEYS: readonly string[] = Object.keys(FILES).sort();
 

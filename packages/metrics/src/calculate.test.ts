@@ -216,22 +216,73 @@ describe("a person's day (spec 5.7)", () => {
 
   it('leaves out sources that wait for their records', () => {
     const metrics = [
-      metric('lines_value', 'currency', {
-        type: 'product_line_sum',
-        forms: ['visit'],
-        field: 'lines',
-        column: 'value',
-      }),
+      metric('new_shops', 'count', { type: 'new_accounts', accountType: 'customer' }),
       metric('visits', 'count', { type: 'submission_count', forms: ['visit'] }),
-      metric('per_order', 'count', {
+      metric('per_shop', 'count', {
         type: 'ratio',
         numerator: 'visits',
-        denominator: 'lines_value',
+        denominator: 'new_shops',
       }),
     ];
     const map = new Map(metrics.map((m) => [m.key, m]));
     expect(metrics.map((m) => computed(m, map))).toEqual([false, true, false]);
     expect(calculateDayFacts(metrics, day()).map((fact) => fact.key)).toEqual(['visits']);
+  });
+
+  it('sums a product lines column, such as samples given (decision D97)', () => {
+    const facts = byKey(
+      calculateDayFacts(
+        [
+          metric('samples', 'count', {
+            type: 'product_line_sum',
+            forms: ['visit'],
+            field: 'samples',
+            column: 'quantity',
+          }),
+          metric('prices', 'currency', {
+            type: 'product_line_sum',
+            forms: ['visit'],
+            field: 'samples',
+            column: 'value',
+          }),
+        ],
+        day({
+          submissions: [
+            submission('approved', {
+              samples: [
+                { itemId: 'i1', quantity: 2, value: '10.50' },
+                { itemId: 'i2', quantity: 3 },
+              ],
+            }),
+            submission('approved', { samples: 'not lines' }),
+            submission('pending', { samples: [{ itemId: 'i1', quantity: 4 }] }),
+            submission('approved', { samples: [{ itemId: 'i1', quantity: 9 }] }, SHOP, 'other'),
+          ],
+        }),
+      ),
+    );
+    expect(facts.samples).toMatchObject({ value: '5.000', pending: '4.000' });
+    expect(facts.prices).toMatchObject({ value: '10.500', pending: '0.000' });
+  });
+
+  it('keeps the accounts called on for frequency compliance, which a period judges', () => {
+    const facts = calculateDayFacts(
+      [
+        metric('frequency', 'percent', {
+          type: 'frequency_compliance_percent',
+          forms: ['visit'],
+          accountTypes: ['customer'],
+        }),
+      ],
+      day({
+        submissions: [
+          submission('approved'),
+          submission('approved', {}, DEPOT),
+          submission('pending', {}, { ...SHOP, id: 'a3' }),
+        ],
+      }),
+    );
+    expect(facts[0]).toMatchObject({ value: '1.000', accounts: ['a1'] });
   });
 });
 

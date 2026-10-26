@@ -19,6 +19,7 @@ import { and, asc, between, eq, inArray, sql } from 'drizzle-orm';
 import { metricFactAccounts, metricFactsDaily, scoreSnapshots } from '../../db/schema/metrics';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
+import { AccountTypesService } from '../accounts/account-types.service';
 import { AccountsService } from '../accounts/accounts.service';
 import { notFound, outOfScope } from '../iam/actor';
 import { People, type PersonFacts } from '../iam/people';
@@ -46,7 +47,13 @@ interface Setup {
   metrics: PerformanceMetric[];
 }
 
-const DISTINCT = new Set(['distinct_accounts_visited', 'coverage_percent']);
+const DISTINCT = new Set([
+  'distinct_accounts_visited',
+  'coverage_percent',
+  'frequency_compliance_percent',
+]);
+/** Sources judged against the accounts people held over the period. */
+const HELD = new Set(['coverage_percent', 'frequency_compliance_percent']);
 
 /** Whether a metric's days add up to its month and its people to their team: counts and sums. */
 function additive(definition: MetricDefinition): boolean {
@@ -75,6 +82,7 @@ export class PerformanceService {
     private readonly people: People,
     private readonly scopes: Scopes,
     private readonly accounts: AccountsService,
+    private readonly accountTypes: AccountTypesService,
   ) {}
 
   private async setup(tx: TenantTx, tenantId: string): Promise<Setup> {
@@ -96,8 +104,9 @@ export class PerformanceService {
 
   /**
    * Each person's value of every computed metric over a month: sums of daily facts, distinct
-   * counts from the accounts behind them, coverage against the accounts they held, and ratios from
-   * summed parts (BR-04).
+   * counts from the accounts behind them, coverage against the accounts they held, frequency
+   * compliance from the days each held account with a norm was called on (decision D97), and
+   * ratios from summed parts (BR-04).
    */
   private async values(
     tx: TenantTx,
@@ -142,10 +151,59 @@ export class PerformanceService {
           between(metricFactAccounts.date, from, to),
         ),
       );
-    const coverage = setup.definitions.filter((d) => d.source.type === 'coverage_percent');
-    const held = coverage.length
+    const judged = setup.definitions.filter((d) => HELD.has(d.source.type));
+    const held = judged.length
       ? await this.accounts.heldDuring(tx, tenantId, userIds, from, to)
       : [];
+    const frequency = judged
+      .filter((d) => d.source.type === 'frequency_compliance_percent')
+      .map((d) => d.key);
+    // How many days each account was called on, for frequency compliance.
+    const calls = new Map<string, number>();
+    if (frequency.length > 0) {
+      const rows = await tx
+        .select({
+          userId: metricFactAccounts.userId,
+          key: metricFactAccounts.metricKey,
+          accountId: metricFactAccounts.accountId,
+          days: sql<number>`count(*)::int`,
+        })
+        .from(metricFactAccounts)
+        .where(
+          and(
+            eq(metricFactAccounts.tenantId, tenantId),
+            inArray(metricFactAccounts.userId, [...userIds]),
+            inArray(metricFactAccounts.metricKey, frequency),
+            between(metricFactAccounts.date, from, to),
+          ),
+        )
+        .groupBy(
+          metricFactAccounts.userId,
+          metricFactAccounts.metricKey,
+          metricFactAccounts.accountId,
+        );
+      for (const row of rows) calls.set(`${row.userId}|${row.key}|${row.accountId}`, row.days);
+    }
+    // Each account type's visits a month by segment; an account takes its highest norm.
+    const norms = new Map<string, Map<string, number>>();
+    if (frequency.length > 0) {
+      for (const type of await this.accountTypes.list(tx, tenantId)) {
+        norms.set(
+          type.key,
+          new Map(
+            (type.definition.visitFrequencyNorms ?? []).map((norm) => [
+              norm.segment,
+              norm.visitsPerMonth,
+            ]),
+          ),
+        );
+      }
+    }
+    const normOf = (typeKey: string, segments: readonly string[]) => {
+      const bySegment = norms.get(typeKey);
+      const found = segments.flatMap((segment) => bySegment?.get(segment) ?? []);
+      return found.length > 0 ? Math.max(...found) : null;
+    };
 
     for (const userId of userIds) {
       const values = result.get(userId)!;
@@ -192,6 +250,25 @@ export class PerformanceService {
             value: ratioOf(covered, assigned.size, true),
             numerator: covered,
             denominator: assigned.size,
+            pending: null,
+          });
+        } else if (source.type === 'frequency_compliance_percent') {
+          // Accounts held with a norm, and of those the ones called on as often as it asks.
+          const normed = new Map<string, number>();
+          for (const entry of held) {
+            if (entry.userId !== userId) continue;
+            if (source.accountTypes && !source.accountTypes.includes(entry.typeKey)) continue;
+            const norm = normOf(entry.typeKey, entry.segments);
+            if (norm !== null) normed.set(entry.accountId, norm);
+          }
+          let met = 0;
+          for (const [accountId, norm] of normed) {
+            if ((calls.get(`${userId}|${definition.key}|${accountId}`) ?? 0) >= norm) met += 1;
+          }
+          values.set(definition.key, {
+            value: ratioOf(met, normed.size, true),
+            numerator: met,
+            denominator: normed.size,
             pending: null,
           });
         } else if (
@@ -408,7 +485,7 @@ export class PerformanceService {
     }
     const { from, to } = monthDates(period);
     const trend = setup.definitions
-      .filter((d) => d.source.type !== 'coverage_percent' && computed(d, setup.byKey))
+      .filter((d) => !HELD.has(d.source.type) && computed(d, setup.byKey))
       .map((d) => d.key);
     const days = trend.length
       ? await tx

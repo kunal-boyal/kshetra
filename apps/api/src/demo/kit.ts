@@ -19,6 +19,8 @@ export interface Place {
   location: GeoPoint;
   /** The account that supplies its orders, if any. */
   parentId?: string;
+  /** Whether the field person holds one of its slots, and so calls on it. */
+  held?: boolean;
 }
 
 export interface FieldPerson extends Person {

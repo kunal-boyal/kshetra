@@ -13,8 +13,10 @@ import type { MetricDefinition, MetricSourceType } from './definition';
 export const COMPUTED_SOURCES = [
   'submission_count',
   'submission_field_sum',
+  'product_line_sum',
   'distinct_accounts_visited',
   'coverage_percent',
+  'frequency_compliance_percent',
   'plan_compliance_percent',
   'visit_duration',
   'active_days',
@@ -187,19 +189,39 @@ export function calculateDay(
       }
       return fact(key, decimal(approved), { pending: decimal(pending) });
     }
+    case 'product_line_sum': {
+      // Each line's quantity or value column, such as samples given (decision D97).
+      let approved = 0n;
+      let pending = 0n;
+      for (const submission of ofForms(source.forms)) {
+        const lines = submission.data[source.field];
+        if (!Array.isArray(lines)) continue;
+        const amount = lines.reduce<bigint>(
+          (sum, line) =>
+            sum + (thousandths((line as Record<string, unknown> | null)?.[source.column]) ?? 0n),
+          0n,
+        );
+        if (submission.status === 'approved') approved += amount;
+        if (submission.status === 'pending') pending += amount;
+      }
+      return fact(key, decimal(approved), { pending: decimal(pending) });
+    }
     case 'distinct_accounts_visited':
-    case 'coverage_percent': {
+    case 'coverage_percent':
+    case 'frequency_compliance_percent': {
       const visited = new Set<string>();
+      const segment = 'segment' in source ? source.segment : undefined;
       for (const submission of ofForms(source.forms)) {
         if (
           submission.status === 'approved' &&
-          accountMatches(submission.account, source.accountTypes, source.segment)
+          accountMatches(submission.account, source.accountTypes, segment)
         ) {
           visited.add(submission.account.id);
         }
       }
       const accounts = [...visited].sort();
-      // Coverage divides by the accounts assigned over the period, which only a period knows.
+      // Coverage divides by the accounts assigned over the period, and frequency compliance counts
+      // the days each was called on against its norm, which only a period knows.
       return fact(key, count(accounts.length), { accounts });
     }
     case 'active_days': {

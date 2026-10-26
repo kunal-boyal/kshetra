@@ -1,11 +1,12 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { INestApplicationContext } from '@nestjs/common';
-import type { FormView } from '@thelamp/forms';
+import { type FormView, signatureRequired } from '@thelamp/forms';
 import {
   AppError,
   CreateAccountBody,
   CreateUserBody,
   type GeoPoint,
+  type ItemResult,
   newId,
   ReviewQueueQuery,
   todayIn,
@@ -49,6 +50,7 @@ import { CONFIG } from '../platform/tokens';
 import { onTravel, realNow, travelTo } from './clock';
 import { DemoCommerce } from './commerce';
 import {
+  addDays,
   DAY,
   type DemoKit,
   type FieldPerson,
@@ -59,15 +61,13 @@ import {
 } from './kit';
 import {
   Dice,
-  distributorName,
+  type Flavour,
+  flavourOf,
   MARKETS,
   type Market,
-  OBSERVATIONS,
-  OUTCOMES,
   personName,
-  PRODUCTS,
-  REJECTIONS,
-  shopName,
+  personType,
+  placeName,
   VILLAGES,
 } from './names';
 import { DemoRequests } from './requests';
@@ -100,6 +100,9 @@ export class DemoContent implements DemoKit {
   timezone = 'Asia/Kolkata';
   private forms: FormView[] = [];
   private products: string[] = [];
+  private items: ItemResult[] = [];
+  /** The words of the tenant's industry (decision D97). */
+  private flavour: Flavour = flavourOf('');
   private broken = new Set<string>();
   private readonly counts = { visits: 0, entries: 0, photos: 0, shifts: 0, reviews: 0 };
   private readonly commerce: DemoCommerce;
@@ -144,6 +147,7 @@ export class DemoContent implements DemoKit {
       throw new Error(`${this.options.slug} isn't a demo tenant; only demo tenants are filled.`);
     }
     this.tenantId = tenant.id;
+    this.flavour = flavourOf(tenant.templateKey);
     const people = await this.tx((tx) =>
       tx.select({ id: users.id }).from(users).where(eq(users.tenantId, this.tenantId)),
     );
@@ -263,13 +267,15 @@ export class DemoContent implements DemoKit {
     return claims.did;
   }
 
-  /** A few fictional products, when a form offers the catalogue's and it has none. */
+  /** A few fictional products, when a form offers the catalogue's or lists items and it has none. */
   private async catalogue(admin: Person): Promise<void> {
     this.forms = (await this.tx((tx) => this.get(FormsService).list(tx, this.tenantId))).filter(
       (form) => form.active,
     );
     const wanted = this.forms.some((form) =>
-      form.fields.some((field) => 'optionsFrom' in field && field.optionsFrom),
+      form.fields.some(
+        (field) => ('optionsFrom' in field && field.optionsFrom) || field.type === 'product_lines',
+      ),
     );
     const existing = await this.tx((tx) => this.get(CatalogueService).items(tx, this.tenantId));
     if (wanted && existing.length === 0) {
@@ -277,7 +283,7 @@ export class DemoContent implements DemoKit {
         this.get(CatalogueService).settings(tx, this.tenantId),
       );
       const unit = settings.units.find((each) => each.base)?.key ?? 'pack';
-      const rows = PRODUCTS.map((product, index) => ({
+      const rows = this.flavour.products.map((product, index) => ({
         row: index + 2,
         cells: {
           item_code: product.code,
@@ -285,7 +291,7 @@ export class DemoContent implements DemoKit {
           product_name: product.product,
           pack_label: product.pack,
           base_unit: unit,
-          tax_rate: '18',
+          tax_rate: product.taxRate,
           mrp: product.mrp,
         },
       }));
@@ -299,12 +305,15 @@ export class DemoContent implements DemoKit {
       );
     }
     const items = await this.tx((tx) => this.get(CatalogueService).items(tx, this.tenantId));
+    this.items = items.filter((item) => item.active);
     this.products = [...new Set(items.map((item) => item.product.id))];
   }
 
   /**
    * Territories from the top level down to markets, and a team: a head manager, two group
-   * managers and four field people under each, the demo numbers among them.
+   * managers and four field people under each, the demo numbers among them. Group managers are of
+   * the lowest manager level, the head of the level above it, so chains and slots that name either
+   * find someone.
    */
   private async team(admin: Person): Promise<FieldPerson[]> {
     const { levels, designations } = await this.tx(async (tx) => ({
@@ -315,8 +324,10 @@ export class DemoContent implements DemoKit {
     const field = [...byLevel].reverse().find((each) => each.defaultRole === 'field_user');
     const managers = byLevel.filter((each) => each.defaultRole === 'manager');
     if (!field) throw new Error('The tenant has no designation for field users.');
-    const head = managers[0];
-    const group = managers[1] ?? managers[0];
+    const lowest = managers.at(-1)?.level;
+    const group = managers.find((each) => each.level === lowest);
+    const head =
+      [...managers].reverse().find((each) => lowest !== undefined && each.level < lowest) ?? group;
 
     const territories = this.get(TerritoriesService);
     const add = (code: string, name: string, parentId: string | null) =>
@@ -446,7 +457,10 @@ export class DemoContent implements DemoKit {
     };
   }
 
-  /** Distributors, shops and farmers in the person's market, in their slots. */
+  /**
+   * The accounts in the person's market, in their slots: suppliers, the businesses they supply,
+   * and people such as farmers or doctors, named in the tenant's industry's words.
+   */
   private async placesFor(admin: Person, person: FieldPerson): Promise<Place[]> {
     const types = (
       await this.tx((tx) => this.get(AccountTypesService).list(tx, this.tenantId))
@@ -459,8 +473,9 @@ export class DemoContent implements DemoKit {
     for (const type of ordered) {
       const key = type.key;
       const isParent = parents.has(key);
-      const isPerson = /farmer|doctor|patient|person|contact/.test(key);
-      const count = isParent ? 2 : type.definition.parentTypes?.length ? 4 : isPerson ? 6 : 4;
+      const isPerson = personType(key);
+      const count = isParent ? 2 : isPerson ? 6 : 4;
+      const typeName = type.definition.name.en.one;
       const slots: Record<string, string> = {};
       for (const slot of type.definition.slots ?? []) {
         const holder = this.chain
@@ -470,11 +485,13 @@ export class DemoContent implements DemoKit {
       }
       if ((type.definition.slots ?? []).some((slot) => slot.required && !slots[slot.key])) continue;
       for (let index = 0; index < count; index++) {
-        const name = isParent
-          ? distributorName(this.dice, person.market.name)
-          : isPerson
-            ? personName(this.dice)
-            : shopName(this.dice, person.market.name);
+        const name = placeName(
+          this.dice,
+          this.flavour,
+          typeName,
+          isParent ? 'supplier' : isPerson ? 'person' : 'shop',
+          person.market.name,
+        );
         const location = this.near(person.market, isPerson ? 0.05 : 0.025);
         const parentType = type.definition.parentTypes?.[0];
         const parent = parentType
@@ -510,6 +527,7 @@ export class DemoContent implements DemoKit {
             type: key,
             location,
             ...(parent ? { parentId: parent.id } : {}),
+            held: Object.values(slots).includes(person.id),
           });
         } catch (error) {
           this.once(`account:${key}`, error);
@@ -580,13 +598,15 @@ export class DemoContent implements DemoKit {
 
   /** One person's day: punch in, the planned visits with their entries, punch out. */
   private async workday(person: FieldPerson, date: string, isToday: boolean): Promise<void> {
-    if (person.places.length === 0) return;
+    // People call on the accounts they hold; others, such as a manager's stockists, wait.
+    const calls = person.places.filter((place) => place.held);
+    if (calls.length === 0) return;
     if (this.dice.chance(0.06)) {
       // Away without a punch: the person may ask to fix the day tomorrow.
       if (!isToday) this.requests.missedDay(person, date);
       return;
     }
-    const stops = this.dice.shuffle(person.places).slice(0, this.dice.int(5, 7));
+    const stops = this.dice.shuffle(calls).slice(0, this.dice.int(5, 7));
     // The manager plans the day first thing.
     travelTo(this.at(date, 8 * 60));
     const plan = new Map<string, string>();
@@ -649,12 +669,16 @@ export class DemoContent implements DemoKit {
       await this.visit(person, stop, plan.get(stop.id), now);
       now += this.dice.int(18, 35) * MINUTE;
       trail.push({ at: now, point: this.near(stop.location, 0.0003) });
-      // Now and then a farmer activity in a village on the way: a visit, a meeting or a demo.
+      // Now and then an activity on the way, such as a farmer meeting in a village or a CME.
       const activities = this.forms.filter((form) => form.accountLink.mode === 'none');
-      if (activities.length > 0 && this.dice.chance(0.4) && now + 60 * MINUTE < stopAt) {
+      if (
+        activities.length > 0 &&
+        this.dice.chance(this.flavour.activityChance) &&
+        now + 60 * MINUTE < stopAt
+      ) {
         const village = {
           id: '',
-          name: this.dice.pick(VILLAGES),
+          name: this.dice.pick(this.flavour.gatherings),
           type: '',
           location: this.near(person.market, 0.04),
         };
@@ -859,18 +883,27 @@ export class DemoContent implements DemoKit {
         : standalone.length > 0
           ? this.dice.pick(standalone)
           : null;
+    // The order first, so the form knows whether the visit took one (decision D97).
+    const orderedAt = arrived + this.dice.int(6, 10) * MINUTE;
+    travelTo(orderedAt);
+    const ordered = await this.commerce.atVisit(
+      person,
+      place,
+      visitId,
+      orderedAt,
+      this.fix(place.location, orderedAt),
+    );
     if (form && !this.broken.has(`form:${form.key}`)) {
+      const inVisit = linked.includes(form);
       await this.entry(
         person,
         place,
         form,
-        linked.includes(form) ? visitId : null,
-        arrived + this.dice.int(6, 14) * MINUTE,
+        inVisit ? visitId : null,
+        arrived + this.dice.int(12, 16) * MINUTE,
+        inVisit ? ordered : undefined,
       );
     }
-    const ordered = arrived + this.dice.int(12, 16) * MINUTE;
-    travelTo(ordered);
-    await this.commerce.atVisit(person, place, visitId, ordered, this.fix(place.location, ordered));
     const left = arrived + this.dice.int(18, 32) * MINUTE;
     travelTo(left);
     await this.tx((tx) =>
@@ -887,6 +920,7 @@ export class DemoContent implements DemoKit {
     form: FormView,
     visitId: string | null,
     at: number,
+    visitOrdered?: boolean,
   ) {
     travelTo(at);
     const photos: string[] = [];
@@ -903,6 +937,11 @@ export class DemoContent implements DemoKit {
       if (id) photos.push(id);
     }
     travelTo(at);
+    const values = this.values(
+      form.fields,
+      { place: place.name, market: person.market.name },
+      false,
+    );
     try {
       await this.tx((tx) =>
         this.get(SubmissionsService).create(
@@ -914,12 +953,11 @@ export class DemoContent implements DemoKit {
             ...(visitId ? { accountId: place.id, visitId } : {}),
             capturedAt: new Date(at).toISOString(),
             fix: this.fix(place.location, at),
-            values: this.values(
-              form.fields,
-              { place: place.name, market: person.market.name },
-              false,
-            ),
+            values,
             photos,
+            ...(signatureRequired(form, values, { visitOrdered })
+              ? { signature: this.signature() }
+              : {}),
           },
           new Date(at).toISOString(),
         ),
@@ -1004,20 +1042,22 @@ export class DemoContent implements DemoKit {
       const key = field.key;
       switch (field.type) {
         case 'short_text':
-          values[key] = /farmer|name|contact|person|owner/.test(key)
-            ? personName(this.dice)
-            : /village/.test(key)
-              ? this.dice.pick(VILLAGES)
-              : /market|town|area/.test(key)
-                ? context.market
-                : /reference|ref/.test(key)
-                  ? `REF-${this.dice.int(1000, 9999)}`
-                  : context.place;
+          values[key] = /topic|subject/.test(key)
+            ? this.dice.pick(this.flavour.topics)
+            : /farmer|name|contact|person|owner/.test(key)
+              ? personName(this.dice)
+              : /village/.test(key)
+                ? this.dice.pick(VILLAGES)
+                : /market|town|area/.test(key)
+                  ? context.market
+                  : /reference|ref/.test(key)
+                    ? `REF-${this.dice.int(1000, 9999)}`
+                    : context.place;
           break;
         case 'long_text':
           values[key] = /observ/.test(key)
-            ? this.dice.pick(OBSERVATIONS)
-            : this.dice.pick(OUTCOMES);
+            ? this.dice.pick(this.flavour.observations)
+            : this.dice.pick(this.flavour.outcomes);
           break;
         case 'number': {
           const min = field.min ?? 0;
@@ -1053,14 +1093,46 @@ export class DemoContent implements DemoKit {
         case 'yes_no':
           values[key] = this.dice.chance(0.7);
           break;
-        case 'date':
-          values[key] = todayIn(this.timezone);
+        case 'date': {
+          const earliest = field.minDaysFromToday ?? 0;
+          const latest = Math.max(earliest, field.maxDaysFromToday ?? earliest);
+          values[key] = addDays(
+            todayIn(this.timezone),
+            this.dice.int(earliest, Math.min(latest, earliest + 30)),
+          );
           break;
+        }
+        case 'product_lines': {
+          // Required lists always, others now and then: a few items, as the person would pick.
+          if (this.items.length === 0 || (!field.required && !this.dice.chance(0.5))) break;
+          values[key] = this.dice
+            .shuffle(this.items)
+            .slice(0, this.dice.int(1, Math.min(3, field.maxLines, this.items.length)))
+            .map((item) => ({
+              itemId: item.id,
+              quantity: field.quantities === false ? 1 : this.dice.int(1, 10),
+              ...(field.valueColumn ? { value: String(this.dice.int(20, 400)) } : {}),
+            }));
+          break;
+        }
         default:
           break;
       }
     }
     return values;
+  }
+
+  /** A signature, as a pad draws one: a loop and a flourish, never quite the same. */
+  private signature() {
+    const y = this.dice.int(60, 90);
+    return {
+      width: 320,
+      height: 140,
+      strokes: [
+        `M20 ${y} C60 ${y - 50} 90 ${y + 40} 130 ${y - 10} C160 ${y - 40} 190 ${y + 20} 220 ${y}`,
+        `M230 ${y - 5} L${this.dice.int(270, 300)} ${y + this.dice.int(-20, 20)}`,
+      ],
+    };
   }
 
   /** The managers review what came in, except the last two days', which wait. */
@@ -1085,7 +1157,7 @@ export class DemoContent implements DemoKit {
         await this.tx((tx) =>
           this.get(ReviewService).decide(tx, manager.access, item.id, {
             decision: reject ? 'rejected' : 'approved',
-            ...(reject ? { note: this.dice.pick(REJECTIONS) } : {}),
+            ...(reject ? { note: this.dice.pick(this.flavour.rejections) } : {}),
           }),
         )
           .then(() => this.counts.reviews++)

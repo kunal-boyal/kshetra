@@ -7,7 +7,7 @@ import { DemoContent } from '../src/demo/content';
 import { TenantProvisioner } from '../src/modules/provisioning/provisioner';
 import { newPhone, startApp, testConfig, World } from './support';
 
-/** The demo content generator (decision D70), on the agri template. */
+/** The demo content generator (decision D70), on the agri and pharma templates (D97). */
 
 const urls = inject('databaseUrls');
 let app: NestFastifyApplication;
@@ -33,20 +33,21 @@ async function sql<T extends pg.QueryResultRow>(text: string, values: unknown[] 
   }
 }
 
+const provision = (slug: string, demo: boolean, template = 'agri') =>
+  app.get(TenantProvisioner).provision(
+    ProvisionTenantInput.parse({
+      name: `Demo ${slug}`,
+      slug,
+      template,
+      status: 'active',
+      admin: { name: 'Demo Admin', phone: newPhone() },
+    }),
+    undefined,
+    { demo },
+  );
+
 describe('demo content (decision D70)', () => {
   it('fills a new demo tenant through the services, and refuses anything else', async () => {
-    const provision = (slug: string, demo: boolean) =>
-      app.get(TenantProvisioner).provision(
-        ProvisionTenantInput.parse({
-          name: `Demo ${slug}`,
-          slug,
-          template: 'agri',
-          status: 'active',
-          admin: { name: 'Demo Admin', phone: newPhone() },
-        }),
-        undefined,
-        { demo },
-      );
     const slug = `demo-content-${Date.now().toString(36)}`;
     const { tenantId } = await provision(slug, true);
     const lines: string[] = [];
@@ -118,5 +119,51 @@ describe('demo content (decision D70)', () => {
     await expect(
       new DemoContent(app, { slug: realSlug, days: 1, seed: 3, log: () => {} }).run(),
     ).rejects.toThrow(/isn't a demo tenant/);
+  }, 300_000);
+
+  it('fills a pharma demo tenant in its own words, without a refusal (decision D97)', async () => {
+    const slug = `demo-pharma-${Date.now().toString(36)}`;
+    const { tenantId } = await provision(slug, true, 'pharma');
+    const lines: string[] = [];
+    const counts = await new DemoContent(app, {
+      slug,
+      days: 10,
+      seed: 5,
+      log: (line) => lines.push(line),
+    }).run();
+    expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
+    expect(counts.entries).toBeGreaterThan(0);
+    expect(counts.orders).toBeGreaterThan(0);
+
+    const [made] = await sql<Record<string, number>>(
+      `select (select count(*)::int from cell.accounts a join cell.account_types t
+                 on t.tenant_id = a.tenant_id and t.id = a.type_id
+                where a.tenant_id = $1 and t.key = 'doctor' and a.name like 'Dr. %') as doctors,
+              (select count(*)::int from cell.accounts a join cell.account_types t
+                 on t.tenant_id = a.tenant_id and t.id = a.type_id
+                where a.tenant_id = $1 and t.key = 'doctor' and a.segments <> '{}') as classed,
+              (select count(*)::int from cell.submissions s join cell.forms f
+                 on f.tenant_id = s.tenant_id and f.id = s.form_id
+                where s.tenant_id = $1 and f.key = 'doctor_call') as calls,
+              (select count(*)::int from cell.submissions s join cell.forms f
+                 on f.tenant_id = s.tenant_id and f.id = s.form_id
+                where s.tenant_id = $1 and f.key = 'doctor_call'
+                  and jsonb_array_length(coalesce(s.data->'samples', '[]')) > 0
+                  and s.signature_strokes is null) as unsigned_samples,
+              (select count(*)::int from cell.orders o join cell.accounts a
+                 on a.tenant_id = o.tenant_id and a.id = o.account_id
+                 join cell.account_types t on t.tenant_id = a.tenant_id and t.id = a.type_id
+                where o.tenant_id = $1 and t.key in ('doctor', 'hospital')) as doctor_orders,
+              (select count(*)::int from cell.metric_facts_daily
+                where tenant_id = $1 and metric_key = 'samples_distributed' and value > 0) as samples`,
+      [tenantId],
+    );
+    expect(made!.doctors).toBeGreaterThan(0);
+    expect(made!.classed).toBe(made!.doctors);
+    expect(made!.calls).toBeGreaterThan(0);
+    // Samples are signed for; orders are taken from chemists and stockists, never doctors.
+    expect(made!.unsigned_samples).toBe(0);
+    expect(made!.doctor_orders).toBe(0);
+    expect(made!.samples).toBeGreaterThan(0);
   }, 300_000);
 });
