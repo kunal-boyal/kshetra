@@ -46,6 +46,12 @@ const provision = (slug: string, demo: boolean, template = 'agri') =>
     { demo },
   );
 
+/**
+ * Each run fills weeks of a tenant's work: about a minute alone, but `pnpm verify` runs it beside
+ * the whole integration suite, where it has taken over five, so the limit only catches a hang.
+ */
+const DEMO_TIMEOUT_MS = 600_000;
+
 describe('demo content (decision D70)', () => {
   it('fills a new demo tenant through the services, and refuses anything else', async () => {
     const slug = `demo-content-${Date.now().toString(36)}`;
@@ -119,7 +125,7 @@ describe('demo content (decision D70)', () => {
     await expect(
       new DemoContent(app, { slug: realSlug, days: 1, seed: 3, log: () => {} }).run(),
     ).rejects.toThrow(/isn't a demo tenant/);
-  }, 300_000);
+  }, DEMO_TIMEOUT_MS);
 
   it('fills a pharma demo tenant in its own words, without a refusal (decision D97)', async () => {
     const slug = `demo-pharma-${Date.now().toString(36)}`;
@@ -165,7 +171,7 @@ describe('demo content (decision D70)', () => {
     expect(made!.unsigned_samples).toBe(0);
     expect(made!.doctor_orders).toBe(0);
     expect(made!.samples).toBeGreaterThan(0);
-  }, 300_000);
+  }, DEMO_TIMEOUT_MS);
 
   it('fills an FMCG demo tenant, asking why only where no order was taken (decision D97)', async () => {
     const slug = `demo-fmcg-${Date.now().toString(36)}`;
@@ -206,5 +212,5 @@ describe('demo content (decision D70)', () => {
     expect(made!.supplied).toBeGreaterThan(0);
     expect(made!.new_outlets).toBeGreaterThan(0);
     expect(made!.productive).toBeGreaterThan(0);
-  }, 300_000);
+  }, DEMO_TIMEOUT_MS);
 });
