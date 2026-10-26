@@ -21,6 +21,7 @@ import { ExpenseRegisterReport } from './expense-register';
 import { LeaveRegisterReport } from './leave-register';
 import { VisitComplianceReport } from './visit-compliance';
 import { CoverageFrequencyReport } from './coverage-frequency';
+import { GpsAuditTrailReport } from './gps-audit-trail';
 import { LocationSummaryReport } from './location-summary';
 import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
@@ -67,6 +68,7 @@ import { TargetAchievementReport } from './target-achievement';
     VisitComplianceReport,
     CoverageFrequencyReport,
     LocationSummaryReport,
+    GpsAuditTrailReport,
     OrdersRegisterReport,
     AccountStatementReport,
     AuditLogReport,

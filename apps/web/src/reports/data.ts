@@ -27,9 +27,10 @@ function search(params: Record<string, string | number | undefined>): string {
 }
 
 /** A report for a month, a page at a time, headings and coded values in the reader's language. */
-export function useReport(key: ReportKey, filters: ReportFilters, locale: Locale) {
+export function useReport(key: ReportKey, filters: ReportFilters, locale: Locale, enabled = true) {
   const { client } = useApp();
   return useInfiniteQuery({
+    enabled,
     queryKey: ['report', key, filters, locale],
     queryFn: ({ pageParam }) =>
       read(

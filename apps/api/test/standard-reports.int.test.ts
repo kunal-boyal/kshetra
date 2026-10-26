@@ -202,6 +202,82 @@ describe('the remaining standard reports (M18)', () => {
     expect(locations.columns.map((column: { key: string }) => column.key)).toContain('gaps');
   });
 
+  it('shows one person’s GPS points, gaps marked across pages, to those who see trails (D99)', async () => {
+    const t = await tenant('Audit Trail Co');
+    const now = Date.now();
+    const shiftId = newId();
+    const opened = await t.api.asha.post('/v1/shifts', {
+      id: shiftId,
+      startedAt: new Date(now - 40 * 60_000).toISOString(),
+      location: HERE,
+      accuracy: 15,
+      mocked: false,
+      consentVersion: '2026-10',
+    });
+    expect(opened.statusCode, opened.body).toBe(201);
+    const point = (minutesAgo: number, extra: object = {}) => ({
+      id: newId(),
+      shiftId,
+      capturedAt: new Date(now - minutesAgo * 60_000).toISOString(),
+      location: HERE,
+      accuracy: 12,
+      mocked: false,
+      source: 'background',
+      ...extra,
+    });
+    const sent = await t.api.asha.post('/v1/locations/batch', {
+      points: [
+        point(35, { battery: 81, speed: 5, source: 'foreground' }),
+        point(30, { battery: 80 }),
+        point(12, { battery: 74 }),
+        point(10),
+      ],
+    });
+    expect(sent.statusCode, sent.body).toBeLessThan(300);
+
+    // Without a person it refuses: a month of everyone's points is too many to read.
+    const unnamed = await report(t.api.manager, 'gps_audit_trail');
+    expect(unnamed.statusCode).toBe(400);
+    expect(unnamed.json().error.details).toEqual([{ path: 'userId', issue: 'Choose a person' }]);
+
+    const first = await report(t.api.manager, 'gps_audit_trail', `&userId=${t.asha.id}&limit=2`);
+    expect(first.statusCode, first.body).toBe(200);
+    const page1 = first.json();
+    expect(page1.rows).toEqual([
+      expect.objectContaining({
+        captured_at: new Date(now - 35 * 60_000).toISOString(),
+        user_name: 'Asha Verma',
+        shift_started_at: new Date(now - 40 * 60_000).toISOString(),
+        latitude: '28.631500',
+        longitude: '77.216700',
+        accuracy: 12,
+        speed_kmh: 18,
+        battery: 81,
+        source: 'With the app open',
+        gap_minutes: null,
+      }),
+      expect.objectContaining({ battery: 80, source: 'In the background', gap_minutes: null }),
+    ]);
+    expect(page1.rows[0].received_at).toEqual(expect.any(String));
+    const second = (
+      await report(
+        t.api.manager,
+        'gps_audit_trail',
+        `&userId=${t.asha.id}&limit=2&cursor=${encodeURIComponent(page1.nextCursor)}`,
+      )
+    ).json();
+    // The silence from 30 to 12 minutes ago is a gap, though it spans two pages.
+    expect(second.rows).toEqual([
+      expect.objectContaining({ battery: 74, gap_minutes: 18 }),
+      expect.objectContaining({ battery: null, speed_kmh: null, gap_minutes: null }),
+    ]);
+    expect(second.nextCursor).toBeNull();
+
+    // Asha has no trail.view: she may not read it, not even her own.
+    const own = await report(t.api.asha, 'gps_audit_trail', `&userId=${t.asha.id}`);
+    expect(own.json().error.code).toBe('FORBIDDEN');
+  });
+
   it('shows the audit log only to those who may view it', async () => {
     const t = await tenant('Audit Report Co');
     expect(

@@ -525,6 +525,7 @@ export {
   TRAIL_GAP_MS,
   TRAIL_TOLERANCE_M,
   trailGaps,
+  gapBefore,
 } from './tracking';
 export type {
   AttendanceRule,
@@ -747,6 +748,7 @@ export {
   REPORT_KEYS,
   REPORT_MODULE,
   REPORT_PERMISSION,
+  REPORT_FOR_ONE_PERSON,
   ReportCell,
   ReportColumn,
   ReportColumnKind,

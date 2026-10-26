@@ -37143,6 +37143,7 @@
           "visit_compliance",
           "coverage_frequency",
           "location_summary",
+          "gps_audit_trail",
           "orders_register",
           "account_statement",
           "audit_log"

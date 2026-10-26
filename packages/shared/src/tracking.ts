@@ -136,6 +136,21 @@ export function trailGaps(
   return gaps;
 }
 
+/**
+ * The silence before a point, in whole minutes, when it is a gap (over 10 minutes since the
+ * shift's previous point, M5); null for the shift's first point or a point sent in time. The GPS
+ * audit trail marks gaps with it as `trailGaps()` counts them (decision D99).
+ */
+export function gapBefore(
+  previous: { shiftId: string; capturedAt: number } | null,
+  point: { shiftId: string; capturedAt: number },
+  gapMs: number = TRAIL_GAP_MS,
+): number | null {
+  if (!previous || previous.shiftId !== point.shiftId) return null;
+  const silence = point.capturedAt - previous.capturedAt;
+  return silence > gapMs ? Math.floor(silence / 60_000) : null;
+}
+
 /** How far `point` lies from the segment `a`–`b`, in metres, on a local flat projection. */
 function offsetMeters(point: GeoPoint, a: GeoPoint, b: GeoPoint): number {
   const scale = Math.cos((a.lat * Math.PI) / 180);
