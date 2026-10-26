@@ -8,6 +8,7 @@ import {
   SUPPORT_ROLE_KEY,
   supportPermissions,
   type TenantPermission,
+  SECOND_FACTOR_PERMISSIONS,
 } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
@@ -104,12 +105,18 @@ export class IamAccess extends AccessResolver {
     if (asRequest && !auth.deviceId && user.mobileOnly) {
       throw new AppError('USE_MOBILE_APP', 'Use the mobile app to continue.');
     }
+    // Changing access is web-only, behind the authenticator (decisions D91 and D101): a phone's
+    // token, which never gave one, carries none of those permissions, wherever it is sent from.
+    const held = (user.permissions as TenantPermission[]).filter(
+      (permission) =>
+        !auth.deviceId || !(SECOND_FACTOR_PERMISSIONS as readonly string[]).includes(permission),
+    );
     return {
       ...auth,
       roleId: user.roleId,
       roleKey: user.roleKey,
       scope: user.scope,
-      permissions: effectivePermissions(user.permissions as TenantPermission[], found.modulesOff),
+      permissions: effectivePermissions(held, found.modulesOff),
       modulesOff: found.modulesOff,
       ...(await this.state(auth.tenantId, standing)),
     };

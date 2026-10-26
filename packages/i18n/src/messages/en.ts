@@ -109,6 +109,27 @@ export const en = {
   'shell.account_menu': 'Your profile and settings',
   'shell.switch_organisation': 'Switch organisation',
   'shell.sign_out': 'Sign out',
+  'shell.security': 'Sign-in security',
+  'security.title': 'Sign-in security',
+  'security.intro': 'How you sign in to the portal.',
+  'security.sms_note':
+    'A code by SMS can be taken by someone who moves your number to a new SIM. An authenticator app on your phone keeps your account safe even then.',
+  'security.authenticator': 'Authenticator app',
+  'security.status_on': 'On',
+  'security.status_off': 'Off',
+  'security.on': 'On: after the SMS code, the portal asks for the code in your authenticator app.',
+  'security.off': 'Off: the portal signs you in with the SMS code alone.',
+  'security.required':
+    'Your role needs an authenticator, so it stays on. If you lose your phone, an admin can reset it.',
+  'security.set_up': 'Set up an authenticator',
+  'security.scan':
+    'Scan this with your authenticator app, or type the key below into it, then enter the code it shows.',
+  'security.turn_on': 'Turn it on',
+  'security.turned_on':
+    'The authenticator is on. The portal will ask for its code each time you sign in.',
+  'security.turn_off': 'Turn it off',
+  'security.turn_off_help': 'Enter a code from the app to turn it off.',
+  'security.turned_off': 'The authenticator is off.',
   'shell.language': 'Language',
   'shell.theme': 'Theme',
   'shell.theme_light': 'Light',

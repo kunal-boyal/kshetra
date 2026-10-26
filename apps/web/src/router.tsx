@@ -34,6 +34,7 @@ import { ImportPage } from './imports/import-page';
 import { ImportsPage } from './imports/imports-page';
 import { AppShell } from './layout/app-shell';
 import { HomePage } from './pages/home';
+import { SecurityPage } from './pages/security';
 import { SignInPage } from './pages/sign-in';
 import { OrgChartPage } from './people/org-chart-page';
 import { PeoplePage } from './people/people-page';
@@ -97,6 +98,11 @@ const app = createRoute({
 });
 
 const home = createRoute({ getParentRoute: () => app, path: '/', component: HomePage });
+const security = createRoute({
+  getParentRoute: () => app,
+  path: '/security',
+  component: SecurityPage,
+});
 
 const people = createRoute({ getParentRoute: () => app, path: '/people', component: PeoplePage });
 const newPerson = createRoute({
@@ -491,6 +497,7 @@ const tree = root.addChildren([
   signIn,
   app.addChildren([
     home,
+    security,
     people,
     newPerson,
     person,

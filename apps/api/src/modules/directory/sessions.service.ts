@@ -8,6 +8,8 @@ import {
   type SecondFactor,
   type SelectTenantResult,
   type Session,
+  sessionExpiresAt,
+  SESSION_LIMITS,
   type SignedIn,
   type TenantSummary,
 } from '@thelamp/shared';
@@ -28,16 +30,25 @@ import { digest, newSecret } from './secrets';
 import { grantOpen, type SupportGrantRow, supportGrantRows } from './support-grants';
 import { SigningKey } from './signing-key';
 
-/** Refresh tokens live 30 days and rotate on every use (M1, rule 6). */
-export const REFRESH_TOKEN_DAYS = 30;
+/** Refresh tokens rotate on every use (M1, rule 6); how long they live is `sessionExpiresAt()`. */
 /** A person in several tenants has five minutes to choose one after the code (M1, rule 4). */
 export const TICKET_SECONDS = 5 * 60;
 
-/** What a sign-in waiting for its authenticator code holds (decision D91). */
+/** What a sign-in waiting for its authenticator code holds (decisions D91 and D101). */
 interface Pending {
   membershipId: string;
   deviceId: string | null;
+  /** It came through the organisation's SSO, whose provider asked for no second factor. */
+  sso?: boolean;
 }
+
+/** Where a session's family began, which its limits count from (decision D101). */
+interface Family {
+  startedAt: Date;
+  sso: boolean;
+}
+
+const fresh = (sso = false): Family => ({ startedAt: new Date(), sso });
 
 const revoked = () => new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
 
@@ -120,6 +131,7 @@ export class SessionsService {
         token.familyId,
         token.deviceId,
         token.secondFactor,
+        { startedAt: token.familyStartedAt, sso: token.sso },
       );
       return { session, tenant: this.summary(membership) };
     });
@@ -160,7 +172,11 @@ export class SessionsService {
       }
       // One app holds one tenant at a time, so the old session ends.
       await this.endFamily(tx, claimed.token.familyId);
-      const session = await this.issue(tx, target, newId(), deviceId, claimed.token.secondFactor);
+      // A new family in the new tenant, still counted from the first sign-in (decision D101).
+      const session = await this.issue(tx, target, newId(), deviceId, claimed.token.secondFactor, {
+        startedAt: claimed.token.familyStartedAt,
+        sso: claimed.token.sso,
+      });
       return { session, target };
     });
     if (result === 'revoked') throw revoked();
@@ -216,9 +232,12 @@ export class SessionsService {
       return { token, grant };
     }
     const [membership] = await activeMemberships(tx, eq(memberships.id, token.membershipId!));
+    const kind = token.deviceId ? 'phone' : token.sso ? 'sso' : 'web';
     if (
       !membership ||
       token.expiresAt.getTime() <= Date.now() ||
+      // Past its absolute limit, however recently used (decision D101).
+      token.familyStartedAt.getTime() + SESSION_LIMITS[kind].absoluteMs <= Date.now() ||
       token.authRevision !== membership.authRevision
     ) {
       await this.endFamily(tx, token.familyId);
@@ -253,28 +272,47 @@ export class SessionsService {
       ...(device ? { device } : {}),
       ...(ip ? { ip } : {}),
     });
-    if (secondFactor && !row.tenantDemo) {
-      // The session waits for the authenticator code, on a ticket of its own (D91).
-      const ticket = newSecret();
-      const pending: Pending = { membershipId: row.membershipId, deviceId: deviceId ?? null };
-      await this.client.redis.set(
-        `second:${digest(ticket)}`,
-        JSON.stringify(pending),
-        'EX',
-        TICKET_SECONDS,
+    const enrolled = await this.enrolled(row.identityId);
+    // On the web, an admin always gives an authenticator code, and so does anyone who set one up
+    // (decisions D91 and D101); phones and demo tenants never do.
+    if (!device && (secondFactor || enrolled) && !row.tenantDemo) {
+      return this.awaitSecondFactor(
+        row,
+        { membershipId: row.membershipId, deviceId: null },
+        enrolled,
       );
-      const [totp] = await this.database.db
-        .select({ enabledAt: totpSecrets.enabledAt })
-        .from(totpSecrets)
-        .where(eq(totpSecrets.identityId, row.identityId));
-      return {
-        status: 'second_factor',
-        ticket,
-        enrolled: Boolean(totp?.enabledAt),
-        tenant: { id: row.tenantId, name: row.tenantName },
-      };
     }
     return this.signedIn(row, await this.issue(this.database.db, row, newId(), deviceId));
+  }
+
+  /** Whether a person has set an authenticator up, as an admin must and anyone may. */
+  private async enrolled(identityId: string): Promise<boolean> {
+    const [totp] = await this.database.db
+      .select({ enabledAt: totpSecrets.enabledAt })
+      .from(totpSecrets)
+      .where(eq(totpSecrets.identityId, identityId));
+    return Boolean(totp?.enabledAt);
+  }
+
+  /** The session waits for the authenticator code, on a ticket of its own (D91). */
+  private async awaitSecondFactor(
+    row: MembershipRow,
+    pending: Pending,
+    enrolled: boolean,
+  ): Promise<SecondFactor> {
+    const ticket = newSecret();
+    await this.client.redis.set(
+      `second:${digest(ticket)}`,
+      JSON.stringify(pending),
+      'EX',
+      TICKET_SECONDS,
+    );
+    return {
+      status: 'second_factor',
+      ticket,
+      enrolled,
+      tenant: { id: row.tenantId, name: row.tenantName },
+    };
   }
 
   /**
@@ -299,15 +337,31 @@ export class SessionsService {
 
   /**
    * Starts a web session for someone their organisation's identity provider vouched for
-   * (decision D91). The provider does its own second factor, so the authenticator isn't asked.
+   * (decisions D91 and D101). Where the provider says it asked for a second factor, ours isn't;
+   * where it doesn't, an admin, or anyone who set an authenticator up, gives our code too.
    */
-  async ssoSignIn(row: MembershipRow, ip: string | undefined): Promise<SignedIn> {
-    await this.cell.admit({
+  async ssoSignIn(
+    row: MembershipRow,
+    ip: string | undefined,
+    providerMfa: boolean,
+  ): Promise<SignedIn | SecondFactor> {
+    const { secondFactor } = await this.cell.admit({
       tenantId: row.tenantId,
       userId: row.userId,
       ...(ip ? { ip } : {}),
     });
-    return this.signedIn(row, await this.issue(this.database.db, row, newId(), null));
+    const enrolled = await this.enrolled(row.identityId);
+    if (!providerMfa && (secondFactor || enrolled) && !row.tenantDemo) {
+      return this.awaitSecondFactor(
+        row,
+        { membershipId: row.membershipId, deviceId: null, sso: true },
+        enrolled,
+      );
+    }
+    return this.signedIn(
+      row,
+      await this.issue(this.database.db, row, newId(), null, providerMfa, fresh(true)),
+    );
   }
 
   /** The sign-in a second-factor ticket holds, while it lasts; the ticket stays unspent. */
@@ -333,7 +387,14 @@ export class SessionsService {
       eq(memberships.id, pending.membershipId),
     );
     if (!membership) throw revoked();
-    const session = await this.issue(this.database.db, membership, newId(), pending.deviceId, true);
+    const session = await this.issue(
+      this.database.db,
+      membership,
+      newId(),
+      pending.deviceId,
+      true,
+      fresh(pending.sso ?? false),
+    );
     return this.signedIn(membership, session);
   }
 
@@ -406,9 +467,13 @@ export class SessionsService {
     familyId: string,
     deviceId: string | null | undefined,
     secondFactor = false,
+    family: Family = fresh(),
   ): Promise<Session> {
     const refreshToken = newSecret();
-    const refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 86_400_000);
+    const kind = deviceId ? 'phone' : family.sso ? 'sso' : 'web';
+    const refreshTokenExpiresAt = new Date(
+      sessionExpiresAt(kind, family.startedAt.getTime(), Date.now()),
+    );
     await db.insert(refreshTokens).values({
       id: newId(),
       membershipId: row.membershipId,
@@ -418,6 +483,8 @@ export class SessionsService {
       authRevision: row.authRevision,
       expiresAt: refreshTokenExpiresAt,
       secondFactor,
+      familyStartedAt: family.startedAt,
+      sso: family.sso,
     });
     const access = await this.keys.sign({
       userId: row.userId,

@@ -97,6 +97,9 @@ export {
   OtpRequestResult,
   OtpVerifyBody,
   OtpVerifyResult,
+  AuthenticatorCodeBody,
+  AuthenticatorConfirmResult,
+  AuthenticatorStatus,
   PhoneInput,
   RECOVERY_CODE,
   RefreshBody,
@@ -901,6 +904,7 @@ export {
   supportStatus,
   type SupportStatus as SupportStatusKey,
 } from './support';
+export { providerUsedMfa, SESSION_LIMITS, type SessionKind, sessionExpiresAt } from './sessions';
 export {
   SupportDecisionBody,
   SupportEntryQuery,

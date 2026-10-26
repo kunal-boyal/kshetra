@@ -2,7 +2,7 @@ import { ApiError, NetworkError } from '@thelamp/api-client';
 import { SETTING_DEFAULTS } from '@thelamp/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { WebClient } from '../client';
@@ -297,6 +297,26 @@ describe('signing in with single sign-on (decision D91)', () => {
       await screen.findByRole('heading', { name: 'Sign in with your organisation' }),
     ).toBeVisible();
     expect(screen.getByText(/Nobody here has that work email/)).toBeVisible();
+  });
+
+  it('asks for the authenticator after SSO when the provider asked for none (D101)', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      `/sign-in?sso=second_factor#ticket=${'s'.repeat(43)}&enrolled=1&tenant=Sunrise+Traders`,
+    );
+    const client = fakeClient(async () => ({}));
+    renderApp(client);
+    expect(await screen.findByLabelText('Authenticator code *')).toBeVisible();
+    // The ticket leaves the address bar at once.
+    expect(window.location.hash).toBe('');
+    expect(window.location.search).toBe('');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Authenticator code *'), '111111');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    await waitFor(() =>
+      expect(client.totpVerify).toHaveBeenLastCalledWith('s'.repeat(43), { code: '111111' }),
+    );
   });
 
   it('says when a vendor support link from the console expired or was used', async () => {

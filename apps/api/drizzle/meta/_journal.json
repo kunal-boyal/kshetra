@@ -505,6 +505,13 @@
       "when": 1793027679399,
       "tag": "0071_odometer",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793041252991,
+      "tag": "0072_session_limits",
+      "breakpoints": true
     }
   ]
 }

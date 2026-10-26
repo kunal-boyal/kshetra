@@ -15,3 +15,23 @@ export function sessionCookie(config: Config, purpose: 'refresh' | 'console') {
     options: { httpOnly: true, sameSite: 'strict' as const, secure, path: '/' },
   };
 }
+
+/**
+ * The cookie that binds an SSO sign-in to the browser that started it (decision D101): a random
+ * value whose digest the sign-in's state holds. SAML's answer arrives as a cross-site POST, which
+ * only a SameSite=None cookie survives, so it is that, and Secure, wherever there is TLS.
+ */
+export function ssoBinderCookie(config: Config, seconds: number) {
+  const secure = config.NODE_ENV === 'production';
+  const name = `${config.PRODUCT_SLUG.replace(/-/g, '_')}_sso`;
+  return {
+    name: secure ? `__Host-${name}` : name,
+    options: {
+      httpOnly: true,
+      sameSite: secure ? ('none' as const) : ('lax' as const),
+      secure,
+      path: '/',
+      maxAge: seconds,
+    },
+  };
+}

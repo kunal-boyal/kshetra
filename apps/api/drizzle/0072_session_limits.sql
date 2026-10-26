@@ -1,0 +1,2 @@
+ALTER TABLE "directory"."refresh_tokens" ADD COLUMN "family_started_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "directory"."refresh_tokens" ADD COLUMN "sso" boolean DEFAULT false NOT NULL;

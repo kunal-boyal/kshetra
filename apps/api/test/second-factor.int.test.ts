@@ -280,3 +280,68 @@ async function staffToken(): Promise<string> {
   });
   return signedIn.json().accessToken;
 }
+
+describe('an authenticator for anyone, and changing access only on the web (D101)', () => {
+  it('lets anyone set one up from their account, which the web then asks for', async () => {
+    const o = await organisation('Opt-in Co');
+    const token = (await world.signIn(o.managerPhone)).accessToken;
+    expect((await asUser('GET', '/auth/v1/authenticator', token)).json()).toEqual({
+      enrolled: false,
+      required: false,
+    });
+    const setUp = await asUser('POST', '/auth/v1/authenticator/setup', token);
+    expect(setUp.statusCode, setUp.body).toBe(200);
+    const { secret } = setUp.json();
+    const wrong = await asUser('POST', '/auth/v1/authenticator/confirm', token, { code: '000000' });
+    expect(wrong.json().error.code).toBe('OTP_INVALID');
+    const confirmed = await asUser('POST', '/auth/v1/authenticator/confirm', token, {
+      code: totpAt(secret, totpStep()),
+    });
+    expect(confirmed.statusCode, confirmed.body).toBe(200);
+    expect(confirmed.json().recoveryCodes).toHaveLength(10);
+
+    // The web now asks for it; a phone still signs straight in.
+    expect(await challenge(o.managerPhone)).toMatchObject({ enrolled: true });
+    expect((await world.verify(o.managerPhone, newDevice())).json().status).toBe('signed_in');
+
+    // Removed with a code from it, the web signs in by SMS code alone again.
+    const removed = await asUser('POST', '/auth/v1/authenticator/remove', token, {
+      code: totpAt(secret, totpStep() + 1),
+    });
+    expect(removed.statusCode, removed.body).toBe(204);
+    expect((await world.verify(o.managerPhone)).json().status).toBe('signed_in');
+
+    // An admin's role needs one, so theirs stays.
+    const admin = (await world.signIn(o.adminPhone)).accessToken;
+    expect((await asUser('GET', '/auth/v1/authenticator', admin)).json()).toEqual({
+      enrolled: true,
+      required: true,
+    });
+    const kept = await asUser('POST', '/auth/v1/authenticator/remove', admin, { code: '123456' });
+    expect(kept.json().error.code).toBe('CONFLICT');
+  });
+
+  it('gives a phone’s token none of the permissions that change access', async () => {
+    const o = await organisation('Phone Admin Co');
+    const phone = (await world.signIn(o.adminPhone, newDevice())).accessToken;
+    const refused = await asUser('POST', '/v1/users', phone, {
+      code: `P-${newId().slice(-6)}`,
+      name: 'From a phone',
+      phone: newPhone(),
+      designation: 'manager',
+    });
+    expect(refused.json().error.code).toBe('FORBIDDEN');
+    expect((await asUser('GET', '/auth/v1/authenticator', phone)).json().error.code).toBe(
+      'FORBIDDEN',
+    );
+    // The same admin on the web, behind the authenticator, may.
+    const web = (await world.signIn(o.adminPhone)).accessToken;
+    const made = await asUser('POST', '/v1/users', web, {
+      code: `W-${newId().slice(-6)}`,
+      name: 'From the web',
+      phone: newPhone(),
+      designation: 'manager',
+    });
+    expect(made.statusCode, made.body).toBe(201);
+  });
+});

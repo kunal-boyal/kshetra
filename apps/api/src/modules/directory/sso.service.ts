@@ -1,7 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { SAML } from '@node-saml/node-saml';
+import { type CacheProvider, SAML, ValidateInResponseTo } from '@node-saml/node-saml';
 import {
   AppError,
+  providerUsedMfa,
+  type SecondFactor,
   type SignedIn,
   type SsoConnectionBody,
   type SsoConnectionResult,
@@ -39,8 +41,41 @@ type Stored =
 interface Pending {
   tenantId: string;
   protocol: 'oidc' | 'saml';
+  /** The digest of the binder the starting browser holds in a cookie (decision D101). */
+  binder: string;
   verifier?: string;
   nonce?: string;
+}
+
+/** A sign-in started: where the browser goes, and the binder it keeps until it comes back. */
+export interface SsoStart {
+  url: string;
+  binder: string;
+}
+
+/** SHA-1 in a SAML response's signature or digest, which is refused before checking (D101). */
+const SHA1 = /Algorithm="[^"]*(?:rsa-sha1|dsa-sha1|#sha1)"/i;
+
+/**
+ * The SAML requests we sent, kept until their response comes back, so `InResponseTo` must name
+ * one and each answers once: a response captured on its way can't be replayed (decision D101).
+ */
+class SamlRequests implements CacheProvider {
+  constructor(private readonly redis: RedisClient) {}
+
+  async saveAsync(key: string, value: string) {
+    const createdAt = Date.now();
+    await this.redis.redis.set(`saml-request:${key}`, value, 'EX', SSO_STATE_SECONDS);
+    return { value, createdAt };
+  }
+
+  async getAsync(key: string) {
+    return this.redis.redis.get(`saml-request:${key}`);
+  }
+
+  async removeAsync(key: string | null) {
+    return key ? this.redis.redis.getdel(`saml-request:${key}`) : null;
+  }
 }
 
 /**
@@ -220,11 +255,16 @@ export class SsoService {
     return row ? `/auth/v1/sso/${row.slug}/start` : null;
   }
 
-  /** Sends the browser to the tenant's identity provider. */
-  async start(slug: string): Promise<string> {
+  /**
+   * Sends the browser to the tenant's identity provider, with a binder for a cookie: the answer
+   * counts only in the browser that started, so nobody can sign a victim's browser into another
+   * account by sending it a sign-in of their own (decision D101).
+   */
+  async start(slug: string): Promise<SsoStart> {
     const { tenantId, settings } = await this.usable(slug);
     const state = newSecret();
-    const pending: Pending = { tenantId, protocol: settings.protocol };
+    const binder = newSecret();
+    const pending: Pending = { tenantId, protocol: settings.protocol, binder: digest(binder) };
     let url: string;
     if (settings.protocol === 'oidc') {
       const configuration = await this.discovery(settings);
@@ -250,19 +290,25 @@ export class SsoService {
       'EX',
       SSO_STATE_SECONDS,
     );
-    return url;
+    return { url, binder };
   }
 
   /** The OIDC provider's answer: exchanges the code and signs the person in. */
-  async oidcCallback(slug: string, url: URL, ip?: string): Promise<SignedIn> {
+  async oidcCallback(
+    slug: string,
+    url: URL,
+    binder: string | undefined,
+    ip?: string,
+  ): Promise<SignedIn | SecondFactor> {
     const state = url.searchParams.get('state');
     if (url.searchParams.get('error')) throw new SsoRefused('refused');
-    const pending = await this.pending(state, 'oidc');
+    const pending = await this.pending(state, 'oidc', binder);
     const { tenantId, settings, domains } = await this.usable(slug);
     if (pending.tenantId !== tenantId || settings.protocol !== 'oidc') {
       throw new SsoRefused('expired');
     }
     let email: string | undefined;
+    let mfa: boolean;
     try {
       const tokens = await oidc.authorizationCodeGrant(await this.discovery(settings), url, {
         pkceCodeVerifier: pending.verifier!,
@@ -270,31 +316,49 @@ export class SsoService {
         expectedNonce: pending.nonce!,
       });
       const claims = tokens.claims();
+      // An address the provider hasn't verified can't name a person here (decision D101).
       if (claims?.email_verified === false) throw new SsoRefused('refused');
       email = typeof claims?.email === 'string' ? claims.email : undefined;
+      mfa = providerUsedMfa({ amr: claims?.amr, acr: claims?.acr });
     } catch (error) {
       if (error instanceof SsoRefused) throw error;
       this.logger.warn(`OIDC sign-in for ${slug} failed: ${(error as Error).message}`);
       throw new SsoRefused('refused');
     }
-    return this.signIn(tenantId, email, domains, ip);
+    return this.signIn(tenantId, email, domains, ip, mfa);
   }
 
   /** The SAML provider's posted response: checks its signature and signs the person in. */
   async samlResponse(
     slug: string,
     body: { SAMLResponse?: string; RelayState?: string },
+    binder: string | undefined,
     ip?: string,
-  ): Promise<SignedIn> {
-    const pending = await this.pending(body.RelayState ?? null, 'saml');
+  ): Promise<SignedIn | SecondFactor> {
+    const pending = await this.pending(body.RelayState ?? null, 'saml', binder);
     const { tenantId, settings, domains } = await this.usable(slug);
     if (pending.tenantId !== tenantId || settings.protocol !== 'saml' || !body.SAMLResponse) {
       throw new SsoRefused('expired');
     }
+    if (SHA1.test(Buffer.from(body.SAMLResponse, 'base64').toString('utf8'))) {
+      this.logger.warn(`SAML sign-in for ${slug} refused: it is signed with SHA-1`);
+      throw new SsoRefused('refused');
+    }
     let email: string | undefined;
+    let mfa: boolean;
     try {
       const { profile } = await this.saml(slug, settings).validatePostResponseAsync({
         SAMLResponse: body.SAMLResponse,
+      });
+      const assertion = profile?.getAssertionXml?.() ?? '';
+      const methods = profile?.['http://schemas.microsoft.com/claims/authnmethodsreferences'];
+      mfa = providerUsedMfa({
+        authnContext: [
+          ...[...assertion.matchAll(/<(?:\w+:)?AuthnContextClassRef>([^<]+)</g)].map(
+            (match) => match[1]!,
+          ),
+          ...(Array.isArray(methods) ? methods.map(String) : methods ? [String(methods)] : []),
+        ],
       });
       const candidates = [
         profile?.email,
@@ -309,7 +373,7 @@ export class SsoService {
       this.logger.warn(`SAML sign-in for ${slug} failed: ${(error as Error).message}`);
       throw new SsoRefused('refused');
     }
-    return this.signIn(tenantId, email, domains, ip);
+    return this.signIn(tenantId, email, domains, ip, mfa);
   }
 
   /** Our SAML service provider metadata, for the identity provider's admin. */
@@ -333,7 +397,8 @@ export class SsoService {
     email: string | undefined,
     domains: string[],
     ip: string | undefined,
-  ): Promise<SignedIn> {
+    mfa: boolean,
+  ): Promise<SignedIn | SecondFactor> {
     const domain = email?.split('@')[1]?.toLowerCase();
     if (!email || !domain || !domains.includes(domain)) throw new SsoRefused('domain');
     const userId = await this.emails.find(tenantId, email);
@@ -344,20 +409,25 @@ export class SsoService {
     );
     if (!membership) throw new SsoRefused('no_person');
     try {
-      return await this.sessions.ssoSignIn(membership, ip);
+      return await this.sessions.ssoSignIn(membership, ip, mfa);
     } catch (error) {
       if (error instanceof AppError) throw new SsoRefused('refused');
       throw error;
     }
   }
 
-  /** A pending sign-in by its state, spent once. */
-  private async pending(state: string | null, protocol: Pending['protocol']): Promise<Pending> {
+  /** A pending sign-in by its state, spent once, in the browser that started it. */
+  private async pending(
+    state: string | null,
+    protocol: Pending['protocol'],
+    binder: string | undefined,
+  ): Promise<Pending> {
     if (!state) throw new SsoRefused('expired');
     const held = await this.client.redis.getdel(`sso:${digest(state)}`);
     if (!held) throw new SsoRefused('expired');
     const pending = JSON.parse(held) as Pending;
     if (pending.protocol !== protocol) throw new SsoRefused('expired');
+    if (!binder || digest(binder) !== pending.binder) throw new SsoRefused('expired');
     return pending;
   }
 
@@ -397,14 +467,19 @@ export class SsoService {
     // In production every call to the identity provider goes to a public address, connected to
     // as checked (decision D101); off production, plain HTTP for a local or test provider.
     const production = this.config.NODE_ENV === 'production';
+    // The ID token's signature is checked against the provider's keys, not taken on TLS alone
+    // (decision D101).
     return oidc.discovery(
       new URL(settings.issuer),
       settings.clientId,
       settings.clientSecret,
       undefined,
       production
-        ? { [oidc.customFetch]: publicFetch as oidc.CustomFetch }
-        : { execute: [oidc.allowInsecureRequests] },
+        ? {
+            [oidc.customFetch]: publicFetch as oidc.CustomFetch,
+            execute: [oidc.enableNonRepudiationChecks],
+          }
+        : { execute: [oidc.allowInsecureRequests, oidc.enableNonRepudiationChecks] },
     );
   }
 
@@ -419,6 +494,9 @@ export class SsoService {
       idpIssuer: settings.idpIssuer,
       wantAssertionsSigned: true,
       wantAuthnResponseSigned: false,
+      validateInResponseTo: ValidateInResponseTo.always,
+      requestIdExpirationPeriodMs: SSO_STATE_SECONDS * 1000,
+      cacheProvider: new SamlRequests(this.client),
     });
   }
 }

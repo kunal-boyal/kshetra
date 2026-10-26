@@ -49,7 +49,11 @@ export class SecondFactorService extends SecondFactors {
   /** A new secret for someone signing in without an authenticator; a later one replaces it. */
   async setup(ticket: string): Promise<TotpSetupResult> {
     const { membership } = await this.sessions.pending(ticket);
-    const identityId = membership.identityId;
+    return this.newSecretFor(membership.identityId);
+  }
+
+  /** A new, unconfirmed secret for a person without an authenticator; a later one replaces it. */
+  private async newSecretFor(identityId: string): Promise<TotpSetupResult> {
     const [existing] = await this.database.db
       .select({ enabledAt: totpSecrets.enabledAt })
       .from(totpSecrets)
@@ -135,6 +139,92 @@ export class SecondFactorService extends SecondFactors {
     await this.client.redis.del(tries);
     const signedIn = await this.sessions.finish(ticket);
     return recoveryCodes ? { ...signedIn, recoveryCodes } : signedIn;
+  }
+
+  /** The identity behind a tenant's member, who is managing their own authenticator. */
+  private async identityOf(tenantId: string, userId: string): Promise<string> {
+    const [membership] = await this.database.db
+      .select({ identityId: memberships.identityId })
+      .from(memberships)
+      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, userId)));
+    if (!membership) throw new AppError('NOT_FOUND', 'This was not found.');
+    return membership.identityId;
+  }
+
+  /** Counts a wrong code against a person's own authenticator settings: five in ten minutes. */
+  private async tried(identityId: string): Promise<void> {
+    const key = `own-totp-tries:${identityId}`;
+    const count = await this.client.redis.incr(key);
+    if (count === 1) await this.client.redis.expire(key, TICKET_SECONDS * 2);
+    if (count > SECOND_FACTOR_TRIES) {
+      throw new AppError('RATE_LIMITED', 'Too many tries. Wait a few minutes and try again.');
+    }
+  }
+
+  /** Whether someone has an authenticator set up (decision D101). */
+  async ownStatus(tenantId: string, userId: string): Promise<boolean> {
+    const identityId = await this.identityOf(tenantId, userId);
+    const [row] = await this.database.db
+      .select({ enabledAt: totpSecrets.enabledAt })
+      .from(totpSecrets)
+      .where(eq(totpSecrets.identityId, identityId));
+    return Boolean(row?.enabledAt);
+  }
+
+  /** Starts setting up someone's own authenticator, from their account (decision D101). */
+  async ownSetup(tenantId: string, userId: string): Promise<TotpSetupResult> {
+    return this.newSecretFor(await this.identityOf(tenantId, userId));
+  }
+
+  /** Confirms a new authenticator with its first code and hands out the recovery codes, once. */
+  async ownConfirm(tenantId: string, userId: string, code: string): Promise<string[]> {
+    const identityId = await this.identityOf(tenantId, userId);
+    await this.tried(identityId);
+    return this.database.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(totpSecrets)
+        .where(eq(totpSecrets.identityId, identityId))
+        .for('update');
+      if (!row) throw new AppError('CONFLICT', 'Start setting up your authenticator first.');
+      if (row.enabledAt) throw new AppError('CONFLICT', 'Your authenticator is set up already.');
+      const step = matchTotp(
+        this.cipher.open(row.secretSealed, where(identityId)),
+        code,
+        row.lastStep,
+      );
+      if (step === null) throw wrongCode();
+      const fresh = Array.from({ length: RECOVERY_CODES }, recoveryCode);
+      await tx
+        .update(totpSecrets)
+        .set({ lastStep: step, enabledAt: new Date(), recoveryHashes: fresh.map(recoveryDigest) })
+        .where(eq(totpSecrets.identityId, identityId));
+      return fresh;
+    });
+  }
+
+  /**
+   * Removes someone's own authenticator, given a current code from it, where their role doesn't
+   * need one; the web then signs them in by SMS code alone again (decision D101).
+   */
+  async ownRemove(tenantId: string, userId: string, code: string): Promise<void> {
+    const identityId = await this.identityOf(tenantId, userId);
+    await this.tried(identityId);
+    await this.database.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(totpSecrets)
+        .where(eq(totpSecrets.identityId, identityId))
+        .for('update');
+      if (!row?.enabledAt) throw new AppError('CONFLICT', 'You have no authenticator set up.');
+      if (
+        matchTotp(this.cipher.open(row.secretSealed, where(identityId)), code, row.lastStep) ===
+        null
+      ) {
+        throw wrongCode();
+      }
+      await tx.delete(totpSecrets).where(eq(totpSecrets.identityId, identityId));
+    });
   }
 
   /** Which of a tenant's people have an authenticator set up, by user. */
