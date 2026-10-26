@@ -137,7 +137,7 @@ Each step is its own pull request, or two (a: the server; b: the screens), in th
 
 | Date | What | Where |
 |---|---|---|
-| 2026-10-26 | Phase 3 step 10c1: the web edge from the ASVS review: the caller's real address behind the load balancer and CloudFront, the Content-Security-Policy and security headers, `__Host-` session cookies, TLS 1.3 or AEAD 1.2 with plain HTTP refused, exports saved as attachments (decision D101) | PR #114 |
+| 2026-10-26 | Phase 3 step 10c1: the web edge from the ASVS review: the caller's real address behind the load balancer and CloudFront, the Content-Security-Policy and security headers, `__Host-` session cookies, TLS 1.3 or AEAD 1.2 with no plain HTTP, exports saved as attachments (decision D101) | PR #114 |
 | 2026-10-26 | Phase 3 step 10b: Semgrep CE with the project's own rules and `pnpm audit` in `pnpm verify` and nightly CI, Dependabot on with a two-week cooldown, and the first scans' findings fixed (GCM tag length, pinned actions, a pinned Maestro, TLS for production media, zod) (decision D100) | PR #113 |
 | 2026-10-26 | Phase 3 step 10a: the exit checks as a test, onboarding a tenant from the console to its first punch-in and charging it end to end; the onboarding runbook rewritten around the console (decision D100) | PR #112, merged as `e864db5` |
 | 2026-10-26 | Phase 3 step 11c: printing the report on screen, an order and an account statement through the browser's dialog, headed with the legal name, filters, scope and time, in a print layout in the design system (decision D99) | PR #111, merged as `4b097f6` |

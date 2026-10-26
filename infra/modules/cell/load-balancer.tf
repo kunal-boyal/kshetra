@@ -40,21 +40,8 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.this.arn
-  port              = 80
-  protocol          = "HTTP"
-  # Apps and API clients call HTTPS only; plain HTTP is refused, never redirected, so a mistyped
-  # client fails loudly instead of sending its token in clear first (decision D101).
-  default_action {
-    type = "fixed-response"
-    fixed_response {
-      content_type = "text/plain"
-      message_body = "Use HTTPS."
-      status_code  = "400"
-    }
-  }
-}
+# No plain HTTP listener: apps and API clients call HTTPS only, and a mistyped client can't even
+# connect, so it never sends its token in clear first (decision D101).
 
 # The WAF review (decision D98): AWS's common, known-bad-input and IP-reputation rules block; the
 # SQL injection rules count until the pilot's sampled requests show free-text notes don't trip

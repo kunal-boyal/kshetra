@@ -1588,7 +1588,7 @@ Account and user search use PostgreSQL trigram indexes on name and code within t
 
 | Area | Control |
 |---|---|
-| Transport | TLS 1.2 or later everywhere (1.3 preferred), forward-secret AEAD suites only at the load balancer, plain HTTP refused rather than redirected; HSTS on web origins (D101) |
+| Transport | TLS 1.2 or later everywhere (1.3 preferred), forward-secret AEAD suites only at the load balancer, no plain-HTTP listener on the API; HSTS on web origins (D101) |
 | Edge | AWS WAF managed rules on load balancers and CloudFront; per-IP throttles on auth endpoints, by the viewer's address at CloudFront and by the caller's at the load balancer for requests that come straight to it; SQL injection rules counted before they block; WAF logs with credentials redacted (D98, docs/runbooks/web-firewall.md) |
 | Identity | OTP limits and enumeration resistance (M1), rotating refresh tokens with reuse detection, revocation checks per request, TOTP for admins, SSO for enterprise tenants |
 | Authorisation | One guard checks permission and scope on every endpoint; services check resource ownership; the cross-tenant contract test runs in CI |
