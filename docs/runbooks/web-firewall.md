@@ -18,6 +18,8 @@ Sign-in attempts are the paths matched by `^/(auth/v1/(otp|totp|oauth|sso|suppor
 
 CloudFront sends every request it passes to the cell with an `X-Origin-Verify` header. Terraform makes the header's value once and keeps it in its state. The load balancer's sign-in rule skips requests that carry it, as CloudFront's own rule has counted them by viewer. The header is redacted from the WAF's logs.
 
+The API reads the caller's address the same way (decision D101). It believes one proxy, the load balancer (`TRUST_PROXY=1`). For requests through CloudFront, a viewer-request function writes the viewer's address in `X-Viewer-Address`, and the API believes that header only beside a valid `X-Origin-Verify`, whose value Terraform hands the API task as `ORIGIN_SECRET` from the `<cell>/origin` secret. If sign-in limits ever count a whole carrier or CloudFront's edges as one caller, check those three.
+
 ## Reading what the rules caught
 
 - **Sampled requests:** in the console, WAF & Shield › Web ACLs › `<environment>-cell1` (region ap-south-1) or `<environment>-edge` (Global). Each rule keeps three hours of samples.

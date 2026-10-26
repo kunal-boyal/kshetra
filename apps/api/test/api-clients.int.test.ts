@@ -218,7 +218,11 @@ describe('API clients (M20, D94)', () => {
 
     const page = await app.inject({ method: 'GET', url: '/v1/docs' });
     expect(page.headers['content-type']).toContain('text/html');
-    expect(page.body).toContain("url: '/v1/openapi.json'");
+    // Its scripts are files, so its policy allows no inline script (decision D101).
+    expect(page.body).not.toMatch(/<script>/);
+    expect(page.headers['content-security-policy']).toContain("script-src 'self'");
+    const start = await app.inject({ method: 'GET', url: '/v1/docs/start.js' });
+    expect(start.body).toContain("url: '/v1/openapi.json'");
     const script = await app.inject({ method: 'GET', url: '/v1/docs/scalar.js' });
     expect(script.statusCode).toBe(200);
     expect(script.headers['content-type']).toContain('text/javascript');

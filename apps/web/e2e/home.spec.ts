@@ -233,3 +233,24 @@ test('/ passes axe in the dark and outdoor themes', async ({ page }) => {
     await expectAccessible(page);
   }
 });
+
+test('runs under its Content-Security-Policy, which nothing on the page breaks (D101)', async ({
+  page,
+}) => {
+  const violations: string[] = [];
+  await page.exposeFunction('reportViolation', (line: string) => violations.push(line));
+  await page.addInitScript(() =>
+    document.addEventListener('securitypolicyviolation', (event) =>
+      (window as unknown as { reportViolation: (line: string) => void }).reportViolation(
+        `${event.violatedDirective} ${event.blockedURI}`,
+      ),
+    ),
+  );
+  await mockSignedIn(page);
+  const reply = await page.goto('/');
+  expect(reply?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Your team of 12 this month' }),
+  ).toBeVisible();
+  expect(violations).toEqual([]);
+});

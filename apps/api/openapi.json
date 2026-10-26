@@ -11129,6 +11129,40 @@
         }
       }
     },
+    "/v1/docs/start.js": {
+      "get": {
+        "operationId": "DocsController.start",
+        "summary": "What starts the reference",
+        "tags": [
+          "Documentation"
+        ],
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success: the file",
+            "content": {
+              "text/javascript": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/expense-claims": {
       "get": {
         "operationId": "ExpensesController.list",

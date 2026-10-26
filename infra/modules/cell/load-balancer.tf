@@ -31,8 +31,9 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.this.arn
   port              = 443
   protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = var.certificate_arn
+  # TLS 1.3, and TLS 1.2 with forward-secret AEAD suites only (decision D101).
+  ssl_policy      = "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
+  certificate_arn = var.certificate_arn
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.api.arn
@@ -43,12 +44,14 @@ resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
   protocol          = "HTTP"
+  # Apps and API clients call HTTPS only; plain HTTP is refused, never redirected, so a mistyped
+  # client fails loudly instead of sending its token in clear first (decision D101).
   default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Use HTTPS."
+      status_code  = "400"
     }
   }
 }

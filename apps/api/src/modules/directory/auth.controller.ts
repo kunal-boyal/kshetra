@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Header, HttpCode, Ip, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { ClientIp } from '../../platform/client-address';
 import {
   AppError,
   JwksResult,
@@ -55,7 +56,7 @@ export class AuthController {
     body: OtpRequestBody,
     response: OtpRequestResult,
   })
-  request(@Body() body: unknown, @Ip() address: string) {
+  request(@Body() body: unknown, @ClientIp() address: string) {
     const { phone } = OtpRequestBody.parse(body);
     return this.otp.request(phone, address);
   }
@@ -71,7 +72,7 @@ export class AuthController {
   @Header('Cache-Control', 'no-store')
   async verify(
     @Body() body: unknown,
-    @Ip() address: string,
+    @ClientIp() address: string,
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
@@ -93,7 +94,7 @@ export class AuthController {
   @Header('Cache-Control', 'no-store')
   async selectTenant(
     @Body() body: unknown,
-    @Ip() address: string,
+    @ClientIp() address: string,
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
@@ -166,7 +167,7 @@ export class AuthController {
   @Header('Cache-Control', 'no-store')
   async switchTenant(
     @Body() body: unknown,
-    @Ip() address: string,
+    @ClientIp() address: string,
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {

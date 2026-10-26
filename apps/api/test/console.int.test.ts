@@ -126,7 +126,7 @@ describe('vendor staff (decision D88)', () => {
     expect(cookie).toMatchObject({
       httpOnly: true,
       sameSite: 'Strict',
-      path: '/platform/v1/session',
+      path: '/',
     });
     expect((await send('GET', '/platform/v1/me', { token })).json()).toMatchObject({ email });
 

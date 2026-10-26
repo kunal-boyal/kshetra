@@ -358,6 +358,7 @@ export class DataRequestsService implements OnModuleInit {
           sha256: facts.sha256,
           userId: claimed.userId,
           ownerType: 'data_request',
+          download: true,
           ownerId: id,
           retentionClass: 'export_file',
         });

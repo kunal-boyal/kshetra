@@ -18,6 +18,14 @@ export interface NewFile {
   ownerId: string | null;
   /** Which retention rule removes it later, such as `import_file`. */
   retentionClass: string;
+  /** A file to save, never to open in the browser: an export or an archive (decision D101). */
+  download?: boolean;
+}
+
+/** A Content-Disposition that saves a file under its own name, in any script. */
+export function attachment(fileName: string): string {
+  const ascii = fileName.replace(/[^\x20-\x7e]|["\\]/g, '_');
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
 
 export interface StoredFile {
@@ -39,7 +47,9 @@ export class MediaService {
     const id = newId();
     const sha256 = createHash('sha256').update(file.bytes).digest('hex');
     const objectKey = `t/${tenantId}/${file.kind}/${id}`;
-    await this.objects.put(objectKey, file.bytes, file.contentType);
+    await this.objects.put(objectKey, file.bytes, file.contentType, {
+      ...(file.download ? { disposition: attachment(file.fileName) } : {}),
+    });
     await tx.insert(media).values({
       id,
       tenantId,
@@ -69,7 +79,9 @@ export class MediaService {
   ): Promise<StoredFile> {
     const id = newId();
     const objectKey = `t/${tenantId}/${file.kind}/${id}`;
-    await this.objects.putFile(objectKey, file.path, file.contentType);
+    await this.objects.putFile(objectKey, file.path, file.contentType, {
+      ...(file.download ? { disposition: attachment(file.fileName) } : {}),
+    });
     await tx.insert(media).values({
       id,
       tenantId,

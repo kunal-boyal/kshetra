@@ -115,6 +115,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Filter records by the caller's data scope with `Scopes` from the IAM module. A record outside the scope answers `OUT_OF_SCOPE`; another tenant's record answers `NOT_FOUND`.
 - Nobody gives access they don't hold (`canGrant` in `@thelamp/shared`), and nobody acts on their own record where a rule forbids it, such as resetting their own device.
 - Never log phone numbers, one-time codes or tokens. A message that must name a number uses `maskPhone()`.
+- The caller's address is `request.clientIp` (`@ClientIp()` in a handler), never `request.ip` or `@Ip()`: `clientAddress()` in `src/platform/client-address.ts` takes the load balancer's one hop (`TRUST_PROXY=1`) and, for CloudFront's requests carrying `ORIGIN_SECRET`, the viewer's address CloudFront writes (decision D101).
 - Integration tests use `test/support.ts`: `startApp()`, `testConfig()`, and `World`. `World` makes tenants from a template and users through the app's own services, and signs people in on the web, or on a phone with `newDevice()`. Fresh numbers and addresses keep tests from sharing rate limits. `OTP_PROVIDER=memory` keeps codes for tests.
 
 ## Platform console (decision D88)
@@ -200,6 +201,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Web code calls the API only through `@thelamp/api-client`, which refreshes tokens and turns error responses into `ApiError` with a spec 11.4 code. Show errors with `errorMessage()` from `apps/web/src/i18n.tsx`.
 - Build screens from `@thelamp/ui-web` and the design system's `ks-*` classes; Tailwind is for layout. Text comes from `useLanguage().t`, in English and Hindi.
 - Each screen gets a Vitest test with Testing Library, and each page a Playwright test that runs axe.
+- The portal's and console's Content-Security-Policy is `infra/modules/web/content-security-policy.json`, which CloudFront, the Vite previews (and so the end-to-end tests) and the demo's Caddy all serve (decision D101). A new external source goes there, never inline script; zod runs `jitless` (`src/zod-setup.ts`, imported first). Session cookies come from `sessionCookie()` (`src/platform/session-cookie.ts` in the API): `__Host-`, Secure and Path=/ in production.
 - Printing (decision D99): wrap what prints in `Printable` from `apps/web/src/print.tsx`, with its title and detail lines, and put a `PrintButton` beside it; the design system's print layout prints that sheet alone, in the Light theme. Never draw a PDF on the server for something the screen shows.
 - Lists use `DataTable` with cursor paging (a Load more button, as the API pages). Actions that can't be undone ask first, in place, with `Confirm`. Field errors come from the API's details by path, with `fieldErrors()` in `apps/web/src/people/shared.tsx`. Writes go through `write()` in `apps/web/src/people/data.ts`, which sends a fresh idempotency key.
 

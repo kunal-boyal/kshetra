@@ -8,6 +8,7 @@ import { AppModule } from './app.module';
 import { LOGO_MAX_BYTES } from '@thelamp/shared';
 import { MAX_FILE_BYTES } from './modules/imports/reading';
 import type { Config } from './config';
+import { clientAddress, trustHops } from './platform/client-address';
 import { ErrorFilter } from './platform/errors';
 import { genReqId } from './platform/request-id';
 import { HealthCounters } from './platform/health-counters';
@@ -29,10 +30,11 @@ export async function createApp(
   config: Config,
   logger: LoggerService | false = createLogger(config),
 ): Promise<NestFastifyApplication> {
+  const hops = config.TRUST_PROXY;
   const adapter = new FastifyAdapter({
     genReqId,
     bodyLimit: 1_048_576,
-    trustProxy: config.TRUST_PROXY,
+    trustProxy: hops === false ? false : trustHops(hops),
   });
   const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(config), adapter, {
     logger,
@@ -79,8 +81,24 @@ export async function createApp(
     { parseAs: 'buffer', bodyLimit: LOGO_MAX_BYTES },
     (_request, body, done) => done(null, body),
   );
+  // Who is calling, once for every handler, rate limit and audit entry (decision D101).
+  fastify.decorateRequest('clientIp', '');
+  fastify.addHook('onRequest', async (request) => {
+    request.clientIp = clientAddress(request, config.ORIGIN_SECRET);
+  });
   fastify.addHook('onSend', async (request, reply) => {
     void reply.header('x-request-id', request.id);
+    // Every answer is for its caller alone, read as the type it says, and never drawn in a
+    // frame (spec 13.1, decision D101); a route that may be cached or shown says so itself.
+    if (!reply.hasHeader('cache-control')) void reply.header('cache-control', 'no-store');
+    void reply.header('x-content-type-options', 'nosniff');
+    if (!reply.hasHeader('content-security-policy')) {
+      void reply.header('content-security-policy', "default-src 'none'; frame-ancestors 'none'");
+    }
+    void reply.header('referrer-policy', 'no-referrer');
+    if (config.NODE_ENV === 'production') {
+      void reply.header('strict-transport-security', 'max-age=63072000; includeSubDomains');
+    }
   });
   const http = new Logger('HTTP');
   const health = app.get(HealthCounters);

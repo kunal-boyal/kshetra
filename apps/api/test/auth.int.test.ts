@@ -350,7 +350,8 @@ describe('the web (spec 13.1)', () => {
     expect(verified.statusCode).toBe(200);
     expect(verified.json().session.refreshToken).toBeUndefined();
     const first = cookieOf(verified);
-    expect(first).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/auth/v1' });
+    // Path=/ for the `__Host-` prefix it takes in production (decision D101).
+    expect(first).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/' });
 
     // A reloaded page refreshes with the cookie, and learns its tenant again.
     const refreshed = await app.inject({
@@ -385,7 +386,7 @@ describe('the web (spec 13.1)', () => {
       value: '',
       httpOnly: true,
       sameSite: 'Strict',
-      path: '/auth/v1',
+      path: '/',
     });
     const after = await app.inject({
       method: 'POST',

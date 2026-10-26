@@ -12,7 +12,7 @@ import {
 import { MediaService } from '../src/modules/media/media.service';
 import { ArchiveInvalid, verifyArchive } from '../src/platform/archive-signer';
 import { Database } from '../src/platform/database';
-import { ObjectStore } from '../src/platform/object-store';
+import { ObjectStore, type MemoryObjectStore } from '../src/platform/object-store';
 import { newAddress, newDevice, newPhone, startApp, World } from './support';
 
 /**
@@ -93,6 +93,12 @@ describe('tenant data export (M21, D95)', () => {
     const ready = (await call('GET', `/v1/data-exports/${id}`, a.token)).json();
     expect(ready).toMatchObject({ status: 'ready', fileName: expect.stringMatching(/\.zip$/) });
     expect(ready.download.url).toBeTruthy();
+    // Saved, never opened in the browser, under its own name (decision D101).
+    expect(
+      (app.get(ObjectStore) as MemoryObjectStore).disposition(
+        new URL(ready.download.url).pathname.slice(1),
+      ),
+    ).toBe(`attachment; filename="${ready.fileName}"; filename*=UTF-8''${ready.fileName}`);
     expect(new Date(ready.download.expiresAt).getTime() - Date.now()).toBeGreaterThan(
       23 * 3_600_000,
     );

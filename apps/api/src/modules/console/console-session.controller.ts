@@ -5,12 +5,12 @@ import {
   Header,
   HttpCode,
   Inject,
-  Ip,
   Param,
   Post,
   Req,
   Res,
 } from '@nestjs/common';
+import { ClientIp } from '../../platform/client-address';
 import {
   AppError,
   CONSOLE_CLIENT,
@@ -30,16 +30,15 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from '../../config';
 import { CurrentStaff, ForStaff, Public, type StaffAccess } from '../../platform/auth';
 import { Contract } from '../../platform/routes';
+import { sessionCookie } from '../../platform/session-cookie';
 import { CONFIG } from '../../platform/tokens';
 import { STAFF_SESSION_HOURS, StaffService } from './staff.service';
-
-const COOKIE_PATH = '/platform/v1/session';
 
 /**
  * Vendor staff in the platform console (module M22, decision D88): setting up from an
  * invitation, signing in with email, password and an authenticator code, the session, and the
- * staff list. As on the web, the refresh token lives in an httpOnly, SameSite=Strict cookie scoped
- * to the session routes, and a request relying on it must carry the console's client header.
+ * staff list. As on the web, the refresh token lives in an httpOnly, SameSite=Strict cookie,
+ * `__Host-` in production (decision D101), and a request relying on it must carry the console's client header.
  */
 @Controller('platform/v1')
 export class ConsoleSessionController {
@@ -49,7 +48,7 @@ export class ConsoleSessionController {
     private readonly staff: StaffService,
     @Inject(CONFIG) private readonly config: Config,
   ) {
-    this.cookieName = `${config.PRODUCT_SLUG.replace(/-/g, '_')}_console`;
+    this.cookieName = sessionCookie(config, 'console').name;
   }
 
   @Public()
@@ -62,7 +61,7 @@ export class ConsoleSessionController {
     response: StaffSetupResult,
   })
   @Header('Cache-Control', 'no-store')
-  setUp(@Body() body: unknown, @Ip() ip: string) {
+  setUp(@Body() body: unknown, @ClientIp() ip: string) {
     const { token, password } = StaffSetupBody.parse(body);
     return this.staff.setUp(token, password, ip);
   }
@@ -76,7 +75,7 @@ export class ConsoleSessionController {
     body: StaffConfirmBody,
     response: StaffResult,
   })
-  confirm(@Body() body: unknown, @Ip() ip: string) {
+  confirm(@Body() body: unknown, @ClientIp() ip: string) {
     const { token, code } = StaffConfirmBody.parse(body);
     return this.staff.confirm(token, code, ip);
   }
@@ -93,7 +92,7 @@ export class ConsoleSessionController {
   @Header('Cache-Control', 'no-store')
   async signIn(
     @Body() body: unknown,
-    @Ip() ip: string,
+    @ClientIp() ip: string,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     const { email, password, code } = StaffSignInBody.parse(body);
@@ -179,13 +178,7 @@ export class ConsoleSessionController {
   }
 
   private cookieOptions() {
-    return {
-      httpOnly: true,
-      sameSite: 'strict' as const,
-      secure: this.config.NODE_ENV === 'production',
-      path: COOKIE_PATH,
-      maxAge: STAFF_SESSION_HOURS * 3600,
-    };
+    return { ...sessionCookie(this.config, 'console').options, maxAge: STAFF_SESSION_HOURS * 3600 };
   }
 }
 

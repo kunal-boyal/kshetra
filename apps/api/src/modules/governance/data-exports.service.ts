@@ -245,6 +245,7 @@ export class DataExportsService implements OnModuleInit {
           sha256: facts.sha256,
           userId: claimed.requestedBy,
           ownerType: 'data_export',
+          download: true,
           ownerId: id,
           retentionClass: 'export_file',
         });

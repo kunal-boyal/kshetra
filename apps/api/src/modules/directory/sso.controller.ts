@@ -5,12 +5,12 @@ import {
   Header,
   HttpCode,
   Inject,
-  Ip,
   Param,
   Post,
   Req,
   Res,
 } from '@nestjs/common';
+import { ClientIp } from '../../platform/client-address';
 import { SsoDiscoverBody, SsoDiscoverResult } from '@thelamp/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -79,7 +79,7 @@ export class SsoController {
   @Header('Cache-Control', 'no-store')
   async oidcCallback(
     @Param() params: unknown,
-    @Ip() address: string,
+    @ClientIp() address: string,
     @Req() request: FastifyRequest,
     @Res() reply: FastifyReply,
   ) {
@@ -107,7 +107,7 @@ export class SsoController {
   async samlResponse(
     @Param() params: unknown,
     @Body() body: unknown,
-    @Ip() address: string,
+    @ClientIp() address: string,
     @Req() request: FastifyRequest,
     @Res() reply: FastifyReply,
   ) {
@@ -131,7 +131,7 @@ export class SsoController {
   })
   async metadata(@Param() params: unknown, @Res({ passthrough: true }) reply: FastifyReply) {
     const xml = await this.sso.metadata(TenantSlugParams.parse(params).tenant);
-    void reply.header('content-type', 'application/samlmetadata+xml');
+    void reply.header('content-type', 'application/samlmetadata+xml; charset=utf-8');
     return xml;
   }
 
