@@ -5,6 +5,7 @@ import {
   type ConsoleTenant,
   type ConsoleTenantQuery,
   type CreateTenantBody,
+  deletionDue,
   type TemplateSummary,
   type TenantStatus,
 } from '@thelamp/shared';
@@ -186,6 +187,8 @@ export class ConsoleTenantsService {
         templateKey: tenants.templateKey,
         templateVersion: tenants.templateVersion,
         trialEndsAt: tenants.trialEndsAt,
+        terminatedAt: tenants.terminatedAt,
+        deletedAt: tenants.deletedAt,
         demo: tenants.demo,
         createdAt: tenants.createdAt,
         cellName: cells.name,
@@ -216,6 +219,10 @@ export class ConsoleTenantsService {
       trialEndsAt: row.trialEndsAt?.toISOString() ?? null,
       demo: row.demo,
       activeUsers: row.activeUsers,
+      terminatedAt: row.terminatedAt?.toISOString() ?? null,
+      deletesAt:
+        row.terminatedAt && !row.deletedAt ? deletionDue(row.terminatedAt).toISOString() : null,
+      deletedAt: row.deletedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
     }));
   }

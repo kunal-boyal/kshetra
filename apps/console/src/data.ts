@@ -33,6 +33,8 @@ import {
   type TenantPlanBody,
   type TenantStatusSchema,
   TenantUsageResult,
+  DataExportList,
+  DataExportResult,
 } from '@thelamp/shared';
 import type { z } from 'zod';
 import { useConsole } from './context';
@@ -61,6 +63,20 @@ export function useTenant(id: string) {
   return useQuery({
     queryKey: ['tenant', id],
     queryFn: () => client.request('GET', `/platform/v1/tenants/${id}`, ConsoleTenant),
+  });
+}
+
+/** A tenant's data exports, read again every few seconds while one is being prepared. */
+export function useTenantExports(id: string, enabled: boolean) {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['tenant-exports', id],
+    enabled,
+    queryFn: () => client.request('GET', `/platform/v1/tenants/${id}/data-exports`, DataExportList),
+    refetchInterval: (query) =>
+      query.state.data?.items.some((item) => item.status === 'queued' || item.status === 'running')
+        ? 5000
+        : false,
   });
 }
 
@@ -216,6 +232,34 @@ export function useConsoleMutations() {
       mutationFn: (id: string) =>
         client.request('POST', `/platform/v1/tenants/${id}/reactivate`, ConsoleTenant),
       onSuccess: () => refresh(['tenants', 'tenant']),
+    }),
+    terminate: useMutation({
+      mutationFn: ({
+        id,
+        reason,
+        confirmSlug,
+      }: {
+        id: string;
+        reason: string;
+        confirmSlug: string;
+      }) =>
+        client.request('POST', `/platform/v1/tenants/${id}/terminate`, ConsoleTenant, {
+          reason,
+          confirmSlug,
+        }),
+      onSuccess: () => refresh(['tenants', 'tenant', 'tenant-exports']),
+    }),
+    undoTermination: useMutation({
+      mutationFn: (id: string) =>
+        client.request('POST', `/platform/v1/tenants/${id}/undo-termination`, ConsoleTenant),
+      onSuccess: () => refresh(['tenants', 'tenant']),
+    }),
+    requestExport: useMutation({
+      mutationFn: ({ id, exportId }: { id: string; exportId: string }) =>
+        client.request('POST', `/platform/v1/tenants/${id}/data-exports`, DataExportResult, {
+          id: exportId,
+        }),
+      onSuccess: () => refresh(['tenant-exports']),
     }),
     createPlan: useMutation({
       mutationFn: (body: z.input<typeof CreatePlanBody>) =>

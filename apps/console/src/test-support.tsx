@@ -39,6 +39,9 @@ export const TENANT = {
   trialEndsAt: '2026-11-23T10:00:00.000Z',
   demo: false,
   activeUsers: 12,
+  terminatedAt: null,
+  deletesAt: null,
+  deletedAt: null,
   createdAt: '2026-10-24T10:00:00.000Z',
 };
 

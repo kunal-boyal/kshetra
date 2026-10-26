@@ -180,7 +180,7 @@ export class MediaService {
    * Removes every object a tenant's files are kept under, originals and derived copies, as a
    * purge of the tenant does (decision D95). The rows go with the rest of the tenant's.
    */
-  async removeAllObjects(tx: TenantTx, tenantId: string): Promise<void> {
+  async removeAllObjects(tx: TenantTx, tenantId: string): Promise<number> {
     const rows = await tx
       .select({ objectKey: media.objectKey, derivatives: media.derivatives })
       .from(media)
@@ -190,6 +190,7 @@ export class MediaService {
         await this.objects.delete(key);
       }
     }
+    return rows.length;
   }
 
   /** Where a stored file is in the object store, to link to it; null for nobody's. */

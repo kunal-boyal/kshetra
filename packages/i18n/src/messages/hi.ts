@@ -3503,4 +3503,24 @@ export const hi: Record<MessageKey, Message> = {
   'data_export.key_id': 'कुंजी ID',
   'data_export.public_key': 'सार्वजनिक कुंजी',
   'data_export.sha256': 'संग्रह का SHA-256',
+  'console.termination_title': 'समाप्ति',
+  'console.termination_intro':
+    'समाप्त करने से {name} हमेशा के लिए बंद हो जाता है। उसके सारे डेटा का अंतिम एक्सपोर्ट अभी तैयार होता है, ग्राहक को भेजने के लिए, और 30 दिन बाद उसका डेटा हटा दिया जाता है। उसके इनवॉइस रखे जाते हैं।',
+  'console.terminate': 'समाप्त करें',
+  'console.terminate_question':
+    '{name} समाप्त करें? उसका डेटा {date} को हटा दिया जाएगा, जब तक आप उससे पहले इसे वापस न लें।',
+  'console.terminate_reason': 'क्यों',
+  'console.terminate_slug': 'पुष्टि के लिए {slug} लिखें',
+  'console.terminated_on': '{date} को समाप्त किया गया। उसका डेटा {deletes} को हटाया जाएगा।',
+  'console.deleted_on': 'उसका डेटा {date} को हटा दिया गया। उसके इनवॉइस रखे गए हैं।',
+  'console.final_exports': 'ग्राहक के लिए एक्सपोर्ट',
+  'console.export_by': '{time}, {name} ने माँगा',
+  'console.no_exports': 'अभी कोई एक्सपोर्ट नहीं है।',
+  'console.copy_export_link': 'डाउनलोड लिंक कॉपी करें',
+  'console.link_label': 'डाउनलोड लिंक',
+  'console.link_copied': 'कॉपी हो गया। लिंक 24 घंटे चलता है; इसे ग्राहक को भेजें।',
+  'console.export_again': 'एक और एक्सपोर्ट तैयार करें',
+  'console.undo_termination': 'समाप्ति वापस लें',
+  'console.undo_question':
+    '{name} की समाप्ति वापस लें? यह फिर से निलंबित हो जाएगा, और कुछ नहीं हटेगा।',
 };

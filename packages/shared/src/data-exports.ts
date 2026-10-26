@@ -72,3 +72,11 @@ export function archiveKeyId(publicKeySha256Hex: string): string {
 export function dataExportExpiry(finishedAt: Date): Date {
   return new Date(finishedAt.getTime() + DATA_EXPORT_KEEP_DAYS * 86_400_000);
 }
+
+/** How long a terminated tenant's data is kept, for its final export, before it is deleted. */
+export const TERMINATION_KEEP_DAYS = 30;
+
+/** When a tenant terminated at `terminatedAt` has its data deleted. */
+export function deletionDue(terminatedAt: Date): Date {
+  return new Date(terminatedAt.getTime() + TERMINATION_KEEP_DAYS * 86_400_000);
+}

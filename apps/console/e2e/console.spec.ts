@@ -32,6 +32,9 @@ const TENANT = {
   trialEndsAt: '2026-11-23T10:00:00.000Z',
   demo: false,
   activeUsers: 12,
+  terminatedAt: null,
+  deletesAt: null,
+  deletedAt: null,
   createdAt: '2026-10-24T10:00:00.000Z',
 };
 
@@ -456,6 +459,62 @@ test('changing a tenant’s plan passes axe, with its usage beside it', async ({
   await page.getByRole('button', { name: 'Change the plan' }).click();
   await page.getByLabel('People active at once').selectOption('own');
   await expect(page.getByLabel(/^People/).last()).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('terminating a suspended tenant asks for its slug, accessibly', async ({ page }) => {
+  await mockApi(page, { signedIn: true });
+  await page.route(`**/platform/v1/tenants/${TENANT.id}`, (route) =>
+    route.fulfill({ json: { ...TENANT, status: 'suspended' } }),
+  );
+  await page.goto(`/tenants/${TENANT.id}`);
+  const card = page.getByRole('region', { name: 'Termination' });
+  await card.getByRole('button', { name: 'Terminate' }).click();
+  await expect(card.getByLabel('Type sunrise-agro to confirm')).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('a terminated tenant’s exports for the customer pass axe', async ({ page }) => {
+  await mockApi(page, { signedIn: true });
+  await page.route(`**/platform/v1/tenants/${TENANT.id}`, (route) =>
+    route.fulfill({
+      json: {
+        ...TENANT,
+        status: 'terminated',
+        terminatedAt: '2026-10-26T05:00:00.000Z',
+        deletesAt: '2026-11-25T05:00:00.000Z',
+      },
+    }),
+  );
+  await page.route(`**/platform/v1/tenants/${TENANT.id}/data-exports`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: '01a10000-0000-7000-8000-0000000000f5',
+            status: 'ready',
+            requestedBy: { id: null, name: 'Ravi Shah' },
+            fileName: 'data-export-2026-10-26.zip',
+            bytes: 52428800,
+            sha256: '9f2c4e1a7b3d5f6e8a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f',
+            tables: 84,
+            rows: 120431,
+            files: 312,
+            keyId: '0123456789abcdef',
+            error: null,
+            createdAt: '2026-10-26T05:00:00.000Z',
+            finishedAt: '2026-10-26T05:04:00.000Z',
+            expiresAt: '2099-11-02T05:04:00.000Z',
+            download: null,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto(`/tenants/${TENANT.id}`);
+  const card = page.getByRole('region', { name: 'Termination' });
+  await expect(card.getByText(/Its data is deleted on 25 Nov 2026/)).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Copy a download link' })).toBeVisible();
   await expectAccessible(page);
 });
 

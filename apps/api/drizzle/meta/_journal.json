@@ -477,6 +477,13 @@
       "when": 1792998714162,
       "tag": "0067_tenant_move_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793001148604,
+      "tag": "0068_tenant_termination",
+      "breakpoints": true
     }
   ]
 }
