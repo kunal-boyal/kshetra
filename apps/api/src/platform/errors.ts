@@ -16,6 +16,7 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 import { reportError } from './error-reports';
+import { SECURITY_CODES, type SecurityLog } from './security-log';
 
 const MESSAGES: Partial<Record<ErrorCode, string>> = {
   VALIDATION: 'Some of the request is not valid.',
@@ -97,6 +98,8 @@ export function toErrorResponse(
 export class ErrorFilter implements ExceptionFilter {
   private readonly logger = new Logger('HTTP');
 
+  constructor(private readonly security?: SecurityLog) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
     const request = http.getRequest<FastifyRequest>();
@@ -111,6 +114,10 @@ export class ErrorFilter implements ExceptionFilter {
         route: request.routeOptions?.url,
         tenant: request.access?.tenantId,
       });
+    }
+    // Every refusal by a security control is a security event (ASVS V16.3, decision D101).
+    if (SECURITY_CODES.has(body.error.code)) {
+      this.security?.record({ event: 'refused', code: body.error.code });
     }
     if (headers) void reply.headers(headers);
     void reply.status(status).send(body);

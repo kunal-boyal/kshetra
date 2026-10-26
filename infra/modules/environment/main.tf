@@ -175,6 +175,7 @@ module "deploy" {
   ecr_repository_arn       = module.ecr.repository_arn
   cluster_arn              = module.cell.cluster_arn
   task_role_arns           = module.cell.task_role_arns
+  log_group_arns           = module.cell.one_off_log_group_arns
   web_bucket_arn           = module.web.bucket_arn
   web_distribution_arn     = module.web.distribution_arn
   console_bucket_arn       = one(module.console[*].bucket_arn)

@@ -164,6 +164,17 @@ export class Database implements OnModuleDestroy {
   }
 
   /**
+   * Runs `task` once `tx` commits, or at once when `tx` isn't one `forTenant` opened, such as a
+   * test's own transaction. For what must never be done for a change that rolled back, such as
+   * mirroring an audit entry to the logs (decision D101).
+   */
+  whenCommitted(tx: TenantTx, task: () => void): void {
+    const tasks = this.afterCommitTasks.get(tx);
+    if (tasks) tasks.push(async () => task());
+    else task();
+  }
+
+  /**
    * Runs `work` in a savepoint of a transaction `forTenant` opened, so a failure undoes only
    * `work`. Its after-commit tasks join the transaction's once the savepoint is released.
    */

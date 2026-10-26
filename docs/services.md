@@ -33,7 +33,7 @@ The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderab
 | Application Load Balancer, ACM, WAF | HTTPS entry point, certificates and web firewall |
 | Secrets Manager, KMS | Holds secrets, one JSON secret per cell, and the keys for encrypted columns, outside the code |
 | IAM with GitHub's OIDC | The deploy role GitHub Actions takes, so no AWS keys are stored in GitHub |
-| CloudWatch, OpenTelemetry collector | Logs, alarms and traces |
+| CloudWatch, OpenTelemetry collector | Logs, alarms and traces. The cell's logs, security events among them, are encrypted under a KMS key of the cell's own and kept 180 days (decision D101) |
 | VPC, NAT gateway, VPC endpoints | The private network the services run in |
 
 **Cost:** check in the AWS Pricing Calculator before committing (spec 14.2).

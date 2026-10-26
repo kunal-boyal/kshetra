@@ -16,3 +16,9 @@ export function maskPhone(e164: string): string {
     ? '•••'
     : `${e164.slice(0, 3)}${'•'.repeat(e164.length - 8)}${e164.slice(-5)}`;
 }
+
+/** `meera@vendor.example` → `m…@vendor.example`: an address as logs may show it. */
+export function maskEmail(address: string): string {
+  const [name = '', domain = ''] = address.split('@');
+  return `${name.slice(0, 1)}…@${domain}`;
+}

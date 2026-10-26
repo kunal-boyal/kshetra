@@ -54,6 +54,11 @@ variable "console_distribution_arn" {
   default = null
 }
 
+variable "log_group_arns" {
+  type        = list(string)
+  description = "The log groups a deploy may read: the cell's migrate and bootstrap tasks'"
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
@@ -138,7 +143,11 @@ resource "aws_iam_role_policy" "deploy" {
         Action   = ["cloudfront:CreateInvalidation"]
         Resource = compact([var.web_distribution_arn, var.console_distribution_arn])
       },
-      { Effect = "Allow", Action = ["logs:GetLogEvents", "logs:FilterLogEvents"], Resource = "*" },
+      {
+        Effect   = "Allow"
+        Action   = ["logs:GetLogEvents", "logs:FilterLogEvents"]
+        Resource = flatten([for arn in var.log_group_arns : [arn, "${arn}:*"]])
+      },
       { Effect = "Allow", Action = ["cloudwatch:DescribeAlarms"], Resource = "*" },
     ]
   })

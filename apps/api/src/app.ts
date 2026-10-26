@@ -10,6 +10,7 @@ import { MAX_FILE_BYTES } from './modules/imports/reading';
 import type { Config } from './config';
 import { clientAddress, trustHops } from './platform/client-address';
 import { ErrorFilter } from './platform/errors';
+import { callerOf, SecurityLog, withRequest } from './platform/security-log';
 import { genReqId } from './platform/request-id';
 import { HealthCounters } from './platform/health-counters';
 
@@ -39,7 +40,7 @@ export async function createApp(
   const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(config), adapter, {
     logger,
   });
-  app.useGlobalFilters(new ErrorFilter());
+  app.useGlobalFilters(new ErrorFilter(app.get(SecurityLog)));
   app.enableShutdownHooks();
   // The web's refresh token travels in a cookie (spec 13.1).
   await app.register(fastifyCookie);
@@ -83,8 +84,10 @@ export async function createApp(
   );
   // Who is calling, once for every handler, rate limit and audit entry (decision D101).
   fastify.decorateRequest('clientIp', '');
-  fastify.addHook('onRequest', async (request) => {
+  fastify.addHook('onRequest', (request, _reply, done) => {
     request.clientIp = clientAddress(request, config.ORIGIN_SECRET);
+    // Security events logged while serving it name the request (decision D101).
+    withRequest(request, done);
   });
   fastify.addHook('onSend', async (request, reply) => {
     void reply.header('x-request-id', request.id);
@@ -106,12 +109,15 @@ export async function createApp(
     // Each answer counts toward the cell's health, server errors as errors (decision D93).
     health.request(reply.statusCode);
     // The path only: query strings can carry tokens or signed URLs, which never go in logs (spec 13.1).
+    // The tenant, caller and address say who asked (spec 13.1, ASVS V16.2.1, decision D101).
     http.log({
       requestId: request.id,
       method: request.method,
       path: request.url.split('?')[0],
       status: reply.statusCode,
       ms: Math.round(reply.elapsedTime),
+      ip: request.clientIp,
+      ...callerOf(request),
     });
   });
   return app;

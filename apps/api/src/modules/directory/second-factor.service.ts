@@ -8,6 +8,7 @@ import { ColumnCipher } from '../../platform/column-cipher';
 import { hashPassword, RECOVERY_CODE_COST, verifyPassword } from '../../platform/passwords';
 import { SecondFactors } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
+import { SecurityLog } from '../../platform/security-log';
 import { CONFIG } from '../../platform/tokens';
 import { matchTotp, newTotpSecret, otpauthUri, toBase32 } from '../../platform/totp';
 import { DirectoryDatabase } from './directory.database';
@@ -65,6 +66,7 @@ export class SecondFactorService extends SecondFactors {
     private readonly sessions: SessionsService,
     private readonly cipher: ColumnCipher,
     private readonly client: RedisClient,
+    private readonly security: SecurityLog,
     @Inject(CONFIG) private readonly config: Config,
   ) {
     super();
@@ -115,10 +117,21 @@ export class SecondFactorService extends SecondFactors {
     answer: { code?: string | undefined; recoveryCode?: string | undefined },
   ): Promise<TotpVerifyResult> {
     const { membership } = await this.sessions.pending(ticket);
+    const used = answer.code ? 'authenticator' : 'recovery_code';
+    const failed = (reason: string) =>
+      this.security.record({
+        event: 'sign_in_failed',
+        plane: 'directory',
+        tenantId: membership.tenantId,
+        actor: `user:${membership.userId}`,
+        method: used,
+        reason,
+      });
     const tries = `second-tries:${digest(ticket)}`;
     const count = await this.client.redis.incr(tries);
     if (count === 1) await this.client.redis.expire(tries, TICKET_SECONDS);
     if (count > SECOND_FACTOR_TRIES) {
+      failed('too_many_tries');
       await this.client.redis.del(`second:${digest(ticket)}`);
       throw new AppError('OTP_EXPIRED', 'Too many tries. Request a new code to sign in again.');
     }
@@ -136,7 +149,10 @@ export class SecondFactorService extends SecondFactors {
           answer.code,
           row.lastStep,
         );
-        if (step === null) throw wrongCode();
+        if (step === null) {
+          failed('wrong_code');
+          throw wrongCode();
+        }
         const fresh = row.enabledAt ? null : await newRecoveryCodes();
         await tx
           .update(totpSecrets)
@@ -151,6 +167,7 @@ export class SecondFactorService extends SecondFactors {
         ? await matchingRecoveryHash(answer.recoveryCode ?? '', row.recoveryHashes)
         : undefined;
       if (!hash) {
+        failed('wrong_recovery_code');
         throw new AppError(
           'OTP_INVALID',
           'This recovery code is not one of yours, or it was used already.',
@@ -163,7 +180,7 @@ export class SecondFactorService extends SecondFactors {
       return null;
     });
     await this.client.redis.del(tries);
-    const signedIn = await this.sessions.finish(ticket);
+    const signedIn = await this.sessions.finish(ticket, used);
     return recoveryCodes ? { ...signedIn, recoveryCodes } : signedIn;
   }
 

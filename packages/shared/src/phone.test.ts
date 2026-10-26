@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { maskPhone, normalisePhone } from './phone';
+import { maskEmail, maskPhone, normalisePhone } from './phone';
 
 describe('normalisePhone', () => {
   it('turns Indian numbers into E.164, however they are written', () => {
@@ -28,5 +28,12 @@ describe('normalisePhone', () => {
 describe('maskPhone', () => {
   it('hides all but the country code and the last five digits', () => {
     expect(maskPhone('+919876543210')).toBe('+91•••••43210');
+  });
+});
+
+describe('maskEmail', () => {
+  it('keeps the first letter and the domain only', () => {
+    expect(maskEmail('meera.iyer@vendor.example')).toBe('m…@vendor.example');
+    expect(maskEmail('not an address')).toBe('n…@');
   });
 });

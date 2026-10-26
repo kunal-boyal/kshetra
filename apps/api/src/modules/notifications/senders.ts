@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { maskPhone } from '@thelamp/shared';
+import { maskEmail, maskPhone } from '@thelamp/shared';
 import { createTransport, type Transporter } from 'nodemailer';
 import type { Config } from '../../config';
 import { type Msg91Settings, msg91Settings, sendFlow } from '../../platform/msg91';
@@ -76,12 +76,6 @@ export abstract class EmailSender {
 /** A push token as logs may show it: its first few characters. */
 export function maskToken(token: string): string {
   return `${token.slice(0, 22)}…`;
-}
-
-/** An address as logs may show it: its first letter and its domain. */
-export function maskEmail(address: string): string {
-  const [name = '', domain = ''] = address.split('@');
-  return `${name.slice(0, 1)}…@${domain}`;
 }
 
 /** Expo's push service (decision D58): Android through the tenant's Firebase project, iPhones through APNs. */

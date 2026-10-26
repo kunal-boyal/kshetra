@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { newId } from '@thelamp/shared';
 import { platformAudit } from '../../db/schema/directory';
 import type { StaffAccess } from '../../platform/auth';
-import type { DirectoryTx } from './directory.database';
+import { SecurityLog } from '../../platform/security-log';
+import { DirectoryDatabase, type DirectoryTx } from './directory.database';
 
 /**
  * What vendor staff did in the console (spec 13.2, decision D88), written in the transaction of
@@ -11,6 +12,11 @@ import type { DirectoryTx } from './directory.database';
  */
 @Injectable()
 export class PlatformAudit {
+  constructor(
+    private readonly database: DirectoryDatabase,
+    private readonly security: SecurityLog,
+  ) {}
+
   async record(
     tx: DirectoryTx,
     by: StaffAccess | null,
@@ -29,5 +35,15 @@ export class PlatformAudit {
       detail,
       ip: ip ?? by?.ip ?? null,
     });
+    // A copy outside the database, without the detail, once the change commits (decision D101).
+    this.database.whenCommitted(tx, () =>
+      this.security.record({
+        event: 'audit',
+        plane: 'directory',
+        actor: by ? `staff:${by.staffId}` : 'system',
+        action,
+        target: `${targetType}:${targetId}`,
+      }),
+    );
   }
 }

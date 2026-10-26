@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   AppError,
   type InviteStaffBody,
+  maskEmail,
   newId,
   passwordWords,
   passwordWordsIssue,
@@ -18,6 +19,7 @@ import { platformSessions, platformUsers } from '../../db/schema/directory';
 import { type StaffAccess, StaffResolver } from '../../platform/auth';
 import { ColumnCipher } from '../../platform/column-cipher';
 import { type RateLimit, RateLimiter } from '../../platform/rate-limit';
+import { SecurityLog } from '../../platform/security-log';
 import { CONFIG } from '../../platform/tokens';
 import { DirectoryDatabase, type DirectoryTx } from '../directory/directory.database';
 import { digest, newSecret } from '../directory/secrets';
@@ -69,6 +71,7 @@ export class StaffService extends StaffResolver {
     private readonly limiter: RateLimiter,
     private readonly audit: PlatformAudit,
     private readonly breached: BreachedPasswords,
+    private readonly security: SecurityLog,
     @Inject(CONFIG) private readonly config: Config,
   ) {
     super();
@@ -203,8 +206,18 @@ export class StaffService extends StaffResolver {
         .from(platformUsers)
         .where(sql`lower(${platformUsers.email}) = lower(${email})`)
         .for('update');
-      const step = await this.attempt(tx, row, password, code);
-      if (!row || step === null) return null;
+      const judged = await this.attempt(tx, row, password, code);
+      if (!row || 'refused' in judged) {
+        this.security.record({
+          event: 'sign_in_failed',
+          plane: 'directory',
+          method: 'password',
+          subject: maskEmail(email),
+          reason: 'refused' in judged ? judged.refused : 'unknown_email',
+        });
+        return null;
+      }
+      const { step } = judged;
       // A hash made at an older cost is made again now, while the password is at hand.
       const rehash =
         row.passwordHash && needsRehash(row.passwordHash)
@@ -216,6 +229,13 @@ export class StaffService extends StaffResolver {
         .where(eq(platformUsers.id, row.id))
         .returning();
       await this.audit.record(tx, null, 'staff.signed_in', 'platform_user', row.id, {}, ip);
+      this.security.record({
+        event: 'signed_in',
+        plane: 'directory',
+        actor: `staff:${row.id}`,
+        method: 'password',
+        factors: ['password', 'authenticator'],
+      });
       return this.issue(tx, saved!, newId());
     });
     if (!signedIn) throw refused();
@@ -245,8 +265,17 @@ export class StaffService extends StaffResolver {
         .from(platformUsers)
         .where(eq(platformUsers.id, staff.staffId))
         .for('update');
-      const step = await this.attempt(tx, row, body.currentPassword, body.code);
-      if (!row || step === null) return 'wrong' as const;
+      const judged = await this.attempt(tx, row, body.currentPassword, body.code);
+      if (!row || 'refused' in judged) {
+        this.security.record({
+          event: 'reauthentication_failed',
+          plane: 'directory',
+          method: 'password',
+          reason: 'refused' in judged ? judged.refused : 'unknown_staff',
+        });
+        return 'wrong' as const;
+      }
+      const { step } = judged;
       if (body.newPassword === body.currentPassword) return 'same' as const;
       const [saved] = await tx
         .update(platformUsers)
@@ -322,6 +351,14 @@ export class StaffService extends StaffResolver {
         .where(eq(platformSessions.tokenHash, digest(refreshToken)))
         .for('update');
       if (!token) return null;
+      if (token.revokedAt) {
+        // Only a copy is presented twice (decision D101).
+        this.security.record({
+          event: 'session_reused',
+          plane: 'directory',
+          actor: `staff:${token.platformUserId}`,
+        });
+      }
       const [row] = await tx
         .select()
         .from(platformUsers)
@@ -460,7 +497,7 @@ export class StaffService extends StaffResolver {
 
   /**
    * Judges a sign-in attempt on a locked row: the step of a good code after a good password, or
-   * null, counting the wrong try. An unknown email costs as much as a known one, and a locked
+   * why it was refused, counting the wrong try. An unknown email costs as much as a known one, and a locked
    * account answers as a wrong try does, without counting it.
    */
   private async attempt(
@@ -468,10 +505,11 @@ export class StaffService extends StaffResolver {
     row: StaffRow | undefined,
     password: string,
     code: string,
-  ): Promise<number | null> {
+  ): Promise<{ step: number } | { refused: string }> {
     const passwordOk = await verifyPassword(password, row?.passwordHash ?? DECOY_HASH);
-    if (!row || row.status !== 'active' || !row.totpSecret) return null;
-    if (row.lockedUntil && row.lockedUntil.getTime() > Date.now()) return null;
+    if (!row) return { refused: 'unknown_email' };
+    if (row.status !== 'active' || !row.totpSecret) return { refused: `account_${row.status}` };
+    if (row.lockedUntil && row.lockedUntil.getTime() > Date.now()) return { refused: 'locked' };
     const step = passwordOk
       ? matchTotp(this.cipher.open(row.totpSecret, this.where(row.id)), code, row.totpLastStep)
       : null;
@@ -483,7 +521,9 @@ export class StaffService extends StaffResolver {
         lockedUntil: failures >= LOCK.after ? new Date(Date.now() + LOCK.minutes * 60_000) : null,
       })
       .where(eq(platformUsers.id, row.id));
-    return step;
+    if (step !== null) return { step };
+    const reason = passwordOk ? 'wrong_code' : 'wrong_password';
+    return { refused: failures >= LOCK.after ? `${reason}_now_locked` : reason };
   }
 
   /**

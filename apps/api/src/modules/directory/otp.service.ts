@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   AppError,
   type DeviceInfo,
+  maskPhone,
   newId,
   normalisePhone,
   type OtpRequestResult,
@@ -11,6 +12,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { identities, otpChallenges, tenants } from '../../db/schema/directory';
 import { type RateLimit, RateLimiter } from '../../platform/rate-limit';
+import { SecurityLog } from '../../platform/security-log';
 import { CONFIG } from '../../platform/tokens';
 import { DirectoryDatabase } from './directory.database';
 import { activeMemberships } from './memberships';
@@ -53,6 +55,7 @@ export class OtpService {
     private readonly limiter: RateLimiter,
     private readonly sender: OtpSender,
     private readonly sessions: SessionsService,
+    private readonly security: SecurityLog,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -107,8 +110,21 @@ export class OtpService {
   ): Promise<OtpVerifyResult> {
     const phone = parsePhone(rawPhone);
     await this.limiter.hit(OTP_LIMITS.verificationsPerAddress, address);
-    await this.limiter.check(OTP_LIMITS.wrongCodesPerNumberHour, phone);
-    await this.limiter.check(OTP_LIMITS.wrongCodesPerNumberDay, phone);
+    const failed = (reason: string) =>
+      this.security.record({
+        event: 'sign_in_failed',
+        plane: 'directory',
+        method: 'sms_code',
+        subject: maskPhone(phone),
+        reason,
+      });
+    try {
+      await this.limiter.check(OTP_LIMITS.wrongCodesPerNumberHour, phone);
+      await this.limiter.check(OTP_LIMITS.wrongCodesPerNumberDay, phone);
+    } catch (error) {
+      failed('wrong_codes_capped');
+      throw error;
+    }
 
     // The outcome is decided inside the transaction and thrown after it commits, so a wrong
     // attempt is counted even though the request fails.
@@ -146,6 +162,15 @@ export class OtpService {
       // signing in (decision D101).
       await this.limiter.hit(OTP_LIMITS.wrongCodesPerNumberHour, phone).catch(() => undefined);
       await this.limiter.hit(OTP_LIMITS.wrongCodesPerNumberDay, phone).catch(() => undefined);
+    }
+    if (outcome !== 'verified') {
+      failed(
+        outcome === 'invalid'
+          ? 'wrong_code'
+          : outcome === 'wrong-expired'
+            ? 'wrong_code_last_try'
+            : 'no_live_code',
+      );
     }
     if (outcome === 'expired' || outcome === 'wrong-expired') {
       throw new AppError('OTP_EXPIRED', 'This code has expired. Request a new one.');
