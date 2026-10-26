@@ -162,6 +162,22 @@ export const ExportFinishedPayload = z.object({
   rows: z.int().min(0).nullable(),
 });
 
+/** An account made or changed (spec 12.4, decision D94): webhooks tell the tenant's systems. */
+export const AccountEventPayload = z.object({
+  accountId: z.uuid(),
+  typeKey: z.string(),
+  code: z.string(),
+  status: z.enum(['pending', 'active', 'inactive']),
+});
+
+/** Who fills one of an account's slots changed, from a day on; null empties it. */
+export const AccountAssignmentPayload = z.object({
+  accountId: z.uuid(),
+  slot: z.string(),
+  userId: z.uuid().nullable(),
+  from: z.iso.date(),
+});
+
 /** Vendor support asked to enter the tenant (M22, decision D93): its admins hear of it. */
 export const SupportRequestedPayload = z.object({
   grantId: z.uuid(),
@@ -214,6 +230,9 @@ export const EVENT_PAYLOADS = {
   'metrics.changed': MetricsChangedPayload,
   'support.requested': SupportRequestedPayload,
   'support.emergency': SupportEmergencyPayload,
+  'account.created': AccountEventPayload,
+  'account.updated': AccountEventPayload,
+  'account.assignment_changed': AccountAssignmentPayload,
 } as const;
 
 export type EventType = keyof typeof EVENT_PAYLOADS;

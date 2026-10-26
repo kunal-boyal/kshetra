@@ -1328,8 +1328,11 @@ api_clients(id, tid, name, client_id UQ(tid, client_id), secret_hash, scopes tex
             last_used_at, revoked_at)
 external_metric_values(tid, id, metric_key, user_id NULL, account_id NULL, date, month bool, value,
             credited_user_id, updated_at)  UQ NULLS NOT DISTINCT(tid, metric_key, user_id, account_id, date)
-webhook_subscriptions(id, tid, url, events text[], secret_encrypted, status)
-webhook_deliveries(id, tid, subscription_id, event_id, attempt, status, response_code, created_at)  PART monthly
+webhook_subscriptions(tid, id, url, events text[], description NULL, secret_sealed, status active|paused)
+webhook_messages(tid, id, subscription_id, event_id NULL, event, body jsonb, status pending|delivered|failed,
+            attempts, first_attempt_at NULL, next_attempt_at NULL)  UQ(tid, subscription_id, event_id)
+webhook_deliveries(tid, id, subscription_id, message_id, attempt, status, response_code NULL, duration_ms,
+            error NULL, created_at)  PART monthly
 outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, attempts, next_attempt_at, last_error NULL,
        dispatched_at NULL)
        IX(next_attempt_at) WHERE dispatched_at IS NULL
@@ -1401,7 +1404,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Configuration | `GET /v1/configuration/export`, `POST /v1/configuration/import/preview`, `POST /v1/configuration/import` (the configuration as an industry template; an import adds and updates, never removes; decision D66) |
 | Reports | `GET /v1/dashboard?period` (the home dashboard, decision D63), `GET /v1/reports/:key?period&managerId&territoryId&userId&accountType&form&locale` (decision D62) |
 | Imports and exports | `POST /v1/imports`, `GET /v1/imports`, `PUT /v1/imports/:id/mapping`, `POST /v1/imports/:id/commit`, `GET /v1/imports/:id`, `POST /v1/exports`, `GET /v1/exports`, `GET /v1/exports/:id` |
-| Integrations | `GET /v1/api-clients`, `POST /v1/api-clients`, `GET /v1/webhooks`, `POST /v1/webhooks`, `POST /v1/webhooks/:id/test`, `GET /v1/webhooks/:id/deliveries`, `POST /v1/bulk/users`, `POST /v1/bulk/accounts`, `POST /v1/bulk/items`, `POST /v1/bulk/ledger-entries`, `POST /v1/bulk/external-metrics` |
+| Integrations | `GET /v1/api-clients`, `POST /v1/api-clients`, `GET /v1/webhooks`, `POST /v1/webhooks`, `PATCH /v1/webhooks/:id`, `POST /v1/webhooks/:id/rotate`, `POST /v1/webhooks/:id/test`, `GET /v1/webhooks/:id/deliveries`, `POST /v1/webhooks/:id/messages/:messageId/replay`, `POST /v1/bulk/users`, `POST /v1/bulk/accounts`, `POST /v1/bulk/items`, `POST /v1/bulk/ledger-entries`, `POST /v1/bulk/external-metrics` |
 | Audit | `GET /v1/audit` |
 | Platform console | `POST /platform/v1/tenants`, `PATCH /platform/v1/tenants/:id`, `GET /platform/v1/usage`, `POST /platform/v1/support-grants`, plus plans, invoices and feature flags |
 
@@ -1530,19 +1533,20 @@ Events are written to `outbox_events` in the same transaction as the change. Int
 
 | Event | Typical consumers |
 |---|---|
-| `user.created`, `user.updated`, `user.deactivated` | The directory plane, closure tables, sync tombstones; seat counts and webhooks (phase 3) |
+| `user.created`, `user.updated`, `user.deactivated` | The directory plane, closure tables, sync tombstones; seat counts and webhooks |
 | `shift.started`, `shift.ended` | Attendance days, trail compaction, the live map, notifications |
 | `visit.started`, `visit.ended` | Metrics; plan items move in the check-in's own transaction |
-| `submission.created`, `submission.reviewed` | Metrics, plan items, notifications; webhooks (phase 3) |
+| `submission.created`, `submission.reviewed` | Metrics, plan items, notifications; webhooks |
 | `plan_item.status_changed` | Metrics |
 | `target.locked`, `target.unlocked` | Scores, notifications |
 | `metrics.changed` | Recomputing people's days from the change's date |
-| `order.placed`, `order.status_changed` | Metrics; webhooks (phase 3). The order's approval notifies through the `approval.*` events |
+| `order.placed`, `order.status_changed` | Metrics; webhooks. The order's approval notifies through the `approval.*` events |
 | `approval.requested`, `approval.waiting`, `approval.decided` | Notifications. The owning module applies the outcome in the deciding transaction, so leave, regularisation, expense claims and orders publish no events of their own for it |
 | `media.processed` | Duplicate photo flags |
 | `import.finished`, `export.finished` | Notifications |
 | `tenant.provisioned` | The directory plane and entitlements |
-| `account.created`, `account.updated`, `account.assignment_changed`, `subscription.changed` | Planned with segment rules, webhooks and billing (phase 3) |
+| `account.created`, `account.updated`, `account.assignment_changed` | Webhooks; segment rules later. An account's slot changes publish one `account.assignment_changed` a slot |
+| `subscription.changed` | Planned with billing |
 
 ### 12.5 Metric engine
 

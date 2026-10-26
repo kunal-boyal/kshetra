@@ -114,6 +114,10 @@ export const AUDIT_ACTIONS = [
   'api_client.created',
   'api_client.revoked',
   'api_client.secret_rotated',
+  'webhook.created',
+  'webhook.updated',
+  'webhook.secret_rotated',
+  'webhook.replayed',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

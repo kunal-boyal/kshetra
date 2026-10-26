@@ -84,6 +84,9 @@ let aPlanItemId: string;
 let aExportId: string;
 let aSupportGrantId: string;
 let aApiClient: { id: string; clientId: string; secret: string };
+/** A webhook of A's and the test message it sent. */
+let aWebhookId: string;
+let aWebhookMessageId: string;
 let aInvoiceId: string;
 let aItemId: string;
 let aPriceListId: string;
@@ -101,6 +104,8 @@ let bTerritoryId: string;
 /** A month for targets and account plans. */
 const TARGET_MONTH = '2030-01';
 /** A day comfortably in the future on every tenant's calendar. */
+/** A webhook address nothing listens at, so tests send nowhere. */
+const NOWHERE_HOOK = 'http://127.0.0.1:9/hooks';
 const NEXT_MONTH = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
 /** The day before today on the tenants' clock: a day gone, to hold a holiday or be fixed. */
 const YESTERDAY = () =>
@@ -374,6 +379,55 @@ const FIXTURES: Record<string, Fixture> = {
   'POST /v1/api-clients/:id/revoke': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('POST', `/v1/api-clients/${id}/revoke`), aApiClient.id),
+  },
+  'GET /v1/webhooks': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/webhooks')),
+  },
+  'POST /v1/webhooks': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asB('POST', '/v1/webhooks', {
+        id: newId(),
+        url: NOWHERE_HOOK,
+        events: ['user.created'],
+      });
+      expect(reply.statusCode, reply.body).toBe(201);
+      holdsNothingOfA(reply);
+    },
+  },
+  'PATCH /v1/webhooks/:id': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => asB('PATCH', `/v1/webhooks/${id}`, { status: 'paused' }), aWebhookId),
+  },
+  'POST /v1/webhooks/:id/rotate': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/webhooks/${id}/rotate`), aWebhookId),
+  },
+  'POST /v1/webhooks/:id/test': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/webhooks/${id}/test`), aWebhookId),
+  },
+  'GET /v1/webhooks/:id/deliveries': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/webhooks/${id}/deliveries`), aWebhookId),
+  },
+  'POST /v1/webhooks/:id/messages/:messageId/replay': {
+    kind: 'by ID',
+    run: async () => {
+      await sameAsNowhere(
+        (id) => asB('POST', `/v1/webhooks/${id}/messages/${aWebhookMessageId}/replay`),
+        aWebhookId,
+      );
+      // B's own webhook can't send A's message again either.
+      const mine = newId();
+      await asB('POST', '/v1/webhooks', { id: mine, url: NOWHERE_HOOK, events: ['user.created'] });
+      await sameAsNowhere(
+        (id) => asB('POST', `/v1/webhooks/${mine}/messages/${id}/replay`),
+        aWebhookMessageId,
+      );
+    },
   },
   'GET /health': {
     kind: 'not tenant data',
@@ -2369,6 +2423,16 @@ beforeAll(async () => {
     })
   ).json();
   aApiClient = { id: made.client.id, clientId: made.client.clientId, secret: made.clientSecret };
+  // A webhook of A's, with a message from its test; nothing listens at the address.
+  aWebhookId = newId();
+  const hooked = await send(aToken, 'POST', '/v1/webhooks', {
+    id: aWebhookId,
+    url: NOWHERE_HOOK,
+    events: ['user.created'],
+  });
+  expect(hooked.statusCode, hooked.body).toBe(201);
+  aWebhookMessageId = (await send(aToken, 'POST', `/v1/webhooks/${aWebhookId}/test`)).json()
+    .messageId;
   const transfer = await send(aToken, 'POST', `/v1/users/${a.member.id}/transfers`, {
     effectiveDate: NEXT_MONTH,
     designation: 'executive',

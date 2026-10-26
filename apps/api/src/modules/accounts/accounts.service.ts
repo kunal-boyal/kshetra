@@ -52,6 +52,7 @@ import {
   contacts,
 } from '../../db/schema/accounts';
 import { AuditLog, userActor } from '../../platform/audit';
+import { Outbox } from '../../platform/outbox';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { pointOf, pointSql } from '../../platform/geo';
@@ -120,6 +121,7 @@ export class AccountsService {
     private readonly config: TenantConfigService,
     private readonly audit: AuditLog,
     private readonly approvals: ApprovalsService,
+    private readonly outbox: Outbox,
   ) {}
 
   async settings(tx: TenantTx, tenantId: string): Promise<TenantSettings> {
@@ -404,6 +406,20 @@ export class AccountsService {
       target: { type: 'account', id: input.id },
       after: created,
     });
+    await this.outbox.publish(tx, tenantId, 'account.created', input.id, {
+      accountId: input.id,
+      typeKey: type.key,
+      code,
+      status,
+    });
+    for (const { slot, userId } of holders) {
+      await this.outbox.publish(tx, tenantId, 'account.assignment_changed', input.id, {
+        accountId: input.id,
+        slot,
+        userId,
+        from: today,
+      });
+    }
     if (status === 'pending') {
       await this.approvals.request(
         tx,
@@ -498,6 +514,12 @@ export class AccountsService {
       })
       .where(and(eq(accounts.tenantId, tenantId), eq(accounts.id, id)));
     const after = await this.get(tx, access, id);
+    await this.outbox.publish(tx, tenantId, 'account.updated', id, {
+      accountId: id,
+      typeKey: type.key,
+      code: input.code ?? row.code,
+      status,
+    });
     await this.audit.record(tx, tenantId, userActor(access), {
       action:
         input.slots && Object.keys(input).length === 1
@@ -780,6 +802,13 @@ export class AccountsService {
       target: { type: 'account', id },
       before: { status: before.status },
       after: { status },
+    });
+    const type = await this.types.byId(tx, by.tenantId, before.typeId);
+    await this.outbox.publish(tx, by.tenantId, 'account.updated', id, {
+      accountId: id,
+      typeKey: type.key,
+      code: before.code,
+      status,
     });
   }
 
@@ -1385,6 +1414,12 @@ export class AccountsService {
           .insert(accountSlots)
           .values({ tenantId, accountId, slotKey: slot, userId, validFrom: from });
       }
+      await this.outbox.publish(tx, tenantId, 'account.assignment_changed', accountId, {
+        accountId,
+        slot,
+        userId,
+        from,
+      });
     }
   }
 }
