@@ -1,0 +1,1588 @@
+{
+  "$schema": "../schema.json",
+  "key": "fmcg",
+  "version": 1,
+  "name": {
+    "en": "FMCG and consumer goods",
+    "hi": "एफ़एमसीजी और उपभोक्ता सामान"
+  },
+  "description": {
+    "en": "For consumer goods companies selling through distributors: outlets on permanent beat plans, outlet visits with stock counts and an order or the reason for none, retail audits, new outlets for the SO's approval, and secondary orders supplied by each outlet's distributor.",
+    "hi": "डिस्ट्रीब्यूटर के ज़रिए बेचने वाली उपभोक्ता सामान कंपनियों के लिए: स्थायी बीट प्लान पर आउटलेट, स्टॉक गिनती और ऑर्डर या उसके न होने के कारण के साथ आउटलेट विज़िट, रिटेल ऑडिट, एसओ की मंज़ूरी के लिए नए आउटलेट, और हर आउटलेट के डिस्ट्रीब्यूटर से पूरे होने वाले सेकेंडरी ऑर्डर।"
+  },
+  "terminology": {
+    "term.field_user": {
+      "en": {
+        "one": "DSR",
+        "other": "DSRs"
+      },
+      "hi": {
+        "one": "डीएसआर",
+        "other": "डीएसआर"
+      }
+    },
+    "term.journey_plan": {
+      "en": {
+        "one": "PJP",
+        "other": "PJPs"
+      },
+      "hi": {
+        "one": "पीजेपी",
+        "other": "पीजेपी"
+      }
+    },
+    "term.plan_item": {
+      "en": {
+        "one": "Beat",
+        "other": "Beats"
+      },
+      "hi": {
+        "one": "बीट",
+        "other": "बीट"
+      }
+    }
+  },
+  "roles": [
+    {
+      "key": "tenant_admin",
+      "name": {
+        "en": "Admin",
+        "hi": "एडमिन"
+      },
+      "scope": "tenant",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "review_rules.manage",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "target.unlock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "metric.record",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.manage",
+        "user.reset_device",
+        "user.sign_out_all",
+        "role.manage",
+        "designation.manage",
+        "territory.manage",
+        "account.view",
+        "account.manage",
+        "account.import",
+        "account.approve",
+        "settings.manage",
+        "terminology.manage",
+        "form.manage",
+        "metric.manage",
+        "workflow.manage",
+        "policy.manage",
+        "notification_template.manage",
+        "module.manage",
+        "catalogue.manage",
+        "price_list.manage",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.decide",
+        "order.line_decide",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "calendar.manage",
+        "leave_type.manage",
+        "expense_policy.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run",
+        "audit.view",
+        "api_client.manage",
+        "webhook.manage",
+        "billing.manage"
+      ]
+    },
+    {
+      "key": "business_head",
+      "name": {
+        "en": "Business head",
+        "hi": "बिज़नेस हेड"
+      },
+      "scope": "tenant",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "review_rules.manage",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "target.unlock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "metric.record",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.manage",
+        "user.reset_device",
+        "user.sign_out_all",
+        "role.manage",
+        "designation.manage",
+        "territory.manage",
+        "account.view",
+        "account.manage",
+        "account.import",
+        "account.approve",
+        "settings.manage",
+        "terminology.manage",
+        "form.manage",
+        "metric.manage",
+        "workflow.manage",
+        "policy.manage",
+        "notification_template.manage",
+        "module.manage",
+        "catalogue.manage",
+        "price_list.manage",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.decide",
+        "order.line_decide",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "calendar.manage",
+        "leave_type.manage",
+        "expense_policy.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run",
+        "audit.view"
+      ]
+    },
+    {
+      "key": "manager",
+      "name": {
+        "en": "Manager",
+        "hi": "मैनेजर"
+      },
+      "scope": "team",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "submission.review",
+        "submission.review_bulk",
+        "target.view",
+        "target.edit",
+        "target.lock",
+        "route.manage",
+        "plan_item.manage",
+        "account_plan.manage",
+        "performance.view_team",
+        "leaderboard.view",
+        "live_map.view",
+        "trail.view",
+        "user.view",
+        "user.reset_device",
+        "user.sign_out_all",
+        "account.view",
+        "account.approve",
+        "order.create",
+        "order.view",
+        "order.decide",
+        "finance.view",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "approval.act",
+        "payslip.view",
+        "report.view",
+        "export.create"
+      ]
+    },
+    {
+      "key": "field_user",
+      "name": {
+        "en": "Field user",
+        "hi": "फ़ील्ड यूज़र"
+      },
+      "scope": "self",
+      "permissions": [
+        "shift.use",
+        "tracking.pause",
+        "visit.use",
+        "submission.create",
+        "account.propose",
+        "account.propose_location",
+        "target.view",
+        "leaderboard.view",
+        "account.view",
+        "order.create",
+        "order.view",
+        "leave.request",
+        "regularisation.request",
+        "expense.claim",
+        "payslip.view",
+        "finance.view"
+      ],
+      "mobileOnly": true
+    },
+    {
+      "key": "back_office",
+      "name": {
+        "en": "Back office",
+        "hi": "बैक ऑफ़िस"
+      },
+      "scope": "tenant",
+      "permissions": [
+        "user.view",
+        "account.view",
+        "order.create",
+        "order.create_without_shift",
+        "order.view",
+        "order.fulfil",
+        "finance.view",
+        "finance.manage",
+        "expense.mark_paid",
+        "payroll.manage",
+        "payslip.view",
+        "report.view",
+        "export.create",
+        "import.run"
+      ]
+    },
+    {
+      "key": "viewer",
+      "name": {
+        "en": "Viewer",
+        "hi": "व्यूअर"
+      },
+      "scope": "tenant",
+      "permissions": [
+        "target.view",
+        "performance.view_team",
+        "leaderboard.view",
+        "account.view",
+        "order.view",
+        "report.view"
+      ]
+    }
+  ],
+  "designations": [
+    {
+      "key": "business_head",
+      "name": {
+        "en": {
+          "one": "Business Head",
+          "other": "Business Heads"
+        },
+        "hi": {
+          "one": "बिज़नेस हेड",
+          "other": "बिज़नेस हेड"
+        }
+      },
+      "level": 1,
+      "defaultRole": "business_head",
+      "canHaveReports": true
+    },
+    {
+      "key": "rsm",
+      "name": {
+        "en": {
+          "one": "RSM",
+          "other": "RSMs"
+        },
+        "hi": {
+          "one": "आरएसएम",
+          "other": "आरएसएम"
+        }
+      },
+      "level": 2,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "asm",
+      "name": {
+        "en": {
+          "one": "ASM",
+          "other": "ASMs"
+        },
+        "hi": {
+          "one": "एएसएम",
+          "other": "एएसएम"
+        }
+      },
+      "level": 3,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "so",
+      "name": {
+        "en": {
+          "one": "SO",
+          "other": "SOs"
+        },
+        "hi": {
+          "one": "एसओ",
+          "other": "एसओ"
+        }
+      },
+      "level": 4,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "tsi",
+      "name": {
+        "en": {
+          "one": "TSI",
+          "other": "TSIs"
+        },
+        "hi": {
+          "one": "टीएसआई",
+          "other": "टीएसआई"
+        }
+      },
+      "level": 5,
+      "defaultRole": "manager",
+      "canHaveReports": true
+    },
+    {
+      "key": "dsr",
+      "name": {
+        "en": {
+          "one": "DSR",
+          "other": "DSRs"
+        },
+        "hi": {
+          "one": "डीएसआर",
+          "other": "डीएसआर"
+        }
+      },
+      "level": 6,
+      "defaultRole": "field_user",
+      "canHaveReports": false,
+      "ranked": true
+    },
+    {
+      "key": "merchandiser",
+      "name": {
+        "en": {
+          "one": "Merchandiser",
+          "other": "Merchandisers"
+        },
+        "hi": {
+          "one": "मर्चेंडाइज़र",
+          "other": "मर्चेंडाइज़र"
+        }
+      },
+      "level": 6,
+      "defaultRole": "field_user",
+      "canHaveReports": false
+    }
+  ],
+  "geographyLevels": [
+    {
+      "key": "zone",
+      "name": {
+        "en": {
+          "one": "Zone",
+          "other": "Zones"
+        },
+        "hi": {
+          "one": "ज़ोन",
+          "other": "ज़ोन"
+        }
+      }
+    },
+    {
+      "key": "region",
+      "name": {
+        "en": {
+          "one": "Region",
+          "other": "Regions"
+        },
+        "hi": {
+          "one": "रीजन",
+          "other": "रीजन"
+        }
+      }
+    },
+    {
+      "key": "area",
+      "name": {
+        "en": {
+          "one": "Area",
+          "other": "Areas"
+        },
+        "hi": {
+          "one": "एरिया",
+          "other": "एरिया"
+        }
+      }
+    },
+    {
+      "key": "town",
+      "name": {
+        "en": {
+          "one": "Town",
+          "other": "Towns"
+        },
+        "hi": {
+          "one": "शहर",
+          "other": "शहर"
+        }
+      }
+    },
+    {
+      "key": "beat_area",
+      "name": {
+        "en": {
+          "one": "Beat area",
+          "other": "Beat areas"
+        },
+        "hi": {
+          "one": "बीट एरिया",
+          "other": "बीट एरिया"
+        }
+      }
+    }
+  ],
+  "userFields": [
+    {
+      "key": "hq",
+      "type": "short_text",
+      "label": {
+        "en": "HQ",
+        "hi": "मुख्यालय"
+      }
+    }
+  ],
+  "accountTypes": [
+    {
+      "key": "distributor",
+      "name": {
+        "en": {
+          "one": "Distributor",
+          "other": "Distributors"
+        },
+        "hi": {
+          "one": "डिस्ट्रीब्यूटर",
+          "other": "डिस्ट्रीब्यूटर"
+        }
+      },
+      "icon": "warehouse",
+      "code": {
+        "mode": "manual"
+      },
+      "fields": [
+        {
+          "key": "gstin",
+          "type": "short_text",
+          "label": {
+            "en": "GSTIN",
+            "hi": "जीएसटीआईएन"
+          },
+          "pattern": "[0-9]{2}[A-Z0-9]{13}"
+        },
+        {
+          "key": "credit_limit",
+          "type": "currency",
+          "label": {
+            "en": "Credit limit",
+            "hi": "क्रेडिट सीमा"
+          }
+        }
+      ],
+      "location": {
+        "required": false,
+        "geofenceRadiusM": 300,
+        "geofencePolicy": "advisory",
+        "fieldUsersMayPropose": true
+      },
+      "creation": "admins",
+      "slots": [
+        {
+          "key": "asm",
+          "name": {
+            "en": "ASM",
+            "hi": "एएसएम"
+          },
+          "designations": ["asm"],
+          "priority": 1
+        },
+        {
+          "key": "so",
+          "name": {
+            "en": "SO",
+            "hi": "एसओ"
+          },
+          "designations": ["so"],
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "key": "outlet",
+      "name": {
+        "en": {
+          "one": "Outlet",
+          "other": "Outlets"
+        },
+        "hi": {
+          "one": "आउटलेट",
+          "other": "आउटलेट"
+        }
+      },
+      "icon": "store",
+      "parentTypes": ["distributor"],
+      "code": {
+        "mode": "auto",
+        "prefix": "OT"
+      },
+      "fields": [
+        {
+          "key": "channel",
+          "type": "single_select",
+          "label": {
+            "en": "Channel",
+            "hi": "चैनल"
+          },
+          "required": true,
+          "options": [
+            {
+              "key": "grocery",
+              "label": {
+                "en": "Grocery",
+                "hi": "किराना"
+              }
+            },
+            {
+              "key": "chemist",
+              "label": {
+                "en": "Chemist",
+                "hi": "केमिस्ट"
+              }
+            },
+            {
+              "key": "cosmetics",
+              "label": {
+                "en": "Cosmetics",
+                "hi": "कॉस्मेटिक्स"
+              }
+            },
+            {
+              "key": "modern_trade",
+              "label": {
+                "en": "Modern trade",
+                "hi": "मॉडर्न ट्रेड"
+              }
+            }
+          ]
+        },
+        {
+          "key": "class",
+          "type": "single_select",
+          "label": {
+            "en": "Class",
+            "hi": "श्रेणी"
+          },
+          "options": [
+            {
+              "key": "a",
+              "label": {
+                "en": "A",
+                "hi": "ए"
+              }
+            },
+            {
+              "key": "b",
+              "label": {
+                "en": "B",
+                "hi": "बी"
+              }
+            },
+            {
+              "key": "c",
+              "label": {
+                "en": "C",
+                "hi": "सी"
+              }
+            }
+          ]
+        },
+        {
+          "key": "owner_name",
+          "type": "short_text",
+          "label": {
+            "en": "Owner's name",
+            "hi": "मालिक का नाम"
+          }
+        },
+        {
+          "key": "phone",
+          "type": "short_text",
+          "label": {
+            "en": "Phone",
+            "hi": "फ़ोन"
+          },
+          "pattern": "[0-9+ ]{8,15}"
+        }
+      ],
+      "location": {
+        "required": false,
+        "geofenceRadiusM": 75,
+        "geofencePolicy": "advisory",
+        "fieldUsersMayPropose": true
+      },
+      "creation": "field_users_with_approval",
+      "slots": [
+        {
+          "key": "dsr",
+          "name": {
+            "en": "DSR",
+            "hi": "डीएसआर"
+          },
+          "designations": ["dsr"],
+          "priority": 1
+        },
+        {
+          "key": "so",
+          "name": {
+            "en": "SO",
+            "hi": "एसओ"
+          },
+          "designations": ["so"],
+          "priority": 2
+        }
+      ],
+      "segmentRules": [
+        {
+          "segment": "channel_grocery",
+          "name": {
+            "en": "Grocery",
+            "hi": "किराना"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "channel",
+                "op": "eq",
+                "value": "grocery"
+              }
+            ]
+          }
+        },
+        {
+          "segment": "channel_chemist",
+          "name": {
+            "en": "Chemist",
+            "hi": "केमिस्ट"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "channel",
+                "op": "eq",
+                "value": "chemist"
+              }
+            ]
+          }
+        },
+        {
+          "segment": "channel_cosmetics",
+          "name": {
+            "en": "Cosmetics",
+            "hi": "कॉस्मेटिक्स"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "channel",
+                "op": "eq",
+                "value": "cosmetics"
+              }
+            ]
+          }
+        },
+        {
+          "segment": "channel_modern_trade",
+          "name": {
+            "en": "Modern trade",
+            "hi": "मॉडर्न ट्रेड"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "channel",
+                "op": "eq",
+                "value": "modern_trade"
+              }
+            ]
+          }
+        },
+        {
+          "segment": "class_a",
+          "name": {
+            "en": "Class A",
+            "hi": "श्रेणी ए"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "class",
+                "op": "eq",
+                "value": "a"
+              }
+            ]
+          }
+        },
+        {
+          "segment": "class_b",
+          "name": {
+            "en": "Class B",
+            "hi": "श्रेणी बी"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "class",
+                "op": "eq",
+                "value": "b"
+              }
+            ]
+          }
+        },
+        {
+          "segment": "class_c",
+          "name": {
+            "en": "Class C",
+            "hi": "श्रेणी सी"
+          },
+          "when": {
+            "clauses": [
+              {
+                "field": "class",
+                "op": "eq",
+                "value": "c"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "key": "outlet_visit",
+      "name": {
+        "en": {
+          "one": "Outlet visit",
+          "other": "Outlet visits"
+        },
+        "hi": {
+          "one": "आउटलेट विज़िट",
+          "other": "आउटलेट विज़िट"
+        }
+      },
+      "description": {
+        "en": "A visit to an outlet on the beat: the stock counted, the display, and an order or why there was none",
+        "hi": "बीट पर आउटलेट विज़िट: गिना गया स्टॉक, डिस्प्ले, और ऑर्डर या न होने का कारण"
+      },
+      "icon": "store",
+      "accountLink": {
+        "mode": "required",
+        "accountTypes": ["outlet"]
+      },
+      "visitSession": true,
+      "fields": [
+        {
+          "key": "stock_count",
+          "type": "product_lines",
+          "label": {
+            "en": "Stock count",
+            "hi": "स्टॉक गिनती"
+          },
+          "maxLines": 30
+        },
+        {
+          "key": "merchandising_photo",
+          "type": "photo",
+          "label": {
+            "en": "Merchandising photo",
+            "hi": "मर्चेंडाइज़िंग फ़ोटो"
+          }
+        },
+        {
+          "key": "visibility_ok",
+          "type": "yes_no",
+          "label": {
+            "en": "Visibility as agreed",
+            "hi": "तय के मुताबिक़ डिस्प्ले"
+          }
+        },
+        {
+          "key": "no_order_reason",
+          "type": "single_select",
+          "label": {
+            "en": "Why no order",
+            "hi": "ऑर्डर क्यों नहीं"
+          },
+          "required": true,
+          "options": [
+            {
+              "key": "enough_stock",
+              "label": {
+                "en": "Has enough stock",
+                "hi": "पर्याप्त स्टॉक है"
+              }
+            },
+            {
+              "key": "owner_away",
+              "label": {
+                "en": "Owner not available",
+                "hi": "मालिक मौजूद नहीं"
+              }
+            },
+            {
+              "key": "payment_due",
+              "label": {
+                "en": "Payment due",
+                "hi": "भुगतान बकाया"
+              }
+            },
+            {
+              "key": "price_scheme",
+              "label": {
+                "en": "Price or scheme",
+                "hi": "दाम या स्कीम"
+              }
+            },
+            {
+              "key": "competition",
+              "label": {
+                "en": "Buys from competition",
+                "hi": "प्रतियोगी से ख़रीदता है"
+              }
+            },
+            {
+              "key": "other",
+              "label": {
+                "en": "Other",
+                "hi": "अन्य"
+              }
+            }
+          ],
+          "visibleWhen": {
+            "clauses": [
+              {
+                "field": "visit_ordered",
+                "op": "eq",
+                "value": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "retail_audit",
+      "name": {
+        "en": {
+          "one": "Retail audit",
+          "other": "Retail audits"
+        },
+        "hi": {
+          "one": "रिटेल ऑडिट",
+          "other": "रिटेल ऑडिट"
+        }
+      },
+      "description": {
+        "en": "An audit of an outlet's shelves: the planogram, competitors' prices and shelf photos",
+        "hi": "आउटलेट की शेल्फ़ का ऑडिट: प्लानोग्राम, प्रतियोगियों के दाम और शेल्फ़ की फ़ोटो"
+      },
+      "icon": "clipboard-check",
+      "accountLink": {
+        "mode": "required",
+        "accountTypes": ["outlet"]
+      },
+      "photos": {
+        "min": 2,
+        "max": 5
+      },
+      "fields": [
+        {
+          "key": "planogram_compliance",
+          "type": "rating",
+          "label": {
+            "en": "Planogram compliance",
+            "hi": "प्लानोग्राम का पालन"
+          }
+        },
+        {
+          "key": "competitor_prices",
+          "type": "product_lines",
+          "label": {
+            "en": "Competitor prices",
+            "hi": "प्रतियोगियों के दाम"
+          },
+          "valueColumn": {
+            "label": {
+              "en": "Competitor's price",
+              "hi": "प्रतियोगी का दाम"
+            }
+          },
+          "maxLines": 20
+        }
+      ]
+    },
+    {
+      "key": "new_outlet_onboarding",
+      "name": {
+        "en": {
+          "one": "New outlet onboarding",
+          "other": "New outlet onboardings"
+        },
+        "hi": {
+          "one": "नए आउटलेट की शुरुआत",
+          "other": "नए आउटलेट की शुरुआत"
+        }
+      },
+      "description": {
+        "en": "A first visit to a shop to be added to the beat, with a photo of it; the outlet itself is proposed in the app, for the SO to decide",
+        "hi": "बीट में जोड़ी जाने वाली दुकान की पहली विज़िट, उसकी फ़ोटो के साथ; आउटलेट ऐप में प्रस्तावित होता है, जिस पर एसओ फ़ैसला करता है"
+      },
+      "icon": "store",
+      "photos": {
+        "min": 1,
+        "max": 3
+      },
+      "fields": [
+        {
+          "key": "outlet_name",
+          "type": "short_text",
+          "label": {
+            "en": "Outlet name",
+            "hi": "आउटलेट का नाम"
+          },
+          "required": true
+        },
+        {
+          "key": "owner_name",
+          "type": "short_text",
+          "label": {
+            "en": "Owner's name",
+            "hi": "मालिक का नाम"
+          }
+        },
+        {
+          "key": "phone",
+          "type": "short_text",
+          "label": {
+            "en": "Phone",
+            "hi": "फ़ोन"
+          },
+          "pattern": "[0-9+ ]{8,15}"
+        },
+        {
+          "key": "channel",
+          "type": "single_select",
+          "label": {
+            "en": "Channel",
+            "hi": "चैनल"
+          },
+          "required": true,
+          "options": [
+            {
+              "key": "grocery",
+              "label": {
+                "en": "Grocery",
+                "hi": "किराना"
+              }
+            },
+            {
+              "key": "chemist",
+              "label": {
+                "en": "Chemist",
+                "hi": "केमिस्ट"
+              }
+            },
+            {
+              "key": "cosmetics",
+              "label": {
+                "en": "Cosmetics",
+                "hi": "कॉस्मेटिक्स"
+              }
+            },
+            {
+              "key": "modern_trade",
+              "label": {
+                "en": "Modern trade",
+                "hi": "मॉडर्न ट्रेड"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "distributor_visit",
+      "name": {
+        "en": {
+          "one": "Distributor visit",
+          "other": "Distributor visits"
+        },
+        "hi": {
+          "one": "डिस्ट्रीब्यूटर विज़िट",
+          "other": "डिस्ट्रीब्यूटर विज़िट"
+        }
+      },
+      "description": {
+        "en": "A visit to a distributor: claims, stock and what was agreed",
+        "hi": "डिस्ट्रीब्यूटर विज़िट: क्लेम, स्टॉक और जो तय हुआ"
+      },
+      "icon": "warehouse",
+      "accountLink": {
+        "mode": "required",
+        "accountTypes": ["distributor"]
+      },
+      "visitSession": true,
+      "fields": [
+        {
+          "key": "claims_discussed",
+          "type": "long_text",
+          "label": {
+            "en": "Claims discussed",
+            "hi": "जिन क्लेम पर बात हुई"
+          }
+        },
+        {
+          "key": "stock_value",
+          "type": "currency",
+          "label": {
+            "en": "Stock value",
+            "hi": "स्टॉक मूल्य"
+          }
+        },
+        {
+          "key": "outcome",
+          "type": "long_text",
+          "label": {
+            "en": "Outcome",
+            "hi": "परिणाम"
+          },
+          "required": true
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "key": "total_calls",
+      "name": {
+        "en": {
+          "one": "Total call",
+          "other": "Total calls"
+        },
+        "hi": {
+          "one": "कुल कॉल",
+          "other": "कुल कॉल"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "submission_count",
+        "forms": ["outlet_visit"]
+      }
+    },
+    {
+      "key": "productive_calls",
+      "name": {
+        "en": {
+          "one": "Productive call",
+          "other": "Productive calls"
+        },
+        "hi": {
+          "one": "प्रोडक्टिव कॉल",
+          "other": "प्रोडक्टिव कॉल"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "productive_visits",
+        "accountTypes": ["outlet"]
+      }
+    },
+    {
+      "key": "productivity",
+      "name": {
+        "en": {
+          "one": "Productivity",
+          "other": "Productivity"
+        },
+        "hi": {
+          "one": "प्रोडक्टिविटी",
+          "other": "प्रोडक्टिविटी"
+        }
+      },
+      "unit": "percent",
+      "source": {
+        "type": "ratio",
+        "numerator": "productive_calls",
+        "denominator": "total_calls"
+      }
+    },
+    {
+      "key": "order_value",
+      "name": {
+        "en": {
+          "one": "Order value",
+          "other": "Order value"
+        },
+        "hi": {
+          "one": "ऑर्डर मूल्य",
+          "other": "ऑर्डर मूल्य"
+        }
+      },
+      "unit": "currency",
+      "source": {
+        "type": "order_value",
+        "statuses": ["accepted", "partially_accepted", "partially_fulfilled", "fulfilled"],
+        "amount": "before_tax"
+      }
+    },
+    {
+      "key": "order_lines",
+      "name": {
+        "en": {
+          "one": "Order line",
+          "other": "Order lines"
+        },
+        "hi": {
+          "one": "ऑर्डर लाइन",
+          "other": "ऑर्डर लाइन"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "order_lines",
+        "statuses": ["accepted", "partially_accepted", "partially_fulfilled", "fulfilled"]
+      }
+    },
+    {
+      "key": "lines_per_call",
+      "name": {
+        "en": {
+          "one": "Lines per call",
+          "other": "Lines per call"
+        },
+        "hi": {
+          "one": "प्रति कॉल लाइन",
+          "other": "प्रति कॉल लाइन"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "ratio",
+        "numerator": "order_lines",
+        "denominator": "total_calls"
+      }
+    },
+    {
+      "key": "new_outlets",
+      "name": {
+        "en": {
+          "one": "New outlet",
+          "other": "New outlets"
+        },
+        "hi": {
+          "one": "नए आउटलेट",
+          "other": "नए आउटलेट"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "new_accounts",
+        "accountType": "outlet"
+      }
+    },
+    {
+      "key": "beat_compliance",
+      "name": {
+        "en": {
+          "one": "Beat compliance",
+          "other": "Beat compliance"
+        },
+        "hi": {
+          "one": "बीट पालन",
+          "other": "बीट पालन"
+        }
+      },
+      "unit": "percent",
+      "source": {
+        "type": "plan_compliance_percent"
+      }
+    },
+    {
+      "key": "active_days",
+      "name": {
+        "en": {
+          "one": "Active day",
+          "other": "Active days"
+        },
+        "hi": {
+          "one": "सक्रिय दिन",
+          "other": "सक्रिय दिन"
+        }
+      },
+      "unit": "count",
+      "source": {
+        "type": "active_days",
+        "forms": ["outlet_visit", "retail_audit", "new_outlet_onboarding", "distributor_visit"]
+      }
+    }
+  ],
+  "score": {
+    "cap": 1,
+    "metrics": [
+      {
+        "metric": "order_value",
+        "weight": 40
+      },
+      {
+        "metric": "productive_calls",
+        "weight": 30
+      },
+      {
+        "metric": "lines_per_call",
+        "weight": 15
+      },
+      {
+        "metric": "beat_compliance",
+        "weight": 15
+      }
+    ]
+  },
+  "workflows": {
+    "fallbackRole": "business_head",
+    "definitions": [
+      {
+        "requestType": "new_account",
+        "steps": [
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "so"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "leave",
+        "steps": [
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "asm"
+            }
+          },
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "rsm"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "regularisation",
+        "steps": [
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "asm"
+            }
+          },
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "rsm"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "expense",
+        "steps": [
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "asm"
+            }
+          },
+          {
+            "approver": {
+              "type": "nearest_designation",
+              "designation": "rsm"
+            }
+          }
+        ]
+      },
+      {
+        "requestType": "order",
+        "steps": [
+          {
+            "approver": {
+              "type": "account_slot",
+              "slot": "so"
+            },
+            "lineDecisions": true
+          }
+        ]
+      }
+    ]
+  },
+  "people": {
+    "calendars": [
+      {
+        "key": "standard",
+        "name": {
+          "en": "Standard",
+          "hi": "सामान्य"
+        },
+        "weeklyOffs": [7]
+      }
+    ],
+    "defaultCalendar": "standard",
+    "attendance": {
+      "rule": "punch_is_present"
+    },
+    "leaveTypes": [
+      {
+        "key": "casual",
+        "name": {
+          "en": "Casual leave",
+          "hi": "आकस्मिक अवकाश"
+        },
+        "paid": true,
+        "annualQuota": 12,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true
+      },
+      {
+        "key": "sick",
+        "name": {
+          "en": "Sick leave",
+          "hi": "बीमारी अवकाश"
+        },
+        "paid": true,
+        "annualQuota": 12,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true,
+        "attachmentAfterDays": 2
+      },
+      {
+        "key": "unpaid",
+        "name": {
+          "en": "Unpaid leave",
+          "hi": "अवैतनिक अवकाश"
+        },
+        "paid": false,
+        "annualQuota": 0,
+        "quotaYear": "calendar",
+        "halfDayAllowed": true
+      }
+    ],
+    "expensePolicies": [
+      {
+        "key": "fuel",
+        "name": {
+          "en": "Fuel",
+          "hi": "ईंधन"
+        },
+        "category": "travel",
+        "calculation": "per_km",
+        "rate": {
+          "flat": "3.00"
+        },
+        "odometerPhotosRequired": true
+      },
+      {
+        "key": "daily_allowance",
+        "name": {
+          "en": "Daily allowance",
+          "hi": "दैनिक भत्ता"
+        },
+        "category": "daily_allowance",
+        "calculation": "per_day",
+        "rate": {
+          "byDesignation": {
+            "business_head": "900",
+            "rsm": "750",
+            "asm": "600",
+            "so": "450",
+            "tsi": "350",
+            "dsr": "250",
+            "merchandiser": "200"
+          }
+        }
+      }
+    ]
+  },
+  "catalogue": {
+    "units": [
+      {
+        "key": "piece",
+        "name": {
+          "en": {
+            "one": "Piece",
+            "other": "Pieces"
+          },
+          "hi": {
+            "one": "पीस",
+            "other": "पीस"
+          }
+        },
+        "base": true
+      },
+      {
+        "key": "case",
+        "name": {
+          "en": {
+            "one": "Case",
+            "other": "Cases"
+          },
+          "hi": {
+            "one": "केस",
+            "other": "केस"
+          }
+        },
+        "base": false
+      }
+    ],
+    "measureTypes": ["kg", "L"],
+    "rounding": "per_unit_first",
+    "itemFields": [
+      {
+        "key": "brand",
+        "type": "short_text",
+        "label": {
+          "en": "Brand",
+          "hi": "ब्रांड"
+        }
+      }
+    ],
+    "rejectionReasons": [
+      {
+        "key": "overdue",
+        "name": {
+          "en": "Overdue",
+          "hi": "भुगतान बकाया"
+        }
+      },
+      {
+        "key": "credit_limit_exceeded",
+        "name": {
+          "en": "Credit limit exceeded",
+          "hi": "क्रेडिट सीमा पार"
+        }
+      },
+      {
+        "key": "no_stock",
+        "name": {
+          "en": "No stock",
+          "hi": "स्टॉक नहीं है"
+        }
+      }
+    ]
+  },
+  "imports": {
+    "users": {
+      "aliases": {
+        "code": ["employeeid", "employeecode", "empid"],
+        "mobile": ["phoneno", "mobile", "mobileno", "contactno"],
+        "reports_to": ["reporting", "reportingmanager", "reportsto", "manager"],
+        "joining_date": ["dateofjoining", "doj"],
+        "custom.hq": ["hq", "headquarters"]
+      }
+    },
+    "accounts": {
+      "distributor": {
+        "aliases": {
+          "code": ["distributorcode", "dbcode"],
+          "name": ["distributorname", "dbname"],
+          "custom.gstin": ["gstin", "gstno"],
+          "slot.asm": ["asm", "asmname"],
+          "slot.so": ["so", "soname"]
+        },
+        "emptyValues": ["-", "NA"]
+      },
+      "outlet": {
+        "aliases": {
+          "code": ["outletcode", "retailercode", "shopcode"],
+          "name": ["outletname", "retailername", "shopname"],
+          "custom.channel": ["channel", "outlettype"],
+          "custom.class": ["class", "category"],
+          "custom.owner_name": ["ownername", "owner"],
+          "custom.phone": ["mobile", "phone", "contactno"],
+          "slot.dsr": ["dsr", "dsrname", "salesman"]
+        },
+        "emptyValues": ["-", "NA"]
+      }
+    },
+    "items": {
+      "aliases": {
+        "product_name": ["productname", "product"],
+        "item_name": ["itemname", "skuname", "sku"],
+        "pack_label": ["packsize", "pack"],
+        "mrp": ["mrp"],
+        "price": ["ptr", "rateperpiece"],
+        "tax_rate": ["gstrate", "gst"],
+        "hsn": ["hsncode", "hsn"],
+        "case_factor": ["unitspercase", "piecespercase", "casepack"],
+        "custom.brand": ["brand"]
+      },
+      "fractions": ["tax_rate"]
+    }
+  }
+}

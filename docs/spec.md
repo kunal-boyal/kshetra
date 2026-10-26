@@ -337,7 +337,7 @@ A metric definition holds a key, names, unit (`count`, `currency`, `quantity`, `
 | `productive_visits` | Visits during which at least one order was placed |
 | `order_lines` | Count of order lines (numerator for lines per call) |
 | `active_days` | Distinct local dates with at least one approved qualifying submission |
-| `new_accounts` | Accounts of a type that became active in the period with the user as primary assignee |
+| `new_accounts` | Accounts of a type the user created or proposed, on the day they did, counted once active; proposals waiting for their decision show as pending (D97) |
 | `external` | Values loaded by import or API, such as secondary sales from an ERP or prescription data |
 | `ratio` | One metric divided by another, always recomputed from summed parts |
 
@@ -1847,9 +1847,9 @@ Each template is a JSON file at `packages/templates/<key>/template.json`, valida
   - Outlet: parent Distributor, which supplies its secondary orders; `channel` (Grocery, Chemist, Cosmetics, Modern trade), `class` (A, B, C), `owner_name`, `phone`; field users may create outlets with SO approval; geofence 75 m.
 - Routes: permanent journey plans by weekday for each DSR.
 - Forms:
-  - Outlet visit: Outlet account, visit session; `stock_count` (product lines), `merchandising_photo` (photo field), `visibility_ok` (yes/no), `no_order_reason` (select, shown when no order was placed during the visit), an order within the visit.
+  - Outlet visit: Outlet account, visit session; `stock_count` (product lines), `merchandising_photo` (photo field), `visibility_ok` (yes/no), `no_order_reason` (select, shown when no order was placed during the visit, through `visit_ordered`, D97), an order within the visit.
   - Retail audit: Outlet account; `planogram_compliance` (rating), `competitor_prices` (product lines with value); 2–5 shelf photos required.
-  - New outlet onboarding: creates an outlet proposal; shop photo required.
+  - New outlet onboarding: records the first visit to a shop, with its name, owner, phone and channel; shop photo required. The outlet itself is proposed in the app, as a field user proposes any account, for the SO to decide (D97).
   - Distributor visit: Distributor account; `claims_discussed`, `stock_value` (currency), `outcome`*.
 - Metrics: total calls, productive calls, productivity percent (productive ÷ total), order value (secondary), order lines, lines per call (ratio), new outlets, beat compliance percent, active days.
 - Score: order value 40, productive calls 30, lines per call 15, beat compliance 15.

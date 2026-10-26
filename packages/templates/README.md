@@ -6,6 +6,7 @@ A template is a tenant's starting configuration (spec 5.14 and Appendix A). The 
 |---|---|---|
 | Generic | [`generic/template.json`](generic/template.json) | Customers, visit and meeting forms, and metrics for visits, coverage and order value (spec A.1) |
 | Agri inputs | [`agri/template.json`](agri/template.json) | Distributors, retailers and farmers; farmer meetings, demos and distributor visits with sales, collection and liquidation; orders by the case (spec A.2) |
+| FMCG and consumer goods | [`fmcg/template.json`](fmcg/template.json) | Distributors and outlets on beats; outlet visits with stock counts and an order or the reason for none; retail audits; new outlets for the SO; secondary orders from each outlet's distributor (spec A.4) |
 | Pharma | [`pharma/template.json`](pharma/template.json) | Doctors by class, chemists, stockists and hospitals; doctor calls with products detailed, samples signed for and gifts; chemist calls with orders; CMEs and camps; coverage and call frequency by class (spec A.3) |
 
 ## What a template holds
@@ -71,6 +72,7 @@ The spec doesn't fix these, so the templates hold reasonable starting points. Re
 - Leave types: casual leave (12 days), sick leave (12 days, attachment after 2 days) and unpaid leave
 - The standard holiday calendar, with Sunday off; dated holidays are imported each year (spec B.7)
 - Agri inputs: fuel at ₹3.50 per km; a daily allowance of ₹250 to ₹750 by designation; the crop list
+- FMCG: fuel at ₹3.00 per km; a daily allowance of ₹200 to ₹900 by designation; the channels; the order chain (the outlet's SO, by line); the reasons for no order
 - Pharma: fuel at ₹3.50 per km; a daily allowance of ₹300 to ₹900 by designation; the specialities; the order chain (ABM, then the RSM by line); visits a month by class (A 4, B 2, C 1)
 - The Hindi text, which needs a review by a native speaker before the pilot
 
@@ -78,4 +80,5 @@ The spec doesn't fix these, so the templates hold reasonable starting points. Re
 
 - **Notification template choices and report presets** (spec 5.14). They arrive as optional sections with notifications (M16) and reports (M18) in phase 1.
 - **Workflow step conditions**, such as "only when `amount > 5000`" (spec 5.9). They arrive with the workflow engine in phase 2.
-- **The FMCG template** (phase 3 step 8c). What it and pharma need from the form engine arrived in decision D97: a signature required by a condition (`signatureRequiredWhen`), whether the visit took an order (`visit_ordered` in conditions), and product lines without quantities (`quantities: false`).
+- **Permanent journey plans** (A.4's PJPs by weekday). Routes are each tenant's data, made in Planning, not part of a template.
+- **Price lists per channel.** Price lists are data too; outlets carry their channel as a segment (`channel_grocery` and so on) for lists to target.

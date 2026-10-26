@@ -104,7 +104,16 @@ export class DemoContent implements DemoKit {
   /** The words of the tenant's industry (decision D97). */
   private flavour: Flavour = flavourOf('');
   private broken = new Set<string>();
-  private readonly counts = { visits: 0, entries: 0, photos: 0, shifts: 0, reviews: 0 };
+  private readonly counts = {
+    visits: 0,
+    entries: 0,
+    photos: 0,
+    shifts: 0,
+    reviews: 0,
+    proposals: 0,
+  };
+  /** Types field people may propose and then hold, such as outlets (decision D97). */
+  private proposable: Awaited<ReturnType<AccountTypesService['list']>> = [];
   private readonly commerce: DemoCommerce;
   private readonly requests: DemoRequests;
 
@@ -310,9 +319,9 @@ export class DemoContent implements DemoKit {
   }
 
   /**
-   * Territories from the top level down to markets, and a team: a head manager, two group
-   * managers and four field people under each, the demo numbers among them. Group managers are of
-   * the lowest manager level, the head of the level above it, so chains and slots that name either
+   * Territories from the top level down to markets, and a team: a manager at each manager level
+   * above the lowest, one under the other, two group managers of the lowest level and four field
+   * people under each, the demo numbers among them, so chains and slots naming any manager level
    * find someone.
    */
   private async team(admin: Person): Promise<FieldPerson[]> {
@@ -321,13 +330,29 @@ export class DemoContent implements DemoKit {
       designations: await this.get(DesignationsService).list(tx, this.tenantId),
     }));
     const byLevel = [...designations].sort((a, b) => a.level - b.level);
-    const field = [...byLevel].reverse().find((each) => each.defaultRole === 'field_user');
+    // The ranked field designation, such as a DSR rather than a merchandiser.
+    const fieldUsers = [...byLevel].reverse().filter((each) => each.defaultRole === 'field_user');
+    const field = fieldUsers.find((each) => each.ranked) ?? fieldUsers[0];
     const managers = byLevel.filter((each) => each.defaultRole === 'manager');
     if (!field) throw new Error('The tenant has no designation for field users.');
+    this.proposable = (
+      await this.tx((tx) => this.get(AccountTypesService).list(tx, this.tenantId))
+    ).filter(
+      (type) =>
+        type.active &&
+        type.definition.creation === 'field_users_with_approval' &&
+        type.definition.slots.some((slot) => slot.designations.includes(field.key)) &&
+        !type.definition.slots.some((slot) => slot.required),
+    );
     const lowest = managers.at(-1)?.level;
     const group = managers.find((each) => each.level === lowest);
-    const head =
-      [...managers].reverse().find((each) => lowest !== undefined && each.level < lowest) ?? group;
+    // One designation for each manager level above the group's, the highest first.
+    const upper = managers.filter(
+      (each, index) =>
+        lowest !== undefined &&
+        each.level < lowest &&
+        managers.findIndex((other) => other.level === each.level) === index,
+    );
 
     const territories = this.get(TerritoriesService);
     const add = (code: string, name: string, parentId: string | null) =>
@@ -362,21 +387,23 @@ export class DemoContent implements DemoKit {
     const joined = new Date(Date.now() - 400 * DAY).toISOString().slice(0, 10);
 
     let headPerson: Person = admin;
-    if (head && group && head.key !== group.key) {
+    const heads: { id: string; designation: string }[] = [];
+    for (const [index, level] of upper.entries()) {
       const name = personName(this.dice);
       const headPhone = phoneFor(99);
       const made = await create({
-        code: 'DEMO-HM',
+        code: index === upper.length - 1 ? 'DEMO-HM' : `DEMO-H${index + 1}`,
         name,
         phone: headPhone,
-        designation: head.key,
+        designation: level.key,
         role: 'manager',
-        managerId: admin.id,
+        managerId: headPerson.id,
         joiningDate: joined,
         territoryIds: parent ? [parent] : [],
       });
       headPerson = await this.person(made.id, name, await this.phoneOf(headPhone));
       this.managers.push({ person: headPerson, home: this.near(MARKETS[0], 0.01) });
+      heads.unshift({ id: headPerson.id, designation: level.key });
     }
     const team: FieldPerson[] = [];
     for (const [index, groupNode] of (groups.length > 0 ? groups : [null]).entries()) {
@@ -437,7 +464,7 @@ export class DemoContent implements DemoKit {
         [
           { id: person.id, designation: field.key },
           { id: person.manager.id, designation: (group ?? field).key },
-          ...(head && headPerson !== admin ? [{ id: headPerson.id, designation: head.key }] : []),
+          ...heads,
         ],
       ]),
     );
@@ -693,6 +720,11 @@ export class DemoContent implements DemoKit {
         now += this.dice.int(25, 45) * MINUTE;
       }
     }
+    // Now and then a new account found on the way, proposed for the manager to decide.
+    if (this.proposable.length > 0 && this.dice.chance(0.15) && now + 30 * MINUTE < stopAt) {
+      now += 15 * MINUTE;
+      await this.propose(person, now);
+    }
     const end = Math.max(now + 20 * MINUTE, this.at(date, 18 * 60 + this.dice.int(0, 40)));
     if (end > stopAt) {
       // Today's shift stays open: the person is on duty now.
@@ -717,6 +749,50 @@ export class DemoContent implements DemoKit {
         new Date(end).toISOString(),
       ),
     ).catch((error: unknown) => this.once('shift end', error));
+  }
+
+  /** A new account the person proposes, of a type they may propose and hold (decision D97). */
+  private async propose(person: FieldPerson, at: number): Promise<void> {
+    travelTo(at);
+    const type = this.dice.pick(this.proposable);
+    const parentType = type.definition.parentTypes?.[0];
+    const parent = parentType
+      ? person.places.find((place) => place.type === parentType)
+      : undefined;
+    const name = placeName(
+      this.dice,
+      this.flavour,
+      type.definition.name.en.one,
+      personType(type.key) ? 'person' : 'shop',
+      person.market.name,
+    );
+    try {
+      await this.tx((tx) =>
+        this.get(AccountsService).create(
+          tx,
+          person.access,
+          CreateAccountBody.parse({
+            id: newId(),
+            type: type.key,
+            ...(type.definition.code.mode === 'manual'
+              ? { code: `NEW-${person.market.code}-${this.dice.int(1000, 9999)}` }
+              : {}),
+            name,
+            territoryId: this.marketNode.get(person.market.code)!,
+            location: this.near(person.market, 0.03),
+            ...(parent ? { parentId: parent.id } : {}),
+            custom: this.values(
+              type.definition.fields ?? [],
+              { place: name, market: person.market.name },
+              true,
+            ),
+          }),
+        ),
+      );
+      this.counts.proposals++;
+    } catch (error) {
+      this.once(`proposal:${type.key}`, error);
+    }
   }
 
   /** A manager's day: punch in, out to a market and back, punch out. */
@@ -1044,15 +1120,19 @@ export class DemoContent implements DemoKit {
         case 'short_text':
           values[key] = /topic|subject/.test(key)
             ? this.dice.pick(this.flavour.topics)
-            : /farmer|name|contact|person|owner/.test(key)
-              ? personName(this.dice)
-              : /village/.test(key)
-                ? this.dice.pick(VILLAGES)
-                : /market|town|area/.test(key)
-                  ? context.market
-                  : /reference|ref/.test(key)
-                    ? `REF-${this.dice.int(1000, 9999)}`
-                    : context.place;
+            : /phone|mobile/.test(key)
+              ? `9${String(this.dice.int(10_000_000, 99_999_999))}0`
+              : /outlet|shop|store|firm|business/.test(key)
+                ? placeName(this.dice, this.flavour, '', 'shop', context.market)
+                : /farmer|name|contact|person|owner/.test(key)
+                  ? personName(this.dice)
+                  : /village/.test(key)
+                    ? this.dice.pick(VILLAGES)
+                    : /market|town|area/.test(key)
+                      ? context.market
+                      : /reference|ref/.test(key)
+                        ? `REF-${this.dice.int(1000, 9999)}`
+                        : context.place;
           break;
         case 'long_text':
           values[key] = /observ/.test(key)
@@ -1092,6 +1172,9 @@ export class DemoContent implements DemoKit {
           break;
         case 'yes_no':
           values[key] = this.dice.chance(0.7);
+          break;
+        case 'rating':
+          values[key] = this.dice.int(2, 5);
           break;
         case 'date': {
           const earliest = field.minDaysFromToday ?? 0;
