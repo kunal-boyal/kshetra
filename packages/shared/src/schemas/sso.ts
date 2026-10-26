@@ -74,6 +74,18 @@ export const SsoConnectionResult = z
         idpIssuer: z.string().nullable(),
         hasIdpCertificate: z.boolean(),
         domains: z.array(z.string()),
+        /**
+         * Each domain's proof (decision D101): the TXT record to publish, and whether it has been
+         * found. Only verified domains sign anyone in.
+         */
+        domainChecks: z.array(
+          z.object({
+            domain: z.string(),
+            verified: z.boolean(),
+            recordName: z.string(),
+            recordValue: z.string(),
+          }),
+        ),
         enabled: z.boolean(),
         enforced: z.boolean(),
         updatedAt: z.iso.datetime(),
@@ -105,3 +117,6 @@ export type SsoFailure = (typeof SSO_FAILURES)[number];
 export type SsoConnectionBody = z.output<typeof SsoConnectionBody>;
 export type SsoConnectionResult = z.infer<typeof SsoConnectionResult>;
 export type SsoSettings = z.output<typeof SsoSettings>;
+
+/** `POST /v1/sso/domains/verify`: look for one domain's TXT record now. */
+export const SsoDomainVerifyBody = z.strictObject({ domain: z.string().min(3).max(253) });

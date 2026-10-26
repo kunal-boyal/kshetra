@@ -1871,7 +1871,9 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'write',
     run: async () => {
       // B can't claim a domain for itself and so take A's people; B's own connection is B's.
-      const reply = await asB('PUT', '/v1/sso', {
+      // Saving it needs a fresh authenticator code (decision D101).
+      const stepped = await world.stepUp(b.admin.phone, bToken);
+      const reply = await send(stepped, 'PUT', '/v1/sso', {
         settings: {
           protocol: 'oidc',
           issuer: 'https://idp.b.example/',
@@ -1945,8 +1947,31 @@ const FIXTURES: Record<string, Fixture> = {
   },
   'POST /v1/users/:id/second-factor/reset': {
     kind: 'by ID',
-    run: () =>
-      sameAsNowhere((id) => asB('POST', `/v1/users/${id}/second-factor/reset`), a.admin.id),
+    run: async () => {
+      // With a fresh code, so the answer is about whose the ID is (decision D101).
+      const stepped = await world.stepUp(b.admin.phone, bToken);
+      await sameAsNowhere(
+        (id) => send(stepped, 'POST', `/v1/users/${id}/second-factor/reset`),
+        a.admin.id,
+      );
+    },
+  },
+  'POST /v1/sso/domains/verify': {
+    kind: 'write',
+    run: async () => {
+      // A domain of A's is no part of B's connection, so there is nothing to prove.
+      const reply = await asB('POST', '/v1/sso/domains/verify', { domain: 'a.example' });
+      expect(reply.json().error.code).toBe('NOT_FOUND');
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /auth/v1/authenticator/step-up': {
+    kind: 'own tenant',
+    run: async () => {
+      const reply = await asB('POST', '/auth/v1/authenticator/step-up', { code: '000000' });
+      expect(reply.json().error.code).toBe('OTP_INVALID');
+      holdsNothingOfA(reply);
+    },
   },
   'GET /v1/billing': {
     kind: 'own tenant',

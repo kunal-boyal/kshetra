@@ -339,3 +339,64 @@ describe('files', () => {
     });
   });
 });
+
+describe('step-up (decision D101)', () => {
+  const required = () =>
+    json(403, {
+      error: {
+        code: 'SECOND_FACTOR_REQUIRED',
+        message: 'Enter a code from your authenticator to make this change.',
+        requestId: 'r',
+      },
+    });
+
+  it('asks for a fresh code, steps up, and sends the change again with the new token', async () => {
+    const server = fakeServer((url, init) => {
+      const auth = (init.headers as Record<string, string>).authorization;
+      if (url.endsWith('/auth/v1/authenticator/step-up')) {
+        const { code } = JSON.parse(String(init.body)) as { code: string };
+        return code === '111111'
+          ? json(200, { accessToken: 'stepped', accessTokenExpiresAt: later(15 * 60_000) })
+          : json(400, { error: { code: 'OTP_INVALID', message: 'Wrong.', requestId: 'r' } });
+      }
+      return auth === 'Bearer stepped' ? json(200, { ok: true }) : required();
+    });
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    const asked: (string | null)[] = [];
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store,
+      fetch: server.fetch,
+      stepUp: async (wrong) => {
+        asked.push(wrong?.code ?? null);
+        return asked.length === 1 ? '000000' : '111111';
+      },
+    });
+    const answer = await client.request('PATCH', '/v1/users/x', z.object({ ok: z.boolean() }), {
+      body: { phone: '+919876543210' },
+    });
+    expect(answer).toEqual({ ok: true });
+    // The wrong code was said so, and the second try went through.
+    expect(asked).toEqual([null, 'OTP_INVALID']);
+    expect(client.session?.accessToken).toBe('stepped');
+  });
+
+  it('fails the change as it was when the person declines', async () => {
+    const server = fakeServer(() => required());
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store,
+      fetch: server.fetch,
+      stepUp: async () => null,
+    });
+    await expect(
+      client.request('PATCH', '/v1/users/x', z.object({ ok: z.boolean() }), { body: {} }),
+    ).rejects.toMatchObject({ code: 'SECOND_FACTOR_REQUIRED' });
+    expect(server.calls.filter((call) => call.url.endsWith('/step-up'))).toHaveLength(0);
+  });
+});

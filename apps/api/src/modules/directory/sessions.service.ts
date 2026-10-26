@@ -50,6 +50,8 @@ interface Pending {
 interface Family {
   startedAt: Date;
   sso: boolean;
+  /** When the session last gave a fresh authenticator code (decision D101). */
+  steppedUpAt?: Date | null;
 }
 
 const fresh = (sso = false): Family => ({ startedAt: new Date(), sso });
@@ -137,7 +139,7 @@ export class SessionsService {
         token.familyId,
         token.deviceId,
         token.secondFactor,
-        { startedAt: token.familyStartedAt, sso: token.sso },
+        { startedAt: token.familyStartedAt, sso: token.sso, steppedUpAt: token.steppedUpAt },
       );
       return { session, tenant: this.summary(membership) };
     });
@@ -331,6 +333,46 @@ export class SessionsService {
       .limit(1);
     if (!live) throw new AppError('NOT_FOUND', 'This session has ended already.');
     await this.endFamily(this.database.db, sessionId);
+  }
+
+  /**
+   * Marks a session as having just given a fresh authenticator code (step-up, decision D101) and
+   * hands back an access token that says so; the session's later refreshes carry it on.
+   */
+  async stepUp(
+    tenantId: string,
+    userId: string,
+    sessionId: string,
+  ): Promise<{ accessToken: string; accessTokenExpiresAt: string }> {
+    const membershipId = await this.membershipOf(tenantId, userId);
+    const now = new Date();
+    const [live] = await this.database.db
+      .update(refreshTokens)
+      .set({ steppedUpAt: now })
+      .where(
+        and(
+          eq(refreshTokens.familyId, sessionId),
+          eq(refreshTokens.membershipId, membershipId),
+          isNull(refreshTokens.revokedAt),
+        ),
+      )
+      .returning({ deviceId: refreshTokens.deviceId });
+    if (!live) throw revoked();
+    const [membership] = await activeMemberships(
+      this.database.db,
+      eq(memberships.id, membershipId),
+    );
+    if (!membership) throw revoked();
+    const access = await this.keys.sign({
+      userId: membership.userId,
+      tenantId: membership.tenantId,
+      cell: membership.cellName,
+      revision: membership.authRevision,
+      sessionId,
+      steppedUpAt: now,
+      ...(live.deviceId ? { deviceId: live.deviceId } : {}),
+    });
+    return { accessToken: access.token, accessTokenExpiresAt: access.expiresAt.toISOString() };
   }
 
   /** Ends every one of someone's sessions in this tenant but the one asking. */
@@ -621,6 +663,7 @@ export class SessionsService {
       secondFactor,
       familyStartedAt: family.startedAt,
       sso: family.sso,
+      steppedUpAt: family.steppedUpAt ?? null,
       ...this.place(),
     });
     const access = await this.keys.sign({
@@ -629,6 +672,7 @@ export class SessionsService {
       cell: row.cellName,
       revision: row.authRevision,
       sessionId: familyId,
+      steppedUpAt: family.steppedUpAt ?? null,
       ...(deviceId ? { deviceId } : {}),
     });
     return {

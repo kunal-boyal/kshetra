@@ -236,17 +236,17 @@ describe('resetting an authenticator (D91)', () => {
       (await asUser('GET', `/v1/users/${o.manager.id}/second-factor`, mine.accessToken)).json(),
     ).toEqual({ required: false, enrolled: false });
 
-    const own = await asUser(
-      'POST',
-      `/v1/users/${o.admin.id}/second-factor/reset`,
-      mine.accessToken,
-    );
-    expect(own.json().error.code).toBe('FORBIDDEN');
-    const reset = await asUser(
+    // Resetting one needs a fresh code from one's own (D101).
+    const unproved = await asUser(
       'POST',
       `/v1/users/${other.id}/second-factor/reset`,
       mine.accessToken,
     );
+    expect(unproved.json().error.code).toBe('SECOND_FACTOR_REQUIRED');
+    const stepped = await world.stepUp(o.adminPhone, mine.accessToken);
+    const own = await asUser('POST', `/v1/users/${o.admin.id}/second-factor/reset`, stepped);
+    expect(own.json().error.code).toBe('FORBIDDEN');
+    const reset = await asUser('POST', `/v1/users/${other.id}/second-factor/reset`, stepped);
     expect(reset.statusCode, reset.body).toBe(204);
     expect((await asUser('GET', '/v1/me', theirs.accessToken)).json().error.code).toBe(
       'SESSION_REVOKED',

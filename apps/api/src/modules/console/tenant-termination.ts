@@ -16,6 +16,8 @@ import {
   platformUsers,
   refreshTokens,
   ssoConnections,
+  ssoDomains,
+  ssoSubjects,
   supportGrants,
   tenants,
   totpSecrets,
@@ -199,7 +201,9 @@ export class TenantTermination implements OnModuleInit {
       if (grantIds.length > 0) {
         await tx.delete(refreshTokens).where(inArray(refreshTokens.supportGrantId, grantIds));
       }
+      await tx.delete(ssoSubjects).where(eq(ssoSubjects.tenantId, id));
       await tx.delete(memberships).where(eq(memberships.tenantId, id));
+      await tx.delete(ssoDomains).where(eq(ssoDomains.tenantId, id));
       await tx.delete(ssoConnections).where(eq(ssoConnections.tenantId, id));
       // People who belonged to no other organisation are forgotten altogether.
       const identityIds = [...new Set(members.map((member) => member.identityId))];

@@ -196,6 +196,8 @@ export const AccessClaims = z.object({
   scp: z.array(z.string()).optional(),
   /** The session, its refresh-token family; a session ended early refuses its tokens (D101). */
   sid: z.uuid().optional(),
+  /** When the session last gave a fresh authenticator code (step-up, D101), in epoch seconds. */
+  sua: z.int().optional(),
 });
 
 /** One place someone is signed in (ASVS V7.5.2, decision D101): a refresh-token family. */
@@ -217,6 +219,15 @@ export const OwnSession = z
 export const OwnSessionsResult = z.object({ items: z.array(OwnSession) });
 
 export const SessionIdParams = z.strictObject({ id: z.uuid() });
+
+/**
+ * `POST /auth/v1/authenticator/step-up`: a fresh access token for the session, carrying when it
+ * gave the code (decision D101).
+ */
+export const StepUpResult = z.object({
+  accessToken: z.string(),
+  accessTokenExpiresAt: z.iso.datetime(),
+});
 
 export type OwnSession = z.infer<typeof OwnSession>;
 export type DeviceInfo = z.infer<typeof DeviceInfo>;

@@ -20,7 +20,7 @@ import {
   UserResult,
   UserView,
 } from '@thelamp/shared';
-import { type Access, CurrentAccess, Requires } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, StepUp } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -162,6 +162,7 @@ export class UsersController {
     idempotencyKey: true,
   })
   @Requires('user.manage')
+  @StepUp()
   @HttpCode(204)
   async resetSecondFactor(
     @CurrentAccess() access: Access,

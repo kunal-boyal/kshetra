@@ -16,6 +16,7 @@ import {
   SelectTenantResult,
   type Session,
   SignedIn,
+  StepUpResult,
   SsoDiscoverResult,
   type SyncEntity,
   SyncPullResult,
@@ -91,6 +92,11 @@ export interface ClientOptions {
   fetch?: typeof fetch;
   /** Called when the session ends: signed out, revoked, or no longer refreshable. */
   onSignedOut?: () => void;
+  /**
+   * Asks the person for a fresh authenticator code when a change needs one (step-up, decision
+   * D101): given the last wrong attempt's error, if any; null when they decline.
+   */
+  stepUp?: (wrong: ApiError | null) => Promise<string | null>;
 }
 
 export interface RequestOptions {
@@ -100,6 +106,8 @@ export interface RequestOptions {
   /** For creates and actions without a client-generated ID (spec 11.1, BR-46). */
   idempotencyKey?: string;
   headers?: Record<string, string>;
+  /** The step-up itself, which mustn't ask for a step-up. */
+  noStepUp?: boolean;
 }
 
 /** Refresh a little before the access token runs out, so requests never race its expiry. */
@@ -303,6 +311,14 @@ export function createClient(options: ClientOptions) {
       }
       response = await attempt(await refresh());
     }
+    // A change that needs a fresh authenticator code asks for one, steps up and goes again.
+    if (response.status === 403 && options.stepUp && !request.noStepUp) {
+      const error = await failure(response.clone());
+      if (error.code === 'SECOND_FACTOR_REQUIRED') {
+        await stepUp();
+        response = await attempt((await current())!);
+      }
+    }
     // A 304 answers a conditional request for something the caller already has.
     if (!response.ok && response.status !== 304) {
       const error = await failure(response);
@@ -310,6 +326,34 @@ export function createClient(options: ClientOptions) {
       throw error;
     }
     return response;
+  }
+
+  /**
+   * Gives a fresh authenticator code for the session, asking again after a wrong one, three
+   * times at most; declining throws, so the change that asked for it fails as it would have.
+   */
+  async function stepUp(): Promise<void> {
+    let wrong: ApiError | null = null;
+    for (let tries = 0; tries < 3; tries += 1) {
+      const code = await options.stepUp!(wrong);
+      if (code === null) {
+        throw new ApiError(403, 'SECOND_FACTOR_REQUIRED', 'A fresh authenticator code is needed.');
+      }
+      try {
+        const response = await cell('POST', '/auth/v1/authenticator/step-up', {
+          body: { code },
+          noStepUp: true,
+        });
+        const token = StepUpResult.parse(await response.json());
+        const state = await current();
+        if (state) await keep({ ...state, ...token });
+        return;
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.code !== 'OTP_INVALID') throw error;
+        wrong = error;
+      }
+    }
+    throw wrong!;
   }
 
   return {

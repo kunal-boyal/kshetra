@@ -201,6 +201,9 @@ const schema = z
     // D101): `pwned` asks its range API, which sees only five hex digits of the password's SHA-1;
     // `off` skips the check, for working offline; `memory` knows a few, for tests.
     PASSWORD_BREACH_CHECK: z.enum(['pwned', 'off', 'memory']).default('pwned'),
+    // Where an SSO domain's TXT record is looked up (decision D101): the public DNS, or records
+    // a test sets.
+    DOMAIN_RECORDS: z.enum(['dns', 'memory']).default('dns'),
     // Payments for invoices (decision D90): `off` until the Razorpay account exists, when invoices
     // are paid by bank transfer and recorded in the console; `console` approves every mandate and
     // charge locally and on the demo, and `memory` lets tests decide.
@@ -428,6 +431,7 @@ const schema = z
       ['WHATSAPP_PROVIDER', config.WHATSAPP_PROVIDER],
       ['PAYMENT_PROVIDER', config.PAYMENT_PROVIDER],
       ['PASSWORD_BREACH_CHECK', config.PASSWORD_BREACH_CHECK],
+      ['DOMAIN_RECORDS', config.DOMAIN_RECORDS],
     ] as const) {
       if (value === 'memory' && config.NODE_ENV !== 'test') {
         ctx.addIssue({

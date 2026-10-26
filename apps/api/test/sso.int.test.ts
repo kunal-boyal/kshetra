@@ -8,6 +8,7 @@ import { newId } from '@thelamp/shared';
 import { OAuth2Server } from 'oauth2-mock-server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SignedXml } from 'xml-crypto';
+import { DomainRecords, type MemoryDomainRecords } from '../src/platform/domain-records';
 import { totpAt, totpStep } from '../src/platform/totp';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
 
@@ -21,8 +22,12 @@ const WEB_URL = 'http://127.0.0.1:5173';
 let app: NestFastifyApplication;
 let world: World;
 let provider: OAuth2Server;
-/** The email the mock provider puts in its next ID token, and how it says the person signed in. */
+/**
+ * The email the mock provider puts in its next ID token, the subject it gives (by default the
+ * email, as a provider gives each person their own), and how it says the person signed in.
+ */
 let nextEmail = '';
+let nextSubject: string | undefined;
 let nextAmr: string[] | undefined;
 
 beforeAll(async () => {
@@ -33,6 +38,7 @@ beforeAll(async () => {
   await provider.start(0, '127.0.0.1');
   provider.service.on('beforeTokenSigning', (token) => {
     token.payload.email = nextEmail;
+    token.payload.sub = nextSubject ?? nextEmail.toLowerCase();
     token.payload.email_verified = true;
     if (nextAmr) token.payload.amr = nextAmr;
     else delete token.payload.amr;
@@ -48,7 +54,7 @@ afterAll(async () => {
 const address = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.7`;
 const WEB = { 'x-client': 'web' };
 
-function asUser(method: 'GET' | 'PUT', url: string, token: string, body?: object) {
+function asUser(method: 'GET' | 'PUT' | 'POST', url: string, token: string, body?: object) {
   return app.inject({
     method,
     url,
@@ -63,10 +69,29 @@ async function organisation(domain: string) {
   const tenantId = await world.tenant(`Org ${domain}`);
   const adminPhone = newPhone();
   await world.user(tenantId, { phone: adminPhone, designation: 'head', role: 'tenant_admin' });
-  const admin = (await world.signIn(adminPhone)).accessToken;
+  // Changing single sign-on needs a fresh authenticator code (decision D101).
+  const admin = await world.stepUp(adminPhone, (await world.signIn(adminPhone)).accessToken);
   const personPhone = newPhone();
   const person = await world.user(tenantId, { phone: personPhone, email: `anita@${domain}` });
   return { tenantId, slug: `t-${tenantId}`, admin, adminPhone, person, personPhone };
+}
+
+/**
+ * Saves a connection and proves its domains, publishing each TXT record where the test's DNS
+ * reads it (decision D101); a refused save comes back as it was.
+ */
+async function connect(o: { admin: string }, body: object) {
+  const saved = await asUser('PUT', '/v1/sso', o.admin, body);
+  if (saved.statusCode !== 200) return saved;
+  const records = app.get(DomainRecords) as MemoryDomainRecords;
+  for (const check of saved.json().connection.domainChecks) {
+    records.set(check.recordName, [check.recordValue]);
+    const proved = await asUser('POST', '/v1/sso/domains/verify', o.admin, {
+      domain: check.domain,
+    });
+    expect(proved.statusCode, proved.body).toBe(200);
+  }
+  return asUser('GET', '/v1/sso', o.admin);
 }
 
 const oidcSettings = () => ({
@@ -125,7 +150,7 @@ async function restore(cookie: string | string[] | undefined) {
 describe('an OIDC connection (D91)', () => {
   it('signs in the person with the provider’s email, and nobody else', async () => {
     const o = await organisation('careful.example');
-    const saved = await asUser('PUT', '/v1/sso', o.admin, {
+    const saved = await connect(o, {
       settings: oidcSettings(),
       domains: ['careful.example'],
       enabled: true,
@@ -168,7 +193,7 @@ describe('an OIDC connection (D91)', () => {
 
   it('keeps the secret when settings change without it, and gives each domain one organisation', async () => {
     const o = await organisation('kept.example');
-    await asUser('PUT', '/v1/sso', o.admin, {
+    await connect(o, {
       settings: oidcSettings(),
       domains: ['kept.example'],
       enabled: true,
@@ -176,7 +201,7 @@ describe('an OIDC connection (D91)', () => {
     });
     const withoutSecret: Partial<ReturnType<typeof oidcSettings>> = oidcSettings();
     delete withoutSecret.clientSecret;
-    const changed = await asUser('PUT', '/v1/sso', o.admin, {
+    const changed = await connect(o, {
       settings: withoutSecret,
       domains: ['kept.example', 'also-kept.example'],
       enabled: true,
@@ -188,7 +213,7 @@ describe('an OIDC connection (D91)', () => {
     );
 
     const other = await organisation('another.example');
-    const clash = await asUser('PUT', '/v1/sso', other.admin, {
+    const clash = await connect(other, {
       settings: oidcSettings(),
       domains: ['kept.example'],
       enabled: true,
@@ -203,14 +228,14 @@ describe('an OIDC connection (D91)', () => {
     const o = await organisation('required.example');
     const discover = (email: string) =>
       app.inject({ method: 'POST', url: '/auth/v1/sso/discover', payload: { email } });
-    await asUser('PUT', '/v1/sso', o.admin, {
+    await connect(o, {
       settings: oidcSettings(),
       domains: ['required.example'],
       enabled: false,
       enforced: false,
     });
     expect((await discover('anita@required.example')).json()).toEqual({ url: null });
-    await asUser('PUT', '/v1/sso', o.admin, {
+    await connect(o, {
       settings: oidcSettings(),
       domains: ['required.example'],
       enabled: true,
@@ -240,7 +265,7 @@ describe('SSO and the second factor (D101)', () => {
       role: 'tenant_admin',
       email: 'boss@mfa.example',
     });
-    await asUser('PUT', '/v1/sso', o.admin, {
+    await connect(o, {
       settings: oidcSettings(),
       domains: ['mfa.example'],
       enabled: true,
@@ -285,7 +310,7 @@ describe('SSO and the second factor (D101)', () => {
 
   it('counts an answer only in the browser that started the sign-in', async () => {
     const o = await organisation('binder.example');
-    await asUser('PUT', '/v1/sso', o.admin, {
+    await connect(o, {
       settings: oidcSettings(),
       domains: ['binder.example'],
       enabled: true,
@@ -306,11 +331,104 @@ describe('SSO and the second factor (D101)', () => {
   });
 });
 
+describe('proving domains and binding people (D101)', () => {
+  it('signs nobody in at a domain not yet proved, and gives a proved one to one organisation', async () => {
+    const o = await organisation('unproved.example');
+    const body = {
+      settings: oidcSettings(),
+      domains: ['unproved.example'],
+      enabled: true,
+      enforced: false,
+    };
+    const saved = await asUser('PUT', '/v1/sso', o.admin, body);
+    expect(saved.statusCode, saved.body).toBe(200);
+    const [check] = saved.json().connection.domainChecks;
+    expect(check).toMatchObject({
+      domain: 'unproved.example',
+      verified: false,
+      recordName: '_thelamp-sso.unproved.example',
+      recordValue: expect.stringMatching(/^thelamp-sso=[0-9a-f]{32}$/),
+    });
+    const discover = () =>
+      app.inject({
+        method: 'POST',
+        url: '/auth/v1/sso/discover',
+        payload: { email: 'anita@unproved.example' },
+        remoteAddress: address(),
+      });
+    expect((await discover()).json().url).toBeNull();
+    expect((await oidcSignIn(o.slug, 'anita@unproved.example')).reply.headers.location).toBe(
+      `${WEB_URL}/sign-in?sso=domain`,
+    );
+
+    // Another organisation may claim it too while nobody has proved it…
+    const squatter = await organisation('squatter.example');
+    const claimed = await asUser('PUT', '/v1/sso', squatter.admin, body);
+    expect(claimed.statusCode, claimed.body).toBe(200);
+    // …but a record without the token proves nothing.
+    const records = app.get(DomainRecords) as MemoryDomainRecords;
+    records.set(check.recordName, ['thelamp-sso=not-the-token']);
+    const wrong = await asUser('POST', '/v1/sso/domains/verify', o.admin, {
+      domain: 'unproved.example',
+    });
+    expect(wrong.json().error.details).toEqual([
+      {
+        path: 'domain',
+        issue: 'No TXT record with the token was found at _thelamp-sso.unproved.example yet',
+      },
+    ]);
+    records.set(check.recordName, [check.recordValue]);
+    const proved = await asUser('POST', '/v1/sso/domains/verify', o.admin, {
+      domain: 'unproved.example',
+    });
+    expect(proved.json().connection.domainChecks[0]).toMatchObject({ verified: true });
+    expect((await discover()).json().url).toBe(`/auth/v1/sso/${o.slug}/start`);
+    expect((await oidcSignIn(o.slug, 'anita@unproved.example')).reply.headers.location).toBe(
+      `${WEB_URL}/`,
+    );
+    // Once proved, it is the owner's alone.
+    const theirs = squatter.admin;
+    const again = await asUser('PUT', '/v1/sso', theirs, body);
+    expect(again.json().error.details).toEqual([
+      { path: 'domains', issue: 'Another organisation signs in unproved.example already' },
+    ]);
+  });
+
+  it('binds a person to the provider’s subject, so an email moved there moves nobody', async () => {
+    const o = await organisation('bound.example');
+    await connect(o, {
+      settings: oidcSettings(),
+      domains: ['bound.example'],
+      enabled: true,
+      enforced: false,
+    });
+    const bob = await world.user(o.tenantId, { phone: newPhone(), email: 'bob@bound.example' });
+    nextSubject = 'idp-subject-anita';
+    const first = await oidcSignIn(o.slug, 'anita@bound.example');
+    expect(first.reply.headers.location).toBe(`${WEB_URL}/`);
+    // The provider now says Anita's subject has Bob's email: it is still Anita.
+    const moved = await oidcSignIn(o.slug, 'bob@bound.example');
+    const token = await restore(moved.reply.headers['set-cookie']);
+    expect((await asUser('GET', '/v1/me', token)).json().userId).toBe(o.person.id);
+    // And another subject claiming Anita's email doesn't become her.
+    nextSubject = 'idp-subject-impostor';
+    expect((await oidcSignIn(o.slug, 'anita@bound.example')).reply.headers.location).toBe(
+      `${WEB_URL}/sign-in?sso=no_person`,
+    );
+    // Bob, with a subject of his own, signs in as himself.
+    nextSubject = 'idp-subject-bob';
+    const bobs = await oidcSignIn(o.slug, 'bob@bound.example');
+    const bobToken = await restore(bobs.reply.headers['set-cookie']);
+    expect((await asUser('GET', '/v1/me', bobToken)).json().userId).toBe(bob.id);
+    nextSubject = undefined;
+  });
+});
+
 describe('a SAML connection (D91)', () => {
   it('signs in with a signed assertion, and refuses one that is not', async () => {
     const o = await organisation('saml.example');
     const { key, cert } = idpKeys();
-    const saved = await asUser('PUT', '/v1/sso', o.admin, {
+    const saved = await connect(o, {
       settings: {
         protocol: 'saml',
         entryPoint: 'https://idp.example/sso',
@@ -365,7 +483,7 @@ describe('a SAML connection (D91)', () => {
     expect((await asUser('GET', '/v1/me', token)).json().userId).toBe(o.person.id);
 
     // Saving again without the certificate keeps it, and signing in still works.
-    const resaved = await asUser('PUT', '/v1/sso', o.admin, {
+    const resaved = await connect(o, {
       settings: {
         protocol: 'saml',
         entryPoint: 'https://idp.example/sso',
@@ -380,7 +498,7 @@ describe('a SAML connection (D91)', () => {
     expect((await post(again, answer(again))).headers.location).toBe(`${WEB_URL}/`);
     // A first connection needs one.
     const fresh = await organisation('fresh-saml.example');
-    const missing = await asUser('PUT', '/v1/sso', fresh.admin, {
+    const missing = await connect(fresh, {
       settings: { protocol: 'saml', entryPoint: 'https://idp.example/sso', idpIssuer: 'x' },
       domains: ['fresh-saml.example'],
       enabled: true,

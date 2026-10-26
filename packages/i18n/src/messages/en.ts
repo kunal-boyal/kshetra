@@ -110,6 +110,10 @@ export const en = {
   'shell.switch_organisation': 'Switch organisation',
   'shell.sign_out': 'Sign out',
   'shell.security': 'Sign-in security',
+  'stepup.title': 'Confirm it’s you',
+  'stepup.intro':
+    'This change decides who can sign in as whom. Enter the code your authenticator app shows now.',
+  'stepup.continue': 'Continue',
   'security.title': 'Sign-in security',
   'security.intro': 'How you sign in to the portal.',
   'security.sms_note':
@@ -3477,6 +3481,15 @@ export const en = {
   'sso.idp_issuer': 'Provider’s entity ID',
   'sso.certificate': 'Signing certificate',
   'sso.certificate_help': 'The provider’s certificate, as PEM',
+  'sso.domains_title': 'Prove your domains',
+  'sso.domains_intro':
+    'Single sign-on signs in only addresses at domains you have proved are yours. At your DNS provider, add a TXT record with this name and value for each domain, then check it.',
+  'sso.record_name': 'TXT record name',
+  'sso.record_value': 'TXT record value',
+  'sso.verified': 'Verified',
+  'sso.not_verified': 'Not verified yet',
+  'sso.check': 'Check now',
+  'sso.checked': '{domain} is verified.',
   'sso.domains': 'Email domains',
   'sso.domains_help': 'One a line, such as sunrise-agro.example',
   'sso.enabled': 'On',

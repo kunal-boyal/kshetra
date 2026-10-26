@@ -270,6 +270,39 @@ export class SecondFactorService extends SecondFactors {
     });
   }
 
+  /**
+   * Checks a fresh code from someone's own authenticator, for a step-up (decision D101): spent
+   * once, and counted against their five tries in ten minutes. Without an authenticator there is
+   * nothing to step up with, and the answer says where to set one up.
+   */
+  async ownCheck(tenantId: string, userId: string, code: string): Promise<void> {
+    const identityId = await this.identityOf(tenantId, userId);
+    await this.tried(identityId);
+    await this.database.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(totpSecrets)
+        .where(eq(totpSecrets.identityId, identityId))
+        .for('update');
+      if (!row?.enabledAt) {
+        throw new AppError(
+          'CONFLICT',
+          'Set up an authenticator at Sign-in security first; this change needs a code from it.',
+        );
+      }
+      const step = matchTotp(
+        this.cipher.open(row.secretSealed, where(identityId)),
+        code,
+        row.lastStep,
+      );
+      if (step === null) throw wrongCode();
+      await tx
+        .update(totpSecrets)
+        .set({ lastStep: step })
+        .where(eq(totpSecrets.identityId, identityId));
+    });
+  }
+
   /** Which of a tenant's people have an authenticator set up, by user. */
   async enrolled(tenantId: string, userIds: readonly string[]): Promise<Set<string>> {
     if (userIds.length === 0) return new Set();

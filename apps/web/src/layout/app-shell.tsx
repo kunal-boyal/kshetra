@@ -35,6 +35,7 @@ import { Brand } from './brand';
 import { LanguagePicker, ThemePicker } from './preferences-menu';
 import { Announcements } from './announcements';
 import { SupportBanner } from './support-banner';
+import { StepUpPrompt } from '../step-up';
 
 /**
  * The portal's frame (spec 8.2): navigation on the left, the tenant and the person's choices on
@@ -295,6 +296,7 @@ export function AppShell() {
         </header>
         <SupportBanner onSignOut={() => act(() => client.signOut())} />
         <Announcements />
+        <StepUpPrompt />
         <main id="content" className="mx-auto w-full max-w-[var(--content-max)] p-6">
           <Outlet />
         </main>

@@ -92,6 +92,7 @@ export {
   OwnSession,
   OwnSessionsResult,
   SessionIdParams,
+  StepUpResult,
   ChooseTenant,
   DeviceInfo,
   JwksResult,
@@ -886,6 +887,7 @@ export {
   SSO_PROTOCOLS,
   SsoConnectionBody,
   SsoConnectionResult,
+  SsoDomainVerifyBody,
   SsoDiscoverBody,
   SsoDiscoverResult,
   type SsoFailure,
@@ -909,7 +911,13 @@ export {
   supportStatus,
   type SupportStatus as SupportStatusKey,
 } from './support';
-export { providerUsedMfa, SESSION_LIMITS, type SessionKind, sessionExpiresAt } from './sessions';
+export {
+  providerUsedMfa,
+  SESSION_LIMITS,
+  type SessionKind,
+  sessionExpiresAt,
+  STEP_UP_SECONDS,
+} from './sessions';
 export { passwordWords, passwordWordsIssue } from './passwords';
 export { describeAgent } from './agents';
 export {

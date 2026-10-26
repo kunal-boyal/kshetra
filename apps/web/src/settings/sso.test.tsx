@@ -20,19 +20,52 @@ const OIDC = {
   idpIssuer: null,
   hasIdpCertificate: false,
   domains: ['sunrise.example'],
+  domainChecks: [
+    {
+      domain: 'sunrise.example',
+      verified: true,
+      recordName: '_thelamp-sso.sunrise.example',
+      recordValue: 'thelamp-sso=0123456789abcdef0123456789abcdef',
+    },
+  ],
   enabled: true,
   enforced: false,
   updatedAt: '2026-10-25T06:00:00.000Z',
 };
 
+/** Each domain as the API answers it: proved only once its record is checked (D101). */
+const checksOf = (domains: string[], verified: string[] = []) =>
+  domains.map((domain) => ({
+    domain,
+    verified: verified.includes(domain),
+    recordName: `_thelamp-sso.${domain}`,
+    recordValue: `thelamp-sso=${'0'.repeat(32)}`,
+  }));
+
 const CERTIFICATE = `-----BEGIN CERTIFICATE-----\n${'MIIC'.repeat(40)}\n-----END CERTIFICATE-----`;
 
 /** A client whose PUT keeps what it was sent, as the API does, without the secrets. */
 function ssoClient(connection: object | null) {
-  let current = { connection, provider: PROVIDER };
+  let current: { connection: object | null; provider: typeof PROVIDER } = {
+    connection,
+    provider: PROVIDER,
+  };
   return fakeClient(
     { '/v1/sso': () => current },
     {
+      'POST /v1/sso/domains/verify': ({ body }: RequestOptions) => {
+        const { domain } = body as { domain: string };
+        if (domain === 'sunrise-agro.example') {
+          throw new ApiError(400, 'VALIDATION', 'Check the fields.', [
+            {
+              path: 'domain',
+              issue:
+                'No TXT record with the token was found at _thelamp-sso.sunrise-agro.example yet',
+            },
+          ]);
+        }
+        return current;
+      },
       'PUT /v1/sso': ({ body }: RequestOptions) => {
         const { settings, ...rest } = body as {
           settings: Record<string, string>;
@@ -57,6 +90,7 @@ function ssoClient(connection: object | null) {
             idpIssuer: settings.idpIssuer ?? null,
             hasIdpCertificate: saml,
             ...rest,
+            domainChecks: checksOf(rest.domains, ['sunrise.example']),
             updatedAt: '2026-10-25T07:00:00.000Z',
           },
         };
@@ -106,6 +140,17 @@ describe('single sign-on settings (spec M1, D91)', () => {
       enabled: true,
       enforced: true,
     });
+
+    // The new domain waits for its TXT record; checking too early says so (D101).
+    const proofs = await screen.findByRole('region', { name: 'Prove your domains' });
+    expect(within(proofs).getByText('_thelamp-sso.sunrise-agro.example')).toBeVisible();
+    expect(within(proofs).getAllByText('Not verified yet')).toHaveLength(1);
+    await user.click(within(proofs).getByRole('button', { name: 'Check now' }));
+    expect(
+      await within(proofs).findByText(
+        'No TXT record with the token was found at _thelamp-sso.sunrise-agro.example yet',
+      ),
+    ).toBeVisible();
   });
 
   it('sets up SAML with a certificate, and shows a domain the API refused', async () => {

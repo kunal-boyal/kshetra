@@ -108,6 +108,7 @@ export const AUDIT_ACTIONS = [
   'billing.mandate_started',
   'user.second_factor_reset',
   'sso.changed',
+  'sso.domain_verified',
   'support.requested',
   'support.approved',
   'support.declined',

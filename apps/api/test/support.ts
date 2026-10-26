@@ -83,6 +83,7 @@ export function testConfig(overrides: Record<string, string> = {}): Config {
     WHATSAPP_PROVIDER: 'memory',
     PAYMENT_PROVIDER: 'memory',
     PASSWORD_BREACH_CHECK: 'memory',
+    DOMAIN_RECORDS: 'memory',
     // One approved template, so tests see both a template and an event without one.
     WHATSAPP_TEMPLATES: JSON.stringify({ 'plan.today': { en: 'plan_today_en' } }),
     OTP_PEPPER: 'a-test-pepper-of-16+',
@@ -313,6 +314,26 @@ export class World {
     if (body.status === 'second_factor') return (await this.secondFactor(phone, body)).session;
     expect(body).toMatchObject({ status: 'signed_in' });
     return body.session;
+  }
+
+  /**
+   * Gives a fresh authenticator code for a signed-in web session (step-up, decision D101), as
+   * changing a phone, an email, an authenticator or SSO needs: the session's new access token.
+   */
+  async stepUp(phone: string, accessToken: string): Promise<string> {
+    const secret = this.totp.get(phone);
+    if (!secret)
+      throw new Error('Sign this number in on the web first, so it has an authenticator.');
+    await this.directory.forgetTotpStep(phone);
+    const reply = await this.app.inject({
+      method: 'POST',
+      url: '/auth/v1/authenticator/step-up',
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: { code: totpAt(secret, totpStep()) },
+      remoteAddress: newAddress(),
+    });
+    expect(reply.statusCode, reply.body).toBe(200);
+    return reply.json().accessToken as string;
   }
 
   /** Completes a sign-in waiting for an authenticator code, setting one up if need be. */
