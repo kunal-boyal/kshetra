@@ -335,7 +335,7 @@ export class AuthGuard implements CanActivate {
     if (rule.kind === 'staff') {
       const staff = await this.staffResolver.resolve(
         await this.tokens.verifyStaff(token),
-        request.ip,
+        request.clientIp,
       );
       request.staff = staff;
       if (!rule.permissions.every((permission) => staff.permissions.has(permission))) {
@@ -352,7 +352,7 @@ export class AuthGuard implements CanActivate {
       tenantId: claims.tid,
       cell: claims.cell,
       revision: claims.rev,
-      ip: request.ip,
+      ip: request.clientIp,
       ...(claims.did ? { deviceId: claims.did } : {}),
       ...(claims.sg ? { supportGrantId: claims.sg } : {}),
       ...(claims.scp ? { scopes: claims.scp } : {}),

@@ -22,8 +22,19 @@ const schema = z
     // 127.0.0.1 locally; containers set 0.0.0.0, and so does phone testing on the local network.
     HOST: z.string().min(1).default('127.0.0.1'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-    // Behind a load balancer, trust its X-Forwarded-For so rate limits see the caller's address.
-    TRUST_PROXY: z.stringbool().default(false),
+    // Behind proxies, how many of them to believe in X-Forwarded-For, counted from this process:
+    // 1 for the cell's load balancer (decision D101). Trusting every hop would let a caller write
+    // the address rate limits and the audit see, so `true` is refused.
+    TRUST_PROXY: z
+      .string()
+      .default('false')
+      .refine((value) => /^(false|0|[1-3])$/.test(value), {
+        message: 'Use false, or the number of proxies in front of the API (1 to 3)',
+      })
+      .transform((value) => (value === 'false' || value === '0' ? false : Number(value))),
+    // The X-Origin-Verify value CloudFront sends with what it passes on (decision D98). With it,
+    // the viewer's address CloudFront writes in X-Viewer-Address is the caller's (D101).
+    ORIGIN_SECRET: z.string().min(20).optional(),
     // Web origins allowed to call this API from a browser, comma-separated (spec 13.1). Empty
     // allows none; locally the web app proxies through its own origin and needs none.
     CORS_ORIGINS: z

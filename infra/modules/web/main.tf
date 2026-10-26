@@ -35,6 +35,18 @@ variable "origin_secret" {
   sensitive   = true
 }
 
+variable "maps" {
+  description = "Whether the app draws Google Maps, whose sources its Content-Security-Policy then admits (decision D101)."
+  type        = bool
+  default     = false
+}
+
+variable "media_origin" {
+  description = "Where the app's photos and logos come from, such as https://media.example.com, for img-src; null for none."
+  type        = string
+  default     = null
+}
+
 variable "sign_in_pattern" {
   description = "The paths of sign-in attempts, which the WAF throttles per viewer."
   type        = string
@@ -107,8 +119,78 @@ data "aws_cloudfront_origin_request_policy" "all_but_host" {
   name = "Managed-AllViewerExceptHostHeader"
 }
 
-data "aws_cloudfront_response_headers_policy" "security" {
-  name = "Managed-SecurityHeadersPolicy"
+# The app's headers (spec 13.1, decision D101): its Content-Security-Policy, built from the sources
+# in content-security-policy.json that the Vite preview serves too, and the usual hardening.
+locals {
+  csp_sources = jsondecode(file("${path.module}/content-security-policy.json"))
+  csp_lists = {
+    for name, sources in local.csp_sources.base : name => distinct(concat(
+      sources,
+      var.maps ? lookup(local.csp_sources.maps, name, []) : [],
+      name == "img-src" && var.media_origin != null ? [var.media_origin] : [],
+    ))
+  }
+  # 'none' stands alone; a directive that gained sources drops it.
+  csp = join("; ", concat(
+    [for name, list in local.csp_lists : "${name} ${join(" ", length(list) > 1 ? [for source in list : source if source != "'none'"] : list)}"],
+    ["upgrade-insecure-requests"],
+  ))
+}
+
+resource "aws_cloudfront_response_headers_policy" "app" {
+  name    = "${var.name}-app"
+  comment = "${var.name}: CSP, HSTS and the rest (decision D101)"
+
+  security_headers_config {
+    content_security_policy {
+      content_security_policy = local.csp
+      override                = true
+    }
+    strict_transport_security {
+      access_control_max_age_sec = 63072000
+      include_subdomains         = true
+      override                   = true
+    }
+    content_type_options {
+      override = true
+    }
+    frame_options {
+      frame_option = "DENY"
+      override     = true
+    }
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = true
+    }
+  }
+
+  custom_headers_config {
+    items {
+      header   = "Permissions-Policy"
+      value    = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+      override = true
+    }
+    items {
+      header   = "Cross-Origin-Opener-Policy"
+      value    = "same-origin"
+      override = true
+    }
+  }
+}
+
+# The viewer's address goes to the cell in a header of CloudFront's own, written over anything the
+# viewer sent; the cell believes it only beside X-Origin-Verify (decision D101).
+resource "aws_cloudfront_function" "viewer_address" {
+  name    = "${var.name}-viewer-address"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = <<-JS
+    function handler(event) {
+      var request = event.request;
+      request.headers['x-viewer-address'] = { value: event.viewer.ip };
+      return request;
+    }
+  JS
 }
 
 resource "aws_cloudfront_distribution" "web" {
@@ -147,7 +229,7 @@ resource "aws_cloudfront_distribution" "web" {
     allowed_methods            = ["GET", "HEAD"]
     cached_methods             = ["GET", "HEAD"]
     cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
-    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.app.id
     compress                   = true
     function_association {
       event_type   = "viewer-request"
@@ -166,6 +248,10 @@ resource "aws_cloudfront_distribution" "web" {
       cache_policy_id          = data.aws_cloudfront_cache_policy.disabled.id
       origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_but_host.id
       compress                 = true
+      function_association {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.viewer_address.arn
+      }
     }
   }
 

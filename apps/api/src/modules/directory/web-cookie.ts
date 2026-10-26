@@ -2,9 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type Session, WEB_CLIENT, WEB_CLIENT_HEADER } from '@thelamp/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from '../../config';
+import { sessionCookie } from '../../platform/session-cookie';
 import { CONFIG } from '../../platform/tokens';
-
-export const COOKIE_PATH = '/auth/v1';
 
 /** Whether a request says it is the web portal's, which keeps its refresh token in a cookie. */
 export function isWeb(request: FastifyRequest): boolean {
@@ -12,17 +11,20 @@ export function isWeb(request: FastifyRequest): boolean {
 }
 
 /**
- * The web's refresh token (spec 13.1): an httpOnly, SameSite=Strict cookie scoped to the sign-in
- * routes, which the page never reads. Sign-in hands sessions over to it, by OTP or by single
+ * The web's refresh token (spec 13.1): an httpOnly, SameSite=Strict cookie, `__Host-` in
+ * production (`sessionCookie()`, decision D101), which the page never reads. Sign-in hands sessions over to it, by OTP or by single
  * sign-on (decision D91).
  */
 @Injectable()
 export class WebCookie {
   /** The cookie's name, from the product slug. */
   readonly name: string;
+  private readonly attributes: ReturnType<typeof sessionCookie>['options'];
 
-  constructor(@Inject(CONFIG) private readonly config: Config) {
-    this.name = `${config.PRODUCT_SLUG.replace(/-/g, '_')}_refresh`;
+  constructor(@Inject(CONFIG) config: Config) {
+    const cookie = sessionCookie(config, 'refresh');
+    this.name = cookie.name;
+    this.attributes = cookie.options;
   }
 
   read(request: FastifyRequest): string | undefined {
@@ -31,12 +33,7 @@ export class WebCookie {
 
   /** The cookie's attributes, the same when it is set and when it is cleared. */
   options() {
-    return {
-      httpOnly: true,
-      sameSite: 'strict' as const,
-      secure: this.config.NODE_ENV === 'production',
-      path: COOKIE_PATH,
-    };
+    return this.attributes;
   }
 
   clear(reply: FastifyReply): void {

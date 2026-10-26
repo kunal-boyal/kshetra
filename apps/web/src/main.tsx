@@ -1,3 +1,5 @@
+// First, before any schema is made (decision D101).
+import './zod-setup';
 // Mukta, the design system's face (decision D72), drawn for Latin and Devanagari alike.
 import '@fontsource/mukta/400.css';
 import '@fontsource/mukta/500.css';

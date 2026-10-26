@@ -1,0 +1,49 @@
+{
+  "_comment": "The web apps' Content-Security-Policy (spec 13.1, decision D101), read by this module and by each app's Vite preview, which the end-to-end tests run under. `base` is every app's; `maps` is added where the app draws Google Maps, as Google's Maps JavaScript API guide lists it; the media domain joins img-src.",
+  "base": {
+    "default-src": ["'self'"],
+    "script-src": ["'self'"],
+    "style-src": ["'self'", "'unsafe-inline'"],
+    "img-src": ["'self'", "data:", "blob:"],
+    "font-src": ["'self'", "data:"],
+    "connect-src": [
+      "'self'",
+      "https://*.ingest.sentry.io",
+      "https://*.ingest.us.sentry.io",
+      "https://*.ingest.de.sentry.io"
+    ],
+    "worker-src": ["'self'", "blob:"],
+    "frame-src": ["'none'"],
+    "object-src": ["'none'"],
+    "base-uri": ["'none'"],
+    "form-action": ["'self'"],
+    "frame-ancestors": ["'none'"]
+  },
+  "maps": {
+    "script-src": [
+      "'unsafe-eval'",
+      "blob:",
+      "https://*.googleapis.com",
+      "https://*.gstatic.com",
+      "*.google.com",
+      "https://*.ggpht.com",
+      "*.googleusercontent.com"
+    ],
+    "style-src": ["https://fonts.googleapis.com"],
+    "img-src": [
+      "https://*.googleapis.com",
+      "https://*.gstatic.com",
+      "*.google.com",
+      "*.googleusercontent.com"
+    ],
+    "font-src": ["https://fonts.gstatic.com"],
+    "connect-src": [
+      "https://*.googleapis.com",
+      "*.google.com",
+      "https://*.gstatic.com",
+      "data:",
+      "blob:"
+    ],
+    "frame-src": ["*.google.com"]
+  }
+}

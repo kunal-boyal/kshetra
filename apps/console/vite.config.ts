@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+import { contentSecurityPolicy } from '../../infra/modules/web/content-security-policy.mjs';
 
 // Locally the API serves the console's routes. Proxying them through this origin keeps the
 // session cookie same-site and needs no CORS (spec 13.1).
@@ -15,7 +16,12 @@ export default defineConfig({
     port: 5174,
     proxy: { '/platform': api },
   },
-  preview: { host: '127.0.0.1', port: 4174 },
+  preview: {
+    host: '127.0.0.1',
+    port: 4174,
+    // The policy CloudFront sends (decision D101), so the end-to-end tests run under it.
+    headers: { 'Content-Security-Policy': contentSecurityPolicy() },
+  },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.tsx', 'src/**/*.test.ts'],

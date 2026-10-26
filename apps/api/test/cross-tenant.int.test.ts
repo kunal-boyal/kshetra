@@ -311,6 +311,13 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'not tenant data',
     run: async () => holdsNothingOfA(await send(undefined, 'GET', '/v1/docs')),
   },
+  'GET /v1/docs/start.js': {
+    kind: 'not tenant data',
+    run: async () => {
+      const reply = await send(undefined, 'GET', '/v1/docs/start.js');
+      expect(reply.statusCode).toBe(200);
+    },
+  },
   'GET /v1/docs/scalar.js': {
     kind: 'not tenant data',
     run: async () => {

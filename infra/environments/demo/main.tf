@@ -196,13 +196,14 @@ resource "tls_private_key" "jwt" {
 locals {
   db = { for role, password in random_password.database : role => "postgres://${role}:${password.result}@postgres:5432/${local.database}" }
   settings = {
-    NODE_ENV               = "production"
-    CELL_PURPOSE           = "demo"
-    PRODUCT_SLUG           = "thelamp"
-    PRODUCT_NAME           = "The Lamp"
-    HOST                   = "0.0.0.0"
-    PORT                   = "3000"
-    TRUST_PROXY            = "true"
+    NODE_ENV     = "production"
+    CELL_PURPOSE = "demo"
+    PRODUCT_SLUG = "thelamp"
+    PRODUCT_NAME = "The Lamp"
+    HOST         = "0.0.0.0"
+    PORT         = "3000"
+    # Caddy is the one proxy believed (decision D101).
+    TRUST_PROXY            = "1"
     CELL_ID                = "demo"
     CELL_API_URL           = local.url
     WEB_URL                = local.url

@@ -19,10 +19,25 @@ import type { Config } from '../config';
  * Where files live (spec 12.2): import files now, photos, receipts and exports later. Keys start
  * with the tenant, `t/<tenant>/...`, so a lifecycle rule or a tenant's deletion can find them.
  */
+/** How a stored file is served: `disposition` is its Content-Disposition, for files to save. */
+export interface StoreOptions {
+  disposition?: string;
+}
+
 export abstract class ObjectStore {
-  abstract put(key: string, body: Uint8Array, contentType: string): Promise<void>;
+  abstract put(
+    key: string,
+    body: Uint8Array,
+    contentType: string,
+    options?: StoreOptions,
+  ): Promise<void>;
   /** Stores a file from disk without reading it into memory, such as a tenant's archive. */
-  abstract putFile(key: string, path: string, contentType: string): Promise<void>;
+  abstract putFile(
+    key: string,
+    path: string,
+    contentType: string,
+    options?: StoreOptions,
+  ): Promise<void>;
   abstract get(key: string): Promise<Uint8Array>;
   abstract delete(key: string): Promise<void>;
   /** The object's size, or null when there is none. */
@@ -93,13 +108,29 @@ export class S3ObjectStore extends ObjectStore implements OnModuleInit {
     }
   }
 
-  async put(key: string, body: Uint8Array, contentType: string): Promise<void> {
+  async put(
+    key: string,
+    body: Uint8Array,
+    contentType: string,
+    options: StoreOptions = {},
+  ): Promise<void> {
     await this.client.send(
-      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: body, ContentType: contentType }),
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ...(options.disposition ? { ContentDisposition: options.disposition } : {}),
+      }),
     );
   }
 
-  async putFile(key: string, path: string, contentType: string): Promise<void> {
+  async putFile(
+    key: string,
+    path: string,
+    contentType: string,
+    options: StoreOptions = {},
+  ): Promise<void> {
     const { size } = await stat(path);
     await this.client.send(
       new PutObjectCommand({
@@ -108,6 +139,7 @@ export class S3ObjectStore extends ObjectStore implements OnModuleInit {
         Body: createReadStream(path),
         ContentLength: size,
         ContentType: contentType,
+        ...(options.disposition ? { ContentDisposition: options.disposition } : {}),
       }),
     );
   }
@@ -168,13 +200,31 @@ export class S3ObjectStore extends ObjectStore implements OnModuleInit {
 /** Files kept in memory, for tests. */
 export class MemoryObjectStore extends ObjectStore {
   private readonly files = new Map<string, Uint8Array>();
+  private readonly dispositions = new Map<string, string>();
 
-  async put(key: string, body: Uint8Array): Promise<void> {
+  async put(
+    key: string,
+    body: Uint8Array,
+    _type: string,
+    options: StoreOptions = {},
+  ): Promise<void> {
     this.files.set(key, body);
+    if (options.disposition) this.dispositions.set(key, options.disposition);
   }
 
-  async putFile(key: string, path: string): Promise<void> {
+  async putFile(
+    key: string,
+    path: string,
+    _type: string,
+    options: StoreOptions = {},
+  ): Promise<void> {
     this.files.set(key, new Uint8Array(await readFile(path)));
+    if (options.disposition) this.dispositions.set(key, options.disposition);
+  }
+
+  /** The Content-Disposition a file was stored with, for tests. */
+  disposition(key: string): string | undefined {
+    return this.dispositions.get(key);
   }
 
   async get(key: string): Promise<Uint8Array> {

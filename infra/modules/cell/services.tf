@@ -14,6 +14,21 @@ resource "aws_secretsmanager_secret" "app" {
   tags        = var.tags
 }
 
+# CloudFront's X-Origin-Verify value, kept as a secret of its own so nobody copies it by hand; the
+# API believes the viewer's address CloudFront passes on only with it (decision D101).
+resource "aws_secretsmanager_secret" "origin" {
+  count       = var.origin_secret == null ? 0 : 1
+  name        = "${var.name}/origin"
+  description = "The X-Origin-Verify value CloudFront sends to this cell"
+  tags        = var.tags
+}
+
+resource "aws_secretsmanager_secret_version" "origin" {
+  count         = var.origin_secret == null ? 0 : 1
+  secret_id     = aws_secretsmanager_secret.origin[0].id
+  secret_string = var.origin_secret
+}
+
 resource "aws_ecs_cluster" "this" {
   name = var.name
   setting {
@@ -60,7 +75,7 @@ resource "aws_iam_role_policy" "execution_secret" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["secretsmanager:GetSecretValue"]
-      Resource = aws_secretsmanager_secret.app.arn
+      Resource = concat([aws_secretsmanager_secret.app.arn], aws_secretsmanager_secret.origin[*].arn)
     }]
   })
 }
@@ -91,12 +106,13 @@ resource "aws_iam_role_policy" "task_media" {
 locals {
   environment = merge(
     {
-      NODE_ENV          = "production"
-      PRODUCT_SLUG      = var.product_slug
-      PRODUCT_NAME      = var.product_name
-      HOST              = "0.0.0.0"
-      PORT              = "3000"
-      TRUST_PROXY       = "true"
+      NODE_ENV     = "production"
+      PRODUCT_SLUG = var.product_slug
+      PRODUCT_NAME = var.product_name
+      HOST         = "0.0.0.0"
+      PORT         = "3000"
+      # The load balancer is the one proxy believed (decision D101).
+      TRUST_PROXY       = "1"
       CELL_ID           = var.cell_id
       CELL_API_URL      = "https://${var.api_domain}"
       CELL_REGION       = data.aws_region.current.region
@@ -192,8 +208,13 @@ resource "aws_ecs_task_definition" "process" {
     command      = each.value.command
     portMappings = each.key == "api" ? [{ containerPort = 3000, protocol = "tcp" }] : []
     environment  = [for key, value in each.value.environment : { name = key, value = value }]
-    secrets      = [for key in each.value.secrets : { name = key, valueFrom = "${local.secret}:${key}::" }]
-    stopTimeout  = 30
+    secrets = concat(
+      [for key in each.value.secrets : { name = key, valueFrom = "${local.secret}:${key}::" }],
+      each.key == "api" && var.origin_secret != null
+      ? [{ name = "ORIGIN_SECRET", valueFrom = aws_secretsmanager_secret.origin[0].arn }]
+      : [],
+    )
+    stopTimeout = 30
     logConfiguration = {
       logDriver = "awslogs"
       options = {

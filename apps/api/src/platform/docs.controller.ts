@@ -29,17 +29,35 @@ const page = (title: string) => `<!doctype html>
   <body>
     <div id="app"></div>
     <script src="/v1/docs/scalar.js"></script>
-    <script>
-      Scalar.createApiReference('#app', {
-        url: '/v1/openapi.json',
-        withDefaultFonts: false,
-        hideDownloadButton: false,
-        servers: [{ url: window.location.origin }],
-      });
-    </script>
+    <script src="/v1/docs/start.js"></script>
   </body>
 </html>
 `;
+
+/** What starts the reference, served as a file so the page's policy needs no inline script. */
+const START = `Scalar.createApiReference('#app', {
+  url: '/v1/openapi.json',
+  withDefaultFonts: false,
+  hideDownloadButton: false,
+  servers: [{ url: window.location.origin }],
+});
+`;
+
+/**
+ * The reference page's own Content-Security-Policy (decision D101): its scripts from here, its
+ * document from here, and Scalar's inline styles; every other API answer allows nothing.
+ */
+export const DOCS_POLICY = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
 
 /**
  * The API's own documentation (spec M20, decision D94): the OpenAPI document built from the routes
@@ -69,6 +87,7 @@ export class DocsController {
   @Get('docs')
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Cache-Control', 'public, max-age=300')
+  @Header('Content-Security-Policy', DOCS_POLICY)
   @Contract({ tag: 'Documentation', summary: 'The interactive API reference', file: 'text/html' })
   docs(): string {
     return page(`${apiTitle(this.config.PRODUCT_NAME)} reference`);
@@ -89,5 +108,13 @@ export class DocsController {
       this.scalar = readFileSync(found);
     }
     return this.scalar;
+  }
+
+  @Get('docs/start.js')
+  @Header('Content-Type', 'text/javascript; charset=utf-8')
+  @Header('Cache-Control', 'public, max-age=300')
+  @Contract({ tag: 'Documentation', summary: 'What starts the reference', file: 'text/javascript' })
+  start(): string {
+    return START;
   }
 }
