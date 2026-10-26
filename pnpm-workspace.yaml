@@ -30,7 +30,7 @@ catalog:
   tsdown: ^0.23.0
   turbo: ^2.11.7
   # Held below 6.1 for typescript-eslint; see docs/versions.md.
-  typescript: ~6.0.3
+  typescript: ~7.0.2
   typescript-eslint: ^8.71.0
   uuid: ^14.0.2
   vitest: ^5.0.3
