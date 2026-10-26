@@ -400,6 +400,7 @@
         "account_plan.manage",
         "performance.view_team",
         "leaderboard.view",
+        "metric.record",
         "live_map.view",
         "trail.view",
         "user.view",

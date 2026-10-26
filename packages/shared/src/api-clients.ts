@@ -14,7 +14,7 @@ export const API_SCOPES = {
   /** The territory tree; anyone with a scope reads it. */
   'territories:write': ['territory.manage'],
   'accounts:read': ['account.view'],
-  'accounts:write': ['account.view', 'account.manage'],
+  'accounts:write': ['account.view', 'account.manage', 'account.import'],
   /** Items and price lists; reading the catalogue needs only `catalogue:read`. */
   'catalogue:read': [],
   'catalogue:write': ['catalogue.manage', 'price_list.manage'],
@@ -29,6 +29,8 @@ export const API_SCOPES = {
   'finance:write': ['finance.view', 'finance.manage'],
   'targets:read': ['target.view'],
   'targets:write': ['target.view', 'target.edit'],
+  /** External metric values, such as secondary sales from an ERP. */
+  'metrics:write': ['metric.record'],
   'reports:read': ['report.view', 'export.create'],
   'audit:read': ['audit.view'],
 } as const satisfies Record<string, readonly TenantPermission[]>;

@@ -956,3 +956,13 @@ export {
   OAuthTokenBody,
   OAuthTokenResult,
 } from './schemas/api-clients';
+export {
+  BULK_TARGETS,
+  BulkAccountsBody,
+  BulkBody,
+  BulkFieldsQuery,
+  BulkFieldsResult,
+  BulkResult,
+  BulkRows,
+  type BulkTarget,
+} from './schemas/bulk';

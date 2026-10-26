@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "agri",
-  "version": 2,
+  "version": 3,
   "name": { "en": "Agri inputs", "hi": "कृषि इनपुट" },
   "description": {
     "en": "For seed, crop protection and fertiliser companies: distributors, retailers and farmers; farmer meetings, demos and distributor visits that record sales, collection and liquidation; orders by the case.",
@@ -47,6 +47,7 @@
         "account_plan.manage",
         "performance.view_team",
         "leaderboard.view",
+        "metric.record",
         "live_map.view",
         "trail.view",
         "user.view",
@@ -120,6 +121,7 @@
         "account_plan.manage",
         "performance.view_team",
         "leaderboard.view",
+        "metric.record",
         "live_map.view",
         "trail.view",
         "user.view",

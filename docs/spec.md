@@ -1326,6 +1326,8 @@ import_mappings(id, tid, target, name, mapping jsonb, empty_values jsonb, fracti
 export_jobs(id, tid, kind, params jsonb, status, file_media_id NULL, error, requested_by, created_at, finished_at)
 api_clients(id, tid, name, client_id UQ(tid, client_id), secret_hash, scopes text[], status, auth_revision,
             last_used_at, revoked_at)
+external_metric_values(tid, id, metric_key, user_id NULL, account_id NULL, date, month bool, value,
+            credited_user_id, updated_at)  UQ NULLS NOT DISTINCT(tid, metric_key, user_id, account_id, date)
 webhook_subscriptions(id, tid, url, events text[], secret_encrypted, status)
 webhook_deliveries(id, tid, subscription_id, event_id, attempt, status, response_code, created_at)  PART monthly
 outbox_events(id, tid, type, aggregate_id, payload jsonb, created_at, attempts, next_attempt_at, last_error NULL,
@@ -2111,7 +2113,7 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | Field | `shift.use`, `tracking.pause`, `visit.use`, `submission.create`, `account.propose`, `account.propose_location` |
 | Review | `submission.review`, `submission.review_bulk`, `review_rules.manage` |
 | Planning | `target.view`, `target.edit`, `target.lock`, `target.unlock`, `route.manage`, `plan_item.manage`, `account_plan.manage` |
-| Performance | `performance.view_team`, `leaderboard.view` |
+| Performance | `performance.view_team`, `leaderboard.view`, `metric.record` (loading external metric values, decision D94) |
 | Maps | `live_map.view`, `trail.view` |
 | People | `user.view`, `user.manage`, `user.reset_device`, `user.sign_out_all`, `role.manage`, `designation.manage` |
 | Territories and accounts | `territory.manage`, `account.view`, `account.manage`, `account.import`, `account.approve` |

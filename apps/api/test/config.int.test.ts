@@ -1,4 +1,4 @@
-import { newId, SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
+import { newId, SETTING_DEFAULTS, todayIn, TENANT_PERMISSIONS } from '@thelamp/shared';
 import { loadTemplate } from '@thelamp/templates';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -84,7 +84,7 @@ describe('the config bundle (spec 11.2)', () => {
       'executive',
     ]);
     expect(bundle.access).toMatchObject({ role: 'tenant_admin', scope: 'tenant' });
-    expect(bundle.access.permissions).toHaveLength(66);
+    expect(bundle.access.permissions).toHaveLength(TENANT_PERMISSIONS.length);
 
     const etag = String(response.headers.etag);
     const unchanged = await owner.get('/v1/config', { 'if-none-match': etag });

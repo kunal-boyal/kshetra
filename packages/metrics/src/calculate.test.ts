@@ -330,3 +330,30 @@ describe('orders as metric sources (M10, decision D78)', () => {
     expect(facts.shops?.value).toBe('2.000');
   });
 });
+
+describe('external metrics (decision D94)', () => {
+  it('sums the values loaded for the person that day, and counts in ratios', () => {
+    const secondary = metric('secondary_sales', 'currency', { type: 'external' });
+    const share = metric('secondary_share', 'percent', {
+      type: 'ratio',
+      numerator: 'secondary_sales',
+      denominator: 'secondary_sales',
+    });
+    const facts = byKey(
+      calculateDayFacts(
+        [secondary, share],
+        day({
+          external: [
+            { metricKey: 'secondary_sales', value: '12500.500' },
+            { metricKey: 'secondary_sales', value: '499.5' },
+            { metricKey: 'something_else', value: '7' },
+          ],
+        }),
+      ),
+    );
+    expect(facts.secondary_sales!.value).toBe('13000.000');
+    expect(facts.secondary_share!.value).toBe('100.000');
+    // Without values loaded, the day holds nothing for it.
+    expect(byKey(calculateDayFacts([secondary], day())).secondary_sales!.value).toBe('0.000');
+  });
+});

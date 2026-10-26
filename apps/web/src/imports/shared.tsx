@@ -84,6 +84,7 @@ const FIELD_KEYS = {
   ],
   ledger_entries: ['reference', 'account_code', 'date', 'description', 'debit', 'credit'],
   holidays: ['calendar', 'date', 'name', 'optional'],
+  external_metrics: ['metric', 'date', 'period', 'employee_code', 'account_code', 'value'],
 } as const satisfies Record<string, readonly string[]>;
 
 /** A field's name in the reader's language: its own label, or the app's word for it. */
