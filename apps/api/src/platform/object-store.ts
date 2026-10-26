@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
@@ -19,6 +21,8 @@ import type { Config } from '../config';
  */
 export abstract class ObjectStore {
   abstract put(key: string, body: Uint8Array, contentType: string): Promise<void>;
+  /** Stores a file from disk without reading it into memory, such as a tenant's archive. */
+  abstract putFile(key: string, path: string, contentType: string): Promise<void>;
   abstract get(key: string): Promise<Uint8Array>;
   abstract delete(key: string): Promise<void>;
   /** The object's size, or null when there is none. */
@@ -95,6 +99,19 @@ export class S3ObjectStore extends ObjectStore implements OnModuleInit {
     );
   }
 
+  async putFile(key: string, path: string, contentType: string): Promise<void> {
+    const { size } = await stat(path);
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: createReadStream(path),
+        ContentLength: size,
+        ContentType: contentType,
+      }),
+    );
+  }
+
   async get(key: string): Promise<Uint8Array> {
     const object = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
     if (!object.Body) throw new Error(`${key} has no body.`);
@@ -154,6 +171,10 @@ export class MemoryObjectStore extends ObjectStore {
 
   async put(key: string, body: Uint8Array): Promise<void> {
     this.files.set(key, body);
+  }
+
+  async putFile(key: string, path: string): Promise<void> {
+    this.files.set(key, new Uint8Array(await readFile(path)));
   }
 
   async get(key: string): Promise<Uint8Array> {

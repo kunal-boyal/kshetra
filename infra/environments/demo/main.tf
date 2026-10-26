@@ -183,6 +183,11 @@ resource "random_id" "column_key" {
   byte_length = 32
 }
 
+# The seed of the Ed25519 key tenant data exports are signed with (decision D95).
+resource "random_id" "archive_signing_key" {
+  byte_length = 32
+}
+
 resource "tls_private_key" "jwt" {
   algorithm   = "ECDSA"
   ecdsa_curve = "P256"
@@ -221,6 +226,7 @@ locals {
     PAYMENT_PROVIDER       = "console"
     OTP_PEPPER             = random_password.otp_pepper.result
     COLUMN_KEY             = random_id.column_key.b64_std
+    ARCHIVE_SIGNING_KEY    = random_id.archive_signing_key.b64_std
     JWT_SIGNING_KEY        = replace(tls_private_key.jwt.private_key_pem_pkcs8, "\n", "\\n")
   }
 }

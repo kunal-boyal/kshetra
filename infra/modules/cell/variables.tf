@@ -159,6 +159,7 @@ variable "secret_keys" {
     "DIRECTORY_DATABASE_URL",
     "OTP_PEPPER",
     "COLUMN_KEY",
+    "ARCHIVE_SIGNING_KEY",
     "JWT_SIGNING_KEY",
     "CLOUDFRONT_PRIVATE_KEY",
     "MSG91_AUTH_KEY",

@@ -204,6 +204,50 @@ const ANSWERS: Record<string, unknown> = {
     ],
     nextCursor: null,
   },
+  '/v1/data-exports': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000f5',
+        status: 'ready',
+        requestedBy: { id: '01a10000-0000-7000-8000-000000000002', name: 'Anita Rao' },
+        fileName: 'data-export-2026-10-26.zip',
+        bytes: 52428800,
+        sha256: '9f2c4e1a7b3d5f6e8a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f',
+        tables: 84,
+        rows: 120431,
+        files: 312,
+        keyId: '0123456789abcdef',
+        error: null,
+        createdAt: '2026-10-26T05:00:00.000Z',
+        finishedAt: '2026-10-26T05:04:00.000Z',
+        expiresAt: '2099-11-02T05:04:00.000Z',
+        download: null,
+      },
+      {
+        id: '01a10000-0000-7000-8000-0000000000f6',
+        status: 'expired',
+        requestedBy: { id: null, name: 'Ravi Shah' },
+        fileName: 'data-export-2026-10-01.zip',
+        bytes: 41943040,
+        sha256: null,
+        tables: 80,
+        rows: 99120,
+        files: 280,
+        keyId: '0123456789abcdef',
+        error: null,
+        createdAt: '2026-10-01T05:00:00.000Z',
+        finishedAt: '2026-10-01T05:03:00.000Z',
+        expiresAt: '2026-10-08T05:03:00.000Z',
+        download: null,
+      },
+    ],
+  },
+  '/v1/data-exports/signing-key': {
+    keyId: '0123456789abcdef',
+    algorithm: 'Ed25519',
+    publicKey:
+      '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAGb9ECWmEzf6FQbrBZ9w7lshQhqowtrbLDFw4rXAxZuE=\n-----END PUBLIC KEY-----\n',
+  },
   '/v1/sso': {
     connection: {
       protocol: 'saml',
@@ -614,6 +658,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'announcements',
     'api-clients',
     'webhooks',
+    'data-exports',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -668,6 +713,7 @@ for (const path of [
   'support',
   'api-clients',
   'webhooks',
+  'data-export',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {

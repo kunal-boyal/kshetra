@@ -87,6 +87,8 @@ let aApiClient: { id: string; clientId: string; secret: string };
 /** A webhook of A's and the test message it sent. */
 let aWebhookId: string;
 let aWebhookMessageId: string;
+/** A data export of A's, still waiting, as no worker runs here. */
+let aDataExportId: string;
 let aInvoiceId: string;
 let aItemId: string;
 let aPriceListId: string;
@@ -428,6 +430,26 @@ const FIXTURES: Record<string, Fixture> = {
         aWebhookMessageId,
       );
     },
+  },
+  'GET /v1/data-exports': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/data-exports')),
+  },
+  'POST /v1/data-exports': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asB('POST', '/v1/data-exports', { id: newId() });
+      expect(reply.statusCode, reply.body).toBe(201);
+      holdsNothingOfA(reply);
+    },
+  },
+  'GET /v1/data-exports/signing-key': {
+    kind: 'not tenant data',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/data-exports/signing-key')),
+  },
+  'GET /v1/data-exports/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/data-exports/${id}`), aDataExportId),
   },
   'GET /health': {
     kind: 'not tenant data',
@@ -2433,6 +2455,9 @@ beforeAll(async () => {
   expect(hooked.statusCode, hooked.body).toBe(201);
   aWebhookMessageId = (await send(aToken, 'POST', `/v1/webhooks/${aWebhookId}/test`)).json()
     .messageId;
+  aDataExportId = newId();
+  const exported = await send(aToken, 'POST', '/v1/data-exports', { id: aDataExportId });
+  expect(exported.statusCode, exported.body).toBe(201);
   const transfer = await send(aToken, 'POST', `/v1/users/${a.member.id}/transfers`, {
     effectiveDate: NEXT_MONTH,
     designation: 'executive',

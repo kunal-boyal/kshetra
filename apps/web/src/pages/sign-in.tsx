@@ -11,6 +11,7 @@ import { PRODUCT_NAME } from '../layout/brand';
 import { LanguagePicker } from '../layout/preferences-menu';
 import { saveTenants } from '../preferences';
 import { SecondFactorStep } from './second-factor';
+import { browser } from '../browser';
 
 /** How long before a new code may be asked for; the server allows 3 every 10 minutes (M1). */
 const RESEND_SECONDS = 30;
@@ -22,12 +23,7 @@ type Step =
   | { name: 'second'; ticket: string; enrolled: boolean; organisation: string }
   | { name: 'sso' };
 
-/** Where the browser goes for single sign-on; a seam, so tests can watch it. */
-export const browser = {
-  go(url: string) {
-    window.location.assign(url);
-  },
-};
+export { browser } from '../browser';
 
 /** Why a single sign-on came back here, from the `sso` parameter the directory adds. */
 function ssoFailure(): SsoFailure | undefined {

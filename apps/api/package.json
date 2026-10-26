@@ -18,6 +18,7 @@
     "provision": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/provision.mjs",
     "invite-staff": "tsdown --log-level warn && node --env-file-if-exists=../../.env dist/invite-staff.mjs",
     "licence": "tsdown --log-level warn && node dist/licence.mjs",
+    "archive": "tsdown --log-level warn && node dist/archive.mjs",
     "openapi": "tsdown --log-level warn && node dist/openapi.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

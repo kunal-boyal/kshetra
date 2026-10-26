@@ -34,6 +34,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm db:seed` | seeds two fictional tenants and refuses non-local databases; running it again changes nothing | now |
 | `pnpm invite-staff --email … --name … [--role …]` | invites a vendor staff member to the platform console and prints their one-time setup link (decision D88); the first platform admin comes this way | now |
 | `pnpm provision --name … --slug … --template … --admin-name … --admin-phone …` | creates a tenant from a template, with its first admin; `--file <path>` instead of `--template` starts it from another tenant's exported configuration; `--logo` and `--brand-colour` set its branding as Settings would; `--demo` makes a demo tenant (D70) | now |
+| `pnpm archive verify --file … --public-key …`, `pnpm archive public-key` | checks a tenant's data export against the key that signed it, or prints a cell's public key from `ARCHIVE_SIGNING_KEY` (decision D95) | now |
 | `pnpm openapi` | regenerates `apps/api/openapi.json` from the route registry; a test fails while it is out of date | now |
 | `docker build -f apps/api/Dockerfile .` | builds the cell's container image (decision D67) | now |
 
@@ -155,6 +156,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Webhooks live in `apps/api/src/modules/webhooks` (`webhook.manage`): `WebhooksService` keeps subscriptions with sealed secrets, fans each event out as one message a subscription (`fanOut()`, from the outbox consumer in `webhooks.upkeep.ts`) and tries messages on the `webhooks` queue (`deliver()`); `WebhookSender` checks addresses and signs as Standard Webhooks do. A subscribable event goes in `WEBHOOK_EVENTS` with its projection in `webhookData()` (`packages/shared/src/webhooks.ts`): IDs, keys and statuses, never personal details. Integration tests run no workers, so they call `deliver()` against a local receiver.
 - The portal manages both at Settings › API clients (`apps/web/src/settings/api-clients-page.tsx`) and Webhooks (`webhooks-page.tsx`). Secrets are shown once through `SecretPanel` (`settings/secret.tsx`, with `Copyable`); the addresses integrators copy come from `apiAddresses()` in `apps/web/src/client.ts`.
 - `cell.webhook_deliveries` is partitioned by month outside Drizzle (`src/db/webhook-deliveries.ts`, migration 0064), like the audit log: `cell.ensure_webhook_delivery_partitions()` runs daily and old partitions are dropped after three months.
+
+## Data governance (decision D95)
+
+- The tenant's data export lives in `apps/api/src/modules/governance`: `DataExportsService` (asking, the `exports` queue's `data_exports.run`, a day's download link, the hourly expiry) and `TenantArchive`, which writes every `cell` table with a `tenant_id` as JSON lines in one snapshot, then the files through `MediaService.forArchive()`, then the signed manifest. A new table joins on its own; a column holding a secret goes in `ARCHIVE_SECRET_COLUMNS`, and `test/data-exports.int.test.ts` fails for one that looks like a secret and isn't there.
+- Archives are signed by `ArchiveSigner` (`src/platform/archive-signer.ts`) with the Ed25519 seed `ARCHIVE_SIGNING_KEY`; `verifyArchive()` checks one, as `pnpm archive verify` does. Large files go to storage from disk with `MediaService.storeFile()`.
+- The portal's page is Settings › Data export (`apps/web/src/settings/data-export-page.tsx`); downloads leave through the `browser` seam (`apps/web/src/browser.ts`).
 
 ## Billing (decision D90)
 
