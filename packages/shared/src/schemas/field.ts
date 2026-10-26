@@ -23,6 +23,17 @@ export const PunchFix = z.strictObject({
   mocked: z.boolean().meta({ description: 'Whether the operating system says the fix is mocked' }),
 });
 
+/** An odometer reading in kilometres, to a tenth (decision D99). */
+export const OdometerReading = z
+  .string()
+  .regex(/^(?:0|[1-9]\d{0,8})(?:\.\d)?$/, 'Write a reading such as 12045 or 12045.5');
+
+/** The vehicle's odometer at a punch, and a live photo of it (decision D99). */
+export const PunchOdometer = z.strictObject({
+  reading: OdometerReading,
+  photoId: z.uuid().meta({ description: 'An `odometer` photo, taken with the camera' }),
+});
+
 /** `POST /v1/shifts`: punch in (M5). Replaying the same ID returns the shift as it is. */
 export const StartShiftBody = PunchFix.extend({
   id: z.uuid(),
@@ -31,10 +42,18 @@ export const StartShiftBody = PunchFix.extend({
     description: 'The version of the consent text the person accepted for this shift',
   }),
   selfieMediaId: z.uuid().optional().meta({ description: 'When the tenant asks for a selfie' }),
+  odometer: PunchOdometer.optional().meta({
+    description: 'When the tenant asks for odometer readings (setting `odometer`)',
+  }),
 });
 
 /** `POST /v1/shifts/{id}/end`: punch out. Ending an ended shift returns it as it is. */
-export const EndShiftBody = PunchFix.extend({ endedAt: When });
+export const EndShiftBody = PunchFix.extend({
+  endedAt: When,
+  odometer: PunchOdometer.optional().meta({
+    description: 'When the tenant asks for odometer readings; not below the opening one',
+  }),
+});
 
 /** `POST /v1/shifts/{id}/pauses`: tracking stops, attendance doesn't (M5). */
 export const PauseShiftBody = z.strictObject({
@@ -76,6 +95,13 @@ export const ShiftResult = z
     /** Time on duty less pauses, once the shift has ended. */
     onDutySeconds: z.int().nullable(),
     pauses: z.array(ShiftPauseResult),
+    /** The odometer at punch-in and punch-out, where recorded (decision D99). */
+    odometer: z.object({
+      start: z.object({ reading: z.string(), photoId: z.uuid().nullable() }).nullable(),
+      end: z.object({ reading: z.string(), photoId: z.uuid().nullable() }).nullable(),
+      /** Closing less opening, in kilometres; null until both are in. */
+      distanceKm: z.string().nullable(),
+    }),
     /** For reviewers: `clock_skew` when the phone's clock was over 10 minutes out (BR-44). */
     flags: z.array(z.enum(['clock_skew'])),
   })
@@ -163,6 +189,7 @@ export const AttendanceResult = z.object({
 
 export type PunchFix = z.output<typeof PunchFix>;
 export type StartShiftBody = z.output<typeof StartShiftBody>;
+export type PunchOdometer = z.output<typeof PunchOdometer>;
 export type EndShiftBody = z.output<typeof EndShiftBody>;
 export type PauseShiftBody = z.output<typeof PauseShiftBody>;
 export type ResumeShiftBody = z.output<typeof ResumeShiftBody>;

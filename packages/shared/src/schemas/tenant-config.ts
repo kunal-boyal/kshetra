@@ -114,6 +114,8 @@ export const TenantSettings = z.strictObject({
   syncWindowHours: range(24, SYNC_WINDOW_HOURS_MAX),
   maxShiftHours: range(8, 24),
   attendanceSelfie: z.boolean(),
+  /** Odometer readings with a photo at punch-in and punch-out (decision D99). */
+  odometer: z.enum(['off', 'optional', 'required']),
   deviceBinding: z.boolean().meta({
     description: 'One phone per user until a manager or an admin resets it (BR-38)',
   }),
@@ -176,6 +178,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   syncWindowHours: 72,
   maxShiftHours: 14,
   attendanceSelfie: false,
+  odometer: 'off',
   deviceBinding: true,
   rawLocationRetentionDays: 35,
   trailRetentionDays: 365,

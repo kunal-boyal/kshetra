@@ -4,7 +4,8 @@ import { EXPENSE_DESCRIPTION, newId, todayIn } from '@thelamp/shared';
 import { Button, Card, ChoiceGroup, Notice, Screen, Text, TextField } from '@thelamp/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Camera, ChevronLeft, ChevronRight, RotateCw, Send } from 'lucide-react-native';
-import { useCallback, useRef, useState } from 'react';
+import type { ShiftOdometer } from '@thelamp/api-client/sync';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { takeResults } from '../capture-results';
@@ -50,6 +51,8 @@ export function NewClaimScreen() {
   const [billAmount, setBillAmount] = useState('');
   const [receiptIds, setReceiptIds] = useState<string[]>([]);
   const [odometerPhotoIds, setOdometerPhotoIds] = useState<string[]>([]);
+  // The day's shift with both punch readings, which a fuel claim begins from (decision D99).
+  const [fromShift, setFromShift] = useState<ShiftOdometer | null>(null);
   const [failure, setFailure] = useState<string>();
   const [busy, setBusy] = useState(false);
   const waiting = useRef<'receipt' | 'odometer' | null>(null);
@@ -65,6 +68,24 @@ export function NewClaimScreen() {
       queuedClaim(claim, policies.data ?? [], me.data?.designation ?? ''),
     ),
   ];
+  const perKm = policy?.calculation === 'per_km';
+  useEffect(() => {
+    const owner = client.owner;
+    if (!sync || !owner || !perKm) return;
+    let live = true;
+    void sync.tracking.odometersOn(owner, day).then(([latest]) => {
+      if (!live) return;
+      setFromShift(latest ?? null);
+      // The readings start as the shift's; the person may still change them.
+      setOdometerOpen(latest?.open ?? '');
+      setOdometerClose(latest?.close ?? '');
+    });
+    return () => {
+      live = false;
+    };
+  }, [sync, client, perKm, day]);
+  // Only while it still fits: a per-km policy, on the shift's own day.
+  const shift = perKm && fromShift?.date === day ? fromShift : null;
   const filled = (text: string) => (text.trim() ? text.trim() : undefined);
   const preview =
     policy && me.data
@@ -77,7 +98,8 @@ export function NewClaimScreen() {
           odometerOpen: filled(odometerOpen),
           odometerClose: filled(odometerClose),
           billAmount: filled(billAmount),
-          odometerPhotos: odometerPhotoIds.length,
+          // A claim from a shift has the shift's two photos.
+          odometerPhotos: odometerPhotoIds.length + (shift ? 2 : 0),
           claimed,
         })
       : null;
@@ -112,19 +134,25 @@ export function NewClaimScreen() {
     setFailure(undefined);
     try {
       const calculation = policy.calculation;
-      await queueClaim(sync, client.owner, {
-        id: newId(),
-        policy: policy.key,
-        expenseDate: day,
-        description: description.trim(),
-        ...(calculation === 'per_day' ? { days: days.trim() } : {}),
-        ...(calculation === 'per_km'
-          ? { odometerOpen: odometerOpen.trim(), odometerClose: odometerClose.trim() }
-          : {}),
-        ...(calculation === 'actual' ? { billAmount: billAmount.trim() } : {}),
-        receiptIds,
-        odometerPhotoIds: calculation === 'per_km' ? odometerPhotoIds : [],
-      });
+      await queueClaim(
+        sync,
+        client.owner,
+        {
+          id: newId(),
+          policy: policy.key,
+          expenseDate: day,
+          description: description.trim(),
+          ...(calculation === 'per_day' ? { days: days.trim() } : {}),
+          ...(calculation === 'per_km'
+            ? { odometerOpen: odometerOpen.trim(), odometerClose: odometerClose.trim() }
+            : {}),
+          ...(calculation === 'actual' ? { billAmount: billAmount.trim() } : {}),
+          receiptIds,
+          odometerPhotoIds: calculation === 'per_km' ? odometerPhotoIds : [],
+          ...(shift ? { shiftId: shift.shiftId } : {}),
+        },
+        shift?.closeUploadId ? [shift.closeUploadId] : [],
+      );
       await sync.runner.refresh();
       // It goes now if the phone has a connection, and with the next sync if not.
       void sync.runner.sync();
@@ -220,6 +248,14 @@ export function NewClaimScreen() {
 
           {policy?.calculation === 'per_km' ? (
             <View style={styles.stack}>
+              {shift ? (
+                <Notice>
+                  {t('claims.from_shift', {
+                    open: shift.open ?? '',
+                    close: shift.close ?? '',
+                  })}
+                </Notice>
+              ) : null}
               <TextField
                 label={t('claims.opening')}
                 help={t('claims.readings_help')}

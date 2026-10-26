@@ -1,4 +1,5 @@
 import { distanceMeters, type GeoPoint } from './geo';
+import { scaled, unscaled } from './pricing';
 
 /**
  * Shifts and location tracking (M5, spec 12.1): the rules the server applies and the app
@@ -69,6 +70,33 @@ export function punchFixIssue(fix: {
 }): 'GPS_MOCKED' | 'GPS_INACCURATE' | null {
   if (fix.mocked) return 'GPS_MOCKED';
   return fix.accuracy <= SHIFT_FIX_ACCURACY_M ? null : 'GPS_INACCURATE';
+}
+
+export type OdometerSetting = 'off' | 'optional' | 'required';
+
+/**
+ * What's wrong with an odometer reading at a punch (decision D99): missing where the tenant
+ * requires one, or a closing reading below the opening one. A tenant that asks for none takes
+ * none, so a reading sent anyway is ignored rather than refused.
+ */
+export function odometerIssue(
+  setting: OdometerSetting,
+  reading: string | undefined,
+  opening?: string | null,
+): 'required' | 'below_opening' | null {
+  if (setting === 'off') return null;
+  if (reading === undefined) return setting === 'required' ? 'required' : null;
+  if (opening != null && scaled(reading, 1) < scaled(opening, 1)) return 'below_opening';
+  return null;
+}
+
+/** The kilometres between two odometer readings, to a tenth; null until both are in. */
+export function shiftOdometerKm(
+  opening: string | null | undefined,
+  closing: string | null | undefined,
+): string | null {
+  if (opening == null || closing == null) return null;
+  return unscaled(scaled(closing, 1) - scaled(opening, 1), 1);
 }
 
 /** BR-44: whether a device's clock was too far from the server's when it sent a record. */

@@ -40,6 +40,8 @@ const FLAG_BADGE: Record<string, BadgeVariant> = {
   duplicate_receipt: 'danger',
   receipt_missing: 'pending',
   capped: 'neutral',
+  // A reading changed from the shift's punch readings (decision D99).
+  odometer_changed: 'pending',
 };
 
 /**
@@ -139,7 +141,9 @@ export function ExpensesPage() {
           {row.receipts.length}
           {row.flags.map((flag) => (
             <StatusBadge key={flag} variant={FLAG_BADGE[flag] ?? 'neutral'}>
-              {t(`expenses.flag_${flag as 'duplicate_receipt' | 'receipt_missing' | 'capped'}`)}
+              {t(
+                `expenses.flag_${flag as 'duplicate_receipt' | 'receipt_missing' | 'capped' | 'odometer_changed'}`,
+              )}
             </StatusBadge>
           ))}
         </span>

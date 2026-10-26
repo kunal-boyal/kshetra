@@ -4,6 +4,8 @@ import {
   compactTrail,
   dayStatus,
   encodePolyline,
+  shiftOdometerKm,
+  odometerIssue,
   onDutyMs,
   pointRejection,
   punchFixIssue,
@@ -84,6 +86,28 @@ describe('punching in and out (M5)', () => {
         { pausedAt: START - H, resumedAt: START + 0.5 * H },
       ]),
     ).toBe(9 * H - H - 0.5 * H - 0.5 * H);
+  });
+});
+
+describe('odometer readings at punches (decision D99)', () => {
+  it('asks for them only where the tenant does, and never below the opening one', () => {
+    expect(odometerIssue('off', undefined)).toBeNull();
+    // Sent though not asked for: ignored, not refused.
+    expect(odometerIssue('off', '100.5')).toBeNull();
+    expect(odometerIssue('optional', undefined)).toBeNull();
+    expect(odometerIssue('required', undefined)).toBe('required');
+    expect(odometerIssue('required', '12045')).toBeNull();
+    expect(odometerIssue('optional', '12045', '12045.0')).toBeNull();
+    expect(odometerIssue('optional', '12044.9', '12045')).toBe('below_opening');
+    // A closing reading without an opening one has nothing to fall below.
+    expect(odometerIssue('required', '3', null)).toBeNull();
+  });
+
+  it('counts the kilometres between them, to a tenth', () => {
+    expect(shiftOdometerKm('12045', '12098.5')).toBe('53.5');
+    expect(shiftOdometerKm('12045.3', '12045.3')).toBe('0.0');
+    expect(shiftOdometerKm('12045', null)).toBeNull();
+    expect(shiftOdometerKm(undefined, '1')).toBeNull();
   });
 });
 

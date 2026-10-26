@@ -224,6 +224,18 @@ const MIGRATIONS: readonly string[] = [
      ageing TEXT NOT NULL,
      sync_gen INTEGER NOT NULL
    );`,
+  // Odometer readings at punches (decision D99): kept after the shift closes, so the day's fuel
+  // claim can begin from them, and with the punch-out's upload, which such a claim waits for.
+  `CREATE TABLE shift_odometer (
+     owner TEXT NOT NULL,
+     shift_id TEXT NOT NULL,
+     date TEXT NOT NULL,
+     open_reading TEXT,
+     close_reading TEXT,
+     close_upload_id TEXT,
+     PRIMARY KEY (owner, shift_id)
+   );
+   CREATE INDEX shift_odometer_date ON shift_odometer (owner, date);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */

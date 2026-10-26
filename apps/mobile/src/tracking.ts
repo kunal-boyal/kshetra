@@ -10,8 +10,10 @@ import {
   LocationBatchResult,
   newId,
   type PauseShiftBody,
+  type PunchOdometer,
   type ResumeShiftBody,
   type StartShiftBody,
+  todayIn,
 } from '@thelamp/shared';
 import * as Battery from 'expo-battery';
 import * as Location from 'expo-location';
@@ -198,8 +200,12 @@ export function registerTrackingTask(context: TaskContext): void {
 export interface PunchIn {
   fix: Fix;
   selfieMediaId?: string;
+  /** The odometer and its photo, where the tenant asks (decision D99). */
+  odometer?: PunchOdometer;
   maxShiftHours: number;
   intervalSeconds: number;
+  /** The tenant's time zone, for the day the readings belong to. */
+  timeZone: string;
 }
 
 /** Punch in (M5): the shift opens on the phone and its punch-in is queued. Returns its ID. */
@@ -214,7 +220,12 @@ export async function punchIn(sync: Ready, owner: string, input: PunchIn): Promi
     mocked: input.fix.mocked,
     consentVersion: CONSENT_VERSION,
     ...(input.selfieMediaId ? { selfieMediaId: input.selfieMediaId } : {}),
+    ...(input.odometer ? { odometer: input.odometer } : {}),
   };
+  // Photos upload first, so the punch-in can attach them.
+  const photos = [input.selfieMediaId, input.odometer?.photoId].filter(
+    (photo): photo is string => photo !== undefined,
+  );
   await sync.db.transaction(async (tx) => {
     await sync.tracking.open(tx, {
       owner,
@@ -223,13 +234,17 @@ export async function punchIn(sync: Ready, owner: string, input: PunchIn): Promi
       endsBy: startedAt + input.maxShiftHours * 3_600_000,
       intervalSeconds: input.intervalSeconds,
     });
+    await sync.tracking.openOdometer(tx, owner, {
+      shiftId: id,
+      date: todayIn(input.timeZone, new Date(startedAt)),
+      reading: input.odometer?.reading ?? null,
+    });
     await sync.outbox.enqueue(tx, {
       id,
       owner,
       kind: 'shift.start',
       payload: body,
-      // A selfie uploads first, so the punch-in can attach it.
-      ...(input.selfieMediaId ? { dependsOn: [input.selfieMediaId] } : {}),
+      ...(photos.length > 0 ? { dependsOn: photos } : {}),
     });
   });
   return id;
@@ -239,7 +254,12 @@ export async function punchIn(sync: Ready, owner: string, input: PunchIn): Promi
  * Punch out: tracking stops, the shift and any open visit close on the phone (the server checks
  * the visit out at the punch-out), and the punch-out is queued.
  */
-export async function punchOut(sync: Ready, owner: string, fix: Fix): Promise<void> {
+export async function punchOut(
+  sync: Ready,
+  owner: string,
+  fix: Fix,
+  odometer?: PunchOdometer,
+): Promise<void> {
   const state = await sync.tracking.current(owner);
   if (!state) return;
   await stopTracking();
@@ -249,16 +269,26 @@ export async function punchOut(sync: Ready, owner: string, fix: Fix): Promise<vo
     location: { lat: fix.lat, lng: fix.lng },
     accuracy: fix.accuracy,
     mocked: fix.mocked,
+    ...(odometer ? { odometer } : {}),
   };
+  const uploadId = newId();
   await sync.db.transaction(async (tx) => {
     await sync.tracking.close(tx, owner);
     await new Visits(sync.db).close(tx, owner);
+    await sync.tracking.closeOdometer(
+      tx,
+      owner,
+      state.shiftId,
+      odometer?.reading ?? null,
+      uploadId,
+    );
     await sync.outbox.enqueue(tx, {
-      id: newId(),
+      id: uploadId,
       owner,
       kind: 'shift.end',
       payload: body,
-      dependsOn: [state.shiftId],
+      // The odometer photo uploads first, so the punch-out can attach it (decision D99).
+      dependsOn: [state.shiftId, ...(odometer ? [odometer.photoId] : [])],
     });
   });
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { NetworkError, type SessionState } from '@thelamp/api-client';
 import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
-import { claim as claimDevice, migrate, Outbox } from '@thelamp/api-client/sync';
+import { claim as claimDevice, migrate, Outbox, Tracking } from '@thelamp/api-client/sync';
 import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -82,6 +82,7 @@ const claim = (id: string, patch: object) => ({
   rate: null,
   odometerOpen: null,
   odometerClose: null,
+  shiftId: null,
   billAmount: '412.50',
   calculated: '412.50',
   amount: '412.50',
@@ -276,6 +277,41 @@ describe('expenses on the phone (M12, spec 8.1)', () => {
       });
     });
     expect(router.back).toHaveBeenCalled();
+  });
+
+  it('begins a fuel claim from the day’s shift readings and photos (decision D99)', async () => {
+    const db = nodeSqlite();
+    await migrate(db);
+    await claimDevice(db, OWNER);
+    const shiftId = '01a10000-0000-7000-8000-0000000000d1';
+    const tracking = new Tracking(db);
+    await db.transaction(async (tx) => {
+      await tracking.openOdometer(tx, OWNER, { shiftId, date: TODAY, reading: '12045' });
+      await tracking.closeOdometer(tx, OWNER, shiftId, '12098.5', 'punch-out-1');
+    });
+    await renderPhone('new', { db });
+    expect(await screen.findByText(/^From your shift: 12045 to 12098.5 km/)).toBeOnTheScreen();
+    expect(screen.getByLabelText(/^Opening reading/)).toHaveDisplayValue('12045');
+    // 53.5 km at 8, and no photos asked for: the shift's go with it.
+    expect(await screen.findByText('Comes to ₹428.00')).toBeOnTheScreen();
+    expect(screen.queryByText('Add photos of the opening and closing readings')).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText(/^Description/), 'Beat and back');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send the claim' }));
+    await waitFor(async () => {
+      const [item] = await new Outbox(db, {}).items(OWNER);
+      expect(item).toMatchObject({
+        kind: 'expense_claim.create',
+        payload: {
+          policy: 'fuel',
+          shiftId,
+          odometerOpen: '12045',
+          odometerClose: '12098.5',
+          odometerPhotoIds: [],
+        },
+        // It waits for the punch-out that carries the closing reading.
+        dependsOn: ['punch-out-1'],
+      });
+    });
   });
 
   it('says when a policy needs a receipt, and shows the month read last offline', async () => {

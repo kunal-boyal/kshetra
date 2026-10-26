@@ -425,3 +425,96 @@ describe('expenses switched off (M2, decision D84)', () => {
     expect(approved.statusCode, approved.body).toBe(200);
   });
 });
+
+describe('odometer readings at punches (decision D99)', () => {
+  it('asks for them at punch-in and punch-out, and a fuel claim begins from them', async () => {
+    const t = await tenant('Odometer Co');
+    expect((await t.head.patch('/v1/settings', { odometer: 'required' })).statusCode).toBe(200);
+    const here = { location: { lat: 28.6315, lng: 77.2167 }, accuracy: 12, mocked: false };
+    const shiftId = newId();
+    const startedAt = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    const punchIn = (body: object) =>
+      t.field.post('/v1/shifts', {
+        id: shiftId,
+        startedAt,
+        consentVersion: '2026-10',
+        ...here,
+        ...body,
+      });
+    expect((await punchIn({})).json().error).toMatchObject({
+      code: 'PHOTO_REQUIRED',
+      details: [{ path: 'odometer', issue: 'Enter the reading and take its photo' }],
+    });
+    const opening = await upload(t.field, 'odometer', await jpeg(11));
+    const opened = await punchIn({ odometer: { reading: '12045', photoId: opening } });
+    expect(opened.statusCode, opened.body).toBe(201);
+    expect(opened.json().odometer).toEqual({
+      start: { reading: '12045.0', photoId: opening },
+      end: null,
+      distanceKm: null,
+    });
+
+    const closing = await upload(t.field, 'odometer', await jpeg(12));
+    const punchOut = (reading: string) =>
+      t.field.post(`/v1/shifts/${shiftId}/end`, {
+        endedAt: new Date().toISOString(),
+        ...here,
+        odometer: { reading, photoId: closing },
+      });
+    expect((await punchOut('12000')).json().error.details).toEqual([
+      { path: 'odometer.reading', issue: 'Write 12045.0 or more, the opening reading' },
+    ]);
+    const closed = await punchOut('12098.5');
+    expect(closed.statusCode, closed.body).toBe(200);
+    expect(closed.json().odometer).toEqual({
+      start: { reading: '12045.0', photoId: opening },
+      end: { reading: '12098.5', photoId: closing },
+      distanceKm: '53.5',
+    });
+
+    // The day's fuel claim takes the shift's readings and photos, as they are or changed.
+    const today = TODAY();
+    const fromShift = await claim(t.field, {
+      policy: 'fuel',
+      expenseDate: today,
+      description: 'Beat and back',
+      shiftId,
+    });
+    expect(fromShift.statusCode, fromShift.body).toBe(201);
+    expect(fromShift.json()).toMatchObject({
+      odometerOpen: '12045.0',
+      odometerClose: '12098.5',
+      quantity: '53.500',
+      amount: '428.00',
+      shiftId,
+      odometerPhotos: [opening, closing],
+      flags: [],
+    });
+    const changed = await claim(t.field, {
+      policy: 'fuel',
+      expenseDate: today,
+      description: 'Beat and back, with the detour',
+      shiftId,
+      odometerClose: '12110',
+    });
+    expect(changed.json()).toMatchObject({ quantity: '65.000', flags: ['odometer_changed'] });
+    expect(
+      (
+        await claim(t.field, {
+          policy: 'fuel',
+          expenseDate: after(today, -1),
+          description: 'Yesterday',
+          shiftId,
+        })
+      ).json().error.details,
+    ).toEqual([{ path: 'shiftId', issue: 'This shift is from another day' }]);
+
+    // The location summary shows the readings beside the tracked distance.
+    const report = await t.head.get(
+      `/v1/reports/location_summary?period=${today.slice(0, 7)}&limit=50`,
+    );
+    expect(report.json().rows).toContainEqual(
+      expect.objectContaining({ odometer_open: 12045, odometer_close: 12098.5, odometer_km: 53.5 }),
+    );
+  });
+});

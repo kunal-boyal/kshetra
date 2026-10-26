@@ -3381,6 +3381,14 @@
         "attendanceSelfie": {
           "type": "boolean"
         },
+        "odometer": {
+          "type": "string",
+          "enum": [
+            "off",
+            "optional",
+            "required"
+          ]
+        },
         "deviceBinding": {
           "type": "boolean",
           "description": "One phone per user until a manager or an admin resets it (BR-38)"

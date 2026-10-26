@@ -134,8 +134,14 @@ export function ShiftSection() {
     label: t('shift.punch_out'),
     icon: LogOut,
     busy,
-    // End day asks first only when something is still on the phone (components/ShiftCard).
-    onPress: () => (unsent ? setEnding(true) : void end()),
+    // The odometer at punch-out has its own screen (decision D99); otherwise End day asks first
+    // only when something is still on the phone (components/ShiftCard).
+    onPress: () =>
+      bundle?.settings.odometer && bundle.settings.odometer !== 'off'
+        ? router.push('/punch-out')
+        : unsent
+          ? setEnding(true)
+          : void end(),
   };
   const actions: ShiftAction[] = paused
     ? [

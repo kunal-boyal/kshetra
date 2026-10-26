@@ -1,6 +1,6 @@
 export { EntryClosed, entryPhotos, FormEntries, signatureOf, submissionBody } from './entries';
 export { FLUSH_LIMIT, Tracking } from './tracking';
-export type { DropReason, RawPoint, ShiftState } from './tracking';
+export type { DropReason, RawPoint, ShiftOdometer, ShiftState } from './tracking';
 export type { EntryCapture, EntryChanges, FormEntry } from './entries';
 export { VISIT_IDLE_MS, Visits } from './visits';
 export type { VisitState } from './visits';

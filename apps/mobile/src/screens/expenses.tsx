@@ -191,7 +191,9 @@ export function ExpensesScreen() {
                     .filter((flag) => flag !== 'capped')
                     .map((flag) => (
                       <Text key={flag} tone={flag === 'duplicate_receipt' ? 'danger' : 'muted'}>
-                        {t(`claims.flag_${flag as 'receipt_missing' | 'duplicate_receipt'}`)}
+                        {t(
+                          `claims.flag_${flag as 'receipt_missing' | 'duplicate_receipt' | 'odometer_changed'}`,
+                        )}
                       </Text>
                     ))}
                   {claim.state === 'pending' ? (
