@@ -127,6 +127,83 @@ const ANSWERS: Record<string, unknown> = {
       },
     ],
   },
+  '/v1/api-clients': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000e1',
+        name: 'Tally ERP',
+        clientId: '01a1000000007000800000000000000.k3j9x2',
+        scopes: ['people:read', 'accounts:write', 'metrics:write'],
+        status: 'active',
+        createdAt: '2026-10-20T05:00:00.000Z',
+        lastUsedAt: '2026-10-26T04:10:00.000Z',
+        revokedAt: null,
+      },
+      {
+        id: '01a10000-0000-7000-8000-0000000000e2',
+        name: 'Old HR sync',
+        clientId: '01a1000000007000800000000000000.p8w4q1',
+        scopes: ['people:write'],
+        status: 'revoked',
+        createdAt: '2026-09-01T05:00:00.000Z',
+        lastUsedAt: null,
+        revokedAt: '2026-10-01T05:00:00.000Z',
+      },
+    ],
+  },
+  '/v1/webhooks': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000e5',
+        url: 'https://erp.sunrise.example/hooks',
+        events: ['account.created', 'order.placed'],
+        description: 'Tally ERP',
+        status: 'active',
+        createdAt: '2026-10-20T05:00:00.000Z',
+        lastDelivery: { status: 'failed', responseCode: 503, at: '2026-10-26T04:12:00.000Z' },
+      },
+      {
+        id: '01a10000-0000-7000-8000-0000000000e6',
+        url: 'https://hr.sunrise.example/events',
+        events: ['user.created'],
+        description: null,
+        status: 'paused',
+        createdAt: '2026-10-21T05:00:00.000Z',
+        lastDelivery: null,
+      },
+    ],
+  },
+  '/v1/webhooks/01a10000-0000-7000-8000-0000000000e5/deliveries': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000e7',
+        messageId: '01a10000-0000-7000-8000-0000000000e8',
+        event: 'order.placed',
+        eventId: '01a10000-0000-7000-8000-0000000000e9',
+        attempt: 3,
+        status: 'failed',
+        responseCode: 503,
+        durationMs: 120,
+        error: null,
+        messageStatus: 'failed',
+        createdAt: '2026-10-26T04:12:00.000Z',
+      },
+      {
+        id: '01a10000-0000-7000-8000-0000000000ea',
+        messageId: '01a10000-0000-7000-8000-0000000000eb',
+        event: 'account.created',
+        eventId: '01a10000-0000-7000-8000-0000000000ec',
+        attempt: 1,
+        status: 'delivered',
+        responseCode: 200,
+        durationMs: 85,
+        error: null,
+        messageStatus: 'delivered',
+        createdAt: '2026-10-26T03:00:00.000Z',
+      },
+    ],
+    nextCursor: null,
+  },
   '/v1/sso': {
     connection: {
       protocol: 'saml',
@@ -507,6 +584,8 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'leave_type.manage',
             'expense_policy.manage',
             'billing.manage',
+            'api_client.manage',
+            'webhook.manage',
           ],
         },
       },
@@ -533,6 +612,8 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'support-grants',
     'audit',
     'announcements',
+    'api-clients',
+    'webhooks',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -585,6 +666,8 @@ for (const path of [
   'billing',
   'sso',
   'support',
+  'api-clients',
+  'webhooks',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {
@@ -596,6 +679,28 @@ for (const path of [
     });
   }
 }
+
+test('opens a webhook’s delivery log and shows a new secret once, accessibly', async ({ page }) => {
+  await mockSignedIn(page);
+  await page.route('**/v1/webhooks/*/rotate', (route) =>
+    route.fulfill({
+      json: {
+        webhook: (ANSWERS['/v1/webhooks'] as { items: unknown[] }).items[0],
+        secret: 'whsec_dGVzdC1zZWNyZXQtb25seS1mb3ItcGxheXdyaWdodA==',
+      },
+    }),
+  );
+  await page.goto('/settings/webhooks');
+  const erp = page.getByRole('article', { name: 'https://erp.sunrise.example/hooks' });
+  await erp.getByText('Delivery log').click();
+  await expect(erp.getByRole('table', { name: 'Delivery log' })).toBeVisible();
+  await erp.getByRole('button', { name: 'New secret' }).click();
+  await erp.getByRole('group').getByRole('button', { name: 'New secret' }).click();
+  await expect(
+    page.getByRole('region', { name: 'Signing secret for https://erp.sunrise.example/hooks' }),
+  ).toBeVisible();
+  await expectAccessible(page);
+});
 
 test("takes the tenant's accent from its brand colour", async ({ page }) => {
   await mockSignedIn(page, '#0f6e6e');
