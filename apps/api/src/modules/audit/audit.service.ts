@@ -239,7 +239,8 @@ export class AuditService {
         actor: {
           kind: row.actorKind,
           id: row.actorId,
-          name: row.actorId ? (names.get(row.actorId) ?? null) : null,
+          // Named only when someone it names is found: a person, an API client.
+          ...(row.actorId && names.has(row.actorId) ? { name: names.get(row.actorId)! } : {}),
         },
         action: row.action as AuditAction,
         target: { type: row.targetType, id: row.targetId },

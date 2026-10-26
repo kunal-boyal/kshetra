@@ -35,6 +35,8 @@ export class DemoRequests {
   readonly holidays = new Set<string>();
   /** `userId|date` for each day of approved leave. */
   private readonly leaveDays = new Set<string>();
+  /** `userId|date` for every day anyone has asked leave for, so nobody asks for one twice. */
+  private readonly leaveRequested = new Set<string>();
   /** Each leave request still waiting, by its ID: whose and which days. */
   private readonly leaveAsked = new Map<string, { userId: string; days: string[] }>();
   /** The last day each person was away without leave, to fix the next morning. */
@@ -150,6 +152,9 @@ export class DemoRequests {
       const long = kit.dice.chance(0.4) && weekdayOf(start) !== 6;
       const end = long ? addDays(start, 1) : start;
       const halfDay = !long && kit.dice.chance(0.2);
+      const days = long ? [start, end] : [start];
+      // Days asked for already are refused, rightly; a person asks for fresh ones only.
+      if (days.some((day) => this.leaveRequested.has(`${person.id}|${day}`))) return;
       const id = newId();
       try {
         await kit.tx((tx) =>
@@ -167,9 +172,9 @@ export class DemoRequests {
           ),
         );
         this.counts.leave++;
+        for (const day of days) this.leaveRequested.add(`${person.id}|${day}`);
         // A half day still punches in; only whole days keep the person away.
-        if (!halfDay)
-          this.leaveAsked.set(id, { userId: person.id, days: long ? [start, end] : [start] });
+        if (!halfDay) this.leaveAsked.set(id, { userId: person.id, days });
       } catch (error) {
         kit.once('leave', error);
       }
