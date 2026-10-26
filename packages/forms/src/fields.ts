@@ -141,12 +141,17 @@ export const ContactPickerField = z
 
 /**
  * A repeating table of catalogue items with a quantity, and optionally a value column, such as
- * samples given, stock counted or competitor prices.
+ * samples given, stock counted or competitor prices; or, with quantities off, just the items, such
+ * as the products a doctor was told about (decision D97).
  */
 export const ProductLinesField = z
   .strictObject({
     ...valueField,
     type: z.literal('product_lines'),
+    quantities: z.boolean().default(true).meta({
+      description:
+        'Whether each line takes a quantity. Without, each line counts as one, such as products detailed',
+    }),
     valueColumn: z.strictObject({ label: LocalizedText }).optional(),
     maxLines: z.int().min(1).max(200).default(50),
   })

@@ -23,6 +23,7 @@ import { ShiftsService } from './shifts.service';
 import { SubmissionsService } from './submissions.service';
 import { TrailsService } from './trails.service';
 import { VisitsController } from './visits.controller';
+import { VisitOrders } from './visit-orders';
 import { VisitsService } from './visits.service';
 
 /**
@@ -44,6 +45,7 @@ import { VisitsService } from './visits.service';
   ],
   controllers: [FieldController, VisitsController, AttendanceController],
   providers: [
+    VisitOrders,
     AttendanceLeave,
     CalendarsService,
     RegularisationsService,
@@ -58,6 +60,7 @@ import { VisitsService } from './visits.service';
     LocationArchive,
   ],
   exports: [
+    VisitOrders,
     AttendanceLeave,
     CalendarsService,
     AttendanceService,

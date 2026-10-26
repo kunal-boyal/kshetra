@@ -9,11 +9,29 @@ import {
   toMinorUnits,
 } from '@thelamp/shared';
 import { z } from 'zod';
-import { checkCondition } from './conditions';
+import { checkCondition, Condition } from './conditions';
 import { type AnyField, FormField, PHOTO_SOURCES } from './fields';
-import { compilePattern } from './values';
+import { compilePattern, conditionHolds, type Values } from './values';
 
 type Path = readonly PropertyKey[];
+
+/**
+ * What a visit form's conditions may ask besides its fields (decision D97): whether the visit took
+ * an order, so a no-order reason can show only when none was taken. The key is reserved: no field
+ * may use it.
+ */
+export const VISIT_ORDERED = 'visit_ordered';
+const visitOrderedField: AnyField = {
+  key: VISIT_ORDERED,
+  type: 'yes_no',
+  label: { en: 'The visit took an order', hi: 'विज़िट में ऑर्डर लिया गया' },
+  required: false,
+} as AnyField;
+
+/** The facts a form's conditions see before its first field. */
+function factsOf(form: Pick<FormDefinition, 'visitSession'>): Map<string, AnyField> {
+  return form.visitSession ? new Map([[VISIT_ORDERED, visitOrderedField]]) : new Map();
+}
 
 /** Whether submissions link to an account, and to which account types (spec 5.6). */
 export const AccountLink = z.discriminatedUnion('mode', [
@@ -46,6 +64,10 @@ export const FormDefinition = z
       .optional()
       .meta({ description: 'Photos of the whole form. Leave out for none.' }),
     signature: z.enum(['none', 'optional', 'required']).default('none'),
+    signatureRequiredWhen: Condition.optional().meta({
+      description:
+        'With an optional signature: when it is required, such as when samples are given (decision D97)',
+    }),
     geofence: z.enum(['inherit', 'off', 'advisory', 'required']).default('inherit').meta({
       description:
         "Whether capture must happen inside the account's geofence; inherit follows the account type",
@@ -187,6 +209,7 @@ export function checkFields(
   fields: readonly AnyField[],
   context: FieldContext,
   path: Path,
+  facts: ReadonlyMap<string, AnyField> = new Map(),
 ): ErrorDetail[] {
   const issues: ErrorDetail[] = [];
   const allKeys = new Set<string>();
@@ -215,6 +238,11 @@ export function checkFields(
     if (seen.has(field.key)) {
       issues.push(issueAt([...at, 'key'], `Field \`${field.key}\` appears more than once`));
     }
+    if (field.key === VISIT_ORDERED) {
+      issues.push(
+        issueAt([...at, 'key'], `\`${VISIT_ORDERED}\` is kept for whether the visit took an order`),
+      );
+    }
     seen.add(field.key);
     issues.push(...fieldIssues(field, context, at));
     if (field.visibleWhen) {
@@ -224,7 +252,7 @@ export function checkFields(
     }
   };
 
-  const scope = new Map<string, AnyField>();
+  const scope = new Map<string, AnyField>(facts);
   fields.forEach((field, index) => {
     const at = [...path, index];
     visit(field, at, scope);
@@ -292,9 +320,47 @@ export function checkForm(
       form.fields,
       { accountTypes: context.accountTypes, linkedAccountTypes: linked },
       [...path, 'fields'],
+      factsOf(form),
     ),
   );
+  if (form.signatureRequiredWhen) {
+    if (form.signature !== 'optional') {
+      issues.push(
+        issueAt(
+          [...path, 'signatureRequiredWhen'],
+          'Only an optional signature is required by a condition',
+        ),
+      );
+    }
+    const scope = new Map(factsOf(form));
+    for (const field of form.fields) scope.set(field.key, field);
+    issues.push(
+      ...checkCondition(
+        form.signatureRequiredWhen,
+        scope,
+        [...path, 'signatureRequiredWhen'],
+        (key) => `There is no field \`${key}\``,
+      ),
+    );
+  }
   return issues;
+}
+
+/**
+ * Whether a submission needs a signature (decision D97): always, never, or, for an optional one
+ * with a condition, when the condition holds on the values and the visit's facts.
+ */
+export function signatureRequired(
+  form: Pick<FormDefinition, 'signature' | 'signatureRequiredWhen'>,
+  values: Values,
+  facts: { visitOrdered?: boolean | undefined } = {},
+): boolean {
+  if (form.signature === 'required') return true;
+  if (form.signature !== 'optional' || !form.signatureRequiredWhen) return false;
+  return conditionHolds(form.signatureRequiredWhen, {
+    ...values,
+    ...(facts.visitOrdered === undefined ? {} : { [VISIT_ORDERED]: facts.visitOrdered }),
+  });
 }
 
 /** A form as the apps hold it: its current version, and whether it is in use. */

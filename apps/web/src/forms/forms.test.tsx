@@ -211,6 +211,72 @@ describe('forms', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Shop check' })).toBeVisible();
   }, 20_000);
 
+  it('asks for a signature when the visit took an order, and lists items without quantities', async () => {
+    const client = fakeClient(
+      PAGES,
+      {
+        [`POST /v1/forms/${VISIT}/versions`]: ({ body }) => ({
+          ...VISIT_FORM,
+          ...(body as { definition: object }).definition,
+          version: 3,
+        }),
+      },
+      MANAGE,
+      BUNDLE,
+    );
+    renderAt(`/settings/forms/${VISIT}`, client);
+    const user = userEvent.setup({ delay: null });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Shop visit' })).toBeVisible();
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'New field type' }),
+      'product_lines',
+    );
+    await user.click(screen.getByRole('button', { name: 'Add field' }));
+    const lines = screen.getByRole('region', { name: 'Field field_3' });
+    await user.type(
+      within(lines).getByRole('textbox', { name: 'Label in English' }),
+      'Products shown',
+    );
+    await user.click(within(lines).getByRole('checkbox', { name: /A quantity on each line/ }));
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Signature' }), 'optional');
+    await user.click(screen.getByRole('button', { name: 'Require it only when…' }));
+    const when = screen.getByRole('group', { name: 'Required only when' });
+    await user.selectOptions(
+      within(when).getByRole('combobox', { name: 'Field' }),
+      'visit_ordered',
+    );
+    await user.selectOptions(within(when).getByRole('combobox', { name: 'Value' }), 'yes');
+
+    // The preview tries it both ways.
+    const phone = screen.getByRole('region', { name: 'On the phone' });
+    expect(within(phone).getByText('Signature')).toBeVisible();
+    expect(within(phone).getByText('Items from the catalogue, without quantities')).toBeVisible();
+    await user.click(within(phone).getByRole('checkbox', { name: 'Orders taken in the visit' }));
+    expect(within(phone).getByText('Signature *')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Publish the next version' }));
+    expect(await screen.findByText('Version 3 is published.')).toBeVisible();
+    const [, , , options] = writesOf(client)[0]!;
+    expect((options as { body: { definition: object } }).body.definition).toMatchObject({
+      signature: 'optional',
+      signatureRequiredWhen: {
+        match: 'all',
+        clauses: [{ field: 'visit_ordered', op: 'eq', value: true }],
+      },
+      fields: [
+        { key: 'stock_ok' },
+        { key: 'shortfall' },
+        { key: 'field_3', type: 'product_lines', quantities: false },
+      ],
+    });
+
+    // A signature always or never needed takes no condition.
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Signature' }), 'required');
+    expect(screen.queryByRole('group', { name: 'Required only when' })).toBeNull();
+  }, 20_000);
+
   it('publishes the next version, and shows refusals on the field they concern', async () => {
     let calls = 0;
     const client = fakeClient(

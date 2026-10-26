@@ -8,6 +8,7 @@ import {
   submissionBody,
   type Tracking,
   type Visits,
+  type VisitState,
 } from '@thelamp/api-client/sync';
 import type { AccountType, FormDefinition } from '@thelamp/forms';
 import {
@@ -168,7 +169,14 @@ export async function checkOut(sync: Ready, owner: string, fix: Fix | null): Pro
 export async function submitEntry(
   sync: Ready,
   owner: string,
-  input: { id: string; changes: EntryChanges; fix: Fix; visitId: string | null },
+  input: {
+    id: string;
+    changes: EntryChanges;
+    fix: Fix;
+    visitId: string | null;
+    /** Orders taken in the visit and still waiting, which the server must see first (D97). */
+    after?: readonly string[];
+  },
 ): Promise<FormEntry> {
   const capturedAt = Date.parse(input.fix.capturedAt);
   return sync.entries.submit(
@@ -182,11 +190,41 @@ export async function submitEntry(
         owner,
         kind: 'submission.create',
         payload: submissionBody(entry),
-        dependsOn: [...entryPhotos(entry), ...(input.visitId ? [input.visitId] : [])],
+        dependsOn: [
+          ...entryPhotos(entry),
+          ...(input.visitId ? [input.visitId] : []),
+          ...(input.after ?? []),
+        ],
       });
       if (input.visitId) await sync.visits.touch(tx, owner, input.visitId, capturedAt);
     },
   );
+}
+
+/**
+ * The orders taken in a visit (decision D97): those still waiting to upload with its ID, and
+ * those the phone holds for its account placed since its check-in. A form's `visit_ordered`
+ * condition reads whether there are any, as the server will; a submission made in the visit
+ * waits for the ones still waiting, so the server sees them first.
+ */
+export async function visitOrders(
+  sync: Pick<Ready, 'db' | 'outbox'>,
+  owner: string,
+  visit: Pick<VisitState, 'visitId' | 'accountId' | 'checkedInAt'>,
+): Promise<{ taken: boolean; waiting: string[] }> {
+  const waiting = (await sync.outbox.items(owner))
+    .filter(
+      (item) =>
+        item.kind === 'order.place' &&
+        (item.payload as { visitId?: string | null }).visitId === visit.visitId,
+    )
+    .map((item) => item.id);
+  const placed = await sync.db.all<{ placed_at: string }>(
+    'SELECT placed_at FROM ref_orders WHERE account_id = ?',
+    [visit.accountId],
+  );
+  const since = placed.some((row) => Date.parse(row.placed_at) >= visit.checkedInAt);
+  return { taken: waiting.length > 0 || since, waiting };
 }
 
 /** A visit the person plans for themselves (M8), queued to send. Returns its ID. */

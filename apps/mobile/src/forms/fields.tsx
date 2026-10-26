@@ -628,7 +628,7 @@ function unitName(
 
 /**
  * Item lines (spec 5.6): items from the phone's catalogue, each with a quantity in its base
- * unit, and an amount when the field has a value column.
+ * unit unless the field takes none (decision D97), and an amount when the field has a value column.
  */
 function ItemLines({
   field,
@@ -680,15 +680,17 @@ function ItemLines({
                 {issues.get(`${at}.itemId`)}
               </Text>
             ) : null}
-            <QuantityInput
-              label={t('entry.quantity_in', {
-                unit: item ? unitName(data.units, item.baseUnit, 2, locale) : '',
-              })}
-              value={line.quantity}
-              readOnly={data.readOnly}
-              onChange={(quantity) => change(index, { quantity })}
-              {...(issues.get(`${at}.quantity`) ? { error: issues.get(`${at}.quantity`)! } : {})}
-            />
+            {field.quantities === false ? null : (
+              <QuantityInput
+                label={t('entry.quantity_in', {
+                  unit: item ? unitName(data.units, item.baseUnit, 2, locale) : '',
+                })}
+                value={line.quantity}
+                readOnly={data.readOnly}
+                onChange={(quantity) => change(index, { quantity })}
+                {...(issues.get(`${at}.quantity`) ? { error: issues.get(`${at}.quantity`)! } : {})}
+              />
+            )}
             {field.valueColumn ? (
               <TextField
                 label={field.valueColumn.label[locale]}

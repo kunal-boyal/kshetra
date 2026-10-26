@@ -386,6 +386,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Configuration text is in English and Hindi. Names of countable things carry `one` and `other` forms.
 - Money in configuration is a decimal string; compare amounts with `toMinorUnits`.
 - Forms publish as versions through `FormsService` (decision D45): a form keeps its key, and a field keeps its type once any version used it. Check submitted values with `checkFormValues` from `@thelamp/forms`, on the server and in the apps alike. Compile a configured pattern with `compilePattern` (re2js, linear time), never `new RegExp`.
+- A form filled in a visit sees `visit_ordered` before its first field (decision D97): the server answers it through the `VisitOrders` seam (field module, provided by orders), the phone with `visitOrders()` in `apps/mobile/src/visits.ts`, and both pass it to `checkFormValues` as `visitOrdered`. Whether a signature is needed is `signatureRequired()` from `@thelamp/forms`, never `signature === 'required'`. A product lines field with `quantities: false` keeps every line as one.
 - Industry templates live at `packages/templates/<key>/template.json`; see its README. Raise a template's `version` with every change, and keep schema changes additive.
 
 ## Migrations

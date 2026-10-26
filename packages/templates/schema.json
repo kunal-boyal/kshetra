@@ -1499,6 +1499,10 @@
             "required"
           ]
         },
+        "signatureRequiredWhen": {
+          "description": "With an optional signature: when it is required, such as when samples are given (decision D97)",
+          "$ref": "#/$defs/Condition"
+        },
         "geofence": {
           "default": "inherit",
           "description": "Whether capture must happen inside the account's geofence; inherit follows the account type",
@@ -1976,6 +1980,11 @@
         "type": {
           "type": "string",
           "const": "product_lines"
+        },
+        "quantities": {
+          "default": true,
+          "description": "Whether each line takes a quantity. Without, each line counts as one, such as products detailed",
+          "type": "boolean"
         },
         "valueColumn": {
           "type": "object",

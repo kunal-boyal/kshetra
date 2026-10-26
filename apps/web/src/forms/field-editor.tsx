@@ -452,6 +452,14 @@ function FieldSettings({
       ) : null}
       {field.type === 'product_lines' ? (
         <div className="grid gap-4 md:grid-cols-3">
+          <Checkbox
+            label={t('builder.quantities')}
+            detail={t('builder.quantities_help')}
+            checked={field.quantities !== false}
+            onChange={(event) =>
+              event.target.checked ? unset('quantities') : set({ quantities: false })
+            }
+          />
           {number('maxLines', t('builder.max_lines'))}
           <TextField
             label={t('builder.value_column_en')}

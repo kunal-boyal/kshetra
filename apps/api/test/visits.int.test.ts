@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { newId } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import sharp from 'sharp';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SubmissionsService } from '../src/modules/field/submissions.service';
 import { VisitsService } from '../src/modules/field/visits.service';
@@ -88,8 +89,9 @@ async function tenant(name: string) {
     managerId: admin.id,
   });
   const ashasPhone = newDevice();
+  const adminToken = (await world.signIn(phones.admin)).accessToken;
   const api = {
-    admin: as((await world.signIn(phones.admin)).accessToken),
+    admin: as(adminToken),
     manager: as((await world.signIn(phones.manager)).accessToken),
     asha: as((await world.signIn(phones.asha, ashasPhone)).accessToken),
     ravi: as((await world.signIn(phones.ravi, newDevice())).accessToken),
@@ -114,6 +116,7 @@ async function tenant(name: string) {
     asha,
     ravi,
     api,
+    adminToken,
     /** Asha on her phone, its clock 20 minutes fast. */
     ashaSkewed: async () =>
       as(
@@ -635,5 +638,101 @@ describe('listing submissions', () => {
       'OUT_OF_SCOPE',
     );
     expect((await t.api.admin.get('/v1/submissions')).json().error.code).toBe('VALIDATION');
+  });
+});
+
+describe('form engine additions in a visit (decision D97)', () => {
+  it('asks why there was no order only when none was taken, and a signature when samples are given', async () => {
+    const t = await tenant('Detailing Co');
+    const item = newId();
+    const made = await app.inject({
+      method: 'PUT',
+      url: `/v1/items/${item}`,
+      headers: { authorization: `Bearer ${t.adminToken}`, 'idempotency-key': newId() },
+      payload: {
+        code: `I-${newId().slice(-6)}`,
+        name: 'Cough syrup 100 ML',
+        productName: 'Cough syrup',
+        categoryName: null,
+        hsn: '3004',
+        taxRate: '12',
+        mrp: '95',
+        packLabel: '100 ML',
+        baseUnit: 'piece',
+        units: [],
+        measureType: null,
+        measurePerBaseUnit: null,
+      },
+    });
+    expect(made.statusCode, made.body).toBe(201);
+    await publish(t, {
+      key: 'detailing',
+      accountLink: { mode: 'required', accountTypes: ['customer'] },
+      visitSession: true,
+      signature: 'optional',
+      signatureRequiredWhen: { clauses: [{ field: 'samples', op: 'is_not_empty' }] },
+      fields: [
+        {
+          key: 'products_detailed',
+          type: 'product_lines',
+          label: text('Products detailed'),
+          required: true,
+          quantities: false,
+        },
+        { key: 'samples', type: 'product_lines', label: text('Samples') },
+        {
+          key: 'no_order_reason',
+          type: 'single_select',
+          label: text('Why no order'),
+          required: true,
+          options: [{ key: 'stocked', label: text('Stocked up') }],
+          visibleWhen: { clauses: [{ field: 'visit_ordered', op: 'eq', value: false }] },
+        },
+      ],
+    });
+    const shiftId = await punchIn(t.api.asha);
+    const visit = checkIn(t.shop);
+    await t.api.asha.post('/v1/visits', visit);
+    const form = (values: object, extra: object = {}) => ({
+      id: newId(),
+      form: { key: 'detailing', version: 1 },
+      visitId: visit.id,
+      capturedAt: new Date().toISOString(),
+      fix: fix(Date.now()),
+      values,
+      photos: [],
+      ...extra,
+    });
+
+    // No order yet: the reason is asked for. Samples given: the doctor signs.
+    const detailed = { products_detailed: [{ itemId: item }] };
+    expect((await t.api.asha.post('/v1/submissions', form(detailed))).json().error.details).toEqual(
+      [{ path: 'values.no_order_reason', issue: 'Fill this in' }],
+    );
+    const sampled = {
+      ...detailed,
+      samples: [{ itemId: item, quantity: 2 }],
+      no_order_reason: 'stocked',
+    };
+    expect((await t.api.asha.post('/v1/submissions', form(sampled))).json().error.details).toEqual([
+      { path: 'signature', issue: 'Ask for a signature' },
+    ]);
+    const signed = await t.api.asha.post(
+      '/v1/submissions',
+      form(sampled, { signature: { width: 300, height: 120, strokes: ['M10 60 L80 30'] } }),
+    );
+    expect(signed.statusCode, signed.body).toBe(201);
+    expect(signed.json().values.products_detailed).toEqual([{ itemId: item, quantity: 1 }]);
+
+    // Once the visit takes an order, nobody is asked why there wasn't one.
+    await world.database.forTenant(t.tenantId, (tx) =>
+      tx.execute(sql`
+        insert into cell.orders (id, tenant_id, account_id, supplier_kind, user_id, visit_id, shift_id,
+                                 placed_at, subtotal, tax_total, total)
+        values (${newId()}, ${t.tenantId}, ${t.shop}, 'company', ${t.asha.id}, ${visit.id}, ${shiftId},
+                now(), '0.00', '0.00', '0.00')`),
+    );
+    const ordered = await t.api.asha.post('/v1/submissions', form(detailed));
+    expect(ordered.statusCode, ordered.body).toBe(201);
   });
 });

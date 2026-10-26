@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { checkFormValues, type FormDefinition, photosIn } from '@thelamp/forms';
+import { checkFormValues, type FormDefinition, photosIn, signatureRequired } from '@thelamp/forms';
 import type { DaySubmission } from '@thelamp/metrics';
 import {
   AppError,
@@ -42,6 +42,7 @@ import { PhotosService } from '../media/photos.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { refuseEvidence, refuseOutsideGeofence } from './evidence';
 import { ShiftsService } from './shifts.service';
+import { VisitOrders } from './visit-orders';
 import { VisitsService } from './visits.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -80,6 +81,7 @@ export class SubmissionsService {
     private readonly photos: PhotosService,
     private readonly shifts: ShiftsService,
     private readonly visits: VisitsService,
+    private readonly visitOrders: VisitOrders,
   ) {}
 
   private select(tx: TenantTx) {
@@ -257,12 +259,22 @@ export class SubmissionsService {
       if (geofence === 'outside' && policy === 'advisory') flags.add('outside_geofence');
     }
 
-    // The values, checked against everything they refer to (spec 5.6).
-    const values = await this.checkValues(tx, access, definition, body, accountId, capturedAt);
+    // The values, checked against everything they refer to (spec 5.6), and in a visit whether it
+    // took an order, which conditions may ask (decision D97).
+    const visitOrdered = visit ? await this.visitOrders.taken(tx, tenantId, visit.id) : undefined;
+    const values = await this.checkValues(
+      tx,
+      access,
+      definition,
+      body,
+      accountId,
+      capturedAt,
+      visitOrdered,
+    );
 
     // Photos (BR-32, spec 12.2 step 5) and the signature.
     const photoIds = await this.checkPhotos(tx, access, definition, body, values, flags);
-    if (definition.signature === 'required' && !body.signature) {
+    if (signatureRequired(definition, values, { visitOrdered }) && !body.signature) {
       throw invalid([issueAt(['signature'], 'Ask for a signature')]);
     }
     if (definition.signature === 'none' && body.signature) {
@@ -340,6 +352,7 @@ export class SubmissionsService {
     body: CreateSubmissionBody,
     accountId: string | null,
     capturedAt: number,
+    visitOrdered: boolean | undefined,
   ) {
     const tenantId = access.tenantId;
     const ids = [...idsIn(body.values)];
@@ -359,6 +372,7 @@ export class SubmissionsService {
         activeItem: (id) => known.items.has(id.toLowerCase()),
         catalogueEntry: (source, id) =>
           (source === 'catalogue_items' ? known.items : known.products).has(id.toLowerCase()),
+        ...(visitOrdered === undefined ? {} : { visitOrdered }),
       },
       ['values'],
     );

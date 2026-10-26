@@ -30041,6 +30041,10 @@
               "required"
             ]
           },
+          "signatureRequiredWhen": {
+            "description": "With an optional signature: when it is required, such as when samples are given (decision D97)",
+            "$ref": "#/components/schemas/Condition"
+          },
           "geofence": {
             "default": "inherit",
             "description": "Whether capture must happen inside the account's geofence; inherit follows the account type",
@@ -30250,6 +30254,10 @@
               "optional",
               "required"
             ]
+          },
+          "signatureRequiredWhen": {
+            "description": "With an optional signature: when it is required, such as when samples are given (decision D97)",
+            "$ref": "#/components/schemas/ConditionInput"
           },
           "geofence": {
             "default": "inherit",
@@ -30508,6 +30516,10 @@
               "optional",
               "required"
             ]
+          },
+          "signatureRequiredWhen": {
+            "description": "With an optional signature: when it is required, such as when samples are given (decision D97)",
+            "$ref": "#/components/schemas/Condition"
           },
           "geofence": {
             "default": "inherit",
@@ -36235,6 +36247,11 @@
             "type": "string",
             "const": "product_lines"
           },
+          "quantities": {
+            "default": true,
+            "description": "Whether each line takes a quantity. Without, each line counts as one, such as products detailed",
+            "type": "boolean"
+          },
           "valueColumn": {
             "type": "object",
             "properties": {
@@ -36259,6 +36276,7 @@
           "label",
           "required",
           "type",
+          "quantities",
           "maxLines"
         ],
         "additionalProperties": false
@@ -36304,6 +36322,11 @@
           "type": {
             "type": "string",
             "const": "product_lines"
+          },
+          "quantities": {
+            "default": true,
+            "description": "Whether each line takes a quantity. Without, each line counts as one, such as products detailed",
+            "type": "boolean"
           },
           "valueColumn": {
             "type": "object",

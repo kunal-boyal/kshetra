@@ -292,7 +292,7 @@ Forms define what a field user records. Each form is versioned: publishing a cha
 | Visit session | Whether the form must be filled inside a checked-in visit (module M6) |
 | Shift requirement | Required (default) or allowed off-shift |
 | Photos | None, optional or required; minimum and maximum count (up to 10); camera only (default) or camera and gallery (gallery photos are labelled and flagged) |
-| Signature | None, optional or required (for example a stockist acknowledging samples) |
+| Signature | None, optional or required (for example a stockist acknowledging samples); an optional signature may be required by a condition on the form's fields, such as when samples are given (D97) |
 | Geofence policy | Inherit from account type, off, advisory (distance shown to the reviewer) or required (submission refused outside the fence) |
 | Review | Manual review (default), auto-approval under tenant rules, or no review for low-risk forms (counts immediately) |
 | Who can use it | Roles or designations |
@@ -308,11 +308,11 @@ Forms define what a field user records. Each form is versioned: publishing a cha
 | Barcode or QR scan | Camera scanner |
 | Account picker | Another account in scope, filtered by type (a retailer met during a distributor visit) |
 | Contact picker | People at the linked account |
-| Product lines | A repeating table of catalogue items with quantity and optional value columns (samples given, stock counted, competitor prices) |
+| Product lines | A repeating table of catalogue items with quantity and optional value columns (samples given, stock counted, competitor prices); quantities can be switched off for a plain list of items, each counting as one (products detailed, D97) |
 | Repeating group | A repeating set of other fields |
 | Section, info text | Layout only |
 
-Every field has a key matching `^[a-z][a-z0-9_]{0,39}$`, unique within the form and immutable after publish, a label per language, a required flag, help text and an optional visibility condition (`show when <field> <operator> <value>`, combinable with all or any). Calculated fields arrive in version 2.
+Every field has a key matching `^[a-z][a-z0-9_]{0,39}$`, unique within the form and immutable after publish, a label per language, a required flag, help text and an optional visibility condition (`show when <field> <operator> <value>`, combinable with all or any). A form filled in a visit may also ask `visit_ordered`, whether the visit took an order, which the server answers from the orders placed in it and the phone from those it holds and has waiting; the key is kept for it (D97). Calculated fields arrive in version 2.
 
 Validation runs in the shared package on the device (for feedback) and on the server (authoritative). A form definition is validated against a JSON schema before it can be published.
 

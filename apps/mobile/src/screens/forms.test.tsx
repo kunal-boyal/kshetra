@@ -93,6 +93,7 @@ const CHECK: FormView = {
       type: 'product_lines',
       label: text('Stock seen'),
       required: false,
+      quantities: true,
       maxLines: 50,
       valueColumn: { label: text('Value') },
     },
@@ -120,6 +121,50 @@ const VISIT: FormView = {
   visitSession: true,
   fields: [
     { key: 'notes', type: 'long_text', label: text('Notes'), required: false, maxLength: 2000 },
+  ],
+};
+
+/**
+ * A detailing call (decision D97): products told about without quantities, a signature needed
+ * only when samples were given, and a reason asked only when the visit took no order.
+ */
+const DETAIL: FormView = {
+  ...base,
+  id: '01a10000-0000-7000-8000-0000000000f3',
+  key: 'detailing',
+  name: noun('Detailing call', 'Detailing calls'),
+  accountLink: { mode: 'required', accountTypes: ['customer'] },
+  visitSession: true,
+  signature: 'optional',
+  signatureRequiredWhen: { match: 'all', clauses: [{ field: 'samples', op: 'is_not_empty' }] },
+  fields: [
+    {
+      key: 'detailed',
+      type: 'product_lines',
+      label: text('Products detailed'),
+      required: true,
+      quantities: false,
+      maxLines: 50,
+    },
+    {
+      key: 'samples',
+      type: 'product_lines',
+      label: text('Samples given'),
+      required: false,
+      quantities: true,
+      maxLines: 50,
+    },
+    {
+      key: 'no_order_reason',
+      type: 'single_select',
+      label: text('Why no order'),
+      required: true,
+      options: [{ key: 'stocked', label: text('Stocked up') }],
+      visibleWhen: {
+        match: 'all',
+        clauses: [{ field: 'visit_ordered', op: 'eq', value: false }],
+      },
+    },
   ],
 };
 
@@ -207,7 +252,7 @@ function fakeClient(offline: boolean) {
         terminology: {},
         designations: [],
         accountTypes: [],
-        forms: [CHECK, VISIT],
+        forms: [CHECK, VISIT, DETAIL],
         catalogue: {
           units: [{ key: 'pack', name: noun('Pack', 'Packs'), base: true }],
           measureTypes: ['kg', 'L'],
@@ -442,6 +487,87 @@ describe('forms on the phone', () => {
       dependsOn: [visit],
       payload: { visitId: visit, accountId: SHOP },
     });
+  });
+
+  it('asks why there was no order while the visit has taken none', async () => {
+    const db = await freshDatabase();
+    await db.transaction((tx) =>
+      new Visits(db).open(tx, {
+        owner: OWNER,
+        visitId: '01a10000-0000-7000-8000-0000000000d2',
+        accountId: SHOP,
+        shiftId: SHIFT,
+        checkedInAt: Date.now() - 60_000,
+      }),
+    );
+    await new FormEntries(db).start({ id: ENTRY, owner: OWNER, form: DETAIL, accountId: SHOP });
+    await renderPhone({ name: 'entry', id: ENTRY }, db, true);
+    // No order yet: the reason is asked.
+    expect(await screen.findByText('Why no order *')).toBeOnTheScreen();
+  });
+
+  it('waits for the visit’s order, and needs a signature only for samples', async () => {
+    const visit = '01a10000-0000-7000-8000-0000000000d3';
+    const order = '01a10000-0000-7000-8000-0000000000a9';
+    const db = await freshDatabase();
+    await db.transaction((tx) =>
+      new Visits(db).open(tx, {
+        owner: OWNER,
+        visitId: visit,
+        accountId: SHOP,
+        shiftId: SHIFT,
+        checkedInAt: Date.now() - 60_000,
+      }),
+    );
+    await new FormEntries(db).start({ id: ENTRY, owner: OWNER, form: DETAIL });
+    const client = await renderPhone({ name: 'entry', id: ENTRY }, db);
+    const shop = await screen.findByRole('radio', { name: 'Janpath Mart' });
+    // An order taken in the visit, still waiting to upload when the account is chosen.
+    await db.transaction((tx) =>
+      new Outbox(db, {}).enqueue(tx, {
+        id: order,
+        owner: OWNER,
+        kind: 'order.place',
+        payload: { id: order, accountId: SHOP, visitId: visit },
+      }),
+    );
+    await fireEvent.press(shop);
+    expect(await screen.findByText('Products detailed *')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.queryByText('Why no order *')).toBeNull());
+
+    // Products detailed take no quantity; samples do, and then a signature.
+    const [detailed, samples] = screen.getAllByRole('button', { name: 'Add an item' });
+    await fireEvent.press(detailed!);
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Neem Shield' }));
+    expect(screen.queryByRole('button', { name: 'One more' })).toBeNull();
+    await fireEvent.press(samples!);
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Urea Plus' }));
+    expect(screen.getByRole('button', { name: 'One more' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+    expect(await screen.findByText('Sign in the box.')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove Urea Plus' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/accounts/[id]',
+        params: { id: SHOP },
+      }),
+    );
+    // The order goes first, so the server sees it before the submission.
+    await waitFor(() =>
+      expect(client.request).toHaveBeenCalledWith('POST', '/v1/submissions', expect.anything(), {
+        body: expect.objectContaining({
+          id: ENTRY,
+          visitId: visit,
+          values: { detailed: [{ itemId: NEEM, quantity: 1 }] },
+        }),
+      }),
+    );
+    const posted = client.request.mock.calls
+      .filter(([method]) => method === 'POST')
+      .map(([, path]) => path);
+    expect(posted).toEqual(['/v1/orders', '/v1/submissions']);
   });
 
   it('shows a submitted entry read only, waiting and then sent', async () => {

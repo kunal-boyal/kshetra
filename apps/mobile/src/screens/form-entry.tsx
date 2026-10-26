@@ -1,6 +1,6 @@
 import type { FormEntry } from '@thelamp/api-client/sync';
 import { spacing } from '@thelamp/design-tokens';
-import type { Values } from '@thelamp/forms';
+import { signatureRequired, VISIT_ORDERED, type Values } from '@thelamp/forms';
 import { formatDateTime, formatNumber } from '@thelamp/i18n';
 import { punchFixIssue, timeIn, todayIn } from '@thelamp/shared';
 import { Button, Card, Notice, Screen, StatusBadge, Text } from '@thelamp/ui-mobile';
@@ -19,7 +19,7 @@ import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix } from '../location';
 import { useOutboxItems, useSync } from '../sync';
-import { geofenceAt, submitEntry } from '../visits';
+import { geofenceAt, submitEntry, visitOrders } from '../visits';
 
 /** Changes are kept on the phone this long after the last keystroke. */
 const SAVE_AFTER_MS = 400;
@@ -108,6 +108,8 @@ function Filling({ entry }: { entry: FormEntry }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string>();
   const [discarding, setDiscarding] = useState(false);
+  // Whether the open visit at the entry's account took an order, for `visit_ordered` (D97).
+  const [ordered, setOrdered] = useState<boolean>();
   const pending = useRef(new Set<string>());
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const latest = useRef(parts);
@@ -191,8 +193,26 @@ function Filling({ entry }: { entry: FormEntry }) {
     }, [entry.id, change]),
   );
 
+  // Back from taking an order, too: whether the visit here took one.
+  useFocusEffect(
+    useCallback(() => {
+      if (!sync || !client.owner || !form.visitSession || readOnly) return;
+      const owner = client.owner;
+      let live = true;
+      void (async () => {
+        const visit = await sync.visits.current(owner);
+        const here = visit !== null && visit.accountId === parts.accountId;
+        const taken = here ? (await visitOrders(sync, owner, visit)).taken : undefined;
+        if (live) setOrdered(taken);
+      })().catch(() => undefined);
+      return () => {
+        live = false;
+      };
+    }, [sync, client, form.visitSession, readOnly, parts.accountId]),
+  );
+
   // Once a submit has been tried, problems follow the changes.
-  const issues = tried ? checkEntry(form, parts, lookups, t).issues : NO_ISSUES;
+  const issues = tried ? checkEntry(form, parts, lookups, t, ordered).issues : NO_ISSUES;
 
   /**
    * Submits the entry (M6): checked as the server will check it, then captured with a fresh fix
@@ -205,7 +225,7 @@ function Filling({ entry }: { entry: FormEntry }) {
     const owner = client.owner;
     setTried(true);
     setFailure(undefined);
-    const checked = checkEntry(form, parts, lookups, t);
+    const checked = checkEntry(form, parts, lookups, t, ordered);
     if (checked.issues.size > 0) return;
     setBusy(true);
     clearTimeout(timer.current);
@@ -251,6 +271,7 @@ function Filling({ entry }: { entry: FormEntry }) {
           return;
         }
       }
+      const after = inVisit ? (await visitOrders(sync, owner, visit)).waiting : [];
       await submitEntry(sync, owner, {
         id: entry.id,
         changes: {
@@ -261,6 +282,7 @@ function Filling({ entry }: { entry: FormEntry }) {
         },
         fix: found.fix,
         visitId: inVisit ? visit.visitId : null,
+        after,
       });
       await sync.runner.refresh();
       void sync.runner.sync();
@@ -343,6 +365,7 @@ function Filling({ entry }: { entry: FormEntry }) {
         onChange={(values) => change({ values })}
         issues={issues}
         data={data}
+        outer={ordered === undefined ? {} : { [VISIT_ORDERED]: ordered }}
       />
 
       {form.photos ? (
@@ -394,7 +417,7 @@ function Filling({ entry }: { entry: FormEntry }) {
       {form.signature !== 'none' ? (
         <SignaturePad
           label={t('entry.signature')}
-          required={form.signature === 'required'}
+          required={signatureRequired(form, parts.values, { visitOrdered: ordered })}
           strokes={parts.signature ?? []}
           onChange={(signature) => change({ signature: signature.length > 0 ? signature : null })}
           readOnly={readOnly}
