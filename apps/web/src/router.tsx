@@ -18,9 +18,8 @@ import { LiveMapPage } from './maps/live-map-page';
 import { liveMapSearch } from './maps/views';
 import { ReplayPage } from './maps/replay-page';
 import { NotificationsPage } from './notifications/notifications-page';
-import { LeaderboardPage } from './performance/leaderboard-page';
 import { PersonPerformancePage } from './performance/person-page';
-import { TeamPerformancePage } from './performance/team-page';
+import { PerformancePage, performanceSearch } from './performance/performance-page';
 import { TargetsPage } from './targets/targets-page';
 import { CataloguePage } from './catalogue/catalogue-page';
 import { ItemEditorPage } from './catalogue/item-editor-page';
@@ -241,7 +240,11 @@ const targets = createRoute({
 const teamPerformance = createRoute({
   getParentRoute: () => app,
   path: '/performance',
-  component: TeamPerformancePage,
+  validateSearch: performanceSearch,
+  component: function PerformanceRoute() {
+    const { view } = teamPerformance.useSearch();
+    return <PerformancePage key={view ?? 'default'} {...(view ? { view } : {})} />;
+  },
 });
 const personPerformance = createRoute({
   getParentRoute: () => app,
@@ -283,10 +286,13 @@ const notificationsRoute = createRoute({
   path: '/notifications',
   component: NotificationsPage,
 });
+// The leaderboard is the Performance page's first tab (decision D104); old links still land.
 const leaderboard = createRoute({
   getParentRoute: () => app,
   path: '/leaderboard',
-  component: LeaderboardPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/performance', search: { view: 'leaderboard' } });
+  },
 });
 const territories = createRoute({
   getParentRoute: () => app,

@@ -192,7 +192,10 @@ describe('the home dashboard (M18, decision D104)', () => {
     );
     expect(within(mine!).getByLabelText('Not ranked')).toBeVisible();
     expect(screen.getByText(/Indicative/)).toBeVisible();
-    expect(screen.getByRole('link', { name: 'All' })).toHaveAttribute('href', '/leaderboard');
+    expect(screen.getByRole('link', { name: 'All' })).toHaveAttribute(
+      'href',
+      '/performance?view=leaderboard',
+    );
   });
 
   it('keeps the charts beside their numbers', async () => {

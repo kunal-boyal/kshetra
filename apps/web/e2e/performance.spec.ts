@@ -208,7 +208,7 @@ async function expectAccessible(page: Page) {
 const PAGES = [
   { path: '/performance', heading: /^Performance · /, shows: 'Asha Rao' },
   { path: `/performance/${ASHA}`, heading: 'Asha Rao’s month', shows: '+1 pending' },
-  { path: '/leaderboard', heading: /^Leaderboard · /, shows: 'Ravi Kumar' },
+  { path: '/leaderboard', heading: /^Performance · /, shows: 'Ravi Kumar' },
 ];
 
 for (const { path, heading, shows } of PAGES) {
