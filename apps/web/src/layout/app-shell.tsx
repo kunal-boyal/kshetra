@@ -18,7 +18,6 @@ import {
   ShieldCheck,
   Store,
   Target,
-  Trophy,
   Users,
   Receipt,
   UserRound,
@@ -214,14 +213,10 @@ export function AppShell() {
           icon: Target,
           label: t('nav.targets'),
         }),
-        access.can('performance.view_team')
+        // One Performance page holds the leaderboard and a manager's team (decision D104).
+        access.can('performance.view_team') || access.can('leaderboard.view')
           ? { to: '/performance', icon: ChartNoAxesColumn, label: t('nav.performance') }
           : { to: '/performance/me', icon: ChartNoAxesColumn, label: t('nav.my_performance') },
-        ...only(access.can('leaderboard.view'), {
-          to: '/leaderboard',
-          icon: Trophy,
-          label: t('nav.leaderboard'),
-        }),
       ],
     },
     {

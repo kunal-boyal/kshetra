@@ -1,5 +1,5 @@
-import { formatMonth, formatNumber } from '@thelamp/i18n';
-import { type Leaderboard, todayIn } from '@thelamp/shared';
+import { formatNumber } from '@thelamp/i18n';
+import type { Leaderboard } from '@thelamp/shared';
 import {
   type Column,
   DataTable,
@@ -7,8 +7,6 @@ import {
   FilterChips,
   Icon,
   Notice,
-  PageHeader,
-  PeriodStepper,
   ShareBar,
 } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
@@ -21,15 +19,14 @@ import { Movement, PersonCell, RankCell, useLeaderboard, usePercent } from './sh
 type Row = Leaderboard['rows'][number];
 
 /**
- * A ranking group's leaderboard for the month (M9, BR-07, decision D104), labelled indicative:
- * how the score is made, then ranked people first by score, sharing a rank on equal scores, each
- * with their territory, every scored metric's attainment and their move since last week; then
- * those not ranked.
+ * A ranking group's leaderboard for a month (M9, BR-07, decision D104), the Performance page's
+ * Leaderboard tab, labelled indicative: the groups as chips, how the score is made, then ranked
+ * people first by score, sharing a rank on equal scores, each with their territory, every scored
+ * metric's attainment and their move since last week; then those not ranked.
  */
-export function LeaderboardPage() {
+export function LeaderboardPanel({ period }: { period: string }) {
   const { t, locale } = useLanguage();
   const access = useAccess();
-  const [period, setPeriod] = useState(() => todayIn(access.timezone).slice(0, 7));
   const [group, setGroup] = useState<string>();
   const board = useLeaderboard(period, group);
   const percent = usePercent();
@@ -87,43 +84,20 @@ export function LeaderboardPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={t('leaderboard.title_for', { month: formatMonth(period, { locale }) })}
-        meta={t('leaderboard.meta')}
-        actions={
-          access.can('report.view') ? (
-            <Link to="/reports" className="ks-btn ghost sm">
-              {t('leaderboard.export')}
-            </Link>
-          ) : null
-        }
-        toolbar={
-          <>
-            {data && data.groups.length > 1 ? (
-              <FilterChips
-                label={t('leaderboard.group')}
-                choices={data.groups.map((entry) => ({
-                  value: entry.key,
-                  label: entry.name[locale].other,
-                  count: entry.size,
-                }))}
-                value={data.group}
-                onChange={(value) => setGroup(value ?? undefined)}
-                formatCount={(n) => formatNumber(n, { locale })}
-              />
-            ) : null}
-            <PeriodStepper
-              value={period}
-              onChange={setPeriod}
-              format={(value) => formatMonth(value, { locale })}
-              label={t('plan.month')}
-              previousLabel={t('targets.previous_month')}
-              nextLabel={t('targets.next_month')}
-            />
-          </>
-        }
-      />
+    <div className="flex flex-col gap-4">
+      {data && data.groups.length > 1 ? (
+        <FilterChips
+          label={t('leaderboard.group')}
+          choices={data.groups.map((entry) => ({
+            value: entry.key,
+            label: entry.name[locale].other,
+            count: entry.size,
+          }))}
+          value={data.group}
+          onChange={(value) => setGroup(value ?? undefined)}
+          formatCount={(n) => formatNumber(n, { locale })}
+        />
+      ) : null}
       {board.isError ? (
         <p className="ks-help error" role="alert">
           {errorMessage(board.error, t)}
