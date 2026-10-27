@@ -1,4 +1,4 @@
-import { formatNumber } from '@thelamp/i18n';
+import { formatMonth, localeTag } from '@thelamp/i18n';
 import {
   CopyTargetsResult,
   LockTargetsResult,
@@ -21,18 +21,35 @@ import {
   TextField,
 } from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Lock, LockOpen, Save, Target } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Lock,
+  LockOpen,
+  RotateCcw,
+  Save,
+  Target,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
 import { PageHeader, Section } from '../people/shared';
+import { useFigure } from '../performance/shared';
+
+/** The month `step` months from a `YYYY-MM`. */
+function shiftMonth(period: string, step: number): string {
+  const [year, month] = period.split('-').map(Number) as [number, number];
+  const index = year * 12 + (month - 1) + step;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
+}
 
 /** The month before a `YYYY-MM`. */
-function previousMonth(period: string): string {
-  const [year, month] = period.split('-').map(Number) as [number, number];
-  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, '0')}`;
-}
+const previousMonth = (period: string) => shiftMonth(period, -1);
+
+const STATUS_BADGE = { locked: 'success', draft: 'pending', none: 'neutral' } as const;
 
 function useTargets(period: string) {
   const { client } = useApp();
@@ -70,10 +87,35 @@ export function TargetsPage() {
   const mayUnlock = access.can('target.unlock');
   const data = targets.data;
   const metrics = data?.metrics ?? [];
-  const number = (value: string | undefined) =>
-    value === undefined ? '—' : formatNumber(Number(value), { locale });
+  const figure = useFigure();
+  const shown = (metric: MetricView, value: string | undefined) => figure(metric, value ?? null);
+  const currencySymbol =
+    new Intl.NumberFormat(localeTag(locale), { style: 'currency', currency: access.currency })
+      .formatToParts(0)
+      .find((part) => part.type === 'currency')?.value ?? '';
+  /** What a metric's values are counted in, beside its heading and inside its fields. */
+  const unitOf = (metric: MetricView): { text: string; end: boolean } | null =>
+    metric.unit === 'currency'
+      ? { text: currencySymbol, end: false }
+      : metric.unit === 'percent'
+        ? { text: '%', end: true }
+        : metric.unit === 'duration'
+          ? { text: t('targets.unit_minutes'), end: true }
+          : null;
+  const counts = { locked: 0, draft: 0, none: 0 };
+  for (const set of data?.sets ?? []) counts[set.status] += 1;
+  const selectable = (data?.sets.length ?? 0) > 0 && (mayLock || mayEdit);
+  const everyone = data?.sets.map((set) => set.user.id) ?? [];
+  const allSelected = everyone.length > 0 && everyone.every((id) => selected.has(id));
+  const goTo = (next: string) => {
+    setPeriod(next);
+    setEdits({});
+    setSelected(new Set());
+    setMessage(undefined);
+  };
 
   const changed = Object.entries(edits).filter(([, values]) => Object.keys(values).length > 0);
+  const editCount = changed.reduce((sum, [, values]) => sum + Object.keys(values).length, 0);
   const issues = new Map<string, string>();
   for (const [userId, values] of changed) {
     for (const [key, value] of Object.entries(values)) {
@@ -148,19 +190,22 @@ export function TargetsPage() {
 
   const cell = (set: TargetSetResult, metric: MetricView) => {
     const key = `${set.user.id}.${metric.key}`;
-    const value = edits[set.user.id]?.[metric.key] ?? set.values[metric.key] ?? '';
-    if (!mayEdit || set.status === 'locked') return number(set.values[metric.key]);
-    return (
+    const edited = edits[set.user.id]?.[metric.key];
+    if (!mayEdit || set.status === 'locked') return shown(metric, set.values[metric.key]);
+    const unit = unitOf(metric);
+    const invalid = issues.has(key);
+    const changedHere = edited !== undefined && edited !== (set.values[metric.key] ?? '');
+    const input = (
       <input
-        className={issues.has(key) ? 'ks-input invalid' : 'ks-input'}
+        className={`ks-input num${invalid ? ' invalid' : changedHere ? ' changed' : ''}`}
         aria-label={t('targets.value_for', {
           name: set.user.name,
           metric: metric.name[locale].one,
         })}
-        aria-invalid={issues.has(key) ? true : undefined}
+        aria-invalid={invalid ? true : undefined}
         inputMode="decimal"
-        size={8}
-        value={value}
+        placeholder="—"
+        value={edited ?? set.values[metric.key] ?? ''}
         onChange={(event) =>
           setEdits((current) => ({
             ...current,
@@ -169,23 +214,61 @@ export function TargetsPage() {
         }
       />
     );
+    return unit ? (
+      <span className={unit.end ? 'ks-affix end' : 'ks-affix'}>
+        <span aria-hidden="true">{unit.text}</span>
+        {input}
+      </span>
+    ) : (
+      input
+    );
   };
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('targets.title')} intro={t('targets.intro')} />
-      <TextField
-        label={t('plan.month')}
-        type="month"
-        className="max-w-xs"
-        value={period}
-        onChange={(event) => {
-          if (!event.target.value) return;
-          setPeriod(event.target.value);
-          setEdits({});
-          setSelected(new Set());
-        }}
-      />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex items-end gap-2">
+          <Button
+            variant="secondary"
+            icon={<Icon icon={ChevronLeft} />}
+            aria-label={t('targets.previous_month')}
+            onClick={() => goTo(shiftMonth(period, -1))}
+          />
+          <TextField
+            label={t('plan.month')}
+            type="month"
+            className="max-w-[12rem]"
+            value={period}
+            onChange={(event) => {
+              if (event.target.value) goTo(event.target.value);
+            }}
+          />
+          <Button
+            variant="secondary"
+            icon={<Icon icon={ChevronRight} />}
+            aria-label={t('targets.next_month')}
+            onClick={() => goTo(shiftMonth(period, 1))}
+          />
+        </div>
+        {data && data.sets.length > 0 ? (
+          <p
+            className="flex flex-wrap items-center gap-2"
+            aria-label={formatMonth(period, { locale })}
+          >
+            <span className="ks-muted">{t('targets.people', { count: data.sets.length })}</span>
+            <StatusBadge variant="success">
+              {t('targets.count_locked', { count: counts.locked })}
+            </StatusBadge>
+            <StatusBadge variant="pending">
+              {t('targets.count_draft', { count: counts.draft })}
+            </StatusBadge>
+            <StatusBadge variant="neutral">
+              {t('targets.count_none', { count: counts.none })}
+            </StatusBadge>
+          </p>
+        ) : null}
+      </div>
       {message ? <p role="status">{message}</p> : null}
       {failure ? (
         <p className="ks-help error" role="alert">
@@ -205,44 +288,67 @@ export function TargetsPage() {
         </EmptyState>
       ) : (
         <>
-          {data.sets.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {mayEdit ? (
-                <Button
-                  variant="primary"
-                  icon={<Icon icon={Save} />}
-                  busy={busy}
-                  disabled={changed.length === 0 || issues.size > 0}
-                  onClick={() => void save()}
-                >
-                  {t('targets.save')}
-                </Button>
-              ) : null}
-              {mayLock ? (
-                <Button
-                  icon={<Icon icon={Lock} />}
-                  disabled={selected.size === 0}
-                  onClick={() => setAsking('lock')}
-                >
-                  {t('targets.lock', { count: selected.size })}
-                </Button>
-              ) : null}
-              {mayEdit ? (
-                <Button
-                  icon={<Icon icon={Copy} />}
-                  disabled={selected.size === 0}
-                  onClick={() => setAsking('copy')}
-                >
-                  {t('targets.copy', { count: selected.size })}
-                </Button>
-              ) : null}
+          {(mayEdit && changed.length > 0) || selected.size > 0 ? (
+            <div className="ks-card flex flex-wrap items-center justify-between gap-3">
+              <span className="flex flex-wrap gap-x-4 gap-y-1 font-semibold">
+                {mayEdit && changed.length > 0 ? (
+                  <span>{t('targets.unsaved', { count: editCount })}</span>
+                ) : null}
+                {selected.size > 0 ? (
+                  <span>{t('targets.selected', { count: selected.size })}</span>
+                ) : null}
+              </span>
+              <span className="flex flex-wrap gap-2">
+                {selected.size > 0 ? (
+                  <>
+                    {mayLock ? (
+                      <Button icon={<Icon icon={Lock} />} onClick={() => setAsking('lock')}>
+                        {t('targets.lock', { count: selected.size })}
+                      </Button>
+                    ) : null}
+                    {mayEdit ? (
+                      <Button icon={<Icon icon={Copy} />} onClick={() => setAsking('copy')}>
+                        {t('targets.copy', { count: selected.size })}
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      icon={<Icon icon={X} />}
+                      onClick={() => setSelected(new Set())}
+                    >
+                      {t('targets.clear_selection')}
+                    </Button>
+                  </>
+                ) : null}
+                {mayEdit && changed.length > 0 ? (
+                  <>
+                    <Button
+                      variant="secondary"
+                      icon={<Icon icon={RotateCcw} />}
+                      disabled={busy}
+                      onClick={() => setEdits({})}
+                    >
+                      {t('targets.discard')}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      icon={<Icon icon={Save} />}
+                      busy={busy}
+                      disabled={issues.size > 0}
+                      onClick={() => void save()}
+                    >
+                      {t('targets.save')}
+                    </Button>
+                  </>
+                ) : null}
+              </span>
             </div>
           ) : null}
           {asking ? (
             <Confirm
               question={t(asking === 'lock' ? 'targets.lock_question' : 'targets.copy_question', {
                 count: selected.size,
-                month: previousMonth(period),
+                month: formatMonth(previousMonth(period), { locale }),
               })}
               action={
                 <Button
@@ -284,24 +390,35 @@ export function TargetsPage() {
               <caption className="sr-only">{t('targets.caption')}</caption>
               <thead>
                 <tr>
-                  {data.sets.length > 0 && (mayLock || mayEdit) ? (
-                    <th scope="col">
-                      <span className="sr-only">{t('targets.select')}</span>
+                  {selectable ? (
+                    <th scope="col" className="w-0">
+                      <input
+                        type="checkbox"
+                        aria-label={t('targets.select_all')}
+                        checked={allSelected}
+                        onChange={(event) =>
+                          setSelected(new Set(event.target.checked ? everyone : []))
+                        }
+                      />
                     </th>
                   ) : null}
                   <th scope="col">{t('targets.person')}</th>
-                  {metrics.map((metric) => (
-                    <th key={metric.key} scope="col" className="r">
-                      {metric.name[locale].other}
-                    </th>
-                  ))}
+                  {metrics.map((metric) => {
+                    const unit = unitOf(metric);
+                    return (
+                      <th key={metric.key} scope="col" className="r">
+                        {metric.name[locale].other}
+                        {unit ? <span className="sub">{unit.text}</span> : null}
+                      </th>
+                    );
+                  })}
                   <th scope="col">{t('targets.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.sets.map((set) => (
-                  <tr key={set.user.id}>
-                    {mayLock || mayEdit ? (
+                  <tr key={set.user.id} className={selected.has(set.user.id) ? 'sel' : undefined}>
+                    {selectable ? (
                       <td>
                         <input
                           type="checkbox"
@@ -319,7 +436,8 @@ export function TargetsPage() {
                       </td>
                     ) : null}
                     <th scope="row">
-                      {set.user.name} <span className="ks-muted">{set.user.code}</span>
+                      <span className="whitespace-nowrap">{set.user.name}</span>
+                      <span className="ks-muted caption block font-normal">{set.user.code}</span>
                     </th>
                     {metrics.map((metric) => (
                       <td key={metric.key} className="r">
@@ -328,17 +446,14 @@ export function TargetsPage() {
                     ))}
                     <td>
                       <span className="flex flex-wrap items-center gap-2">
-                        <StatusBadge
-                          variant={
-                            set.status === 'locked'
-                              ? 'success'
-                              : set.status === 'draft'
-                                ? 'pending'
-                                : 'neutral'
-                          }
-                        >
+                        <StatusBadge variant={STATUS_BADGE[set.status]}>
                           {t(`targets.status_${set.status}`)}
                         </StatusBadge>
+                        {set.status === 'locked' && set.lockedBy ? (
+                          <span className="ks-muted caption">
+                            {t('targets.locked_by', { name: set.lockedBy.name })}
+                          </span>
+                        ) : null}
                         {set.status === 'locked' && mayUnlock ? (
                           <Button
                             variant="ghost"
@@ -356,26 +471,26 @@ export function TargetsPage() {
               <tfoot>
                 {data.sets.length > 0 ? (
                   <tr>
-                    {mayLock || mayEdit ? <td /> : null}
+                    {selectable ? <td /> : null}
                     <th scope="row">{t('targets.team_total')}</th>
                     {metrics.map((metric) => (
                       <td key={metric.key} className="r">
-                        {number(data.totals[metric.key])}
+                        {shown(metric, data.totals[metric.key])}
                       </td>
                     ))}
                     <td />
                   </tr>
                 ) : null}
                 <tr>
-                  {data.sets.length > 0 && (mayLock || mayEdit) ? <td /> : null}
+                  {selectable ? <td /> : null}
                   <th scope="row">{t('targets.own')}</th>
                   {metrics.map((metric) => (
                     <td key={metric.key} className="r">
-                      {number(data.own.values[metric.key])}
+                      {shown(metric, data.own.values[metric.key])}
                     </td>
                   ))}
                   <td>
-                    <StatusBadge variant={data.own.status === 'locked' ? 'success' : 'neutral'}>
+                    <StatusBadge variant={STATUS_BADGE[data.own.status]}>
                       {t(`targets.status_${data.own.status}`)}
                     </StatusBadge>
                   </td>
