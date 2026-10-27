@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EmailAddress } from '../phone';
 
 /**
  * Single sign-on for web users (spec M1, D5, decision D91): one connection a tenant, to its own
@@ -104,7 +105,7 @@ export const SsoConnectionResult = z
   .meta({ id: 'SsoConnection' });
 
 /** `POST /auth/v1/sso/discover`: whether a work email signs in through its organisation's SSO. */
-export const SsoDiscoverBody = z.strictObject({ email: z.email() });
+export const SsoDiscoverBody = z.strictObject({ email: EmailAddress });
 export const SsoDiscoverResult = z.object({
   /** Where to send the browser to sign in with SSO; null when the email's domain has none. */
   url: z.string().nullable(),

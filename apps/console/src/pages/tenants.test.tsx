@@ -130,7 +130,7 @@ describe('tenants in the console (M22)', () => {
       planId: PLAN.id,
       status: 'trial',
       trialDays: 30,
-      admin: { name: 'Kiran Patil', phone: '98765 43210' },
+      admin: { name: 'Kiran Patil', phone: '9876543210' },
     });
     // The same ID both times, so a create sent twice makes one tenant.
     expect((sent[0] as { id: string }).id).toBe((sent[1] as { id: string }).id);

@@ -1,4 +1,4 @@
-import { formatDate, formatMoney } from '@thelamp/i18n';
+import { emailMessage, formatDate, formatMoney } from '@thelamp/i18n';
 import type { ConsoleTenant, TenantBillingResult } from '@thelamp/shared';
 import {
   Button,
@@ -12,6 +12,7 @@ import {
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { useConsole } from '../context';
 import { useConsoleMutations, usePlans, useTenantBilling } from '../data';
+import { EmailField } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 import { STATE_OPTIONS } from './billing-settings';
 import { InvoicesTable } from './invoices-table';
@@ -145,6 +146,7 @@ function AccountForm({
 }) {
   const { t } = useLanguage();
   const { saveBillingAccount } = useConsoleMutations();
+  const [checked, setChecked] = useState(false);
   const [draft, setDraft] = useState({
     legalName: billing.account?.legalName ?? tenant.name,
     gstin: billing.account?.gstin ?? '',
@@ -159,6 +161,11 @@ function AccountForm({
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    // A number or address that can't be one is explained here, before anything is sent (D102).
+    if (emailMessage(draft.email, true)) {
+      setChecked(true);
+      return;
+    }
     setErrors({});
     setFailure(undefined);
     try {
@@ -212,11 +219,11 @@ function AccountForm({
         options={STATE_OPTIONS}
         error={errors.stateCode}
       />
-      <TextField
+      <EmailField
         label={t('console.billing_email')}
-        type="email"
+        checked={checked}
         value={draft.email}
-        onChange={(event) => change({ email: event.target.value })}
+        onChange={(email) => change({ email })}
         error={errors.email}
         required
       />

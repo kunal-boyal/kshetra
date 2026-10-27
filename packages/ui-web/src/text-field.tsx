@@ -9,6 +9,8 @@ export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   error?: string;
   /** Right-aligned tabular figures, for amounts and counts. */
   numeric?: boolean;
+  /** Fixed text before the value, such as `+91` or `₹` (the design system's `ks-affix`). */
+  prefix?: string;
 }
 
 /** A labelled input with help or an error below it (components/TextField). */
@@ -17,6 +19,7 @@ export function TextField({
   help,
   error,
   numeric,
+  prefix,
   required,
   className,
   ...input
@@ -24,20 +27,30 @@ export function TextField({
   const id = useId();
   const noteId = `${id}-note`;
   const note = error ?? help;
+  const field = (
+    <input
+      id={id}
+      className={cn('ks-input', numeric && 'num', error && 'invalid')}
+      required={required}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={note ? noteId : undefined}
+      {...input}
+    />
+  );
   return (
     <div className={cn('ks-field', className)}>
       <label className="ks-label" htmlFor={id}>
         {label}
         {required ? <span className="req"> *</span> : null}
       </label>
-      <input
-        id={id}
-        className={cn('ks-input', numeric && 'num', error && 'invalid')}
-        required={required}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={note ? noteId : undefined}
-        {...input}
-      />
+      {prefix ? (
+        <span className={cn('ks-affix', prefix.length > 1 && 'wide')}>
+          <span aria-hidden="true">{prefix}</span>
+          {field}
+        </span>
+      ) : (
+        field
+      )}
       {note ? (
         <p
           id={noteId}

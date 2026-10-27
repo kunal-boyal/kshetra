@@ -5,7 +5,7 @@ import {
   ConsoleTenantList,
   ConsoleTenantQuery,
   CreateTenantBody,
-  normalisePhone,
+  normaliseMobile,
   SecondFactorResetBody,
   SecondFactorResetResult,
   SuspendTenantBody,
@@ -137,7 +137,7 @@ export class ConsoleTenantsController {
   ) {
     const tenantId = TenantIdParams.parse(params).id;
     const { phone, reason } = SecondFactorResetBody.parse(body);
-    const e164 = normalisePhone(phone);
+    const e164 = normaliseMobile(phone);
     const userId = e164 ? await this.secondFactors.userByPhone(tenantId, e164) : undefined;
     if (!userId) {
       throw new AppError('VALIDATION', 'Check the highlighted fields.', [

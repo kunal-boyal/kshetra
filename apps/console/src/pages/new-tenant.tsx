@@ -1,9 +1,11 @@
+import { emailMessage, mobileMessage } from '@thelamp/i18n';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { newId } from '@thelamp/shared';
 import { Button, Card, SelectField, TextField } from '@thelamp/ui-web';
 import { ArrowLeft } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useConsoleMutations, usePlans, useTemplates } from '../data';
+import { EmailField, MobileField } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 
 /** A slug from a name: lowercase letters, digits and hyphens, starting with a letter. */
@@ -38,6 +40,7 @@ export function NewTenantPage() {
   const [adminName, setAdminName] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
+  const [checked, setChecked] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string>();
 
@@ -46,6 +49,11 @@ export function NewTenantPage() {
 
   async function create(event: FormEvent) {
     event.preventDefault();
+    // A number or address that can't be one is explained here, before anything is sent (D102).
+    if (mobileMessage(adminPhone) || emailMessage(adminEmail)) {
+      setChecked(true);
+      return;
+    }
     setErrors({});
     setFailure(undefined);
     try {
@@ -147,21 +155,21 @@ export function NewTenantPage() {
             error={errors['admin.name']}
             required
           />
-          <TextField
+          <MobileField
             label={t('console.admin_phone')}
-            type="tel"
             autoComplete="off"
+            checked={checked}
             value={adminPhone}
-            onChange={(event) => setAdminPhone(event.target.value)}
+            onChange={setAdminPhone}
             error={errors['admin.phone']}
             required
           />
-          <TextField
+          <EmailField
             label={t('console.admin_email')}
-            type="email"
             autoComplete="off"
+            checked={checked}
             value={adminEmail}
-            onChange={(event) => setAdminEmail(event.target.value)}
+            onChange={setAdminEmail}
             error={errors['admin.email']}
           />
           {failure ? (

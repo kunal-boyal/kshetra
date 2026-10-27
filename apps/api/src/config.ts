@@ -1,4 +1,4 @@
-import { APP_VERSION, normalisePhone } from '@thelamp/shared';
+import { APP_VERSION, normaliseMobile } from '@thelamp/shared';
 import { z } from 'zod';
 
 // A store version such as 1.4.0; an empty value in .env counts as unset.
@@ -170,11 +170,11 @@ const schema = z
         }
         const codes = new Map<string, string>();
         for (const [number, code] of entries) {
-          const phone = normalisePhone(number);
+          const phone = normaliseMobile(number);
           if (!phone) {
             ctx.addIssue({
               code: 'custom',
-              message: 'A demo number is not a valid mobile number.',
+              message: 'A demo number is not a 10-digit mobile number.',
             });
             return z.NEVER;
           }

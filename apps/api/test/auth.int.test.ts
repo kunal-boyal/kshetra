@@ -89,12 +89,24 @@ describe('requesting a code', () => {
     expect((await requestCode(newPhone(), address)).statusCode).toBe(429);
   });
 
+  it('takes only a 10-digit mobile number, never a landline (decision D102)', async () => {
+    for (const landline of ['01123456789', '1412345678']) {
+      const response = await requestCode(landline);
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.details).toEqual([
+        { path: 'phone', issue: 'Use a 10-digit mobile number starting with 6, 7, 8 or 9' },
+      ]);
+    }
+  });
+
   it('asks for a valid number instead of guessing', async () => {
     const response = await requestCode('1234567');
     expect(response.statusCode).toBe(400);
     expect(response.json().error).toMatchObject({
       code: 'VALIDATION',
-      details: [{ path: 'phone', issue: 'Not a valid mobile number' }],
+      details: [
+        { path: 'phone', issue: 'Use a 10-digit mobile number starting with 6, 7, 8 or 9' },
+      ],
     });
   });
 });

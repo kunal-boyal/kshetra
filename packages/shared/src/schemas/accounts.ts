@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EmailAddress } from '../phone';
 import { GeoPoint } from '../geo';
 import { PhoneInput } from './auth';
 import { Key } from './config';
@@ -160,7 +161,7 @@ const ContactFields = {
   name: z.string().trim().min(1).max(200),
   role: z.string().trim().min(1).max(100),
   phone: PhoneInput,
-  email: z.email().max(254),
+  email: EmailAddress,
 };
 
 /** `POST /v1/accounts/{id}/contacts`, with the ID made by the client. */

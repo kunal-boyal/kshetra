@@ -8,6 +8,7 @@ export {
 } from './format';
 export type { FormatContext } from './format';
 export type { MessageKey } from './messages/en';
+export { emailMessage, mobileMessage } from './fields';
 export { notificationMessage } from './notifications';
 export { PRIVACY_NOTICE, PRIVACY_NOTICE_DATE, privacyParagraph } from './privacy';
 export { TERMINOLOGY_DEFAULTS, resolveTerminology } from './terminology';

@@ -1,9 +1,11 @@
+import { emailMessage } from '@thelamp/i18n';
 import { useNavigate } from '@tanstack/react-router';
 import { ApiError } from '@thelamp/api-client';
 import { Button, Card, TextField } from '@thelamp/ui-web';
 import { type FormEvent, useState } from 'react';
 import { markUrl, PRODUCT_NAME } from '../brand';
 import { useConsole } from '../context';
+import { EmailField } from '../fields';
 import { errorMessage, useLanguage } from '../i18n';
 
 /** Vendor staff sign in with email, password and a code from their authenticator (decision D88). */
@@ -12,6 +14,7 @@ export function SignInPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [checked, setChecked] = useState(false);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [failure, setFailure] = useState<string>();
@@ -19,6 +22,11 @@ export function SignInPage() {
 
   async function signIn(event: FormEvent) {
     event.preventDefault();
+    // A number or address that can't be one is explained here, before anything is sent (D102).
+    if (emailMessage(email, true)) {
+      setChecked(true);
+      return;
+    }
     setBusy(true);
     setFailure(undefined);
     try {
@@ -49,12 +57,12 @@ export function SignInPage() {
           <form className="flex flex-col gap-4" onSubmit={signIn} noValidate>
             <h1 className="heading-xl">{t('console.signin_title')}</h1>
             <p className="ks-muted">{t('console.signin_intro')}</p>
-            <TextField
+            <EmailField
               label={t('console.email')}
-              type="email"
               autoComplete="username"
+              checked={checked}
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={setEmail}
               required
             />
             <TextField

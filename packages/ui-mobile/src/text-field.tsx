@@ -13,6 +13,8 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style' | 'placehol
   required?: boolean;
   /** Right-aligned tabular figures, for amounts and counts. */
   numeric?: boolean;
+  /** Fixed text before the value, such as `+91`, inside the field. */
+  prefix?: string;
 }
 
 /**
@@ -20,7 +22,7 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style' | 'placehol
  * part of the accessible name, and an error is announced as it appears.
  */
 export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
-  { label, help, error, required = false, numeric = false, onFocus, onBlur, ...input },
+  { label, help, error, required = false, numeric = false, prefix, onFocus, onBlur, ...input },
   ref,
 ) {
   const theme = useTheme();
@@ -37,37 +39,45 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
           </Text>
         ) : null}
       </Text>
-      <TextInput
-        ref={ref}
-        aria-label={required ? `${label} *` : label}
-        aria-invalid={error ? true : undefined}
-        placeholderTextColor={theme.colors.textSubtle}
-        onFocus={(event) => {
-          setFocused(true);
-          onFocus?.(event);
-        }}
-        onBlur={(event) => {
-          setFocused(false);
-          onBlur?.(event);
-        }}
-        style={[
-          theme.text('bodyLg'),
-          styles.input,
-          {
-            color: theme.colors.text,
-            backgroundColor: theme.colors.surface,
-            borderColor: error
-              ? theme.colors.dangerSolid
-              : focused
-                ? theme.colors.accent
-                : theme.colors.borderStrong,
-            borderWidth: error || outdoor ? 2 : 1,
-          },
-          error ? { boxShadow: `0 0 0 4px ${theme.colors.dangerBg}` } : null,
-          numeric && styles.numeric,
-        ]}
-        {...input}
-      />
+      <View>
+        {prefix ? (
+          <Text tone="muted" aria-hidden style={styles.prefix}>
+            {prefix}
+          </Text>
+        ) : null}
+        <TextInput
+          ref={ref}
+          aria-label={required ? `${label} *` : label}
+          aria-invalid={error ? true : undefined}
+          placeholderTextColor={theme.colors.textSubtle}
+          onFocus={(event) => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
+          style={[
+            theme.text('bodyLg'),
+            styles.input,
+            {
+              color: theme.colors.text,
+              backgroundColor: theme.colors.surface,
+              borderColor: error
+                ? theme.colors.dangerSolid
+                : focused
+                  ? theme.colors.accent
+                  : theme.colors.borderStrong,
+              borderWidth: error || outdoor ? 2 : 1,
+            },
+            error ? { boxShadow: `0 0 0 4px ${theme.colors.dangerBg}` } : null,
+            numeric && styles.numeric,
+            prefix ? styles.prefixed : null,
+          ]}
+          {...input}
+        />
+      </View>
       {note ? (
         <Text
           variant="bodySm"
@@ -92,4 +102,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.space2,
   },
   numeric: { textAlign: 'right', fontVariant: ['tabular-nums'] },
+  // The prefix sits inside the field, before the value, as the web's ks-affix does.
+  prefix: {
+    position: 'absolute',
+    left: spacing.space4,
+    top: 0,
+    bottom: 0,
+    zIndex: 1,
+    textAlignVertical: 'center',
+    lineHeight: size.controlLg,
+  },
+  prefixed: { paddingLeft: spacing.space12 },
 });

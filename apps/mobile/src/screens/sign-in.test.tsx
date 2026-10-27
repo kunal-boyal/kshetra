@@ -135,10 +135,25 @@ describe('signing in on a phone', () => {
     await renderApp(fake);
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeOnTheScreen();
     await enterNumberAndCode();
-    expect(fake.client.requestCode).toHaveBeenCalledWith('90000 00001');
-    expect(fake.client.verifyCode).toHaveBeenCalledWith('90000 00001', '123456');
+    // The field keeps the ten digits, whatever spacing was typed (decision D102).
+    expect(fake.client.requestCode).toHaveBeenCalledWith('9000000001');
+    expect(fake.client.verifyCode).toHaveBeenCalledWith('9000000001', '123456');
     expect(await screen.findByText('Hello, Anita Rao')).toBeOnTheScreen();
     expect(await screen.findByText('Head at Sunrise Traders')).toBeOnTheScreen();
+  });
+
+  it('asks for a 10-digit mobile number before sending anything (decision D102)', async () => {
+    const fake = fakeClient(async () => signedIn());
+    await renderApp(fake);
+    const field = await screen.findByLabelText('Mobile number *');
+    await fireEvent.changeText(field, '+91 98765');
+    expect(field).toHaveDisplayValue('9198765');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
+    expect(await screen.findByText('Enter all 10 digits of the mobile number')).toBeOnTheScreen();
+    await fireEvent.changeText(field, '1123456789');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
+    expect(await screen.findByText('A mobile number starts with 6, 7, 8 or 9')).toBeOnTheScreen();
+    expect(fake.client.requestCode).not.toHaveBeenCalled();
   });
 
   it('lets a person in two organisations choose one after the code', async () => {

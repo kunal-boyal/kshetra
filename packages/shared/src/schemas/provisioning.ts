@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EmailAddress } from '../phone';
 import { PhoneInput } from './auth';
 import { Key } from './config';
 import { UserCode } from './iam';
@@ -24,7 +25,7 @@ export const ProvisionTenantInput = z.strictObject({
     code: UserCode.default('ADMIN-1'),
     name: z.string().trim().min(2).max(100),
     phone: PhoneInput,
-    email: z.email().max(254).optional(),
+    email: EmailAddress.optional(),
   }),
 });
 

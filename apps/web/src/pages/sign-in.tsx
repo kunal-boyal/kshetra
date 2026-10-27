@@ -3,8 +3,10 @@ import { Button, Card, Icon, TextField } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Building2, ChevronRight, KeyRound } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { emailMessage, mobileMessage } from '@thelamp/i18n';
 import { SSO_FAILURES, type SecondFactor, type SsoFailure } from '@thelamp/shared';
 import { useApp } from '../context';
+import { EmailField, MobileField } from '../fields';
 import { errorMessage, useLanguage } from '../i18n';
 import markUrl from '@thelamp/design-tokens/assets/Logos/mark-small.svg?url';
 import { PRODUCT_NAME } from '../layout/brand';
@@ -81,6 +83,7 @@ export function SignInPage() {
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [email, setEmail] = useState('');
+  const [checked, setChecked] = useState(false);
   const [error, setError] = useState<string | undefined>(
     failure ? t(`signin.sso_failed_${failure}`) : undefined,
   );
@@ -114,6 +117,11 @@ export function SignInPage() {
 
   function sendCode(event?: FormEvent) {
     event?.preventDefault();
+    // A number that can't be one is explained here, before anything is sent (decision D102).
+    if (mobileMessage(phone)) {
+      setChecked(true);
+      return;
+    }
     void run(async () => {
       await client.requestCode(phone);
       setCode('');
@@ -142,6 +150,10 @@ export function SignInPage() {
 
   function startSso(event: FormEvent) {
     event.preventDefault();
+    if (emailMessage(email, true)) {
+      setChecked(true);
+      return;
+    }
     void run(async () => {
       const url = await client.ssoDiscover(email.trim());
       if (url) browser.go(url);
@@ -194,15 +206,13 @@ export function SignInPage() {
                   </p>
                 ) : null}
                 <p className="ks-muted">{t('signin.intro')}</p>
-                <TextField
+                <MobileField
                   label={t('signin.phone_label')}
                   help={t('signin.phone_help')}
                   error={error}
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel-national"
+                  checked={checked}
                   value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
+                  onChange={setPhone}
                   required
                   autoFocus
                 />
@@ -228,24 +238,16 @@ export function SignInPage() {
               <form className="flex flex-col gap-4" onSubmit={startSso} noValidate>
                 <h1 className="heading-xl">{t('signin.sso_title')}</h1>
                 <p className="ks-muted">{t('signin.sso_intro')}</p>
-                <TextField
+                <EmailField
                   label={t('signin.sso_email')}
                   error={error}
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
+                  checked={checked}
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={setEmail}
                   required
                   autoFocus
                 />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  block
-                  busy={busy}
-                  disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())}
-                >
+                <Button type="submit" variant="primary" block busy={busy} disabled={!email.trim()}>
                   {t('signin.sso_continue')}
                 </Button>
                 <Button

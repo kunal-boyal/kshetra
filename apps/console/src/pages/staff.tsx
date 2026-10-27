@@ -1,4 +1,4 @@
-import { formatDateTime } from '@thelamp/i18n';
+import { emailMessage, formatDateTime } from '@thelamp/i18n';
 import { newId, PLATFORM_ROLES, type StaffResult } from '@thelamp/shared';
 import {
   type BadgeVariant,
@@ -17,6 +17,7 @@ import { type FormEvent, useState } from 'react';
 import { useConsole } from '../context';
 import { useConsoleMutations, useStaff } from '../data';
 import { VIEWER_TIME_ZONE } from './shared';
+import { EmailField } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 
 const STATUS_BADGE: Record<StaffResult['status'], BadgeVariant> = {
@@ -37,6 +38,7 @@ export function StaffPage() {
   const { invite, disable, resetSignIn } = useConsoleMutations();
   const [id, setId] = useState(newId);
   const [email, setEmail] = useState('');
+  const [checked, setChecked] = useState(false);
   const [name, setName] = useState('');
   const [role, setRole] = useState<StaffResult['role']>('support');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,6 +50,11 @@ export function StaffPage() {
 
   async function send(event: FormEvent) {
     event.preventDefault();
+    // A number or address that can't be one is explained here, before anything is sent (D102).
+    if (emailMessage(email, true)) {
+      setChecked(true);
+      return;
+    }
     setErrors({});
     setFailure(undefined);
     try {
@@ -184,12 +191,12 @@ export function StaffPage() {
             error={errors.name}
             required
           />
-          <TextField
+          <EmailField
             label={t('console.email')}
-            type="email"
             autoComplete="off"
+            checked={checked}
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={setEmail}
             error={errors.email}
             required
           />
