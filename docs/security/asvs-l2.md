@@ -1,6 +1,6 @@
 # ASVS 5.0 Level 2 review
 
-The product's self-review against the OWASP Application Security Verification Standard 5.0.0, Levels 1 and 2 (spec 13.1, decision D101). It is phase 3 step 10c, and the starting point for the external penetration test (step 10d).
+The product's self-review against the OWASP Application Security Verification Standard 5.0.0, Levels 1 and 2 (spec 13.1, decision D101). It is phase 3 step 10c, and the starting point for the external penetration test, whose scope pack is [penetration-test.md](penetration-test.md) (step 10d).
 
 **Scope.** The cell API with its worker and scheduler, the directory and its sign-in, the vendor console's API, the web portal, the console, the field app's talk with the API, and the AWS infrastructure in `infra/`. Out of scope: AWS's own services, the identity providers customers bring, and the phone's operating system.
 
