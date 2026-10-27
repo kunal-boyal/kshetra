@@ -21,6 +21,7 @@ import {
   Trophy,
   Users,
   Receipt,
+  UserRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../context';
@@ -94,25 +95,38 @@ function AccountMenu({ onSignOut }: { onSignOut: () => void }) {
   const { t, locale } = useLanguage();
   const me = useMe(client);
   const config = useConfig(client, useApp().queryClient);
-  if (!me.data) return null;
-  const designation = me.data.support
+  // Sign out stays within reach even when who the person is hasn't loaded.
+  const person = me.data;
+  const designation = person?.support
     ? t('support.title')
-    : designationName(me.data.designation, config.data?.bundle.designations ?? [], locale);
+    : person
+      ? designationName(person.designation, config.data?.bundle.designations ?? [], locale)
+      : '';
   return (
     <MenuButton
       label={t('shell.account_menu')}
-      trigger={<Avatar name={me.data.name} id={me.data.userId} size="sm" />}
+      trigger={
+        person ? (
+          <Avatar name={person.name} id={person.userId} size="sm" />
+        ) : (
+          <span className="ks-ico round sm" aria-hidden="true">
+            <Icon icon={UserRound} size="sm" />
+          </span>
+        )
+      }
     >
       {(close) => (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <Avatar name={me.data.name} id={me.data.userId} />
-            <div className="min-w-0">
-              <p className="ks-title truncate">{me.data.name}</p>
-              <p className="ks-meta truncate">{designation}</p>
+          {person ? (
+            <div className="flex items-center gap-3">
+              <Avatar name={person.name} id={person.userId} />
+              <div className="min-w-0">
+                <p className="ks-title truncate">{person.name}</p>
+                <p className="ks-meta truncate">{designation}</p>
+              </div>
             </div>
-          </div>
-          {me.data.support ? null : (
+          ) : null}
+          {person?.support ? null : (
             <Link to="/security" className="ks-btn ghost sm justify-start" onClick={close}>
               <Icon icon={ShieldCheck} size="sm" />
               {t('shell.security')}

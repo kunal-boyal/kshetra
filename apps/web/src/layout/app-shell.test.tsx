@@ -47,6 +47,16 @@ describe('the frame (decision D104)', () => {
     expect(client.signOut).toHaveBeenCalled();
   });
 
+  it('keeps sign-out within reach when who the person is can’t be read', async () => {
+    const client = fakeClient({ '/v1/notifications': NOTIFICATIONS });
+    client.me.mockRejectedValue(new Error('offline'));
+    renderAt('/notifications', client);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Your profile and settings' }));
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(client.signOut).toHaveBeenCalled();
+  });
+
   it('switches language in one tap, and draws the organisation’s initials without a logo', async () => {
     renderAt('/notifications', fakeClient({ '/v1/notifications': NOTIFICATIONS }));
     const user = userEvent.setup();

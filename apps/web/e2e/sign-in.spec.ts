@@ -171,7 +171,7 @@ for (const theme of ['dark', 'outdoor'] as const) {
 test('speaks Hindi when chosen, with the extra line height Devanagari needs', async ({ page }) => {
   await mockApi(page);
   await page.goto('/sign-in');
-  await page.getByRole('combobox').selectOption('hi');
+  await page.getByRole('button', { name: /Switch to हिन्दी/ }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
   await expect(page.getByRole('heading', { name: 'साइन इन करें' })).toBeVisible();
   await expect(page.getByLabel('मोबाइल नंबर')).toBeVisible();
