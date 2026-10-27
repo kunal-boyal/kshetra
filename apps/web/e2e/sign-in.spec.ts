@@ -2,10 +2,13 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
 const ORIGIN = 'http://127.0.0.1:4173';
+// As in staging and production, the cell's own address isn't the portal's: the portal still calls
+// its own origin, which passes /v1 and /auth to the cell.
+const CELL = 'https://api.example.test';
 const TENANT = {
   id: '01a10000-0000-7000-8000-000000000001',
   name: 'Sunrise Traders',
-  cellUrl: ORIGIN,
+  cellUrl: CELL,
 };
 const later = () => new Date(Date.now() + 15 * 60_000).toISOString();
 
@@ -138,6 +141,11 @@ test('signs in with a number and a code, signs out, and every screen passes axe'
   page,
 }) => {
   await mockApi(page);
+  const elsewhere: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.origin !== ORIGIN && /^\/(v1|auth)\//.test(url.pathname)) elsewhere.push(request.url());
+  });
   await page.goto('/');
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
@@ -160,6 +168,7 @@ test('signs in with a number and a code, signs out, and every screen passes axe'
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('tenants'))).toBeNull();
+  expect(elsewhere).toEqual([]);
 });
 
 for (const theme of ['dark', 'outdoor'] as const) {
