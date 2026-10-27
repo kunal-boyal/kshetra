@@ -46,6 +46,7 @@ import { type Access, AccessResolver } from '../platform/auth';
 import { Database, type TenantTx } from '../platform/database';
 import { startOfLocalDate } from '../platform/local-day';
 import { ObjectStore } from '../platform/object-store';
+import { MembershipSync } from '../platform/planes';
 import { CONFIG } from '../platform/tokens';
 import { onTravel, realNow, travelTo } from './clock';
 import { DemoCommerce } from './commerce';
@@ -373,9 +374,20 @@ export class DemoContent implements DemoKit {
       markets.push({ market, node });
     }
 
-    const demoNumbers = [...this.config.DEMO_CODES.keys()].sort();
-    let fictional = 10_001;
-    const phoneFor = (slot: number) => demoNumbers[slot] ?? `+9170000${String(fictional++)}`;
+    // A number signs in to one organisation (decision D103), so a demo number already in another
+    // tenant leaves its slot to a fictional one, and fictional numbers skip those taken elsewhere.
+    const members = this.get(MembershipSync);
+    const allDemo = [...this.config.DEMO_CODES.keys()].sort();
+    const demoTaken = await members.activeElsewhere(allDemo, this.tenantId);
+    const demoNumbers = allDemo.map((number) => (demoTaken.has(number) ? undefined : number));
+    const candidates = Array.from({ length: 1_000 }, (_, i) => `+9170000${String(10_001 + i)}`);
+    const taken = await members.activeElsewhere(candidates, this.tenantId);
+    const fictional = candidates.filter((number) => !taken.has(number));
+    const phoneFor = (slot: number) => {
+      const number = demoNumbers[slot] ?? fictional.shift();
+      if (!number) throw new Error('No fictional numbers are left for the demo team.');
+      return number;
+    };
     const create = (input: Record<string, unknown>) =>
       this.tx((tx) =>
         this.get(UsersService).create(tx, this.tenantId, SYSTEM, CreateUserBody.parse(input)),

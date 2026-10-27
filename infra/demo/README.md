@@ -29,7 +29,7 @@ From the repository root, with Docker running:
    infra/scripts/demo.sh provision --name "Demo Agro" --slug demo-agro --template agri --status active --admin-name "Demo Admin" --admin-phone +919800000001
    ```
 
-   For a pharma or FMCG prospect, use `--template pharma` or `--template fmcg` (for example `--name "Demo Pharma" --slug demo-pharma`); each demo tenant gets its own content in its industry's words (decision D97).
+   For a pharma or FMCG prospect, use `--template pharma` or `--template fmcg` (for example `--name "Demo Pharma" --slug demo-pharma`); each demo tenant gets its own content in its industry's words (decision D97). A number belongs to one organisation (decision D103), so each demo tenant needs its own admin number, and the content puts demo numbers only in the first demo tenant to take them; a later one gets fictional people in their slots.
 
    A prospect's own branding goes in at the same time: `--logo <file on this machine>` (PNG, JPEG or WebP) and `--brand-colour '#486A38'`, checked as Settings checks them.
 
