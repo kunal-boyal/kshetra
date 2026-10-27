@@ -10,7 +10,8 @@ import { MAX_FILE_BYTES } from './modules/imports/reading';
 import type { Config } from './config';
 import { clientAddress, trustHops } from './platform/client-address';
 import { ErrorFilter } from './platform/errors';
-import { callerOf, SecurityLog, withRequest } from './platform/security-log';
+import { withRequest } from './platform/request-context';
+import { callerOf, SecurityLog } from './platform/security-log';
 import { genReqId } from './platform/request-id';
 import { HealthCounters } from './platform/health-counters';
 

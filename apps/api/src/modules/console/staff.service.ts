@@ -18,6 +18,7 @@ import type { Config } from '../../config';
 import { platformSessions, platformUsers } from '../../db/schema/directory';
 import { type StaffAccess, StaffResolver } from '../../platform/auth';
 import { ColumnCipher } from '../../platform/column-cipher';
+import { EndedSessions } from '../../platform/ended-sessions';
 import { type RateLimit, RateLimiter } from '../../platform/rate-limit';
 import { SecurityLog } from '../../platform/security-log';
 import { CONFIG } from '../../platform/tokens';
@@ -72,6 +73,7 @@ export class StaffService extends StaffResolver {
     private readonly audit: PlatformAudit,
     private readonly breached: BreachedPasswords,
     private readonly security: SecurityLog,
+    private readonly ended: EndedSessions,
     @Inject(CONFIG) private readonly config: Config,
   ) {
     super();
@@ -484,6 +486,7 @@ export class StaffService extends StaffResolver {
       staffId: row.id,
       role: row.role,
       revision: row.authRevision,
+      sessionId: familyId,
     });
     return {
       session: {
@@ -556,6 +559,8 @@ export class StaffService extends StaffResolver {
       .update(platformSessions)
       .set({ revokedAt: new Date() })
       .where(and(eq(platformSessions.familyId, familyId), isNull(platformSessions.revokedAt)));
+    // Its access tokens are refused too, once the ending commits (decision D101).
+    this.database.whenCommitted(db as DirectoryTx, () => void this.ended.end([familyId]));
   }
 
   /** Where a seed is sealed: the column and the row, so it opens nowhere else. */

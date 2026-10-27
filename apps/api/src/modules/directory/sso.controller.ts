@@ -121,7 +121,7 @@ export class SsoController {
         this.binder(request, reply),
         address,
       );
-      return this.into(request, reply, outcome);
+      return await this.into(request, reply, outcome);
     } catch (error) {
       return this.failed(reply, error, tenant);
     }
@@ -152,7 +152,7 @@ export class SsoController {
         this.binder(request, reply),
         address,
       );
-      return this.into(request, reply, outcome);
+      return await this.into(request, reply, outcome);
     } catch (error) {
       return this.failed(reply, error, tenant);
     }
@@ -183,7 +183,11 @@ export class SsoController {
    * person needs one, to the sign-in page's authenticator step (decision D101). The ticket goes
    * in the fragment, which no server or Referer ever sees.
    */
-  private into(request: FastifyRequest, reply: FastifyReply, outcome: SignedIn | SecondFactor) {
+  private async into(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    outcome: SignedIn | SecondFactor,
+  ) {
     if (outcome.status === 'second_factor') {
       const fragment = new URLSearchParams({
         ticket: outcome.ticket,
@@ -192,7 +196,7 @@ export class SsoController {
       });
       return reply.redirect(`${this.config.WEB_URL}/sign-in?sso=second_factor#${fragment}`, 302);
     }
-    this.cookie.handOver(request, reply, outcome.session, true);
+    await this.cookie.handOver(request, reply, outcome.session, { web: true });
     return reply.redirect(`${this.config.WEB_URL}/`, 302);
   }
 

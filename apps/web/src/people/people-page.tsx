@@ -1,7 +1,8 @@
-import type { UserView } from '@thelamp/shared';
+import { SignedOutEveryoneResult, type UserView } from '@thelamp/shared';
 import {
   Button,
   type Column,
+  Confirm,
   DataTable,
   EmptyState,
   Icon,
@@ -9,10 +10,11 @@ import {
   TextField,
 } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Search, UserPlus, Users } from 'lucide-react';
+import { LogOut, Search, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';
+import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
-import { type UserFilters, useAccess, useUsers } from './data';
+import { type UserFilters, useAccess, useUsers, write } from './data';
 import { designationName, PageHeader, UserStatusBadge, useDates, useSettled } from './shared';
 
 /**
@@ -35,6 +37,32 @@ export function PeoplePage() {
     ...(designation ? { designation } : {}),
   };
   const users = useUsers(filters);
+  const { client } = useApp();
+  // Signing everyone else out (decision D101), for whoever may end anyone's sessions and reaches
+  // the whole organisation.
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string }>();
+  async function signOutEveryone() {
+    setBusy(true);
+    try {
+      const result = await write(
+        client,
+        'POST',
+        '/v1/users/sign-out-everyone',
+        SignedOutEveryoneResult,
+      );
+      setNotice({
+        ok: true,
+        text: t('people.signed_out_everyone', { count: result?.people ?? 0 }),
+      });
+      setAsking(false);
+    } catch (caught) {
+      setNotice({ ok: false, text: errorMessage(caught, t) });
+    } finally {
+      setBusy(false);
+    }
+  }
   const rows = users.data?.pages.flatMap((page) => page.items) ?? [];
 
   const columns: Column<UserView>[] = [
@@ -100,7 +128,38 @@ export function PeoplePage() {
             {t('people.add')}
           </Button>
         ) : null}
+        {access.can('user.sign_out_all') && access.scope === 'tenant' ? (
+          <Button
+            variant="secondary"
+            icon={<Icon icon={LogOut} />}
+            onClick={() => {
+              setNotice(undefined);
+              setAsking(true);
+            }}
+          >
+            {t('people.sign_out_everyone')}
+          </Button>
+        ) : null}
       </PageHeader>
+      {asking ? (
+        <Confirm
+          question={t('people.sign_out_everyone_confirm')}
+          action={
+            <Button variant="danger" busy={busy} onClick={() => void signOutEveryone()}>
+              {t('people.sign_out_everyone')}
+            </Button>
+          }
+          cancel={<Button onClick={() => setAsking(false)}>{t('common.cancel')}</Button>}
+        />
+      ) : null}
+      {notice ? (
+        <p
+          className={notice.ok ? undefined : 'ks-help error'}
+          role={notice.ok ? 'status' : 'alert'}
+        >
+          {notice.text}
+        </p>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]" role="search">
         <TextField

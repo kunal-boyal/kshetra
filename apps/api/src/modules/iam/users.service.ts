@@ -35,6 +35,7 @@ import {
   ne,
   or,
   type SQL,
+  sql,
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { designations, devices, roles, users } from '../../db/schema/iam';
@@ -567,6 +568,45 @@ export class UsersService {
       action: 'user.signed_out_everywhere',
       target: { type: 'user', id },
     });
+  }
+
+  /**
+   * Signs everyone in the tenant out but the caller (ASVS V7.4.5, decision D101): every person's
+   * auth revision moves on, so each token they hold fails on its next use, on every phone and
+   * browser. Only someone whose scope reaches the whole tenant may.
+   */
+  async signOutEveryone(tx: TenantTx, access: Access): Promise<number> {
+    if (access.scope !== 'tenant') {
+      throw new AppError('FORBIDDEN', 'Only someone who reaches the whole organisation may.');
+    }
+    const revised = await tx
+      .update(users)
+      .set({
+        authRevision: sql`${users.authRevision} + 1`,
+        updatedAt: new Date(),
+        updatedBy: access.userId,
+      })
+      .where(and(eq(users.tenantId, access.tenantId), ne(users.id, access.userId)))
+      .returning({
+        id: users.id,
+        phone: users.phoneE164,
+        status: users.status,
+        authRevision: users.authRevision,
+      });
+    for (const user of revised) {
+      await this.outbox.publish(tx, access.tenantId, 'user.updated', user.id, {
+        userId: user.id,
+        phone: user.phone,
+        status: user.status,
+        authRevision: user.authRevision,
+      });
+    }
+    await this.audit.record(tx, access.tenantId, userActor(access), {
+      action: 'user.signed_out_everyone',
+      target: { type: 'tenant', id: access.tenantId },
+      after: { people: revised.length },
+    });
+    return revised.length;
   }
 
   /** Moves the user's auth revision on, so every token they hold fails on its next use. */

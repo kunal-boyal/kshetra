@@ -34,7 +34,7 @@ export class SupportEntryController {
   async enter(@Query() query: unknown, @Req() request: FastifyRequest, @Res() reply: FastifyReply) {
     try {
       const signedIn = await this.support.enter(SupportEntryQuery.parse(query).code);
-      this.cookie.handOver(request, reply, signedIn.session, true);
+      await this.cookie.handOver(request, reply, signedIn.session, { web: true });
       return reply.redirect(`${this.config.WEB_URL}/`, 302);
     } catch {
       return reply.redirect(`${this.config.WEB_URL}/sign-in?support=expired`, 302);

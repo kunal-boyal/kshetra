@@ -25,6 +25,7 @@ import { createLocalJWKSet, errors, type JSONWebKeySet, jwtVerify } from 'jose';
 import type { Config } from '../config';
 import { ApiCalls } from './api-calls';
 import { ApiClientLimits } from './api-client-limits';
+import { EndedSessions } from './ended-sessions';
 import { RateLimiter } from './rate-limit';
 import { CONFIG } from './tokens';
 
@@ -43,6 +44,8 @@ export interface AuthContext {
   supportGrantId?: string;
   /** An API client's scopes (decision D94); `userId` is then the client's ID, not a user's. */
   scopes?: readonly string[];
+  /** The session, its refresh-token family (decision D101); API clients have none. */
+  sessionId?: string;
 }
 
 /** An API client calling the API (module M20, decision D94). */
@@ -316,8 +319,16 @@ export class AuthGuard implements CanActivate {
     private readonly apiCalls: ApiCalls,
     private readonly clientLimits: ApiClientLimits,
     private readonly limiter: RateLimiter,
+    private readonly endedSessions: EndedSessions,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
+
+  /** A token of a session that ended before the token ran out is refused (decision D101). */
+  private async refuseEnded(sessionId: string | undefined): Promise<void> {
+    if (sessionId && (await this.endedSessions.ended(sessionId))) {
+      throw new AppError('SESSION_REVOKED', 'Your session has ended. Sign in again.');
+    }
+  }
 
   private perPerson(caller: string): Promise<void> {
     return this.limiter.hit(
@@ -342,10 +353,9 @@ export class AuthGuard implements CanActivate {
       throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
     }
     if (rule.kind === 'staff') {
-      const staff = await this.staffResolver.resolve(
-        await this.tokens.verifyStaff(token),
-        request.clientIp,
-      );
+      const staffClaims = await this.tokens.verifyStaff(token);
+      await this.refuseEnded(staffClaims.sid);
+      const staff = await this.staffResolver.resolve(staffClaims, request.clientIp);
       request.staff = staff;
       await this.perPerson(`staff:${staff.staffId}`);
       if (!rule.permissions.every((permission) => staff.permissions.has(permission))) {
@@ -357,6 +367,7 @@ export class AuthGuard implements CanActivate {
     if (claims.cell !== this.config.CELL_ID) {
       throw new AppError('UNAUTHENTICATED', 'Sign in to continue.');
     }
+    await this.refuseEnded(claims.sid);
     const access = await this.resolver.resolve({
       userId: claims.sub,
       tenantId: claims.tid,
@@ -366,6 +377,7 @@ export class AuthGuard implements CanActivate {
       ...(claims.did ? { deviceId: claims.did } : {}),
       ...(claims.sg ? { supportGrantId: claims.sg } : {}),
       ...(claims.scp ? { scopes: claims.scp } : {}),
+      ...(claims.sid ? { sessionId: claims.sid } : {}),
     });
     request.access = access;
     this.apiCalls.count(access.tenantId);

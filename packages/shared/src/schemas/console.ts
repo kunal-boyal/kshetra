@@ -98,6 +98,8 @@ export const StaffClaims = z.object({
   sub: z.uuid(),
   role: PlatformRole,
   rev: z.int().min(0),
+  /** The console session, its refresh-token family (decision D101). */
+  sid: z.uuid().optional(),
 });
 
 export type StaffClaims = z.infer<typeof StaffClaims>;
