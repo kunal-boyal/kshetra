@@ -1,10 +1,13 @@
 import { createClient, memoryStore } from '@thelamp/api-client';
-import type { TenantSummary } from '@thelamp/shared';
 import { askForStepUp } from './step-up';
 
-/** Where the cell answers; locally it is proxied through this page's own origin. */
-function cellUrl(tenant: TenantSummary): string {
-  return import.meta.env.VITE_CELL_URL ?? (import.meta.env.DEV ? '' : tenant.cellUrl);
+/**
+ * Where the portal reaches the cell: its own origin, which passes `/v1` and `/auth` to the cell
+ * (Vite locally, CloudFront in AWS, Caddy in the demo), so the portal's Content-Security-Policy
+ * and cookies stay same-origin. The address handed out at sign-in is for others to call.
+ */
+function cellUrl(): string {
+  return import.meta.env.VITE_CELL_URL ?? '';
 }
 
 /**
@@ -37,7 +40,7 @@ export function apiAddresses(client: Pick<WebClient, 'session'>) {
   const here = typeof window === 'undefined' ? '' : window.location.origin;
   const tenant = client.session?.tenant;
   const directory = import.meta.env.VITE_DIRECTORY_URL || here;
-  const cell = (tenant ? cellUrl(tenant) : '') || here;
+  const cell = cellUrl() || tenant?.cellUrl || here;
   return {
     tokenUrl: `${directory}/auth/v1/oauth/token`,
     apiUrl: `${cell}/v1`,
