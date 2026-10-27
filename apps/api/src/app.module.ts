@@ -41,6 +41,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { HEALTH_CHECKS, HealthController, type HealthChecks } from './platform/health.controller';
 import { API_ROUTES, DocsController } from './platform/docs.controller';
+import { ResponseContract } from './platform/response-contract';
 import { ReplicaReads } from './platform/replica';
 import { routeRegistry } from './platform/routes';
 import { PlatformModule } from './platform/platform.module';
@@ -106,6 +107,8 @@ export class AppModule {
         { provide: APP_GUARD, useClass: AuthGuard },
         // API clients' list reads marked @FromReplica() go to the read replica (decision D98).
         { provide: APP_INTERCEPTOR, useClass: ReplicaReads },
+        // Every answer passes through its declared schema, so nothing undeclared leaves (D101).
+        { provide: APP_INTERCEPTOR, useClass: ResponseContract },
         // What the documentation describes: every route the API serves (decision D94).
         { provide: API_ROUTES, useFactory: () => routeRegistry(apiControllers()) },
         {
