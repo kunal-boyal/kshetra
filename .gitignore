@@ -45,3 +45,6 @@ graphify-out/
 
 # Real invoices for the phase 2 exit check stay off the repository (apps/api/test/fixtures/invoices/README.md)
 apps/api/test/fixtures/invoices/private/
+
+# OWASP ZAP reports (tools/zap/scan.sh)
+tools/zap/reports/

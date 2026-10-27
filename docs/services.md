@@ -58,7 +58,7 @@ The tasks' security group lets them out only on HTTPS (443) and SMTP over TLS (4
 
 | Process | Reaches |
 |---|---|
-| `api` | The database and Redis; AWS's APIs (S3, Secrets Manager, CloudWatch); MSG91 for sign-in codes; tenants' OIDC identity providers, through the outbound guard |
+| `api` | The database and Redis; AWS's APIs (S3, Secrets Manager, CloudWatch); MSG91 for sign-in codes; Have I Been Pwned's range API (`api.pwnedpasswords.com`) for new staff passwords; Sentry once set; tenants' OIDC identity providers, through the outbound guard; DNS TXT records of SSO domains, through the VPC's resolver |
 | `worker` | The database and Redis; AWS's APIs; MSG91, Expo push and SES; Sentry once set; tenants' webhook receivers, through the outbound guard |
 | `scheduler` | The database and Redis; CloudWatch, through its log stream |
 | `migrate`, `bootstrap` | The database |
@@ -85,7 +85,7 @@ Tenants name some destinations themselves: webhook receivers (M20) and OIDC issu
 |---|---|---|
 | GitHub | The private repository; GitHub Actions runs CI on every pull request (`.github/workflows/ci.yml`), and deploys `main` once AWS is connected (`deploy.yml`, decision D67) | In use; deploys off until `DEPLOY_ENABLED` |
 | npm registry | JavaScript packages | In use |
-| Docker Hub | The PostgreSQL, Redis and Mailpit images (Mailpit also takes local sign-in codes for Maestro, decision D68), the API image's `node:24-bookworm-slim` base, and `hashicorp/terraform` for checking Terraform locally | In use |
+| Docker Hub | The PostgreSQL, Redis and Mailpit images (Mailpit also takes local sign-in codes for Maestro, decision D68), the API image's base (`node:24.21.0-bookworm-slim`, pinned by digest), OWASP ZAP (`zaproxy/zap-stable`, pinned by digest, for `tools/zap/scan.sh`), and `hashicorp/terraform` for checking Terraform locally | In use |
 | Chainguard registry | The MinIO image (decision D21) | In use |
 | claude.ai | The design-system artifact, kept in step with `packages/design-tokens` | In use |
 | Expo EAS (Build and Update) | Builds the mobile app and ships JavaScript updates | Build in use on Kunal's account; Update needs `expo-updates` in a new build (step 17c) |

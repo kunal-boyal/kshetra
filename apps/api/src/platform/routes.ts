@@ -35,7 +35,7 @@ export interface RouteContract {
   also?: readonly { status: number; description: string }[];
 }
 
-const CONTRACT = 'route-contract';
+export const CONTRACT = 'route-contract';
 
 /** Declares a route's contract; every route has one, and a test fails for any without. */
 export const Contract = (contract: RouteContract) => SetMetadata(CONTRACT, contract);
