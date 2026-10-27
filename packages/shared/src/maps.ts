@@ -19,6 +19,22 @@ export function isStale(seenAt: Date | string, now: Date = new Date()): boolean 
   return now.getTime() - new Date(seenAt).getTime() > LIVE_STALE_MINUTES * 60_000;
 }
 
+/** How many geofence radii from every planned account counts as off the plan (decision D104). */
+export const OFF_PLAN_RADII = 10;
+
+/**
+ * Whether someone at `at` is off today's plan: farther than `OFF_PLAN_RADII` geofence radii from
+ * every planned account with a location. Without a position or a located planned account, never.
+ */
+export function offPlan(
+  at: GeoPoint | null,
+  planned: readonly GeoPoint[],
+  radiusM: number,
+): boolean {
+  if (!at || planned.length === 0) return false;
+  return planned.every((place) => distanceMeters(at, place) > radiusM * OFF_PLAN_RADII);
+}
+
 /** Points from Google's encoded polyline format, at five decimal places (spec 12.1). */
 export function decodePolyline(encoded: string): GeoPoint[] {
   const points: GeoPoint[] = [];

@@ -22,6 +22,12 @@ export const LivePerson = z.object({
   /** When the position was taken; stale after 15 minutes (M17). */
   seenAt: z.iso.datetime().nullable(),
   visit: z.object({ account: AccountRef, checkInAt: z.iso.datetime() }).nullable(),
+  /** Visits checked in today, against today's plan items; `planned` null without a plan today. */
+  visits: z.object({ done: z.int(), planned: z.int().nullable() }),
+  /** The account of the visit they are at, else of their last visit today. */
+  place: z.string().nullable(),
+  /** Farther than ten geofence radii from every located account in today's plan. */
+  offPlan: z.boolean(),
 });
 
 export const LiveResult = z

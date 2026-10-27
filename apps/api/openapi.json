@@ -33307,6 +33307,42 @@
                       "type": "null"
                     }
                   ]
+                },
+                "visits": {
+                  "type": "object",
+                  "properties": {
+                    "done": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "planned": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "done",
+                    "planned"
+                  ],
+                  "additionalProperties": false
+                },
+                "place": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "offPlan": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -33318,7 +33354,10 @@
                 "accuracy",
                 "battery",
                 "seenAt",
-                "visit"
+                "visit",
+                "visits",
+                "place",
+                "offPlan"
               ],
               "additionalProperties": false
             }

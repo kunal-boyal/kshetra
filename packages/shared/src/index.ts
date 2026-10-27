@@ -742,6 +742,8 @@ export {
   isStale,
   LIVE_REFRESH_MS,
   LIVE_STALE_MINUTES,
+  OFF_PLAN_RADII,
+  offPlan,
   pathLengthMeters,
   positionAt,
 } from './maps';

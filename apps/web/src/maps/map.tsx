@@ -25,7 +25,7 @@ const VENDOR_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID';
 
 /** The tenant's own key when it set one (decision D64), else the vendor's; empty for none. */
-function useMapsKey(): string {
+export function useMapsKey(): string {
   const { client, queryClient } = useApp();
   const config = useConfig(client, queryClient);
   return config.data?.bundle.settings.mapsWebKey ?? VENDOR_KEY;
@@ -156,7 +156,7 @@ export function seriesOf(types: readonly { key: string }[], key: string): number
 
 /** A dot's look: a status tone, or an account type's series, filled or hollow. */
 export interface DotLook {
-  tone?: 'accent' | 'success' | 'pending' | 'danger' | 'neutral';
+  tone?: 'accent' | 'success' | 'pending' | 'danger' | 'neutral' | 'inside' | 'outside' | 'stale';
   series?: number;
   hollow?: boolean;
 }
@@ -173,6 +173,7 @@ export function Dot({
   at,
   title,
   label,
+  tag,
   onClick,
   ...look
 }: DotLook & {
@@ -180,14 +181,47 @@ export function Dot({
   title: string;
   /** A short text inside the dot, such as a stop's number. */
   label?: string;
+  /** A short text in a tag beside the dot, such as a person's initials. */
+  tag?: string;
   onClick?: () => void;
 }) {
   return (
     <AdvancedMarker position={at} title={title} {...(onClick ? { onClick } : {})}>
-      <span className={[dotClass(look), 'caption', label ? 'numbered' : ''].join(' ')}>
-        {label}
-      </span>
+      {tag ? (
+        <span className="ks-map-person">
+          <span className={dotClass(look)} />
+          <span className="ks-map-tag caption">{tag}</span>
+        </span>
+      ) : (
+        <span className={[dotClass(look), 'caption', label ? 'numbered' : ''].join(' ')}>
+          {label}
+        </span>
+      )}
     </AdvancedMarker>
+  );
+}
+
+/** One entry of a map's key: a dot's look and what it means. */
+export interface LegendEntry {
+  look: DotLook;
+  label: string;
+}
+
+/** A map's key in a small card, laid over the map's bottom-left corner when there is one. */
+export function MapLegend({ entries }: { entries: readonly LegendEntry[] }) {
+  const { t } = useLanguage();
+  return (
+    <ul
+      className="ks-card ks-map-legend flex flex-wrap gap-x-3 gap-y-1 text-sm"
+      aria-label={t('maps.legend')}
+    >
+      {entries.map((entry) => (
+        <li key={entry.label} className="flex items-center gap-2">
+          <span aria-hidden="true" className={dotClass(entry.look)} />
+          {entry.label}
+        </li>
+      ))}
+    </ul>
   );
 }
 

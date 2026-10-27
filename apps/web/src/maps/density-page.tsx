@@ -1,11 +1,13 @@
 import { DENSITY_CELL_DEG, todayIn } from '@thelamp/shared';
 import { TextField } from '@thelamp/ui-web';
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { PageHeader } from '../people/shared';
 import { useDensity } from './data';
 import { Area, MapView } from './map';
+import { MapViews } from './views';
 
 /** A cell's radius in metres: half the grid's spacing, about 550 m. */
 const CELL_RADIUS_M = (DENSITY_CELL_DEG * 111_320) / 2;
@@ -19,16 +21,22 @@ export function DensityPage() {
   const access = useAccess();
   const [period, setPeriod] = useState(() => todayIn(access.timezone).slice(0, 7));
   const density = useDensity(period);
+  const navigate = useNavigate();
   const cells = density.data?.cells ?? [];
   const most = Math.max(1, ...cells.map((cell) => cell.visits));
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={t('density.title')}
-        intro={t('density.intro')}
-        back={{ to: '/live-map', label: t('live.title') }}
-      />
+      <PageHeader title={t('density.title')} intro={t('density.intro')}>
+        <MapViews
+          value="density"
+          onChange={(view) => {
+            if (view !== 'density') {
+              void navigate({ to: '/live-map', search: view === 'live' ? {} : { view } });
+            }
+          }}
+        />
+      </PageHeader>
       <TextField
         label={t('plan.month')}
         type="month"

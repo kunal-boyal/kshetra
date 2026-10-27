@@ -34,6 +34,9 @@ const ANSWERS: Record<string, unknown> = {
         battery: 80,
         seenAt: before(40),
         visit: { account: SHOP, checkInAt: before(45) },
+        visits: { done: 3, planned: 6 },
+        place: 'Sharma Stores',
+        offPlan: false,
       },
     ],
   },
@@ -167,16 +170,20 @@ async function expectAccessible(page: Page) {
   expect(found).toEqual([]);
 }
 
-test('/live-map lists who is on duty, flags a stale position, and passes axe', async ({ page }) => {
+test('/live-map lists who is on duty with their state and day, and passes axe', async ({
+  page,
+}) => {
   await mockSignedIn(page);
   await page.goto('/live-map');
   await expect(page.getByRole('heading', { level: 1, name: 'Live map' })).toBeVisible();
-  const list = page.getByRole('region', { name: 'People on duty' });
+  const list = page.getByRole('region', { name: '1 on duty' });
   await expect(list.getByText('Asha Rao')).toBeVisible();
-  await expect(list.getByText('Not seen for 15 minutes')).toBeVisible();
-  await expect(list.getByText('At Sharma Stores')).toBeVisible();
+  await expect(list.getByText('1 no signal')).toBeVisible();
+  await expect(list.getByText('Last seen near Sharma Stores · visit 3 of 6')).toBeVisible();
   await expect(page.getByRole('img', { name: 'Map of the people on duty' })).toBeVisible();
-  await page.getByRole('checkbox', { name: /Show/ }).check();
+  await expect(page.getByRole('list', { name: 'Key to the map' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('group', { name: 'Map view' }).getByRole('button', { name: /pins/ }).click();
   await expectAccessible(page);
 });
 
