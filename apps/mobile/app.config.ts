@@ -101,7 +101,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'RECEIVE_BOOT_COMPLETED',
       'CAMERA',
     ],
+    // Nor the advertising ID, which some Google libraries add: the app shows no ads (decision D100).
     blockedPermissions: [
+      'com.google.android.gms.permission.AD_ID',
       'RECORD_AUDIO',
       'READ_EXTERNAL_STORAGE',
       'WRITE_EXTERNAL_STORAGE',
