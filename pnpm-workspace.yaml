@@ -93,7 +93,10 @@ auditConfig:
   ignoreGhsas:
     # node-forge under Expo's CLI signs development builds only; no fixed release exists.
     - GHSA-86w9-cpqp-85rv
-    # undici under jsdom (tests) and Scalar's build; the fixes arrived on 2026-10-15.
+    # undici under jsdom and Testcontainers (tests) and Scalar's build; the fixes arrived on 2026-10-15.
     - GHSA-xjj6-f33q-929c
+    - GHSA-2m5v-pch6-74hx
+    - GHSA-4w7w-5xrc-9h26
+    - GHSA-qrxm-fqhp-jwvm
     # zod 3 under Expo's CLI, which has no fixed release; every zod 4 is lifted by the override above.
     - GHSA-mrhx-c7xc-m3w5

@@ -7,7 +7,7 @@ Moderate and low advisories don't fail the check; Dependabot's alerts list them,
 | Advisory | Package | Reaches | Why it waits | Look again |
 |---|---|---|---|---|
 | GHSA-86w9-cpqp-85rv (high) | node-forge ≤ 1.4.0 | Expo's CLI, which signs development builds | No fixed release exists. It never reaches the API, the web apps or a phone. | When node-forge or Expo's CLI publishes a fix |
-| GHSA-xjj6-f33q-929c (high) | undici 7 and 8 | jsdom in the test runners; Scalar's reference, built into static files | Development and build time only: nothing runs it against untrusted servers. The fixes (7.30.1, 8.12.2) were released on 2026-10-15. | 2026-10-29 |
+| GHSA-xjj6-f33q-929c, and from 2026-10-28 GHSA-2m5v-pch6-74hx, GHSA-4w7w-5xrc-9h26 and GHSA-qrxm-fqhp-jwvm (high) | undici 7 and 8 | jsdom and Testcontainers in the test runners; Scalar's reference, built into static files. `pnpm why undici --prod` finds it in nothing that runs in production | Development and build time only: nothing runs it against untrusted servers, and the cache, redirect and TLS faults the three new ones describe need a client talking to one. The same releases fix all four (7.30.1, 8.12.2, released on 2026-10-15). | 2026-10-29: take 7.30.1 and 8.12.2, then remove all four |
 | GHSA-mrhx-c7xc-m3w5 (high) | zod 3 | Expo's CLI | zod 3 has no fixed release. Every zod 4, which the apps use, is lifted to 4.6.6 or later by an override. | When Expo's CLI moves to zod 4 |
 
 ## Fixed
