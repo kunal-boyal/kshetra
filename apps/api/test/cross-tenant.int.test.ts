@@ -3089,10 +3089,15 @@ describe('the cross-tenant contract test (spec 14.4)', () => {
 
   for (const route of routes) {
     const fixture = FIXTURES[route.key];
-    it.runIf(fixture)(`${route.key} (${fixture?.kind}) leaves tenant A untouched`, async () => {
-      await fixture!.run();
-      expect(await rowsOf(a.tenantId)).toEqual(aRows);
-    });
+    // Each reads every row of A's twice, and may sign B in again: two minutes on a busy machine.
+    it.runIf(fixture)(
+      `${route.key} (${fixture?.kind}) leaves tenant A untouched`,
+      async () => {
+        await fixture!.run();
+        expect(await rowsOf(a.tenantId)).toEqual(aRows);
+      },
+      120_000,
+    );
   }
 });
 
