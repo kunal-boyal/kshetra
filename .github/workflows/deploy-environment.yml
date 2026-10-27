@@ -67,6 +67,7 @@ jobs:
         run: pnpm --filter @thelamp/web build
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ vars.VITE_GOOGLE_MAPS_API_KEY }}
+          VITE_PRIVACY_EMAIL: ${{ vars.VITE_PRIVACY_EMAIL }}
       - name: Publish the web portal
         run: infra/scripts/publish-web.sh
         env:

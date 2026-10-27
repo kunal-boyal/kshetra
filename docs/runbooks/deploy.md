@@ -84,7 +84,7 @@ Settings that aren't secret, such as `MSG91_OTP_TEMPLATE_ID`, `MSG91_SENDER`, `M
 
 ### 3. GitHub
 
-In the repository's settings, create the GitHub environment (`staging` or `production`), and add as its variables the values of `terraform output github_variables`, plus `VITE_GOOGLE_MAPS_API_KEY`, the web's Maps key. `CONSOLE_BUCKET` and `CONSOLE_DISTRIBUTION_ID` are empty until `console_domain` is set in `terraform.tfvars`; the deploy publishes the console once they aren't. Invite the first platform admin with a one-off task of the image running `node dist/invite-staff.mjs --email … --name …`. Give `production` required reviewers. Then set the repository variable `DEPLOY_ENABLED` to `true`.
+In the repository's settings, create the GitHub environment (`staging` or `production`), and add as its variables the values of `terraform output github_variables`, plus `VITE_GOOGLE_MAPS_API_KEY`, the web's Maps key, and `VITE_PRIVACY_EMAIL`, the privacy address on the public privacy and account deletion pages, once the company has one. `CONSOLE_BUCKET` and `CONSOLE_DISTRIBUTION_ID` are empty until `console_domain` is set in `terraform.tfvars`; the deploy publishes the console once they aren't. Invite the first platform admin with a one-off task of the image running `node dist/invite-staff.mjs --email … --name …`. Give `production` required reviewers. Then set the repository variable `DEPLOY_ENABLED` to `true`.
 
 ### 4. The first deploy, and the database's roles
 

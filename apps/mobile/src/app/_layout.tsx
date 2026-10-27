@@ -57,6 +57,8 @@ function Routes() {
       <Stack.Protected guard={session !== null}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
+      {/* The privacy notice, signed in or not (decision D100). */}
+      <Stack.Screen name="privacy" />
     </Stack>
   );
 }

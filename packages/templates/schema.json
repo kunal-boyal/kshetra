@@ -3307,6 +3307,18 @@
     "PortableSettings": {
       "type": "object",
       "properties": {
+        "privacyPolicyUrl": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^https:\\/\\/[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(?::\\d{1,5})?(?:[/?#]\\S*)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "modulesOff": {
           "type": "array",
           "items": {

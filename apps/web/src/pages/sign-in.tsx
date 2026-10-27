@@ -1,6 +1,6 @@
 import { ApiError } from '@thelamp/api-client';
 import { Button, Card, Icon, TextField } from '@thelamp/ui-web';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { Building2, ChevronRight, KeyRound } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { SSO_FAILURES, type SecondFactor, type SsoFailure } from '@thelamp/shared';
@@ -345,6 +345,10 @@ export function SignInPage() {
               </section>
             ) : null}
           </Card>
+          <p className="ks-subtle caption flex justify-center gap-4">
+            <Link to="/privacy">{t('privacy.open')}</Link>
+            <Link to="/delete-account">{t('deletion.open')}</Link>
+          </p>
         </div>
       </div>
     </main>

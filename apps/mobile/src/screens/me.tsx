@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   CalendarX,
   CloudUpload,
+  FileLock2,
   LogOut,
   ReceiptText,
   Repeat,
@@ -151,6 +152,11 @@ export function MeScreen() {
           icon={Shield}
           label={t('my_data.open')}
           onPress={() => router.push('/data-requests')}
+        />
+        <ListRow
+          icon={FileLock2}
+          label={t('privacy.open')}
+          onPress={() => router.push('/privacy')}
         />
       </ListGroup>
 

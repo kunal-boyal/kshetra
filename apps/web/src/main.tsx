@@ -15,6 +15,7 @@ import { LanguageProvider } from './i18n';
 import { applyBrand, applySavedBrand } from './brand';
 import { applyLocale, applyTheme, forgetTenants, savedLocale, savedTheme } from './preferences';
 import { createAppRouter } from './router';
+import { PUBLIC_PATHS } from './pages/public-pages';
 import { startErrorReports } from './error-reports';
 import { PRODUCT_NAME } from './layout/brand';
 
@@ -35,7 +36,9 @@ const client = webClient(() => {
   forgetTenants();
   applyBrand(null);
   // Someone already there stays, with any reason single sign-on came back with (decision D91).
-  if (window.location.pathname !== '/sign-in') void router.navigate({ to: '/sign-in' });
+  // The public pages stay public (decision D100).
+  const path = window.location.pathname as (typeof PUBLIC_PATHS)[number];
+  if (!PUBLIC_PATHS.includes(path)) void router.navigate({ to: '/sign-in' });
 });
 const router = createAppRouter({ client, queryClient });
 

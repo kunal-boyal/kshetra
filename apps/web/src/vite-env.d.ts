@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_MAPS_API_KEY?: string;
   /** A Maps map ID for advanced markers; Google's demo ID by default. */
   readonly VITE_GOOGLE_MAPS_MAP_ID?: string;
+  /** The provider's privacy address, shown on the privacy notice and the deletion page (D100). */
+  readonly VITE_PRIVACY_EMAIL?: string;
   /** Where error reports go (decision D98); without it none are sent. */
   readonly VITE_SENTRY_DSN?: string;
 }

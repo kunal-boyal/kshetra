@@ -2365,6 +2365,9 @@ export const en = {
   'admin.address': 'Registered address',
   'admin.tax_id': 'GSTIN',
   'admin.tax_id_help': '15 characters, such as 07ABCDE1234F1Z5. Printed on exports.',
+  'admin.privacy_url': 'Your privacy policy',
+  'admin.privacy_url_help':
+    'An https:// address. The app’s Privacy screen links to it beside the product’s own notice.',
   'admin.saved': 'Saved.',
   'admin.logo': 'Logo',
   'admin.logo_current': 'Your current logo',
@@ -3787,6 +3790,68 @@ export const en = {
   'audit_log.export_xlsx': 'Export as Excel',
   'audit_log.exporting': 'Preparing your file. Find it in Reports, under Exports.',
   'audit_log.open_reports': 'Open Reports',
+  // The privacy notice (spec 13.3, decision D100), shown in the app and at the portal's /privacy.
+  'privacy.title': 'Privacy notice',
+  'privacy.changed': 'Last changed on {date}.',
+  'privacy.open': 'Privacy',
+  'privacy.organisation_policy': 'Your organisation’s privacy policy',
+  'privacy.who_title': 'Who is responsible',
+  'privacy.who_1':
+    '{product} is a work app your organisation uses for its field teams. Your organisation, your employer or the business you work with, decides what is recorded and why, and is responsible for your data. The company that provides {product} keeps and processes it for your organisation, on its instructions, and for nothing else.',
+  'privacy.collect_title': 'What is recorded',
+  'privacy.collect_profile':
+    'Your profile, from your organisation: name, mobile number, email, employee code, role, designation and who you report to.',
+  'privacy.collect_location':
+    'Your location, only while you are on duty: from punch-in to punch-out, including with the screen off, with a notification showing the whole time. Your organisation sets how often it is recorded.',
+  'privacy.collect_photos':
+    'Photos you take in the app: of your work, receipts and odometers, and a selfie at punch-in if your organisation asks for one. Each photo is stamped with the time and place.',
+  'privacy.collect_records':
+    'What you record at work: visits, forms, {term.order:other:lower}, leave, expense claims and other requests.',
+  'privacy.collect_device':
+    'Your phone: its model, system and app version, a key that ties your sign-in to this phone, and whether the system reports the phone or its location as tampered with.',
+  'privacy.never_title': 'What is never recorded',
+  'privacy.never_1':
+    'Your contacts, calls, messages, microphone or other apps, and your location when you are not on duty. The app opens your photo gallery only where a form lets you choose a photo.',
+  'privacy.use_title': 'What it is used for',
+  'privacy.use_1':
+    'Attendance, checking visits, routes and distances, {term.order:other:lower}, approvals, {term.target:other:lower} and performance, and the reports your organisation runs. It is never sold and never used for advertising.',
+  'privacy.see_title': 'Who sees it',
+  'privacy.see_organisation':
+    'People in your organisation, as their roles allow: usually you, your managers, and the teams that handle {term.order:other:lower}, pay and expenses.',
+  'privacy.see_provider':
+    'The provider’s support staff, only while your organisation grants them access to solve a problem; your organisation sees everything they do.',
+  'privacy.see_services':
+    'Services that help run the app: Amazon Web Services in Mumbai for hosting, an SMS provider for sign-in codes, Google and Expo for notifications and maps, and an error-reporting service that receives no personal details.',
+  'privacy.keep_title': 'Where and for how long',
+  'privacy.keep_1':
+    'Your data is kept in India, for as long as your organisation’s settings say: location points for 7 to 90 days, routes and photos for longer. When your organisation stops using {product}, its data is returned to it and deleted.',
+  'privacy.rights_title': 'Your rights',
+  'privacy.rights_1':
+    'You may ask for a copy of your data and for corrections, and, once you have left your organisation, for your data to be erased: in the app at Me › My data, or through your organisation. Requests are answered within 30 days.',
+  'privacy.rights_contact':
+    'If you have a complaint, raise it with your organisation first. You may also write to the provider at {email}.',
+  'privacy.rights_contact_store':
+    'If you have a complaint, raise it with your organisation first. You may also write to the provider at the address on the app’s store page.',
+  'privacy.security_title': 'Security',
+  'privacy.security_1':
+    'Data is encrypted on its way and where it is kept, each organisation’s data is kept apart from every other’s, and access to it is recorded.',
+  // Deleting an account (decision D100), at the portal's /delete-account, as Google Play asks.
+  'deletion.title': 'Deleting your account and data',
+  'deletion.intro':
+    'Your sign-in to {product} comes from the organisation you work with: it adds you and removes you, and your data is part of its records.',
+  'deletion.how_title': 'How to ask',
+  'deletion.how_app': 'In the app: Me › My data › Erasing my data › Send request.',
+  'deletion.how_organisation':
+    'Or ask your organisation’s admin, who handles it in the portal at Settings › Data requests.',
+  'deletion.how_email':
+    'Or write to {email} with your organisation’s name and your mobile number; we pass your request to your organisation.',
+  'deletion.what_title': 'What is deleted and what is kept',
+  'deletion.what_deleted':
+    'Once you have left your organisation, your name, mobile number, email, location history, punch-in selfies and notifications are erased, within 30 days of your request.',
+  'deletion.what_kept':
+    'Records your organisation must keep, such as attendance days, {term.order:other:lower} and expense claims, stay, showing you as a former employee with your employee code.',
+  'deletion.privacy_link': 'Read the privacy notice',
+  'deletion.open': 'Deleting your account',
 } as const satisfies Record<string, string | { one: string; other: string }>;
 
 export type MessageKey = keyof typeof en;

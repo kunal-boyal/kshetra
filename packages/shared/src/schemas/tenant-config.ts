@@ -90,6 +90,19 @@ export const TenantSettings = z.strictObject({
   logoMediaId: z.uuid().nullable(),
   /** The tenant's own key for maps on the web; null uses the vendor's (decision D60). */
   mapsWebKey: MapsKey.nullable(),
+  /**
+   * The organisation's own privacy policy, which the app's Privacy screen links to beside the
+   * product's (spec 13.3, decision D100); HTTPS only.
+   */
+  privacyPolicyUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .regex(
+      /^https:\/\/[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?::\d{1,5})?(?:[/?#]\S*)?$/,
+      'Use an https:// address',
+    )
+    .nullable(),
   /** Modules the tenant switched off (spec 5.13); Core never is. */
   modulesOff: z
     .array(z.enum(SWITCHABLE_MODULES))
@@ -165,6 +178,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   taxId: null,
   logoMediaId: null,
   mapsWebKey: null,
+  privacyPolicyUrl: null,
   modulesOff: [],
   timezone: 'Asia/Kolkata',
   currency: 'INR',

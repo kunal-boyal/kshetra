@@ -49,6 +49,7 @@ function Details() {
     legalName: string;
     address: string;
     taxId: string;
+    privacyPolicyUrl: string;
   }>();
   const [said, setSaid] = useState<Said>();
   const [busy, setBusy] = useState(false);
@@ -58,6 +59,7 @@ function Details() {
     legalName: settings.legalName ?? '',
     address: settings.address ?? '',
     taxId: settings.taxId ?? '',
+    privacyPolicyUrl: settings.privacyPolicyUrl ?? '',
   };
   const errors = said && 'error' in said ? fieldErrors(said.error) : {};
   const set = (change: Partial<typeof value>) => setDraft({ ...value, ...change });
@@ -72,6 +74,7 @@ function Details() {
         legalName: value.legalName.trim() || null,
         address: value.address.trim() || null,
         taxId: value.taxId.trim() || null,
+        privacyPolicyUrl: value.privacyPolicyUrl.trim() || null,
       });
       setDraft(undefined);
       setSaid({ ok: true });
@@ -116,6 +119,15 @@ function Details() {
           maxLength={15}
           {...(errors.taxId ? { error: errors.taxId } : {})}
           onChange={(event) => set({ taxId: event.target.value.toUpperCase() })}
+        />
+        <TextField
+          label={t('admin.privacy_url')}
+          help={t('admin.privacy_url_help')}
+          type="url"
+          value={value.privacyPolicyUrl}
+          maxLength={500}
+          {...(errors.privacyPolicyUrl ? { error: errors.privacyPolicyUrl } : {})}
+          onChange={(event) => set({ privacyPolicyUrl: event.target.value })}
         />
         <div className="md:col-span-2">
           <Button type="submit" variant="primary" busy={busy} icon={<Icon icon={Save} />}>

@@ -9762,6 +9762,18 @@
                             }
                           ]
                         },
+                        "privacyPolicyUrl": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 500,
+                              "pattern": "^https:\\/\\/[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(?::\\d{1,5})?(?:[/?#]\\S*)?$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "modulesOff": {
                           "type": "array",
                           "items": {
@@ -9952,6 +9964,7 @@
                         "taxId",
                         "logoMediaId",
                         "mapsWebKey",
+                        "privacyPolicyUrl",
                         "modulesOff",
                         "timezone",
                         "currency",
@@ -18394,6 +18407,18 @@
                       }
                     ]
                   },
+                  "privacyPolicyUrl": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500,
+                        "pattern": "^https:\\/\\/[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(?::\\d{1,5})?(?:[/?#]\\S*)?$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "modulesOff": {
                     "type": "array",
                     "items": {
@@ -18654,6 +18679,18 @@
                         }
                       ]
                     },
+                    "privacyPolicyUrl": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^https:\\/\\/[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(?::\\d{1,5})?(?:[/?#]\\S*)?$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "modulesOff": {
                       "type": "array",
                       "items": {
@@ -18844,6 +18881,7 @@
                     "taxId",
                     "logoMediaId",
                     "mapsWebKey",
+                    "privacyPolicyUrl",
                     "modulesOff",
                     "timezone",
                     "currency",
@@ -36672,6 +36710,18 @@
       "PortableSettings": {
         "type": "object",
         "properties": {
+          "privacyPolicyUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^https:\\/\\/[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(?::\\d{1,5})?(?:[/?#]\\S*)?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "modulesOff": {
             "type": "array",
             "items": {
