@@ -1,193 +1,375 @@
-import type { FormView } from '@thelamp/forms';
 import { formatNumber } from '@thelamp/i18n';
 import {
+  BULK_REVIEW_MAX,
   BulkReviewResult,
   GEOFENCE_RESULTS,
-  REVIEW_NOTE_MIN,
-  ReviewItem,
+  type ReviewItem,
+  ReviewQueueResult,
   ReviewRulesResult,
   SUBMISSION_FLAGS,
-  type ReviewPhoto,
 } from '@thelamp/shared';
 import {
+  Avatar,
   Button,
   Checkbox,
+  type Column,
   Confirm,
+  DataTable,
   EmptyState,
+  FilterChips,
   Icon,
+  PageHeader,
   SelectField,
-  StatusBadge,
-  TextAreaField,
+  SplitDetail,
   TextField,
 } from '@thelamp/ui-web';
-import { Link } from '@tanstack/react-router';
-import { Check, ClipboardCheck, MapPin, Pencil, X } from 'lucide-react';
+import { Check, ClipboardCheck, SlidersHorizontal } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
-import { Area, Dot, MapView } from '../maps/map';
-import { useAccess, write } from '../people/data';
-import { fieldErrors, PageHeader, Section, useDates } from '../people/shared';
-import {
-  type QueueFilters,
-  usePhotoLink,
-  useRefreshReview,
-  useReviewQueue,
-  useReviewRules,
-} from './data';
+import { read, useAccess, write } from '../people/data';
+import { fieldErrors, Section, useDates } from '../people/shared';
+import { type QueueFilters, useRefreshReview, useReviewQueue, useReviewRules } from './data';
+import { DANGER_FLAGS, ReviewDetail } from './review-detail';
 
-type Translate = ReturnType<typeof useLanguage>['t'];
+/** The queue's views: its chips, each a status, with "with flags" the waiting ones that have one. */
+type View = 'pending' | 'flagged' | 'approved' | 'rejected';
 
-const STATUS_VARIANT = { pending: 'pending', approved: 'success', rejected: 'danger' } as const;
+/** The narrowing beside the view, behind More filters. */
+type Narrowing = Omit<QueueFilters, 'status' | 'flagged'>;
+
+/** When a submission was filled: the time today, else the date. */
+function useWhen() {
+  const access = useAccess();
+  const dates = useDates(access.timezone);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: access.timezone }).format(new Date());
+  return (at: string) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: access.timezone }).format(new Date(at)) === today
+      ? dates.time(at)
+      : dates.date(at.slice(0, 10));
+}
 
 /**
- * Evidence review (M7, spec 8.2): the submissions of the people the viewer looks after, filtered
- * as they choose, each with where and when it was filled, its photos and flags, and what was
- * decided. Approve, reject with a reason, change a decision, or approve many without flags at
- * once. Those who set the rules also set automatic approval here.
+ * Evidence review (M7, spec 8.2, decision D104): the submissions of the people the viewer looks
+ * after as a compact queue beside the chosen one's detail. Chips choose waiting, with flags,
+ * approved or rejected, with their counts; more filters narrow by form, flag, place and dates.
+ * Approve, reject with a reason, change a decision, or approve every clean one at once. Those who
+ * set the rules also set automatic approval here.
  */
 export function ReviewPage() {
   const { client, queryClient } = useApp();
   const { t, locale } = useLanguage();
   const access = useAccess();
   const config = useConfig(client, queryClient);
-  const [filters, setFilters] = useState<QueueFilters>({ status: 'pending' });
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkAsked, setBulkAsked] = useState(false);
-  const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkResult, setBulkResult] = useState<BulkReviewResult>();
-  const [bulkFailure, setBulkFailure] = useState<unknown>();
+  const when = useWhen();
   const refresh = useRefreshReview();
+  const [view, setView] = useState<View>('pending');
+  const [narrowing, setNarrowing] = useState<Narrowing>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const [cleanAsked, setCleanAsked] = useState(false);
+  const [cleanBusy, setCleanBusy] = useState(false);
+  const [cleanResult, setCleanResult] = useState<BulkReviewResult>();
+  const [cleanFailure, setCleanFailure] = useState<unknown>();
+  const filters: QueueFilters = {
+    ...narrowing,
+    status: view === 'flagged' ? 'pending' : view,
+    ...(view === 'flagged' ? { flagged: 'yes' as const } : {}),
+  };
   const queue = useReviewQueue(filters);
   const items = queue.data?.pages.flatMap((page) => page.items) ?? [];
+  const summary = queue.data?.pages[0]?.summary ?? null;
   const forms = config.data?.bundle.forms ?? [];
-  const mayBulk = access.can('submission.review_bulk') && filters.status === 'pending';
+  const chosen = items.find((item) => item.id === chosenId) ?? items[0] ?? null;
+  const count = (n: number) => formatNumber(n, { locale });
+  const clean = summary?.counts.clean ?? 0;
+  const mayClean = access.can('submission.review_bulk') && clean > 0;
 
-  const filter = (patch: Partial<QueueFilters>) => {
-    setFilters((current) => ({ ...current, ...patch }));
-    setSelected(new Set());
-    setBulkResult(undefined);
+  const choose = (next: View) => {
+    setView(next);
+    setChosenId(null);
+    setCleanResult(undefined);
+  };
+  const narrow = (patch: Partial<Narrowing>) => {
+    setNarrowing((current) => ({ ...current, ...patch }));
+    setChosenId(null);
   };
 
-  async function approveSelected() {
-    setBulkBusy(true);
-    setBulkFailure(undefined);
+  /** Chooses a row; where the detail stacks under the queue (1024 px and less), goes to it. */
+  const show = (id: string) => {
+    setChosenId(id);
+    if (window.matchMedia?.('(max-width: 1024px)').matches) {
+      requestAnimationFrame(() => document.getElementById('review-detail')?.scrollIntoView());
+    }
+  };
+
+  /** After a decision, the next one in the queue is chosen. */
+  const decided = () => {
+    if (!chosen) return;
+    const at = items.findIndex((item) => item.id === chosen.id);
+    setChosenId(items[at + 1]?.id ?? items[at - 1]?.id ?? null);
+  };
+
+  /** Approves every clean waiting submission, up to the bulk limit, after asking. */
+  async function approveClean() {
+    setCleanBusy(true);
+    setCleanFailure(undefined);
     try {
-      const result = await write(client, 'POST', '/v1/reviews/bulk', BulkReviewResult, {
-        ids: [...selected],
-      });
-      setBulkResult(result);
-      setSelected(new Set());
-      setBulkAsked(false);
+      const ids: string[] = [];
+      let cursor: string | undefined;
+      do {
+        const query = new URLSearchParams({
+          status: 'pending',
+          flagged: 'no',
+          limit: '100',
+          ...Object.fromEntries(
+            Object.entries(narrowing).filter((entry): entry is [string, string] => !!entry[1]),
+          ),
+          ...(cursor ? { cursor } : {}),
+        });
+        const page = await read(client, `/v1/reviews/queue?${query}`, ReviewQueueResult);
+        ids.push(...page.items.map((item) => item.id));
+        cursor = page.nextCursor ?? undefined;
+      } while (cursor && ids.length < BULK_REVIEW_MAX);
+      if (ids.length > 0) {
+        setCleanResult(
+          await write(client, 'POST', '/v1/reviews/bulk', BulkReviewResult, {
+            ids: ids.slice(0, BULK_REVIEW_MAX),
+          }),
+        );
+      }
+      setCleanAsked(false);
       await refresh();
     } catch (caught) {
-      setBulkFailure(caught);
+      setCleanFailure(caught);
     } finally {
-      setBulkBusy(false);
+      setCleanBusy(false);
     }
   }
 
+  const columns: Column<ReviewItem>[] = [
+    {
+      key: 'person',
+      header: t('review.col_person'),
+      render: (item) => (
+        <button
+          type="button"
+          className="ks-cell-link flex items-center gap-2 font-semibold whitespace-nowrap"
+          aria-pressed={item.id === chosen?.id}
+          onClick={() => show(item.id)}
+        >
+          <Avatar name={item.user.name} id={item.user.id} size="sm" />
+          {item.user.name}
+        </button>
+      ),
+    },
+    { key: 'form', header: t('review.col_form'), render: (item) => item.form.name[locale].one },
+    {
+      key: 'account',
+      header: t('review.col_account'),
+      render: (item) => item.account?.name ?? '—',
+    },
+    {
+      key: 'when',
+      header: t('review.col_when'),
+      align: 'num',
+      render: (item) => <span className="whitespace-nowrap">{when(item.capturedAt)}</span>,
+    },
+    {
+      key: 'flags',
+      header: t('review.col_flags'),
+      render: (item) => {
+        // Danger first, as the detail draws them, so the one the row shows is the worst.
+        const flags = [
+          ...item.flags
+            .filter((flag) => DANGER_FLAGS.has(flag))
+            .map((flag) => ({ text: t(`submissions.flag_${flag}`), danger: true })),
+          ...(item.integrityWarning ? [{ text: t('review.integrity'), danger: true }] : []),
+          ...item.flags
+            .filter((flag) => !DANGER_FLAGS.has(flag))
+            .map((flag) => ({ text: t(`submissions.flag_${flag}`), danger: false })),
+        ];
+        if (flags.length === 0) return null;
+        return (
+          <span className="flex flex-wrap items-center gap-1">
+            <span
+              className={
+                flags[0]!.danger ? 'ks-flag danger whitespace-nowrap' : 'ks-flag whitespace-nowrap'
+              }
+            >
+              {flags[0]!.text}
+            </span>
+            {flags.length > 1 ? (
+              <span
+                className="ks-meta"
+                title={flags
+                  .slice(1)
+                  .map((flag) => flag.text)
+                  .join(', ')}
+              >
+                {t('review.more_flags', { count: flags.length - 1 })}
+              </span>
+            ) : null}
+          </span>
+        );
+      },
+    },
+  ];
+
+  const meta = summary
+    ? summary.autoApproval
+      ? t('review.meta_auto', {
+          count: summary.counts.pending,
+          n: count(summary.counts.pending),
+          hours: count(summary.delayHours),
+        })
+      : t('review.meta', { count: summary.counts.pending, n: count(summary.counts.pending) })
+    : undefined;
+  const narrowed = Object.values(narrowing).filter(Boolean).length;
+
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('review.title')} intro={t('review.intro')} />
+      <PageHeader
+        title={t('review.title')}
+        meta={meta}
+        actions={
+          mayClean && !cleanAsked ? (
+            <Button
+              variant="tonal"
+              size="sm"
+              icon={<Icon icon={Check} />}
+              onClick={() => setCleanAsked(true)}
+            >
+              {t('review.approve_clean', { count: clean, n: count(clean) })}
+            </Button>
+          ) : null
+        }
+        toolbar={
+          <FilterChips<View>
+            label={t('review.filter_status')}
+            value={view}
+            onChange={(next) => next && choose(next)}
+            formatCount={count}
+            choices={[
+              {
+                value: 'pending',
+                label: t('review.view_pending'),
+                ...(summary ? { count: summary.counts.pending } : {}),
+              },
+              {
+                value: 'flagged',
+                label: t('review.view_flagged'),
+                ...(summary ? { count: summary.counts.flagged } : {}),
+              },
+              {
+                value: 'approved',
+                label: t('review.status_approved'),
+                ...(summary ? { count: summary.counts.approved } : {}),
+              },
+              {
+                value: 'rejected',
+                label: t('review.status_rejected'),
+                ...(summary ? { count: summary.counts.rejected } : {}),
+              },
+            ]}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={SlidersHorizontal} />}
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              {narrowed > 0
+                ? t('review.more_filters_on', { count: narrowed })
+                : t('review.more_filters')}
+            </Button>
+          </FilterChips>
+        }
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <SelectField
-          label={t('review.filter_status')}
-          value={filters.status}
-          options={(['pending', 'approved', 'rejected'] as const).map((status) => ({
-            value: status,
-            label: t(`review.status_${status}`),
-          }))}
-          onChange={(event) => filter({ status: event.target.value as QueueFilters['status'] })}
-        />
-        <SelectField
-          label={t('review.filter_form')}
-          none={t('review.any')}
-          value={filters.formKey ?? ''}
-          options={forms.map((form) => ({ value: form.key, label: form.name[locale].one }))}
-          onChange={(event) => filter({ formKey: event.target.value || undefined })}
-        />
-        <SelectField
-          label={t('review.filter_flag')}
-          none={t('review.any')}
-          value={filters.flag ?? ''}
-          options={SUBMISSION_FLAGS.map((flag) => ({
-            value: flag,
-            label: t(`submissions.flag_${flag}`),
-          }))}
-          onChange={(event) => filter({ flag: event.target.value || undefined })}
-        />
-        <SelectField
-          label={t('review.filter_geofence')}
-          none={t('review.any')}
-          value={filters.geofence ?? ''}
-          options={GEOFENCE_RESULTS.map((result) => ({
-            value: result,
-            label: t(`review.geofence_${result}`),
-          }))}
-          onChange={(event) => filter({ geofence: event.target.value || undefined })}
-        />
-        <TextField
-          label={t('review.from')}
-          type="date"
-          value={filters.from ?? ''}
-          onChange={(event) => filter({ from: event.target.value || undefined })}
-        />
-        <TextField
-          label={t('review.to')}
-          type="date"
-          value={filters.to ?? ''}
-          onChange={(event) => filter({ to: event.target.value || undefined })}
-        />
-      </div>
+      {filtersOpen ? (
+        <div className="ks-card grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <SelectField
+            label={t('review.filter_form')}
+            none={t('review.any')}
+            value={narrowing.formKey ?? ''}
+            options={forms.map((form) => ({ value: form.key, label: form.name[locale].one }))}
+            onChange={(event) => narrow({ formKey: event.target.value || undefined })}
+          />
+          <SelectField
+            label={t('review.filter_flag')}
+            none={t('review.any')}
+            value={narrowing.flag ?? ''}
+            options={SUBMISSION_FLAGS.map((flag) => ({
+              value: flag,
+              label: t(`submissions.flag_${flag}`),
+            }))}
+            onChange={(event) => narrow({ flag: event.target.value || undefined })}
+          />
+          <SelectField
+            label={t('review.filter_geofence')}
+            none={t('review.any')}
+            value={narrowing.geofence ?? ''}
+            options={GEOFENCE_RESULTS.map((result) => ({
+              value: result,
+              label: t(`review.geofence_${result}`),
+            }))}
+            onChange={(event) => narrow({ geofence: event.target.value || undefined })}
+          />
+          <TextField
+            label={t('review.from')}
+            type="date"
+            value={narrowing.from ?? ''}
+            onChange={(event) => narrow({ from: event.target.value || undefined })}
+          />
+          <TextField
+            label={t('review.to')}
+            type="date"
+            value={narrowing.to ?? ''}
+            onChange={(event) => narrow({ to: event.target.value || undefined })}
+          />
+        </div>
+      ) : null}
 
-      {bulkResult ? (
+      {cleanAsked ? (
+        <Confirm
+          question={t('review.clean_question', {
+            count: Math.min(clean, BULK_REVIEW_MAX),
+            n: count(Math.min(clean, BULK_REVIEW_MAX)),
+          })}
+          action={
+            <Button
+              variant="primary"
+              busy={cleanBusy}
+              icon={<Icon icon={Check} />}
+              onClick={() => void approveClean()}
+            >
+              {t('review.approve_clean', { count: clean, n: count(clean) })}
+            </Button>
+          }
+          cancel={
+            <Button variant="secondary" onClick={() => setCleanAsked(false)}>
+              {t('common.cancel')}
+            </Button>
+          }
+        >
+          <p>{t('review.bulk_note')}</p>
+          {cleanFailure ? (
+            <p className="ks-help error" role="alert">
+              {errorMessage(cleanFailure, t)}
+            </p>
+          ) : null}
+        </Confirm>
+      ) : null}
+      {cleanResult ? (
         <p role="status">
-          {t('review.bulk_done', { count: bulkResult.approved.length })}
-          {bulkResult.skipped.length > 0
-            ? ` ${t('review.bulk_skipped', { count: bulkResult.skipped.length })}`
+          {t('review.bulk_done', { count: cleanResult.approved.length })}
+          {cleanResult.skipped.length > 0
+            ? ` ${t('review.bulk_skipped', { count: cleanResult.skipped.length })}`
             : ''}
         </p>
-      ) : null}
-      {mayBulk && selected.size > 0 ? (
-        bulkAsked ? (
-          <Confirm
-            question={t('review.bulk_question', { count: selected.size })}
-            action={
-              <Button
-                variant="primary"
-                busy={bulkBusy}
-                icon={<Icon icon={Check} />}
-                onClick={() => void approveSelected()}
-              >
-                {t('review.bulk', { count: selected.size })}
-              </Button>
-            }
-            cancel={
-              <Button variant="secondary" onClick={() => setBulkAsked(false)}>
-                {t('common.cancel')}
-              </Button>
-            }
-          >
-            <p>{t('review.bulk_note')}</p>
-            {bulkFailure ? (
-              <p className="ks-help error" role="alert">
-                {errorMessage(bulkFailure, t)}
-              </p>
-            ) : null}
-          </Confirm>
-        ) : (
-          <Button
-            variant="primary"
-            className="self-start"
-            icon={<Icon icon={Check} />}
-            onClick={() => setBulkAsked(true)}
-          >
-            {t('review.bulk', { count: selected.size })}
-          </Button>
-        )
       ) : null}
 
       {queue.isError ? (
@@ -201,341 +383,43 @@ export function ReviewPage() {
           {t('review.empty_body')}
         </EmptyState>
       ) : (
-        <ul className="flex flex-col gap-4" aria-label={t('review.title')}>
-          {items.map((item) => (
-            <li key={item.id}>
-              <Card
-                item={item}
-                form={forms.find((form) => form.key === item.form.key)}
-                {...(mayBulk && item.status === 'pending' && item.flags.length === 0
-                  ? {
-                      selected: selected.has(item.id),
-                      onSelect: (on: boolean) =>
-                        setSelected((current) => {
-                          const next = new Set(current);
-                          if (on) next.add(item.id);
-                          else next.delete(item.id);
-                          return next;
-                        }),
-                    }
-                  : {})}
+        <SplitDetail
+          detailLabel={
+            chosen ? `${chosen.form.name[locale].one}, ${chosen.user.name}` : t('review.title')
+          }
+          list={
+            <DataTable
+              caption={t('review.queue_caption')}
+              columns={columns}
+              rows={items}
+              rowKey={(item) => item.id}
+              selectedKey={chosen?.id ?? null}
+              {...(queue.hasNextPage
+                ? {
+                    more: {
+                      label: t('common.load_more'),
+                      busy: queue.isFetchingNextPage,
+                      onClick: () => void queue.fetchNextPage(),
+                    },
+                  }
+                : {})}
+            />
+          }
+          detail={
+            chosen ? (
+              <ReviewDetail
+                key={chosen.id}
+                item={chosen}
+                form={forms.find((form) => form.key === chosen.form.key)}
+                onDecided={decided}
               />
-            </li>
-          ))}
-        </ul>
+            ) : null
+          }
+        />
       )}
-      {queue.hasNextPage ? (
-        <Button
-          variant="secondary"
-          className="self-start"
-          busy={queue.isFetchingNextPage}
-          onClick={() => void queue.fetchNextPage()}
-        >
-          {t('common.load_more')}
-        </Button>
-      ) : null}
 
       {access.can('review_rules.manage') ? <Rules /> : null}
     </div>
-  );
-}
-
-/** A filled-in value as a reviewer reads it. */
-function valueText(value: unknown, t: Translate): string {
-  if (value === null || value === undefined || value === '') return '—';
-  if (typeof value === 'boolean') return t(value ? 'review.yes' : 'review.no');
-  if (Array.isArray(value)) return t('review.items', { count: value.length });
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-}
-
-/** One submission to review: what it is, where and when, its evidence, and the decisions. */
-function Card({
-  item,
-  form,
-  selected,
-  onSelect,
-}: {
-  item: ReviewItem;
-  form: FormView | undefined;
-  selected?: boolean;
-  onSelect?: (on: boolean) => void;
-}) {
-  const { client } = useApp();
-  const { t, locale } = useLanguage();
-  const access = useAccess();
-  const dates = useDates(access.timezone);
-  const refresh = useRefreshReview();
-  const [noting, setNoting] = useState<'rejected' | 'approved' | null>(null);
-  const [mapped, setMapped] = useState(false);
-  const [note, setNote] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<unknown>();
-  const name = item.form.name[locale].one;
-  const metres = (value: number) => formatNumber(value, { locale });
-  const labels = new Map(
-    (form?.fields ?? []).flatMap((field) =>
-      'label' in field && field.label ? [[field.key, field.label[locale]] as const] : [],
-    ),
-  );
-
-  async function decide(decision: 'approved' | 'rejected') {
-    setBusy(true);
-    setFailure(undefined);
-    try {
-      await write(client, 'POST', `/v1/submissions/${item.id}/review`, ReviewItem, {
-        decision,
-        ...(note.trim() ? { note: note.trim() } : {}),
-      });
-      setNoting(null);
-      setNote('');
-      await refresh();
-    } catch (caught) {
-      setFailure(caught);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // A rejection, and any change of mind, needs a reason first.
-  const ask = (decision: 'approved' | 'rejected') =>
-    decision === 'rejected' || item.status !== 'pending'
-      ? setNoting(decision)
-      : void decide(decision);
-
-  return (
-    <article className="ks-card flex flex-col gap-4" aria-label={`${name}, ${item.user.name}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h2 className="heading-md">{name}</h2>
-          <p>
-            <Link to="/people/$userId" params={{ userId: item.user.id }}>
-              {t('review.by', { name: item.user.name })}
-            </Link>
-            {item.account ? (
-              <>
-                {' · '}
-                <Link to="/accounts/$accountId" params={{ accountId: item.account.id }}>
-                  {item.account.name}
-                </Link>
-              </>
-            ) : null}
-          </p>
-          <p className="ks-muted">
-            {t('review.captured', {
-              when: dates.dateTime(item.capturedAt),
-              received: dates.dateTime(item.receivedAt),
-            })}
-          </p>
-          <p className="ks-muted">
-            {t('review.where', {
-              lat: item.location.lat.toFixed(5),
-              lng: item.location.lng.toFixed(5),
-              accuracy: Math.round(item.accuracy),
-            })}
-          </p>
-          <Button
-            variant="ghost"
-            className="self-start"
-            icon={<Icon icon={MapPin} />}
-            aria-expanded={mapped}
-            onClick={() => setMapped((open) => !open)}
-          >
-            {mapped ? t('review.hide_map') : t('review.show_map')}
-          </Button>
-          {mapped ? (
-            <MapView label={t('review.map_label')} fit={[item.location]} height={240}>
-              <Area at={item.location} radius={Math.max(5, item.accuracy)} />
-              <Dot at={item.location} title={t('review.map_point')} />
-            </MapView>
-          ) : null}
-        </div>
-        {onSelect ? (
-          <Checkbox
-            label={t('review.select')}
-            checked={selected ?? false}
-            onChange={(event) => onSelect(event.target.checked)}
-          />
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap gap-1">
-        <StatusBadge variant={STATUS_VARIANT[item.status]}>
-          {t(`review.status_${item.status}`)}
-        </StatusBadge>
-        {item.autoApproved ? (
-          <StatusBadge variant="info">{t('review.auto_approved')}</StatusBadge>
-        ) : null}
-        {item.geofence === 'inside' || item.geofence === 'outside' ? (
-          <StatusBadge variant={item.geofence === 'inside' ? 'success' : 'danger'}>
-            {t(item.geofence === 'inside' ? 'submissions.inside' : 'submissions.outside', {
-              distance: metres(item.distanceM ?? 0),
-            })}
-          </StatusBadge>
-        ) : item.geofence === 'unknown' ? (
-          <StatusBadge variant="neutral">{t('submissions.unknown')}</StatusBadge>
-        ) : null}
-        {item.flags.map((flag) => (
-          <StatusBadge key={flag} variant="danger">
-            {t(`submissions.flag_${flag}`)}
-          </StatusBadge>
-        ))}
-        {item.integrityWarning ? (
-          <StatusBadge variant="danger">{t('review.integrity')}</StatusBadge>
-        ) : null}
-      </div>
-      {item.autoApproveAt ? (
-        <p className="ks-muted">
-          {t('review.auto_at', { when: dates.dateTime(item.autoApproveAt) })}
-        </p>
-      ) : null}
-
-      <dl
-        className="grid gap-x-4 gap-y-1 sm:grid-cols-[max-content_1fr]"
-        aria-label={t('review.values')}
-      >
-        {Object.entries(item.values).map(([key, value]) => (
-          <div key={key} className="contents">
-            <dt className="ks-muted">{labels.get(key) ?? key}</dt>
-            <dd>{valueText(value, t)}</dd>
-          </div>
-        ))}
-      </dl>
-
-      {item.photoDetails.length > 0 ? (
-        <section className="flex flex-col gap-2" aria-label={t('review.photos')}>
-          <h3 className="font-semibold">{t('review.photos')}</h3>
-          <ul className="flex flex-wrap gap-3">
-            {item.photoDetails.map((photo, index) => (
-              <li key={photo.id}>
-                <Photo photo={photo} number={index + 1} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {item.reviews.length > 0 ? (
-        <section className="flex flex-col gap-1" aria-label={t('review.history')}>
-          <h3 className="font-semibold">{t('review.history')}</h3>
-          <ol className="flex flex-col gap-1">
-            {item.reviews.map((review) => (
-              <li key={review.at}>
-                {review.reviewer
-                  ? t('review.decided_by', {
-                      decision: t(`review.status_${review.decision}`),
-                      name: review.reviewer.name,
-                      when: dates.dateTime(review.at),
-                    })
-                  : t('review.decided_auto', {
-                      decision: t(`review.status_${review.decision}`),
-                      when: dates.dateTime(review.at),
-                    })}
-                {review.note ? <span className="ks-muted"> · {review.note}</span> : null}
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
-
-      {failure && !fieldErrors(failure).note ? (
-        <p className="ks-help error" role="alert">
-          {errorMessage(failure, t)}
-        </p>
-      ) : null}
-      {noting ? (
-        <TextAreaField
-          label={t('review.why')}
-          help={t('review.why_help', { min: REVIEW_NOTE_MIN })}
-          required
-          rows={2}
-          value={note}
-          {...(fieldErrors(failure).note ? { error: fieldErrors(failure).note } : {})}
-          onChange={(event) => setNote(event.target.value)}
-        />
-      ) : null}
-      <div className="flex flex-wrap gap-2">
-        {noting ? (
-          <>
-            <Button
-              variant={noting === 'rejected' ? 'danger' : 'primary'}
-              busy={busy}
-              icon={<Icon icon={noting === 'rejected' ? X : Check} />}
-              onClick={() => void decide(noting)}
-            >
-              {t(noting === 'rejected' ? 'review.reject' : 'review.approve')}
-            </Button>
-            <Button variant="secondary" onClick={() => setNoting(null)}>
-              {t('common.cancel')}
-            </Button>
-          </>
-        ) : item.status === 'pending' ? (
-          <>
-            <Button
-              variant="primary"
-              busy={busy}
-              icon={<Icon icon={Check} />}
-              onClick={() => ask('approved')}
-            >
-              {t('review.approve')}
-            </Button>
-            <Button variant="secondary" icon={<Icon icon={X} />} onClick={() => ask('rejected')}>
-              {t('review.reject')}
-            </Button>
-          </>
-        ) : (
-          <Button
-            variant="secondary"
-            icon={<Icon icon={Pencil} />}
-            onClick={() => ask(item.status === 'approved' ? 'rejected' : 'approved')}
-          >
-            {t('review.change')}
-          </Button>
-        )}
-      </div>
-    </article>
-  );
-}
-
-/** A photo's thumbnail, with how it was taken, when, and how far away. */
-function Photo({ photo, number }: { photo: ReviewPhoto; number: number }) {
-  const { t, locale } = useLanguage();
-  const access = useAccess();
-  const dates = useDates(access.timezone);
-  const link = usePhotoLink(photo.id);
-  const alt = t('review.photo_alt', { number });
-  return (
-    <figure className="flex w-40 flex-col gap-1">
-      {link.data ? (
-        <img
-          src={link.data.url}
-          alt={alt}
-          className="aspect-square w-40 rounded-md object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <div className="ks-muted flex aspect-square w-40 items-center justify-center rounded-md border">
-          {alt}
-        </div>
-      )}
-      <figcaption className="ks-help">
-        {[
-          photo.source ? t(`review.photo_source_${photo.source}`) : null,
-          photo.capturedAt ? dates.dateTime(photo.capturedAt) : null,
-          photo.distanceM !== null
-            ? t('review.photo_far', { distance: formatNumber(photo.distanceM, { locale }) })
-            : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-        {photo.duplicate ? (
-          <>
-            {' '}
-            <StatusBadge variant="danger">{t('review.photo_repeat')}</StatusBadge>
-          </>
-        ) : null}
-      </figcaption>
-    </figure>
   );
 }
 

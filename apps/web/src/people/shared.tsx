@@ -1,5 +1,5 @@
 import { ApiError } from '@thelamp/api-client';
-import { formatDate, formatDateTime } from '@thelamp/i18n';
+import { formatDate, formatDateTime, localeTag } from '@thelamp/i18n';
 import type { DesignationResult, Locale, TransferStatus, UserStatus } from '@thelamp/shared';
 import {
   type BadgeVariant,
@@ -50,6 +50,11 @@ export function useDates(timeZone: string) {
   return {
     date: (value: string) => formatDate(value, { locale }),
     dateTime: (value: string) => formatDateTime(value, { locale, timeZone }),
+    /** The time of day alone, such as a photo's. */
+    time: (value: string) =>
+      new Intl.DateTimeFormat(localeTag(locale), { timeStyle: 'short', timeZone }).format(
+        new Date(value),
+      ),
   };
 }
 

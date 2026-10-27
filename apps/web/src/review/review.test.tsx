@@ -49,9 +49,16 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
     integrityWarning: false,
     autoApproveAt: null,
     reviews: [],
+    geofenceAt: { location: { lat: 28.6318, lng: 77.2167 }, radiusM: 100 },
     ...overrides,
   };
 }
+
+const SUMMARY = {
+  counts: { pending: 2, flagged: 1, clean: 1, approved: 7, rejected: 1 },
+  autoApproval: true,
+  delayHours: 48,
+};
 
 type Answer = (body: unknown) => unknown;
 
@@ -65,9 +72,12 @@ function fakeClient(writes: Record<string, Answer> = {}, permissions: string[] =
           distanceM: 640,
           flags: ['outside_geofence'],
           integrityWarning: true,
+          geofenceAt: null,
+          capturedAt: '2026-10-12T06:00:00.000Z',
         }),
       ],
       nextCursor: null,
+      summary: SUMMARY,
     },
     '/v1/review-rules': { autoApproval: false, delayHours: 24 },
     [`/v1/media/${PHOTO}/url`]: {
@@ -150,98 +160,152 @@ const writes = (client: ReturnType<typeof fakeClient>) =>
 
 const decided = (status: string) => () => item(CLEAN, { status });
 
-describe('the review queue', () => {
-  it('shows each submission with where it was filled, its photos, flags and warnings', async () => {
-    renderAt('/review', fakeClient());
-    const [first, second] = await screen.findAllByRole('article', {
-      name: 'Shop visit, Rahul Verma',
-    });
-    expect(first).toHaveTextContent('Sharma Stores');
-    expect(first).toHaveTextContent('Inside, 40 m');
-    expect(first).toHaveTextContent('Shelf restocked');
-    expect(first).toHaveTextContent('Yes');
-    expect(first).toHaveTextContent('Camera');
-    expect(first).toHaveTextContent('12 m from where the form was filled');
-    expect(await within(first!).findByRole('img', { name: 'Photo 1' })).toHaveAttribute(
-      'src',
-      'https://objects.test/photo.jpg',
+describe('the review queue (M7, decision D104)', () => {
+  it('heads the queue with its counts and auto-approval, and chips for each view', async () => {
+    const client = fakeClient();
+    renderAt('/review', client);
+    expect(
+      await screen.findByText('2 waiting · clean ones approve themselves after 48 hours'),
+    ).toBeVisible();
+    const chips = screen.getByRole('group', { name: 'Show' });
+    expect(within(chips).getByRole('button', { name: 'Waiting · 2' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
-    expect(second).toHaveTextContent('Outside, 640 m away');
-    expect(second).toHaveTextContent('Outside the geofence');
-    expect(second).toHaveTextContent('Phone failed its integrity check');
+    await userEvent.setup().click(within(chips).getByRole('button', { name: 'With flags · 1' }));
+    await waitFor(() =>
+      expect(client.request).toHaveBeenCalledWith(
+        'GET',
+        expect.stringMatching(/^\/v1\/reviews\/queue\?status=pending&flagged=yes/),
+        expect.anything(),
+      ),
+    );
   });
 
-  it('shows where a form was filled on a map when asked', async () => {
+  it('lists the queue beside the chosen submission, with its flags, values, photos and map', async () => {
     renderAt('/review', fakeClient());
-    const [first] = await screen.findAllByRole('article', { name: 'Shop visit, Rahul Verma' });
-    const user = userEvent.setup();
-    const show = within(first!).getByRole('button', { name: 'Show on map' });
-    expect(show).toHaveAttribute('aria-expanded', 'false');
-    await user.click(show);
-    expect(within(first!).getByRole('img', { name: 'Where the form was filled' })).toBeVisible();
-    await user.click(within(first!).getByRole('button', { name: 'Hide map' }));
-    expect(within(first!).queryByRole('img', { name: 'Where the form was filled' })).toBeNull();
+    const table = await screen.findByRole('table', { name: 'Submissions to review, newest first' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveAttribute('aria-selected', 'true');
+    expect(rows[0]).toHaveTextContent('Sharma Stores');
+    // The worst flag leads the row, in danger; the rest are counted.
+    expect(within(rows[1]!).getByText('Phone failed its integrity check')).toHaveClass(
+      'ks-flag',
+      'danger',
+    );
+    expect(within(rows[1]!).getByText('+1 more')).toHaveAttribute('title', 'Outside the geofence');
+
+    const detail = screen.getByRole('complementary', { name: 'Shop visit, Rahul Verma' });
+    expect(detail).toHaveTextContent('Inside, 40 m');
+    expect(detail).toHaveTextContent('Shelf restocked');
+    expect(within(detail).getByText('Inside, 40 m')).toHaveClass('ks-pill', 'inside');
+    await waitFor(() =>
+      expect(
+        within(detail).getByRole('img', { name: /^Photo 1, Camera, .*12 m from where/ }),
+      ).toHaveAttribute('src', 'https://objects.test/photo.jpg'),
+    );
+    expect(
+      within(detail).getByRole('img', {
+        name: 'Map: filled in 33 m from the account, whose geofence is 100 m',
+      }),
+    ).toBeVisible();
+    expect(within(detail).getByLabelText('Note to Rahul')).toBeVisible();
+
+    // The second has no verified place: no small map, and its flags in full.
+    await userEvent.setup().click(within(rows[1]!).getByRole('button', { name: /Rahul Verma/ }));
+    expect(rows[1]).toHaveAttribute('aria-selected', 'true');
+    expect(detail).toHaveTextContent('Phone failed its integrity check');
+    expect(within(detail).getByText('Phone failed its integrity check')).toHaveClass(
+      'ks-flag',
+      'danger',
+    );
+    expect(within(detail).queryByRole('img', { name: /^Map:/ })).toBeNull();
   });
 
-  it('approves at once, and rejects only with a reason', async () => {
+  it('shows where a form was filled on the full map when asked', async () => {
+    renderAt('/review', fakeClient());
+    const show = await screen.findByRole('button', { name: 'Show on map' });
+    await userEvent.setup().click(show);
+    expect(screen.getByRole('button', { name: 'Hide map' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('approves the chosen submission, and moves on to the next', async () => {
+    const client = fakeClient({ [`POST /v1/submissions/${CLEAN}/review`]: decided('approved') });
+    renderAt('/review', client);
+    const detail = await screen.findByRole('complementary');
+    await userEvent.setup().click(within(detail).getByRole('button', { name: 'Approve' }));
+    await waitFor(() => expect(writes(client)).toHaveLength(1));
+    expect(writes(client)[0]![3]).toMatchObject({ body: { decision: 'approved' } });
+    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
+    await waitFor(() => expect(rows[1]).toHaveAttribute('aria-selected', 'true'));
+  });
+
+  it('shows why a rejection without a note was refused, beside the note', async () => {
     const client = fakeClient({
-      [`POST /v1/submissions/${CLEAN}/review`]: decided('approved'),
+      [`POST /v1/submissions/${CLEAN}/review`]: () => {
+        throw new ApiError(400, 'VALIDATION', 'Say why.', [
+          { path: 'note', issue: 'Say why in at least 10 characters' },
+        ]);
+      },
     });
     renderAt('/review', client);
-    const user = userEvent.setup();
-    const [first] = await screen.findAllByRole('article');
-    await user.click(within(first!).getByRole('button', { name: 'Approve' }));
-    await waitFor(() =>
-      expect(writes(client)).toEqual([
-        [
-          'POST',
-          `/v1/submissions/${CLEAN}/review`,
-          expect.anything(),
-          { body: { decision: 'approved' }, idempotencyKey: expect.any(String) },
-        ],
-      ]),
-    );
-
-    await user.click(within(first!).getByRole('button', { name: 'Reject' }));
-    expect(writes(client)).toHaveLength(1);
-    await user.type(within(first!).getByRole('textbox', { name: /Why/ }), 'Photo of another shop');
-    await user.click(within(first!).getByRole('button', { name: 'Reject' }));
-    await waitFor(() =>
-      expect(writes(client)[1]).toEqual([
-        'POST',
-        `/v1/submissions/${CLEAN}/review`,
-        expect.anything(),
-        {
-          body: { decision: 'rejected', note: 'Photo of another shop' },
-          idempotencyKey: expect.any(String),
-        },
-      ]),
-    );
+    const detail = await screen.findByRole('complementary');
+    await userEvent.setup().click(within(detail).getByRole('button', { name: 'Reject' }));
+    expect(await within(detail).findByText('Say why in at least 10 characters')).toBeVisible();
   });
 
-  it('approves in bulk only what has no flags, after asking', async () => {
+  it('approves every clean waiting submission at once, after asking', async () => {
     const client = fakeClient(
       { 'POST /v1/reviews/bulk': () => ({ approved: [CLEAN], skipped: [] }) },
       ['submission.review_bulk'],
     );
     renderAt('/review', client);
     const user = userEvent.setup();
-    const [first, second] = await screen.findAllByRole('article');
-    expect(within(second!).queryByRole('checkbox')).toBeNull();
-    await user.click(within(first!).getByRole('checkbox', { name: 'Select for bulk approval' }));
-    await user.click(screen.getByRole('button', { name: 'Approve 1 selected' }));
-    const question = screen.getByRole('group', { name: 'Approve 1 submission?' });
-    expect(writes(client)).toEqual([]);
-    await user.click(within(question).getByRole('button', { name: 'Approve 1 selected' }));
-    expect(await screen.findByText('1 approved.')).toBeInTheDocument();
-    expect(writes(client)).toEqual([
-      [
-        'POST',
-        '/v1/reviews/bulk',
-        expect.anything(),
-        { body: { ids: [CLEAN] }, idempotencyKey: expect.any(String) },
-      ],
-    ]);
+    await user.click(await screen.findByRole('button', { name: 'Approve 1 clean' }));
+    expect(screen.getByText('Approve 1 waiting submission without flags?')).toBeVisible();
+    const confirm = screen.getByRole('group', {
+      name: 'Approve 1 waiting submission without flags?',
+    });
+    await user.click(within(confirm).getByRole('button', { name: 'Approve 1 clean' }));
+    await waitFor(() => expect(writes(client)).toHaveLength(1));
+    expect(client.request).toHaveBeenCalledWith(
+      'GET',
+      expect.stringMatching(/^\/v1\/reviews\/queue\?status=pending&flagged=no&limit=100/),
+      expect.anything(),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('1 approved.');
+  });
+
+  it('keeps the other filters behind More filters', async () => {
+    renderAt('/review', fakeClient());
+    const more = await screen.findByRole('button', { name: 'More filters' });
+    expect(screen.queryByRole('combobox', { name: 'Form' })).toBeNull();
+    await userEvent.setup().click(more);
+    expect(screen.getByRole('combobox', { name: 'Form' })).toBeVisible();
+    expect(screen.getByLabelText('Filled from')).toBeVisible();
+  });
+
+  it('says so when nothing waits, without a detail or a bulk approval', async () => {
+    const client = fakeClient({}, ['submission.review_bulk']);
+    const empty = {
+      items: [],
+      nextCursor: null,
+      summary: {
+        ...SUMMARY,
+        counts: { pending: 0, flagged: 0, clean: 0, approved: 0, rejected: 0 },
+      },
+    };
+    client.request.mockImplementation(async (method: string, path: string) => {
+      if (method === 'GET' && path.startsWith('/v1/reviews/queue')) return empty;
+      throw new ApiError(404, 'NOT_FOUND', path);
+    });
+    renderAt('/review', client);
+    expect(await screen.findByText('Nothing to review')).toBeVisible();
+    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(screen.queryByRole('button', { name: /clean/ })).toBeNull();
   });
 
   it('lets those who set the rules turn on automatic approval with its delay', async () => {

@@ -52,6 +52,7 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
     integrityWarning: false,
     autoApproveAt: '2026-10-14T06:00:05.000Z',
     reviews: [],
+    geofenceAt: { location: { lat: 28.6318, lng: 77.2167 }, radiusM: 100 },
     ...overrides,
   };
 }
@@ -85,6 +86,11 @@ const ANSWERS: Record<string, unknown> = {
       }),
     ],
     nextCursor: null,
+    summary: {
+      counts: { pending: 2, flagged: 1, clean: 1, approved: 4, rejected: 1 },
+      autoApproval: true,
+      delayHours: 24,
+    },
   },
   '/v1/review-rules': { autoApproval: true, delayHours: 24 },
   [`/v1/media/${PHOTO}/url`]: {
@@ -191,18 +197,24 @@ test('/review shows the queue with its evidence and rules, and passes axe', asyn
   await page.goto('/review');
   await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
   await expect(page.getByText('Shelf restocked').first()).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Photo 1' }).first()).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Photo 1/ }).first()).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Map: filled in/ })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Automatic approval' })).toBeVisible();
   await expectAccessible(page);
 });
 
-test('/review passes axe in the outdoor theme, while rejecting', async ({ page }) => {
+test('/review passes axe in the outdoor theme, with its filters and bulk approval open', async ({
+  page,
+}) => {
   await mockSignedIn(page);
   await page.addInitScript(() => localStorage.setItem('theme', 'outdoor'));
   await page.goto('/review');
-  await page.getByRole('button', { name: 'Reject' }).first().click();
-  await expect(page.getByRole('textbox', { name: /Why/ })).toBeVisible();
-  await page.getByRole('checkbox', { name: 'Select for bulk approval' }).first().check();
-  await expect(page.getByRole('button', { name: 'Approve 1 selected' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /^Note to / })).toBeVisible();
+  await page.getByRole('button', { name: 'More filters' }).click();
+  await expect(page.getByRole('combobox', { name: 'Form' })).toBeVisible();
+  await page.getByRole('button', { name: 'Approve 1 clean' }).click();
+  await expect(
+    page.getByRole('group', { name: 'Approve 1 waiting submission without flags?' }),
+  ).toBeVisible();
   await expectAccessible(page);
 });

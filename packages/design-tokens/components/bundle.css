@@ -245,6 +245,8 @@ a.ks-item, button.ks-item { width: 100%; font: inherit; text-align: left; color:
 .ks-item-end { flex: none; display: inline-flex; align-items: center; gap: var(--space-2); font-variant-numeric: tabular-nums; }
 .ks-split { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-4); align-items: start; }
 .ks-split.single { grid-template-columns: minmax(0, 1fr); }
+.ks-cell-link { background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; text-align: start; cursor: pointer; border-radius: var(--radius-sm); }
+.ks-cell-link:hover { color: var(--accent); }
 .ks-split-detail { position: sticky; top: calc(var(--space-16) + var(--space-4)); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
 @media (max-width: 1024px) { .ks-split { grid-template-columns: minmax(0, 1fr); } .ks-split-detail { position: static; } }
 /* Figures (components/StatTile): a tile that may be a link, a tone for good or bad news, share bars and a legend. */
@@ -287,6 +289,7 @@ a.ks-kpi:hover, .ks-kpi.act:hover { border-color: var(--border-strong); box-shad
 .ks-table.sticky-first thead th:first-child { background: var(--surface-sunken); }
 .ks-photos { display: flex; gap: var(--space-2); }
 .ks-photo { width: 64px; height: 64px; border-radius: var(--radius-md); background: var(--surface-sunken); display: grid; place-items: center; color: var(--text-subtle); position: relative; }
+.ks-photo.wide { width: 112px; height: 84px; }
 .ks-photo .ks-photo-tag { position: absolute; bottom: 4px; left: 4px; right: 4px; font-size: max(10px, var(--ks-min)); line-height: calc(12px + var(--ks-lead)); text-align: center; border-radius: var(--radius-full); background: var(--waiting-bg); color: var(--waiting-fg); font-weight: 600; }
 .ks-mapbox { border-radius: var(--radius-md); background: var(--surface-sunken); overflow: hidden; }
 

@@ -17320,6 +17320,18 @@
             }
           },
           {
+            "name": "flagged",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -17359,11 +17371,76 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "summary": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "counts": {
+                              "type": "object",
+                              "properties": {
+                                "pending": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "flagged": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "clean": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "approved": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "rejected": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "pending",
+                                "flagged",
+                                "clean",
+                                "approved",
+                                "rejected"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "autoApproval": {
+                              "type": "boolean"
+                            },
+                            "delayHours": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "counts",
+                            "autoApproval",
+                            "delayHours"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "items",
-                    "nextCursor"
+                    "nextCursor",
+                    "summary"
                   ],
                   "additionalProperties": false
                 }
@@ -38300,6 +38377,31 @@
               ],
               "additionalProperties": false
             }
+          },
+          "geofenceAt": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "location": {
+                    "$ref": "#/components/schemas/GeoPoint"
+                  },
+                  "radiusM": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "location",
+                  "radiusM"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -38324,7 +38426,8 @@
           "photoDetails",
           "integrityWarning",
           "autoApproveAt",
-          "reviews"
+          "reviews",
+          "geofenceAt"
         ],
         "additionalProperties": false
       },

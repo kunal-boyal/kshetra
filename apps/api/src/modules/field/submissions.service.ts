@@ -620,25 +620,36 @@ export class SubmissionsService {
    * caller's own, by status and the filters asked for, newest first. Each row carries what the
    * review module adds to it: the device, where it was captured, and when auto-approval is due.
    */
-  async reviewRows(tx: TenantTx, access: Access, query: ReviewQueueQuery, only?: string) {
-    const tenantId = access.tenantId;
-    const { timezone } = await this.config.settings(tx, tenantId);
+  /**
+   * What the review queue narrows by but status and flags: the caller's scope, never their own
+   * work, and the person, form, account and capture dates asked for.
+   */
+  private async reviewScope(tx: TenantTx, access: Access, query: ReviewQueueQuery) {
+    const { timezone } = await this.config.settings(tx, access.tenantId);
     const day = sql`(${submissions.capturedAt} at time zone ${timezone})::date`;
+    return [
+      eq(submissions.tenantId, access.tenantId),
+      ne(submissions.userId, access.userId),
+      await this.scopes.users(tx, access),
+      query.userId ? eq(submissions.userId, query.userId) : undefined,
+      query.formKey ? eq(forms.key, query.formKey) : undefined,
+      query.accountId ? eq(submissions.accountId, query.accountId) : undefined,
+      query.from ? sql`${day} >= ${query.from}::date` : undefined,
+      query.to ? sql`${day} <= ${query.to}::date` : undefined,
+    ];
+  }
+
+  async reviewRows(tx: TenantTx, access: Access, query: ReviewQueueQuery, only?: string) {
     const [cursorAt, cursorId] = query.cursor ? query.cursor.split('|') : [];
     const found = await this.select(tx)
       .where(
         and(
-          eq(submissions.tenantId, tenantId),
+          ...(await this.reviewScope(tx, access, query)),
           // One submission, whatever its status, or the queue for a status.
           only ? eq(submissions.id, only) : eq(submissions.status, query.status),
-          ne(submissions.userId, access.userId),
-          await this.scopes.users(tx, access),
-          query.userId ? eq(submissions.userId, query.userId) : undefined,
-          query.formKey ? eq(forms.key, query.formKey) : undefined,
-          query.accountId ? eq(submissions.accountId, query.accountId) : undefined,
-          query.from ? sql`${day} >= ${query.from}::date` : undefined,
-          query.to ? sql`${day} <= ${query.to}::date` : undefined,
           query.flag ? sql`${query.flag} = any(${submissions.flags})` : undefined,
+          query.flagged === 'yes' ? sql`cardinality(${submissions.flags}) > 0` : undefined,
+          query.flagged === 'no' ? sql`cardinality(${submissions.flags}) = 0` : undefined,
           query.geofence ? eq(submissions.geofence, query.geofence) : undefined,
           cursorAt && cursorId
             ? or(
@@ -660,6 +671,39 @@ export class SubmissionsService {
       })),
       nextCursor:
         found.length > query.limit && last ? `${last.capturedAt.toISOString()}|${last.id}` : null,
+    };
+  }
+
+  /**
+   * How many the review queue holds under the same filters but status and flags: by status, and
+   * the pending ones with flags and without, for the queue's chips (decision D104).
+   */
+  async reviewCounts(tx: TenantTx, access: Access, query: ReviewQueueQuery) {
+    const rows = await tx
+      .select({
+        status: submissions.status,
+        flagged: sql<boolean>`cardinality(${submissions.flags}) > 0`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(submissions)
+      .innerJoin(
+        users,
+        and(eq(users.tenantId, submissions.tenantId), eq(users.id, submissions.userId)),
+      )
+      .innerJoin(
+        forms,
+        and(eq(forms.tenantId, submissions.tenantId), eq(forms.id, submissions.formId)),
+      )
+      .where(and(...(await this.reviewScope(tx, access, query))))
+      .groupBy(submissions.status, sql`cardinality(${submissions.flags}) > 0`);
+    const sum = (match: (row: (typeof rows)[number]) => boolean) =>
+      rows.filter(match).reduce((total, row) => total + row.count, 0);
+    return {
+      pending: sum((row) => row.status === 'pending'),
+      flagged: sum((row) => row.status === 'pending' && row.flagged),
+      clean: sum((row) => row.status === 'pending' && !row.flagged),
+      approved: sum((row) => row.status === 'approved'),
+      rejected: sum((row) => row.status === 'rejected'),
     };
   }
 
