@@ -57,6 +57,31 @@ export class WebhooksService {
     return Promise.all(rows.map((row) => this.result(tx, row)));
   }
 
+  /**
+   * Seals every subscription's secret again under the current column key, after a rotation
+   * (`pnpm reseal`, decision D101); those sealed under it already stay as they are.
+   */
+  async resealSecrets(tenantId: string): Promise<number> {
+    return this.database.forTenant(tenantId, async (tx) => {
+      const rows = await tx
+        .select({ id: webhookSubscriptions.id, secretSealed: webhookSubscriptions.secretSealed })
+        .from(webhookSubscriptions)
+        .where(eq(webhookSubscriptions.tenantId, tenantId));
+      let resealed = 0;
+      for (const row of rows) {
+        if (this.cipher.isCurrent(row.secretSealed)) continue;
+        await tx
+          .update(webhookSubscriptions)
+          .set({ secretSealed: this.cipher.reseal(row.secretSealed, sealedAt(row.id)) })
+          .where(
+            and(eq(webhookSubscriptions.tenantId, tenantId), eq(webhookSubscriptions.id, row.id)),
+          );
+        resealed += 1;
+      }
+      return resealed;
+    });
+  }
+
   /** Subscribes a receiver; its signing secret comes back now and never again. */
   async create(
     tx: TenantTx,

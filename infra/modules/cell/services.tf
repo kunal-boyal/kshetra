@@ -202,27 +202,33 @@ locals {
     var.environment,
   )
   secret = aws_secretsmanager_secret.app.arn
+  # Which keys of the cell's secret each process reads (decision D101), as `ROLE_SECRETS` in
+  # apps/api/src/config.ts: the API all of them; the worker all but the API's pepper and token
+  # keys; the scheduler, which only adds jobs and reports health, the databases alone.
+  api_only_secrets  = ["OTP_PEPPER", "JWT_SIGNING_KEY", "JWT_PUBLISHED_KEYS"]
+  worker_secrets    = [for key in var.secret_keys : key if !contains(local.api_only_secrets, key)]
+  scheduler_secrets = ["DATABASE_URL", "DIRECTORY_DATABASE_URL"]
   processes = {
     api = {
       command     = ["node", "dist/main.mjs"]
       cpu         = var.api.cpu
       memory      = var.api.memory
-      environment = local.environment
+      environment = merge(local.environment, { PROCESS_ROLE = "api" })
       secrets     = var.secret_keys
     }
     worker = {
       command     = ["node", "dist/worker.mjs"]
       cpu         = var.worker.cpu
       memory      = var.worker.memory
-      environment = merge(local.environment, { OUTBOX_RELAY = "true" })
-      secrets     = var.secret_keys
+      environment = merge(local.environment, { OUTBOX_RELAY = "true", PROCESS_ROLE = "worker" })
+      secrets     = local.worker_secrets
     }
     scheduler = {
       command     = ["node", "dist/scheduler.mjs"]
       cpu         = var.scheduler.cpu
       memory      = var.scheduler.memory
-      environment = local.environment
-      secrets     = var.secret_keys
+      environment = merge(local.environment, { PROCESS_ROLE = "scheduler" })
+      secrets     = local.scheduler_secrets
     }
     # Runs before every deploy; only the migrator's URL.
     migrate = {

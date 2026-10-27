@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { createPublicKey } from 'node:crypto';
 import {
   calculateJwkThumbprint,
   exportJWK,
@@ -34,9 +35,20 @@ export interface AccessTokenInput {
   steppedUpAt?: Date | null;
 }
 
+const PEM_BLOCK =
+  /-----BEGIN (?:PRIVATE|PUBLIC) KEY-----[\s\S]+?-----END (?:PRIVATE|PUBLIC) KEY-----/g;
+
+/** A P-256 key's public JWK, named by its thumbprint; only `x` and `y` of the key are kept. */
+async function publicJwkOf({ kty, crv, x, y }: JWK): Promise<JWK> {
+  const jwk: JWK = { kty, crv, x, y };
+  return { ...jwk, kid: await calculateJwkThumbprint(jwk), alg: 'ES256', use: 'sig' };
+}
+
 /**
  * The directory's ES256 key (spec 9.2). It signs access tokens, and its public half is the JWKS
- * that cells verify against. The key comes from `JWT_SIGNING_KEY`, checked at start-up. Outside
+ * that cells verify against, beside any `JWT_PUBLISHED_KEYS`, so a new key is trusted before it
+ * signs and the last one until its tokens run out (decision D101,
+ * docs/runbooks/secret-rotation.md). The key comes from `JWT_SIGNING_KEY`, checked at start-up. Outside
  * production, without one, a temporary key is made when first needed, so processes that never
  * sign, such as the worker, make none; tokens stop working when the API restarts.
  */
@@ -45,6 +57,8 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
   private readonly logger = new Logger(SigningKey.name);
   private privateKey: Awaited<ReturnType<typeof importPKCS8>> | undefined;
   private publicJwk: JWK | undefined;
+  /** Other keys the JWKS publishes: the next before it signs, the last until its tokens end. */
+  private publishedJwks: JWK[] = [];
   private loading: Promise<void> | undefined;
 
   constructor(@Inject(CONFIG) private readonly config: Config) {
@@ -69,16 +83,20 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
       this.logger.warn('No JWT_SIGNING_KEY: signing with a temporary key until the API restarts.');
       this.privateKey = (await generateKeyPair('ES256', { extractable: true })).privateKey;
     }
-    // The private JWK minus its secret part `d` is the public key.
-    const { kty, crv, x, y } = await exportJWK(this.privateKey);
-    const jwk: JWK = { kty, crv, x, y };
-    this.publicJwk = { ...jwk, kid: await calculateJwkThumbprint(jwk), alg: 'ES256', use: 'sig' };
+    this.publicJwk = await publicJwkOf(await exportJWK(this.privateKey));
+    // Each PEM, private or public, publishes only its public half (decision D101).
+    const pems = this.config.JWT_PUBLISHED_KEYS?.match(PEM_BLOCK) ?? [];
+    this.publishedJwks = await Promise.all(
+      pems.map(async (pem) => publicJwkOf(createPublicKey(pem).export({ format: 'jwk' }) as JWK)),
+    );
   }
 
+  /** The current key, then the others published, with no key twice. */
   async jwks(): Promise<JSONWebKeySet> {
     await this.load();
     if (!this.publicJwk) throw new Error('The signing key is not loaded yet.');
-    return { keys: [this.publicJwk] };
+    const others = this.publishedJwks.filter((jwk) => jwk.kid !== this.publicJwk!.kid);
+    return { keys: [this.publicJwk, ...others] };
   }
 
   /** Signs an access token. `now` lets tests make tokens that are already old. */

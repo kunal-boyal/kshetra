@@ -32,11 +32,11 @@ cp terraform.tfvars.example terraform.tfvars  # domains, alarm email, MSG91 temp
 terraform init -backend-config=backend.hcl
 ```
 
-Make the media signing key, which CloudFront checks signed URLs with. The public half goes in `terraform.tfvars` as `media_public_key_pem`; keep the private half for the secret below, and never commit it:
+Make the media signing key, which CloudFront checks signed URLs with: ECDSA P-256, as strong as the cell's other keys (decision D101). The public half goes in `terraform.tfvars` as `media_public_key_pem`; keep the private half for the secret below, and never commit it:
 
 ```bash
-openssl genrsa -out media-signing.pem 2048
-openssl rsa -in media-signing.pem -pubout
+openssl ecparam -name prime256v1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out media-signing.pem
+openssl ec -in media-signing.pem -pubout
 ```
 
 With a Route 53 zone (`route53_zone_id`), one `terraform apply` does everything. Without one, apply the certificates first, add the `dns_records.validation` records the output lists at your DNS provider, wait for ACM to issue them, then apply everything and add the `dns_records.domains` records:
@@ -61,11 +61,15 @@ Terraform creates the secret `thelamp-<environment>-cell1/app` (output `secret_a
 | `DIRECTORY_DATABASE_URL` | `postgres://directory_app:<new password>@…` as above |
 | `OTP_PEPPER` | 48 random characters: `openssl rand -base64 36` |
 | `COLUMN_KEY` | 32 random bytes in base64, which seal secrets kept in columns such as vendor staff's TOTP seeds: `openssl rand -base64 32` |
+| `COLUMN_KEY_PREVIOUS` | Empty: it holds the old column key only while one is rotated ([secret rotation](secret-rotation.md)) |
 | `ARCHIVE_SIGNING_KEY` | 32 random bytes in base64, the seed of the Ed25519 key tenant data exports are signed with (decision D95): `openssl rand -base64 32`. Publish the public key `ARCHIVE_SIGNING_KEY=… pnpm archive public-key` prints, so customers can check their archives; changing the seed changes it |
 | `JWT_SIGNING_KEY` | A P-256 key, newlines written as `\n`: `openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256` |
+| `JWT_PUBLISHED_KEYS` | Empty: it holds the next or last signing key only while one is rotated ([secret rotation](secret-rotation.md)) |
 | `CLOUDFRONT_PRIVATE_KEY` | `media-signing.pem`, newlines written as `\n` |
 | `MSG91_AUTH_KEY` | From MSG91's dashboard |
 | `SMTP_URL` | Amazon SES's SMTP credentials: `smtps://<user>:<password>@email-smtp.ap-south-1.amazonaws.com:465` |
+
+Each process reads only the keys it uses (decision D101): the API all of them, the worker all but `OTP_PEPPER`, `JWT_SIGNING_KEY` and `JWT_PUBLISHED_KEYS`, and the scheduler the two database URLs alone. Every key must still be in the secret, empty where the table says so, or the tasks that read it won't start.
 
 ```bash
 aws secretsmanager put-secret-value --secret-id <secret_arn> --secret-string file://cell-secret.json

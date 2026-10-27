@@ -130,6 +130,16 @@ export class DirectoryTenants extends TenantDirectory {
     return tenant;
   }
 
+  async tenantsOn(cellName: string): Promise<string[]> {
+    const rows = await this.database.db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .innerJoin(cells, eq(cells.id, tenants.cellId))
+      .where(and(eq(cells.name, cellName), isNull(tenants.deletedAt)))
+      .orderBy(tenants.id);
+    return rows.map((row) => row.id);
+  }
+
   async openTenants(cellName: string): Promise<string[]> {
     const rows = await this.database.db
       .select({ id: tenants.id })

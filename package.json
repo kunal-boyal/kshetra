@@ -21,6 +21,7 @@
     "db:seed": "pnpm --filter @thelamp/api db:seed",
     "provision": "pnpm --filter @thelamp/api provision",
     "invite-staff": "pnpm --filter @thelamp/api invite-staff",
+    "reseal": "pnpm --filter @thelamp/api reseal",
     "licence": "pnpm --filter @thelamp/api licence",
     "archive": "pnpm --filter @thelamp/api archive",
     "tenant-move": "pnpm --filter @thelamp/api tenant-move",

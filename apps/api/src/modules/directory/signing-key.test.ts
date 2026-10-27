@@ -86,3 +86,33 @@ describe('access tokens', () => {
     await expect(two.verifier.verify(token)).resolves.toBeTruthy();
   });
 });
+
+describe('rotating the signing key (decision D101)', () => {
+  const pem = () =>
+    generateKeyPairSync('ec', { namedCurve: 'P-256' })
+      .privateKey.export({ format: 'pem', type: 'pkcs8' })
+      .toString();
+
+  it('trusts a published key before it signs, and the last one until its tokens end', async () => {
+    const [oldKey, newKey] = [pem(), pem()];
+    // Step one: the new key is published beside the old, which still signs.
+    const before = await keyFor({ JWT_SIGNING_KEY: oldKey, JWT_PUBLISHED_KEYS: newKey });
+    expect((await before.key.jwks()).keys).toHaveLength(2);
+    const oldToken = (await before.key.sign(claims())).token;
+
+    // Step two: the new key signs; the old is published until its tokens run out.
+    const after = await keyFor({ JWT_SIGNING_KEY: newKey, JWT_PUBLISHED_KEYS: oldKey });
+    const newToken = (await after.key.sign(claims())).token;
+    // Tasks on either step take tokens from both.
+    await expect(after.verifier.verify(oldToken)).resolves.toBeDefined();
+    await expect(before.verifier.verify(newToken)).resolves.toBeDefined();
+    // The published keys' private parts never show.
+    expect(JSON.stringify(await after.key.jwks())).not.toMatch(/"d"/);
+
+    // Step three: the old key is gone, and so are its tokens.
+    const done = await keyFor({ JWT_SIGNING_KEY: newKey });
+    expect((await done.key.jwks()).keys).toHaveLength(1);
+    await expect(done.verifier.verify(oldToken)).rejects.toThrow();
+    await expect(done.verifier.verify(newToken)).resolves.toBeDefined();
+  });
+});

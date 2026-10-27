@@ -13,7 +13,7 @@ import {
   type StaffResult,
   type StaffSession,
 } from '@thelamp/shared';
-import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import type { Config } from '../../config';
 import { platformSessions, platformUsers } from '../../db/schema/directory';
 import { type StaffAccess, StaffResolver } from '../../platform/auth';
@@ -430,6 +430,27 @@ export class StaffService extends StaffResolver {
       await this.audit.record(tx, by, 'staff.disabled', 'platform_user', id, {});
       return this.result(saved);
     });
+  }
+
+  /**
+   * Seals every staff member's authenticator secret again under the current column key, after a
+   * rotation (`pnpm reseal`, decision D101); `only` names the staff, every one by default.
+   */
+  async resealSecrets(only?: readonly string[]): Promise<number> {
+    const rows = await this.database.db
+      .select({ id: platformUsers.id, totpSecret: platformUsers.totpSecret })
+      .from(platformUsers)
+      .where(only ? inArray(platformUsers.id, [...only]) : undefined);
+    let resealed = 0;
+    for (const row of rows) {
+      if (!row.totpSecret || this.cipher.isCurrent(row.totpSecret)) continue;
+      await this.database.db
+        .update(platformUsers)
+        .set({ totpSecret: this.cipher.reseal(row.totpSecret, this.where(row.id)) })
+        .where(eq(platformUsers.id, row.id));
+      resealed += 1;
+    }
+    return resealed;
   }
 
   /** The guard's check on every console request. */
