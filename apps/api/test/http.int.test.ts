@@ -26,6 +26,10 @@ describe('the HTTP API', () => {
       'x-content-type-options': 'nosniff',
       'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
       'referrer-policy': 'no-referrer',
+      'cross-origin-resource-policy': 'same-origin',
+      'cross-origin-opener-policy': 'same-origin',
+      'cross-origin-embedder-policy': 'require-corp',
+      'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
     });
     // A route that may be cached says so itself.
     const document = await app.inject({ method: 'GET', url: '/v1/openapi.json' });

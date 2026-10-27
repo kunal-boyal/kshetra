@@ -1526,6 +1526,19 @@ Platform requirements:
 
 Object keys follow `t/{tenantId}/{kind}/{yyyy}/{mm}/{mediaId}/{variant}.jpg`. Each object records its retention class (for example `evidence-12m`, `export_file`); a nightly retention job per tenant deletes expired objects with their derivatives and marks the rows deleted, and the bucket's lifecycle rules only tidy what is left behind (decision D69).
 
+Every file the product takes or gives (decision D101). Only photos are served as they were sent, and only once checked as JPEGs; no file is ever run on the server, and no file a person sends is served from the portal's or the API's own origins but the logo, which is re-encoded first.
+
+| File | Comes from | Allowed | Largest | Checked by | Kept | Served |
+|---|---|---|---|---|---|---|
+| Photos: evidence, field photos, selfies, attachments, receipts, odometers, signatures | The phone's camera (the gallery only where a form allows), straight to storage | JPEG, pinned in the signed upload | 10 MB | SHA-256 pinned at upload; the worker checks the JPEG signature and decodes it fully, flags duplicates | Original, stamped and thumbnail, by retention class | Five-minute signed links from the media domain, after a scope check; a rejected photo to nobody, one not yet checked only to whoever took it |
+| Logo | Settings › Organisation, through the API | PNG, JPEG or WebP, judged by the bytes, whatever the content type says | 2 MB, 25 megapixels | Decoded in full | Re-encoded as PNG | `/v1/organisation/logo` |
+| Import files | Imports, through the API | CSV, XLSX | 20 MB; an XLSX at most 200 MB unpacked and 1,000 parts | Parsed only; formulas never evaluated | `importFileRetentionDays` | Never served back |
+| Report exports | Made by the worker | CSV, XLSX | `limits.exportRows` rows | Text that would start a formula is neutralised | 7 days | Signed link, saved as an attachment, to the requester only |
+| Data exports and personal archives | Made by the worker | ZIP of JSON lines and files, with an Ed25519-signed manifest | | | 7 days | Signed link, saved as an attachment, to whoever asked |
+| Invoices | Drawn from the invoice row on request | PDF | | | Not stored | Saved as an attachment |
+| Location archives | Made nightly | Parquet | | | The trail retention | Never served to people |
+| SAML metadata | Made from the connection | XML | | | Not stored | To the identity provider |
+
 ### 12.3 Background jobs
 
 | Queue | Jobs | Notes |
@@ -1599,7 +1612,7 @@ Account and user search use PostgreSQL trigram indexes on name and code within t
 | Vendor access | Support grants (M22); every vendor action audited and visible to the tenant |
 | Supply chain | Lockfile, Renovate or Dependabot, `pnpm audit` in CI, licence check, signed container images |
 | Logging | No phone numbers, OTPs, tokens or signed URLs in logs; Sentry scrubbing rules; tenant and request IDs on every log line, with the caller and address on access lines; security events (refusals, sign-ins with their factors, failed sign-ins, reused sessions) and a copy of every audit entry logged outside the database; logs encrypted and kept 180 days in India (D101) |
-| Testing | SAST (Semgrep CE with the project's own rules) and dependency scanning (`pnpm audit`, Dependabot) before every merge and nightly in CI (D100); an external penetration test before general availability and yearly, including attempts to cross tenants with crafted IDs |
+| Testing | SAST (Semgrep CE with the project's own rules) and dependency scanning (`pnpm audit`, Dependabot) before every merge and nightly in CI (D100); OWASP ZAP's baseline and API scans before each release, and the ASVS Level 2 self-review kept in `docs/security/asvs-l2.md` (D101); an external penetration test before general availability and yearly, including attempts to cross tenants with crafted IDs |
 
 ### 13.2 Threats and mitigations
 

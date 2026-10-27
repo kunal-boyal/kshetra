@@ -15,6 +15,9 @@ import { callerOf, SecurityLog } from './platform/security-log';
 import { genReqId } from './platform/request-id';
 import { HealthCounters } from './platform/health-counters';
 
+/** The devices no API answer may use, as the web apps' CloudFront sends (decision D101). */
+const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(), payment=(), usb=()';
+
 const LEVELS: Record<Config['LOG_LEVEL'], LogLevel[]> = {
   debug: ['debug', 'log', 'warn', 'error', 'fatal'],
   info: ['log', 'warn', 'error', 'fatal'],
@@ -100,6 +103,12 @@ export async function createApp(
       void reply.header('content-security-policy', "default-src 'none'; frame-ancestors 'none'");
     }
     void reply.header('referrer-policy', 'no-referrer');
+    // No other site may embed an answer, share a window with the reference page, or give it
+    // devices (ZAP's findings, decision D101); the web apps call the API from its own origin.
+    void reply.header('cross-origin-resource-policy', 'same-origin');
+    void reply.header('cross-origin-opener-policy', 'same-origin');
+    void reply.header('cross-origin-embedder-policy', 'require-corp');
+    void reply.header('permissions-policy', PERMISSIONS_POLICY);
     if (config.NODE_ENV === 'production') {
       void reply.header('strict-transport-security', 'max-age=63072000; includeSubDomains');
     }

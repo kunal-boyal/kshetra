@@ -175,6 +175,13 @@ resource "aws_cloudfront_response_headers_policy" "app" {
       value    = "same-origin"
       override = true
     }
+    # No other site may load the apps' files (ZAP's scan, decision D101). The list matches
+    # SECURITY_HEADERS in content-security-policy.mjs, which the previews send.
+    items {
+      header   = "Cross-Origin-Resource-Policy"
+      value    = "same-origin"
+      override = true
+    }
   }
 }
 

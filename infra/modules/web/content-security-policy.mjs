@@ -27,6 +27,19 @@ export function contentSecurityPolicy({ maps = false, media } = {}) {
   return [...directives, 'upgrade-insecure-requests'].join('; ');
 }
 
+/**
+ * The other headers CloudFront's response policy in main.tf adds (decision D101), so the previews,
+ * and ZAP's scans of them, see what production sends. HSTS stays out: previews serve plain HTTP.
+ */
+export const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+};
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const media = args.includes('--media') ? args[args.indexOf('--media') + 1] : undefined;
