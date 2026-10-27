@@ -25,6 +25,7 @@ import { createLocalJWKSet, errors, type JSONWebKeySet, jwtVerify } from 'jose';
 import type { Config } from '../config';
 import { ApiCalls } from './api-calls';
 import { ApiClientLimits } from './api-client-limits';
+import { RateLimiter } from './rate-limit';
 import { CONFIG } from './tokens';
 
 /** Who is calling, from a verified access token (spec 11.1). */
@@ -314,8 +315,16 @@ export class AuthGuard implements CanActivate {
     private readonly staffResolver: StaffResolver,
     private readonly apiCalls: ApiCalls,
     private readonly clientLimits: ApiClientLimits,
+    private readonly limiter: RateLimiter,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
+
+  private perPerson(caller: string): Promise<void> {
+    return this.limiter.hit(
+      { name: 'person', max: this.config.USER_REQUESTS_PER_MINUTE, windowSeconds: 60 },
+      caller,
+    );
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const rule = accessRule(this.reflector, [context.getHandler(), context.getClass()]);
@@ -338,6 +347,7 @@ export class AuthGuard implements CanActivate {
         request.clientIp,
       );
       request.staff = staff;
+      await this.perPerson(`staff:${staff.staffId}`);
       if (!rule.permissions.every((permission) => staff.permissions.has(permission))) {
         throw new AppError('FORBIDDEN', 'You do not have access to this.');
       }
@@ -361,6 +371,12 @@ export class AuthGuard implements CanActivate {
     this.apiCalls.count(access.tenantId);
     // The tenant's requests a minute by plan, everyone's together (decision D98).
     await this.clientLimits.tenant(access.tenantId);
+    // Each person within a minute's requests of their own (decision D101); clients have theirs.
+    if (!access.apiClient) {
+      await this.perPerson(
+        access.support ? `support:${access.support.grantId}` : `user:${access.userId}`,
+      );
+    }
     if (access.apiClient) {
       // Each client within its plan's requests a minute (decision D94).
       await this.clientLimits.hit(access.tenantId, access.apiClient.id);

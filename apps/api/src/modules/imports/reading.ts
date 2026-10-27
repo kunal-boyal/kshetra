@@ -15,6 +15,11 @@ export type Cell = string | boolean | Date | null;
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
 /** Largest a spreadsheet may unpack to, so a small file can't fill the worker's memory. */
 const MAX_UNPACKED_BYTES = 200 * 1024 * 1024;
+/**
+ * Most files a spreadsheet may hold: a workbook has a few dozen, so thousands mean a file made to
+ * tie the reader up (ASVS V5.2.3, decision D101).
+ */
+const MAX_ENTRIES = 1000;
 /** The header is somewhere in the first rows (M19). */
 const HEADER_SEARCH_ROWS = 15;
 
@@ -36,18 +41,26 @@ export function fileKind(fileName: string, contentType: string): FileKind | null
   return null;
 }
 
-/** Refuses a spreadsheet that says it unpacks to more than the limit, before unpacking it. */
+/**
+ * Refuses a spreadsheet that says it unpacks to more than the limit, or holds more files than any
+ * workbook needs, before unpacking it.
+ */
 function checkUnpackedSize(bytes: Uint8Array): void {
   let total = 0;
+  let entries = 0;
   try {
     unzipSync(bytes, {
       filter: (file) => {
         total += file.originalSize;
+        entries += 1;
         return false;
       },
     });
   } catch {
     throw new UnreadableFileError('This is not a readable XLSX file.');
+  }
+  if (entries > MAX_ENTRIES) {
+    throw new UnreadableFileError('This spreadsheet holds too many parts to be a workbook.');
   }
   if (total > MAX_UNPACKED_BYTES) {
     throw new UnreadableFileError('This spreadsheet is too large once unpacked.');

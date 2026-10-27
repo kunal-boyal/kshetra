@@ -80,7 +80,10 @@ export class DocsController {
   @Header('Cache-Control', 'public, max-age=300')
   @Contract({ tag: 'Documentation', summary: 'The OpenAPI document', file: 'application/json' })
   openapi(): string {
-    this.document ??= JSON.stringify(buildOpenApi(this.routes, apiTitle(this.config.PRODUCT_NAME)));
+    // Integrators see the API they may call; the vendor console's own routes stay out of the
+    // public document (ASVS V13.4.5, decision D101), though `apps/api/openapi.json` keeps them.
+    const published = this.routes.filter((route) => !route.path.startsWith('/platform/'));
+    this.document ??= JSON.stringify(buildOpenApi(published, apiTitle(this.config.PRODUCT_NAME)));
     return this.document;
   }
 

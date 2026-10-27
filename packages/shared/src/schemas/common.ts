@@ -7,11 +7,11 @@ export const IdParams = z.strictObject({ id: z.uuid() });
 /** `GET /health`: the process is up and answering. */
 export const HealthResult = z.object({ status: z.literal('ok') });
 
-/** `GET /ready`: whether everything real work needs answers, check by check. */
-export const ReadyResult = z.object({
-  status: z.enum(['ready', 'not_ready']),
-  checks: z.record(z.string(), z.enum(['ok', 'unavailable'])),
-});
+/**
+ * `GET /ready`: whether everything real work needs answers. Which part doesn't goes to the logs,
+ * never to whoever asks (ASVS V13.4.5, decision D101).
+ */
+export const ReadyResult = z.object({ status: z.enum(['ready', 'not_ready']) });
 
 /** A tenant permission from spec Appendix E. */
 export const Permission = z.enum(TENANT_PERMISSIONS).meta({ id: 'Permission' });

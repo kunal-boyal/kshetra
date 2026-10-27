@@ -25,7 +25,7 @@ The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderab
 |---|---|
 | RDS for PostgreSQL | The database, with 14 days of point-in-time recovery. Multi-AZ, a read replica and snapshots copied to Hyderabad come with the production cell's sizes. |
 | ElastiCache for Valkey (Redis-compatible) | Queues, rate limits and live positions; replication and failover with two or more nodes |
-| S3 | Stores media and exports. Versioning and lifecycle rules delete files by retention class. Also hosts the web apps. |
+| S3 | Stores media and exports, encrypted under a KMS key of the cell's own (decision D101). Versioning and lifecycle rules delete files by retention class. Also hosts the web apps. |
 | CloudFront | Serves media through short-lived signed URLs, and serves the web apps |
 | SES | Sends email (directory plane) |
 | ECS on Fargate | Runs the `api`, `worker`, `scheduler` and one-off `migrate` and `bootstrap` tasks, all from one image (`apps/api/Dockerfile`) |

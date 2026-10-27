@@ -31,11 +31,56 @@ resource "aws_s3_bucket_versioning" "media" {
   }
 }
 
+# Files are encrypted under a key of the cell's own (spec 13.1, ASVS V14.2.4, decision D101): the
+# tasks and CloudFront's reads of this distribution may use it, nothing else. Files stored before
+# keep S3's own encryption until they are rewritten or expire.
 resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
   bucket = aws_s3_bucket.media.id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.media.arn
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_kms_key" "media" {
+  description             = "${var.name} media"
+  enable_key_rotation     = true
+  deletion_window_in_days = 30
+  policy                  = data.aws_iam_policy_document.media_key.json
+  tags                    = var.tags
+}
+
+resource "aws_kms_alias" "media" {
+  name          = "alias/${var.name}-media"
+  target_key_id = aws_kms_key.media.key_id
+}
+
+data "aws_iam_policy_document" "media_key" {
+  # The account administers the key, and IAM policies, such as the tasks', grant its use.
+  statement {
+    sid       = "Account"
+    actions   = ["kms:*"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+  statement {
+    sid       = "CloudFrontReads"
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.media.arn]
     }
   }
 }
@@ -76,8 +121,28 @@ resource "aws_cloudfront_key_group" "media" {
   items = [aws_cloudfront_public_key.media.id]
 }
 
-data "aws_cloudfront_cache_policy" "optimized" {
-  name = "Managed-CachingOptimized"
+# Edges keep a file no longer than a read link lasts (READ_LINK_SECONDS, five minutes), so a
+# file removed by retention or an erasure stops being served within minutes (ASVS V14.2.2,
+# decision D101). The signature's query string stays out of the key, as before.
+resource "aws_cloudfront_cache_policy" "media" {
+  name        = "${var.name}-media"
+  comment     = "${var.name} media: kept five minutes at most"
+  min_ttl     = 0
+  default_ttl = 300
+  max_ttl     = 300
+  parameters_in_cache_key_and_forwarded_to_origin {
+    enable_accept_encoding_brotli = true
+    enable_accept_encoding_gzip   = true
+    cookies_config {
+      cookie_behavior = "none"
+    }
+    headers_config {
+      header_behavior = "none"
+    }
+    query_strings_config {
+      query_string_behavior = "none"
+    }
+  }
 }
 
 # Files are what they say they are, never framed, and never tell where they were opened from
@@ -126,7 +191,7 @@ resource "aws_cloudfront_distribution" "media" {
     viewer_protocol_policy     = "https-only"
     allowed_methods            = ["GET", "HEAD"]
     cached_methods             = ["GET", "HEAD"]
-    cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
+    cache_policy_id            = aws_cloudfront_cache_policy.media.id
     trusted_key_groups         = [aws_cloudfront_key_group.media.id]
     response_headers_policy_id = aws_cloudfront_response_headers_policy.media.id
     compress                   = true

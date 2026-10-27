@@ -210,6 +210,8 @@ describe('API clients (M20, D94)', () => {
     expect(openapi.components.securitySchemes.apiClient.flows.clientCredentials.tokenUrl).toBe(
       '/auth/v1/oauth/token',
     );
+    // The vendor console's own routes aren't published (D101).
+    expect(Object.keys(openapi.paths).filter((path) => path.startsWith('/platform/'))).toEqual([]);
     expect(openapi.paths['/v1/users'].get.security).toContainEqual({
       apiClient: expect.arrayContaining(['people:read', 'people:write']),
     });

@@ -205,6 +205,25 @@ describe('entitlements (spec 5.13)', () => {
     expect(free).toEqual(['leave_attendance']);
   });
 
+  it('gives the last seat to one of two people added at once (D101)', async () => {
+    const t = await tenant('Racing Co');
+    const capped = await addPlan(`race${newId().slice(-6)}`, {
+      modules: ['core', 'leave_attendance', 'orders', 'account_finance', 'expenses'],
+      limits: { users: 2, storageGb: null },
+    });
+    await send('PUT', `/platform/v1/tenants/${t.tenantId}/plan`, staff, { planId: capped });
+    const add = (code: string) =>
+      send('POST', '/v1/users', t.admin, {
+        code,
+        name: `Person ${code}`,
+        phone: newPhone(),
+        designation: 'executive',
+        managerId: null,
+      });
+    const answers = await Promise.all([add('R1'), add('R2'), add('R3')]);
+    expect(answers.map((answer) => answer.statusCode).sort()).toEqual([201, 402, 402]);
+  });
+
   it('caps active people at the plan’s limit (SEAT_LIMIT)', async () => {
     const t = await tenant('Capped Co');
     const capped = await addPlan(`cap${newId().slice(-6)}`, {

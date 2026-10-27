@@ -35,10 +35,7 @@ describe('the HTTP API', () => {
   it('is ready when the databases and Redis answer', async () => {
     const response = await app.inject({ method: 'GET', url: '/ready' });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({
-      status: 'ready',
-      checks: { database: 'ok', directory: 'ok', redis: 'ok' },
-    });
+    expect(response.json()).toEqual({ status: 'ready' });
   });
 
   it("keeps a caller's well-formed X-Request-Id", async () => {
@@ -92,9 +89,7 @@ describe('the HTTP API with its databases and Redis down', () => {
     expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
     const ready = await app.inject({ method: 'GET', url: '/ready' });
     expect(ready.statusCode).toBe(503);
-    expect(ready.json()).toEqual({
-      status: 'not_ready',
-      checks: { database: 'unavailable', directory: 'unavailable', redis: 'unavailable' },
-    });
+    // Which part is down is logged, never told to whoever asks (D101).
+    expect(ready.json()).toEqual({ status: 'not_ready' });
   });
 });

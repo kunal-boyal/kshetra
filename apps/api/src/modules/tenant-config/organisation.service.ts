@@ -9,6 +9,10 @@ import { MediaService } from '../media/media.service';
 import { MediaUrls } from '../media/media-urls';
 import { TenantConfigService } from './tenant-config.service';
 
+/** What a logo's bytes may decode as: the formats `LOGO_TYPES` names. */
+const LOGO_FORMATS = new Set(['png', 'jpeg', 'webp']);
+/** Most pixels a logo may decode to: 25 megapixels, far beyond any logo. */
+const LOGO_MAX_PIXELS = 25_000_000;
 /** The longest side a stored logo keeps: enough for a header at three times density. */
 const LOGO_SIDE = 512;
 
@@ -65,7 +69,12 @@ export class OrganisationService {
     }
     let png: Buffer;
     try {
-      png = await sharp(bytes)
+      // The bytes themselves must be one of the three, whatever the request says they are, and of
+      // a sensible size once decoded (ASVS V5.2.2, decision D101): sharp would read SVG and more.
+      const image = sharp(bytes, { limitInputPixels: LOGO_MAX_PIXELS });
+      const { format } = await image.metadata();
+      if (!format || !LOGO_FORMATS.has(format)) throw new Error(`a ${format ?? 'unknown'} image`);
+      png = await image
         .resize({ width: LOGO_SIDE, height: LOGO_SIDE, fit: 'inside', withoutEnlargement: true })
         .png()
         .toBuffer();

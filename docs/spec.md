@@ -1386,7 +1386,7 @@ Exports, reports and bulk reads from the public API run on the read replica. Wri
 | Pagination | Cursor-based: `?limit=50&cursor=...` returns `{ items, nextCursor }` |
 | Filtering and sorting | Explicit query parameters per endpoint |
 | Caching | `ETag` on configuration and catalogue endpoints; clients send `If-None-Match` |
-| Rate limits | Per user, per tenant and per API client; `429` with `Retry-After` |
+| Rate limits | Per user (600 requests a minute by default, `USER_REQUESTS_PER_MINUTE`, D101), per tenant and per API client; `429` with `Retry-After` |
 | Versioning | Additive changes within `/v1`; breaking changes go to `/v2`; minimum app version enforced per platform |
 
 ### 11.2 Endpoint groups

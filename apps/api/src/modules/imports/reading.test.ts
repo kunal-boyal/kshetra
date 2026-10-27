@@ -1,3 +1,4 @@
+import { zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import {
   cellDate,
@@ -60,6 +61,15 @@ describe('reading a file (M19)', () => {
     await expect(readRows(book, 'xlsx', 'Missing')).rejects.toThrow(UnreadableFileError);
     await expect(readRows(new TextEncoder().encode('not a zip'), 'xlsx')).rejects.toThrow(
       UnreadableFileError,
+    );
+  });
+
+  it('refuses a file of thousands of parts before reading it (D101)', async () => {
+    const parts = Object.fromEntries(
+      Array.from({ length: 1001 }, (_, index) => [`xl/part${index}.xml`, new Uint8Array([60])]),
+    );
+    await expect(readRows(zipSync(parts), 'xlsx')).rejects.toThrow(
+      'This spreadsheet holds too many parts to be a workbook.',
     );
   });
 
