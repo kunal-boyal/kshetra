@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: orders</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="orders" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Orders</h1>
+          <p class="ks-meta" style="font-size: 15px;">October · 192 orders · ₹48.6 L</p>
+        </div>
+        <div class="ks-row">
+          <button type="button" class="ks-btn secondary sm">Import invoices</button>
+          <button type="button" class="ks-btn primary sm">New order</button>
+        </div>
+      </div>
+      <div class="ks-row" style="flex-wrap: wrap;">
+        <button type="button" class="ks-btn secondary sm" aria-pressed="false">Placed · 18</button>
+        <button type="button" class="ks-btn secondary sm" aria-pressed="false">Confirmed · 9</button>
+        <button type="button" class="ks-btn primary sm" aria-pressed="true">Dispatched · 22</button>
+        <button type="button" class="ks-btn secondary sm" aria-pressed="false">Invoiced · 140</button>
+        <button type="button" class="ks-btn secondary sm" aria-pressed="false">Cancelled · 3</button>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <div style="flex: 3 1 520px; min-width: 0; overflow-x: auto;">
+          <table class="ks-table">
+            <thead><tr><th>Order</th><th>Date</th><th>Account</th><th>Taken by</th><th class="r">Value</th><th>Status</th></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+                <tr class="{{r.sel}}"><td><code>{{r.no}}</code></td><td class="ks-num">{{r.date}}</td><td style="font-weight: 600;">{{r.acc}}</td><td>{{r.by}}</td><td class="r">{{r.value}}</td><td><span class="ks-badge info">Dispatched</span></td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+
+        <section class="ks-card raised" aria-labelledby="ord" style="flex: 2 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <div class="ks-spread">
+            <div><h2 id="ord" class="heading-lg" style="margin: 0;">Order 1187</h2><p class="ks-meta">Shree Krishna Agro Traders · D-1042 · by Ravi Kumar</p></div>
+            <span class="ks-badge info">Dispatched</span>
+          </div>
+          <table class="ks-table" style="box-shadow: none;">
+            <thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Amount</th></tr></thead>
+            <tbody>
+              <tr><td>NPK 19:19:19, 1 kg</td><td class="r">200</td><td class="r">₹28,400.00</td></tr>
+              <tr><td>Calcium nitrate, 25 kg</td><td class="r">10</td><td class="r">₹16,400.00</td></tr>
+              <tr><td>GV-Grow, 500 ml</td><td class="r">24</td><td class="r">₹9,240.00</td></tr>
+              <tr><td>Hybrid maize GV-511, 4 kg</td><td class="r">4</td><td class="r">₹5,040.00</td></tr>
+            </tbody>
+          </table>
+          <dl class="ks-dl" style="grid-template-columns: 1fr auto; font-size: 14px; line-height: 20px;">
+            <dt>Subtotal</dt><dd class="ks-num" style="text-align: right;">₹59,080.00</dd>
+            <dt>GST (CGST + SGST)</dt><dd class="ks-num" style="text-align: right;">₹3,903.20</dd>
+            <dt style="font-weight: 700; color: var(--text);">Total</dt><dd class="ks-num" style="text-align: right; font-weight: 700;">₹62,983.20</dd>
+          </dl>
+          <div class="ks-notice" style="background: var(--success-bg); color: var(--success-fg);"><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span><strong style="color: inherit;">Matches invoice INV-2401 to the paisa.</strong> Imported from Tally on 21 Oct.</span></div>
+          <ol class="ks-steps">
+            <li class="ks-step done"><span class="ks-node"><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><div class="label-md">Placed 19 Oct, 9:52 am · on the phone, offline</div></li>
+            <li class="ks-step done"><span class="ks-node"><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><div class="label-md">Confirmed 19 Oct · prices checked</div></li>
+            <li class="ks-step current"><span class="ks-node"></span><div class="label-md">Dispatched 23 Oct, 10:20 am</div></li>
+          </ol>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (no, date, acc, by, value, sel) => ({ no, date, acc, by, value, sel: sel ? 'sel' : '' });
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        R('1187', '19 Oct', 'Shree Krishna Agro Traders', 'Ravi Kumar', '₹62,983.20', true),
+        R('1179', '18 Oct', 'Malwa Agri Distributors', 'Kavita Joshi', '₹1,14,520.00'),
+        R('1176', '17 Oct', 'Narmada Inputs', 'Anil Patidar', '₹48,207.60'),
+        R('1171', '16 Oct', 'Patel Krishi Kendra', 'Ravi Kumar', '₹18,375.00'),
+        R('1168', '16 Oct', 'Jai Kisan Agro', 'Manish Verma', '₹12,870.00'),
+        R('1162', '15 Oct', 'Bhole Krishi Seva', 'Deepak Chouhan', '₹31,940.40'),
+        R('1157', '14 Oct', 'Om Sai Fertilisers', 'Ravi Kumar', '₹9,150.00'),
+        R('1151', '13 Oct', 'Shiv Shakti Traders', 'Kavita Joshi', '₹77,312.00')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -19,5 +19,8 @@ apps/mobile/expo-env.d.ts
 # Written by `pnpm openapi` from the route registry.
 apps/api/openapi.json
 
+# The prototype as Kunal's artifact holds it, copied byte for byte (tools/ui-compare/README.md).
+tools/ui-compare/prototype/
+
 # Local worktrees, each with its own packages.
 .claude/

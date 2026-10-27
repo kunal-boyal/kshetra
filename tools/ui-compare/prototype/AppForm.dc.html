@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: form with photos</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="display: flex; align-items: center; gap: 4px; padding: 8px 12px 8px 8px; border-bottom: 1px solid var(--border); background: var(--surface);">
+    <a href="AppVisit.dc.html" aria-label="Close and keep the draft" style="display: grid; place-items: center; width: 44px; height: 44px; color: var(--text);">
+      <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <h1 class="heading-md" style="margin: 0;">Farmer visit</h1>
+      <p class="ks-meta">Draft saved on this phone · 2:21 pm</p>
+    </div>
+    <span class="ks-badge neutral">v3</span>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+    <div class="ks-field">
+      <label class="ks-label" for="farmer">Farmer <span class="req">*</span></label>
+      <input id="farmer" class="ks-input" value="Ramesh Yadav · Khedi">
+    </div>
+    <div class="ks-field">
+      <label class="ks-label" for="village">Village <span class="req">*</span></label>
+      <input id="village" class="ks-input" value="Khedi">
+    </div>
+    <fieldset class="ks-field" style="border: 0; padding: 0; margin: 0;">
+      <legend class="ks-label" style="margin-bottom: 4px;">Crop <span class="req">*</span></legend>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <button type="button" aria-pressed="true" class="ks-btn tonal sm" style="box-shadow: inset 0 0 0 2px var(--accent);">Soybean</button>
+        <button type="button" aria-pressed="false" class="ks-btn secondary sm">Maize</button>
+        <button type="button" aria-pressed="false" class="ks-btn secondary sm">Wheat</button>
+        <button type="button" aria-pressed="false" class="ks-btn secondary sm">Cotton</button>
+        <button type="button" aria-pressed="false" class="ks-btn secondary sm">Gram</button>
+      </div>
+    </fieldset>
+    <div class="ks-field">
+      <label class="ks-label" for="product">Product discussed</label>
+      <input id="product" class="ks-input" value="GV-Grow bio-stimulant, 500 ml">
+    </div>
+    <div class="ks-field">
+      <label class="ks-label" for="outcome">Outcome <span class="req">*</span></label>
+      <textarea id="outcome" class="ks-input" rows="3" style="height: auto; padding: 12px 16px; resize: none;">Will try two bottles on 3 acres before flowering. Asked for a demo plot visit next week.</textarea>
+    </div>
+    <div class="ks-field">
+      <span class="ks-label">Photos <span class="req">*</span> <span class="ks-muted" style="font-weight: 400;">2 of 3</span></span>
+      <div class="ks-photos">
+        <div class="ks-photo" style="width: 96px; height: 96px; background: var(--pastel-sage-bg); color: var(--pastel-sage-fg);" role="img" aria-label="Photo 1, field with farmer">
+          <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l5-6 4 4 3-3 6 5M3 6h18v12H3z"></path></svg>
+          <span class="ks-photo-tag" style="background: var(--success-bg); color: var(--success-fg);">2:18 pm</span>
+        </div>
+        <div class="ks-photo" style="width: 96px; height: 96px; background: var(--pastel-sand-bg); color: var(--pastel-sand-fg);" role="img" aria-label="Photo 2, crop close-up">
+          <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l5-6 4 4 3-3 6 5M3 6h18v12H3z"></path></svg>
+          <span class="ks-photo-tag" style="background: var(--success-bg); color: var(--success-fg);">2:19 pm</span>
+        </div>
+        <button type="button" aria-label="Take a photo" style="width: 96px; height: 96px; border-radius: 8px; border: 2px dashed var(--border-strong); background: var(--surface); color: var(--accent); display: grid; place-items: center; cursor: pointer;">
+          <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"></path></svg>
+        </button>
+      </div>
+      <span class="ks-help">Live camera only. Each photo carries its time and place.</span>
+    </div>
+  </main>
+  <div style="padding: 12px 16px 16px; border-top: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; gap: 8px;">
+    <a class="ks-btn primary lg block" href="AppVisit.dc.html" style="text-decoration: none;">Submit</a>
+    <p class="ks-meta" style="text-align: center;">No signal? It sends itself when you are back online.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

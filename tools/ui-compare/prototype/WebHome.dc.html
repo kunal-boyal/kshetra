@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: home dashboard</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="home" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <a href="WebReview.dc.html" class="ks-btn ghost sm" aria-label="Notifications" style="text-decoration: none;"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9zM10 20a2 2 0 0 0 4 0"></path></svg></a>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Good afternoon, Arjun</h1>
+          <p class="ks-meta" style="font-size: 15px;">Friday 23 October · all regions · updated 2:31 pm</p>
+        </div>
+        <div class="ks-row">
+          <button type="button" class="ks-btn secondary sm">All regions</button>
+          <button type="button" class="ks-btn secondary sm">October</button>
+          <a href="WebReports.dc.html" class="ks-btn tonal sm" style="text-decoration: none;">Reports</a>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        <sc-for list="{{tiles}}" as="t" hint-placeholder-count="4">
+          <a href="{{t.href}}" class="ks-kpi" style="text-decoration: none; color: inherit;">
+            <div class="ks-kpi-head"><span class="ks-ico sm {{t.hue}}"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.d}}"></path></svg></span><p class="ks-kpi-label">{{t.label}}</p></div>
+            <p class="ks-kpi-value">{{t.value}}</p>
+            <div class="ks-bar"><i class="done" style="width: {{t.pct}};"></i><i class="pend" style="width: {{t.pend}};"></i></div>
+            <div class="ks-kpi-foot"><span>{{t.foot}}</span><span>{{t.right}}</span></div>
+          </a>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+        <section class="ks-card" aria-labelledby="trend" style="flex: 2 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+          <div class="ks-spread">
+            <h2 id="trend" class="ks-title">Visits by day</h2>
+            <div class="ks-row" style="font-size: 13px;">
+              <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--success-solid);"></span>Approved</span>
+              <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 2px; background: repeating-linear-gradient(45deg, var(--pending-solid) 0 3px, var(--pending-bg) 3px 6px);"></span>Waiting</span>
+              <button type="button" class="ks-btn ghost sm">Show the numbers</button>
+            </div>
+          </div>
+          <div role="img" aria-label="Visits per working day from 9 to 23 October, about 260 a day, with today's 214 partly waiting for review" style="display: flex; align-items: flex-end; gap: 8px; height: 220px; padding-top: 8px; border-bottom: 1px solid var(--chart-grid); background: repeating-linear-gradient(to top, transparent 0 54px, var(--chart-grid) 54px 55px);">
+            <sc-for list="{{bars}}" as="b" hint-placeholder-count="13">
+              <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; height: 100%;">
+                <div style="height: {{b.p}}; border-radius: 4px 4px 0 0; background: repeating-linear-gradient(45deg, var(--pending-solid) 0 3px, var(--pending-bg) 3px 6px);"></div>
+                <div style="height: {{b.a}}; background: var(--success-solid);"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{bars}}" as="b" hint-placeholder-count="13"><span class="caption ks-subtle" style="flex: 1; text-align: center;">{{b.d}}</span></sc-for>
+          </div>
+        </section>
+
+        <section class="ks-card" aria-labelledby="lb" style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <div class="ks-spread"><h2 id="lb" class="ks-title">Leaderboard · SMEs</h2><a href="WebPerformance.dc.html" class="label-md">All</a></div>
+          <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px;">
+            <sc-for list="{{leaders}}" as="l" hint-placeholder-count="5">
+              <li class="ks-row" style="min-height: 44px; gap: 12px;">
+                <span class="ks-seq {{l.hue}}">{{l.rank}}</span>
+                <span style="flex: 1; min-width: 0;"><span class="label-md" style="display: block; font-weight: 600;">{{l.name}}</span><span class="ks-meta">{{l.area}}</span></span>
+                <span class="metric-md">{{l.score}}</span>
+              </li>
+            </sc-for>
+          </ol>
+        </section>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+        <section class="ks-card" aria-labelledby="duty" style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <div class="ks-spread"><h2 id="duty" class="ks-title">On duty now · 38 of 46</h2><a href="WebLive.dc.html" class="label-md">Live map</a></div>
+          <table class="ks-table" style="box-shadow: none;">
+            <thead><tr><th>Person</th><th>Where</th><th class="r">Visits</th><th>Last seen</th></tr></thead>
+            <tbody>
+              <tr><td>Ravi Kumar</td><td>Sanwer</td><td class="r">3</td><td><span class="ks-badge success">2 min ago</span></td></tr>
+              <tr><td>Anil Patidar</td><td>Hatod</td><td class="r">5</td><td><span class="ks-badge success">1 min ago</span></td></tr>
+              <tr><td>Pooja Rathore</td><td>Mhow</td><td class="r">2</td><td><span class="ks-badge waiting">24 min ago</span></td></tr>
+              <tr><td>Deepak Chouhan</td><td>Depalpur</td><td class="r">4</td><td><span class="ks-badge neutral">Paused</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="ks-card" aria-labelledby="wait" style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <h2 id="wait" class="ks-title">Waiting for you</h2>
+          <div class="ks-list" style="box-shadow: none;">
+            <a href="WebReview.dc.html" class="ks-item" style="text-decoration: none; color: inherit;"><span class="ks-ico sm hue-sage"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6v3H9zM7 5H5v16h14V5h-2M8 14l3 3 5-6"></path></svg></span><span class="ks-item-main label-md" style="font-weight: 600;">Visits to review</span><span class="ks-badge pending">14</span></a>
+            <a href="WebPlans.dc.html" class="ks-item" style="text-decoration: none; color: inherit;"><span class="ks-ico sm hue-sky"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path></svg></span><span class="ks-item-main label-md" style="font-weight: 600;">November beat plans</span><span class="ks-badge pending">2</span></a>
+            <a href="WebAttendance.dc.html" class="ks-item" style="text-decoration: none; color: inherit;"><span class="ks-ico sm hue-lilac"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"></path></svg></span><span class="ks-item-main label-md" style="font-weight: 600;">Leave and attendance</span><span class="ks-badge pending">5</span></a>
+            <a href="WebExpenses.dc.html" class="ks-item" style="text-decoration: none; color: inherit;"><span class="ks-ico sm hue-peach"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"></path></svg></span><span class="ks-item-main label-md" style="font-weight: 600;">Expense claims</span><span class="ks-badge pending">3</span></a>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const pct = (n) => Math.round(n / 340 * 100) + '%';
+    const days = [['9', 248, 0], ['10', 262, 0], ['12', 251, 0], ['13', 270, 0], ['14', 239, 0], ['15', 266, 0], ['16', 255, 0], ['17', 241, 0], ['19', 272, 0], ['20', 268, 2], ['21', 259, 6], ['22', 238, 31], ['23', 132, 82]];
+    return {
+      theme: this.props.theme ?? 'light',
+      tiles: [
+        { label: 'On duty now', value: '38', pct: '83%', pend: '0%', foot: 'of 46 people', right: '6 on leave', hue: 'hue-mint', href: 'WebLive.dc.html', d: 'M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z' },
+        { label: 'Visits today', value: '214', pct: '41%', pend: '26%', foot: 'plan 320', right: '82 waiting', hue: 'hue-sage', href: 'WebReview.dc.html', d: 'M9 4h6v3H9zM7 5H5v16h14V5h-2M8 14l3 3 5-6' },
+        { label: 'Retailer coverage', value: '84%', pct: '84%', pend: '0%', foot: 'target 95%', right: '1,212 of 1,443', hue: 'hue-sky', href: 'WebAccounts.dc.html', d: 'M4 21V9l8-5 8 5v12M9 21v-6h6v6' },
+        { label: 'Order value, October', value: '₹48.6 L', pct: '65%', pend: '4%', foot: 'target ₹75 L', right: '₹3.1 L pending', hue: 'hue-butter', href: 'WebOrders.dc.html', d: 'M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6' }
+      ],
+      bars: days.map((x) => ({ d: x[0], a: pct(x[1]), p: pct(x[2]) })),
+      leaders: [
+        { rank: '1', name: 'Sneha Malviya', area: 'Gautampura', score: '91', hue: 'hue-butter' },
+        { rank: '2', name: 'Anil Patidar', area: 'Hatod', score: '88', hue: 'hue-sand' },
+        { rank: '3', name: 'Ravi Kumar', area: 'Sanwer', score: '86', hue: 'hue-sage' },
+        { rank: '4', name: 'Deepak Chouhan', area: 'Depalpur', score: '77', hue: '' },
+        { rank: '5', name: 'Pooja Rathore', area: 'Mhow', score: '74', hue: '' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

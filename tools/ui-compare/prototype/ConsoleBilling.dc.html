@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console: plans and invoices</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="ConsoleRail" current="billing" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-badge danger">Production</span><span class="label-md ks-muted">Mumbai · cell shared-1</span></div>
+      <div class="ks-appbar-tools"><button type="button" class="ks-btn secondary sm">Export for accounts</button></div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div>
+        <h1 class="heading-xl" style="margin: 0;">Plans and invoices</h1>
+        <p class="ks-meta" style="font-size: 15px;">Prices in brackets wait for decision D3</p>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+        <sc-for list="{{plans}}" as="p" hint-placeholder-count="3">
+          <section class="ks-card {{p.hue}}" style="display: flex; flex-direction: column; gap: 10px; box-shadow: {{p.ring}};">
+            <div class="ks-spread"><h2 class="heading-lg" style="margin: 0;">{{p.name}}</h2><span class="ks-badge neutral">{{p.count}}</span></div>
+            <p class="metric-md" style="margin: 0;">{{p.price}}</p>
+            <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 20px;">
+              <sc-for list="{{p.items}}" as="i" hint-placeholder-count="4"><li>{{i}}</li></sc-for>
+            </ul>
+          </section>
+        </sc-for>
+      </div>
+      <section aria-labelledby="inv" style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="ks-spread"><h2 id="inv" class="ks-title">October invoices</h2><span class="ks-meta">Sent on the 1st · GST invoices · paid by mandate or bank transfer</span></div>
+        <div style="overflow-x: auto;">
+          <table class="ks-table">
+            <thead><tr><th>Invoice</th><th>Tenant</th><th>Plan</th><th class="r">Seats</th><th class="r">Amount</th><th>Status</th><th>Next step</th></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+                <tr><td><code>{{r.no}}</code></td><td style="font-weight: 600;">{{r.tenant}}</td><td>{{r.plan}}</td><td class="r">{{r.seats}}</td><td class="r">[AMOUNT]</td><td><span class="ks-badge {{r.tone}}">{{r.status}}</span></td><td class="ks-muted">{{r.next}}</td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <div class="ks-notice"><span><strong>When a payment is late:</strong> a reminder on day 3, admins see a banner on day 10, and on day 30 the tenant turns read-only. Nothing is ever deleted for a late payment.</span></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = { Paid: 'success', Due: 'info', Late: 'waiting', 'Read-only': 'danger' };
+    const R = (no, tenant, plan, seats, status, next) => ({ no, tenant, plan, seats, status, tone: T[status], next });
+    return {
+      theme: this.props.theme ?? 'light',
+      plans: [
+        { name: 'Starter', count: '3 tenants', price: '[PRICE] / seat / month', hue: '', ring: 'var(--shadow-sm)', items: ['Field core', 'Up to 25 seats', 'Email support'] },
+        { name: 'Growth', count: '7 tenants', price: '[PRICE] / seat / month', hue: 'hue-sage', ring: 'inset 0 0 0 2px var(--accent), var(--shadow-sm)', items: ['Everything in Starter', 'Orders, finance, attendance, expenses', 'WhatsApp and the API', 'Phone support in English and Hindi'] },
+        { name: 'Enterprise', count: '2 tenants', price: 'Agreed per contract', hue: '', ring: 'var(--shadow-sm)', items: ['Everything in Growth', 'Company SSO', 'A dedicated cell on request', 'Named support manager'] }
+      ],
+      rows: [
+        R('TL-2026-0412', 'Green Valley Agro', 'Growth', '41', 'Paid', '—'),
+        R('TL-2026-0413', 'Neelgiri Kheti Seeds', 'Growth', '212', 'Paid', '—'),
+        R('TL-2026-0414', 'Vriddhi Pharma Labs', 'Enterprise', '486', 'Due', 'Due 30 Oct, per contract'),
+        R('TL-2026-0415', 'Thaali Snacks Co', 'Growth', '134', 'Paid', '—'),
+        R('TL-2026-0416', 'Kheti Mitra Agritech', 'Starter', '18', 'Late', 'Banner for admins from 11 Oct'),
+        R('TL-2026-0335', 'Purani Chakki Spices', 'Starter', '15', 'Read-only', 'September bill · read-only since 1 Oct; data kept')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

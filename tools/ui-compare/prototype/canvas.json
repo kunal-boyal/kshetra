@@ -1,0 +1,91 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-23T15:52:00Z" },
+  "title": "The Lamp Product Prototype",
+  "launch": { "view": "focused", "file": "Main.dc.html" },
+  "pages": [
+    { "id": "start", "name": "Start here" },
+    { "id": "field", "name": "Field app" },
+    { "id": "portal", "name": "Web portal" },
+    { "id": "console", "name": "Vendor console" },
+    { "id": "parts", "name": "Shared parts" }
+  ],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1500, "title": "Start here: the whole product", "page": "start", "expand": "fill", "is_interactive": true },
+
+    "AppSignIn.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "Sign in", "page": "field", "is_interactive": true },
+    "AppHome.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "Home", "page": "field", "is_interactive": true },
+    "AppPlan.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "Today's beat plan", "page": "field", "is_interactive": true },
+    "AppVisit.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "Visit at an account", "page": "field", "is_interactive": true },
+    "AppForm.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "Form with photos", "page": "field", "is_interactive": true },
+    "AppTeam.dc.html": { "x": 2350, "y": 0, "w": 390, "h": 844, "title": "Team: review (managers)", "page": "field", "is_interactive": true },
+    "AppMonth.dc.html": { "x": 2820, "y": 0, "w": 390, "h": 844, "title": "My month and leaderboard", "page": "field", "is_interactive": true },
+    "AppInbox.dc.html": { "x": 3290, "y": 0, "w": 390, "h": 844, "title": "Notifications", "page": "field", "is_interactive": true },
+    "AppMore.dc.html": { "x": 3760, "y": 0, "w": 390, "h": 844, "title": "More", "page": "field", "is_interactive": true },
+
+    "AppOrder.dc.html": { "x": 0, "y": 1294, "w": 390, "h": 844, "title": "Take an order", "page": "field", "is_interactive": true },
+    "AppOrderReview.dc.html": { "x": 470, "y": 1294, "w": 390, "h": 844, "title": "Review and place order", "page": "field", "is_interactive": true },
+    "AppCollect.dc.html": { "x": 940, "y": 1294, "w": 390, "h": 844, "title": "Outstanding and collection", "page": "field", "is_interactive": true },
+    "AppAttendance.dc.html": { "x": 1410, "y": 1294, "w": 390, "h": 844, "title": "My attendance", "page": "field", "is_interactive": true },
+    "AppLeave.dc.html": { "x": 1880, "y": 1294, "w": 390, "h": 844, "title": "Apply for leave", "page": "field", "is_interactive": true },
+    "AppClaim.dc.html": { "x": 2350, "y": 1294, "w": 390, "h": 844, "title": "Expense claim", "page": "field", "is_interactive": true },
+    "AppApprovals.dc.html": { "x": 2820, "y": 1294, "w": 390, "h": 844, "title": "Approvals (managers)", "page": "field", "is_interactive": true },
+
+    "WebSignIn.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1100, "title": "Sign in", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebHome.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1100, "title": "Home dashboard", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebLive.dc.html": { "x": 3040, "y": 0, "w": 1440, "h": 1100, "title": "Live map", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebReview.dc.html": { "x": 4560, "y": 0, "w": 1440, "h": 1100, "title": "Review queue", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebPeople.dc.html": { "x": 6080, "y": 0, "w": 1440, "h": 1100, "title": "People", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebAccounts.dc.html": { "x": 7600, "y": 0, "w": 1440, "h": 1100, "title": "Accounts", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebPlans.dc.html": { "x": 9120, "y": 0, "w": 1440, "h": 1100, "title": "Beat plans and targets", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebPerformance.dc.html": { "x": 10640, "y": 0, "w": 1440, "h": 1100, "title": "Performance", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebReports.dc.html": { "x": 12160, "y": 0, "w": 1440, "h": 1100, "title": "Reports and exports", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebForms.dc.html": { "x": 13680, "y": 0, "w": 1440, "h": 1100, "title": "Form builder", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebImports.dc.html": { "x": 15200, "y": 0, "w": 1440, "h": 1100, "title": "Imports", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebSettings.dc.html": { "x": 16720, "y": 0, "w": 1440, "h": 1100, "title": "Organisation settings", "page": "portal", "expand": "fill", "is_interactive": true },
+
+    "WebOrders.dc.html": { "x": 0, "y": 1550, "w": 1440, "h": 1100, "title": "Orders", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebCatalogue.dc.html": { "x": 1520, "y": 1550, "w": 1440, "h": 1100, "title": "Catalogue and price lists", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebFinance.dc.html": { "x": 3040, "y": 1550, "w": 1440, "h": 1100, "title": "Account finance", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebAttendance.dc.html": { "x": 4560, "y": 1550, "w": 1440, "h": 1100, "title": "Attendance register and leave", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebExpenses.dc.html": { "x": 6080, "y": 1550, "w": 1440, "h": 1100, "title": "Expenses", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebWorkflows.dc.html": { "x": 7600, "y": 1550, "w": 1440, "h": 1100, "title": "Approval chains and channels", "page": "portal", "expand": "fill", "is_interactive": true },
+
+    "WebDevelopers.dc.html": { "x": 0, "y": 3100, "w": 1440, "h": 1100, "title": "API and webhooks", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebSecurity.dc.html": { "x": 1520, "y": 3100, "w": 1440, "h": 1100, "title": "Security, audit and data", "page": "portal", "expand": "fill", "is_interactive": true },
+    "WebBilling.dc.html": { "x": 3040, "y": 3100, "w": 1440, "h": 1100, "title": "Subscription and billing", "page": "portal", "expand": "fill", "is_interactive": true },
+
+    "ConsoleTenants.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1100, "title": "Tenants", "page": "console", "expand": "fill", "is_interactive": true },
+    "ConsoleOnboard.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1100, "title": "Onboard a tenant", "page": "console", "expand": "fill", "is_interactive": true },
+    "ConsoleTenant.dc.html": { "x": 3040, "y": 0, "w": 1440, "h": 1100, "title": "Tenant detail", "page": "console", "expand": "fill", "is_interactive": true },
+    "ConsoleBilling.dc.html": { "x": 4560, "y": 0, "w": 1440, "h": 1100, "title": "Plans and invoices", "page": "console", "expand": "fill", "is_interactive": true },
+    "ConsoleCells.dc.html": { "x": 6080, "y": 0, "w": 1440, "h": 1100, "title": "Cells and operations", "page": "console", "expand": "fill", "is_interactive": true },
+
+    "PhoneTabs.dc.html": { "x": 0, "y": 0, "w": 390, "h": 68, "title": "Phone tab bar", "page": "parts", "is_interactive": true },
+    "WebRail.dc.html": { "x": 470, "y": 0, "w": 248, "h": 1100, "title": "Portal rail", "page": "parts", "is_interactive": true },
+    "ConsoleRail.dc.html": { "x": 798, "y": 0, "w": 248, "h": 1100, "title": "Console rail", "page": "parts", "is_interactive": true }
+  },
+  "order": [
+    "Main.dc.html",
+    "AppSignIn.dc.html", "AppHome.dc.html", "AppPlan.dc.html", "AppVisit.dc.html", "AppForm.dc.html", "AppTeam.dc.html", "AppMonth.dc.html", "AppInbox.dc.html", "AppMore.dc.html",
+    "AppOrder.dc.html", "AppOrderReview.dc.html", "AppCollect.dc.html", "AppAttendance.dc.html", "AppLeave.dc.html", "AppClaim.dc.html", "AppApprovals.dc.html",
+    "WebSignIn.dc.html", "WebHome.dc.html", "WebLive.dc.html", "WebReview.dc.html", "WebPeople.dc.html", "WebAccounts.dc.html", "WebPlans.dc.html", "WebPerformance.dc.html", "WebReports.dc.html", "WebForms.dc.html", "WebImports.dc.html", "WebSettings.dc.html",
+    "WebOrders.dc.html", "WebCatalogue.dc.html", "WebFinance.dc.html", "WebAttendance.dc.html", "WebExpenses.dc.html", "WebWorkflows.dc.html",
+    "WebDevelopers.dc.html", "WebSecurity.dc.html", "WebBilling.dc.html",
+    "ConsoleTenants.dc.html", "ConsoleOnboard.dc.html", "ConsoleTenant.dc.html", "ConsoleBilling.dc.html", "ConsoleCells.dc.html",
+    "PhoneTabs.dc.html", "WebRail.dc.html", "ConsoleRail.dc.html"
+  ],
+  "notes": {
+    "f1": { "x": 0, "y": -300, "text": "Phase 1 · Field core: the MVP", "kind": "title1", "maxW": 4150, "page": "field" },
+    "f2": { "x": 0, "y": 994, "text": "Phase 2 · Commerce and people", "kind": "title1", "maxW": 3210, "page": "field" },
+    "f3": { "x": 4250, "y": 0, "w": 320, "text": "Field users see Home, Plan, Orders and More. Team appears for managers. Every capture saves on the phone first and uploads when there is signal. Phase 3 adds no new phone screens: it ships these to the Play and App Stores.", "page": "field", "fill": "green" },
+    "p1": { "x": 0, "y": -300, "text": "Phase 1 · Field core: the MVP", "kind": "title1", "maxW": 18160, "page": "portal" },
+    "p2": { "x": 0, "y": 1250, "text": "Phase 2 · Commerce and people", "kind": "title1", "maxW": 9040, "page": "portal" },
+    "p3": { "x": 0, "y": 2800, "text": "Phase 3 · SaaS readiness", "kind": "title1", "maxW": 4480, "page": "portal" },
+    "c3": { "x": 0, "y": -300, "text": "Phase 3 · The vendor console, for the company that runs The Lamp", "kind": "title1", "maxW": 7520, "page": "console" },
+    "s1": { "x": 0, "y": -300, "text": "Shared parts", "kind": "title1", "maxW": 1046, "page": "parts" }
+  },
+  "designSystems": [
+    { "title": "The Lamp Design System", "namespace": "thelamp", "artifact": "https://claude.ai/artifact/REeP6ZXP72DN9kfhVHbPT3", "version": "1792762282-b4bb", "copiedAt": "2026-10-23T15:52:00Z" }
+  ]
+}

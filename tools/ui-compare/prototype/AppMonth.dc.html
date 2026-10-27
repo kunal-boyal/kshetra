@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: my month and leaderboard</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="display: flex; align-items: center; gap: 4px; padding: 8px 16px 0 8px;">
+    <a href="AppHome.dc.html" aria-label="Back to Home" style="display: grid; place-items: center; width: 44px; height: 44px; color: var(--text);">
+      <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </a>
+    <h1 class="heading-lg" style="margin: 0; flex: 1;">October</h1>
+    <span class="ks-meta">Updated 2:30 pm</span>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 14px;">
+    <section style="display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 16px; background: var(--brand-forest); color: var(--on-brand);">
+      <svg width="88" height="88" viewBox="0 0 88 88" role="img" aria-label="Score 86 out of 100">
+        <circle cx="44" cy="44" r="36" style="fill: none; stroke: color-mix(in srgb, var(--on-brand) 22%, transparent); stroke-width: 9;"></circle>
+        <circle cx="44" cy="44" r="36" pathLength="100" style="fill: none; stroke: var(--brand-gold); stroke-width: 9; stroke-dasharray: 86 100; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 44px 44px;"></circle>
+        <text x="44" y="51" text-anchor="middle" style="fill: var(--on-brand); font-size: 22px; font-weight: 700; font-family: var(--font-sans);">86</text>
+      </svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 13px; font-weight: 600; opacity: .85;">My score</span>
+        <span style="font-size: 26px; line-height: 30px; font-weight: 700;">Rank #3 of 24</span>
+        <span style="font-size: 14px; opacity: .85;">Up 2 places since last week</span>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+      <sc-for list="{{tiles}}" as="t" hint-placeholder-count="4">
+        <div class="ks-kpi" style="padding: 12px;">
+          <p class="ks-kpi-label">{{t.label}}</p>
+          <p class="ks-kpi-value" style="font-size: 24px; line-height: 28px;">{{t.value}}</p>
+          <div class="ks-bar"><i class="done" style="width: {{t.pct}};"></i></div>
+          <div class="ks-kpi-foot"><span>of <b>{{t.target}}</b></span><span>{{t.pct}}</span></div>
+        </div>
+      </sc-for>
+    </div>
+
+    <section aria-labelledby="lb" style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="ks-spread">
+        <h2 id="lb" class="ks-title">Leaderboard · SMEs</h2>
+        <span class="ks-meta">Indore region</span>
+      </div>
+      <ol class="ks-list" style="list-style: none; margin: 0; padding: 0;">
+        <sc-for list="{{board}}" as="b" hint-placeholder-count="5">
+          <li class="ks-item" style="background: {{b.bg}};">
+            <span class="ks-seq {{b.hue}}">{{b.rank}}</span>
+            <span class="ks-item-main"><span class="ks-title" style="display: block; font-size: 15px;">{{b.name}}</span><span class="ks-meta">{{b.area}}</span></span>
+            <span class="metric-md">{{b.score}}</span>
+          </li>
+        </sc-for>
+      </ol>
+    </section>
+  </main>
+  <dc-import name="PhoneTabs" current="home" hint-size="390px,68px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      theme: this.props.theme ?? 'light',
+      tiles: [
+        { label: 'Farmer visits', value: '158', target: '180', pct: '88%' },
+        { label: 'Farmer meetings', value: '10', target: '12', pct: '83%' },
+        { label: 'Retailer coverage', value: '88%', target: '95%', pct: '93%' },
+        { label: 'Order value', value: '₹8.2 L', target: '₹10 L', pct: '82%' }
+      ],
+      board: [
+        { rank: '1', name: 'Sneha Malviya', area: 'Gautampura', score: '91', hue: 'hue-butter', bg: 'transparent' },
+        { rank: '2', name: 'Anil Patidar', area: 'Hatod', score: '88', hue: 'hue-sand', bg: 'transparent' },
+        { rank: '3', name: 'Ravi Kumar (you)', area: 'Sanwer', score: '86', hue: 'hue-sage', bg: 'var(--accent-subtle)' },
+        { rank: '4', name: 'Deepak Chouhan', area: 'Depalpur', score: '77', hue: '', bg: 'transparent' },
+        { rank: '5', name: 'Pooja Rathore', area: 'Mhow', score: '74', hue: '', bg: 'transparent' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

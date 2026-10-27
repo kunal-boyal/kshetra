@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console: cells and operations</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="ConsoleRail" current="cells" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-badge danger">Production</span><span class="label-md ks-muted">All cells</span></div>
+      <div class="ks-appbar-tools"><button type="button" class="ks-btn secondary sm">Runbooks</button></div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div>
+        <h1 class="heading-xl" style="margin: 0;">Cells and health</h1>
+        <p class="ks-meta" style="font-size: 15px;">Each cell is one copy of The Lamp with its own database · release 2026.10.4 went out at 9:10 am</p>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="ks-table">
+          <thead><tr><th>Cell</th><th>Where</th><th class="r">Tenants</th><th class="r">API p95</th><th class="r">Errors</th><th class="r">Jobs waiting</th><th>Database</th><th>Last backup</th><th>Status</th></tr></thead>
+          <tbody>
+            <sc-for list="{{cells}}" as="c" hint-placeholder-count="3">
+              <tr><td><code>{{c.name}}</code></td><td>{{c.where}}</td><td class="r">{{c.tenants}}</td><td class="r">{{c.p95}}</td><td class="r">{{c.err}}</td><td class="r">{{c.jobs}}</td><td>{{c.db}}</td><td>{{c.backup}}</td><td><span class="ks-badge {{c.tone}}">{{c.status}}</span></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+        <section class="ks-card" aria-labelledby="al" style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 id="al" class="ks-title">Alarms today</h2>
+          <div class="ks-list" style="box-shadow: none;">
+            <div class="ks-item"><span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">SMS sender slow</span><span class="ks-meta">shared-1 · 11:42 to 11:58 am · codes fell back to the second sender</span></span><span class="ks-badge success">Resolved</span></div>
+            <div class="ks-item"><span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">Webhook failures</span><span class="ks-meta">Green Valley Agro · one 503, retried</span></span><span class="ks-badge success">Resolved</span></div>
+            <div class="ks-item"><span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">Disk at 71%</span><span class="ks-meta">dedicated-vriddhi · photo storage</span></span><span class="ks-badge waiting">Watching</span></div>
+          </div>
+        </section>
+        <section class="ks-card" aria-labelledby="drill" style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 id="drill" class="ks-title">Safety checks</h2>
+          <dl class="ks-dl" style="font-size: 14px; line-height: 20px;">
+            <dt>Restore drill</dt><dd>12 Oct · back in 38 min (target 60)</dd>
+            <dt>Firewall</dt><dd>1,284 requests blocked today</dd>
+            <dt>Read replica</dt><dd>Reports and exports read from it · 0.4 s behind</dd>
+            <dt>Location archive</dt><dd>Last night: 21 days archived, 0 failed</dd>
+            <dt>Penetration test</dt><dd>No high or critical findings open</dd>
+          </dl>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      theme: this.props.theme ?? 'light',
+      cells: [
+        { name: 'shared-1', where: 'Mumbai', tenants: '13', p95: '182 ms', err: '0.02%', jobs: '14', db: 'CPU 34% · 212 GB', backup: '4:00 am', status: 'Healthy', tone: 'success' },
+        { name: 'dedicated-vriddhi', where: 'Mumbai', tenants: '1', p95: '161 ms', err: '0.01%', jobs: '3', db: 'CPU 22% · 148 GB', backup: '4:00 am', status: 'Watching', tone: 'waiting' },
+        { name: 'demo', where: 'Mumbai, one server', tenants: '3', p95: '240 ms', err: '0%', jobs: '0', db: 'CPU 6% · 9 GB', backup: 'Nightly', status: 'Paused', tone: 'neutral' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

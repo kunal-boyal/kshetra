@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: visit at an account</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="display: flex; align-items: center; gap: 4px; padding: 8px 8px 0;">
+    <a href="AppPlan.dc.html" aria-label="Back to the plan" style="display: grid; place-items: center; width: 44px; height: 44px; color: var(--text);">
+      <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </a>
+    <span class="label-md ks-muted">Beat stop 4 of 8</span>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; gap: 12px; align-items: flex-start;">
+      <span class="ks-ico lg hue-sky"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V9l8-5 8 5v12M9 21v-6h6v6"></path></svg></span>
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+        <h1 class="heading-lg" style="margin: 0;">Patel Krishi Kendra</h1>
+        <p class="ks-meta">Retailer · R-2210 · Sanwer market</p>
+        <div class="ks-row" style="flex-wrap: wrap;">
+          <span class="ks-pill inside">Inside · 42 m</span>
+          <span class="ks-badge neutral">Location verified</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ks-mapbox" style="height: 132px; position: relative;" role="img" aria-label="You are 42 metres from the shop, inside its 300 metre geofence">
+      <svg viewBox="0 0 358 132" width="100%" height="132" aria-hidden="true" style="display: block;">
+        <path d="M0 30h358M0 90h358M90 0v132M240 0v132" style="stroke: var(--chart-grid); fill: none;"></path>
+        <circle cx="179" cy="66" r="54" style="fill: var(--map-geofence); fill-opacity: .12; stroke: var(--map-geofence); stroke-width: 2; stroke-dasharray: 5 5;"></circle>
+        <rect x="171" y="58" width="16" height="16" rx="4" style="fill: var(--accent);"></rect>
+        <circle cx="200" cy="80" r="8" style="fill: var(--info-solid); stroke: var(--surface); stroke-width: 3;"></circle>
+      </svg>
+    </div>
+
+    <section class="ks-card" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px;">
+      <span class="ks-live"></span>
+      <div style="flex: 1;">
+        <p class="label-md" style="margin: 0;">Checked in at 2:14 pm</p>
+        <p class="ks-meta ks-num">On this visit for 12 min</p>
+      </div>
+      <span class="ks-badge info">In progress</span>
+    </section>
+
+    <section aria-labelledby="todo" style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 id="todo" class="ks-title">On this visit</h2>
+      <div class="ks-list">
+        <a href="AppForm.dc.html" class="ks-item" style="text-decoration: none; color: inherit;">
+          <span class="ks-ico sm hue-sage"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6v3H9zM7 5H5v16h14V5h-2M8 12h8M8 16h5"></path></svg></span>
+          <span class="ks-item-main"><span class="ks-title" style="display: block;">Retailer visit</span><span class="ks-meta">Stock, display and 2 photos</span></span>
+          <span class="ks-badge waiting">Required</span>
+        </a>
+        <a href="AppOrder.dc.html" class="ks-item" style="text-decoration: none; color: inherit;">
+          <span class="ks-ico sm hue-butter"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6"></path></svg></span>
+          <span class="ks-item-main"><span class="ks-title" style="display: block;">Take an order</span><span class="ks-meta">Price list: Retail MP</span></span>
+          <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+        </a>
+        <a href="AppCollect.dc.html" class="ks-item" style="text-decoration: none; color: inherit;">
+          <span class="ks-ico sm hue-peach"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a2 2 0 0 1 2-2h11v3"></path></svg></span>
+          <span class="ks-item-main"><span class="ks-title" style="display: block;">Collect payment</span><span class="ks-meta ks-num">₹38,400 outstanding · ₹12,000 overdue</span></span>
+          <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+        </a>
+      </div>
+    </section>
+
+    <dl class="ks-dl">
+      <dt>Contact</dt><dd>Mahesh Patel, owner</dd>
+      <dt>Last visit</dt><dd>9 Oct, by you</dd>
+      <dt>Assigned</dt><dd>Ravi Kumar (SME), Neha Sharma (ASM)</dd>
+    </dl>
+  </main>
+  <div style="padding: 12px 16px 16px; border-top: 1px solid var(--border); background: var(--surface);">
+    <a class="ks-btn primary lg block" href="AppPlan.dc.html" style="text-decoration: none;">Check out</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

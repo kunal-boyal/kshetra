@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: home</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="display: flex; align-items: center; gap: 12px; padding: 16px 16px 4px;">
+    <span class="ks-ico round hue-sage" aria-hidden="true">RK</span>
+    <div style="flex: 1; min-width: 0;">
+      <p class="heading-md" style="margin: 0;">Good morning, Ravi</p>
+      <p class="ks-meta">Fri 23 Oct · Sanwer market beat</p>
+    </div>
+    <a href="AppInbox.dc.html" aria-label="Notifications, 2 new" style="position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 9999px; color: var(--text);">
+      <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9zM10 20a2 2 0 0 0 4 0"></path></svg>
+      <span class="ks-count" style="top: 2px; left: 26px;">2</span>
+    </a>
+  </header>
+  <div class="ks-banner pending" role="status">
+    <svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"></path></svg>
+    <span>3 waiting to upload. No signal here.</span>
+    <a class="ks-banner-act" href="AppMore.dc.html">See queue</a>
+  </div>
+
+  <main style="flex: 1; overflow-y: auto; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 16px;">
+    <section class="ks-card ks-shift" aria-label="Shift">
+      <div class="ks-spread">
+        <span class="ks-shift-state"><span class="ks-live"></span>On duty since 9:12</span>
+        <span class="ks-badge success">Tracking</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+        <div><div class="ks-shift-time">4 h 18 m</div><div class="ks-meta">on duty</div></div>
+        <div><div class="ks-shift-time">18.4 km</div><div class="ks-meta">travelled</div></div>
+        <div><div class="ks-shift-time">3</div><div class="ks-meta">visits</div></div>
+      </div>
+      <div class="ks-actions">
+        <button type="button" class="ks-btn secondary">Pause</button>
+        <button type="button" class="ks-btn tonal">Punch out</button>
+      </div>
+    </section>
+
+    <section class="ks-card" style="display: flex; flex-direction: column; gap: 12px;" aria-labelledby="beat">
+      <div class="ks-spread">
+        <h2 id="beat" class="ks-title">Today’s beat</h2>
+        <span class="ks-meta ks-num">3 of 8 done</span>
+      </div>
+      <div class="ks-bar" style="margin: 0;"><i class="done" style="width: 37.5%;"></i><i class="pend" style="width: 12.5%;"></i></div>
+      <a href="AppVisit.dc.html" class="ks-item" style="border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: inherit;">
+        <span class="ks-seq hue-sky">4</span>
+        <span class="ks-item-main">
+          <span class="ks-title" style="display: block;">Patel Krishi Kendra</span>
+          <span class="ks-meta">Next · Retailer · 1.2 km away</span>
+        </span>
+        <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+      </a>
+      <a class="ks-btn ghost sm" href="AppPlan.dc.html" style="text-decoration: none; align-self: flex-start;">See the whole plan</a>
+    </section>
+
+    <section aria-labelledby="quick" style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 id="quick" class="ks-title">Start something</h2>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+        <a href="AppVisit.dc.html" class="ks-card tint hue-mint" style="display: flex; align-items: center; gap: 10px; padding: 12px; text-decoration: none; color: inherit;">
+          <span class="ks-ico sm"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path></svg></span>
+          <span class="label-md">Unplanned visit</span>
+        </a>
+        <a href="AppForm.dc.html" class="ks-card tint hue-sky" style="display: flex; align-items: center; gap: 10px; padding: 12px; text-decoration: none; color: inherit;">
+          <span class="ks-ico sm"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6"></path></svg></span>
+          <span class="label-md">Farmer meeting</span>
+        </a>
+        <a href="AppOrder.dc.html" class="ks-card tint hue-butter" style="display: flex; align-items: center; gap: 10px; padding: 12px; text-decoration: none; color: inherit;">
+          <span class="ks-ico sm"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6"></path></svg></span>
+          <span class="label-md">Take order</span>
+        </a>
+        <a href="AppLeave.dc.html" class="ks-card tint hue-lilac" style="display: flex; align-items: center; gap: 10px; padding: 12px; text-decoration: none; color: inherit;">
+          <span class="ks-ico sm"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path></svg></span>
+          <span class="label-md">Apply leave</span>
+        </a>
+      </div>
+    </section>
+
+    <section aria-labelledby="month" style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="ks-spread">
+        <h2 id="month" class="ks-title">My month</h2>
+        <a href="AppMonth.dc.html" class="label-md" style="min-height: 44px; display: inline-flex; align-items: center;">Rank #3 of 24</a>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+        <div class="ks-kpi">
+          <p class="ks-kpi-label">Farmer visits</p>
+          <p class="ks-kpi-value" style="font-size: 26px; line-height: 30px;">158</p>
+          <div class="ks-bar"><i class="done" style="width: 88%;"></i></div>
+          <div class="ks-kpi-foot"><span>of <b>180</b></span><span>88%</span></div>
+        </div>
+        <div class="ks-kpi">
+          <p class="ks-kpi-label">Order value</p>
+          <p class="ks-kpi-value" style="font-size: 26px; line-height: 30px;">₹8.2 L</p>
+          <div class="ks-bar"><i class="done" style="width: 82%;"></i><i class="pend" style="width: 8%;"></i></div>
+          <div class="ks-kpi-foot"><span>of <b>₹10 L</b></span><span class="pend">₹0.8 L pending</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <dc-import name="PhoneTabs" current="home" hint-size="390px,68px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console: onboard a tenant</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="ConsoleRail" current="onboard" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-badge danger">Production</span><span class="label-md ks-muted">Mumbai · cell shared-1</span></div>
+      <div class="ks-appbar-tools"><a href="ConsoleTenants.dc.html" class="ks-btn ghost sm" style="text-decoration: none;">Cancel</a></div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div>
+        <h1 class="heading-xl" style="margin: 0;">Onboard a tenant</h1>
+        <p class="ks-meta" style="font-size: 15px;">Step 2 of 6 · most companies are live the same day</p>
+      </div>
+      <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px;">
+        <sc-for list="{{steps}}" as="s" hint-placeholder-count="6">
+          <li style="flex: 1 1 140px; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: {{s.bg}}; border: 1px solid {{s.edge}};">
+            <span class="ks-seq" style="background: {{s.chip}}; color: {{s.chipFg}};">{{s.n}}</span>
+            <span class="label-md" style="font-weight: 600;">{{s.label}}</span>
+          </li>
+        </sc-for>
+      </ol>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <section aria-labelledby="tpl" style="flex: 3 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <h2 id="tpl" class="heading-lg" style="margin: 0;">Start from a template</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;">
+            <sc-for list="{{templates}}" as="t" hint-placeholder-count="5">
+              <button type="button" aria-pressed="{{t.pressed}}" class="ks-card {{t.hue}}" style="text-align: left; font: inherit; color: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 8px; box-shadow: {{t.ring}};">
+                <span class="ks-row"><span class="ks-ico sm">{{t.mark}}</span><span class="ks-title">{{t.name}}</span></span>
+                <span class="ks-meta">{{t.desc}}</span>
+                <span class="caption ks-subtle">{{t.terms}}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div class="ks-notice"><span>Everything a template sets can be changed later in the tenant’s own settings: words, designations, account types, forms, metrics and approval chains.</span></div>
+        </section>
+        <aside class="ks-card" aria-labelledby="sum" style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+          <h2 id="sum" class="ks-title">So far</h2>
+          <dl class="ks-dl" style="font-size: 14px; line-height: 20px;">
+            <dt>Company</dt><dd>Kesar Agro Sciences Pvt Ltd</dd>
+            <dt>Short name</dt><dd><code class="ks-code">kesar-agro</code></dd>
+            <dt>Hosting</dt><dd>Shared, Mumbai</dd>
+            <dt>Languages</dt><dd>English and Hindi</dd>
+            <dt>Template</dt><dd>Agri inputs, version 7</dd>
+          </dl>
+          <div class="ks-actions" style="margin-top: 8px;">
+            <button type="button" class="ks-btn secondary sm">Back</button>
+            <button type="button" class="ks-btn primary sm">Continue</button>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = (n, label, state) => ({ n, label, bg: state === 'now' ? 'var(--accent-subtle)' : 'var(--surface)', edge: state === 'now' ? 'var(--accent)' : 'var(--border)', chip: state === 'done' ? 'var(--success-solid)' : state === 'now' ? 'var(--accent)' : 'var(--surface-sunken)', chipFg: state === 'todo' ? 'var(--text-muted)' : 'var(--on-accent)' });
+    const T = (name, mark, hue, desc, terms, sel) => ({ name, mark, hue, desc, terms, pressed: sel ? 'true' : 'false', ring: sel ? 'inset 0 0 0 2px var(--accent), var(--shadow-sm)' : 'var(--shadow-sm)' });
+    return {
+      theme: this.props.theme ?? 'light',
+      steps: [S('1', 'Company', 'done'), S('2', 'Template', 'now'), S('3', 'First admin', 'todo'), S('4', 'Brand', 'todo'), S('5', 'Plan and seats', 'todo'), S('6', 'Review', 'todo')],
+      templates: [
+        T('Agri inputs', 'AG', 'hue-sage', 'Distributors, retailers and farmers; farmer visits and meetings with live photos.', 'SME · Beat plan · Beat', true),
+        T('Pharma', 'PH', 'hue-sky', 'Doctors, chemists and stockists; calls with samples and detailing.', 'MR · Tour plan · Call'),
+        T('FMCG', 'FM', 'hue-butter', 'Distributors and outlets; orders, stock and display audits.', 'Salesman · Route · Outlet visit'),
+        T('Generic', 'GE', 'hue-lilac', 'Customers and meetings, for any field team.', 'Executive · Plan · Visit'),
+        T('Another tenant’s configuration', 'FI', 'hue-sand', 'Start from a file exported from an existing tenant.', 'Upload a .json export')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

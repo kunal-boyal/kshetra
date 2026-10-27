@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: sign in</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks ks-auth" style="min-height: 1100px; font-family: var(--font-sans); color: var(--text);">
+  <aside class="ks-auth-brand">
+    <div class="ks-auth-name">
+      <img src="/_blob/8e7252d2b801bb56a30b72ecdf47be35" alt="" width="40" height="40">
+      <span>The Lamp</span>
+    </div>
+    <div style="position: relative; display: flex; flex-direction: column; gap: 16px;">
+      <h1 class="ks-auth-tagline" style="margin: 0;">Light the way for your field team</h1>
+      <p>Plans, visits, orders and people in one place, from the phone in the field to the head office.</p>
+    </div>
+    <p style="font-size: 14px;">Used by sales teams in agri inputs, pharma and FMCG.</p>
+    <img class="ks-auth-art" src="/_blob/8e7252d2b801bb56a30b72ecdf47be35" alt="">
+  </aside>
+  <div class="ks-auth-form">
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <h2 class="heading-xl" style="margin: 0;">Sign in</h2>
+        <p class="ks-meta" style="font-size: 15px;">We send a one-time code. There is no password.</p>
+      </div>
+      <div role="tablist" aria-label="Sign in with" style="display: flex; padding: 4px; gap: 4px; border-radius: 12px; background: var(--surface-sunken);">
+        <button type="button" role="tab" aria-selected="true" style="flex: 1; min-height: 40px; border: 0; border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-sm);">Mobile number</button>
+        <button type="button" role="tab" aria-selected="false" style="flex: 1; min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--text-muted); font: inherit; font-size: 14px; font-weight: 600;">Email</button>
+        <button type="button" role="tab" aria-selected="false" style="flex: 1; min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--text-muted); font: inherit; font-size: 14px; font-weight: 600;">Company SSO</button>
+      </div>
+      <div class="ks-field">
+        <label class="ks-label" for="phone">Mobile number</label>
+        <div class="ks-affix"><span>+91</span><input id="phone" class="ks-input" value="98110 22345" style="padding-left: 52px;"></div>
+      </div>
+      <div class="ks-field">
+        <label class="ks-label" for="code">Code</label>
+        <input id="code" class="ks-input" value="5 0 2 8 7 1" style="letter-spacing: .3em; font-weight: 700;">
+        <span class="ks-help">Sent to +91 98•••• •2345. Resend in 0:41.</span>
+      </div>
+      <a class="ks-btn primary lg block" href="WebHome.dc.html" style="text-decoration: none;">Continue</a>
+      <div class="ks-notice"><span>You belong to two companies. You will choose one next, and can switch at any time.</span></div>
+      <div class="ks-spread" style="font-size: 14px;">
+        <span class="ks-muted">English · <a href="WebSignIn.dc.html">हिंदी</a></span>
+        <span class="ks-muted">Two-step sign-in is on for admins</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

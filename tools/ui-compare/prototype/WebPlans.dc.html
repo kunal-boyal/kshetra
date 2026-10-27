@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: beat plans and targets</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="plans" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div class="ks-row" style="gap: 12px;">
+          <span class="ks-ico lg round hue-sage">RK</span>
+          <div>
+            <h1 class="heading-xl" style="margin: 0;">Ravi Kumar · November</h1>
+            <p class="ks-meta" style="font-size: 15px;">SME · Sanwer · 23 working days · 164 planned stops</p>
+          </div>
+        </div>
+        <div class="ks-row">
+          <span class="ks-badge pending">Waiting for your approval</span>
+          <button type="button" class="ks-btn secondary sm">Send back</button>
+          <button type="button" class="ks-btn primary sm">Approve plan</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <section class="ks-card" aria-label="November plan" style="flex: 3 1 560px; min-width: 0; padding: 12px;">
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px;">
+            <sc-for list="{{heads}}" as="h" hint-placeholder-count="7"><span class="label-sm ks-subtle" style="padding: 4px 6px;">{{h}}</span></sc-for>
+            <sc-for list="{{days}}" as="d" hint-placeholder-count="35">
+              <div style="min-height: 84px; padding: 6px 8px; border-radius: 8px; background: {{d.bg}}; border: 1px solid {{d.edge}}; display: flex; flex-direction: column; gap: 4px;">
+                <span class="label-sm ks-num" style="color: var(--text-muted);">{{d.n}}</span>
+                <span class="caption" style="font-weight: 600;">{{d.route}}</span>
+                <span class="caption ks-subtle">{{d.stops}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section class="ks-card" aria-labelledby="tg" style="flex: 2 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <div class="ks-spread"><h2 id="tg" class="ks-title">November targets</h2><span class="ks-badge success">Locked 20 Oct</span></div>
+          <table class="ks-table" style="box-shadow: none;">
+            <thead><tr><th>Metric</th><th class="r">Target</th><th class="r">Oct so far</th></tr></thead>
+            <tbody>
+              <tr><td>Farmer visits</td><td class="r">180</td><td class="r">158</td></tr>
+              <tr><td>Farmer meetings</td><td class="r">12</td><td class="r">10</td></tr>
+              <tr><td>Retailer coverage</td><td class="r">95%</td><td class="r">88%</td></tr>
+              <tr><td>Order value</td><td class="r">₹11 L</td><td class="r">₹8.2 L</td></tr>
+              <tr><td>Collections</td><td class="r">₹8 L</td><td class="r">₹5.4 L</td></tr>
+            </tbody>
+          </table>
+          <p class="ks-meta">Set by Neha Sharma. Changing a locked target needs an unlock, which is recorded.</p>
+          <div class="ks-row"><button type="button" class="ks-btn secondary sm">Unlock</button><button type="button" class="ks-btn ghost sm">Copy to December</button></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const routes = ['Sanwer town', 'Khedi · Dharawara', 'Bhagora · Kachhalya', 'Sanwer market', 'Pipliya · Sinhasa', 'Farmer meeting'];
+    const days = [];
+    for (let i = 0; i < 6; i++) days.push({ n: '', route: '', stops: '', bg: 'transparent', edge: 'transparent' });
+    let r = 0;
+    for (let n = 1; n <= 30; n++) {
+      const dow = (n + 5) % 7; /* 0 = Monday; 1 November 2026 is a Sunday */
+      if (dow === 6) { days.push({ n: String(n), route: 'Weekly off', stops: '', bg: 'var(--surface-sunken)', edge: 'transparent' }); continue; }
+      if (n === 9 || n === 10) { days.push({ n: String(n), route: 'Leave asked', stops: 'casual', bg: 'var(--info-bg)', edge: 'var(--info-border)' }); continue; }
+      const route = routes[r++ % routes.length];
+      days.push({ n: String(n), route, stops: route === 'Farmer meeting' ? '1 meeting · 3 stops' : '8 stops', bg: 'var(--surface)', edge: 'var(--border)' });
+    }
+    while (days.length % 7) days.push({ n: '', route: '', stops: '', bg: 'transparent', edge: 'transparent' });
+    return { theme: this.props.theme ?? 'light', heads: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], days };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: approval chains and channels</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="workflows" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div>
+        <h1 class="heading-xl" style="margin: 0;">Approval chains</h1>
+        <p class="ks-meta" style="font-size: 15px;">Who decides each kind of request, and what happens when nobody answers</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <nav aria-label="Request types" class="ks-list" style="flex: 1 1 240px; min-width: 0;">
+          <sc-for list="{{types}}" as="t" hint-placeholder-count="7">
+            <a href="WebWorkflows.dc.html" class="ks-item" aria-current="{{t.current}}" style="text-decoration: none; color: inherit; background: {{t.bg}};">
+              <span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">{{t.name}}</span><span class="ks-meta">{{t.desc}}</span></span>
+            </a>
+          </sc-for>
+        </nav>
+
+        <section class="ks-card" aria-labelledby="chain" style="flex: 2 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+          <div class="ks-spread"><h2 id="chain" class="heading-lg" style="margin: 0;">Leave</h2><span class="ks-badge success">In use</span></div>
+          <div class="ks-card flat" style="background: var(--surface-sunken); border: 0; display: flex; flex-direction: column; gap: 12px;">
+            <p class="label-md" style="margin: 0; font-weight: 600;">When the leave is 3 days or less</p>
+            <ol class="ks-steps">
+              <li class="ks-step"><span class="ks-node">1</span><div><p class="label-md" style="margin: 0; font-weight: 600;">Reporting manager</p><p class="ks-meta">After 48 hours without an answer, it goes to their manager</p></div></li>
+            </ol>
+          </div>
+          <div class="ks-card flat" style="background: var(--surface-sunken); border: 0; display: flex; flex-direction: column; gap: 12px;">
+            <p class="label-md" style="margin: 0; font-weight: 600;">When the leave is more than 3 days</p>
+            <ol class="ks-steps">
+              <li class="ks-step"><span class="ks-node">1</span><div><p class="label-md" style="margin: 0; font-weight: 600;">Reporting manager</p><p class="ks-meta">After 48 hours, a reminder; after 72, the next step</p></div></li>
+              <li class="ks-step"><span class="ks-node">2</span><div><p class="label-md" style="margin: 0; font-weight: 600;">Business Head</p><p class="ks-meta">Vikram Singh · after 72 hours, a reminder</p></div></li>
+            </ol>
+          </div>
+          <div class="ks-row"><button type="button" class="ks-btn secondary sm">Add a condition</button><button type="button" class="ks-btn ghost sm">See the history</button><span style="flex: 1;"></span><button type="button" class="ks-btn primary sm">Save chain</button></div>
+          <p class="ks-meta">Nobody decides their own request. If an approver is on leave, the step moves to whoever stands in for them.</p>
+        </section>
+
+        <section class="ks-card" aria-labelledby="ch" style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <h2 id="ch" class="ks-title">How people hear</h2>
+          <div class="ks-list" style="box-shadow: none;">
+            <div class="ks-item"><span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">App notification</span><span class="ks-meta">Always first</span></span><span class="ks-badge success">On</span></div>
+            <div class="ks-item"><span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">SMS</span><span class="ks-meta">When the app can’t reach them</span></span><span class="ks-badge success">On</span></div>
+            <div class="ks-item"><span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">WhatsApp</span><span class="ks-meta">Decisions, receipts and order updates</span></span><span class="ks-badge success">On</span></div>
+          </div>
+          <div class="ks-notice"><span><strong>WhatsApp business number connected.</strong> 6 message templates approved, each in English and Hindi.</span></div>
+          <button type="button" class="ks-btn tonal sm">Manage templates</button>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = (name, desc, cur) => ({ name, desc, current: cur ? 'page' : null, bg: cur ? 'var(--accent-subtle)' : 'transparent' });
+    return {
+      theme: this.props.theme ?? 'light',
+      types: [
+        T('Leave', '2 rules · 2 steps at most', true),
+        T('Attendance fix', 'Reporting manager'),
+        T('Expense claim', 'Manager, then accounts'),
+        T('Order over credit', 'Manager, then Business Head'),
+        T('New account', 'Reporting manager'),
+        T('Beat plan', 'Reporting manager, by the 25th'),
+        T('Target unlock', 'Business Head')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

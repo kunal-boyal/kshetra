@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: outstanding and collection</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="display: flex; align-items: center; gap: 4px; padding: 8px 16px 8px 8px;">
+    <a href="AppVisit.dc.html" aria-label="Back to the visit" style="display: grid; place-items: center; width: 44px; height: 44px; color: var(--text);">
+      <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <h1 class="heading-md" style="margin: 0;">Collect payment</h1>
+      <p class="ks-meta">Patel Krishi Kendra · R-2210</p>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px;">
+    <section class="ks-kpi">
+      <p class="ks-kpi-label">Outstanding</p>
+      <p class="ks-kpi-value">₹38,400</p>
+      <div class="ks-bar" role="img" aria-label="₹26,400 not yet due, ₹12,000 overdue"><i class="done" style="width: 69%;"></i><i style="width: 31%; background: var(--danger-solid);"></i></div>
+      <div class="ks-kpi-foot"><span>Not due <b>₹26,400</b></span><span style="color: var(--danger-fg); font-weight: 600;">Overdue ₹12,000</span></div>
+    </section>
+
+    <div class="ks-list">
+      <div class="ks-item">
+        <span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">INV-2291 · 19 Aug</span><span class="ks-meta">Due 18 Sep</span></span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span class="numeric" style="font-weight: 600;">₹12,000</span><span class="ks-badge danger">35 days late</span></span>
+      </div>
+      <div class="ks-item">
+        <span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">INV-2342 · 28 Sep</span><span class="ks-meta">Due 28 Oct</span></span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span class="numeric" style="font-weight: 600;">₹26,400</span><span class="ks-badge neutral">Not due</span></span>
+      </div>
+    </div>
+
+    <section class="ks-card" aria-labelledby="pay" style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 id="pay" class="ks-title">Record a payment</h2>
+      <div class="ks-field">
+        <label class="ks-label" for="amt">Amount</label>
+        <div class="ks-affix"><span>₹</span><input id="amt" class="ks-input num" value="12,000" style="text-align: left;"></div>
+        <span class="ks-help">Settles INV-2291 first, the oldest.</span>
+      </div>
+      <fieldset class="ks-field" style="border: 0; padding: 0; margin: 0;">
+        <legend class="ks-label" style="margin-bottom: 4px;">Paid by</legend>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">Cash</button>
+          <button type="button" class="ks-btn tonal sm" aria-pressed="true" style="box-shadow: inset 0 0 0 2px var(--accent);">UPI</button>
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">Cheque</button>
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">Bank transfer</button>
+        </div>
+      </fieldset>
+      <div class="ks-field">
+        <label class="ks-label" for="ref">UPI reference</label>
+        <input id="ref" class="ks-input" value="4218 7731 0092">
+      </div>
+    </section>
+    <p class="ks-meta">A receipt goes to the shop owner on WhatsApp once the office confirms the money.</p>
+  </main>
+  <div style="padding: 12px 16px 16px; border-top: 1px solid var(--border); background: var(--surface);">
+    <a class="ks-btn primary lg block" href="AppVisit.dc.html" style="text-decoration: none;">Save collection</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

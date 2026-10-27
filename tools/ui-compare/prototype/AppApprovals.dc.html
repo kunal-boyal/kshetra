@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: approvals</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="padding: 8px 16px 8px 8px; display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <a href="AppTeam.dc.html" aria-label="Back to Team" style="display: grid; place-items: center; width: 44px; height: 44px; color: var(--text);">
+        <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      </a>
+      <h1 class="heading-lg" style="margin: 0; flex: 1;">Approvals</h1>
+      <span class="ks-meta">Neha Sharma</span>
+    </div>
+    <div style="display: flex; gap: 8px; overflow-x: auto; padding-left: 8px;">
+      <button type="button" class="ks-btn primary sm" aria-pressed="true">All · 4</button>
+      <button type="button" class="ks-btn secondary sm" aria-pressed="false">Leave</button>
+      <button type="button" class="ks-btn secondary sm" aria-pressed="false">Attendance</button>
+      <button type="button" class="ks-btn secondary sm" aria-pressed="false">Claims</button>
+      <button type="button" class="ks-btn secondary sm" aria-pressed="false">Orders</button>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 12px;">
+    <sc-for list="{{items}}" as="r" hint-placeholder-count="4">
+      <article class="ks-card" style="display: flex; flex-direction: column; gap: 10px; padding: 14px;">
+        <div class="ks-spread">
+          <span class="ks-badge {{r.tone}}">{{r.kind}}</span>
+          <span class="caption ks-subtle">{{r.when}}</span>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <span class="ks-ico sm round {{r.hue}}">{{r.initials}}</span>
+          <div style="flex: 1; min-width: 0;">
+            <p class="label-md" style="margin: 0; font-weight: 600;">{{r.title}}</p>
+            <p class="ks-meta">{{r.detail}}</p>
+          </div>
+        </div>
+        <p class="caption ks-muted" style="margin: 0;">{{r.step}}</p>
+        <div class="ks-actions">
+          <button type="button" class="ks-btn secondary sm">Reject</button>
+          <button type="button" class="ks-btn primary sm">Approve</button>
+        </div>
+      </article>
+    </sc-for>
+  </main>
+  <dc-import name="PhoneTabs" current="team" hint-size="390px,68px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      theme: this.props.theme ?? 'light',
+      items: [
+        { kind: 'Leave', tone: 'info', when: '20 min ago', initials: 'RK', hue: 'hue-sage', title: 'Ravi Kumar · 2 days casual', detail: 'Mon 9 to Tue 10 Nov · family wedding', step: 'You decide. 5 casual days left.' },
+        { kind: 'Attendance', tone: 'pending', when: '1 h ago', initials: 'RK', hue: 'hue-sage', title: 'Ravi Kumar · count Wed 14 Oct', detail: '9:30 am to 6:15 pm · phone battery failed', step: 'You decide. No location was recorded that day.' },
+        { kind: 'Expense claim', tone: 'waiting', when: 'Yesterday', initials: 'AP', hue: 'hue-peach', title: 'Anil Patidar · ₹3,460', detail: '6 bills · 1 over the policy limit', step: 'Step 1 of 2, then the accounts team.' },
+        { kind: 'Order over credit', tone: 'danger', when: 'Yesterday', initials: 'SM', hue: 'hue-lilac', title: 'Maa Annapurna Beej Bhandar · ₹46,800', detail: '₹14,200 above the free credit of ₹32,600', step: 'Step 1 of 2, then Vikram Singh, Business Head.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

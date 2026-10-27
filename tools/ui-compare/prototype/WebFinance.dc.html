@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: account finance</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="finance" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Outstanding and collections</h1>
+          <p class="ks-meta" style="font-size: 15px;">Ledger brought in from Tally today at 6:00 am</p>
+        </div>
+        <div class="ks-row">
+          <button type="button" class="ks-btn secondary sm">Import a ledger</button>
+          <a href="WebReports.dc.html" class="ks-btn tonal sm" style="text-decoration: none;">Ageing report</a>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        <div class="ks-kpi"><p class="ks-kpi-label">Outstanding</p><p class="ks-kpi-value">₹1.86 Cr</p><p class="ks-kpi-target">1,507 accounts</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Overdue</p><p class="ks-kpi-value" style="color: var(--danger-fg);">₹42.3 L</p><p class="ks-kpi-target">23% of outstanding</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Collected in October</p><p class="ks-kpi-value">₹96.4 L</p><div class="ks-bar"><i class="done" style="width: 80%;"></i></div><div class="ks-kpi-foot"><span>target <b>₹1.2 Cr</b></span><span>80%</span></div></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Days to get paid</p><p class="ks-kpi-value">38</p><p class="ks-kpi-target">4 days better than September</p></div>
+      </div>
+
+      <section class="ks-card" aria-labelledby="age" style="display: flex; flex-direction: column; gap: 10px;">
+        <h2 id="age" class="ks-title">Ageing</h2>
+        <div role="img" aria-label="Not due ₹1.44 crore, 1 to 30 days late ₹24.1 lakh, 31 to 60 days ₹11.6 lakh, 61 to 90 days ₹4.2 lakh, over 90 days ₹2.4 lakh" style="display: flex; height: 32px; border-radius: 8px; overflow: hidden;">
+          <span style="flex: 144; background: var(--success-solid);"></span>
+          <span style="flex: 24.1; background: var(--waiting-solid);"></span>
+          <span style="flex: 11.6; background: var(--chart-5);"></span>
+          <span style="flex: 4.2; background: var(--danger-solid);"></span>
+          <span style="flex: 2.4; background: var(--text);"></span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px;">
+          <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--success-solid);"></span>Not due ₹1.44 Cr</span>
+          <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--waiting-solid);"></span>1–30 days ₹24.1 L</span>
+          <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--chart-5);"></span>31–60 days ₹11.6 L</span>
+          <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--danger-solid);"></span>61–90 days ₹4.2 L</span>
+          <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--text);"></span>Over 90 days ₹2.4 L</span>
+        </div>
+      </section>
+
+      <div style="overflow-x: auto;">
+        <table class="ks-table">
+          <thead><tr><th>Account</th><th>Type</th><th class="r">Credit limit</th><th class="r">Outstanding</th><th class="r">Overdue</th><th class="r">Oldest bill</th><th>Last payment</th><th>Assigned</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+              <tr><td style="font-weight: 600;">{{r.acc}}</td><td>{{r.type}}</td><td class="r">{{r.limit}}</td><td class="r">{{r.due}}</td><td class="r" style="color: {{r.odColor}}; font-weight: 600;">{{r.od}}</td><td class="r">{{r.age}}</td><td>{{r.last}}</td><td>{{r.who}}</td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (acc, type, limit, due, od, age, last, who) => ({ acc, type, limit, due, od, age, last, who, odColor: od === '₹0' ? 'var(--text-muted)' : 'var(--danger-fg)' });
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        R('Malwa Agri Distributors', 'Distributor', '₹15,00,000', '₹9,84,200', '₹1,12,000', '58 days', '₹2,50,000 · 20 Oct', 'Kavita Joshi'),
+        R('Shree Krishna Agro Traders', 'Distributor', '₹2,00,000', '₹1,42,300', '₹0', '24 days', '₹60,000 · 15 Oct', 'Ravi Kumar'),
+        R('Narmada Inputs', 'Distributor', '₹8,00,000', '₹6,10,450', '₹74,800', '41 days', '₹1,00,000 · 9 Oct', 'Anil Patidar'),
+        R('Maa Annapurna Beej Bhandar', 'Retailer', '₹1,00,000', '₹67,400', '₹21,000', '47 days', '₹15,000 · 2 Oct', 'Ravi Kumar'),
+        R('Patel Krishi Kendra', 'Retailer', '₹60,000', '₹38,400', '₹12,000', '65 days', '₹20,000 · 28 Sep', 'Ravi Kumar'),
+        R('Bhole Krishi Seva', 'Retailer', '₹50,000', '₹14,800', '₹0', '12 days', '₹9,000 · 18 Oct', 'Deepak Chouhan'),
+        R('Om Sai Fertilisers', 'Retailer', '₹40,000', '₹9,150', '₹0', '9 days', '₹12,500 · 21 Oct', 'Ravi Kumar')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

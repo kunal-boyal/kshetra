@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console: tenants</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="ConsoleRail" current="tenants" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-badge danger">Production</span><span class="label-md ks-muted">Mumbai · cell shared-1</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Find a tenant" aria-label="Find a tenant" style="height: 40px; padding-left: 40px;"></div>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Tenants</h1>
+          <p class="ks-meta" style="font-size: 15px;">Every customer company on The Lamp</p>
+        </div>
+        <a href="ConsoleOnboard.dc.html" class="ks-btn primary sm" style="text-decoration: none;">Onboard a tenant</a>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div class="ks-kpi"><p class="ks-kpi-label">Paying tenants</p><p class="ks-kpi-value">12</p><p class="ks-kpi-target">2 in trial · 3 demo</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Seats in use</p><p class="ks-kpi-value">1,184</p><p class="ks-kpi-target">of 1,420 bought</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">People active today</p><p class="ks-kpi-value">963</p><p class="ks-kpi-target">81% of seats</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Monthly revenue</p><p class="ks-kpi-value">[MRR]</p><p class="ks-kpi-target">set once prices are (D3)</p></div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="ks-table">
+          <thead><tr><th>Tenant</th><th>Template</th><th>Plan</th><th class="r">Seats</th><th>Cell</th><th>Last activity</th><th>Status</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+              <tr class="{{r.sel}}"><td><a href="ConsoleTenant.dc.html" style="font-weight: 600;">{{r.name}}</a></td><td>{{r.tpl}}</td><td>{{r.plan}}</td><td class="r">{{r.seats}}</td><td><code>{{r.cell}}</code></td><td>{{r.last}}</td><td><span class="ks-badge {{r.tone}}">{{r.status}}</span></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = { Active: 'success', Trial: 'info', Demo: 'neutral', 'Payment late': 'waiting', Suspended: 'danger' };
+    const R = (name, tpl, plan, seats, cell, last, status, sel) => ({ name, tpl, plan, seats, cell, last, status, tone: T[status], sel: sel ? 'sel' : '' });
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        R('Green Valley Agro', 'Agri inputs', 'Growth', '41 / 50', 'shared-1', '1 min ago', 'Active', true),
+        R('Neelgiri Kheti Seeds', 'Agri inputs', 'Growth', '212 / 250', 'shared-1', 'now', 'Active'),
+        R('Vriddhi Pharma Labs', 'Pharma', 'Enterprise', '486 / 520', 'dedicated-vriddhi', 'now', 'Active'),
+        R('Thaali Snacks Co', 'FMCG', 'Growth', '134 / 150', 'shared-1', '3 min ago', 'Active'),
+        R('Kheti Mitra Agritech', 'Agri inputs', 'Starter', '18 / 20', 'shared-1', '2 h ago', 'Payment late'),
+        R('Swasthya Pharma Care', 'Pharma', 'Growth', '22 / 40', 'shared-1', '10 min ago', 'Trial'),
+        R('Galli Mart Distributors', 'FMCG', 'Starter', '9 / 10', 'shared-1', 'Yesterday', 'Trial'),
+        R('demo-agro', 'Agri inputs', '—', '24', 'demo', '2 days ago', 'Demo'),
+        R('Purani Chakki Spices', 'FMCG', 'Starter', '0 / 15', 'shared-1', '41 days ago', 'Suspended')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone tab bar</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<nav class="ks-tabs ks" aria-label="Main" style="width: 390px; box-sizing: border-box; font-family: var(--font-sans);">
+  <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+    <a class="ks-tab" href="{{t.href}}" aria-current="{{t.current}}">
+      <span class="ks-tab-ico"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.d}}"></path></svg></span>
+      <span>{{t.label}}</span>
+      <sc-if value="{{t.count}}" hint-placeholder-val="{{false}}"><span class="ks-count">{{t.count}}</span></sc-if>
+    </a>
+  </sc-for>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["home","plan","orders","team","more"],"default":"home"},"$preview":{"width":390,"height":68}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cur = this.props.current ?? 'home';
+    const tabs = [
+      { key: 'home', label: 'Home', href: 'AppHome.dc.html', d: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z' },
+      { key: 'plan', label: 'Plan', href: 'AppPlan.dc.html', d: 'M8 3v4M16 3v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM9 15l2 2 4-4' },
+      { key: 'orders', label: 'Orders', href: 'AppOrder.dc.html', d: 'M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6M9 20.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM17 20.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z' },
+      { key: 'team', label: 'Team', href: 'AppTeam.dc.html', d: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6', count: '6' },
+      { key: 'more', label: 'More', href: 'AppMore.dc.html', d: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' }
+    ];
+    return { tabs: tabs.map((t) => Object.assign({}, t, { current: t.key === cur ? 'page' : null, count: t.count || null })) };
+  }
+}
+</script>
+</body>
+</html>

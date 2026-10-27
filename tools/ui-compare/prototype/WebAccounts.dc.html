@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: accounts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="accounts" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Accounts</h1>
+          <p class="ks-meta" style="font-size: 15px;">Everyone the team sells to or meets</p>
+        </div>
+        <div class="ks-row">
+          <a href="WebImports.dc.html" class="ks-btn secondary sm" style="text-decoration: none;">Import</a>
+          <button type="button" class="ks-btn primary sm">Add an account</button>
+        </div>
+      </div>
+      <div role="tablist" aria-label="Account type" style="display: flex; gap: 4px; border-bottom: 1px solid var(--border);">
+        <button type="button" role="tab" aria-selected="false" style="min-height: 44px; padding: 0 16px; border: 0; border-bottom: 3px solid transparent; background: none; font: inherit; font-weight: 600; color: var(--text-muted);">Distributors · 64</button>
+        <button type="button" role="tab" aria-selected="true" style="min-height: 44px; padding: 0 16px; border: 0; border-bottom: 3px solid var(--accent); background: none; font: inherit; font-weight: 600; color: var(--text);">Retailers · 1,443</button>
+        <button type="button" role="tab" aria-selected="false" style="min-height: 44px; padding: 0 16px; border: 0; border-bottom: 3px solid transparent; background: none; font: inherit; font-weight: 600; color: var(--text-muted);">Farmers · 6,210</button>
+      </div>
+      <div class="ks-banner info" role="status" style="margin: 0;">
+        <svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 8h.01M11 12h1v4h1"></path></svg>
+        <span>12 new retailers were added from phones and wait for approval.</span>
+        <button type="button" class="ks-banner-act">Review them</button>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="ks-table">
+          <thead><tr><th>Code</th><th>Name</th><th>Market</th><th>Distributor</th><th>Assigned to</th><th>Location</th><th class="r">Outstanding</th><th>Status</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+              <tr><td><code>{{r.code}}</code></td><td style="font-weight: 600;">{{r.name}}</td><td>{{r.market}}</td><td>{{r.parent}}</td><td>{{r.who}}</td><td><span class="ks-badge {{r.locTone}}">{{r.loc}}</span></td><td class="r">{{r.due}}</td><td><span class="ks-badge {{r.tone}}">{{r.status}}</span></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div class="ks-row" style="justify-content: center;"><button type="button" class="ks-btn secondary sm">Load more</button></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (code, name, market, parent, who, loc, due, status) => ({ code, name, market, parent, who, loc, locTone: loc === 'Verified' ? 'success' : 'waiting', due, status, tone: status === 'Active' ? 'success' : status === 'Proposed' ? 'pending' : 'neutral' });
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        R('R-2210', 'Patel Krishi Kendra', 'Sanwer', 'Shree Krishna Agro', 'Ravi Kumar', 'Verified', '₹38,400', 'Active'),
+        R('R-2214', 'Om Sai Fertilisers', 'Sanwer', 'Shree Krishna Agro', 'Ravi Kumar', 'Verified', '₹9,150', 'Active'),
+        R('R-2231', 'Maa Annapurna Beej Bhandar', 'Sanwer', 'Shree Krishna Agro', 'Ravi Kumar', 'Verified', '₹67,400', 'Active'),
+        R('R-1180', 'Jai Kisan Agro', 'Dewas road', 'Malwa Agri Distributors', 'Manish Verma', 'Verified', '₹0', 'Active'),
+        R('R-1302', 'Bhole Krishi Seva', 'Depalpur', 'Malwa Agri Distributors', 'Deepak Chouhan', 'Verified', '₹14,800', 'Active'),
+        R('R-1355', 'Kisan Seva Kendra', 'Sanwer', 'Shree Krishna Agro', 'Ravi Kumar', 'Not yet', '₹2,300', 'Active'),
+        R('—', 'Shubh Labh Traders', 'Hatod', 'Narmada Inputs', 'Anil Patidar', 'Not yet', '—', 'Proposed'),
+        R('—', 'Gramin Krishi Bazar', 'Mhow', 'Narmada Inputs', 'Pooja Rathore', 'Not yet', '—', 'Proposed'),
+        R('R-0974', 'Annadata Agro Centre', 'Gautampura', 'Malwa Agri Distributors', 'Sneha Malviya', 'Verified', '₹0', 'Closed')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
