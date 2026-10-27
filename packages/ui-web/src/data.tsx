@@ -49,7 +49,7 @@ export function DataTable<Row>({
   if (rows.length === 0 && empty) return <>{empty}</>;
   return (
     <div className="flex flex-col items-start gap-3">
-      <div className="w-full overflow-x-auto">
+      <div className="relative w-full overflow-x-auto">
         <table className={cn('ks-table', stickyFirst && 'sticky-first')}>
           <caption className="sr-only">{caption}</caption>
           <thead>

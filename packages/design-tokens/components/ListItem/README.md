@@ -3,7 +3,7 @@
 A list item is one row of a list: what leads it, a title and a line under it, and what sits at its end. SplitDetail sets a list beside the detail of its chosen row.
 
 ## Anatomy
-- **List:** `ks-list`, a card of rows.
+- **List:** `ks-list`, a card of rows. Inside another card it drops its shadow as `ks-list flat`, as a table does as `ks-table flat`.
 - **ListItem:** `ks-item`, made of:
   - a lead (avatar, icon chip, rank or status dot);
   - a title in `ks-title`, cut to one line with the full text in a tooltip;

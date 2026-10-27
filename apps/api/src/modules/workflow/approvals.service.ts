@@ -190,12 +190,19 @@ export class ApprovalsService {
 
   /** How many requests wait for the caller's decision, for the home dashboard (M18). */
   async waitingCount(tx: TenantTx, access: Access): Promise<number> {
-    const [row] = await tx
-      .select({ count: sql<number>`count(*)::int` })
+    const counts = await this.waitingByType(tx, access);
+    return Object.values(counts).reduce((sum, count) => sum + count, 0);
+  }
+
+  /** How many requests wait for the caller, by request type. */
+  async waitingByType(tx: TenantTx, access: Access): Promise<Record<string, number>> {
+    const counts = await tx
+      .select({ type: workflowInstances.requestType, count: sql<number>`count(*)::int` })
       .from(workflowInstances)
       .innerJoin(workflowSteps, this.currentStepOf())
-      .where(this.waitingFor(access));
-    return row?.count ?? 0;
+      .where(this.waitingFor(access))
+      .groupBy(workflowInstances.requestType);
+    return Object.fromEntries(counts.map((row) => [row.type, row.count]));
   }
 
   /** What waits for the caller, oldest first. */
@@ -218,16 +225,10 @@ export class ApprovalsService {
       .orderBy(asc(workflowInstances.id))
       .limit(query.limit + 1);
     const page = found.slice(0, query.limit).map((row) => row.instance);
-    const counts = await tx
-      .select({ type: workflowInstances.requestType, count: sql<number>`count(*)::int` })
-      .from(workflowInstances)
-      .innerJoin(workflowSteps, this.currentStepOf())
-      .where(this.waitingFor(access))
-      .groupBy(workflowInstances.requestType);
     return {
       items: await this.results(tx, access.tenantId, page),
       nextCursor: found.length > query.limit ? page.at(-1)!.id : null,
-      counts: Object.fromEntries(counts.map((row) => [row.type, row.count])),
+      counts: await this.waitingByType(tx, access),
     };
   }
 

@@ -50,7 +50,9 @@ async function mockApi(page: Page) {
         mix: [],
         leaderboard: null,
         onDuty: null,
-        waiting: { reviews: null, approvals: null },
+        onDutyPeople: null,
+        onLeaveToday: null,
+        waiting: { reviews: null, approvals: null, plans: null, leave: null, expenses: null },
       },
     }),
   );
@@ -147,8 +149,10 @@ test('signs in with a number and a code, signs out, and every screen passes axe'
   await expectAccessible(page);
   await page.getByRole('button', { name: 'Sign in' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Hello, Anita Rao' })).toBeVisible();
-  await expect(page.getByText('Head at Sunrise Traders')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Good (morning|afternoon|evening), Anita$/ }),
+  ).toBeVisible();
+  await expect(page.getByText(/ · your own figures · updated /)).toBeVisible();
   await expectAccessible(page);
 
   // Signing out forgets what belonged to the person, so the next one on this computer sees none of it.
@@ -229,7 +233,9 @@ test('sets up an authenticator for an admin, shows the recovery codes once, and 
   await expect(page.getByRole('heading', { name: 'Save your recovery codes' })).toBeVisible();
   await expectAccessible(page);
   await page.getByRole('button', { name: 'I have saved them' }).click();
-  await expect(page.getByRole('heading', { name: 'Hello, Anita Rao' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Good (morning|afternoon|evening), Anita$/ }),
+  ).toBeVisible();
 });
 
 test('finds the organisation for single sign-on from a work email, and passes axe', async ({

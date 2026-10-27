@@ -28508,6 +28508,29 @@
                           ],
                           "additionalProperties": false
                         },
+                        "territory": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "code",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "score": {
                           "anyOf": [
                             {
@@ -28538,6 +28561,7 @@
                       },
                       "required": [
                         "user",
+                        "territory",
                         "score",
                         "rank",
                         "you"
@@ -28569,6 +28593,85 @@
               }
             ]
           },
+          "onDutyPeople": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "place": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "visits": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "paused": {
+                      "type": "boolean"
+                    },
+                    "seenAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "place",
+                    "visits",
+                    "paused",
+                    "seenAt"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "onLeaveToday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "waiting": {
             "$ref": "#/components/schemas/DashboardWaiting"
           }
@@ -28582,6 +28685,8 @@
           "mix",
           "leaderboard",
           "onDuty",
+          "onDutyPeople",
+          "onLeaveToday",
           "waiting"
         ],
         "additionalProperties": false
@@ -28612,11 +28717,50 @@
                 "type": "null"
               }
             ]
+          },
+          "plans": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "leave": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expenses": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "reviews",
-          "approvals"
+          "approvals",
+          "plans",
+          "leave",
+          "expenses"
         ],
         "additionalProperties": false
       },
@@ -32409,11 +32553,17 @@
                 },
                 "name": {
                   "$ref": "#/components/schemas/LocalizedNoun"
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
                 "key",
-                "name"
+                "name",
+                "size"
               ],
               "additionalProperties": false
             }
@@ -32427,6 +32577,12 @@
                 "type": "null"
               }
             ]
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerformanceMetric"
+            }
           },
           "rows": {
             "type": "array",
@@ -32455,6 +32611,71 @@
                   ],
                   "additionalProperties": false
                 },
+                "territory": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "figures": {
+                  "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/components/schemas/Key"
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "actual": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "pending": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "target": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "attainment": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "actual",
+                      "pending",
+                      "target",
+                      "attainment"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "score": {
                   "anyOf": [
                     {
@@ -32479,14 +32700,29 @@
                     }
                   ]
                 },
+                "previousRank": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "you": {
                   "type": "boolean"
                 }
               },
               "required": [
                 "user",
+                "territory",
+                "figures",
                 "score",
                 "rank",
+                "previousRank",
                 "you"
               ],
               "additionalProperties": false
@@ -32497,6 +32733,7 @@
           "period",
           "groups",
           "group",
+          "metrics",
           "rows"
         ],
         "additionalProperties": false
@@ -35452,6 +35689,29 @@
             ],
             "additionalProperties": false
           },
+          "territory": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "metrics": {
             "type": "array",
             "items": {
@@ -35527,6 +35787,18 @@
               }
             ]
           },
+          "previousRank": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "group": {
             "anyOf": [
               {
@@ -35587,11 +35859,13 @@
         "required": [
           "period",
           "user",
+          "territory",
           "metrics",
           "figures",
           "locked",
           "score",
           "rank",
+          "previousRank",
           "group",
           "days"
         ],
@@ -40540,6 +40814,29 @@
                 "designation": {
                   "$ref": "#/components/schemas/Key"
                 },
+                "territory": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "figures": {
                   "type": "object",
                   "propertyNames": {
@@ -40605,14 +40902,28 @@
                       "type": "null"
                     }
                   ]
+                },
+                "previousRank": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "required": [
                 "user",
                 "designation",
+                "territory",
                 "figures",
                 "score",
-                "rank"
+                "rank",
+                "previousRank"
               ],
               "additionalProperties": false
             }

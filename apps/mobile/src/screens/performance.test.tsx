@@ -41,6 +41,7 @@ const metric = (key: string, one: string, unit: string, available = true) => ({
 const MONTH = {
   period: '2026-10',
   user: person(ASHA, 'Asha Rao'),
+  territory: null,
   metrics: [
     metric('reach', 'Coverage', 'percent'),
     metric('order_value', 'Order', 'currency', false),
@@ -56,6 +57,7 @@ const MONTH = {
   locked: true,
   score: 59,
   rank: 2,
+  previousRank: null,
   group: { key: 'executive', name: noun('Executive', 'Executives'), size: 7 },
   days: [],
 };
@@ -63,17 +65,18 @@ const MONTH = {
 const BOARD = (group: string) => ({
   period: '2026-10',
   groups: [
-    { key: 'executive', name: noun('Executive', 'Executives') },
-    { key: 'officer', name: noun('Officer', 'Officers') },
+    { key: 'executive', name: noun('Executive', 'Executives'), size: 2 },
+    { key: 'officer', name: noun('Officer', 'Officers'), size: 1 },
   ],
   group,
-  rows:
-    group === 'executive'
-      ? [
-          { user: person(RAVI, 'Ravi Kumar'), score: 100, rank: 1, you: false },
-          { user: person(ASHA, 'Asha Rao'), score: 59, rank: 2, you: true },
-        ]
-      : [{ user: person(RAVI, 'Neha Joshi'), score: null, rank: null, you: false }],
+  metrics: [],
+  rows: (group === 'executive'
+    ? [
+        { user: person(RAVI, 'Ravi Kumar'), score: 100, rank: 1, you: false },
+        { user: person(ASHA, 'Asha Rao'), score: 59, rank: 2, you: true },
+      ]
+    : [{ user: person(RAVI, 'Neha Joshi'), score: null, rank: null, you: false }]
+  ).map((row) => ({ ...row, territory: null, figures: {}, previousRank: null })),
 });
 
 const full = <T,>(rows: T[]) => ({

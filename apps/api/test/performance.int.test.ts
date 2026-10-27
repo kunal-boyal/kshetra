@@ -1,5 +1,5 @@
 import { MetricDefinition } from '@thelamp/metrics';
-import { newId, todayIn } from '@thelamp/shared';
+import { newId, rankCutoff, todayIn } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -28,6 +28,8 @@ afterAll(async () => {
 const H = 3_600_000;
 const HERE = { lat: 28.6315, lng: 77.2167 };
 const MONTH = todayIn('Asia/Kolkata').slice(0, 7);
+/** The last day counted for last week's rank, or null early in the month. */
+const CUTOFF = rankCutoff(MONTH, todayIn('Asia/Kolkata'));
 const text = (en: string) => ({ en, hi: en });
 const noun = (one: string) => ({ en: { one, other: `${one}s` }, hi: { one, other: one } });
 
@@ -163,7 +165,7 @@ async function tenant(name: string) {
     });
     expect(shift.statusCode).toBe(201);
   }
-  return { tenantId, admin, manager, asha, ravi, api, shops };
+  return { tenantId, admin, manager, asha, ravi, api, shops, territoryId };
 }
 
 type Tenant = Awaited<ReturnType<typeof tenant>>;
@@ -294,19 +296,43 @@ describe('scores and ranks (BR-06, BR-07)', () => {
     expect(asha.figures.calls).toMatchObject({ actual: '2', target: '4', attainment: 0.5 });
     expect(await figures(t.api.ravi)).toMatchObject({ score: 100, rank: 1 });
 
+    await world.attach(t.tenantId, t.asha.id, t.territoryId);
     const board = (await t.api.asha.get(`/v1/leaderboard?period=${MONTH}`)).json();
-    expect(board).toMatchObject({ group: 'executive', groups: [{ key: 'executive' }] });
+    expect(board).toMatchObject({ group: 'executive', groups: [{ key: 'executive', size: 2 }] });
+    expect(board.metrics.map((metric: { key: string }) => metric.key)).toContain('calls');
+    // All the work is today's, so at the end of last week both stood level on nothing.
+    const before = CUTOFF === null ? null : 1;
     expect(board.rows).toEqual([
-      { user: expect.objectContaining({ id: t.ravi.id }), score: 100, rank: 1, you: false },
-      { user: expect.objectContaining({ id: t.asha.id }), score: 50, rank: 2, you: true },
+      expect.objectContaining({
+        user: expect.objectContaining({ id: t.ravi.id }),
+        territory: null,
+        score: 100,
+        rank: 1,
+        previousRank: before,
+        you: false,
+      }),
+      expect.objectContaining({
+        user: expect.objectContaining({ id: t.asha.id }),
+        territory: { code: expect.stringMatching(/^T-/), name: expect.any(String) },
+        score: 50,
+        rank: 2,
+        previousRank: before,
+        you: true,
+      }),
     ]);
+    expect(board.rows[1].figures.calls).toMatchObject({ actual: '2', target: '4' });
     expect(
       (await t.api.asha.get(`/v1/leaderboard?period=${MONTH}&group=manager`)).json().error.code,
     ).toBe('NOT_FOUND');
 
     const team = (await t.api.manager.get(`/v1/performance/team?period=${MONTH}`)).json();
     expect(team.rows.map((row: { user: { id: string } }) => row.user.id)).toEqual([t.asha.id]);
-    expect(team.rows[0]).toMatchObject({ score: 50, rank: 2 });
+    expect(team.rows[0]).toMatchObject({
+      score: 50,
+      rank: 2,
+      previousRank: before,
+      territory: { code: expect.stringMatching(/^T-/) },
+    });
     const all = (await t.api.admin.get(`/v1/performance/team?period=${MONTH}`)).json();
     expect(all.totals).toMatchObject({
       calls: { actual: '3', pending: '1', target: '5' },
@@ -331,6 +357,35 @@ describe('scores and ranks (BR-06, BR-07)', () => {
     ).toEqual([
       { userId: t.ravi.id, score: 100, rank: 1 },
       { userId: t.asha.id, score: 50, rank: 2 },
+    ]);
+  });
+
+  it.skipIf(CUTOFF === null)('ranks the month up to last Sunday for the movement', async () => {
+    const t = await tenant('Movement Co');
+    await work(t);
+    await lockTargets(t);
+    // A call of Asha's counted on last week's last day: she led then, and Ravi has climbed since.
+    await app.get(Database).forTenant(t.tenantId, (tx) =>
+      tx.insert(metricFactsDaily).values({
+        tenantId: t.tenantId,
+        userId: t.asha.id,
+        date: CUTOFF!,
+        metricKey: 'calls',
+        value: '1',
+      }),
+    );
+    const board = (await t.api.ravi.get(`/v1/leaderboard?period=${MONTH}`)).json();
+    expect(
+      board.rows.map(
+        (row: { user: { id: string }; rank: number | null; previousRank: number | null }) => [
+          row.user.id,
+          row.rank,
+          row.previousRank,
+        ],
+      ),
+    ).toEqual([
+      [t.ravi.id, 1, 2],
+      [t.asha.id, 2, 1],
     ]);
   });
 

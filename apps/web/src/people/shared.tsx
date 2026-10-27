@@ -72,6 +72,7 @@ export function PageHeader({
   intro,
   meta,
   toolbar,
+  lead,
   children,
 }: {
   title: string;
@@ -79,11 +80,13 @@ export function PageHeader({
   intro?: string;
   meta?: ReactNode;
   toolbar?: ReactNode;
+  lead?: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <UiPageHeader
       title={title}
+      lead={lead}
       intro={intro}
       meta={meta}
       toolbar={toolbar}

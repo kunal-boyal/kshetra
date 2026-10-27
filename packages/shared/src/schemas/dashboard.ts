@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Key, LocalizedNoun } from './config';
-import { MetricFigures, PerformanceMetric } from './performance';
+import { MetricFigures, PerformanceMetric, PersonTerritory } from './performance';
 import { Period } from './planning';
 
 /**
@@ -17,7 +17,14 @@ const Person = z.object({ id: z.uuid(), code: z.string(), name: z.string() });
 
 /** What waits for the viewer, also read alone for the rail's counts; null for what they can't act on. */
 export const DashboardWaiting = z
-  .object({ reviews: z.int().nullable(), approvals: z.int().nullable() })
+  .object({
+    reviews: z.int().nullable(),
+    approvals: z.int().nullable(),
+    /** Of the approvals: months of plans, leave with fixed days, and expense claims. */
+    plans: z.int().nullable(),
+    leave: z.int().nullable(),
+    expenses: z.int().nullable(),
+  })
   .meta({ id: 'DashboardWaiting' });
 
 export const DashboardResult = z
@@ -58,6 +65,7 @@ export const DashboardResult = z
         rows: z.array(
           z.object({
             user: Person,
+            territory: PersonTerritory,
             score: z.int().nullable(),
             rank: z.int().nullable(),
             you: z.boolean(),
@@ -67,6 +75,21 @@ export const DashboardResult = z
       .nullable(),
     /** On duty now in the viewer's scope; null without the live map. */
     onDuty: z.int().nullable(),
+    /** The first of them, longest on duty first, with where they are and today's visits. */
+    onDutyPeople: z
+      .array(
+        z.object({
+          user: z.object({ id: z.uuid(), name: z.string() }),
+          /** The account of the visit they are at, or of their last visit today. */
+          place: z.string().nullable(),
+          visits: z.int(),
+          paused: z.boolean(),
+          seenAt: z.iso.datetime().nullable(),
+        }),
+      )
+      .nullable(),
+    /** People in the viewer's scope on approved leave today; null without the live map. */
+    onLeaveToday: z.int().nullable(),
     /** What waits for the viewer; null for what they can't act on. */
     waiting: DashboardWaiting,
   })

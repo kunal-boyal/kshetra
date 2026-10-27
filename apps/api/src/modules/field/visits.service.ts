@@ -348,6 +348,41 @@ export class VisitsService {
     );
   }
 
+  /**
+   * Some people's visits checked in on a date on the tenant's clock, by user: how many, and the
+   * account of the latest, for the home's on-duty list (M18).
+   */
+  async dayCounts(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    date: string,
+    timezone: string,
+  ): Promise<Map<string, { visits: number; last: string }>> {
+    if (userIds.length === 0) return new Map();
+    const rows = await tx
+      .select({
+        userId: visits.userId,
+        visits: sql<number>`count(*) over (partition by ${visits.userId})::int`,
+        name: accounts.name,
+      })
+      .from(visits)
+      .innerJoin(
+        accounts,
+        and(eq(accounts.tenantId, visits.tenantId), eq(accounts.id, visits.accountId)),
+      )
+      .where(
+        and(
+          eq(visits.tenantId, tenantId),
+          inArray(visits.userId, [...new Set(userIds)]),
+          onLocalDate(visits.checkInAt, date, timezone),
+        ),
+      )
+      .orderBy(asc(visits.checkInAt));
+    // Rows come oldest first, so each person's last row is their latest visit.
+    return new Map(rows.map((row) => [row.userId, { visits: row.visits, last: row.name }]));
+  }
+
   /** A person's visits checked in on a date on the tenant's clock, for the day replay (M17). */
   async ofDay(tx: TenantTx, tenantId: string, userId: string, date: string, timezone: string) {
     return tx

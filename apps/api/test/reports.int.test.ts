@@ -145,7 +145,7 @@ async function tenant(name: string) {
     photos: [],
   });
   expect(submitted.json()).toMatchObject({ id: expect.any(String) });
-  return { tenantId, admin, manager, asha, ravi, api };
+  return { tenantId, admin, manager, asha, ravi, api, shop };
 }
 
 type Tenant = Awaited<ReturnType<typeof tenant>>;
@@ -298,7 +298,50 @@ describe('the home dashboard (M18)', () => {
     expect((await t.api.asha.get('/v1/dashboard/waiting')).json()).toEqual({
       reviews: null,
       approvals: null,
+      plans: null,
+      leave: null,
+      expenses: null,
     });
+  });
+
+  it('lists who is on duty with their place and visits, and counts leave waiting', async () => {
+    const t = await tenant('Duty Co');
+    const visit = await t.api.asha.post('/v1/visits', {
+      id: newId(),
+      accountId: t.shop,
+      checkedInAt: new Date().toISOString(),
+      fix: fix(Date.now()),
+    });
+    expect(visit.statusCode, visit.body).toBe(201);
+    // A Tuesday early next year, so it is a working day well ahead.
+    const day = new Date(Date.UTC(Number(todayIn('Asia/Kolkata').slice(0, 4)) + 1, 2, 2));
+    while (day.getUTCDay() !== 2) day.setUTCDate(day.getUTCDate() + 1);
+    const date = day.toISOString().slice(0, 10);
+    const leave = await t.api.asha.post('/v1/leave-requests', {
+      id: newId(),
+      leaveType: 'casual',
+      startDate: date,
+      endDate: date,
+    });
+    expect(leave.statusCode, leave.body).toBe(201);
+
+    const team = (await t.api.manager.get(`/v1/dashboard?period=${MONTH()}`)).json();
+    expect(team).toMatchObject({
+      onDuty: 1,
+      onDutyPeople: [
+        {
+          user: { id: t.asha.id, name: expect.any(String) },
+          place: 'Sharma Stores',
+          visits: 1,
+          paused: false,
+        },
+      ],
+      onLeaveToday: 0,
+      waiting: { approvals: 1, plans: 0, leave: 1, expenses: 0 },
+    });
+
+    const own = (await t.api.asha.get(`/v1/dashboard?period=${MONTH()}`)).json();
+    expect(own).toMatchObject({ onDutyPeople: null, onLeaveToday: null });
   });
 });
 
