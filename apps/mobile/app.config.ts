@@ -56,6 +56,28 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Tracking during a shift (spec 12.1). No significant-change monitoring, so a force-quit app
     // is never relaunched in the background.
     infoPlist: { UIBackgroundModes: ['location', 'remote-notification'] },
+    // Only HTTPS and the system's own storage encryption, which export rules exempt, so App Store
+    // Connect asks nothing more (decision D100).
+    config: { usesNonExemptEncryption: false },
+    // Apple's privacy manifest (decision D100): no tracking, and the reasons for the system APIs
+    // React Native itself reads; Expo's packages bring their own manifests.
+    privacyManifests: {
+      NSPrivacyTracking: false,
+      NSPrivacyAccessedAPITypes: [
+        {
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults',
+          NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
+        },
+        {
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
+          NSPrivacyAccessedAPITypeReasons: ['C617.1'],
+        },
+        {
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime',
+          NSPrivacyAccessedAPITypeReasons: ['35F9.1'],
+        },
+      ],
+    },
   },
   android: {
     package: id,

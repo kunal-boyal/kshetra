@@ -204,6 +204,7 @@ This section defines what a tenant can configure. Modules in section 6 read thei
 | Setting | Default | Allowed range or notes |
 |---|---|---|
 | Display name, legal name, address, tax ID (GSTIN) | — | Legal details print on PDFs and exports |
+| Privacy policy link | None | An https:// address of the tenant's own policy, linked from the app's Privacy screen (decision D100) |
 | Logo and brand colour | Product defaults | Colour must pass AA contrast against white; apps derive their accent palette from it |
 | Google Maps key for the web | The vendor's | Optional; a browser key the tenant limits to its portal's address (decision D64). The Android key stays the vendor's, as it is built into the app. |
 | Timezone | `Asia/Kolkata` | IANA name. Drives local dates, month boundaries and scheduled jobs. |
@@ -1630,7 +1631,7 @@ Account and user search use PostgreSQL trigram indexes on name and code within t
 ### 13.3 Privacy by design
 
 - Purpose: location and photos support attendance, visit verification and route review during working hours.
-- Notice and consent: the consent sheet at each punch-in, an in-app privacy page per tenant (with the tenant's policy link), and a written employee notice issued by the tenant.
+- Notice and consent: the consent sheet at each punch-in; the product's privacy notice, in English and Hindi, on the app's Privacy screen (readable before signing in, with the tenant's own policy link from Settings › Organisation) and at the portal's public `/privacy`; how to have an account deleted at the public `/delete-account` (decision D100); and a written employee notice issued by the tenant.
 - Minimisation: work identity and contact details, work photos, location during shifts and HR requests. The app never reads contacts, call logs, SMS, the gallery (unless a form allows gallery photos) or the microphone.
 - Access: reporting line and permissions; photos and exports through short-lived signed links.
 - Retention: per data class (5.1), enforced by jobs and lifecycle rules.
@@ -2186,9 +2187,9 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `CORS_ORIGINS` | Allowed web origins |
 | `MIN_APP_VERSION_ANDROID`, `MIN_APP_VERSION_IOS` | The oldest app version each platform may use; older apps get `UPGRADE_REQUIRED` (M1, rule 8). Unset allows every version. |
 
-Web portal and console: `VITE_DIRECTORY_URL`, `VITE_CELL_URL` (optional; overrides the cell address handed out at sign-in), `VITE_PRODUCT_NAME`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN`.
+Web portal and console: `VITE_DIRECTORY_URL`, `VITE_CELL_URL` (optional; overrides the cell address handed out at sign-in), `VITE_PRODUCT_NAME`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN`, `VITE_PRIVACY_EMAIL` (the provider's privacy address on the public privacy and account deletion pages; without it they point to the store page).
 
-Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`, and `PRODUCT_SLUG` and `PRODUCT_NAME`, from which the app's name and store identifiers derive. The cell URL comes from the sign-in response, never from the build.
+Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_PRIVACY_EMAIL` (as `VITE_PRIVACY_EMAIL`, for the app's Privacy screen), `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`, and `PRODUCT_SLUG` and `PRODUCT_NAME`, from which the app's name and store identifiers derive. The cell URL comes from the sign-in response, never from the build.
 
 ## Appendix G. Glossary
 

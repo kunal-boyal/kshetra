@@ -23,3 +23,20 @@ describe('settings as an app already on a phone reads them (spec 14.3)', () => {
     expect(UpdateSettingsBody.safeParse({ settingFromTheFuture: true }).success).toBe(false);
   });
 });
+
+describe("the organisation's privacy policy link (decision D100)", () => {
+  const link = (privacyPolicyUrl: string) =>
+    UpdateSettingsBody.safeParse({ privacyPolicyUrl }).success;
+
+  it('takes an https:// address, with a port, path or query', () => {
+    expect(link('https://sunrise.example/privacy')).toBe(true);
+    expect(link('https://sunrise.example:8443/legal?lang=hi')).toBe(true);
+  });
+
+  it('refuses plain HTTP, other schemes, bare names and spaces', () => {
+    expect(link('http://sunrise.example/privacy')).toBe(false);
+    expect(link('javascript:alert(1)')).toBe(false);
+    expect(link('https://intranet/privacy')).toBe(false);
+    expect(link('https://sunrise.example/our policy')).toBe(false);
+  });
+});

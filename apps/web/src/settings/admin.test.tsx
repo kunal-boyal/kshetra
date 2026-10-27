@@ -27,13 +27,22 @@ describe('the organisation (M2)', () => {
       'Sunrise Traders Pvt Ltd',
     );
     await user.type(within(form).getByRole('textbox', { name: /GSTIN/ }), '07abcde1234f1z5');
+    await user.type(
+      within(form).getByRole('textbox', { name: /Your privacy policy/ }),
+      'https://sunrise.example/privacy',
+    );
     await user.click(within(form).getByRole('button', { name: 'Save' }));
     expect(await within(form.parentElement!).findByText('Saved.')).toBeVisible();
     expect(writesOf(client).map(([method, path]) => `${method} ${path}`)).toEqual([
       'PATCH /v1/settings',
     ]);
     expect(writesOf(client)[0]![3]).toMatchObject({
-      body: { legalName: 'Sunrise Traders Pvt Ltd', address: null, taxId: '07ABCDE1234F1Z5' },
+      body: {
+        legalName: 'Sunrise Traders Pvt Ltd',
+        address: null,
+        taxId: '07ABCDE1234F1Z5',
+        privacyPolicyUrl: 'https://sunrise.example/privacy',
+      },
     });
   });
 

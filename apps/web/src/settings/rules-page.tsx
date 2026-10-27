@@ -15,6 +15,7 @@ type Rules = Omit<
   | 'address'
   | 'taxId'
   | 'logoMediaId'
+  | 'privacyPolicyUrl'
   | 'brandColour'
   | 'modulesOff'
   // Orders arrive in phase 2, with their settings.

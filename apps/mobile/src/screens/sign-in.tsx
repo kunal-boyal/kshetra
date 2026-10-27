@@ -1,7 +1,16 @@
 import { ApiError } from '@thelamp/api-client';
 import { spacing } from '@thelamp/design-tokens';
 import { BrandMark, Button, ListGroup, ListRow, Screen, Text, TextField } from '@thelamp/ui-mobile';
-import { ArrowLeft, Building2, Languages, LogIn, RotateCw, Send } from 'lucide-react-native';
+import { router } from 'expo-router';
+import {
+  ArrowLeft,
+  Building2,
+  FileLock2,
+  Languages,
+  LogIn,
+  RotateCw,
+  Send,
+} from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
@@ -214,6 +223,13 @@ export function SignInScreen() {
           </ListGroup>
         </View>
       ) : null}
+      {/* The privacy notice is readable before signing in (decision D100). */}
+      <Button
+        variant="ghost"
+        icon={FileLock2}
+        label={t('privacy.open')}
+        onPress={() => router.push('/privacy')}
+      />
     </Screen>
   );
 }

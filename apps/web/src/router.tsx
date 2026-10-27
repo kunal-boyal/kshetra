@@ -36,6 +36,7 @@ import { AppShell } from './layout/app-shell';
 import { HomePage } from './pages/home';
 import { SecurityPage } from './pages/security';
 import { SignInPage } from './pages/sign-in';
+import { DeleteAccountPage, PrivacyPage } from './pages/public-pages';
 import { OrgChartPage } from './people/org-chart-page';
 import { PeoplePage } from './people/people-page';
 import { EditPersonPage, NewPersonPage } from './people/person-form-page';
@@ -85,6 +86,18 @@ const signIn = createRoute({
   beforeLoad: ({ context }) => {
     if (context.client.session) throw redirect({ to: '/' });
   },
+});
+
+/** What anyone may read: the privacy notice and how to delete an account (decision D100). */
+const privacy = createRoute({
+  getParentRoute: () => root,
+  path: '/privacy',
+  component: PrivacyPage,
+});
+const deleteAccount = createRoute({
+  getParentRoute: () => root,
+  path: '/delete-account',
+  component: DeleteAccountPage,
 });
 
 /** Everything behind sign-in. */
@@ -495,6 +508,8 @@ const editMetric = createRoute({
 
 const tree = root.addChildren([
   signIn,
+  privacy,
+  deleteAccount,
   app.addChildren([
     home,
     security,
