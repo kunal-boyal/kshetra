@@ -376,7 +376,13 @@ describe('scores and ranks (BR-06, BR-07)', () => {
     );
     const board = (await t.api.ravi.get(`/v1/leaderboard?period=${MONTH}`)).json();
     expect(
-      board.rows.map((row: { user: { id: string } }) => [row.user.id, row.rank, row.previousRank]),
+      board.rows.map(
+        (row: { user: { id: string }; rank: number | null; previousRank: number | null }) => [
+          row.user.id,
+          row.rank,
+          row.previousRank,
+        ],
+      ),
     ).toEqual([
       [t.ravi.id, 1, 2],
       [t.asha.id, 2, 1],
