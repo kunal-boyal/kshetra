@@ -34,7 +34,7 @@ Not applicable: the product has no WebRTC, GraphQL, WebSockets, LDAP, XPath, LaT
 | 10c5b1 | Sessions | #128 |
 | 10c5b2 | Step-up and SSO | #129 |
 | 10c5c | Keys and secrets | #130 |
-| 10c5d | This review, the process documents, response filtering and ZAP | #PRNUM |
+| 10c5d | This review, the process documents, response filtering and ZAP | #131 |
 
 ## Accepted risks
 
