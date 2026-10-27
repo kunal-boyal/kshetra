@@ -1,0 +1,24 @@
+<!-- @dsCard group="Data" height=230 subtitle="A figure with its line, a bar, and share bars" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>StatTile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>html,body{margin:0}</style>
+</head>
+<body>
+<div class="ks ks-pv" data-density="compact">
+ <div class="ks-stack" style="gap:var(--space-4);max-width:720px">
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)">
+   <a class="ks-kpi ks-stat" href="#"><div class="ks-kpi-head"><span class="ks-ico sm hue-mint" aria-hidden="true"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path></svg></span><p class="ks-kpi-label">On duty now</p></div><p class="ks-kpi-value">38</p><div class="ks-bar" aria-hidden="true"><i class="done" style="width:83%"></i></div><div class="ks-kpi-foot"><span>of 46 people</span><span>6 on leave</span></div></a>
+   <div class="ks-kpi ks-stat"><div class="ks-kpi-head"><p class="ks-kpi-label">Claimed</p></div><p class="ks-kpi-value">₹1.4 L</p><div class="ks-kpi-foot"><span>64 claims</span></div></div>
+   <div class="ks-kpi ks-stat danger"><div class="ks-kpi-head"><p class="ks-kpi-label">Overdue</p></div><p class="ks-kpi-value">₹12,000</p><div class="ks-kpi-foot"><span>35 days late</span></div></div>
+  </div>
+  <div class="ks-share" role="img" aria-label="How the score is made"><span class="ks-share-part" style="flex:30;background:var(--chart-1)">Visits 30</span><span class="ks-share-part" style="flex:20;background:var(--chart-2)">Meetings 20</span><span class="ks-share-part" style="flex:20;background:var(--chart-3)">Coverage 20</span><span class="ks-share-part" style="flex:30;background:var(--chart-5)">Order value 30</span></div>
+  <div><div class="ks-share" role="img" aria-label="Ageing"><span class="ks-share-part" style="flex:26400;background:var(--neutral-solid)"></span><span class="ks-share-part" style="flex:12000;background:var(--danger-solid)"></span></div><ul class="ks-legend" style="margin-top:var(--space-2)"><li><i style="background:var(--neutral-solid)"></i>Not due <b>₹26,400</b></li><li><i style="background:var(--danger-solid)"></i>Overdue <b>₹12,000</b></li></ul></div>
+ </div>
+</div>
+</body>
+</html>

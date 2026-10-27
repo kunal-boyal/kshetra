@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@thelamp/design-tokens": "workspace:*",
+    "@thelamp/shared": "workspace:*",
     "lucide-react": "catalog:",
     "qrcode-generator": "2.0.4"
   },
@@ -27,8 +28,10 @@
   "devDependencies": {
     "@testing-library/jest-dom": "catalog:",
     "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
     "@thelamp/config": "workspace:*",
     "@types/react": "catalog:",
+    "axe-core": "^4.13.0",
     "eslint": "catalog:",
     "jsdom": "catalog:",
     "react": "catalog:",

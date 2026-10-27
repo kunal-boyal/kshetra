@@ -13,8 +13,8 @@ export function StatusBadge({ variant, children }: { variant: BadgeVariant; chil
 export interface Column<Row> {
   key: string;
   header: string;
-  /** `end` right-aligns numbers in tabular figures. */
-  align?: 'start' | 'end';
+  /** `end` right-aligns numbers in tabular figures; `num` keeps tabular figures at the start, for codes and phone numbers. */
+  align?: 'start' | 'end' | 'num';
   render: (row: Row) => ReactNode;
 }
 
@@ -29,6 +29,8 @@ export function DataTable<Row>({
   rowKey,
   empty,
   more,
+  selectedKey,
+  stickyFirst = false,
 }: {
   caption: string;
   columns: readonly Column<Row>[];
@@ -37,36 +39,46 @@ export function DataTable<Row>({
   /** Shown instead of the table when there are no rows. */
   empty?: ReactNode;
   more?: { label: string; onClick: () => void; busy?: boolean };
+  /** The row shown beside its detail (SplitDetail), marked chosen. */
+  selectedKey?: string | null | undefined;
+  /** Keeps the first column in view while the table scrolls sideways, for wide registers. */
+  stickyFirst?: boolean;
 }) {
+  const cell = (align: Column<Row>['align']) =>
+    align === 'end' ? 'r' : align === 'num' ? 'ks-num' : undefined;
   if (rows.length === 0 && empty) return <>{empty}</>;
   return (
     <div className="flex flex-col items-start gap-3">
       <div className="w-full overflow-x-auto">
-        <table className="ks-table">
+        <table className={cn('ks-table', stickyFirst && 'sticky-first')}>
           <caption className="sr-only">{caption}</caption>
           <thead>
             <tr>
               {columns.map((column) => (
-                <th
-                  key={column.key}
-                  scope="col"
-                  className={column.align === 'end' ? 'r' : undefined}
-                >
+                <th key={column.key} scope="col" className={cell(column.align)}>
                   {column.header}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={rowKey(row)}>
-                {columns.map((column) => (
-                  <td key={column.key} className={column.align === 'end' ? 'r' : undefined}>
-                    {column.render(row)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {rows.map((row) => {
+              const key = rowKey(row);
+              const selected = selectedKey !== undefined && selectedKey === key;
+              return (
+                <tr
+                  key={key}
+                  className={selected ? 'sel' : undefined}
+                  aria-selected={selectedKey === undefined ? undefined : selected}
+                >
+                  {columns.map((column) => (
+                    <td key={column.key} className={cell(column.align)}>
+                      {column.render(row)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

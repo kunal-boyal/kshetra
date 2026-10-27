@@ -4,6 +4,7 @@ import {
   LockTargetsResult,
   type MetricView,
   PutTargetsResult,
+  shiftPeriod,
   TargetListResult,
   type TargetSetResult,
   TargetSetResult as TargetSetSchema,
@@ -39,15 +40,8 @@ import { read, useAccess, write } from '../people/data';
 import { PageHeader, Section } from '../people/shared';
 import { useFigure } from '../performance/shared';
 
-/** The month `step` months from a `YYYY-MM`. */
-function shiftMonth(period: string, step: number): string {
-  const [year, month] = period.split('-').map(Number) as [number, number];
-  const index = year * 12 + (month - 1) + step;
-  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
-}
-
 /** The month before a `YYYY-MM`. */
-const previousMonth = (period: string) => shiftMonth(period, -1);
+const previousMonth = (period: string) => shiftPeriod(period, -1);
 
 const STATUS_BADGE = { locked: 'success', draft: 'pending', none: 'neutral' } as const;
 
@@ -233,7 +227,7 @@ export function TargetsPage() {
             variant="secondary"
             icon={<Icon icon={ChevronLeft} />}
             aria-label={t('targets.previous_month')}
-            onClick={() => goTo(shiftMonth(period, -1))}
+            onClick={() => goTo(shiftPeriod(period, -1))}
           />
           <TextField
             label={t('plan.month')}
@@ -248,7 +242,7 @@ export function TargetsPage() {
             variant="secondary"
             icon={<Icon icon={ChevronRight} />}
             aria-label={t('targets.next_month')}
-            onClick={() => goTo(shiftMonth(period, 1))}
+            onClick={() => goTo(shiftPeriod(period, 1))}
           />
         </div>
         {data && data.sets.length > 0 ? (

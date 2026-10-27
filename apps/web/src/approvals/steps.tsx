@@ -1,6 +1,5 @@
 import type { ApprovalResult, ApprovalStep } from '@thelamp/shared';
-import { cn, Icon } from '@thelamp/ui-web';
-import { Check, X } from 'lucide-react';
+import { type Step, Steps } from '@thelamp/ui-web';
 import { useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { useDates } from '../people/shared';
@@ -17,7 +16,7 @@ export function ApprovalSteps({ item }: { item: ApprovalResult }) {
   const names = (people: ApprovalStep['approvers']) =>
     people.length ? people.map((person) => person.name).join(', ') : t('approvals.nobody');
 
-  function describe(step: ApprovalStep): { state: string; title: string; meta: string[] } {
+  function describe(step: ApprovalStep): { state: Step['state']; title: string; meta: string[] } {
     const when = step.actedAt ? [dates.dateTime(step.actedAt)] : [];
     const note = step.note ? [t('approvals.note', { note: step.note })] : [];
     switch (step.status) {
@@ -39,7 +38,7 @@ export function ApprovalSteps({ item }: { item: ApprovalResult }) {
         };
       case 'skipped':
         return {
-          state: '',
+          state: 'todo',
           title: t('approvals.step_skipped'),
           meta: step.skipReason ? [t(`approvals.skip_${step.skipReason}`)] : [],
         };
@@ -53,38 +52,34 @@ export function ApprovalSteps({ item }: { item: ApprovalResult }) {
                 ...(step.fallback ? [t('approvals.step_fallback')] : []),
               ],
             }
-          : { state: '', title: names(step.approvers), meta: [t('approvals.step_not_reached')] };
+          : {
+              state: 'todo',
+              title: names(step.approvers),
+              meta: [t('approvals.step_not_reached')],
+            };
       case 'waiting':
-        return { state: '', title: names(step.approvers), meta: [t('approvals.step_not_reached')] };
+        return {
+          state: 'todo',
+          title: names(step.approvers),
+          meta: [t('approvals.step_not_reached')],
+        };
     }
   }
 
   return (
-    <ol className="ks-steps" aria-label={t('approvals.chain')}>
-      <li className="ks-step done">
-        <span className="ks-node">
-          <Icon icon={Check} size="sm" />
-        </span>
-        <div>
-          <p className="ks-title">{t('approvals.step_asked', { name: item.requester.name })}</p>
-          <p className="ks-meta">{dates.dateTime(item.createdAt)}</p>
-        </div>
-      </li>
-      {item.steps.map((step) => {
-        const { state, title, meta } = describe(step);
-        return (
-          <li key={step.index} className={cn('ks-step', state)}>
-            <span className="ks-node">
-              {state === 'done' ? <Icon icon={Check} size="sm" /> : null}
-              {state === 'rejected' ? <Icon icon={X} size="sm" /> : null}
-            </span>
-            <div>
-              <p className={cn('ks-title', state ? '' : 'ks-muted')}>{title}</p>
-              {meta.length ? <p className="ks-meta">{meta.join(' · ')}</p> : null}
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+    <Steps
+      label={t('approvals.chain')}
+      steps={[
+        {
+          state: 'done',
+          title: t('approvals.step_asked', { name: item.requester.name }),
+          meta: dates.dateTime(item.createdAt),
+        },
+        ...item.steps.map((step): Step => {
+          const { state, title, meta } = describe(step);
+          return { state, title, ...(meta.length ? { meta: meta.join(' · ') } : {}) };
+        }),
+      ]}
+    />
   );
 }
