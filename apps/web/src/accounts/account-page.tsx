@@ -1,4 +1,5 @@
 import type { AccountTypeView } from '@thelamp/forms';
+import { emailMessage, mobileMessage } from '@thelamp/i18n';
 import {
   type AccountOverview,
   AccountResult,
@@ -21,6 +22,7 @@ import { Inbox, Pencil, Power, UserPlus, UserX } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
+import { EmailField, MobileField, useIndianNumbers } from '../fields';
 import { errorMessage, useLanguage } from '../i18n';
 import { customValue } from '../people/custom-fields';
 import { SubmissionsSection } from '../submissions/submissions-section';
@@ -314,12 +316,19 @@ function Contacts({ overview, manages }: { overview: AccountOverview; manages: b
   const { account } = overview;
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: '', role: '', phone: '', email: '' });
+  const [checked, setChecked] = useState(false);
+  const indian = useIndianNumbers() ?? true;
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<unknown>();
   const errors = fieldErrors(failure);
 
   async function add(event: FormEvent) {
     event.preventDefault();
+    // A business's number may be a landline; it still has ten digits (decision D102).
+    if ((indian && mobileMessage(draft.phone, false, true)) || emailMessage(draft.email)) {
+      setChecked(true);
+      return;
+    }
     setBusy(true);
     setFailure(undefined);
     try {
@@ -331,6 +340,7 @@ function Contacts({ overview, manages }: { overview: AccountOverview; manages: b
         ...(draft.email.trim() ? { email: draft.email.trim() } : {}),
       });
       setDraft({ name: '', role: '', phone: '', email: '' });
+      setChecked(false);
       setAdding(false);
       await refresh(account.id);
     } catch (caught) {
@@ -432,20 +442,31 @@ function Contacts({ overview, manages }: { overview: AccountOverview; manages: b
               {...(errors.role ? { error: errors.role } : {})}
               onChange={(event) => setDraft({ ...draft, role: event.target.value })}
             />
-            <TextField
-              label={t('contact.phone')}
-              type="tel"
-              inputMode="tel"
-              value={draft.phone}
-              {...(errors.phone ? { error: errors.phone } : {})}
-              onChange={(event) => setDraft({ ...draft, phone: event.target.value })}
-            />
-            <TextField
+            {indian ? (
+              <MobileField
+                label={t('contact.phone')}
+                landline
+                checked={checked}
+                value={draft.phone}
+                {...(errors.phone ? { error: errors.phone } : {})}
+                onChange={(value) => setDraft({ ...draft, phone: value })}
+              />
+            ) : (
+              <TextField
+                label={t('contact.phone')}
+                type="tel"
+                inputMode="tel"
+                value={draft.phone}
+                {...(errors.phone ? { error: errors.phone } : {})}
+                onChange={(event) => setDraft({ ...draft, phone: event.target.value })}
+              />
+            )}
+            <EmailField
               label={t('contact.email')}
-              type="email"
+              checked={checked}
               value={draft.email}
               {...(errors.email ? { error: errors.email } : {})}
-              onChange={(event) => setDraft({ ...draft, email: event.target.value })}
+              onChange={(value) => setDraft({ ...draft, email: value })}
             />
           </div>
           {failure && !Object.keys(errors).length ? (

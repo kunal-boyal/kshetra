@@ -37,7 +37,18 @@ export type { ErrorBody, ErrorCode, ErrorDetail } from './errors';
 export { EVENT_PAYLOADS, EVENT_TYPES, TenantProvisionedPayload, UserEventPayload } from './events';
 export type { EventPayload, EventType } from './events';
 export { isId, newId } from './ids';
-export { maskEmail, maskPhone, normalisePhone } from './phone';
+export {
+  EmailAddress,
+  INDIAN_MOBILE,
+  isEmail,
+  maskEmail,
+  maskPhone,
+  mobileDigits,
+  mobileDigitsFrom,
+  mobileDigitsIssue,
+  normaliseMobile,
+  normalisePhone,
+} from './phone';
 export { scrub, scrubText } from './scrub';
 export {
   cancellable,

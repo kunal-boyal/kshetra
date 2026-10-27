@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EmailAddress } from '../phone';
 import { DataScope, Permission } from './common';
 import { PhoneInput } from './auth';
 import { Key, LocalizedNoun, LocalizedText } from './config';
@@ -91,7 +92,7 @@ export const UserCode = z
   );
 
 const PersonName = z.string().trim().min(2).max(100);
-const Email = z.email().max(254);
+const Email = EmailAddress;
 const CalendarDate = z.iso.date();
 
 /** Values of the tenant's custom user fields, by field key (spec 5.3). */

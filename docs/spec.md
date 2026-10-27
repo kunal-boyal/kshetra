@@ -209,7 +209,7 @@ This section defines what a tenant can configure. Modules in section 6 read thei
 | Google Maps key for the web | The vendor's | Optional; a browser key the tenant limits to its portal's address (decision D64). The Android key stays the vendor's, as it is built into the app. |
 | Timezone | `Asia/Kolkata` | IANA name. Drives local dates, month boundaries and scheduled jobs. |
 | Currency | `INR` | ISO 4217; one currency per tenant in version 1 |
-| Default country for phone numbers | `IN` (+91) | Numbers stored in E.164 |
+| Default country for phone numbers | `IN` (+91) | Numbers stored in E.164. In India a person's number is a mobile, ten digits starting 6 to 9; a business contact's may be a landline (D102) |
 | Languages enabled | English, Hindi | More per tenant as translations become available |
 | Financial-year start month | 4 (April) | 1–12 |
 | GPS interval during a shift | 60 s | 30–900 s |

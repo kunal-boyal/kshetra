@@ -152,6 +152,7 @@
 .ks-affix { position: relative; }
 .ks-affix > span { position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 .ks-affix > .ks-input { padding-left: calc(var(--space-4) + 14px); }
+.ks-affix.wide > .ks-input { padding-left: calc(var(--space-4) + 2.25em); }
 .ks-affix.end > span { left: auto; right: var(--space-4); }
 .ks-affix.end > .ks-input { padding-left: var(--space-4); padding-right: calc(var(--space-4) + 2.5em); }
 .ks-table .ks-affix.end > span { left: auto; right: var(--space-3); }

@@ -1,9 +1,11 @@
-import { UserResult, type UserView } from '@thelamp/shared';
+import { emailMessage, mobileMessage } from '@thelamp/i18n';
+import { mobileDigits, UserResult, type UserView } from '@thelamp/shared';
 import { Button, Checkbox, ChoiceGroup, Icon, SelectField, TextField } from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
 import { Save } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
+import { EmailField, MobileField, useIndianNumbers } from '../fields';
 import { errorMessage, useLanguage } from '../i18n';
 import { CustomFieldInputs, type Values } from './custom-fields';
 import {
@@ -33,11 +35,12 @@ interface Draft {
   custom: Values;
 }
 
-function draftOf(user: UserView | undefined): Draft {
+/** A person as the form edits them; an Indian tenant's form shows a number's ten digits. */
+function draftOf(user: UserView | undefined, indian: boolean): Draft {
   return {
     code: user?.code ?? '',
     name: user?.name ?? '',
-    phone: user?.phone ?? '',
+    phone: indian ? mobileDigits(user?.phone) : (user?.phone ?? ''),
     email: user?.email ?? '',
     designation: user?.designation ?? '',
     role: user?.role ?? '',
@@ -60,13 +63,19 @@ function customForCreate(values: Values): Values {
 }
 
 export function NewPersonPage() {
-  return <PersonForm />;
+  const { t } = useLanguage();
+  const indian = useIndianNumbers();
+  if (indian === undefined) return <p className="ks-muted">{t('common.loading')}</p>;
+  return <PersonForm indian={indian} />;
 }
 
 export function EditPersonPage({ userId }: { userId: string }) {
   const { t } = useLanguage();
   const user = useUser(userId);
-  if (user.isPending) return <p className="ks-muted">{t('common.loading')}</p>;
+  const indian = useIndianNumbers();
+  if (user.isPending || indian === undefined) {
+    return <p className="ks-muted">{t('common.loading')}</p>;
+  }
   if (user.isError) {
     return (
       <p className="ks-help error" role="alert">
@@ -74,14 +83,14 @@ export function EditPersonPage({ userId }: { userId: string }) {
       </p>
     );
   }
-  return <PersonForm user={user.data} />;
+  return <PersonForm user={user.data} indian={indian} />;
 }
 
 /**
  * Adding a person, or changing one (spec 5.3, M3). A change sends only what changed. Territories
  * are chosen when adding; afterwards they move with transfers, which keep their dates.
  */
-function PersonForm({ user }: { user?: UserView }) {
+function PersonForm({ user, indian }: { user?: UserView; indian: boolean }) {
   const { client } = useApp();
   const { t, locale } = useLanguage();
   const navigate = useNavigate();
@@ -90,7 +99,8 @@ function PersonForm({ user }: { user?: UserView }) {
   const roles = useRoles();
   const territories = useTerritories();
   const fields = useUserFields();
-  const [draft, setDraft] = useState<Draft>(() => draftOf(user));
+  const [draft, setDraft] = useState<Draft>(() => draftOf(user, indian));
+  const [checked, setChecked] = useState(false);
   const [failure, setFailure] = useState<unknown>();
   const [busy, setBusy] = useState(false);
   const errors = fieldErrors(failure);
@@ -114,7 +124,7 @@ function PersonForm({ user }: { user?: UserView }) {
         custom: customForCreate(draft.custom),
       };
     }
-    const before = draftOf(user);
+    const before = draftOf(user, indian);
     const changes: Record<string, unknown> = {};
     for (const key of ['code', 'name', 'designation', 'role'] as const) {
       if (text(draft[key]) !== before[key]) changes[key] = text(draft[key]);
@@ -138,6 +148,11 @@ function PersonForm({ user }: { user?: UserView }) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setFailure(undefined);
+    // A number or address that can't be one is explained here, before anything is sent (D102).
+    if ((indian && mobileMessage(draft.phone, false)) || emailMessage(draft.email)) {
+      setChecked(true);
+      return;
+    }
     setBusy(true);
     try {
       const payload = body();
@@ -195,21 +210,32 @@ function PersonForm({ user }: { user?: UserView }) {
             {...(errors.name ? { error: errors.name } : {})}
             onChange={(event) => set('name', event.target.value)}
           />
-          <TextField
-            label={t('person.mobile')}
-            help={t('person.mobile_help')}
-            type="tel"
-            inputMode="tel"
-            value={draft.phone}
-            {...(errors.phone ? { error: errors.phone } : {})}
-            onChange={(event) => set('phone', event.target.value)}
-          />
-          <TextField
+          {indian ? (
+            <MobileField
+              label={t('person.mobile')}
+              help={t('person.mobile_help_india')}
+              checked={checked}
+              value={draft.phone}
+              {...(errors.phone ? { error: errors.phone } : {})}
+              onChange={(value) => set('phone', value)}
+            />
+          ) : (
+            <TextField
+              label={t('person.mobile')}
+              help={t('person.mobile_help')}
+              type="tel"
+              inputMode="tel"
+              value={draft.phone}
+              {...(errors.phone ? { error: errors.phone } : {})}
+              onChange={(event) => set('phone', event.target.value)}
+            />
+          )}
+          <EmailField
             label={t('person.email')}
-            type="email"
+            checked={checked}
             value={draft.email}
             {...(errors.email ? { error: errors.email } : {})}
-            onChange={(event) => set('email', event.target.value)}
+            onChange={(value) => set('email', value)}
           />
           <SelectField
             label={t('person.designation')}

@@ -6,7 +6,7 @@ import {
   type CreateUserBody,
   type ImportProblem,
   matchName,
-  normalisePhone,
+  normaliseMobile,
   todayIn,
   type UpdateUserBody,
   UserCode,
@@ -204,11 +204,12 @@ export class UsersImport implements ImportTargetSource, OnModuleInit {
       if ('mobile' in cells) {
         if (empty(cells.mobile)) phone = null;
         else {
-          phone = normalisePhone(
+          phone = normaliseMobile(
             cellText(cells.mobile).replace(/[\s-]/g, ''),
             settings.defaultCountry,
           );
-          if (!phone) problem(row, 'mobile', 'Not a valid mobile number');
+          if (!phone)
+            problem(row, 'mobile', 'Use a 10-digit mobile number starting with 6, 7, 8 or 9');
           else phones.set(phone, [...(phones.get(phone) ?? []), row]);
         }
       }

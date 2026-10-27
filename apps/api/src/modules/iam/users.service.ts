@@ -9,7 +9,7 @@ import {
   type MeResult,
   needsSecondFactor,
   newId,
-  normalisePhone,
+  normaliseMobile,
   TENANT_PERMISSIONS,
   type SecondFactorStatus,
   type TenantPermission,
@@ -122,8 +122,8 @@ function containing(value: string): string {
 }
 
 function parsePhone(raw: string, country: TenantSettings['defaultCountry']): string {
-  const phone = normalisePhone(raw, country);
-  if (!phone) throw invalid('phone', 'Not a valid mobile number');
+  const phone = normaliseMobile(raw, country);
+  if (!phone) throw invalid('phone', 'Use a 10-digit mobile number starting with 6, 7, 8 or 9');
   return phone;
 }
 

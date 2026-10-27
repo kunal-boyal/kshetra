@@ -1,5 +1,7 @@
 import { ApiError } from '@thelamp/api-client';
 import { spacing } from '@thelamp/design-tokens';
+import { mobileMessage } from '@thelamp/i18n';
+import { mobileDigitsFrom } from '@thelamp/shared';
 import { BrandMark, Button, ListGroup, ListRow, Screen, Text, TextField } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import {
@@ -64,6 +66,12 @@ export function SignInScreen() {
   }
 
   function sendCode() {
+    // A number that can't be one is explained here, before anything is sent (decision D102).
+    const issue = mobileMessage(phone);
+    if (issue) {
+      setError(t(issue));
+      return;
+    }
     void run(async () => {
       await client.requestCode(phone);
       setCode('');
@@ -118,15 +126,16 @@ export function SignInScreen() {
             help={t('signin.phone_help')}
             {...(error ? { error } : {})}
             required
+            prefix="+91"
             value={phone}
-            onChangeText={setPhone}
-            inputMode="tel"
-            keyboardType="phone-pad"
-            autoComplete="tel"
+            onChangeText={(typed) => setPhone(mobileDigitsFrom(typed))}
+            inputMode="numeric"
+            keyboardType="number-pad"
+            autoComplete="tel-national"
             textContentType="telephoneNumber"
             autoFocus
             returnKeyType="send"
-            onSubmitEditing={() => phone.trim() && sendCode()}
+            onSubmitEditing={() => phone && sendCode()}
           />
           <Button
             variant="primary"

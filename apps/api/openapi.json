@@ -1281,6 +1281,7 @@
                 "properties": {
                   "email": {
                     "type": "string",
+                    "maxLength": 254,
                     "format": "email",
                     "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   }
@@ -4857,7 +4858,8 @@
                   "phone": {
                     "type": "string",
                     "minLength": 6,
-                    "maxLength": 32
+                    "maxLength": 32,
+                    "description": "A mobile number. Without a country code it is read as Indian (+91)."
                   },
                   "reason": {
                     "type": "string",
@@ -26814,6 +26816,7 @@
           },
           "email": {
             "type": "string",
+            "maxLength": 254,
             "format": "email",
             "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
@@ -26939,6 +26942,7 @@
               },
               "email": {
                 "type": "string",
+                "maxLength": 254,
                 "format": "email",
                 "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
               },
@@ -39588,6 +39592,7 @@
           },
           "email": {
             "type": "string",
+            "maxLength": 254,
             "format": "email",
             "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },

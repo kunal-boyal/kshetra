@@ -1506,6 +1506,6 @@ function personRef(people: Map<string, { code: string; name: string }>, id: stri
 
 function phone(raw: string, settings: TenantSettings): string {
   const e164 = normalisePhone(raw, settings.defaultCountry);
-  if (!e164) throw invalidAt('phone', 'Write a mobile number, such as 98765 43210');
+  if (!e164) throw invalidAt('phone', 'Use a 10-digit number, such as 98765 43210');
   return e164;
 }

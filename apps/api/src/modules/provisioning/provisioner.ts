@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   AppError,
   newId,
-  normalisePhone,
+  normaliseMobile,
   type ProvisionTenantInput,
   type UserResult,
 } from '@thelamp/shared';
@@ -45,9 +45,9 @@ export class TenantProvisioner {
   ): Promise<ProvisionedTenant> {
     const template = file === undefined ? this.template(input.template) : this.fromFile(file);
     // Checked before anything is written, so a typo creates nothing.
-    if (!normalisePhone(input.admin.phone)) {
+    if (!normaliseMobile(input.admin.phone)) {
       throw new AppError('VALIDATION', 'Check the highlighted fields.', [
-        { path: 'admin.phone', issue: 'Not a valid mobile number' },
+        { path: 'admin.phone', issue: 'Use a 10-digit mobile number starting with 6, 7, 8 or 9' },
       ]);
     }
     if (await this.directory.bySlug(input.slug)) {

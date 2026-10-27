@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import { EmailAddress } from '../phone';
 import { PLATFORM_PERMISSIONS, PLATFORM_ROLES } from '../access';
 import { TENANT_STATUSES } from '../tenants';
 import { Key } from './config';
+import { PhoneInput } from './auth';
 import { ProvisionTenantInput, TenantSlug } from './provisioning';
 
 /**
@@ -23,7 +25,7 @@ export const PlatformRole = z.enum(PLATFORM_ROLES);
 export const StaffResult = z
   .object({
     id: z.uuid(),
-    email: z.email(),
+    email: EmailAddress,
     name: z.string(),
     role: PlatformRole,
     /** Invited until the person sets a password and an authenticator; disabled for good. */
@@ -53,7 +55,7 @@ export const StaffConfirmBody = z.strictObject({
 });
 
 export const StaffSignInBody = z.strictObject({
-  email: z.email().max(254),
+  email: EmailAddress,
   password: z.string().min(1).max(200),
   code: TotpCode,
 });
@@ -78,7 +80,7 @@ export const StaffSession = z.object({
 /** `POST /platform/v1/staff`: invites someone; the setup link is shown once. */
 export const InviteStaffBody = z.strictObject({
   id: z.uuid(),
-  email: z.email().max(254),
+  email: EmailAddress,
   name: z.string().trim().min(2).max(100),
   role: PlatformRole,
 });
@@ -215,7 +217,7 @@ export type CellSummary = z.infer<typeof CellSummary>;
  * of the tenant's member with this number, as when a lone admin has lost theirs (decision D91).
  */
 export const SecondFactorResetBody = z.strictObject({
-  phone: z.string().trim().min(6).max(32),
+  phone: PhoneInput,
   reason: z.string().trim().min(3).max(500),
 });
 export const SecondFactorResetResult = z.object({

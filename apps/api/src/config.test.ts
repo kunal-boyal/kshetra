@@ -137,7 +137,7 @@ describe('loadConfig', () => {
       /six digits/,
     );
     expect(() => loadConfig({ ...required, DEMO_CODES: '{"12": "482913"}' })).toThrow(
-      /not a valid mobile number/,
+      /not a 10-digit mobile number/,
     );
     expect(() => loadConfig({ ...required, DEMO_CODES: '["+919800000001"]' })).toThrow(/JSON/);
     expect(() => loadConfig({ ...required, OTP_PROVIDER: 'none' })).toThrow(/demo cell/);

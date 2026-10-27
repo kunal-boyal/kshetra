@@ -1,8 +1,10 @@
+import { mobileMessage } from '@thelamp/i18n';
 import { SecondFactorResetResult, type ConsoleTenant } from '@thelamp/shared';
-import { Button, Card, Notice, TextAreaField, TextField } from '@thelamp/ui-web';
+import { Button, Card, Notice, TextAreaField } from '@thelamp/ui-web';
 import { useMutation } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { useConsole } from '../context';
+import { MobileField } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 import { holds } from './shared';
 
@@ -15,6 +17,7 @@ export function SecondFactorResetCard({ tenant }: { tenant: ConsoleTenant }) {
   const { t } = useLanguage();
   const [phone, setPhone] = useState('');
   const [reason, setReason] = useState('');
+  const [checked, setChecked] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string>();
   const [outcome, setOutcome] = useState<boolean>();
@@ -31,6 +34,11 @@ export function SecondFactorResetCard({ tenant }: { tenant: ConsoleTenant }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    // A number or address that can't be one is explained here, before anything is sent (D102).
+    if (mobileMessage(phone)) {
+      setChecked(true);
+      return;
+    }
     setErrors({});
     setFailure(undefined);
     setOutcome(undefined);
@@ -39,6 +47,7 @@ export function SecondFactorResetCard({ tenant }: { tenant: ConsoleTenant }) {
       setOutcome(result.removed);
       setPhone('');
       setReason('');
+      setChecked(false);
     } catch (error) {
       setErrors(fieldErrors(error));
       setFailure(errorMessage(error, t));
@@ -50,12 +59,12 @@ export function SecondFactorResetCard({ tenant }: { tenant: ConsoleTenant }) {
       <form className="flex max-w-xl flex-col gap-4" onSubmit={submit} noValidate>
         <h2 className="heading-md">{t('console.second_factor_reset')}</h2>
         <p className="ks-muted">{t('console.second_factor_intro')}</p>
-        <TextField
+        <MobileField
           label={t('console.member_phone')}
-          type="tel"
           autoComplete="off"
+          checked={checked}
           value={phone}
-          onChange={(event) => setPhone(event.target.value)}
+          onChange={setPhone}
           error={errors.phone}
           required
         />

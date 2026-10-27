@@ -4,7 +4,7 @@ import {
   type DeviceInfo,
   maskPhone,
   newId,
-  normalisePhone,
+  normaliseMobile,
   type OtpRequestResult,
   type OtpVerifyResult,
 } from '@thelamp/shared';
@@ -32,10 +32,10 @@ export const OTP_LIMITS = {
 } as const satisfies Record<string, RateLimit>;
 
 function parsePhone(raw: string): string {
-  const phone = normalisePhone(raw);
+  const phone = normaliseMobile(raw);
   if (!phone) {
-    throw new AppError('VALIDATION', 'Enter a valid mobile number.', [
-      { path: 'phone', issue: 'Not a valid mobile number' },
+    throw new AppError('VALIDATION', 'Enter a 10-digit mobile number.', [
+      { path: 'phone', issue: 'Use a 10-digit mobile number starting with 6, 7, 8 or 9' },
     ]);
   }
   return phone;

@@ -86,7 +86,9 @@ describe('provisioning a tenant (spec 5.14)', () => {
     const badNumber = input({ admin: { code: 'A-1', name: 'Zoya Khan', phone: '12345' } });
     await expect(provisioner.provision(badNumber)).rejects.toMatchObject({
       code: 'VALIDATION',
-      details: [{ path: 'admin.phone', issue: 'Not a valid mobile number' }],
+      details: [
+        { path: 'admin.phone', issue: 'Use a 10-digit mobile number starting with 6, 7, 8 or 9' },
+      ],
     });
     expect(await tenantRow(unknown.slug)).toBeUndefined();
     expect(await tenantRow(badNumber.slug)).toBeUndefined();

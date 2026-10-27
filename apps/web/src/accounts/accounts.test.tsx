@@ -382,7 +382,7 @@ describe("an account's page", () => {
           `/v1/accounts/${SHOP}/contacts`,
           expect.anything(),
           {
-            body: { id: expect.any(String), name: 'Raj Kumar', phone: '90000 00009' },
+            body: { id: expect.any(String), name: 'Raj Kumar', phone: '9000000009' },
             idempotencyKey: expect.any(String),
           },
         ],

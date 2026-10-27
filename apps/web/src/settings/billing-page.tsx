@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { formatDate, formatMoney, formatMonth, formatNumber } from '@thelamp/i18n';
+import { emailMessage, formatDate, formatMoney, formatMonth, formatNumber } from '@thelamp/i18n';
 import {
   BILLING_TIME_ZONE,
   GST_STATES,
@@ -22,6 +22,7 @@ import {
 import { Download } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
+import { EmailField } from '../fields';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, write } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section } from '../people/shared';
@@ -246,6 +247,7 @@ function DetailsForm({ billing, onDone }: { billing: Billing; onDone: () => void
   const { client } = useApp();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
+  const [checked, setChecked] = useState(false);
   const [draft, setDraft] = useState({
     legalName: billing.account?.legalName ?? '',
     gstin: billing.account?.gstin ?? '',
@@ -261,6 +263,10 @@ function DetailsForm({ billing, onDone }: { billing: Billing; onDone: () => void
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    if (emailMessage(draft.email, true)) {
+      setChecked(true);
+      return;
+    }
     setBusy(true);
     setErrors({});
     setFailure(undefined);
@@ -315,11 +321,11 @@ function DetailsForm({ billing, onDone }: { billing: Billing; onDone: () => void
         options={STATES}
         error={errors.stateCode}
       />
-      <TextField
+      <EmailField
         label={t('billing.email')}
-        type="email"
+        checked={checked}
         value={draft.email}
-        onChange={(event) => change({ email: event.target.value })}
+        onChange={(email) => change({ email })}
         error={errors.email}
         required
       />

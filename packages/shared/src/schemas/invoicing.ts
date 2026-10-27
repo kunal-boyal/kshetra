@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EmailAddress } from '../phone';
 import {
   BILLING_CYCLES,
   GST_STATES,
@@ -30,7 +31,7 @@ export const BillingSettingsBody = z
       gstin: Gstin.nullable(),
       address: z.string().trim().min(5).max(400),
       stateCode: StateCode,
-      email: z.email(),
+      email: EmailAddress,
       /** The services accounting code printed on each line; the vendor's CA confirms it. */
       sac: z.string().regex(/^\d{6}$/, 'Enter the 6-digit SAC code'),
     }),
@@ -78,7 +79,7 @@ export const BillingAccountBody = z
     gstin: Gstin.nullable().default(null),
     address: z.string().trim().min(5).max(400),
     stateCode: StateCode,
-    email: z.email(),
+    email: EmailAddress,
     language: z.enum(['en', 'hi']).default('en'),
   })
   .superRefine((body, ctx) => {

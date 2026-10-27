@@ -1,3 +1,4 @@
+import { emailMessage } from '@thelamp/i18n';
 import { Link } from '@tanstack/react-router';
 import { type BillingSettingsResult, GST_STATES } from '@thelamp/shared';
 import { Button, Card, Notice, SelectField, TextAreaField, TextField } from '@thelamp/ui-web';
@@ -5,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useConsole } from '../context';
 import { useBillingSettings, useConsoleMutations } from '../data';
+import { EmailField } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 import { holds } from './shared';
 
@@ -42,6 +44,7 @@ function SettingsForm({ current }: { current: BillingSettingsResult }) {
   const { t } = useLanguage();
   const { saveBillingSettings } = useConsoleMutations();
   const manages = holds(client.staff, 'platform.billing.manage');
+  const [checked, setChecked] = useState(false);
   const [draft, setDraft] = useState({
     legalName: current.seller.legalName,
     gstin: current.seller.gstin ?? '',
@@ -66,6 +69,11 @@ function SettingsForm({ current }: { current: BillingSettingsResult }) {
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    // A number or address that can't be one is explained here, before anything is sent (D102).
+    if (emailMessage(draft.email, true)) {
+      setChecked(true);
+      return;
+    }
     setErrors({});
     setFailure(undefined);
     try {
@@ -127,11 +135,11 @@ function SettingsForm({ current }: { current: BillingSettingsResult }) {
             options={STATE_OPTIONS}
             error={errors['seller.stateCode']}
           />
-          <TextField
+          <EmailField
             label={t('console.billing_email')}
-            type="email"
+            checked={checked}
             value={draft.email}
-            onChange={(event) => change({ email: event.target.value })}
+            onChange={(email) => change({ email })}
             error={errors['seller.email']}
             required
           />
