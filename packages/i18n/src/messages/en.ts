@@ -3808,7 +3808,7 @@ export const en = {
   'privacy.collect_records':
     'What you record at work: visits, forms, {term.order:other:lower}, leave, expense claims and other requests.',
   'privacy.collect_device':
-    'Your phone: its model, system and app version, a key that ties your sign-in to this phone, and whether the system reports the phone or its location as tampered with.',
+    'Your phone: its model, system and app version, a key that ties your sign-in to this phone, and whether a location came from an app that fakes locations.',
   'privacy.never_title': 'What is never recorded',
   'privacy.never_1':
     'Your contacts, calls, messages, microphone or other apps, and your location when you are not on duty. The app opens your photo gallery only where a form lets you choose a photo.',

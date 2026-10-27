@@ -403,6 +403,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Signed-in screens live under `src/app/(app)`, behind the root layout's guards: tabs in `(tabs)`, and full-screen screens such as the upload queue beside it, above the tabs. Tabs follow components/BottomNav: at most five, filtered by permissions and modules.
 - Components and screens are tested with Jest (jest-expo) and React Native Testing Library 14, whose `render` and `fireEvent` are async. `src/screens/sign-in.test.tsx` shows the fake client.
 - The Privacy screen (`src/screens/privacy.tsx`, route `/privacy` outside the sign-in guard) shows `PRIVACY_NOTICE` and, signed in, the tenant's `privacyPolicyUrl`. The iOS privacy manifest and the exempt-encryption flag are in `app.config.ts`; a native module that reads a required-reason API without its own manifest adds its reason there (decision D100).
+- The stores' answers are `docs/store/google-play.md` and `app-store.md` (decision D100): the listings, Data safety, App privacy and the location declarations. A change to what the app collects, asks for or shows (a permission, a data type, a screen in the listing) updates them, and the privacy notice, in the same pull request. `node tools/store/graphics.mjs` redraws Play's icon and feature graphics.
 - Cloud builds (`eas build`) run on Kunal's Expo account (D34): ask first.
 
 ## Configuration and templates
