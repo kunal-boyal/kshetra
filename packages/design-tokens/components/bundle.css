@@ -214,6 +214,76 @@ select.ks-input:disabled { cursor: not-allowed; color: var(--text-subtle); }
 .ks-dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-4); margin: 0; font-size: 13px; line-height: calc(18px + var(--ks-lead)); }
 .ks-dl dt { color: var(--text-muted); }
 .ks-dl dd { margin: 0; font-variant-numeric: tabular-nums; }
+.ks-dl.end { grid-template-columns: 1fr max-content; }
+.ks-dl.end dd { text-align: right; }
+/* Page head: back, title with its meta line, actions at the end, then a toolbar row (components/PageHeader). */
+.ks-page-head { display: flex; flex-direction: column; gap: var(--space-3); }
+.ks-page-title { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+.ks-page-name { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.ks-page-name h1 { margin: 0; text-wrap: balance; }
+.ks-page-actions, .ks-page-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+/* Choosers (components/Choosers): filter chips, a segmented pill, underlined tabs, each with an optional count. */
+.ks-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.ks-chip-count { font-variant-numeric: tabular-nums; opacity: 0.86; }
+.ks-seg { display: inline-flex; flex-wrap: wrap; gap: var(--space-0-5); padding: var(--space-0-5); border-radius: var(--radius-full); background: var(--surface-sunken); }
+.ks-seg > button { font: inherit; font-size: 14px; font-weight: 600; min-height: var(--control-sm); padding: 0 var(--space-4); border: 0; border-radius: var(--radius-full); background: transparent; color: var(--text-muted); cursor: pointer; transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
+.ks-seg > button:hover { color: var(--text); }
+.ks-seg > button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+.ks-tablist { display: flex; gap: var(--space-5); overflow-x: auto; border-bottom: 1px solid var(--border); }
+.ks-tablist > [role="tab"] { font: inherit; font-size: 15px; font-weight: 600; white-space: nowrap; min-height: var(--touch-min); padding: 0 var(--space-0-5); margin-bottom: -1px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer; transition: color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard); }
+.ks-tablist > [role="tab"]:hover { color: var(--text); }
+.ks-tablist > [role="tab"][aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+/* Rows that go somewhere, the chosen row, and a split view of a list beside its detail (components/ListItem). */
+ul.ks-list { list-style: none; margin: 0; padding: 0; }
+.ks-list > li > .ks-item { border-bottom: 1px solid var(--border); }
+.ks-list > li:last-child > .ks-item { border-bottom: 0; }
+a.ks-item, button.ks-item { width: 100%; font: inherit; text-align: left; color: inherit; text-decoration: none; background: transparent; border-width: 0 0 1px; cursor: pointer; }
+.ks-item.act:hover { background: var(--surface-sunken); }
+.ks-item.sel { background: var(--accent-subtle); box-shadow: inset 3px 0 0 var(--accent); }
+.ks-item-main { display: flex; flex-direction: column; }
+.ks-item-end { flex: none; display: inline-flex; align-items: center; gap: var(--space-2); font-variant-numeric: tabular-nums; }
+.ks-split { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-4); align-items: start; }
+.ks-split.single { grid-template-columns: minmax(0, 1fr); }
+.ks-split-detail { position: sticky; top: calc(var(--space-16) + var(--space-4)); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+@media (max-width: 1024px) { .ks-split { grid-template-columns: minmax(0, 1fr); } .ks-split-detail { position: static; } }
+/* Figures (components/StatTile): a tile that may be a link, a tone for good or bad news, share bars and a legend. */
+a.ks-kpi, .ks-kpi.act { display: block; color: inherit; text-decoration: none; transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard); }
+a.ks-kpi:hover, .ks-kpi.act:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+.ks-stat .ks-kpi-head { min-height: var(--iconchip-sm); }
+.ks-kpi.danger .ks-kpi-value { color: var(--danger-fg); }
+.ks-kpi.danger .ks-bar .done { background: var(--danger-solid); }
+.ks-kpi.success .ks-kpi-value { color: var(--success-fg); }
+.ks-kpi.pending .ks-kpi-value { color: var(--pending-fg); }
+.ks-share { display: flex; height: 28px; border-radius: var(--radius-md); overflow: hidden; gap: 2px; background: var(--surface); }
+.ks-share-part { display: grid; place-items: center; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 12px; font-weight: 700; color: var(--surface); }
+.ks-legend { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); list-style: none; margin: 0; padding: 0; font-size: 13px; color: var(--text-muted); }
+.ks-legend li { display: inline-flex; align-items: center; gap: var(--space-2); }
+.ks-legend i { width: 10px; height: 10px; border-radius: var(--radius-xs); flex: none; }
+.ks-legend b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Period stepper: a month between two steps, in place of a month input (components/PeriodStepper). */
+.ks-period { display: inline-flex; align-items: center; height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--radius-full); background: var(--surface); }
+.ks-period > button { display: grid; place-items: center; width: var(--control-sm); height: 100%; border: 0; border-radius: var(--radius-full); background: transparent; color: var(--text); cursor: pointer; }
+.ks-period > button:hover:not(:disabled) { background: var(--surface-sunken); }
+.ks-period > button:disabled { color: var(--text-disabled); cursor: default; }
+.ks-period > output { min-width: 8.5em; padding: 0 var(--space-1); text-align: center; font-size: 14px; font-weight: 600; white-space: nowrap; }
+/* Settings parts: a switch row, a card to choose, a list of tags (components/SettingsParts). */
+.ks-switch-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
+.ks-switch-row:last-child { border-bottom: 0; }
+.ks-switch-text { display: flex; flex-direction: column; min-width: 0; cursor: pointer; }
+.ks-switch { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 44px; height: 26px; margin: 0; border-radius: var(--radius-full); background: var(--border-strong); cursor: pointer; transition: background-color var(--duration-fast) var(--ease-standard); }
+.ks-switch::before { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: var(--radius-full); background: var(--surface); box-shadow: var(--shadow-sm); transition: transform var(--duration-fast) var(--ease-standard); }
+.ks-switch:checked { background: var(--accent); }
+.ks-switch:checked::before { transform: translateX(18px); }
+.ks-switch:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.ks-choice { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); font: inherit; color: inherit; text-align: left; cursor: pointer; transition: box-shadow var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard); }
+.ks-choice:hover { border-color: var(--border-strong); }
+.ks-choice[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.ks-chiplist { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); list-style: none; margin: 0; padding: 0; }
+.ks-chiplist .ks-badge > button { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: calc(-1 * var(--space-1)); padding: 0; border: 0; border-radius: var(--radius-full); background: transparent; color: inherit; cursor: pointer; }
+.ks-chiplist .ks-badge > button:hover { background: var(--surface-sunken); }
+/* A wide register keeps its first column in view as it scrolls sideways. */
+.ks-table.sticky-first th:first-child, .ks-table.sticky-first td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.ks-table.sticky-first thead th:first-child { background: var(--surface-sunken); }
 .ks-photos { display: flex; gap: var(--space-2); }
 .ks-photo { width: 64px; height: 64px; border-radius: var(--radius-md); background: var(--surface-sunken); display: grid; place-items: center; color: var(--text-subtle); position: relative; }
 .ks-photo .ks-photo-tag { position: absolute; bottom: 4px; left: 4px; right: 4px; font-size: max(10px, var(--ks-min)); line-height: calc(12px + var(--ks-lead)); text-align: center; border-radius: var(--radius-full); background: var(--waiting-bg); color: var(--waiting-fg); font-weight: 600; }
@@ -337,6 +407,13 @@ select.ks-input:disabled { cursor: not-allowed; color: var(--text-subtle); }
 [data-theme="outdoor"] .ks-tab[aria-current="page"] { font-weight: 700; }
 [data-theme="outdoor"] .ks-rail-link[aria-current="page"] { background: var(--surface); box-shadow: inset 0 0 0 2px var(--accent); }
 [data-theme="outdoor"] .ks-appbar { background: var(--surface); backdrop-filter: none; }
+[data-theme="outdoor"] .ks-seg { box-shadow: inset 0 0 0 1px var(--border); }
+[data-theme="outdoor"] .ks-seg > button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+[data-theme="outdoor"] .ks-tablist > [role="tab"][aria-selected="true"] { font-weight: 700; }
+[data-theme="outdoor"] .ks-item.sel { background: var(--surface); box-shadow: inset 4px 0 0 var(--accent), inset 0 0 0 2px var(--accent); }
+[data-theme="outdoor"] .ks-switch { box-shadow: inset 0 0 0 2px var(--border-strong); }
+[data-theme="outdoor"] .ks-switch::before { box-shadow: 0 0 0 1px var(--border-strong); }
+[data-theme="outdoor"] .ks-period { border-width: 2px; }
 [data-theme="outdoor"] .ks-tab[aria-current="page"] .ks-tab-ico { box-shadow: inset 0 0 0 2px var(--accent); }
 
 /* Preview scaffolding */

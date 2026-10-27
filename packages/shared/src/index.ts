@@ -36,6 +36,14 @@ export { HealthResult, IdParams, ReadyResult } from './schemas/common';
 export type { ErrorBody, ErrorCode, ErrorDetail } from './errors';
 export { EVENT_PAYLOADS, EVENT_TYPES, TenantProvisionedPayload, UserEventPayload } from './events';
 export type { EventPayload, EventType } from './events';
+export {
+  AVATAR_HUES,
+  type AvatarHue,
+  avatarHue,
+  initialsOf,
+  RANK_HUES,
+  shiftPeriod,
+} from './avatars';
 export { isId, newId } from './ids';
 export {
   EmailAddress,

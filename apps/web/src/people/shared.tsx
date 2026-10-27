@@ -1,7 +1,14 @@
 import { ApiError } from '@thelamp/api-client';
 import { formatDate, formatDateTime } from '@thelamp/i18n';
 import type { DesignationResult, Locale, TransferStatus, UserStatus } from '@thelamp/shared';
-import { type BadgeVariant, Icon, StatusBadge } from '@thelamp/ui-web';
+import {
+  type BadgeVariant,
+  DescriptionList,
+  Icon,
+  PageHeader as UiPageHeader,
+  Section as UiSection,
+  StatusBadge,
+} from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
@@ -55,63 +62,54 @@ export function fieldErrors(error: unknown): Record<string, string> {
   return Object.fromEntries(error.details.map((detail) => [detail.path, detail.issue]));
 }
 
-/** A page's title row: a way back, the heading, and its actions. */
+/**
+ * A page's title row (the design system's PageHeader): a way back, the heading with its meta line,
+ * its actions, and a toolbar row.
+ */
 export function PageHeader({
   title,
   back,
   intro,
+  meta,
+  toolbar,
   children,
 }: {
   title: string;
   back?: { to: string; params?: Record<string, string>; label: string };
   intro?: string;
+  meta?: ReactNode;
+  toolbar?: ReactNode;
   children?: ReactNode;
 }) {
   return (
-    <header className="flex flex-col gap-3">
-      {back ? (
-        <Link
-          to={back.to}
-          {...(back.params ? { params: back.params } : {})}
-          className="ks-btn ghost sm self-start"
-        >
-          <Icon icon={ArrowLeft} size="sm" />
-          {back.label}
-        </Link>
-      ) : null}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="heading-xl">{title}</h1>
-          {intro ? <p className="ks-muted max-w-prose">{intro}</p> : null}
-        </div>
-        {children ? <div className="flex flex-wrap gap-2">{children}</div> : null}
-      </div>
-    </header>
+    <UiPageHeader
+      title={title}
+      intro={intro}
+      meta={meta}
+      toolbar={toolbar}
+      actions={children}
+      back={
+        back ? (
+          <Link
+            to={back.to}
+            {...(back.params ? { params: back.params } : {})}
+            className="ks-btn ghost sm self-start"
+          >
+            <Icon icon={ArrowLeft} size="sm" />
+            {back.label}
+          </Link>
+        ) : undefined
+      }
+    />
   );
 }
 
 /** A labelled section of a detail page. */
-export function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="ks-card flex flex-col gap-3" aria-label={title}>
-      <h2 className="heading-md">{title}</h2>
-      {children}
-    </section>
-  );
-}
+export const Section = UiSection;
 
 /** Label and value pairs (`ks-dl`). */
 export function Facts({ items }: { items: readonly [string, ReactNode][] }) {
-  return (
-    <dl className="ks-dl">
-      {items.map(([label, value]) => (
-        <div key={label} className="contents">
-          <dt>{label}</dt>
-          <dd>{value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+  return <DescriptionList items={items} />;
 }
 
 /** How long typing must pause before a search asks the server. Input handling, not motion. */

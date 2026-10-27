@@ -1,0 +1,20 @@
+<!-- @dsCard group="Forms" height=260 subtitle="Switch rows, choice cards and tag chips" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SettingsParts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>html,body{margin:0}</style>
+</head>
+<body>
+<div class="ks ks-pv" data-density="compact">
+ <div class="ks-stack" style="gap:var(--space-4);max-width:640px">
+  <div class="ks-card" style="padding-block:var(--space-1)"><div class="ks-switch-row"><label class="ks-switch-text" for="s1"><span class="ks-title">Expenses</span><span class="ks-meta">Claims, policies and payment</span></label><input id="s1" type="checkbox" role="switch" class="ks-switch" checked></div><div class="ks-switch-row"><label class="ks-switch-text" for="s2"><span class="ks-title">Orders</span><span class="ks-meta">Price lists and the order desk</span></label><input id="s2" type="checkbox" role="switch" class="ks-switch"></div></div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)"><button type="button" class="ks-card ks-choice tint hue-sage" aria-pressed="true"><span class="ks-title">Agri inputs</span><span class="ks-meta">SME · Beat plan · Farmer</span></button><button type="button" class="ks-card ks-choice" aria-pressed="false"><span class="ks-title">Pharma</span><span class="ks-meta">MR · Call plan · Doctor</span></button></div>
+  <ul class="ks-chiplist" aria-label="Events"><li class="ks-badge neutral">order.placed<button type="button" aria-label="Remove order.placed"><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></li><li class="ks-badge neutral">visit.ended<button type="button" aria-label="Remove visit.ended"><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></li><li><button type="button" class="ks-btn ghost sm">Add an event</button></li></ul>
+ </div>
+</div>
+</body>
+</html>
