@@ -7,6 +7,7 @@ export {
   localeTag,
 } from './format';
 export type { FormatContext } from './format';
+export { shortFigure } from './figures';
 export type { MessageKey } from './messages/en';
 export { emailMessage, mobileMessage } from './fields';
 export { notificationMessage } from './notifications';

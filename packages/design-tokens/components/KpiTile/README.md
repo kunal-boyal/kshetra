@@ -15,4 +15,5 @@ Metric name, icon and hue, approved actual, pending value, target (or none), uni
 - Only approved work counts; pending is never inside the main number.
 - No target → "No target set" and an empty bar; never 0%.
 - Draft (unlocked) targets add a `pending` badge "Draft target".
+- A tile that leads to the metric's detail is a link (`a.ks-kpi`, or `ks-kpi act` on the router's link): its border firms and its shadow lifts on hover.
 - On mobile, tiles go two-up at 360 dp; values never wrap — shorten with lakh/crore suffixes (₹8.4 L) only in tiles, full figures elsewhere.

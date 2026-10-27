@@ -58,16 +58,20 @@ const ANSWERS: Record<string, unknown> = {
       {
         user: person(ASHA, 'Asha Rao'),
         designation: 'executive',
+        territory: { code: 'IND-W', name: 'Indore West' },
         figures: ASHA_FIGURES,
         score: 50,
         rank: 2,
+        previousRank: 3,
       },
       {
         user: person(RAVI, 'Ravi Kumar'),
         designation: 'executive',
+        territory: null,
         figures: { calls: figures('1') },
         score: null,
         rank: null,
+        previousRank: null,
       },
     ],
     totals: { calls: figures('3', '4', '1'), amount: figures('150.5', '301') },
@@ -75,24 +79,43 @@ const ANSWERS: Record<string, unknown> = {
   '/v1/performance': {
     period: MONTH,
     user: person(ASHA, 'Asha Rao'),
+    territory: { code: 'IND-W', name: 'Indore West' },
     metrics: METRICS,
     figures: ASHA_FIGURES,
     locked: true,
     score: 50,
     rank: 2,
+    previousRank: 2,
     group: { key: 'executive', name: noun('Executive', 'Executives'), size: 2 },
     days: [{ date: `${MONTH}-02`, values: { calls: '2', amount: '150.5' } }],
   },
   '/v1/leaderboard': {
     period: MONTH,
     groups: [
-      { key: 'executive', name: noun('Executive', 'Executives') },
-      { key: 'manager', name: noun('Manager', 'Managers') },
+      { key: 'executive', name: noun('Executive', 'Executives'), size: 2 },
+      { key: 'manager', name: noun('Manager', 'Managers'), size: 1 },
     ],
     group: 'executive',
+    metrics: METRICS,
     rows: [
-      { user: person(RAVI, 'Ravi Kumar'), score: 100, rank: 1, you: false },
-      { user: person(ASHA, 'Asha Rao'), score: 50, rank: 2, you: true },
+      {
+        user: person(RAVI, 'Ravi Kumar'),
+        territory: { code: 'IND-E', name: 'Indore East' },
+        figures: { calls: figures('4', '4'), amount: figures('301', '301') },
+        score: 100,
+        rank: 1,
+        previousRank: 2,
+        you: false,
+      },
+      {
+        user: person(ASHA, 'Asha Rao'),
+        territory: { code: 'IND-W', name: 'Indore West' },
+        figures: ASHA_FIGURES,
+        score: 50,
+        rank: 2,
+        previousRank: 1,
+        you: true,
+      },
     ],
   },
   '/v1/submissions': { items: [], nextCursor: null },
@@ -183,9 +206,9 @@ async function expectAccessible(page: Page) {
 }
 
 const PAGES = [
-  { path: '/performance', heading: 'Performance', shows: 'Asha Rao' },
+  { path: '/performance', heading: /^Performance · /, shows: 'Asha Rao' },
   { path: `/performance/${ASHA}`, heading: 'Asha Rao’s month', shows: '+1 pending' },
-  { path: '/leaderboard', heading: 'Leaderboard', shows: 'Ravi Kumar' },
+  { path: '/leaderboard', heading: /^Leaderboard · /, shows: 'Ravi Kumar' },
 ];
 
 for (const { path, heading, shows } of PAGES) {
@@ -205,6 +228,20 @@ test('performance and the leaderboard pass axe in the outdoor theme', async ({ p
   await expect(page.getByText('2 of 2')).toBeVisible();
   await expectAccessible(page);
   await page.goto('/leaderboard');
-  await expect(page.getByRole('combobox', { name: 'Group' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Group' })).toBeVisible();
   await expectAccessible(page);
+});
+
+test('wide tables scroll in their own box, never the page (decision D104)', async ({ page }) => {
+  await mockSignedIn(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const path of ['/performance', '/leaderboard']) {
+    await page.goto(path);
+    await expect(page.getByText('Ravi Kumar').first()).toBeVisible();
+    const [page_, window_] = await page.evaluate(() => [
+      document.documentElement.scrollWidth,
+      window.innerWidth,
+    ]);
+    expect(page_, path).toBeLessThanOrEqual(window_);
+  }
 });

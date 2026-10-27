@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from './cn';
+import type { RowLink } from './lists';
 import { IconChip, type Hue } from './surfaces';
 
 export interface KpiTileProps {
@@ -17,6 +18,9 @@ export interface KpiTileProps {
   pending?: string | undefined;
   /** A mark beside the label, such as a draft target's badge. */
   badge?: ReactNode;
+  /** Makes the whole tile a link, through `as` when given (the portal's router link). */
+  href?: string;
+  as?: RowLink;
   className?: string;
 }
 
@@ -35,11 +39,13 @@ export function KpiTile({
   foot,
   pending,
   badge,
+  href,
+  as: As,
   className,
 }: KpiTileProps) {
   const done = progress ? Math.min(1, Math.max(0, progress.done)) : 0;
-  return (
-    <div className={cn('ks-kpi', className)}>
+  const body = (
+    <>
       <div className="ks-kpi-head">
         <IconChip size="sm" {...(hue ? { hue } : {})}>
           {icon}
@@ -60,6 +66,15 @@ export function KpiTile({
         <span>{foot}</span>
         <span className="pend">{pending}</span>
       </div>
-    </div>
+    </>
   );
+  const classes = cn('ks-kpi', (href || As) && 'act', className);
+  if (As) return <As className={classes}>{body}</As>;
+  if (href)
+    return (
+      <a className={classes} href={href}>
+        {body}
+      </a>
+    );
+  return <div className={classes}>{body}</div>;
 }

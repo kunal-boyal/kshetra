@@ -8,6 +8,7 @@ A page header opens every portal and console page. It holds a way back, the titl
 - A `ks-meta` line summing the page up: "64 claims · ₹1,42,300 · 5 over the policy".
 - Actions at the end of the title row.
 - `ks-page-toolbar` for filter chips, tabs or a period stepper.
+- A page about one person puts their Avatar, size `lg`, before the title, with their designation and territory in the meta line.
 
 ## The consumer provides
 The title and period, the summary figures, the actions, and the toolbar's controls.

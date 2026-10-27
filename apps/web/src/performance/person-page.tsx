@@ -1,12 +1,12 @@
-import { formatDate } from '@thelamp/i18n';
+import { formatDate, formatMonth, formatNumber } from '@thelamp/i18n';
 import { todayIn } from '@thelamp/shared';
-import { Card, Notice, TextField } from '@thelamp/ui-web';
+import { Avatar, Card, Notice, PeriodStepper } from '@thelamp/ui-web';
 import { useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { PageHeader, Section } from '../people/shared';
 import { SubmissionsSection } from '../submissions/submissions-section';
-import { MetricTile, useFigure, usePersonPerformance } from './shared';
+import { MetricTile, Movement, useFigure, usePersonPerformance } from './shared';
 
 /**
  * A person's month (M9): a tile per metric with the approved actual against the target and
@@ -31,18 +31,26 @@ export function PersonPerformancePage({ userId }: { userId: string }) {
             ? t('performance.my_title')
             : t('performance.title_for', { name: data.user.name })
         }
+        {...(data ? { lead: <Avatar name={data.user.name} id={data.user.id} size="lg" /> } : {})}
+        meta={
+          data
+            ? [data.group?.name[locale].one, data.territory?.name].filter(Boolean).join(' · ') ||
+              undefined
+            : undefined
+        }
+        toolbar={
+          <PeriodStepper
+            value={period}
+            onChange={setPeriod}
+            format={(value) => formatMonth(value, { locale })}
+            label={t('plan.month')}
+            previousLabel={t('targets.previous_month')}
+            nextLabel={t('targets.next_month')}
+          />
+        }
         {...(access.can('performance.view_team')
           ? { back: { to: '/performance', label: t('performance.team_title') } }
           : {})}
-      />
-      <TextField
-        label={t('plan.month')}
-        type="month"
-        className="max-w-xs"
-        value={period}
-        onChange={(event) => {
-          if (event.target.value) setPeriod(event.target.value);
-        }}
       />
       {month.isError ? (
         <p className="ks-help error" role="alert">
@@ -53,24 +61,37 @@ export function PersonPerformancePage({ userId }: { userId: string }) {
       ) : (
         <>
           <Card>
-            <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-3">
+            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-4">
               <div>
-                <dt className="ks-muted">{t('performance.score')}</dt>
-                <dd className="text-2xl font-semibold">
-                  {data.score ?? t('performance.not_ranked')}
+                <dt className="ks-meta">{t('performance.score')}</dt>
+                <dd className="metric-xl">
+                  {data.score === null
+                    ? t('performance.not_ranked')
+                    : formatNumber(data.score, { locale })}
                 </dd>
               </div>
               <div>
-                <dt className="ks-muted">{t('performance.rank')}</dt>
-                <dd className="text-2xl font-semibold">
+                <dt className="ks-meta">{t('performance.rank')}</dt>
+                <dd className="metric-xl">
                   {data.rank && data.group
-                    ? t('performance.rank_of', { rank: data.rank, size: data.group.size })
+                    ? t('performance.rank_of', {
+                        rank: formatNumber(data.rank, { locale }),
+                        size: formatNumber(data.group.size, { locale }),
+                      })
                     : '—'}
                 </dd>
               </div>
               <div>
-                <dt className="ks-muted">{t('performance.group')}</dt>
-                <dd>{data.group ? data.group.name[locale].other : t('performance.no_group')}</dd>
+                <dt className="ks-meta">{t('leaderboard.since_last_week')}</dt>
+                <dd className="pt-2">
+                  <Movement rank={data.rank} previous={data.previousRank} />
+                </dd>
+              </div>
+              <div>
+                <dt className="ks-meta">{t('performance.group')}</dt>
+                <dd className="pt-2">
+                  {data.group ? data.group.name[locale].other : t('performance.no_group')}
+                </dd>
               </div>
             </dl>
           </Card>
@@ -89,7 +110,7 @@ export function PersonPerformancePage({ userId }: { userId: string }) {
             {data.days.length === 0 || !trend?.length ? (
               <p className="ks-muted">{t('performance.trend_empty')}</p>
             ) : (
-              <div className="w-full overflow-x-auto">
+              <div className="relative w-full overflow-x-auto">
                 <table className="ks-table">
                   <caption className="sr-only">{t('performance.trend_caption')}</caption>
                   <thead>

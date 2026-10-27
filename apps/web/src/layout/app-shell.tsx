@@ -288,7 +288,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="ks min-h-screen md:grid md:grid-cols-[var(--nav-web)_1fr]">
+    <div className="ks min-h-screen md:grid md:grid-cols-[var(--nav-web)_minmax(0,1fr)]">
       <a href="#content" className="sr-only focus:not-sr-only">
         {t('shell.skip')}
       </a>

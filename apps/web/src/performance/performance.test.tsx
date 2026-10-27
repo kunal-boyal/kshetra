@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { fakeClient, noun, renderAt } from '../test-support';
 
@@ -37,6 +38,7 @@ const person = (id: string, name: string) => ({ id, code: `SUN-${id.slice(-3)}`,
 const MONTH = {
   period: PERIOD,
   user: person(ASHA, 'Asha Rao'),
+  territory: { code: 'IND-W', name: 'Indore West' },
   metrics: METRICS,
   figures: {
     calls: figures('2', '4', { pending: '1' }),
@@ -47,6 +49,7 @@ const MONTH = {
   locked: true,
   score: 50,
   rank: 2,
+  previousRank: 4,
   group: { key: 'executive', name: noun('Executive', 'Executives'), size: 2 },
   days: [{ date: '2026-10-14', values: { calls: '2', amount: '150.5' } }],
 };
@@ -64,7 +67,9 @@ describe('performance (M9)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Asha Rao’s month' }),
     ).toBeVisible();
+    expect(screen.getByText('Executive · Indore West')).toBeVisible();
     expect(screen.getByText('2 of 2')).toBeVisible();
+    expect(screen.getByText('Up 2')).toBeVisible();
     expect(screen.getByText('+1 pending')).toBeVisible();
     expect(screen.getAllByText('50%', { selector: 'b' })).toHaveLength(2);
     expect(screen.getByText('No target set')).toBeVisible();
@@ -95,18 +100,22 @@ describe('performance (M9)', () => {
             metrics: METRICS,
             rows: [
               {
-                user: person(ASHA, 'Asha Rao'),
-                designation: 'executive',
-                figures: MONTH.figures,
-                score: 50,
-                rank: 2,
-              },
-              {
                 user: person(RAVI, 'Ravi Kumar'),
                 designation: 'executive',
+                territory: null,
                 figures: { calls: figures('1') },
                 score: null,
                 rank: null,
+                previousRank: null,
+              },
+              {
+                user: person(ASHA, 'Asha Rao'),
+                designation: 'executive',
+                territory: { code: 'IND-W', name: 'Indore West' },
+                figures: MONTH.figures,
+                score: 50,
+                rank: 2,
+                previousRank: 2,
               },
             ],
             totals: { calls: figures('3', '4'), amount: figures('150.5', '301') },
@@ -120,8 +129,14 @@ describe('performance (M9)', () => {
       name: 'The month for each person, by metric, with score and rank',
     });
     expect(within(table).queryByRole('columnheader', { name: 'Orders' })).toBeNull();
-    expect(within(table).getByRole('row', { name: /Asha Rao/ })).toHaveTextContent('2 · 50%');
-    expect(within(table).getByRole('row', { name: /Ravi Kumar/ })).toHaveTextContent('Not ranked');
+    // Ranked people first, rank in the first column, attainment with the actual on hover.
+    const [asha, ravi] = within(table).getAllByRole('row').slice(1);
+    expect(within(asha!).getAllByRole('cell')[0]).toHaveTextContent('2');
+    expect(within(asha!).getByLabelText('Rank 2')).toBeVisible();
+    expect(asha).toHaveTextContent('Indore West');
+    expect(within(asha!).getAllByText('50%')[0]).toHaveAttribute('title', '2');
+    expect(asha).toHaveTextContent('Same');
+    expect(ravi).toHaveTextContent('Not ranked');
     expect(within(table).getByRole('row', { name: /Team total/ })).toHaveTextContent('3 of 4');
     expect(within(table).getByRole('link', { name: 'Asha Rao' })).toHaveAttribute(
       'href',
@@ -129,30 +144,65 @@ describe('performance (M9)', () => {
     );
   });
 
-  it('ranks the group, marks the viewer, and lists the unranked last', async () => {
-    renderAt(
-      '/leaderboard',
-      fakeClient(
-        {
-          '/v1/leaderboard': {
-            period: PERIOD,
-            groups: [{ key: 'executive', name: noun('Executive', 'Executives') }],
-            group: 'executive',
-            rows: [
-              { user: person(RAVI, 'Ravi Kumar'), score: 100, rank: 1, you: false },
-              { user: person(ASHA, 'Asha Rao'), score: null, rank: null, you: true },
-            ],
-          },
+  it('ranks the group with territories, movement and the score’s mix, marking the viewer', async () => {
+    const row = (id: string, name: string, extra: object) => ({
+      user: person(id, name),
+      territory: null,
+      figures: { calls: figures('2', '4'), amount: figures('150.5', '301') },
+      ...extra,
+    });
+    const client = fakeClient(
+      {
+        '/v1/leaderboard': {
+          period: PERIOD,
+          groups: [
+            { key: 'executive', name: noun('Executive', 'Executives'), size: 2 },
+            { key: 'officer', name: noun('Officer', 'Officers'), size: 9 },
+          ],
+          group: 'executive',
+          metrics: METRICS,
+          rows: [
+            row(RAVI, 'Ravi Kumar', {
+              territory: { code: 'IND-W', name: 'Indore West' },
+              score: 100,
+              rank: 1,
+              previousRank: 3,
+              you: false,
+            }),
+            row(ASHA, 'Asha Rao', { score: null, rank: null, previousRank: null, you: true }),
+          ],
         },
-        {},
-        ['leaderboard.view'],
-      ),
+      },
+      {},
+      ['leaderboard.view'],
     );
+    renderAt('/leaderboard', client);
     const table = await screen.findByRole('table', { name: 'Leaderboard for Executives' });
     const rows = within(table).getAllByRole('row').slice(1);
-    expect(rows[0]).toHaveTextContent('1Ravi Kumar 100');
+    expect(within(rows[0]!).getByLabelText('Rank 1')).toBeVisible();
+    expect(rows[0]).toHaveTextContent('Indore West');
+    expect(rows[0]).toHaveTextContent('50%');
+    expect(within(rows[0]!).getByText('Up 2').closest('.ks-badge')).toHaveClass('success');
     expect(rows[1]).toHaveTextContent('Asha Rao (you)');
     expect(rows[1]).toHaveTextContent('Not ranked');
+    expect(rows[1]).toHaveTextContent('Nothing to compare yet');
+    expect(rows[1]).toHaveAttribute('aria-selected', 'true');
+    expect(rows[0]).toHaveAttribute('aria-selected', 'false');
     expect(screen.getByText(/Indicative ranking/)).toBeVisible();
+
+    const mix = screen.getByRole('img', { name: 'The score’s weights: Calls 50, Sales 50' });
+    expect(mix).toBeVisible();
+
+    const groups = screen.getByRole('group', { name: 'Group' });
+    expect(within(groups).getByRole('button', { name: /Executives · 2/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await userEvent.setup().click(within(groups).getByRole('button', { name: /Officers · 9/ }));
+    expect(client.request).toHaveBeenCalledWith(
+      'GET',
+      expect.stringMatching(/^\/v1\/leaderboard\?period=\d{4}-\d{2}&group=officer$/),
+      expect.anything(),
+    );
   });
 });

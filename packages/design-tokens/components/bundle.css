@@ -203,6 +203,7 @@ select.ks-input:disabled { cursor: not-allowed; color: var(--text-subtle); }
 
 /* Plan item / list row */
 .ks-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+.ks-list.flat, .ks-table.flat { box-shadow: none; }
 .ks-item { display: flex; align-items: center; gap: var(--space-3); min-height: var(--ks-row); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); transition: background-color var(--duration-fast) var(--ease-standard); }
 .ks-item:last-child { border-bottom: 0; }
 .ks-item-main { flex: 1; min-width: 0; }

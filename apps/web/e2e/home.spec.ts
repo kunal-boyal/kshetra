@@ -95,6 +95,7 @@ const ANSWERS: Record<string, unknown> = {
             code: 'SUN-004',
             name: 'Rahul Verma',
           },
+          territory: { code: 'IND-W', name: 'Indore West' },
           score: 92,
           rank: 1,
           you: false,
@@ -105,6 +106,7 @@ const ANSWERS: Record<string, unknown> = {
             code: 'SUN-005',
             name: 'Sneha Kulkarni',
           },
+          territory: null,
           score: 88,
           rank: 2,
           you: false,
@@ -112,7 +114,24 @@ const ANSWERS: Record<string, unknown> = {
       ],
     },
     onDuty: 9,
-    waiting: { reviews: 6, approvals: 2 },
+    onDutyPeople: [
+      {
+        user: { id: '01a10000-0000-7000-8000-000000000004', name: 'Rahul Verma' },
+        place: 'Sharma Stores',
+        visits: 3,
+        paused: false,
+        seenAt: new Date().toISOString(),
+      },
+      {
+        user: { id: '01a10000-0000-7000-8000-000000000005', name: 'Sneha Kulkarni' },
+        place: null,
+        visits: 0,
+        paused: true,
+        seenAt: null,
+      },
+    ],
+    onLeaveToday: 1,
+    waiting: { reviews: 6, approvals: 2, plans: 0, leave: 1, expenses: 1 },
   },
 };
 
@@ -210,10 +229,9 @@ test('/ shows the team dashboard with its charts, and passes axe', async ({ page
   await mockSignedIn(page);
   await page.setViewportSize({ width: 1280, height: 1100 });
   await page.goto('/');
-  await expect(
-    page.getByRole('heading', { level: 2, name: 'Your team of 12 this month' }),
-  ).toBeVisible();
-  await expect(page.getByRole('link', { name: /6 forms to review/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your team of 12 this month' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Forms to review\s*6$/ })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'On duty now · 9 of 12' })).toBeVisible();
   await expect(
     page.getByRole('img', { name: 'Visits each day this month, approved and waiting for review' }),
   ).toBeVisible();
@@ -249,9 +267,7 @@ test('runs under its Content-Security-Policy, which nothing on the page breaks (
   await mockSignedIn(page);
   const reply = await page.goto('/');
   expect(reply?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
-  await expect(
-    page.getByRole('heading', { level: 2, name: 'Your team of 12 this month' }),
-  ).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your team of 12 this month' })).toBeVisible();
   expect(violations).toEqual([]);
 });
 

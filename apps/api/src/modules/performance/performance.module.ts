@@ -8,6 +8,7 @@ import { MetricsModule } from '../metrics/metrics.module';
 import { OrdersModule } from '../orders/orders.module';
 import { PlanningModule } from '../planning/planning.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
+import { TerritoriesModule } from '../territories/territories.module';
 import { MetricsAdmin } from './metrics-admin';
 import { MetricsAdminController } from './metrics-admin.controller';
 import { ExternalMetricsImport } from './external-values';
@@ -30,6 +31,7 @@ import { PerformanceUpkeep } from './performance.upkeep';
     MetricsModule,
     OrdersModule,
     TenantConfigModule,
+    TerritoriesModule,
     ImportsModule,
   ],
   controllers: [PerformanceController, MetricsAdminController],

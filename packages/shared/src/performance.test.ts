@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attainment, monthDates, rankByScore, ratioOf, scoreOf } from './performance';
+import { attainment, monthDates, rankByScore, rankCutoff, ratioOf, scoreOf } from './performance';
 
 const FX01 = [
   { key: 'sales', target: 1000, actual: 2000 },
@@ -82,5 +82,26 @@ describe('months', () => {
   it('knows their first and last days', () => {
     expect(monthDates('2028-02')).toEqual({ from: '2028-02-01', to: '2028-02-29' });
     expect(monthDates('2026-12')).toEqual({ from: '2026-12-01', to: '2026-12-31' });
+  });
+});
+
+describe('last week’s rank', () => {
+  it('counts up to the Sunday before this week, within the month', () => {
+    // Tuesday 27 October 2026: the week began on Monday the 26th.
+    expect(rankCutoff('2026-10', '2026-10-27')).toBe('2026-10-25');
+    // A Sunday belongs to its own week, so it reaches back a whole week.
+    expect(rankCutoff('2026-10', '2026-10-25')).toBe('2026-10-18');
+    expect(rankCutoff('2026-10', '2026-10-26')).toBe('2026-10-25');
+  });
+
+  it('shows no movement in a month’s first days, or before it begins', () => {
+    expect(rankCutoff('2026-10', '2026-10-03')).toBeNull();
+    expect(rankCutoff('2026-11', '2026-11-01')).toBeNull();
+    expect(rankCutoff('2026-11', '2026-10-27')).toBeNull();
+  });
+
+  it('measures a month gone from its last week', () => {
+    // September 2026 ended on Wednesday the 30th.
+    expect(rankCutoff('2026-09', '2026-10-27')).toBe('2026-09-27');
   });
 });

@@ -455,6 +455,21 @@ export class TerritoriesService {
     return found;
   }
 
+  /** The first territory each user holds on `day`, by code; users holding none are left out. */
+  async primaryOf(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    day: string,
+  ): Promise<Map<string, { code: string; name: TerritoryRef['name'] }>> {
+    const attached = await this.attachmentsOf(tx, tenantId, userIds, day);
+    return new Map(
+      [...attached].flatMap(([userId, [first]]) =>
+        first ? [[userId, { code: first.code, name: first.name }] as const] : [],
+      ),
+    );
+  }
+
   /** Refuses IDs that name no active territory, each at its place in `path`. */
   async checkTerritories(
     tx: TenantTx,

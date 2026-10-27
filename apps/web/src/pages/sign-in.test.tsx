@@ -70,7 +70,9 @@ function fakeClient(verify: () => Promise<unknown>) {
           mix: [],
           leaderboard: null,
           onDuty: null,
-          waiting: { reviews: null, approvals: null },
+          onDutyPeople: null,
+          onLeaveToday: null,
+          waiting: { reviews: null, approvals: null, plans: null, leave: null, expenses: null },
         };
       }
       throw new Error(`Nothing at ${path}`);
@@ -147,8 +149,10 @@ describe('signing in on the web', () => {
     // The field keeps the ten digits, whatever spacing was typed (decision D102).
     expect(client.requestCode).toHaveBeenCalledWith('9000000001');
     expect(client.verifyCode).toHaveBeenCalledWith('9000000001', '123456');
-    expect(await screen.findByRole('heading', { name: 'Hello, Anita Rao' })).toBeInTheDocument();
-    expect(screen.getByText('Head at Sunrise Traders')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /^Good (morning|afternoon|evening), Anita$/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/ · your own figures · updated /)).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Main menu' })).toBeInTheDocument();
   });
 
@@ -198,7 +202,9 @@ describe('signing in on the web', () => {
     const codes = await screen.findByRole('list', { name: 'Your recovery codes' });
     expect(codes).toHaveTextContent('K7Q2M-XW4PA');
     await user.click(screen.getByRole('button', { name: 'I have saved them' }));
-    expect(await screen.findByRole('heading', { name: 'Hello, Anita Rao' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /^Good (morning|afternoon|evening), Anita$/ }),
+    ).toBeInTheDocument();
     expect(client.totpVerify).toHaveBeenLastCalledWith('s'.repeat(43), { code: '111111' });
   });
 
@@ -218,7 +224,9 @@ describe('signing in on the web', () => {
     await user.click(screen.getByRole('button', { name: 'Use a recovery code instead' }));
     await user.type(screen.getByLabelText('Recovery code *'), 'k7q2m-xw4pa');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(await screen.findByRole('heading', { name: 'Hello, Anita Rao' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /^Good (morning|afternoon|evening), Anita$/ }),
+    ).toBeInTheDocument();
     expect(client.totpVerify).toHaveBeenCalledWith('s'.repeat(43), { recoveryCode: 'K7Q2M-XW4PA' });
   });
 
@@ -252,7 +260,9 @@ describe('signing in on the web', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The server could not be reached. Check your connection, then try again.',
     );
-    expect(screen.getByRole('heading', { name: 'Hello, Anita Rao' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /^Good (morning|afternoon|evening), Anita$/ }),
+    ).toBeInTheDocument();
   });
 
   it('tells a field user on the web to use the mobile app', async () => {
