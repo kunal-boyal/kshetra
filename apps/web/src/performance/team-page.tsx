@@ -1,7 +1,5 @@
-import { formatMonth, formatNumber } from '@thelamp/i18n';
-import { todayIn } from '@thelamp/shared';
-import { EmptyState, FilterChips, Icon, PageHeader, PeriodStepper } from '@thelamp/ui-web';
-import { Link } from '@tanstack/react-router';
+import { formatNumber } from '@thelamp/i18n';
+import { EmptyState, FilterChips, Icon } from '@thelamp/ui-web';
 import { Users } from 'lucide-react';
 import { useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';
@@ -16,15 +14,14 @@ import {
 } from './shared';
 
 /**
- * The team's month (M9, decision D104): each person in scope by rank, with their territory, each
- * metric's attainment (its actual on hover), their score and move since last week, and the team's
- * totals from summed parts (BR-04). Chips narrow it to a designation; a name opens the person's
- * month.
+ * The team's month (M9, decision D104), the Performance page's My team tab: each person in scope
+ * by rank, with their territory, each metric's attainment (its actual on hover), their score and
+ * move since last week, and the team's totals from summed parts (BR-04). Chips narrow it to a
+ * designation; a name opens the person's month.
  */
-export function TeamPerformancePage() {
+export function TeamPanel({ period }: { period: string }) {
   const { t, locale } = useLanguage();
   const access = useAccess();
-  const [period, setPeriod] = useState(() => todayIn(access.timezone).slice(0, 7));
   const [designation, setDesignation] = useState<string | null>(null);
   const team = useTeamPerformance(period);
   const figure = useFigure();
@@ -43,38 +40,17 @@ export function TeamPerformancePage() {
   }));
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={t('performance.team_title_for', { month: formatMonth(period, { locale }) })}
-        meta={t('performance.team_intro')}
-        actions={
-          <Link to="/performance/$userId" params={{ userId: 'me' }} className="ks-btn secondary sm">
-            {t('performance.my_month')}
-          </Link>
-        }
-        toolbar={
-          <>
-            {designations.length > 1 ? (
-              <FilterChips
-                label={t('performance.designation')}
-                choices={designations}
-                value={designation}
-                onChange={setDesignation}
-                formatCount={(n) => formatNumber(n, { locale })}
-                clearable
-              />
-            ) : null}
-            <PeriodStepper
-              value={period}
-              onChange={setPeriod}
-              format={(value) => formatMonth(value, { locale })}
-              label={t('plan.month')}
-              previousLabel={t('targets.previous_month')}
-              nextLabel={t('targets.next_month')}
-            />
-          </>
-        }
-      />
+    <div className="flex flex-col gap-4">
+      {designations.length > 1 ? (
+        <FilterChips
+          label={t('performance.designation')}
+          choices={designations}
+          value={designation}
+          onChange={setDesignation}
+          formatCount={(n) => formatNumber(n, { locale })}
+          clearable
+        />
+      ) : null}
       {team.isError ? (
         <p className="ks-help error" role="alert">
           {errorMessage(team.error, t)}

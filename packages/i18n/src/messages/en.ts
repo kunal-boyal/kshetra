@@ -2121,7 +2121,6 @@ export const en = {
   'account_plan.updated': 'Last changed by {name}, {when}',
   'nav.performance': 'Performance',
   'nav.my_performance': 'My month',
-  'nav.leaderboard': 'Leaderboard',
   'performance.team_title': 'Performance',
   'performance.team_intro':
     'Each person’s month against their {term.target:other:lower}. Only approved work counts; a name opens their month.',
@@ -2156,7 +2155,9 @@ export const en = {
   'performance.territory': 'Territory',
   'performance.designation': 'Designation',
   'performance.team_title_for': 'Performance · {month}',
-  'leaderboard.title_for': 'Leaderboard · {month}',
+  'performance.views': 'Performance views',
+  'performance.tab_leaderboard': 'Leaderboard',
+  'performance.tab_team': 'My team',
   'leaderboard.meta': 'Ranked on locked {term.target:other:lower} · scores update as reviews land',
   'leaderboard.export': 'Export',
   'leaderboard.score_mix': 'How the score is made',

@@ -319,7 +319,7 @@ function Board({ board }: { board: NonNullable<DashboardResult['leaderboard']> }
       title={title}
       className="min-w-0"
       actions={
-        <Link to="/leaderboard" className="label-md">
+        <Link to="/performance" search={{ view: 'leaderboard' }} className="label-md">
           {t('home.all')}
         </Link>
       }
