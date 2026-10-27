@@ -218,6 +218,7 @@ Motion says what just happened and where things went. Feedback is quick, arrival
 ## Intentional additions
 
 - **IconChip, Skeleton and the Motion card,** added at the owner's request for icons, motion, soft shapes and pastel colours. The screens need them: icons on rows and tiles, a loading state for slow networks, and one reference for every motion pattern.
+- **Picker, and the chevron on every select,** added at the owner's request: the browser's own arrow sat on a select's edge. A `select.ks-input` draws a chevron in `text-muted` with the field's padding beside it, in every theme, and Picker is the compact choice for a bar, such as language and theme: an icon, the value and that chevron, over a native select.
 
 ## Accessibility
 

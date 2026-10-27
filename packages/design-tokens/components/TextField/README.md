@@ -12,3 +12,4 @@ Label and help from the form definition, keyboard type per field type (numeric f
 - Placeholder is an example, never the label.
 - Errors say how to fix: "Enter a count, 0 or more." not "Invalid".
 - Validate on blur and submit, not per keystroke.
+- A choice from a list is the same field with a native `select`: `select.ks-input` draws its own chevron, with the field's padding beside it, never the browser's arrow.

@@ -147,6 +147,14 @@
 .ks-input::placeholder { color: var(--text-subtle); }
 .ks-input.num { font-variant-numeric: tabular-nums; text-align: right; }
 .ks-input.invalid { border-color: var(--danger-solid); box-shadow: inset 0 0 0 1px var(--danger-solid), 0 0 0 4px var(--danger-bg); }
+/* Select: the browser's arrow sits on the edge, so a chevron drawn from the tokens replaces it, with the field's own padding beside it. */
+select.ks-input { --ks-chevron-end: var(--space-4); appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: calc(var(--ks-chevron-end) + 11px + var(--space-2)); background-image: linear-gradient(45deg, transparent calc(50% - 0.8px), var(--text-muted) calc(50% - 0.8px), var(--text-muted) calc(50% + 0.8px), transparent calc(50% + 0.8px)), linear-gradient(-45deg, transparent calc(50% - 0.8px), var(--text-muted) calc(50% - 0.8px), var(--text-muted) calc(50% + 0.8px), transparent calc(50% + 0.8px)); background-size: 6px 6px; background-position: right calc(var(--ks-chevron-end) + 5px) center, right var(--ks-chevron-end) center; background-repeat: no-repeat; }
+select.ks-input:disabled { cursor: not-allowed; color: var(--text-subtle); }
+/* Picker: a compact choice in a bar, such as language or theme: an icon, the value, the chevron. */
+.ks-picker { position: relative; display: inline-flex; align-items: center; }
+.ks-picker > .ks-icon { position: absolute; left: var(--space-3); color: var(--text-muted); pointer-events: none; }
+.ks-picker > select.ks-input { --ks-chevron-end: var(--space-3); height: var(--control-sm); width: auto; padding-left: calc(var(--space-3) + var(--icon-sm) + var(--space-2)); padding-right: calc(var(--space-3) + 11px + var(--space-2)); font-size: 14px; font-weight: 500; }
+.ks-picker > select.ks-input:hover { background-color: var(--surface-sunken); }
 .ks-help { font-size: 13px; line-height: calc(18px + var(--ks-lead)); color: var(--text-muted); }
 .ks-help.error { color: var(--danger-fg); font-weight: 500; }
 .ks-affix { position: relative; }
@@ -179,7 +187,8 @@
 .ks-table .ks-affix { display: inline-block; }
 .ks-table .ks-affix > span { left: var(--space-3); }
 .ks-table .ks-affix > .ks-input { padding-left: calc(var(--space-3) + 1.25em); }
-.ks-input.changed { border-color: var(--accent); background: var(--accent-subtle); }
+.ks-table select.ks-input { --ks-chevron-end: var(--space-3); padding-right: calc(var(--space-3) + 11px + var(--space-2)); }
+.ks-input.changed { border-color: var(--accent); background-color: var(--accent-subtle); }
 
 /* Shift card: the on-duty dot pulses (a loop: off on entry-level phones and under reduced motion) */
 .ks-shift { display: flex; flex-direction: column; gap: var(--space-3); }
