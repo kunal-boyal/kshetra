@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { Languages } from 'lucide-react';
 import { Button } from './button';
+import { Picker } from './picker';
 import { TextField } from './text-field';
 
 describe('TextField', () => {
@@ -35,5 +37,26 @@ describe('Button', () => {
     );
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute('aria-busy', 'true');
+  });
+});
+
+describe('Picker', () => {
+  it('is a native select named by its label, with its icon hidden from screen readers', () => {
+    const { container } = render(
+      <Picker
+        label="Language"
+        icon={Languages}
+        value="hi"
+        onChange={() => {}}
+        options={[
+          { value: 'en', label: 'English', lang: 'en' },
+          { value: 'hi', label: 'हिन्दी', lang: 'hi' },
+        ]}
+      />,
+    );
+    const select = screen.getByRole('combobox', { name: 'Language' });
+    expect(select).toHaveValue('hi');
+    expect(screen.getByRole('option', { name: 'हिन्दी' })).toHaveAttribute('lang', 'hi');
+    expect(container.querySelector('.ks-picker svg')).toHaveAttribute('aria-hidden', 'true');
   });
 });

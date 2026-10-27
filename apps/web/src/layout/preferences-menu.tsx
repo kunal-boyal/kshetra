@@ -1,4 +1,6 @@
 import type { Locale } from '@thelamp/shared';
+import { Picker } from '@thelamp/ui-web';
+import { Contrast, Languages, type LucideIcon, Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { useLanguage } from '../i18n';
 import { applyTheme, savedTheme, type Theme } from '../preferences';
@@ -8,24 +10,24 @@ const LANGUAGES: { locale: Locale; name: string }[] = [
   { locale: 'hi', name: 'हिन्दी' },
 ];
 
+/** The theme picker shows the theme it is in. */
+const THEME_ICONS: Record<Theme, LucideIcon> = { light: Sun, dark: Moon, outdoor: Contrast };
+
 /** Each language named in itself, so anyone can find their own. */
 export function LanguagePicker() {
   const { locale, setLocale, t } = useLanguage();
   return (
-    <label className="flex items-center gap-2">
-      <span className="sr-only">{t('shell.language')}</span>
-      <select
-        className="ks-input h-[var(--control-sm)] w-auto py-0"
-        value={locale}
-        onChange={(event) => setLocale(event.target.value as Locale)}
-      >
-        {LANGUAGES.map((language) => (
-          <option key={language.locale} value={language.locale} lang={language.locale}>
-            {language.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Picker
+      label={t('shell.language')}
+      icon={Languages}
+      value={locale}
+      onChange={(event) => setLocale(event.target.value as Locale)}
+      options={LANGUAGES.map((language) => ({
+        value: language.locale,
+        label: language.name,
+        lang: language.locale,
+      }))}
+    />
   );
 }
 
@@ -34,21 +36,20 @@ export function ThemePicker() {
   const { t } = useLanguage();
   const [theme, setTheme] = useState<Theme>(savedTheme);
   return (
-    <label className="flex items-center gap-2">
-      <span className="sr-only">{t('shell.theme')}</span>
-      <select
-        className="ks-input h-[var(--control-sm)] w-auto py-0"
-        value={theme}
-        onChange={(event) => {
-          const next = event.target.value as Theme;
-          applyTheme(next);
-          setTheme(next);
-        }}
-      >
-        <option value="light">{t('shell.theme_light')}</option>
-        <option value="dark">{t('shell.theme_dark')}</option>
-        <option value="outdoor">{t('shell.theme_outdoor')}</option>
-      </select>
-    </label>
+    <Picker
+      label={t('shell.theme')}
+      icon={THEME_ICONS[theme]}
+      value={theme}
+      onChange={(event) => {
+        const next = event.target.value as Theme;
+        applyTheme(next);
+        setTheme(next);
+      }}
+      options={[
+        { value: 'light', label: t('shell.theme_light') },
+        { value: 'dark', label: t('shell.theme_dark') },
+        { value: 'outdoor', label: t('shell.theme_outdoor') },
+      ]}
+    />
   );
 }
