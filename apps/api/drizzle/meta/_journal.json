@@ -540,6 +540,27 @@
       "when": 1793101978415,
       "tag": "0076_one_organisation",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1793128845221,
+      "tag": "0077_order_numbers",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793128874530,
+      "tag": "0078_order_numbers_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1793128905884,
+      "tag": "0079_order_numbers_required",
+      "breakpoints": true
     }
   ]
 }

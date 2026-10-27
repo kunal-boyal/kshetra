@@ -174,6 +174,44 @@ export class AuditService {
     );
   }
 
+  /**
+   * Everything the audit log keeps about one record, oldest first, with who did it, for a record's
+   * own timeline (decision D104). The owning module checks the caller may see the record first.
+   */
+  async trail(tx: TenantTx, tenantId: string, targetType: string, targetId: string) {
+    const rows = await tx
+      .select({
+        action: auditLog.action,
+        at: auditLog.createdAt,
+        actorKind: auditLog.actorKind,
+        actorId: auditLog.actorId,
+        after: auditLog.after,
+      })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.tenantId, tenantId),
+          eq(auditLog.targetType, targetType),
+          eq(auditLog.targetId, targetId),
+        ),
+      )
+      .orderBy(auditLog.createdAt, auditLog.id);
+    const people = await this.people.facts(
+      tx,
+      tenantId,
+      rows.flatMap((row) => (row.actorKind === 'user' && row.actorId ? [row.actorId] : [])),
+    );
+    return rows.map((row) => {
+      const person = row.actorKind === 'user' && row.actorId ? people.get(row.actorId) : undefined;
+      return {
+        action: row.action,
+        at: row.at,
+        by: person ? { id: person.id, name: person.name } : null,
+        after: (row.after ?? null) as Record<string, unknown> | null,
+      };
+    });
+  }
+
   /** The people and API clients a page of entries names, by ID, for the audit viewer. */
   private async actorNames(
     tx: TenantTx,

@@ -1,0 +1,1 @@
+ALTER TABLE "cell"."orders" ALTER COLUMN "number" SET NOT NULL;

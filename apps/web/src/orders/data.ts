@@ -14,6 +14,8 @@ import { read, write } from '../people/data';
 
 export interface OrderFilters {
   status?: OrderStatus;
+  /** A month on the tenant's clock; `from` and `to` win when given. */
+  period?: string;
   from?: string;
   to?: string;
 }

@@ -6,6 +6,7 @@ import { ApprovalResult } from './approvals';
 import { Percent, UnitFactor } from './catalogue';
 import { Key, LocalizedText, Money } from './config';
 import { CaptureFix } from './field';
+import { Period } from './planning';
 
 /**
  * Orders (M10, spec 5.11, decision D78): a request from the field, priced by the server from the
@@ -94,9 +95,32 @@ export const OrderLineResult = z
   })
   .meta({ id: 'OrderLine' });
 
+/** One step of an order's life, from the audit log (decision D104). */
+export const ORDER_HISTORY_KINDS = [
+  'placed',
+  /** An approver accepted it at their step, or decided its lines one by one. */
+  'approved',
+  'lines_decided',
+  'rejected',
+  'fulfilled',
+  'partially_fulfilled',
+  'cancelled',
+] as const;
+
+export const OrderHistoryEntry = z.object({
+  kind: z.enum(ORDER_HISTORY_KINDS),
+  at: z.iso.datetime(),
+  /** Who did it; null for the system. */
+  by: z.object({ id: z.uuid(), name: z.string() }).nullable(),
+  /** For `placed`: it reached the server more than ten minutes after it was placed. */
+  offline: z.boolean(),
+});
+
 export const OrderResult = z
   .object({
     id: z.uuid(),
+    /** The tenant's short number for it, from 1001 (decision D104). */
+    number: z.int(),
     account: AccountRef,
     supplier: z.object({ kind: z.enum(SUPPLIER_KINDS), account: AccountRef.nullable() }),
     placedBy: Person,
@@ -128,12 +152,15 @@ export const OrderResult = z
     }),
     /** Moves with each decision and fulfilment, for changes made at the version seen. */
     version: z.int().min(1),
+    /** What happened to it, oldest first. */
+    history: z.array(OrderHistoryEntry),
   })
   .meta({ id: 'Order' });
 
 export const OrderSummary = z
   .object({
     id: z.uuid(),
+    number: z.int(),
     account: AccountRef,
     placedBy: Person,
     placedAt: z.iso.datetime({ offset: true }),
@@ -147,6 +174,8 @@ export const OrderListQuery = z.strictObject({
   status: OrderStatus.optional(),
   accountId: z.uuid().optional(),
   userId: z.uuid().optional(),
+  /** A month on the tenant's clock; `from` and `to` win when either is given. */
+  period: Period.optional(),
   /** Calendar dates on the tenant's clock, both included. */
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
@@ -158,6 +187,17 @@ export const OrderListQuery = z.strictObject({
 export const OrderListResult = z.object({
   items: z.array(OrderSummary),
   nextCursor: z.uuid().nullable(),
+  /**
+   * With the first page only (null after), under the filters but status: how many orders each
+   * status holds, how many in all, and the value of those not rejected or cancelled.
+   */
+  summary: z
+    .object({
+      counts: z.partialRecord(OrderStatus, z.int()),
+      orders: z.int(),
+      value: z.string(),
+    })
+    .nullable(),
 });
 
 /** `POST /v1/orders/{id}/decision`: accepts or rejects the whole order at its step. */
@@ -222,6 +262,7 @@ export const RejectionReason = z.object({ key: Key, name: LocalizedText });
 
 export type PlaceOrderBody = z.output<typeof PlaceOrderBody>;
 export type OrderLineResult = z.infer<typeof OrderLineResult>;
+export type OrderHistoryEntry = z.infer<typeof OrderHistoryEntry>;
 export type OrderResult = z.infer<typeof OrderResult>;
 export type OrderSummary = z.infer<typeof OrderSummary>;
 export type OrderListQuery = z.output<typeof OrderListQuery>;

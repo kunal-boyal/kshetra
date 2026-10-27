@@ -11,6 +11,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { accounts } from './accounts';
@@ -56,6 +57,8 @@ export const orders = cell
       rejectionReason: text('rejection_reason'),
       workflowInstanceId: uuid('workflow_instance_id'),
       version: integer('version').notNull().default(1),
+      /** The tenant's short number for the order, from 1001, never reused (decision D104). */
+      number: integer('number').notNull(),
       rowVersion: rowVersionColumn(),
       updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     },
@@ -67,6 +70,7 @@ export const orders = cell
       index('orders_tenant_supplier').on(table.tenantId, table.supplierAccountId),
       index('orders_tenant_row_version').on(table.tenantId, table.rowVersion, table.id),
       index('orders_point').using('gist', table.point),
+      uniqueIndex('orders_tenant_number').on(table.tenantId, table.number),
       foreignKey({
         name: 'orders_account_fk',
         columns: [table.tenantId, table.accountId],
@@ -89,6 +93,18 @@ export const orders = cell
       check('orders_total', sql`${table.total} between 0 and 10000000000`),
       isolation(),
     ],
+  )
+  .enableRLS();
+
+/** Each tenant's last order number, taken in the placing transaction (decision D104). */
+export const orderCounters = cell
+  .table(
+    'order_counters',
+    {
+      tenantId: uuid('tenant_id').notNull().primaryKey(),
+      last: integer('last').notNull(),
+    },
+    () => [isolation()],
   )
   .enableRLS();
 

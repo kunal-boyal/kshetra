@@ -133,9 +133,9 @@ describe('the FMCG template (spec A.4, decision D97)', () => {
       if (ordered) {
         await world.database.forTenant(tenantId, (tx) =>
           tx.execute(sql`
-            insert into cell.orders (id, tenant_id, account_id, supplier_kind, user_id, visit_id, shift_id,
+            insert into cell.orders (id, number, tenant_id, account_id, supplier_kind, user_id, visit_id, shift_id,
                                      placed_at, subtotal, tax_total, total)
-            values (${newId()}, ${tenantId}, ${accountId}, 'company', ${dsr.id}, ${visitId}, ${shiftId},
+            values (${newId()}, (select coalesce(max(number), 1000) + 1 from cell.orders where tenant_id = ${tenantId}), ${tenantId}, ${accountId}, 'company', ${dsr.id}, ${visitId}, ${shiftId},
                     ${new Date(start + 2 * MINUTE).toISOString()}, '0.00', '0.00', '0.00')`),
         );
       }

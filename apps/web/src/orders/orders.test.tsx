@@ -64,6 +64,7 @@ function line(id: string, itemId: string, code: string, overrides: Record<string
 function order(overrides: Record<string, unknown> = {}) {
   return {
     id: ORDER,
+    number: 1187,
     account: { id: SHOP, code: 'D-81', name: 'Beej Bhandar' },
     supplier: { kind: 'company', account: null },
     placedBy: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
@@ -113,44 +114,116 @@ function order(overrides: Record<string, unknown> = {}) {
     },
     can: { decide: true, decideLines: false, fulfil: false },
     version: 1,
+    history: [
+      {
+        kind: 'placed',
+        at: '2026-10-20T05:00:00.000Z',
+        by: { id: SME, name: 'Suresh Rao' },
+        offline: true,
+      },
+      {
+        kind: 'approved',
+        at: '2026-10-20T07:00:00.000Z',
+        by: { id: '01a10000-0000-7000-8000-000000000003', name: 'Priya Nair' },
+        offline: false,
+      },
+    ],
     ...overrides,
   };
 }
 
-describe('the orders register', () => {
-  it('lists orders with their totals and status, and filters by status', async () => {
-    const client = fakeClient(
-      {
-        '/v1/orders': {
-          items: [
-            {
-              id: ORDER,
-              account: { id: SHOP, code: 'D-81', name: 'Beej Bhandar' },
-              placedBy: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
-              placedAt: '2026-10-20T05:00:00.000Z',
-              status: 'partially_accepted',
-              lineCount: 2,
-              total: '14028.17',
-            },
-          ],
-          nextCursor: null,
-        },
-      },
-      {},
-      ['order.view', 'order.create'],
-    );
+describe('the orders register (decision D104)', () => {
+  const summary = (id: string, number: number, status: string, total: string) => ({
+    id,
+    number,
+    account: { id: SHOP, code: 'D-81', name: 'Beej Bhandar' },
+    placedBy: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
+    placedAt: '2026-10-20T05:00:00.000Z',
+    status,
+    lineCount: 2,
+    total,
+  });
+  const REGISTER = {
+    items: [
+      summary(ORDER, 1187, 'partially_accepted', '14028.17'),
+      summary('01a10000-0000-7000-8000-0000000000f1', 1186, 'fulfilled', '2500.00'),
+    ],
+    nextCursor: null,
+    summary: {
+      counts: { partially_accepted: 1, fulfilled: 1, cancelled: 1 },
+      orders: 3,
+      value: '16528.17',
+    },
+  };
+
+  it('heads the month with its orders and value, and chips with their counts', async () => {
+    const client = fakeClient({ '/v1/orders': REGISTER, [`/v1/orders/${ORDER}`]: order() }, {}, [
+      'order.view',
+      'order.create',
+    ]);
     renderAt('/orders', client);
-    const table = await screen.findByRole('table', { name: 'Orders' });
-    const row = within(table).getByRole('row', { name: /Beej Bhandar/ });
-    expect(row).toHaveTextContent('₹14,028.17');
-    expect(row).toHaveTextContent('Partly accepted');
+    expect(await screen.findByText(/ · 3 orders · ₹16,528.17$/)).toBeVisible();
+    const chips = screen.getByRole('group', { name: 'Status' });
+    expect(within(chips).getByRole('button', { name: 'Fulfilled · 1' })).toBeVisible();
+    expect(within(chips).getByRole('button', { name: 'Rejected · 0' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'New order' })).toBeVisible();
 
-    const user = userEvent.setup();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'rejected');
+    await userEvent.setup().click(within(chips).getByRole('button', { name: 'Fulfilled · 1' }));
     await waitFor(() =>
-      expect(client.request.mock.calls.at(-1)![1]).toBe('/v1/orders?status=rejected'),
+      expect(client.request).toHaveBeenCalledWith(
+        'GET',
+        expect.stringMatching(/^\/v1\/orders\?status=fulfilled&period=\d{4}-\d{2}$/),
+        expect.anything(),
+      ),
     );
+  });
+
+  it('previews the chosen order with its lines, total and timeline, and opens it', async () => {
+    renderAt(
+      '/orders',
+      fakeClient({ '/v1/orders': REGISTER, [`/v1/orders/${ORDER}`]: order() }, {}, ['order.view']),
+    );
+    const table = await screen.findByRole('table', { name: 'Orders' });
+    const [first] = within(table).getAllByRole('row').slice(1);
+    expect(first).toHaveAttribute('aria-selected', 'true');
+    expect(first).toHaveTextContent('1187');
+    expect(first).toHaveTextContent('₹14,028.17');
+    const preview = await screen.findByRole('complementary', { name: 'Order 1187' });
+    expect(await within(preview).findByRole('heading', { name: 'Order 1187' })).toBeVisible();
+    expect(preview).toHaveTextContent('Beej Bhandar · D-81 · by Suresh Rao');
+    expect(within(preview).getByText('₹14,028.17', { selector: 'b' })).toBeVisible();
+    const timeline = within(preview).getByRole('list', { name: 'What happened' });
+    expect(
+      within(timeline)
+        .getAllByRole('listitem')
+        .map((step) => step.textContent),
+    ).toEqual([
+      expect.stringMatching(/^Placed by Suresh Rao.* · taken offline, sent later$/),
+      expect.stringMatching(/^Approved by Priya Nair/),
+    ]);
+    expect(within(preview).getByRole('link', { name: 'Open' })).toHaveAttribute(
+      'href',
+      `/orders/${ORDER}`,
+    );
+  });
+
+  it('says so for a month without orders', async () => {
+    renderAt(
+      '/orders',
+      fakeClient(
+        {
+          '/v1/orders': {
+            items: [],
+            nextCursor: null,
+            summary: { counts: {}, orders: 0, value: '0.00' },
+          },
+        },
+        {},
+        ['order.view'],
+      ),
+    );
+    expect(await screen.findByText(/ · no orders$/)).toBeVisible();
+    expect(screen.queryByRole('complementary')).toBeNull();
   });
 });
 
@@ -177,7 +250,9 @@ describe('an order', () => {
       BUNDLE,
     );
     renderAt(`/orders/${ORDER}`, client);
-    expect(await screen.findByRole('heading', { level: 1, name: 'Beej Bhandar' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Order 1187 · Beej Bhandar' }),
+    ).toBeVisible();
     expect(screen.getByText(/doesn't create an invoice/)).toBeVisible();
     const lines = screen.getByRole('table', { name: 'Lines' });
     expect(within(lines).getByRole('row', { name: /NEEM item/ })).toHaveTextContent('₹360.00');
