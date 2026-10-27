@@ -1,3 +1,4 @@
+import { formatMonth } from '@thelamp/i18n';
 import { SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -127,7 +128,8 @@ describe('targets (M8)', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Select Rahul Verma' }));
     await user.click(screen.getByRole('button', { name: 'Copy for 1 person' }));
-    expect(screen.getByText(`Copy ${PREVIOUS}’s targets for 1 person?`)).toBeVisible();
+    const previous = formatMonth(PREVIOUS, { locale: 'en' });
+    expect(screen.getByText(`Copy ${previous}’s targets for 1 person?`)).toBeVisible();
     const copyButtons = screen.getAllByRole('button', { name: 'Copy for 1 person' });
     await user.click(copyButtons[copyButtons.length - 1]!);
     await waitFor(() =>
@@ -147,6 +149,52 @@ describe('targets (M8)', () => {
         ],
       ]),
     );
+  });
+
+  it('counts the month, shows units, selects everyone and discards edits', async () => {
+    const client = fakeClient({ '/v1/targets': LIST }, {}, ALL);
+    renderAt('/targets', client);
+    const user = userEvent.setup();
+    const table = await screen.findByRole('table', { name: 'Targets for the month, by person' });
+    // The month at a glance, and each metric's unit beside its heading.
+    expect(screen.getByText('2 people')).toBeVisible();
+    expect(screen.getByText('1 locked')).toBeVisible();
+    expect(screen.getByText('1 in draft')).toBeVisible();
+    expect(within(table).getByRole('columnheader', { name: /^Sales\s*₹$/ })).toBeVisible();
+    // A locked set reads as figures, by unit, with who locked it.
+    expect(within(table).getByRole('row', { name: /Suresh Rao/ })).toHaveTextContent(
+      'Locked by Asha Mehta',
+    );
+    expect(within(table).getByRole('row', { name: /Team total/ })).toHaveTextContent('₹1,50,000');
+
+    await user.click(screen.getByRole('checkbox', { name: 'Select everyone' }));
+    expect(screen.getByText('2 selected')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Clear selection' }));
+    expect(screen.queryByText('2 selected')).toBeNull();
+
+    const visits = screen.getByRole('textbox', { name: 'Visit for Rahul Verma' });
+    await user.clear(visits);
+    await user.type(visits, '45');
+    expect(screen.getByText('1 change not saved')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Discard changes' }));
+    expect(screen.getByRole('textbox', { name: 'Visit for Rahul Verma' })).toHaveValue('40');
+    expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
+    expect(writesOf(client)).toEqual([]);
+  });
+
+  it('steps between months, starting each one afresh', async () => {
+    const client = fakeClient({ '/v1/targets': LIST }, {}, ALL);
+    renderAt('/targets', client);
+    const user = userEvent.setup();
+    await user.type(await screen.findByRole('textbox', { name: 'Visit for Rahul Verma' }), '5');
+    await user.click(screen.getByRole('button', { name: 'Previous month' }));
+    expect(screen.getByLabelText('Month')).toHaveValue(PREVIOUS);
+    await waitFor(() =>
+      expect(client.request.mock.calls.map(([method, path]) => `${method} ${path}`)).toContain(
+        `GET /v1/targets?period=${PREVIOUS}`,
+      ),
+    );
+    expect(screen.queryByText(/change not saved/)).toBeNull();
   });
 
   it('unlocks only with a reason', async () => {

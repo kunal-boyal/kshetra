@@ -152,16 +152,33 @@
 .ks-affix { position: relative; }
 .ks-affix > span { position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 .ks-affix > .ks-input { padding-left: calc(var(--space-4) + 14px); }
+.ks-affix.end > span { left: auto; right: var(--space-4); }
+.ks-affix.end > .ks-input { padding-left: var(--space-4); padding-right: calc(var(--space-4) + 2.5em); }
+.ks-table .ks-affix.end > span { left: auto; right: var(--space-3); }
+.ks-table .ks-affix.end > .ks-input { padding-left: var(--space-3); padding-right: calc(var(--space-3) + 2.5em); }
 
 /* Table */
 .ks-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; font-size: 14px; line-height: calc(20px + var(--ks-lead)); }
 .ks-table th { text-align: left; background: var(--surface-sunken); color: var(--text-muted); font-size: max(12px, var(--ks-min)); line-height: calc(16px + var(--ks-lead)); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); white-space: nowrap; }
 .ks-table td { height: var(--row-compact); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border); vertical-align: middle; transition: background-color var(--duration-fast) var(--ease-standard); }
-.ks-table tr:last-child td { border-bottom: 0; }
+.ks-table tr:last-child td, .ks-table tbody tr:last-child th { border-bottom: 0; }
 .ks-table tbody tr:hover td { background: var(--surface-sunken); }
 .ks-table tr.sel td { background: var(--accent-subtle); }
 .ks-table .r { text-align: right; font-variant-numeric: tabular-nums; }
 .ks-table code, .ks-code { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+/* Row headers name a row, so they read as body text; a footer sums the rows above it. */
+.ks-table tbody th, .ks-table tfoot th { background: none; color: var(--text); font-size: inherit; line-height: inherit; font-weight: 600; letter-spacing: 0; text-transform: none; padding: var(--space-2) var(--space-4); white-space: normal; }
+.ks-table tbody tr:hover th { background: var(--surface-sunken); }
+.ks-table tbody tr.sel th { background: var(--accent-subtle); }
+.ks-table tfoot td, .ks-table tfoot th { background: var(--surface-sunken); border-top: 1px solid var(--border); border-bottom: 0; font-weight: 700; }
+.ks-table tfoot tr + tr td, .ks-table tfoot tr + tr th { font-weight: 400; color: var(--text-muted); }
+.ks-table th .sub { display: block; font-weight: 400; letter-spacing: 0; text-transform: none; }
+/* A field inside a table row is a compact one, so rows keep their height. */
+.ks-table .ks-input { height: var(--control-sm); padding: 0 var(--space-3); width: 8.5rem; }
+.ks-table .ks-affix { display: inline-block; }
+.ks-table .ks-affix > span { left: var(--space-3); }
+.ks-table .ks-affix > .ks-input { padding-left: calc(var(--space-3) + 1.25em); }
+.ks-input.changed { border-color: var(--accent); background: var(--accent-subtle); }
 
 /* Shift card: the on-duty dot pulses (a loop: off on entry-level phones and under reduced motion) */
 .ks-shift { display: flex; flex-direction: column; gap: var(--space-3); }
