@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: my attendance</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="display: flex; align-items: center; gap: 4px; padding: 8px 16px 8px 8px;">
+    <a href="AppMore.dc.html" aria-label="Back to More" style="display: grid; place-items: center; width: 44px; height: 44px; color: var(--text);">
+      <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </a>
+    <h1 class="heading-lg" style="margin: 0; flex: 1;">Attendance</h1>
+    <span class="label-md">October 2026</span>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px;">
+    <section class="ks-card" style="padding: 12px;">
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center;">
+        <sc-for list="{{heads}}" as="h" hint-placeholder-count="7"><span class="label-sm ks-subtle" style="padding: 4px 0;">{{h}}</span></sc-for>
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="31">
+          <span aria-label="{{d.label}}" style="height: 40px; display: grid; place-items: center; border-radius: 8px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; background: {{d.bg}}; color: {{d.fg}}; box-shadow: {{d.ring}};">{{d.n}}</span>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px;">
+        <span class="ks-badge success">Present 16</span>
+        <span class="ks-badge pending">Half day 1</span>
+        <span class="ks-badge info">Leave 1</span>
+        <span class="ks-badge danger">To fix 1</span>
+      </div>
+    </section>
+
+    <section class="ks-card" aria-labelledby="fix" style="display: flex; flex-direction: column; gap: 12px; border-color: var(--danger-border);">
+      <div>
+        <h2 id="fix" class="ks-title">Wed 14 Oct: no punch-in</h2>
+        <p class="ks-meta">The phone was off all day. Ask to have the day counted.</p>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+        <div class="ks-field"><label class="ks-label" for="in">Started</label><input id="in" class="ks-input" value="9:30 am"></div>
+        <div class="ks-field"><label class="ks-label" for="out">Finished</label><input id="out" class="ks-input" value="6:15 pm"></div>
+      </div>
+      <div class="ks-field"><label class="ks-label" for="why">Reason</label><input id="why" class="ks-input" value="Phone battery failed, worked Dharawara beat"></div>
+      <button type="button" class="ks-btn primary">Send to Neha Sharma</button>
+    </section>
+
+    <section class="ks-card" aria-labelledby="bal" style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="ks-spread"><h2 id="bal" class="ks-title">Leave left this year</h2><a href="AppLeave.dc.html" class="label-md" style="min-height: 44px; display: inline-flex; align-items: center;">Apply</a></div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center;">
+        <div><div class="metric-md">5</div><div class="ks-meta">Casual</div></div>
+        <div><div class="metric-md">4</div><div class="ks-meta">Sick</div></div>
+        <div><div class="metric-md">12</div><div class="ks-meta">Earned</div></div>
+      </div>
+    </section>
+  </main>
+  <dc-import name="PhoneTabs" current="more" hint-size="390px,68px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = {
+      present: { bg: 'var(--success-bg)', fg: 'var(--success-fg)', word: 'present' },
+      half: { bg: 'var(--pending-bg)', fg: 'var(--pending-fg)', word: 'half day' },
+      leave: { bg: 'var(--info-bg)', fg: 'var(--info-fg)', word: 'on leave' },
+      absent: { bg: 'var(--danger-bg)', fg: 'var(--danger-fg)', word: 'no punch-in, to fix' },
+      off: { bg: 'var(--neutral-bg)', fg: 'var(--text-subtle)', word: 'weekly off or holiday' },
+      future: { bg: 'transparent', fg: 'var(--text-muted)', word: 'coming up' }
+    };
+    const special = { 2: 'off', 4: 'off', 11: 'off', 18: 'off', 25: 'off', 9: 'half', 14: 'absent', 16: 'leave' };
+    const days = [];
+    for (let i = 0; i < 3; i++) days.push({ n: '', label: 'No day', bg: 'transparent', fg: 'transparent', ring: 'none' });
+    for (let n = 1; n <= 31; n++) {
+      const kind = special[n] || (n > 23 ? 'future' : 'present');
+      const s = S[kind];
+      days.push({ n: String(n), label: n + ' October, ' + s.word, bg: s.bg, fg: s.fg, ring: n === 23 ? 'inset 0 0 0 2px var(--accent)' : 'none' });
+    }
+    return { theme: this.props.theme ?? 'light', heads: ['M', 'T', 'W', 'T', 'F', 'S', 'S'], days };
+  }
+}
+</script>
+</body>
+</html>

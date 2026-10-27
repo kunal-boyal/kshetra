@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: security, audit and data</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="security" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <h1 class="heading-xl" style="margin: 0;">Security and data</h1>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+        <section class="ks-card" aria-labelledby="signin" style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 id="signin" class="ks-title">Sign-in</h2>
+          <div class="ks-spread"><span class="label-md">Company SSO (Microsoft)</span><span class="ks-badge success">Connected</span></div>
+          <div class="ks-spread"><span class="label-md">Two-step sign-in for admins</span><span class="ks-badge success">Required · 3 of 3</span></div>
+          <div class="ks-spread"><span class="label-md">Web sessions end after</span><span class="label-md" style="font-weight: 600;">12 hours</span></div>
+          <div class="ks-spread"><span class="label-md">Phones per person</span><span class="label-md" style="font-weight: 600;">One work phone</span></div>
+        </section>
+        <section class="ks-card" aria-labelledby="keep" style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 id="keep" class="ks-title">How long we keep things</h2>
+          <dl class="ks-dl" style="font-size: 14px; line-height: 20px;">
+            <dt>Every location point</dt><dd>35 days, then archived</dd>
+            <dt>Daily routes</dt><dd>1 year</dd>
+            <dt>Evidence photos</dt><dd>12 months</dd>
+            <dt>Audit log</dt><dd>3 years</dd>
+          </dl>
+        </section>
+        <section class="ks-card" aria-labelledby="data" style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 id="data" class="ks-title">Your data</h2>
+          <p class="ks-meta">Stored in India (Mumbai). Download everything at any time.</p>
+          <button type="button" class="ks-btn secondary sm" style="align-self: flex-start;">Export all data</button>
+          <div class="ks-spread"><span class="label-md">Support access for The Lamp</span><span class="ks-badge neutral">Off</span></div>
+          <p class="ks-meta">Turn on for a set time when you ask for help. Everything support sees is in the log below.</p>
+        </section>
+      </div>
+
+      <section aria-labelledby="audit" style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="ks-spread" style="flex-wrap: wrap;">
+          <h2 id="audit" class="ks-title">Audit log</h2>
+          <div class="ks-row"><button type="button" class="ks-btn secondary sm">Everyone</button><button type="button" class="ks-btn secondary sm">Last 7 days</button><button type="button" class="ks-btn ghost sm">Export</button></div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="ks-table">
+            <thead><tr><th>When</th><th>Who</th><th>Did</th><th>To</th><th>Change</th></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+                <tr><td class="ks-num" style="white-space: nowrap;">{{r.when}}</td><td>{{r.who}}</td><td>{{r.what}}</td><td style="font-weight: 600;">{{r.target}}</td><td class="ks-muted">{{r.change}}</td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (when, who, what, target, change) => ({ when, who, what, target, change });
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        R('23 Oct, 2:05 pm', 'Arjun Mehta', 'Uploaded an import', 'Retailers, 1,212 rows', 'Checked, not imported'),
+        R('23 Oct, 11:05 am', 'Neha Sharma', 'Approved leave', 'Ravi Kumar, 2 Nov', 'Waiting → Approved'),
+        R('22 Oct, 6:40 pm', 'Arjun Mehta', 'Changed a setting', 'Auto-approve', '72 h → 48 h'),
+        R('22 Oct, 4:12 pm', 'Neha Sharma', 'Reset a phone', 'Pooja Rathore', 'Galaxy A05 → new phone'),
+        R('21 Oct, 9:30 am', 'Vikram Singh', 'Unlocked targets', 'Kavita Joshi, October', 'Locked → Unlocked'),
+        R('20 Oct, 5:00 pm', 'Neha Sharma', 'Locked targets', 'Indore region, November', 'Draft → Locked'),
+        R('20 Oct, 10:15 am', 'The Lamp support', 'Viewed with your permission', 'Form: Farmer visit', 'Access for 2 hours')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

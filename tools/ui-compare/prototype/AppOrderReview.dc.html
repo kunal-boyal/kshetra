@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: review and place order</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="display: flex; align-items: center; gap: 4px; padding: 8px 16px 8px 8px;">
+    <a href="AppOrder.dc.html" aria-label="Back to products" style="display: grid; place-items: center; width: 44px; height: 44px; color: var(--text);">
+      <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <h1 class="heading-md" style="margin: 0;">Review order</h1>
+      <p class="ks-meta">Shree Krishna Agro Traders · D-1042</p>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px;">
+    <div class="ks-list">
+      <sc-for list="{{lines}}" as="l" hint-placeholder-count="4">
+        <div class="ks-item" style="align-items: flex-start;">
+          <span class="ks-item-main">
+            <span class="label-md" style="display: block; font-weight: 600;">{{l.name}}</span>
+            <span class="ks-meta ks-num">{{l.qty}} × {{l.price}} · GST {{l.gst}}</span>
+          </span>
+          <span class="numeric" style="font-weight: 600;">{{l.amount}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <dl class="ks-card" style="margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; font-size: 14px;">
+      <dt class="ks-muted">Subtotal</dt><dd class="numeric" style="margin: 0; text-align: right;">₹19,780.00</dd>
+      <dt class="ks-muted">CGST</dt><dd class="numeric" style="margin: 0; text-align: right;">₹605.80</dd>
+      <dt class="ks-muted">SGST</dt><dd class="numeric" style="margin: 0; text-align: right;">₹605.80</dd>
+      <dt class="label-lg" style="padding-top: 8px; border-top: 1px solid var(--border);">Total</dt><dd class="metric-md" style="margin: 0; text-align: right; padding-top: 8px; border-top: 1px solid var(--border);">₹20,991.60</dd>
+    </dl>
+
+    <div class="ks-notice" style="background: var(--success-bg); color: var(--success-fg);">
+      <svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+      <span><strong style="color: inherit;">Within credit.</strong> ₹57,700 of the ₹2,00,000 limit is free before this order.</span>
+    </div>
+
+    <div class="ks-field">
+      <label class="ks-label" for="deliver">Deliver by</label>
+      <input id="deliver" class="ks-input" value="Mon 26 Oct">
+    </div>
+    <div class="ks-field">
+      <label class="ks-label" for="note">Note for the depot</label>
+      <input id="note" class="ks-input" value="Unload at the back gate">
+    </div>
+    <p class="ks-meta">No signal? The order waits on this phone. If a price changes before it reaches the office, you are asked to confirm the new total.</p>
+  </main>
+  <div style="padding: 12px 16px 16px; border-top: 1px solid var(--border); background: var(--surface);">
+    <a class="ks-btn primary lg block" href="AppVisit.dc.html" style="text-decoration: none;">Place order · ₹20,991.60</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      theme: this.props.theme ?? 'light',
+      lines: [
+        { name: 'NPK 19:19:19, 1 kg', qty: '40', price: '₹142', gst: '5%', amount: '₹5,680.00' },
+        { name: 'GV-Grow bio-stimulant, 500 ml', qty: '12', price: '₹385', gst: '18%', amount: '₹4,620.00' },
+        { name: 'Hybrid maize GV-511, 4 kg', qty: '6', price: '₹1,260', gst: '0%', amount: '₹7,560.00' },
+        { name: 'Zinc EDTA 12%, 250 g', qty: '20', price: '₹96', gst: '5%', amount: '₹1,920.00' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

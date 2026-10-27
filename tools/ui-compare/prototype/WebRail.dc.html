@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal rail</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<nav class="ks-rail ks" aria-label="Portal" style="width: 248px; min-height: 1100px; box-sizing: border-box; border-right: 0; font-family: var(--font-sans);">
+  <a class="ks-rail-brand" href="Main.dc.html" style="text-decoration: none;">
+    <img src="/_blob/8e7252d2b801bb56a30b72ecdf47be35" alt="" width="32" height="32">
+    <span>The Lamp</span>
+  </a>
+  <sc-for list="{{sections}}" as="s" hint-placeholder-count="5">
+    <div class="ks-rail-section">
+      <div class="ks-rail-label">{{s.label}}</div>
+      <sc-for list="{{s.links}}" as="l" hint-placeholder-count="4">
+        <a class="ks-rail-link" href="{{l.href}}" aria-current="{{l.current}}">
+          <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="{{l.d}}"></path></svg>
+          <span style="flex: 1;">{{l.label}}</span>
+          <sc-if value="{{l.count}}" hint-placeholder-val="{{false}}"><span class="ks-badge neutral" style="min-height: 20px; padding: 0 8px;">{{l.count}}</span></sc-if>
+          <sc-if value="{{l.phase}}" hint-placeholder-val="{{false}}"><span title="Built in {{l.phaseName}}" style="font-size: 11px; line-height: 16px; font-weight: 700; padding: 0 6px; border-radius: 9999px; background: var(--surface-sunken); color: var(--text-muted);">{{l.phase}}</span></sc-if>
+        </a>
+      </sc-for>
+    </div>
+  </sc-for>
+  <div class="ks-rail-foot ks-rail-section">
+    <a class="ks-rail-link" href="WebSettings.dc.html" aria-current="{{settingsCurrent}}">
+      <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M16 4v4M10 10v4M18 16v4"></path></svg>
+      <span>Settings</span>
+    </a>
+  </div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"text","default":"home"},"$preview":{"width":248,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cur = this.props.current ?? 'home';
+    const I = {
+      home: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+      map: 'M9 4l-6 2v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',
+      review: 'M9 4h6v3H9zM7 5H5v16h14V5h-2M8 14l3 3 5-6',
+      plan: 'M8 3v4M16 3v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM9 15l2 2 4-4',
+      cart: 'M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6M9 20.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM17 20.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z',
+      people: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6',
+      clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+      receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3',
+      trophy: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M10 17h4',
+      pin: 'M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+      wallet: 'M4 7h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a2 2 0 0 1 2-2h11v3M16 13.5h.01',
+      report: 'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5M9 13h6M9 17h6',
+      upload: 'M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3',
+      form: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',
+      box: 'M3 7.5L12 3l9 4.5v9L12 21l-9-4.5zM3 7.5l9 4.5 9-4.5M12 12v9',
+      flow: 'M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 9a9 9 0 0 1-9 9',
+      code: 'M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16',
+      shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4',
+      card: 'M3 6h18v12H3zM3 10h18M7 15h4'
+    };
+    const L = (key, label, href, d, phase, count) => ({ key, label, href, d, phase: phase || null, phaseName: phase === 'P2' ? 'phase 2' : 'phase 3', count: count || null, current: key === cur ? 'page' : null });
+    return {
+      settingsCurrent: cur === 'settings' ? 'page' : null,
+      sections: [
+        { label: 'Work', links: [
+          L('home', 'Home', 'WebHome.dc.html', I.home),
+          L('live', 'Live map', 'WebLive.dc.html', I.map),
+          L('review', 'Review', 'WebReview.dc.html', I.review, null, '14'),
+          L('plans', 'Plans and targets', 'WebPlans.dc.html', I.plan),
+          L('orders', 'Orders', 'WebOrders.dc.html', I.cart, 'P2')
+        ] },
+        { label: 'Team', links: [
+          L('people', 'People', 'WebPeople.dc.html', I.people),
+          L('attendance', 'Attendance', 'WebAttendance.dc.html', I.clock, 'P2'),
+          L('expenses', 'Expenses', 'WebExpenses.dc.html', I.receipt, 'P2'),
+          L('performance', 'Performance', 'WebPerformance.dc.html', I.trophy)
+        ] },
+        { label: 'Places', links: [
+          L('accounts', 'Accounts', 'WebAccounts.dc.html', I.pin),
+          L('finance', 'Finance', 'WebFinance.dc.html', I.wallet, 'P2')
+        ] },
+        { label: 'Data', links: [
+          L('reports', 'Reports', 'WebReports.dc.html', I.report),
+          L('imports', 'Imports', 'WebImports.dc.html', I.upload)
+        ] },
+        { label: 'Setup', links: [
+          L('forms', 'Forms', 'WebForms.dc.html', I.form),
+          L('catalogue', 'Catalogue', 'WebCatalogue.dc.html', I.box, 'P2'),
+          L('workflows', 'Approval chains', 'WebWorkflows.dc.html', I.flow, 'P2'),
+          L('developers', 'API and webhooks', 'WebDevelopers.dc.html', I.code, 'P3'),
+          L('security', 'Security and audit', 'WebSecurity.dc.html', I.shield, 'P3'),
+          L('billing', 'Billing', 'WebBilling.dc.html', I.card, 'P3')
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

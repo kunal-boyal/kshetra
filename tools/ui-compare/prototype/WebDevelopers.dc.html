@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: API and webhooks</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="developers" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">API and webhooks</h1>
+          <p class="ks-meta" style="font-size: 15px;">Connect your ERP or accounts software · 600 requests a minute per key</p>
+        </div>
+        <div class="ks-row">
+          <button type="button" class="ks-btn secondary sm">API reference</button>
+          <button type="button" class="ks-btn primary sm">Create a key</button>
+        </div>
+      </div>
+
+      <section aria-labelledby="keys" style="display: flex; flex-direction: column; gap: 8px;">
+        <h2 id="keys" class="ks-title">Keys</h2>
+        <div style="overflow-x: auto;">
+          <table class="ks-table">
+            <thead><tr><th>Name</th><th>Key</th><th>Can</th><th>Last used</th><th>Expires</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight: 600;">Tally sync</td><td><code>tl_live_••••••••3f9a</code></td><td>Read orders, write invoices and ledger</td><td>Today 6:00 am</td><td>31 Mar 2027</td><td><span class="ks-badge success">Active</span></td></tr>
+              <tr><td style="font-weight: 600;">BI dashboard</td><td><code>tl_live_••••••••a71c</code></td><td>Read reports</td><td>Yesterday</td><td>31 Dec 2026</td><td><span class="ks-badge success">Active</span></td></tr>
+              <tr><td style="font-weight: 600;">Old HR export</td><td><code>tl_live_••••••••0d22</code></td><td>Read people</td><td>12 Aug</td><td>—</td><td><span class="ks-badge neutral">Revoked</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <section class="ks-card" aria-labelledby="hooks" style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <div class="ks-spread"><h2 id="hooks" class="ks-title">Webhook</h2><span class="ks-badge success">Healthy</span></div>
+          <div class="ks-field"><span class="ks-label">Sends to</span><code class="ks-code" style="font-size: 13px;">https://erp.greenvalley.example/hooks/thelamp</code></div>
+          <div class="ks-field"><span class="ks-label">Events</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;"><span class="ks-badge neutral">order.placed</span><span class="ks-badge neutral">order.cancelled</span><span class="ks-badge neutral">collection.recorded</span><span class="ks-badge neutral">account.approved</span><span class="ks-badge neutral">leave.decided</span></div>
+          </div>
+          <p class="ks-meta">Each delivery is signed. Failed deliveries are retried for 24 hours.</p>
+        </section>
+        <section class="ks-card" aria-labelledby="log" style="flex: 2 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+          <h2 id="log" class="ks-title">Recent deliveries</h2>
+          <table class="ks-table" style="box-shadow: none;">
+            <thead><tr><th>Time</th><th>Event</th><th>Answer</th><th class="r">Took</th></tr></thead>
+            <tbody>
+              <tr><td class="ks-num">2:31 pm</td><td><code>collection.recorded</code></td><td><span class="ks-badge success">200</span></td><td class="r">184 ms</td></tr>
+              <tr><td class="ks-num">2:14 pm</td><td><code>order.placed</code></td><td><span class="ks-badge success">200</span></td><td class="r">212 ms</td></tr>
+              <tr><td class="ks-num">1:58 pm</td><td><code>order.placed</code></td><td><span class="ks-badge danger">503</span></td><td class="r">retried, then 200</td></tr>
+              <tr><td class="ks-num">11:05 am</td><td><code>leave.decided</code></td><td><span class="ks-badge success">200</span></td><td class="r">97 ms</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: more</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <main style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+    <section class="ks-card" style="display: flex; align-items: center; gap: 12px;">
+      <span class="ks-ico lg round hue-sage">RK</span>
+      <div style="flex: 1; min-width: 0;">
+        <p class="heading-md" style="margin: 0;">Ravi Kumar</p>
+        <p class="ks-meta">SME · Sanwer market · Green Valley Agro</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="queue" style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="ks-spread">
+        <h2 id="queue" class="ks-title">Upload queue</h2>
+        <button type="button" class="ks-btn ghost sm">Send now</button>
+      </div>
+      <div class="ks-list">
+        <div class="ks-item">
+          <span class="ks-ico sm hue-sky"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"></path></svg></span>
+          <span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">Photo 2 of 2 · Farmer visit</span><span class="ks-bar" style="margin: 6px 0 0;"><i class="done" style="width: 64%;"></i></span></span>
+          <span class="ks-meta ks-num">64%</span>
+        </div>
+        <div class="ks-item">
+          <span class="ks-ico sm hue-sage"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6v3H9zM7 5H5v16h14V5h-2"></path></svg></span>
+          <span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">Farmer visit · Ramesh Yadav</span><span class="ks-meta">Waits for its photos</span></span>
+          <span class="ks-badge pending">Waiting</span>
+        </div>
+        <div class="ks-item">
+          <span class="ks-ico sm hue-butter"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6"></path></svg></span>
+          <span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">Order · Shree Krishna Agro</span><span class="ks-meta ks-num">₹20,991.60 · 4 lines</span></span>
+          <span class="ks-badge pending">Waiting</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="mine" style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 id="mine" class="ks-title">My work</h2>
+      <div class="ks-list">
+        <a href="AppAttendance.dc.html" class="ks-item" style="text-decoration: none; color: inherit;"><span class="ks-ico sm hue-mint"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"></path></svg></span><span class="ks-item-main label-md" style="font-weight: 600;">Attendance</span><span class="ks-meta">1 day to fix</span></a>
+        <a href="AppLeave.dc.html" class="ks-item" style="text-decoration: none; color: inherit;"><span class="ks-ico sm hue-lilac"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path></svg></span><span class="ks-item-main label-md" style="font-weight: 600;">Leave</span><span class="ks-meta">12 days left</span></a>
+        <a href="AppClaim.dc.html" class="ks-item" style="text-decoration: none; color: inherit;"><span class="ks-ico sm hue-peach"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"></path></svg></span><span class="ks-item-main label-md" style="font-weight: 600;">Expense claims</span><span class="ks-meta ks-num">₹2,140 open</span></a>
+        <a href="AppMonth.dc.html" class="ks-item" style="text-decoration: none; color: inherit;"><span class="ks-ico sm hue-butter"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM12 13v4M8 21h8"></path></svg></span><span class="ks-item-main label-md" style="font-weight: 600;">Leaderboard</span><span class="ks-meta">#3</span></a>
+      </div>
+    </section>
+
+    <section aria-labelledby="prefs" style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 id="prefs" class="ks-title">This phone</h2>
+      <div class="ks-field">
+        <span class="ks-label">Language</span>
+        <div style="display: flex; gap: 8px;"><button type="button" class="ks-btn primary sm" style="flex: 1;" aria-pressed="true">English</button><button type="button" class="ks-btn secondary sm" style="flex: 1;" aria-pressed="false">हिंदी</button></div>
+      </div>
+      <div class="ks-field">
+        <span class="ks-label">Look</span>
+        <div style="display: flex; gap: 8px;"><button type="button" class="ks-btn primary sm" style="flex: 1;" aria-pressed="true">Light</button><button type="button" class="ks-btn secondary sm" style="flex: 1;" aria-pressed="false">Dark</button><button type="button" class="ks-btn secondary sm" style="flex: 1;" aria-pressed="false">Outdoor</button></div>
+        <span class="ks-help">Outdoor draws stronger lines for bright sun.</span>
+      </div>
+      <a class="ks-btn secondary block" href="AppSignIn.dc.html" style="text-decoration: none;">Sign out</a>
+      <p class="caption ks-subtle" style="text-align: center; margin: 0;">The Lamp 1.4.0 · Synced 2:31 pm</p>
+    </section>
+  </main>
+  <dc-import name="PhoneTabs" current="more" hint-size="390px,68px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

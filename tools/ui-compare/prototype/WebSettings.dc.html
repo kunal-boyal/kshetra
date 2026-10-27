@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: organisation settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="settings" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <h1 class="heading-xl" style="margin: 0;">Settings</h1>
+      <div role="tablist" aria-label="Settings" style="display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border);">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="7">
+          <button type="button" role="tab" aria-selected="{{t.sel}}" style="min-height: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid {{t.edge}}; background: none; font: inherit; font-weight: 600; color: {{t.fg}};">{{t.label}}</button>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <div style="flex: 3 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+          <section class="ks-card" aria-labelledby="brand" style="display: flex; flex-direction: column; gap: 14px;">
+            <h2 id="brand" class="ks-title">Brand</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+              <span class="ks-ico xl hue-sage" aria-label="Current logo">GV</span>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <span class="label-md" style="font-weight: 600;">Logo</span>
+                <div class="ks-row"><button type="button" class="ks-btn secondary sm">Replace</button><button type="button" class="ks-btn ghost sm">Remove</button></div>
+              </div>
+            </div>
+            <div class="ks-field">
+              <span class="ks-label">Brand colour</span>
+              <div class="ks-row" style="gap: 12px; flex-wrap: wrap;">
+                <span style="width: 44px; height: 44px; border-radius: 8px; background: #486A38; box-shadow: inset 0 0 0 1px var(--border);" role="img" aria-label="Brand colour, deep leaf green"></span>
+                <input class="ks-input" value="#486A38" aria-label="Brand colour" style="width: 140px; font-family: var(--font-mono);">
+                <span class="ks-help">Buttons and links use a shade made from it that stays readable on light and dark screens.</span>
+              </div>
+            </div>
+            <div class="ks-field"><label class="ks-label" for="org">Company name</label><input id="org" class="ks-input" value="Green Valley Agro Pvt Ltd" style="height: 40px;"></div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+              <div class="ks-field"><label class="ks-label" for="tz">Time zone</label><input id="tz" class="ks-input" value="India (UTC+5:30)" style="height: 40px;"></div>
+              <div class="ks-field"><label class="ks-label" for="lang">Default language</label><input id="lang" class="ks-input" value="Hindi" style="height: 40px;"></div>
+            </div>
+          </section>
+
+          <section class="ks-card" aria-labelledby="terms" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="ks-spread"><h2 id="terms" class="ks-title">Your words</h2><span class="ks-meta">The apps use these everywhere</span></div>
+            <table class="ks-table" style="box-shadow: none;">
+              <thead><tr><th>The Lamp calls it</th><th>English</th><th>Hindi</th></tr></thead>
+              <tbody>
+                <tr><td>Field user</td><td>SME</td><td lang="hi">एसएमई</td></tr>
+                <tr><td>Journey plan</td><td>Beat plan</td><td lang="hi">बीट प्लान</td></tr>
+                <tr><td>Plan item</td><td>Beat</td><td lang="hi">बीट</td></tr>
+                <tr><td>Start of day</td><td>Punch in</td><td lang="hi">पंच इन</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <div style="flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+          <section class="ks-card" aria-labelledby="mods" style="display: flex; flex-direction: column; gap: 4px;">
+            <h2 id="mods" class="ks-title" style="margin-bottom: 8px;">Modules</h2>
+            <sc-for list="{{modules}}" as="m" hint-placeholder-count="6">
+              <label style="display: flex; align-items: center; gap: 12px; min-height: 48px; border-bottom: 1px solid var(--border);">
+                <span style="flex: 1;"><span class="label-md" style="display: block; font-weight: 600;">{{m.name}}</span><span class="ks-meta">{{m.desc}}</span></span>
+                <input type="checkbox" role="switch" checked="{{m.on}}" disabled="{{m.locked}}" style="width: 22px; height: 22px; accent-color: var(--accent);">
+              </label>
+            </sc-for>
+          </section>
+          <section class="ks-card" aria-labelledby="rules" style="display: flex; flex-direction: column; gap: 10px;">
+            <h2 id="rules" class="ks-title">Field rules</h2>
+            <dl class="ks-dl" style="font-size: 14px; line-height: 20px;">
+              <dt>Geofence</dt><dd>Warn reviewers, 300 m</dd>
+              <dt>Auto-approve</dt><dd>Clean visits after 48 hours</dd>
+              <dt>Tracking</dt><dd>Only between punch-in and punch-out</dd>
+              <dt>Photo keeping</dt><dd>12 months</dd>
+            </dl>
+          </section>
+        </div>
+      </div>
+      <div class="ks-row" style="justify-content: flex-end;"><button type="button" class="ks-btn secondary sm">Export configuration</button><button type="button" class="ks-btn primary sm">Save</button></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabs = ['Organisation', 'Account types', 'Territories', 'Metrics and score', 'Notifications', 'Configuration'];
+    return {
+      theme: this.props.theme ?? 'light',
+      tabs: tabs.map((label, i) => ({ label, sel: i === 0 ? 'true' : 'false', edge: i === 0 ? 'var(--accent)' : 'transparent', fg: i === 0 ? 'var(--text)' : 'var(--text-muted)' })),
+      modules: [
+        { name: 'Field core', desc: 'Plans, visits, forms, review', on: true, locked: true },
+        { name: 'Orders and catalogue', desc: 'Phase 2', on: true, locked: false },
+        { name: 'Outstanding and collections', desc: 'Phase 2', on: true, locked: false },
+        { name: 'Attendance and leave', desc: 'Phase 2', on: true, locked: false },
+        { name: 'Expenses', desc: 'Phase 2', on: true, locked: false },
+        { name: 'WhatsApp messages', desc: 'Phase 2', on: true, locked: false },
+        { name: 'Public API', desc: 'Phase 3', on: true, locked: false }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

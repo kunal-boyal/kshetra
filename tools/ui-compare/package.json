@@ -1,0 +1,22 @@
+{
+  "name": "@thelamp/ui-compare",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Screenshots the approved prototype beside the built screens, page by page, for the UI revamp (phase U)",
+  "type": "module",
+  "scripts": {
+    "compare": "node src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@thelamp/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "jsdom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

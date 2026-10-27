@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Lamp prototype: start here</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="min-height: 1500px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <header style="background: var(--brand-forest); color: var(--on-brand);">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 48px 24px 40px; display: flex; flex-direction: column; gap: 20px;">
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 700;">
+        <img src="/_blob/8e7252d2b801bb56a30b72ecdf47be35" alt="" width="40" height="40" style="border-radius: 6px;">
+        <span>The Lamp</span>
+      </div>
+      <h1 style="margin: 0; font-size: 44px; line-height: 48px; font-weight: 700; letter-spacing: -0.02em; max-width: 20ch; text-wrap: balance;">The whole product, every phase, in one clickable prototype</h1>
+      <p style="margin: 0; max-width: 64ch; font-size: 17px; line-height: 26px; opacity: .88;">Three apps share one design system. Field people work in the Android app, offline first. Managers and admins run their company from the web portal. The company behind The Lamp runs every customer from the vendor console. Open any screen below, then press Play and follow the links.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; background: color-mix(in srgb, var(--on-brand) 14%, transparent); font-size: 13px; font-weight: 600;">Demo tenant: Green Valley Agro</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; background: color-mix(in srgb, var(--on-brand) 14%, transparent); font-size: 13px; font-weight: 600;">Agri inputs template</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; background: color-mix(in srgb, var(--on-brand) 14%, transparent); font-size: 13px; font-weight: 600;">All names and figures are fictional</span>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 64px; display: flex; flex-direction: column; gap: 48px;">
+    <section aria-labelledby="phases" style="display: flex; flex-direction: column; gap: 16px;">
+      <h2 id="phases" class="heading-xl" style="margin: 0;">The phases</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+        <sc-for list="{{phases}}" as="p" hint-placeholder-count="3">
+          <div class="ks-card {{p.hue}}" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="ks-row">
+              <span class="ks-seq" style="background: var(--ks-hue-fill); color: var(--ks-hue-fg);">{{p.n}}</span>
+              <h3 class="ks-title">{{p.name}}</h3>
+            </div>
+            <p class="ks-meta">{{p.scope}}</p>
+            <p class="ks-meta"><strong style="color: var(--text);">Status:</strong> {{p.status}}</p>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <sc-for list="{{apps}}" as="app" hint-placeholder-count="3">
+      <section style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+          <div style="display: flex; flex-direction: column; gap: 4px; max-width: 70ch;">
+            <h2 class="heading-xl" style="margin: 0;">{{app.name}}</h2>
+            <p class="ks-meta" style="font-size: 15px; line-height: 22px;">{{app.desc}}</p>
+          </div>
+          <a class="ks-btn tonal sm" href="{{app.start}}" style="text-decoration: none;">Start the {{app.short}} tour</a>
+        </div>
+        <sc-for list="{{app.groups}}" as="g" hint-placeholder-count="2">
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="ks-row"><span class="ks-badge {{g.tone}}">{{g.phase}}</span></div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
+              <sc-for list="{{g.screens}}" as="s" hint-placeholder-count="6">
+                <a href="{{s.href}}" class="ks-card" style="display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: inherit; padding: 16px;">
+                  <span class="ks-title" style="font-size: 15px;">{{s.name}}</span>
+                  <span class="ks-meta">{{s.desc}}</span>
+                </a>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </section>
+    </sc-for>
+
+    <section class="ks-notice" style="font-size: 14px; line-height: 20px;">
+      <span><strong>What this is.</strong> A look at the finished product, with no working logic: buttons lead to the next screen, and every figure is made up. English is shown; every screen also exists in Hindi. The Theme lever (Tweaks) shows Light, Dark and, on the phone, Outdoor for bright sun.</span>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p1 = { phase: 'Phase 1 · Field core', tone: 'success' };
+    const p2 = { phase: 'Phase 2 · Commerce and people', tone: 'info' };
+    const p3 = { phase: 'Phase 3 · SaaS readiness', tone: 'pending' };
+    return {
+      theme: this.props.theme ?? 'light',
+      phases: [
+        { n: '1', hue: 'hue-sage', name: 'Field core, the MVP', scope: 'Sign-in, punch-in and tracking, beat plans, visits with photos and forms, review, targets, metrics and leaderboards, live map, notifications, reports, imports and settings.', status: 'Built. The pilot week waits for the company accounts.' },
+        { n: '2', hue: 'hue-sky', name: 'Commerce and people', scope: 'Catalogue and price lists, orders, outstanding and collections, attendance, leave and regularisation, expenses, approval chains for every request, WhatsApp.', status: 'Next, once this prototype is agreed.' },
+        { n: '3', hue: 'hue-butter', name: 'SaaS readiness', scope: 'Public API and webhooks, audit and data governance, SSO and two-step sign-in for admins, the vendor console, billing, store releases.', status: 'After phase 2.' }
+      ],
+      apps: [
+        {
+          name: 'Field app (Android)', short: 'field app', start: 'AppSignIn.dc.html',
+          desc: 'For the people in the field and their managers. Works without signal: everything saves on the phone first and uploads later.',
+          groups: [
+            Object.assign({}, p1, { screens: [
+              { name: 'Sign in', desc: 'Phone number and a one-time code', href: 'AppSignIn.dc.html' },
+              { name: 'Home', desc: 'Punch in, today’s beat, my month', href: 'AppHome.dc.html' },
+              { name: 'Today’s beat plan', desc: 'Planned visits in order, on a map', href: 'AppPlan.dc.html' },
+              { name: 'Visit at an account', desc: 'Check in inside the geofence', href: 'AppVisit.dc.html' },
+              { name: 'Form with photos', desc: 'Farmer visit, live camera only', href: 'AppForm.dc.html' },
+              { name: 'Team: review', desc: 'Managers approve or send back', href: 'AppTeam.dc.html' },
+              { name: 'My month', desc: 'Targets, score and leaderboard', href: 'AppMonth.dc.html' },
+              { name: 'Notifications', desc: 'Push and the inbox', href: 'AppInbox.dc.html' },
+              { name: 'More', desc: 'Language, theme, upload queue', href: 'AppMore.dc.html' }
+            ] }),
+            Object.assign({}, p2, { screens: [
+              { name: 'Take an order', desc: 'Catalogue at the account’s price list', href: 'AppOrder.dc.html' },
+              { name: 'Review and place order', desc: 'Totals with GST, credit check', href: 'AppOrderReview.dc.html' },
+              { name: 'Outstanding and collection', desc: 'Ageing and a payment receipt', href: 'AppCollect.dc.html' },
+              { name: 'My attendance', desc: 'Month view and regularising a day', href: 'AppAttendance.dc.html' },
+              { name: 'Apply for leave', desc: 'Balances and the approval chain', href: 'AppLeave.dc.html' },
+              { name: 'Expense claim', desc: 'Bills with photos, policy limits', href: 'AppClaim.dc.html' },
+              { name: 'Approvals', desc: 'Managers decide requests', href: 'AppApprovals.dc.html' }
+            ] })
+          ]
+        },
+        {
+          name: 'Web portal', short: 'portal', start: 'WebSignIn.dc.html',
+          desc: 'For managers, admins and the business head of each customer company, under their own logo and colour.',
+          groups: [
+            Object.assign({}, p1, { screens: [
+              { name: 'Sign in', desc: 'Phone or email code', href: 'WebSignIn.dc.html' },
+              { name: 'Home dashboard', desc: 'Today, trend, leaderboard, what waits', href: 'WebHome.dc.html' },
+              { name: 'Live map', desc: 'Who is on duty and where', href: 'WebLive.dc.html' },
+              { name: 'Review queue', desc: 'Evidence, flags and decisions', href: 'WebReview.dc.html' },
+              { name: 'People', desc: 'Users, roles, devices', href: 'WebPeople.dc.html' },
+              { name: 'Accounts', desc: 'Distributors, retailers, farmers', href: 'WebAccounts.dc.html' },
+              { name: 'Beat plans and targets', desc: 'A month of beats, locked targets', href: 'WebPlans.dc.html' },
+              { name: 'Performance', desc: 'Scores and ranks', href: 'WebPerformance.dc.html' },
+              { name: 'Reports and exports', desc: 'Activity log, attendance, achievement', href: 'WebReports.dc.html' },
+              { name: 'Form builder', desc: 'Fields, rules, versions', href: 'WebForms.dc.html' },
+              { name: 'Imports', desc: 'Check a file before it lands', href: 'WebImports.dc.html' },
+              { name: 'Organisation settings', desc: 'Brand, terms, modules', href: 'WebSettings.dc.html' }
+            ] }),
+            Object.assign({}, p2, { screens: [
+              { name: 'Orders', desc: 'From placed to invoiced', href: 'WebOrders.dc.html' },
+              { name: 'Catalogue and price lists', desc: 'Products, packs, prices, GST', href: 'WebCatalogue.dc.html' },
+              { name: 'Account finance', desc: 'Outstanding, ageing, collections', href: 'WebFinance.dc.html' },
+              { name: 'Attendance and leave', desc: 'The month’s register', href: 'WebAttendance.dc.html' },
+              { name: 'Expenses', desc: 'Claims against policy', href: 'WebExpenses.dc.html' },
+              { name: 'Approval chains', desc: 'Who decides what, and WhatsApp', href: 'WebWorkflows.dc.html' }
+            ] }),
+            Object.assign({}, p3, { screens: [
+              { name: 'API and webhooks', desc: 'Keys, events, deliveries', href: 'WebDevelopers.dc.html' },
+              { name: 'Security, audit and data', desc: 'SSO, two-step sign-in, audit log', href: 'WebSecurity.dc.html' },
+              { name: 'Subscription and billing', desc: 'Plan, seats, invoices', href: 'WebBilling.dc.html' }
+            ] })
+          ]
+        },
+        {
+          name: 'Vendor console', short: 'console', start: 'ConsoleTenants.dc.html',
+          desc: 'For the company that runs The Lamp: every customer, their plans and bills, and the health of the servers they run on.',
+          groups: [
+            Object.assign({}, p3, { screens: [
+              { name: 'Tenants', desc: 'Every customer at a glance', href: 'ConsoleTenants.dc.html' },
+              { name: 'Onboard a tenant', desc: 'From template to first admin', href: 'ConsoleOnboard.dc.html' },
+              { name: 'Tenant detail', desc: 'Usage, modules, support access', href: 'ConsoleTenant.dc.html' },
+              { name: 'Plans and invoices', desc: 'Pricing, billing, dunning', href: 'ConsoleBilling.dc.html' },
+              { name: 'Cells and operations', desc: 'Health, backups, alarms', href: 'ConsoleCells.dc.html' }
+            ] })
+          ]
+        }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

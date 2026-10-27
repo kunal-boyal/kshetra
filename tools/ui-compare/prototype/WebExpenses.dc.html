@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: expenses</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="expenses" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Expenses · October</h1>
+          <p class="ks-meta" style="font-size: 15px;">Claims are checked against the policy before anyone sees them</p>
+        </div>
+        <div class="ks-row">
+          <button type="button" class="ks-btn secondary sm">Policy</button>
+          <a href="WebReports.dc.html" class="ks-btn primary sm" style="text-decoration: none;">Export for payroll</a>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        <div class="ks-kpi"><p class="ks-kpi-label">Claimed</p><p class="ks-kpi-value">₹1,92,340</p><p class="ks-kpi-target">41 claims · 318 bills</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Waiting for a decision</p><p class="ks-kpi-value">₹38,600</p><p class="ks-kpi-target">9 claims</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Over the policy</p><p class="ks-kpi-value" style="color: var(--waiting-fg);">₹4,850</p><p class="ks-kpi-target">needs a manager’s yes</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Approved for payment</p><p class="ks-kpi-value">₹1,48,890</p><p class="ks-kpi-target">with the November salary</p></div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="ks-table">
+          <thead><tr><th>Person</th><th class="r">Bills</th><th class="r">Amount</th><th class="r">Over policy</th><th>Where it is</th><th>Status</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <tr><td style="font-weight: 600;">{{r.who}}</td><td class="r">{{r.bills}}</td><td class="r">{{r.amt}}</td><td class="r" style="color: {{r.overColor}};">{{r.over}}</td><td>{{r.step}}</td><td><span class="ks-badge {{r.tone}}">{{r.status}}</span></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <section class="ks-card" aria-labelledby="pol" style="display: flex; flex-direction: column; gap: 10px;">
+        <h2 id="pol" class="ks-title">Policy for SMEs</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+          <div class="ks-card tint hue-sand"><p class="label-md" style="margin: 0; font-weight: 600;">Fuel</p><p class="ks-meta">Bill needed · ₹6,000 a month</p></div>
+          <div class="ks-card tint hue-peach"><p class="label-md" style="margin: 0; font-weight: 600;">Meals</p><p class="ks-meta">Up to ₹200 a day without a bill</p></div>
+          <div class="ks-card tint hue-lilac"><p class="label-md" style="margin: 0; font-weight: 600;">Phone</p><p class="ks-meta">₹500 a month</p></div>
+          <div class="ks-card tint hue-sky"><p class="label-md" style="margin: 0; font-weight: 600;">Stay away from base</p><p class="ks-meta">₹1,500 a night · bill needed</p></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = { 'Waiting': 'pending', 'Approved': 'success', 'Sent back': 'waiting', 'Paid': 'neutral' };
+    const R = (who, bills, amt, over, step, status) => ({ who, bills, amt, over, overColor: over === '—' ? 'var(--text-muted)' : 'var(--waiting-fg)', step, status, tone: T[status] });
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        R('Anil Patidar', '6', '₹3,460', '₹600', 'Neha Sharma, step 1 of 2', 'Waiting'),
+        R('Kavita Joshi', '11', '₹8,920', '—', 'Vikram Singh, step 2 of 2', 'Waiting'),
+        R('Sneha Malviya', '7', '₹4,110', '—', 'Accounts team', 'Approved'),
+        R('Deepak Chouhan', '9', '₹5,275', '₹1,250', 'Back with Deepak for a bill', 'Sent back'),
+        R('Manish Verma', '5', '₹2,980', '—', 'Accounts team', 'Approved'),
+        R('Pooja Rathore', '8', '₹4,640', '—', 'Neha Sharma, step 1 of 2', 'Waiting'),
+        R('Rahul Solanki', '4', '₹1,870', '—', 'Paid early, on leaving the company', 'Paid')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

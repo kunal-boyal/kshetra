@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: form builder</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="forms" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <p class="ks-meta"><a href="WebForms.dc.html">Forms</a> / Farmer visit</p>
+          <h1 class="heading-xl" style="margin: 0;">Farmer visit</h1>
+          <p class="ks-meta" style="font-size: 15px;">Version 3 is live on 46 phones · editing a draft of version 4</p>
+        </div>
+        <div class="ks-row">
+          <button type="button" class="ks-btn secondary sm">Preview on a phone</button>
+          <button type="button" class="ks-btn ghost sm">Versions</button>
+          <button type="button" class="ks-btn primary sm">Publish version 4</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <section class="ks-card" aria-labelledby="pal" style="flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+          <h2 id="pal" class="label-sm ks-muted" style="margin: 0; text-transform: uppercase; letter-spacing: .06em;">Add a field</h2>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;">
+            <sc-for list="{{types}}" as="t" hint-placeholder-count="12">
+              <button type="button" class="ks-btn secondary sm" style="justify-content: flex-start; padding: 0 10px; font-weight: 500;">{{t}}</button>
+            </sc-for>
+          </div>
+        </section>
+
+        <section aria-label="Fields" style="flex: 2 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+          <sc-for list="{{fields}}" as="f" hint-placeholder-count="7">
+            <div class="ks-card" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; box-shadow: {{f.ring}};">
+              <svg class="ks-icon sm ks-subtle" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"></path></svg>
+              <div style="flex: 1; min-width: 0;">
+                <p class="label-md" style="margin: 0; font-weight: 600;">{{f.label}} <span style="color: var(--danger-fg);">{{f.req}}</span></p>
+                <p class="ks-meta">{{f.type}} · <code class="ks-code">{{f.key}}</code>{{f.note}}</p>
+              </div>
+              <span class="ks-badge neutral">{{f.badge}}</span>
+            </div>
+          </sc-for>
+        </section>
+
+        <section class="ks-card raised" aria-labelledby="props" style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <h2 id="props" class="ks-title">Crop</h2>
+          <div class="ks-field"><label class="ks-label" for="en">Label in English</label><input id="en" class="ks-input" value="Crop" style="height: 40px;"></div>
+          <div class="ks-field" lang="hi"><label class="ks-label" for="hi">Label in Hindi</label><input id="hi" class="ks-input" value="फ़सल" style="height: 40px;"></div>
+          <div class="ks-field"><span class="ks-label">Key</span><code class="ks-code" style="font-size: 13px;">crop</code><span class="ks-help">Fixed once a version uses it.</span></div>
+          <label style="display: flex; align-items: center; gap: 10px; min-height: 40px;"><input type="checkbox" checked style="width: 20px; height: 20px; accent-color: var(--accent);"><span class="label-md">Required</span></label>
+          <div class="ks-field"><span class="ks-label">Choices</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;"><span class="ks-badge neutral">Soybean</span><span class="ks-badge neutral">Maize</span><span class="ks-badge neutral">Wheat</span><span class="ks-badge neutral">Cotton</span><span class="ks-badge neutral">Gram</span><button type="button" class="ks-btn ghost sm">Add</button></div>
+          </div>
+          <div class="ks-field"><span class="ks-label">Show this field when</span>
+            <div class="ks-notice"><span><strong>Visit purpose</strong> is <strong>Crop advice</strong> or <strong>Demo</strong></span></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const F = (label, type, key, req, badge, note, sel) => ({ label, type, key, req: req ? '*' : '', badge, note: note ? ' · ' + note : '', ring: sel ? 'inset 0 0 0 2px var(--accent)' : 'var(--shadow-sm)' });
+    return {
+      theme: this.props.theme ?? 'light',
+      types: ['Short text', 'Long text', 'Number', 'Money', 'Choice', 'Many choices', 'Date', 'Yes or no', 'Photo', 'Signature', 'Account', 'Product'],
+      fields: [
+        F('Farmer', 'Account', 'farmer', true, 'v1', 'farmers only'),
+        F('Village', 'Short text', 'village', true, 'v1'),
+        F('Visit purpose', 'Choice', 'purpose', true, 'v2'),
+        F('Crop', 'Choice', 'crop', true, 'v1', 'shown when the purpose fits', true),
+        F('Product discussed', 'Product', 'product', false, 'v3'),
+        F('Outcome', 'Long text', 'outcome', true, 'v1'),
+        F('Photos', 'Photo', 'photos', true, 'v1', '1 to 3, live camera')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

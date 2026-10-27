@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console rail</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<nav class="ks-rail ks" aria-label="Console" style="width: 248px; min-height: 1100px; box-sizing: border-box; border-right: 0; font-family: var(--font-sans);">
+  <a class="ks-rail-brand" href="Main.dc.html" style="text-decoration: none;">
+    <img src="/_blob/8e7252d2b801bb56a30b72ecdf47be35" alt="" width="32" height="32">
+    <span style="display: flex; flex-direction: column; line-height: 18px;">The Lamp<span style="font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: .04em; text-transform: uppercase;">Console</span></span>
+  </a>
+  <sc-for list="{{sections}}" as="s" hint-placeholder-count="3">
+    <div class="ks-rail-section">
+      <div class="ks-rail-label">{{s.label}}</div>
+      <sc-for list="{{s.links}}" as="l" hint-placeholder-count="2">
+        <a class="ks-rail-link" href="{{l.href}}" aria-current="{{l.current}}">
+          <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="{{l.d}}"></path></svg>
+          <span>{{l.label}}</span>
+        </a>
+      </sc-for>
+    </div>
+  </sc-for>
+  <div class="ks-rail-foot" style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 8px; background: var(--surface);">
+    <span class="ks-ico sm round hue-lilac">KB</span>
+    <span style="display: flex; flex-direction: column; min-width: 0;">
+      <span style="font-size: 14px; font-weight: 600;">Kunal Boyal</span>
+      <span class="ks-meta">Owner · two-step sign-in on</span>
+    </span>
+  </div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["tenants","onboard","billing","cells"],"default":"tenants"},"$preview":{"width":248,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cur = this.props.current ?? 'tenants';
+    const L = (key, label, href, d) => ({ label, href, d, current: key === cur ? 'page' : null });
+    return {
+      sections: [
+        { label: 'Customers', links: [
+          L('tenants', 'Tenants', 'ConsoleTenants.dc.html', 'M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 9h4a1 1 0 0 1 1 1v11M2 21h20M8 8h3M8 12h3M8 16h3'),
+          L('onboard', 'Onboard a tenant', 'ConsoleOnboard.dc.html', 'M12 5v14M5 12h14')
+        ] },
+        { label: 'Money', links: [
+          L('billing', 'Plans and invoices', 'ConsoleBilling.dc.html', 'M3 6h18v12H3zM3 10h18M7 15h4')
+        ] },
+        { label: 'Operations', links: [
+          L('cells', 'Cells and health', 'ConsoleCells.dc.html', 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01')
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

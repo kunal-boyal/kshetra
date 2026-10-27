@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: take an order</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <header style="padding: 8px 16px 8px 8px; display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <a href="AppVisit.dc.html" aria-label="Back to the visit" style="display: grid; place-items: center; width: 44px; height: 44px; color: var(--text);">
+        <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      </a>
+      <div style="flex: 1; min-width: 0;">
+        <h1 class="heading-md" style="margin: 0;">New order</h1>
+        <p class="ks-meta">Shree Krishna Agro Traders · Dealer MP prices</p>
+      </div>
+    </div>
+    <div style="padding-left: 8px; display: flex; flex-direction: column; gap: 10px;">
+      <div class="ks-affix">
+        <span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span>
+        <input class="ks-input" placeholder="Search products or codes" aria-label="Search products" style="padding-left: 44px;">
+      </div>
+      <div style="display: flex; gap: 8px; overflow-x: auto;">
+        <button type="button" class="ks-btn primary sm" aria-pressed="true">All</button>
+        <button type="button" class="ks-btn secondary sm" aria-pressed="false">Fertilisers</button>
+        <button type="button" class="ks-btn secondary sm" aria-pressed="false">Bio-stimulants</button>
+        <button type="button" class="ks-btn secondary sm" aria-pressed="false">Seeds</button>
+      </div>
+    </div>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 4px 16px 12px;">
+    <div class="ks-list">
+      <sc-for list="{{products}}" as="p" hint-placeholder-count="6">
+        <div class="ks-item" style="align-items: center;">
+          <span class="ks-ico {{p.hue}}" aria-hidden="true"><svg class="ks-icon" viewBox="0 0 24 24"><path d="M3 7.5L12 3l9 4.5v9L12 21l-9-4.5zM3 7.5l9 4.5 9-4.5M12 12v9"></path></svg></span>
+          <span class="ks-item-main">
+            <span class="ks-title" style="display: block; font-size: 15px;">{{p.name}}</span>
+            <span class="ks-meta ks-num">{{p.pack}} · {{p.price}}</span>
+          </span>
+          <span style="display: inline-flex; align-items: center; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden;">
+            <button type="button" aria-label="Fewer {{p.name}}" style="width: 36px; height: 40px; border: 0; background: var(--surface); color: var(--text); font: inherit; font-size: 18px;">−</button>
+            <span class="numeric" style="min-width: 32px; text-align: center; font-weight: 700;">{{p.qty}}</span>
+            <button type="button" aria-label="More {{p.name}}" style="width: 36px; height: 40px; border: 0; background: var(--accent-subtle); color: var(--accent-subtle-fg); font: inherit; font-size: 18px;">+</button>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+  <a href="AppOrderReview.dc.html" style="margin: 0 12px 8px; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; border-radius: 12px; background: var(--accent); color: var(--on-accent); text-decoration: none; box-shadow: var(--shadow-md);">
+    <span class="label-md" style="font-weight: 600;">4 items</span>
+    <span class="label-lg ks-num" style="flex: 1;">₹19,780 <span class="caption" style="opacity: .85;">+ GST</span></span>
+    <span class="label-md" style="font-weight: 600;">Review</span>
+    <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+  </a>
+  <dc-import name="PhoneTabs" current="orders" hint-size="390px,68px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      theme: this.props.theme ?? 'light',
+      products: [
+        { name: 'NPK 19:19:19', pack: '1 kg bag', price: '₹142', qty: '40', hue: 'hue-sage' },
+        { name: 'GV-Grow bio-stimulant', pack: '500 ml', price: '₹385', qty: '12', hue: 'hue-mint' },
+        { name: 'Hybrid maize GV-511', pack: '4 kg', price: '₹1,260', qty: '6', hue: 'hue-butter' },
+        { name: 'Zinc EDTA 12%', pack: '250 g', price: '₹96', qty: '20', hue: 'hue-sky' },
+        { name: 'Calcium nitrate', pack: '25 kg bag', price: '₹1,640', qty: '0', hue: 'hue-sand' },
+        { name: 'Neem oil 1500 ppm', pack: '1 litre', price: '₹410', qty: '0', hue: 'hue-sage' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

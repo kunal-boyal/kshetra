@@ -48,3 +48,6 @@ apps/api/test/fixtures/invoices/private/
 
 # OWASP ZAP reports (tools/zap/scan.sh)
 tools/zap/reports/
+
+# Prototype and portal screenshots (tools/ui-compare)
+tools/ui-compare/out/

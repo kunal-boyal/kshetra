@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: review queue</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="review" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Review</h1>
+          <p class="ks-meta" style="font-size: 15px;">14 waiting · clean visits approve themselves after 48 hours</p>
+        </div>
+        <div class="ks-row" style="flex-wrap: wrap;">
+          <button type="button" class="ks-btn primary sm" aria-pressed="true">Waiting · 14</button>
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">With flags · 5</button>
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">Sent back</button>
+          <button type="button" class="ks-btn tonal sm">Approve 9 clean</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <div style="flex: 3 1 520px; min-width: 0; overflow-x: auto;">
+          <table class="ks-table">
+            <thead><tr><th>Person</th><th>Form</th><th>Account</th><th>When</th><th>Flags</th></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+                <tr class="{{r.sel}}"><td style="font-weight: 600;">{{r.person}}</td><td>{{r.form}}</td><td>{{r.account}}</td><td class="ks-num">{{r.when}}</td><td><sc-if value="{{r.flag}}" hint-placeholder-val="{{false}}"><span class="ks-flag {{r.flagTone}}">{{r.flag}}</span></sc-if></td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+
+        <section class="ks-card raised" aria-labelledby="sub" style="flex: 2 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+          <div class="ks-spread">
+            <div>
+              <h2 id="sub" class="heading-lg" style="margin: 0;">Farmer meeting</h2>
+              <p class="ks-meta">Anil Patidar · Hatod village · today 10:05</p>
+            </div>
+            <span class="ks-badge pending">Waiting</span>
+          </div>
+          <div class="ks-row" style="flex-wrap: wrap;"><span class="ks-flag">Outside geofence · 420 m</span><span class="ks-pill outside">Checked in 420 m away</span></div>
+          <dl class="ks-dl" style="font-size: 14px; line-height: 20px;">
+            <dt>Village</dt><dd>Hatod</dd>
+            <dt>Meeting size</dt><dd>Large</dd>
+            <dt>Farmers</dt><dd>38</dd>
+            <dt>Crop</dt><dd>Soybean</dd>
+            <dt>Product</dt><dd>GV-Grow bio-stimulant</dd>
+            <dt>Outcome</dt><dd>Demo on one plot; 11 farmers asked for the price list.</dd>
+          </dl>
+          <div class="ks-photos">
+            <div class="ks-photo hue-sage" style="width: 112px; height: 84px; background: var(--ks-hue-bg); color: var(--ks-hue-fg);" role="img" aria-label="Photo of the meeting"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l5-6 4 4 3-3 6 5M3 6h18v12H3z"></path></svg></div>
+            <div class="ks-photo hue-sand" style="width: 112px; height: 84px; background: var(--ks-hue-bg); color: var(--ks-hue-fg);" role="img" aria-label="Photo of the attendance sheet"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l5-6 4 4 3-3 6 5M3 6h18v12H3z"></path></svg></div>
+            <div class="ks-mapbox" style="width: 112px; height: 84px; position: relative;" role="img" aria-label="Map: check-in point 420 metres from the village centre">
+              <svg viewBox="0 0 112 84" width="112" height="84" aria-hidden="true"><circle cx="40" cy="42" r="26" style="fill: var(--map-geofence); fill-opacity: .12; stroke: var(--map-geofence); stroke-dasharray: 4 4;"></circle><circle cx="92" cy="22" r="6" style="fill: var(--map-outside); stroke: var(--surface); stroke-width: 2;"></circle></svg>
+            </div>
+          </div>
+          <div class="ks-field">
+            <label class="ks-label" for="note">Note to Anil</label>
+            <input id="note" class="ks-input" placeholder="Needed when you send it back">
+          </div>
+          <div class="ks-actions">
+            <button type="button" class="ks-btn secondary">Send back</button>
+            <button type="button" class="ks-btn danger">Reject</button>
+            <button type="button" class="ks-btn primary">Approve</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        { person: 'Anil Patidar', form: 'Farmer meeting', account: 'Hatod village', when: '10:05', flag: '420 m outside', flagTone: '', sel: 'sel' },
+        { person: 'Ravi Kumar', form: 'Retailer visit', account: 'Om Sai Fertilisers', when: '11:50', flag: null, flagTone: '', sel: '' },
+        { person: 'Kavita Joshi', form: 'Distributor visit', account: 'Shiv Shakti Traders', when: '11:32', flag: null, flagTone: '', sel: '' },
+        { person: 'Sneha Malviya', form: 'Farmer visit', account: 'Gautampura', when: 'Yest 4:40', flag: 'Photo before check-in', flagTone: '', sel: '' },
+        { person: 'Manish Verma', form: 'Retailer visit', account: 'Jai Kisan Agro', when: 'Yest 3:10', flag: null, flagTone: '', sel: '' },
+        { person: 'Rahul Solanki', form: 'Farmer visit', account: 'Pipliya', when: 'Yest 1:55', flag: 'Mock location', flagTone: 'danger', sel: '' },
+        { person: 'Deepak Chouhan', form: 'Retailer visit', account: 'Bhole Krishi Seva', when: 'Yest 12:20', flag: null, flagTone: '', sel: '' },
+        { person: 'Pooja Rathore', form: 'Farmer meeting', account: 'Kodariya', when: 'Yest 11:00', flag: null, flagTone: '', sel: '' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

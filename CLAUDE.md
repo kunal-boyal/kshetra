@@ -4,7 +4,7 @@ A multi-tenant field-force SaaS: an Android-first mobile app, a tenant web porta
 
 ## Status
 
-Phase 2 (commerce and people) is in progress, by the plan Kunal approved on 2026-10-24 (decision D73). Phase 1 is built but for its pilot week, which waits on the company's accounts, and phase 0 is complete. Start a new phase only with Kunal's explicit go-ahead. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
+Phase 2 (commerce and people) is in progress, by the plan Kunal approved on 2026-10-24 (decision D73). Phase 1 is built but for its pilot week, which waits on the company's accounts, and phase 0 is complete. Phase U, the UI revamp to the approved prototype (decision D104), runs stage by stage by [its plan](docs/superpowers/plans/2026-10-27-ui-revamp.md): each stage is one pull request, reviewed against the gallery from `tools/ui-compare`, and meets [docs/ui-acceptance.md](docs/ui-acceptance.md). Start a new phase only with Kunal's explicit go-ahead. [docs/progress.md](docs/progress.md) tracks every step: its status, its pull request, and the open items waiting on the owner. Update it in the same pull request as each step.
 
 Build in the phase order of spec section 15. Meet each phase's exit criteria, tests included, before the next phase starts. Inside a phase, take one capability at a time through every layer: schema, shared rules, API, web, mobile, tests.
 
@@ -24,6 +24,7 @@ Build in the phase order of spec section 15. Meet each phase's exit criteria, te
 | `pnpm test:int` | integration tests against PostgreSQL in Docker, through Testcontainers (Docker must be running) | now |
 | `pnpm test:e2e` | Playwright tests of the web portal, with axe, against a mocked API. Install the browser once with `pnpm --filter @thelamp/web exec playwright install chromium`. | now |
 | `pnpm verify` | the full check before a merge (decision D75): formatting, types, lint, unit, phone, integration and web end-to-end tests, Terraform; `--image` builds the container image too. Docker must be running | now |
+| `pnpm --filter @thelamp/ui-compare compare --phone …` | screenshots each prototype artboard beside the portal page that answers to it, in Light and Dark at 1440 and 390 px, with a gallery page (phase U, decision D104, `tools/ui-compare/README.md`) | now |
 | `pnpm tokens` | regenerates `tokens.css` and `tokens.ts` in `packages/design-tokens` from `tokens.json` | now |
 | `infra/scripts/demo.sh apply\|deploy\|provision\|pause\|resume\|status` | the demo on one EC2 instance in the AWS sandbox (decision D70, `infra/demo/README.md`); signed in with `aws login --profile thelamp-sandbox` | now |
 | `pnpm rename --name … [--slug …]` | renames the product across the repository from `product.json` (`tools/rename/README.md`); the slug and app ID only until launch | now |

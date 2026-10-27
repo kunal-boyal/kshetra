@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: catalogue and price lists</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="catalogue" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Catalogue</h1>
+          <p class="ks-meta" style="font-size: 15px;">86 products · 4 price lists</p>
+        </div>
+        <div class="ks-row">
+          <a href="WebImports.dc.html" class="ks-btn secondary sm" style="text-decoration: none;">Import prices</a>
+          <button type="button" class="ks-btn primary sm">Add a product</button>
+        </div>
+      </div>
+      <div role="tablist" aria-label="Price lists" style="display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border);">
+        <button type="button" role="tab" aria-selected="false" style="min-height: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; background: none; font: inherit; font-weight: 600; color: var(--text-muted);">All products</button>
+        <button type="button" role="tab" aria-selected="true" style="min-height: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid var(--accent); background: none; font: inherit; font-weight: 600; color: var(--text);">Dealer MP</button>
+        <button type="button" role="tab" aria-selected="false" style="min-height: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; background: none; font: inherit; font-weight: 600; color: var(--text-muted);">Retail MP</button>
+        <button type="button" role="tab" aria-selected="false" style="min-height: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; background: none; font: inherit; font-weight: 600; color: var(--text-muted);">Dealer Rajasthan</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+        <div class="ks-card"><p class="ks-kpi-label">Used by</p><p class="heading-md" style="margin: 4px 0 0;">Distributors in Madhya Pradesh</p></div>
+        <div class="ks-card"><p class="ks-kpi-label">In force</p><p class="heading-md" style="margin: 4px 0 0;">Since 1 October 2026</p></div>
+        <div class="ks-card tint hue-butter"><p class="ks-kpi-label">Next version</p><p class="heading-md" style="margin: 4px 0 0;">From 1 November · draft, 12 changes</p></div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="ks-table">
+          <thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Pack</th><th class="r">MRP</th><th class="r">Dealer price</th><th class="r">GST</th><th>HSN</th><th>Status</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <tr><td><code>{{r.code}}</code></td><td style="font-weight: 600;">{{r.name}}</td><td>{{r.cat}}</td><td>{{r.pack}}</td><td class="r">{{r.mrp}}</td><td class="r">{{r.price}}</td><td class="r">{{r.gst}}</td><td><code>{{r.hsn}}</code></td><td><span class="ks-badge {{r.tone}}">{{r.status}}</span></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p class="ks-meta">An order keeps the prices of the day it was placed. If a phone sends an order after a price changed, the person is asked to accept the new total.</p>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (code, name, cat, pack, mrp, price, gst, hsn, status) => ({ code, name, cat, pack, mrp, price, gst, hsn, status, tone: status === 'On sale' ? 'success' : status === 'Price rises 1 Nov' ? 'waiting' : 'neutral' });
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        R('GV-F-1919', 'NPK 19:19:19', 'Fertiliser', '1 kg bag', '₹175', '₹142', '5%', '31052000', 'On sale'),
+        R('GV-F-CN25', 'Calcium nitrate', 'Fertiliser', '25 kg bag', '₹1,950', '₹1,640', '5%', '31026000', 'Price rises 1 Nov'),
+        R('GV-M-ZN12', 'Zinc EDTA 12%', 'Micronutrient', '250 g', '₹120', '₹96', '5%', '38249900', 'On sale'),
+        R('GV-B-GR50', 'GV-Grow bio-stimulant', 'Bio-stimulant', '500 ml', '₹480', '₹385', '18%', '38089340', 'On sale'),
+        R('GV-S-M511', 'Hybrid maize GV-511', 'Seed', '4 kg', '₹1,550', '₹1,260', '0%', '10051000', 'On sale'),
+        R('GV-S-SB35', 'Soybean JS-335', 'Seed', '30 kg', '₹3,300', '₹2,880', '0%', '12019000', 'Price rises 1 Nov'),
+        R('GV-P-NM15', 'Neem oil 1500 ppm', 'Crop protection', '1 litre', '₹520', '₹410', '18%', '38089199', 'On sale'),
+        R('GV-F-MAP', 'MAP 12:61:00', 'Fertiliser', '1 kg bag', '₹210', '₹168', '5%', '31054000', 'Withdrawn')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

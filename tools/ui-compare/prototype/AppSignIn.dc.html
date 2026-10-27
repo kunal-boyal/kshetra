@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Field app: sign in</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); overflow: hidden; font-family: var(--font-sans);">
+  <div style="background: var(--brand-forest); color: var(--on-brand); padding: 24px 24px 32px; display: flex; flex-direction: column; gap: 28px; border-radius: 0 0 24px 24px;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700;">
+        <img src="/_blob/8e7252d2b801bb56a30b72ecdf47be35" alt="" width="36" height="36" style="border-radius: 6px;">
+        <span>The Lamp</span>
+      </div>
+      <button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 9999px; border: 1px solid color-mix(in srgb, var(--on-brand) 40%, transparent); background: transparent; color: var(--on-brand); font: inherit; font-size: 14px; font-weight: 600;">हिंदी</button>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <h1 style="margin: 0; font-size: 30px; line-height: 34px; font-weight: 700; letter-spacing: -0.01em;">Light the way for your field team</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 22px; opacity: .86;">Sign in with your phone number. No password to remember.</p>
+    </div>
+  </div>
+
+  <main style="flex: 1; padding: 28px 24px; display: flex; flex-direction: column; gap: 20px;">
+    <div class="ks-field">
+      <label class="ks-label" for="phone">Mobile number</label>
+      <div class="ks-affix">
+        <span>+91</span>
+        <input id="phone" class="ks-input" value="98765 43210" inputmode="tel" style="padding-left: 52px;">
+      </div>
+    </div>
+    <div class="ks-field">
+      <label class="ks-label" for="c1">Code sent by SMS to +91 98•••• •3210</label>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px;">
+        <input id="c1" class="ks-input" value="4" aria-label="Digit 1" style="padding: 0; text-align: center; font-size: 22px; font-weight: 700;">
+        <input class="ks-input" value="8" aria-label="Digit 2" style="padding: 0; text-align: center; font-size: 22px; font-weight: 700;">
+        <input class="ks-input" value="1" aria-label="Digit 3" style="padding: 0; text-align: center; font-size: 22px; font-weight: 700;">
+        <input class="ks-input" value="9" aria-label="Digit 4" style="padding: 0; text-align: center; font-size: 22px; font-weight: 700;">
+        <input class="ks-input" value="" aria-label="Digit 5" style="padding: 0; text-align: center; font-size: 22px; font-weight: 700; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-subtle);">
+        <input class="ks-input" value="" aria-label="Digit 6" style="padding: 0; text-align: center; font-size: 22px; font-weight: 700;">
+      </div>
+      <div class="ks-spread">
+        <span class="ks-help">The code fills itself in when the SMS arrives.</span>
+        <span class="ks-help ks-num">Resend in 0:24</span>
+      </div>
+    </div>
+    <a class="ks-btn primary lg block" href="AppHome.dc.html" style="text-decoration: none;">Verify and continue</a>
+    <div class="ks-notice">
+      <svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+      <span>This phone becomes your work phone for <strong>Green Valley Agro</strong>. Your manager can move you to a new phone if you change it.</span>
+    </div>
+  </main>
+  <p class="ks-meta" style="text-align: center; padding: 0 24px 20px;">Location is recorded only between punch-in and punch-out.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark","outdoor"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'light' };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: performance</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="performance" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Performance · October</h1>
+          <p class="ks-meta" style="font-size: 15px;">Achievement against locked targets · scores update as reviews land</p>
+        </div>
+        <div class="ks-row">
+          <button type="button" class="ks-btn primary sm" aria-pressed="true">SMEs · 24</button>
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">TMs and SOs · 9</button>
+          <a href="WebReports.dc.html" class="ks-btn ghost sm" style="text-decoration: none;">Export</a>
+        </div>
+      </div>
+
+      <section class="ks-card" aria-labelledby="mix" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+        <h2 id="mix" class="ks-title" style="flex: 0 0 auto;">How the score is made</h2>
+        <div role="img" aria-label="Farmer visits 30, farmer meetings 20, retailer coverage 20, order value 30" style="flex: 1 1 360px; display: flex; height: 28px; border-radius: 8px; overflow: hidden;">
+          <span style="flex: 30; background: var(--chart-1); color: var(--on-brand); font-size: 12px; font-weight: 700; display: grid; place-items: center;">Visits 30</span>
+          <span style="flex: 20; background: var(--chart-2); color: var(--surface); font-size: 12px; font-weight: 700; display: grid; place-items: center;">Meetings 20</span>
+          <span style="flex: 20; background: var(--chart-3); color: var(--surface); font-size: 12px; font-weight: 700; display: grid; place-items: center;">Coverage 20</span>
+          <span style="flex: 30; background: var(--chart-5); color: var(--text); font-size: 12px; font-weight: 700; display: grid; place-items: center;">Order value 30</span>
+        </div>
+        <a href="WebSettings.dc.html" class="label-md">Change in settings</a>
+      </section>
+
+      <div style="overflow-x: auto;">
+        <table class="ks-table">
+          <thead><tr><th class="r">Rank</th><th>Person</th><th>Territory</th><th class="r">Visits</th><th class="r">Meetings</th><th class="r">Coverage</th><th class="r">Order value</th><th class="r">Score</th><th>Since last week</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+              <tr class="{{r.sel}}"><td class="r" style="font-weight: 700;">{{r.rank}}</td><td style="font-weight: 600;">{{r.name}}</td><td>{{r.area}}</td><td class="r">{{r.v}}</td><td class="r">{{r.m}}</td><td class="r">{{r.c}}</td><td class="r">{{r.o}}</td><td class="r" style="font-weight: 700;">{{r.score}}</td><td><span class="ks-badge {{r.tone}}">{{r.move}}</span></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (rank, name, area, v, m, c, o, score, move) => ({ rank, name, area, v, m, c, o, score, move, tone: move.startsWith('Up') ? 'success' : move.startsWith('Down') ? 'danger' : 'neutral', sel: name === 'Ravi Kumar' ? 'sel' : '' });
+    return {
+      theme: this.props.theme ?? 'light',
+      rows: [
+        R('1', 'Sneha Malviya', 'Gautampura', '96%', '100%', '93%', '78%', '91', 'Same'),
+        R('2', 'Anil Patidar', 'Hatod', '88%', '92%', '90%', '84%', '88', 'Up 1'),
+        R('3', 'Ravi Kumar', 'Sanwer', '88%', '83%', '93%', '82%', '86', 'Up 2'),
+        R('4', 'Deepak Chouhan', 'Depalpur', '84%', '67%', '86%', '71%', '77', 'Down 2'),
+        R('5', 'Pooja Rathore', 'Mhow', '81%', '83%', '79%', '58%', '74', 'Down 1'),
+        R('6', 'Manish Verma', 'Dewas road', '72%', '75%', '81%', '66%', '73', 'Same'),
+        R('7', 'Rahul Solanki', 'Pipliya', '70%', '58%', '77%', '69%', '69', 'Up 1'),
+        R('8', 'Kiran Bhati', 'Betma', '66%', '67%', '74%', '52%', '64', 'Down 1')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

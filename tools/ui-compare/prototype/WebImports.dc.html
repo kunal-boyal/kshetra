@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: imports</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="imports" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div>
+        <h1 class="heading-xl" style="margin: 0;">Import retailers</h1>
+        <p class="ks-meta" style="font-size: 15px;">retailers-indore-october.xlsx · 1,212 rows · uploaded 2:05 pm</p>
+      </div>
+      <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px;">
+        <sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+          <li style="flex: 1 1 150px; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: {{s.bg}}; border: 1px solid {{s.edge}};">
+            <span class="ks-seq" style="background: {{s.chip}}; color: {{s.chipFg}};">{{s.n}}</span>
+            <span class="label-md" style="font-weight: 600;">{{s.label}}</span>
+          </li>
+        </sc-for>
+      </ol>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div class="ks-kpi"><p class="ks-kpi-label">Ready</p><p class="ks-kpi-value" style="color: var(--success-fg);">1,186</p><p class="ks-kpi-target">new 1,044 · updated 142</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Problems</p><p class="ks-kpi-value" style="color: var(--danger-fg);">14</p><p class="ks-kpi-target">in 12 rows</p></div>
+        <div class="ks-kpi"><p class="ks-kpi-label">Skipped</p><p class="ks-kpi-value">14</p><p class="ks-kpi-target">empty rows at the end</p></div>
+      </div>
+
+      <div class="ks-notice"><span><strong>Nothing is imported until every row passes.</strong> Fix the rows below in the file and upload it again, or download them as a sheet.</span></div>
+
+      <div style="overflow-x: auto;">
+        <table class="ks-table">
+          <thead><tr><th class="r">Row</th><th>Column</th><th>Value in the file</th><th>Problem</th></tr></thead>
+          <tbody>
+            <sc-for list="{{problems}}" as="p" hint-placeholder-count="6">
+              <tr><td class="r">{{p.row}}</td><td>{{p.col}}</td><td><code>{{p.val}}</code></td><td>{{p.issue}}</td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div class="ks-row" style="justify-content: flex-end;">
+        <button type="button" class="ks-btn secondary sm">Download problems</button>
+        <button type="button" class="ks-btn secondary sm">Upload a fixed file</button>
+        <button type="button" class="ks-btn primary sm" disabled>Import 1,186 rows</button>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = (n, label, state) => ({ n, label, bg: state === 'now' ? 'var(--accent-subtle)' : 'var(--surface)', edge: state === 'now' ? 'var(--accent)' : 'var(--border)', chip: state === 'done' ? 'var(--success-solid)' : state === 'now' ? 'var(--accent)' : 'var(--surface-sunken)', chipFg: state === 'todo' ? 'var(--text-muted)' : 'var(--on-accent)' });
+    return {
+      theme: this.props.theme ?? 'light',
+      steps: [S('1', 'What to import', 'done'), S('2', 'Upload', 'done'), S('3', 'Match columns', 'done'), S('4', 'Check', 'now'), S('5', 'Import', 'todo')],
+      problems: [
+        { row: '18', col: 'Market', val: 'Sanver', issue: 'No market has this name. Sanwer is close, but we never guess: write it exactly.' },
+        { row: '44', col: 'Mobile', val: '98260 1123', issue: 'A mobile number has 10 digits.' },
+        { row: '97', col: 'Distributor code', val: 'D-1402', issue: 'No distributor has this code.' },
+        { row: '233', col: 'Assigned SME', val: 'R. Kumar', issue: 'Two people match: Ravi Kumar and Rakesh Kumar.' },
+        { row: '410', col: 'Code', val: 'R-2214', issue: 'Om Sai Fertilisers already has this code; this row names another shop.' },
+        { row: '611', col: 'Latitude', val: '75.86', issue: 'Latitude and longitude look swapped.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

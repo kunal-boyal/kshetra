@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: reports and exports</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="reports" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div>
+        <h1 class="heading-xl" style="margin: 0;">Reports</h1>
+        <p class="ks-meta" style="font-size: 15px;">Every report shows only what you may see, for one month at a time</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <nav aria-label="Reports" class="ks-list" style="flex: 1 1 260px; min-width: 0;">
+          <sc-for list="{{reports}}" as="r" hint-placeholder-count="9">
+            <a href="WebReports.dc.html" class="ks-item" aria-current="{{r.current}}" style="text-decoration: none; color: inherit; background: {{r.bg}};">
+              <span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">{{r.name}}</span><span class="ks-meta">{{r.desc}}</span></span>
+              <sc-if value="{{r.phase}}" hint-placeholder-val="{{false}}"><span class="ks-badge neutral">{{r.phase}}</span></sc-if>
+            </a>
+          </sc-for>
+        </nav>
+
+        <section style="flex: 3 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+          <div class="ks-spread" style="flex-wrap: wrap;">
+            <h2 class="heading-lg" style="margin: 0;">Activity log · October</h2>
+            <div class="ks-row">
+              <button type="button" class="ks-btn secondary sm">Indore region</button>
+              <button type="button" class="ks-btn secondary sm">Everyone</button>
+              <button type="button" class="ks-btn secondary sm">Export CSV</button>
+              <button type="button" class="ks-btn primary sm">Export Excel</button>
+            </div>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="ks-table">
+              <thead><tr><th>Date</th><th>Time</th><th>Person</th><th>Activity</th><th>Account</th><th class="r">Distance</th><th>Status</th></tr></thead>
+              <tbody>
+                <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+                  <tr><td class="ks-num">{{r.date}}</td><td class="ks-num">{{r.time}}</td><td>{{r.who}}</td><td>{{r.what}}</td><td>{{r.where}}</td><td class="r">{{r.dist}}</td><td><span class="ks-badge {{r.tone}}">{{r.status}}</span></td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div class="ks-notice"><span><strong>Your exports</strong> · Activity log, September (Excel, 4,812 rows) is ready. Exports are kept for 7 days.</span></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = { Approved: 'success', Waiting: 'pending', 'Sent back': 'waiting' };
+    const R = (date, time, who, what, where, dist, status) => ({ date, time, who, what, where, dist, status, tone: T[status] });
+    return {
+      theme: this.props.theme ?? 'light',
+      reports: [
+        { name: 'Activity log', desc: 'Every visit, form and punch', current: 'page', bg: 'var(--accent-subtle)', phase: null },
+        { name: 'Attendance register', desc: 'Days present, leave and fixes', current: null, bg: 'transparent', phase: null },
+        { name: 'Target against achievement', desc: 'By person and metric', current: null, bg: 'transparent', phase: null },
+        { name: 'Coverage', desc: 'Accounts visited against planned', current: null, bg: 'transparent', phase: null },
+        { name: 'Orders by product', desc: 'Quantity and value', current: null, bg: 'transparent', phase: 'Phase 2' },
+        { name: 'Outstanding and ageing', desc: 'By account and bucket', current: null, bg: 'transparent', phase: 'Phase 2' },
+        { name: 'Expense claims', desc: 'By person and category', current: null, bg: 'transparent', phase: 'Phase 2' }
+      ],
+      rows: [
+        R('23 Oct', '2:14 pm', 'Ravi Kumar', 'Check-in', 'Patel Krishi Kendra', '42 m', 'Approved'),
+        R('23 Oct', '11:50 am', 'Ravi Kumar', 'Retailer visit', 'Om Sai Fertilisers', '18 m', 'Waiting'),
+        R('23 Oct', '10:35 am', 'Ravi Kumar', 'Farmer visit', 'Ramesh Yadav', '60 m', 'Approved'),
+        R('23 Oct', '10:05 am', 'Anil Patidar', 'Farmer meeting', 'Hatod village', '420 m', 'Waiting'),
+        R('23 Oct', '9:40 am', 'Ravi Kumar', 'Distributor visit', 'Shree Krishna Agro', '25 m', 'Approved'),
+        R('23 Oct', '9:12 am', 'Ravi Kumar', 'Punch in', '—', '—', 'Approved'),
+        R('22 Oct', '4:40 pm', 'Sneha Malviya', 'Farmer visit', 'Gautampura', '35 m', 'Sent back'),
+        R('22 Oct', '3:10 pm', 'Manish Verma', 'Retailer visit', 'Jai Kisan Agro', '12 m', 'Waiting'),
+        R('22 Oct', '1:55 pm', 'Rahul Solanki', 'Farmer visit', 'Pipliya', '90 m', 'Waiting')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

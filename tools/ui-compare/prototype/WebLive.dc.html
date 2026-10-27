@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Portal: live map</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/thelamp/tokens.css">
+<link rel="stylesheet" href="ds/thelamp/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="ks" style="display: flex; flex-wrap: wrap; min-height: 1100px; background: var(--bg); color: var(--text); font-family: var(--font-sans);">
+  <div style="flex: 1 1 248px; background: var(--nav-bg); border-right: 1px solid var(--border);">
+    <dc-import name="WebRail" current="live" hint-size="248px,1100px"></dc-import>
+  </div>
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header class="ks-appbar">
+      <div class="ks-appbar-org"><span class="ks-ico sm hue-sage">GV</span><span>Green Valley Agro</span></div>
+      <div class="ks-appbar-tools">
+        <div class="ks-affix" style="width: 260px; max-width: 100%;"><span><svg class="ks-icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4"></path></svg></span><input class="ks-input" placeholder="Search people, accounts, orders" aria-label="Search" style="height: 40px; padding-left: 40px;"></div>
+        <button type="button" class="ks-btn ghost sm">हिंदी</button>
+        <span class="ks-ico sm round hue-lilac" title="Arjun Mehta, Admin">AM</span>
+      </div>
+    </header>
+    <main style="padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1240px; box-sizing: border-box;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 class="heading-xl" style="margin: 0;">Live map</h1>
+          <p class="ks-meta" style="font-size: 15px;">Positions refresh every 30 seconds · only people on duty are shown</p>
+        </div>
+        <div class="ks-row" style="flex-wrap: wrap;">
+          <button type="button" class="ks-btn primary sm" aria-pressed="true">Live</button>
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">Day replay</button>
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">Visit density</button>
+          <button type="button" class="ks-btn secondary sm" aria-pressed="false">Account pins</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+        <div class="ks-mapbox" role="img" aria-label="Map of the Indore region with 38 people on duty; the list beside it has the same people" style="flex: 2 1 560px; min-width: 0; height: 640px; position: relative; border: 1px solid var(--border);">
+          <svg viewBox="0 0 800 640" preserveAspectRatio="none" width="100%" height="100%" aria-hidden="true" style="position: absolute; inset: 0;">
+            <path d="M0 120 C200 160 380 60 800 140M0 400 C240 360 520 470 800 420M260 0 C300 220 220 420 300 640M560 0 C520 200 620 420 560 640" style="fill: none; stroke: var(--chart-grid); stroke-width: 10;"></path>
+            <path d="M120 520 L210 470 L260 430 L330 380 L380 360" style="fill: none; stroke: var(--map-route); stroke-width: 4; stroke-linecap: round;"></path>
+            <circle cx="380" cy="300" r="120" style="fill: var(--map-geofence); fill-opacity: .06; stroke: var(--map-geofence); stroke-dasharray: 6 6;"></circle>
+          </svg>
+          <sc-for list="{{dots}}" as="p" hint-placeholder-count="12">
+            <span title="{{p.name}}" style="position: absolute; left: {{p.x}}; top: {{p.y}}; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 6px; pointer-events: none;">
+              <span style="width: 14px; height: 14px; border-radius: 9999px; background: {{p.color}}; box-shadow: 0 0 0 3px var(--surface);"></span>
+              <span class="caption" style="padding: 1px 6px; border-radius: 9999px; background: var(--surface); box-shadow: var(--shadow-sm); font-weight: 600;">{{p.short}}</span>
+            </span>
+          </sc-for>
+          <div class="ks-card" style="position: absolute; left: 12px; bottom: 12px; padding: 8px 12px; display: flex; gap: 12px; font-size: 13px;">
+            <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 9999px; background: var(--map-inside);"></span>Moving or at a visit</span>
+            <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 9999px; background: var(--map-outside);"></span>Outside the plan</span>
+            <span class="ks-row"><span style="width: 10px; height: 10px; border-radius: 9999px; background: var(--map-stale);"></span>No signal for 15 min</span>
+          </div>
+        </div>
+
+        <section class="ks-card" aria-labelledby="ppl" style="flex: 1 1 320px; min-width: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+          <div style="padding: 16px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border);">
+            <h2 id="ppl" class="ks-title">38 on duty</h2>
+            <div class="ks-row" style="flex-wrap: wrap;"><span class="ks-badge success">31 moving</span><span class="ks-badge waiting">4 outside plan</span><span class="ks-badge neutral">3 no signal</span></div>
+          </div>
+          <div style="overflow-y: auto; max-height: 560px;">
+            <sc-for list="{{dots}}" as="p" hint-placeholder-count="12">
+              <div class="ks-item" style="min-height: 56px;">
+                <span style="width: 10px; height: 10px; border-radius: 9999px; background: {{p.color}}; flex: none;"></span>
+                <span class="ks-item-main"><span class="label-md" style="display: block; font-weight: 600;">{{p.name}}</span><span class="ks-meta">{{p.status}}</span></span>
+                <span class="caption ks-subtle">{{p.seen}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { in: 'var(--map-inside)', out: 'var(--map-outside)', stale: 'var(--map-stale)' };
+    return {
+      theme: this.props.theme ?? 'light',
+      dots: [
+        { name: 'Ravi Kumar', short: 'RK', x: '47%', y: '56%', color: C.in, status: 'At Patel Krishi Kendra · visit 4 of 8', seen: 'now' },
+        { name: 'Anil Patidar', short: 'AP', x: '66%', y: '38%', color: C.in, status: 'Moving · Hatod', seen: '1 min' },
+        { name: 'Sneha Malviya', short: 'SM', x: '22%', y: '30%', color: C.in, status: 'At a farmer meeting · Gautampura', seen: '1 min' },
+        { name: 'Deepak Chouhan', short: 'DC', x: '14%', y: '62%', color: C.out, status: 'Outside today’s beat · 6 km off', seen: '3 min' },
+        { name: 'Pooja Rathore', short: 'PR', x: '58%', y: '82%', color: C.stale, status: 'Last seen near Mhow', seen: '24 min' },
+        { name: 'Manish Verma', short: 'MV', x: '80%', y: '62%', color: C.in, status: 'Moving · Dewas road', seen: 'now' },
+        { name: 'Kavita Joshi', short: 'KJ', x: '36%', y: '18%', color: C.in, status: 'At Shiv Shakti Traders', seen: '2 min' },
+        { name: 'Rahul Solanki', short: 'RS', x: '88%', y: '24%', color: C.out, status: 'Outside today’s beat · 4 km off', seen: '5 min' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
