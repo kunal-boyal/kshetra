@@ -255,6 +255,49 @@ export class AccountsService {
     };
   }
 
+  /**
+   * The verified location and geofence radius of each of these accounts that has one, for the
+   * map a reviewer sees beside a submission (decision D104).
+   */
+  async geofences(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, { location: GeoPoint; radiusM: number }>> {
+    const found = new Map<string, { location: GeoPoint; radiusM: number }>();
+    if (ids.length === 0) return found;
+    const types = new Map((await this.types.list(tx, tenantId)).map((type) => [type.id, type]));
+    const settings = await this.settings(tx, tenantId);
+    const rows = await tx
+      .select({
+        id: accounts.id,
+        typeId: accounts.typeId,
+        radiusM: accounts.geofenceRadiusM,
+        location: pointOf(accounts.location),
+      })
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.tenantId, tenantId),
+          inArray(accounts.id, [...new Set(ids)]),
+          eq(accounts.locationStatus, 'verified'),
+          sql`${accounts.location} is not null`,
+        ),
+      );
+    for (const row of rows) {
+      if (!row.location) continue;
+      found.set(row.id, {
+        location: row.location,
+        radiusM: geofenceRadius(
+          row.radiusM,
+          types.get(row.typeId)?.definition.location.geofenceRadiusM,
+          settings.geofenceRadiusMeters,
+        ),
+      });
+    }
+    return found;
+  }
+
   /** The type key of each account in `ids` the caller sees, for what a form's values refer to. */
   async typesSeen(
     tx: TenantTx,

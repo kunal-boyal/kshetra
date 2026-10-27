@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BULK_REVIEW_MAX } from '../review';
+import { GeoPoint } from '../geo';
 import { GeofenceResultKey, SubmissionFlag, SubmissionResult, SubmissionStatus } from './field';
 import { MediaSource } from './media';
 
@@ -40,6 +41,8 @@ export const ReviewItem = SubmissionResult.extend({
   /** When auto-approval will approve it, unless a reviewer acts first; null when it won't. */
   autoApproveAt: z.iso.datetime().nullable(),
   reviews: z.array(ReviewEntry),
+  /** The account's verified location and geofence radius, for the map; null without either. */
+  geofenceAt: z.object({ location: GeoPoint, radiusM: z.int() }).nullable(),
 }).meta({ id: 'ReviewItem' });
 
 /** `GET /v1/reviews/queue`: submissions of people in the caller's scope, never their own. */
@@ -53,6 +56,8 @@ export const ReviewQueueQuery = z.strictObject({
   to: z.iso.date().optional(),
   flag: SubmissionFlag.optional(),
   geofence: GeofenceResultKey.optional(),
+  /** Only those with a flag (`yes`) or without one (`no`). */
+  flagged: z.enum(['yes', 'no']).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(30),
   cursor: z.string().max(200).optional(),
 });
@@ -60,6 +65,23 @@ export const ReviewQueueQuery = z.strictObject({
 export const ReviewQueueResult = z.object({
   items: z.array(ReviewItem),
   nextCursor: z.string().nullable(),
+  /**
+   * With the first page only (null after): how many there are under the same filters but status
+   * and flags, pending ones with flags and without, and the auto-approval rules.
+   */
+  summary: z
+    .object({
+      counts: z.object({
+        pending: z.int(),
+        flagged: z.int(),
+        clean: z.int(),
+        approved: z.int(),
+        rejected: z.int(),
+      }),
+      autoApproval: z.boolean(),
+      delayHours: z.int(),
+    })
+    .nullable(),
 });
 
 /** `POST /v1/reviews/bulk`: approve many submissions without flags at once. */

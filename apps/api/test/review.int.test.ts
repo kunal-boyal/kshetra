@@ -184,6 +184,73 @@ describe('the review queue (M7)', () => {
     });
     expect((await t.api.ravi.get('/v1/reviews/queue')).json().error.code).toBe('FORBIDDEN');
   });
+
+  it('counts the queue for its chips, lists those with flags, and gives the account’s geofence', async () => {
+    const t = await tenant('Counts Co');
+    const made = await t.api.admin.post('/v1/forms', {
+      definition: {
+        key: 'visit_note',
+        name: noun('visit_note'),
+        icon: 'notebook-pen',
+        review: 'manual',
+        accountLink: { mode: 'optional', accountTypes: ['customer'] },
+        fields: [{ key: 'text', type: 'short_text', label: { en: 'Text', hi: 'Text' } }],
+      },
+    });
+    expect(made.statusCode).toBe(201);
+    const shop = newId();
+    const opened = await t.api.admin.post('/v1/accounts', {
+      id: shop,
+      type: 'customer',
+      code: `C-${newId().slice(-8)}`,
+      name: 'Sharma Stores',
+      territoryId: await world.territory(t.tenantId, `T-${newId().slice(-6)}`),
+      location: HERE,
+      slots: { executive: t.asha.id },
+    });
+    expect(opened.statusCode).toBe(201);
+    const atShop = newId();
+    const sent = await t.api.asha.post('/v1/submissions', {
+      id: atShop,
+      form: { key: 'visit_note', version: 1 },
+      accountId: shop,
+      capturedAt: new Date().toISOString(),
+      fix: { location: HERE, accuracy: 12, mocked: false, capturedAt: new Date().toISOString() },
+      values: { text: 'Shelf full' },
+    });
+    expect(sent.statusCode, sent.body).toBe(201);
+    const flagged = await submit(await t.ashaSkewed());
+    const done = await submit(t.api.asha);
+    await t.api.manager.post(`/v1/submissions/${done}/review`, { decision: 'approved' });
+
+    const first = (await t.api.manager.get('/v1/reviews/queue?limit=1')).json();
+    expect(first.summary).toEqual({
+      counts: { pending: 2, flagged: 1, clean: 1, approved: 1, rejected: 0 },
+      autoApproval: expect.any(Boolean),
+      delayHours: expect.any(Number),
+    });
+    // Later pages leave the summary out; the chips keep the first page's.
+    const next = (
+      await t.api.manager.get(`/v1/reviews/queue?limit=1&cursor=${first.nextCursor}`)
+    ).json();
+    expect(next.summary).toBeNull();
+    // The counts follow the filters but status and flags.
+    expect(
+      (await t.api.manager.get('/v1/reviews/queue?formKey=visit_note')).json().summary.counts,
+    ).toEqual({ pending: 1, flagged: 0, clean: 1, approved: 0, rejected: 0 });
+
+    expect(ids(await t.api.manager.get('/v1/reviews/queue?flagged=yes'))).toEqual([flagged]);
+    expect(ids(await t.api.manager.get('/v1/reviews/queue?flagged=no'))).toEqual([atShop]);
+    const items = (await t.api.manager.get('/v1/reviews/queue')).json().items as {
+      id: string;
+      geofenceAt: unknown;
+    }[];
+    expect(items.find((item) => item.id === atShop)?.geofenceAt).toEqual({
+      location: HERE,
+      radiusM: expect.any(Number),
+    });
+    expect(items.find((item) => item.id === flagged)?.geofenceAt).toBeNull();
+  });
 });
 
 describe('deciding (M7)', () => {

@@ -22,10 +22,12 @@ import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
+import { AccountsService } from '../accounts/accounts.service';
 import { SubmissionsService } from '../field/submissions.service';
 import { DevicesService } from '../iam/devices.service';
 import { People } from '../iam/people';
 import { PhotosService } from '../media/photos.service';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 type Decided = Awaited<ReturnType<SubmissionsService['forDecision']>>;
 
@@ -51,6 +53,8 @@ export class ReviewService implements OnModuleInit {
     private readonly photos: PhotosService,
     private readonly devices: DevicesService,
     private readonly people: People,
+    private readonly accounts: AccountsService,
+    private readonly config: TenantConfigService,
   ) {}
 
   onModuleInit(): void {
@@ -87,14 +91,28 @@ export class ReviewService implements OnModuleInit {
       rows.flatMap((row) => (row.deviceId ? [row.deviceId] : [])),
     );
     const reviews = await this.reviewsOf(tx, tenantId, ids);
+    const geofences = await this.accounts.geofences(
+      tx,
+      tenantId,
+      rows.flatMap((row) => (row.account ? [row.account.id] : [])),
+    );
     const items: ReviewItem[] = rows.map(({ deviceId, autoApproveAt, ...row }) => ({
       ...row,
       photoDetails: photos.get(row.id) ?? [],
       integrityWarning: integrityWarning(deviceId ? (verdicts.get(deviceId) ?? null) : null),
       autoApproveAt: autoApproveAt?.toISOString() ?? null,
       reviews: reviews.get(row.id) ?? [],
+      geofenceAt: (row.account && geofences.get(row.account.id)) || null,
     }));
-    return { items, nextCursor };
+    // The queue's counts and rules come with its first page only.
+    const summary =
+      only || query.cursor
+        ? null
+        : {
+            counts: await this.submissions.reviewCounts(tx, access, query),
+            ...(await this.config.reviewRules(tx, tenantId)),
+          };
+    return { items, nextCursor, summary };
   }
 
   /** Every decision on these submissions, oldest first, with who made it. */

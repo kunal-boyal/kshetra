@@ -8,6 +8,8 @@ export interface QueueFilters {
   status: 'pending' | 'approved' | 'rejected';
   formKey?: string;
   flag?: string;
+  /** Pending ones with flags (`yes`) or without (`no`). */
+  flagged?: 'yes' | 'no';
   geofence?: string;
   from?: string;
   to?: string;
