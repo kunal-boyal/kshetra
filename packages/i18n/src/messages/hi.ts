@@ -2119,7 +2119,6 @@ export const hi: Record<MessageKey, Message> = {
   'account_plan.updated': 'आखिरी बदलाव {name} ने किया, {when}',
   'nav.performance': 'प्रदर्शन',
   'nav.my_performance': 'मेरा महीना',
-  'nav.leaderboard': 'लीडरबोर्ड',
   'performance.team_title': 'प्रदर्शन',
   'performance.team_intro':
     'हर व्यक्ति का महीना, उनके {term.target:other:lower} के सामने। केवल स्वीकृत काम गिना जाता है; नाम पर क्लिक करने से उनका महीना खुलता है।',
@@ -2154,7 +2153,9 @@ export const hi: Record<MessageKey, Message> = {
   'performance.territory': 'क्षेत्र',
   'performance.designation': 'पद',
   'performance.team_title_for': 'प्रदर्शन · {month}',
-  'leaderboard.title_for': 'लीडरबोर्ड · {month}',
+  'performance.views': 'प्रदर्शन के दृश्य',
+  'performance.tab_leaderboard': 'लीडरबोर्ड',
+  'performance.tab_team': 'मेरी टीम',
   'leaderboard.meta':
     'लॉक किए गए {term.target:other:lower} पर रैंक · समीक्षा होते ही स्कोर बदलते हैं',
   'leaderboard.export': 'एक्सपोर्ट',

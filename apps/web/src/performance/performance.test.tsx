@@ -205,4 +205,62 @@ describe('performance (M9)', () => {
       expect.anything(),
     );
   });
+
+  it('holds the leaderboard and the manager’s team as two tabs of one page (decision D104)', async () => {
+    const client = fakeClient(
+      {
+        '/v1/leaderboard': {
+          period: PERIOD,
+          groups: [{ key: 'executive', name: noun('Executive', 'Executives'), size: 1 }],
+          group: 'executive',
+          metrics: METRICS,
+          rows: [
+            {
+              user: person(RAVI, 'Ravi Kumar'),
+              territory: null,
+              figures: {},
+              score: 100,
+              rank: 1,
+              previousRank: null,
+              you: false,
+            },
+          ],
+        },
+        '/v1/performance/team': {
+          period: PERIOD,
+          metrics: METRICS,
+          rows: [
+            {
+              user: person(ASHA, 'Asha Rao'),
+              designation: 'executive',
+              territory: null,
+              figures: MONTH.figures,
+              score: 50,
+              rank: 2,
+              previousRank: null,
+            },
+          ],
+          totals: {},
+        },
+      },
+      {},
+      ['performance.view_team', 'leaderboard.view'],
+    );
+    renderAt('/performance', client);
+    const tabs = await screen.findByRole('tablist', { name: 'Performance views' });
+    expect(within(tabs).getByRole('tab', { name: 'Leaderboard' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(await screen.findByRole('table', { name: 'Leaderboard for Executives' })).toBeVisible();
+    await userEvent.setup().click(within(tabs).getByRole('tab', { name: 'My team' }));
+    expect(
+      await screen.findByRole('table', {
+        name: 'The month for each person, by metric, with score and rank',
+      }),
+    ).toBeVisible();
+    // One rail entry for both.
+    const rail = screen.getByRole('navigation', { name: 'Main menu' });
+    expect(within(rail).getAllByRole('link', { name: /Performance|Leaderboard/ })).toHaveLength(1);
+  });
 });
