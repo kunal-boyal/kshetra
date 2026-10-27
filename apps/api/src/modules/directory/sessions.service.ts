@@ -6,7 +6,6 @@ import {
   type OtpVerifyResult,
   type RefreshResult,
   type SecondFactor,
-  type SelectTenantResult,
   type OwnSession,
   type Session,
   sessionExpiresAt,
@@ -35,7 +34,7 @@ import { grantOpen, type SupportGrantRow, supportGrantRows } from './support-gra
 import { SigningKey } from './signing-key';
 
 /** Refresh tokens rotate on every use (M1, rule 6); how long they live is `sessionExpiresAt()`. */
-/** A person in several tenants has five minutes to choose one after the code (M1, rule 4). */
+/** A sign-in waiting for its authenticator code has five minutes to give it (decision D91). */
 export const TICKET_SECONDS = 5 * 60;
 
 /** What a sign-in waiting for its authenticator code holds (decisions D91 and D101). */
@@ -83,43 +82,18 @@ export class SessionsService {
     private readonly ended: EndedSessions,
   ) {}
 
-  /** After a verified code: one tenant signs straight in; several get a ticket to choose with. */
+  /**
+   * After a verified code, the person's one organisation (decision D103): a number is active in
+   * at most one, which the directory's index guarantees.
+   */
   async signIn(phone: string, device?: DeviceInfo, ip?: string): Promise<OtpVerifyResult> {
-    const rows = await activeMemberships(this.database.db, eq(identities.phoneE164, phone));
-    const [first] = rows;
-    if (!first) throw new AppError('FORBIDDEN', 'This number has no active account.');
+    const [membership] = await activeMemberships(this.database.db, eq(identities.phoneE164, phone));
+    if (!membership) throw new AppError('FORBIDDEN', 'This number has no active account.');
     await this.database.db
       .update(identities)
       .set({ lastLoginAt: new Date() })
-      .where(eq(identities.id, first.identityId));
-    if (rows.length === 1) return this.start(first, device, ip);
-
-    const ticket = newSecret();
-    await this.client.redis.set(`ticket:${digest(ticket)}`, first.identityId, 'EX', TICKET_SECONDS);
-    return {
-      status: 'choose_tenant',
-      ticket,
-      tenants: rows.map((row) => ({ id: row.tenantId, name: row.tenantName })),
-    };
-  }
-
-  /** Spends a ticket on one of the identity's tenants. A ticket works once. */
-  async selectTenant(
-    ticket: string,
-    tenantId: string,
-    device?: DeviceInfo,
-    ip?: string,
-  ): Promise<SelectTenantResult> {
-    const identityId = await this.client.redis.getdel(`ticket:${digest(ticket)}`);
-    if (!identityId) {
-      throw new AppError('OTP_EXPIRED', 'This sign-in has expired. Request a new code.');
-    }
-    const [row] = await activeMemberships(
-      this.database.db,
-      and(eq(memberships.identityId, identityId), eq(memberships.tenantId, tenantId)),
-    );
-    if (!row) throw new AppError('FORBIDDEN', 'You do not have access to this organisation.');
-    return this.start(row, device, ip);
+      .where(eq(identities.id, membership.identityId));
+    return this.start(membership, device, ip);
   }
 
   /** Spends a refresh token for a new pair in the same family. */
@@ -145,59 +119,6 @@ export class SessionsService {
     });
     if (!result) throw revoked();
     return result;
-  }
-
-  /** Moves the session to another tenant of the same person, without a second code (M1, rule 4). */
-  async switchTenant(
-    refreshToken: string,
-    tenantId: string,
-    device?: DeviceInfo,
-    ip?: string,
-  ): Promise<SignedIn> {
-    const result = await this.database.db.transaction(async (tx) => {
-      const claimed = await this.claim(tx, refreshToken);
-      if (!claimed) return 'revoked' as const;
-      // Vendor support stays in the tenant its grant names.
-      if (!claimed.membership) return 'forbidden' as const;
-      const [target] = await activeMemberships(
-        tx,
-        and(
-          eq(memberships.identityId, claimed.membership.identityId),
-          eq(memberships.tenantId, tenantId),
-        ),
-      );
-      if (!target) return 'forbidden' as const;
-      // Refused admission rolls this back, and the old session carries on.
-      const { deviceId, secondFactor } = await this.cell.admit({
-        tenantId: target.tenantId,
-        userId: target.userId,
-        ...(device ? { device } : {}),
-        ...(ip ? { ip } : {}),
-      });
-      // A session that never gave an authenticator code can't carry on as an admin (D91).
-      if (secondFactor && !target.tenantDemo && !claimed.token.secondFactor) {
-        return 'second_factor' as const;
-      }
-      // One app holds one tenant at a time, so the old session ends.
-      await this.endFamily(tx, claimed.token.familyId);
-      // A new family in the new tenant, still counted from the first sign-in (decision D101).
-      const session = await this.issue(tx, target, newId(), deviceId, claimed.token.secondFactor, {
-        startedAt: claimed.token.familyStartedAt,
-        sso: claimed.token.sso,
-      });
-      return { session, target };
-    });
-    if (result === 'revoked') throw revoked();
-    if (result === 'second_factor') {
-      throw new AppError(
-        'SECOND_FACTOR_REQUIRED',
-        'Sign in again with your authenticator to open this organisation.',
-      );
-    }
-    if (result === 'forbidden') {
-      throw new AppError('FORBIDDEN', 'You do not have access to this organisation.');
-    }
-    return this.signedIn(result.target, result.session);
   }
 
   /** Ends the session the token belongs to. Unknown tokens are ignored, so this reveals nothing. */

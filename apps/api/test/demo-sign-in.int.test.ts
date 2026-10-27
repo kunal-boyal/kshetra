@@ -1,6 +1,8 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { SYSTEM } from '../src/modules/iam/actor';
+import { UsersService } from '../src/modules/iam/users.service';
 import { newAddress, newPhone, startApp, testConfig, World } from './support';
 
 /** Fixed sign-in codes for demo tenants (decision D70). */
@@ -10,6 +12,8 @@ const demoPhone = newPhone();
 const DEMO_CODE = '482913';
 let app: NestFastifyApplication;
 let world: World;
+/** The demo number's user in its demo tenant, made by the first test. */
+let demoUser: { tenantId: string; userId: string };
 
 beforeAll(async () => {
   app = await startApp(testConfig({ DEMO_CODES: JSON.stringify({ [demoPhone]: DEMO_CODE }) }));
@@ -42,7 +46,8 @@ async function demoTenant(name: string) {
 describe('demo sign-in (decision D70)', () => {
   it('lets a demo number into a demo tenant with its fixed code, and sends nothing', async () => {
     const tenantId = await demoTenant('Demo Seeds');
-    await world.member(demoPhone, [tenantId]);
+    const { userIds } = await world.member(demoPhone, [tenantId]);
+    demoUser = { tenantId, userId: userIds[0]! };
     expect((await requestCode(demoPhone)).statusCode).toBe(202);
     expect(world.sender.lastCode(demoPhone)).toBeUndefined();
     expect((await verifyCode(demoPhone, '000000')).json().error.code).toBe('OTP_INVALID');
@@ -60,7 +65,12 @@ describe('demo sign-in (decision D70)', () => {
     expect((await verifyCode(phone, code)).json().status).toBe('signed_in');
   });
 
-  it('stops the fixed code once the number also belongs to a real tenant', async () => {
+  it('stops the fixed code once the number belongs to a real tenant instead (D103)', async () => {
+    const { tenantId, userId } = demoUser;
+    // One organisation a person: the number leaves the demo before a real tenant may have it.
+    await world.database.forTenant(tenantId, (tx) =>
+      app.get(UsersService).update(tx, tenantId, SYSTEM, userId, { status: 'inactive' }),
+    );
     const real = await world.tenant('Real Agro');
     await world.member(demoPhone, [real]);
     await requestCode(demoPhone);

@@ -3,11 +3,13 @@ import {
   AppError,
   newId,
   normaliseMobile,
+  NUMBER_IN_USE,
   type ProvisionTenantInput,
   type UserResult,
 } from '@thelamp/shared';
 import { loadTemplate, type Template, TemplateError, validateTemplate } from '@thelamp/templates';
 import type { Config } from '../../config';
+import { MembershipSync } from '../../platform/planes';
 import { CONFIG } from '../../platform/tokens';
 import { DirectoryTenants } from '../directory/tenants';
 import { CellSetup } from './cell-setup.service';
@@ -31,6 +33,7 @@ export class TenantProvisioner {
   constructor(
     private readonly directory: DirectoryTenants,
     private readonly cell: CellSetup,
+    private readonly members: MembershipSync,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -44,10 +47,18 @@ export class TenantProvisioner {
     options: { demo?: boolean; tenantId?: string; trialEndsAt?: Date } = {},
   ): Promise<ProvisionedTenant> {
     const template = file === undefined ? this.template(input.template) : this.fromFile(file);
+    // The console names the tenant, so a create sent twice makes one (decision D88).
+    const tenantId = options.tenantId ?? newId();
     // Checked before anything is written, so a typo creates nothing.
-    if (!normaliseMobile(input.admin.phone)) {
+    const adminPhone = normaliseMobile(input.admin.phone);
+    if (!adminPhone) {
       throw new AppError('VALIDATION', 'Check the highlighted fields.', [
         { path: 'admin.phone', issue: 'Use a 10-digit mobile number starting with 6, 7, 8 or 9' },
+      ]);
+    }
+    if ((await this.members.activeElsewhere([adminPhone], tenantId)).has(adminPhone)) {
+      throw new AppError('CONFLICT', 'This mobile number is already in use.', [
+        { path: 'admin.phone', issue: NUMBER_IN_USE },
       ]);
     }
     if (await this.directory.bySlug(input.slug)) {
@@ -62,8 +73,6 @@ export class TenantProvisioner {
       apiBaseUrl: this.config.CELL_API_URL ?? `http://127.0.0.1:${this.config.PORT}`,
       capacityUsers: SHARED_CELL_CAPACITY,
     });
-    // The console names the tenant, so a create sent twice makes one (decision D88).
-    const tenantId = options.tenantId ?? newId();
     await this.directory.register({
       id: tenantId,
       slug: input.slug,

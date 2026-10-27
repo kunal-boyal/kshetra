@@ -20,9 +20,12 @@ describe('the seed', () => {
     ).toThrow(/db\.example\.com/);
   });
 
-  it('seeds two tenants on different templates, with one person in both', () => {
+  it('seeds two tenants on different templates, each person in one of them (D103)', () => {
     expect(SEED.map((tenant) => tenant.template)).toEqual(['generic', 'agri']);
-    const [sunrise, harit] = SEED;
-    expect(harit!.people.map((person) => person.phone)).toContain(sunrise!.admin.phone);
+    const phones = SEED.flatMap((tenant) => [
+      tenant.admin.phone,
+      ...tenant.people.map((person) => person.phone),
+    ]);
+    expect(new Set(phones).size).toBe(phones.length);
   });
 });

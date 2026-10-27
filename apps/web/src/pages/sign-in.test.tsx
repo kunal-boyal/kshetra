@@ -11,7 +11,6 @@ import { createAppRouter } from '../router';
 import { browser } from './sign-in';
 
 const TENANT = { id: '01a10000-0000-7000-8000-000000000001', name: 'Sunrise Traders', cellUrl: '' };
-const OTHER = { id: '01a10000-0000-7000-8000-000000000009', name: 'Harit Agri Inputs' };
 const later = () => new Date(Date.now() + 15 * 60_000).toISOString();
 const signedInSession = () => ({
   tokenType: 'Bearer' as const,
@@ -36,10 +35,6 @@ function fakeClient(verify: () => Promise<unknown>) {
       if (result.status === 'signed_in') signIn();
       return result;
     }),
-    selectTenant: vi.fn(async () => {
-      signIn();
-      return session;
-    }),
     totpSetup: vi.fn(async () => ({
       secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
       uri: 'otpauth://totp/The%20Lamp:x?secret=JBSWY3DPEHPK3PXP',
@@ -61,7 +56,6 @@ function fakeClient(verify: () => Promise<unknown>) {
     ssoDiscover: vi.fn(async (email: string) =>
       email.endsWith('@sunrise.example') ? 'http://127.0.0.1:3000/auth/v1/sso/sunrise/start' : null,
     ),
-    switchTenant: vi.fn(),
     signOut: vi.fn(async () => {}),
     restore: vi.fn(async () => session),
     // The home reads its dashboard; anything else is not part of signing in.
@@ -177,20 +171,6 @@ describe('signing in on the web', () => {
     await user.type(field, 'abc98765def43210');
     expect(field).toHaveValue('9876543210');
     expect(client.requestCode).not.toHaveBeenCalled();
-  });
-
-  it('lets a person in two organisations choose one after the code', async () => {
-    const client = fakeClient(async () => ({
-      status: 'choose_tenant',
-      ticket: 't'.repeat(43),
-      tenants: [{ id: TENANT.id, name: TENANT.name }, OTHER],
-    }));
-    renderApp(client);
-    const user = await enterNumberAndCode();
-    expect(await screen.findByRole('heading', { name: 'Choose an organisation' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: /Sunrise Traders/ }));
-    expect(client.selectTenant).toHaveBeenCalledWith('t'.repeat(43), TENANT.id);
-    expect(await screen.findByRole('heading', { name: 'Hello, Anita Rao' })).toBeInTheDocument();
   });
 
   it('sets up an authenticator for someone who can change access, and shows the recovery codes once', async () => {

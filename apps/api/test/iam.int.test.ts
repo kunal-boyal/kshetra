@@ -1,4 +1,4 @@
-import { newId } from '@thelamp/shared';
+import { newId, NUMBER_IN_USE } from '@thelamp/shared';
 import { ModulesContainer, Reflector } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';
@@ -341,13 +341,20 @@ describe('managing users (spec 5.3)', () => {
       { path: 'code', issue: 'Another user has this code' },
     ]);
 
-    // Another tenant may use the same code, and the same person's number.
-    const other = await (
-      await web(two.admin)
-    ).post('/v1/users', {
+    // Another tenant may use the same code, but not a number someone signs in with here: a
+    // person belongs to one organisation (D103), and the refusal doesn't say which.
+    const otherAdmin = await web(two.admin);
+    const sameNumber = await otherAdmin.post('/v1/users', {
       code: 'X-1',
       name: 'Om Prakash',
       phone: one.f1.phone,
+      designation: 'head',
+    });
+    expect(sameNumber.statusCode).toBe(409);
+    expect(sameNumber.json().error.details).toEqual([{ path: 'phone', issue: NUMBER_IN_USE }]);
+    const other = await otherAdmin.post('/v1/users', {
+      code: 'X-1',
+      name: 'Om Prakash',
       designation: 'head',
     });
     expect(other.statusCode).toBe(201);

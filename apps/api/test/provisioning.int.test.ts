@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SEED, seed } from '../src/db/seed';
 import { DirectoryTenants } from '../src/modules/directory/tenants';
 import { TenantProvisioner } from '../src/modules/provisioning/provisioner';
-import { newAddress, newDevice, newPhone, startApp, World } from './support';
+import { newDevice, newPhone, startApp, World } from './support';
 
 let app: NestFastifyApplication;
 let world: World;
@@ -131,40 +131,31 @@ describe('the seed and the phase 0 exit check (spec 15)', () => {
     }
   });
 
-  it('lets a person sign in on the web into either seeded tenant, and a field user on a phone', async () => {
+  it('signs each seeded person in to their one tenant, on the web or a phone (D103)', async () => {
     const [sunrise, harit] = SEED;
-    const anita = sunrise!.admin.phone;
     const tenants = new Map<string, string>();
     for (const slug of ['sunrise', 'harit']) tenants.set(slug, (await tenantRow(slug)).id);
 
-    for (const slug of ['sunrise', 'harit']) {
-      const verified = (await world.verify(anita)).json();
-      expect(verified.status).toBe('choose_tenant');
-      expect(verified.tenants.map((t: { name: string }) => t.name).sort()).toEqual([
-        'Harit Agri Inputs',
-        'Sunrise Traders',
-      ]);
-      const chosen = await app.inject({
-        method: 'POST',
-        url: '/auth/v1/select-tenant',
-        payload: { ticket: verified.ticket, tenantId: tenants.get(slug) },
-        remoteAddress: newAddress(),
-      });
-      // Anita is Sunrise's admin, so her web sign-in there asks for her authenticator (D91);
-      // having one, she gives it in Harit too, where her role alone wouldn't ask (D101).
-      const session =
-        chosen.json().status === 'second_factor'
-          ? (await world.secondFactor(anita, chosen.json())).session
-          : chosen.json().session;
-      expect(chosen.json().status).toBe('second_factor');
-      const me = (await as(session.accessToken).get('/v1/me')).json();
-      expect(me).toMatchObject({
-        tenantId: tenants.get(slug),
-        name: 'Anita Rao',
-        role: slug === 'sunrise' ? 'tenant_admin' : 'viewer',
-        deviceId: null,
-      });
-    }
+    // Anita is Sunrise's admin, so her web sign-in asks for her authenticator (D91).
+    const anita = sunrise!.admin.phone;
+    const verified = (await world.verify(anita)).json();
+    expect(verified.status).toBe('second_factor');
+    const session = (await world.secondFactor(anita, verified)).session;
+    expect((await as(session.accessToken).get('/v1/me')).json()).toMatchObject({
+      tenantId: tenants.get('sunrise'),
+      name: 'Anita Rao',
+      role: 'tenant_admin',
+      deviceId: null,
+    });
+
+    const viewer = harit!.people.find((person) => person.code === 'HAR-007')!;
+    const viewed = (await world.verify(viewer.phone)).json();
+    expect(viewed.status).toBe('signed_in');
+    expect((await as(viewed.session.accessToken).get('/v1/me')).json()).toMatchObject({
+      tenantId: tenants.get('harit'),
+      name: 'Sunita Joshi',
+      role: 'viewer',
+    });
 
     const fieldUser = harit!.people.find((person) => person.designation === 'sme')!;
     const onPhone = await world.signIn(fieldUser.phone, newDevice());

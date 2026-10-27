@@ -44,32 +44,6 @@ export function applyTheme(theme: Theme): void {
   write('theme', theme);
 }
 
-/**
- * The tenants offered after the last code, so the menu can switch between them. Not secret, but
- * they belong to whoever signed in, so the session's end forgets them.
- */
-export function savedTenants(): { id: string; name: string }[] {
-  try {
-    const value: unknown = JSON.parse(read('tenants') ?? '[]');
-    return Array.isArray(value) ? (value as { id: string; name: string }[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveTenants(tenants: { id: string; name: string }[]): void {
-  write('tenants', JSON.stringify(tenants));
-}
-
-/** Forgets the tenants, so the next person on a shared computer never sees them. */
-export function forgetTenants(): void {
-  try {
-    localStorage.removeItem('tenants');
-  } catch {
-    // Nothing was kept.
-  }
-}
-
 /** Announcements this viewer dismissed in this browser (decision D93); old ones fall away. */
 export function dismissedAnnouncements(): string[] {
   try {

@@ -10,7 +10,6 @@ import {
   useState,
 } from 'react';
 import { type ClientEvents, type MobileClient, mobileClient } from './client';
-import { forgetTenants } from './preferences';
 
 interface AppState {
   client: MobileClient;
@@ -55,7 +54,6 @@ export function AppProvider({
       onSignedOut: () => {
         setSession(null);
         queryClient.clear();
-        void forgetTenants();
       },
       onUpgradeRequired: () => setUpgradeRequired(true),
     }),

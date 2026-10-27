@@ -55,6 +55,12 @@ export interface MemberState {
 export abstract class MembershipSync {
   abstract sync(member: MemberState): Promise<void>;
   /**
+   * Which of these numbers are active in another organisation. A person belongs to one
+   * organisation at a time (decision D103), so the cell asks before it gives a user a number or
+   * makes one with it active again.
+   */
+  abstract activeElsewhere(phones: readonly string[], tenantId: string): Promise<Set<string>>;
+  /**
    * Forgets an erased person (decision D95): their membership and sessions go, and their phone
    * number too unless they belong to another organisation.
    */

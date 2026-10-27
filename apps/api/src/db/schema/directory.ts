@@ -128,6 +128,10 @@ export const memberships = directory.table(
     uniqueIndex('memberships_active_identity_tenant_key')
       .on(table.identityId, table.tenantId)
       .where(sql`${table.status} = 'active'`),
+    // And to one organisation in all (decision D103).
+    uniqueIndex('memberships_one_active_organisation')
+      .on(table.identityId)
+      .where(sql`${table.status} = 'active'`),
   ],
 );
 

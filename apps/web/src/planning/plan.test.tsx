@@ -138,7 +138,6 @@ function fakeClient(writes: Record<string, Answer> = {}, approval: unknown = nul
     session: { tenant: TENANT, accessToken: 'a1', accessTokenExpiresAt: '' },
     restore: vi.fn(async () => null),
     signOut: vi.fn(async () => {}),
-    switchTenant: vi.fn(),
     me: vi.fn(async () => ({
       userId: MANAGER,
       tenantId: TENANT.id,

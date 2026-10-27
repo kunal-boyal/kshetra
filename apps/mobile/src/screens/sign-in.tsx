@@ -2,31 +2,19 @@ import { ApiError } from '@thelamp/api-client';
 import { spacing } from '@thelamp/design-tokens';
 import { mobileMessage } from '@thelamp/i18n';
 import { mobileDigitsFrom } from '@thelamp/shared';
-import { BrandMark, Button, ListGroup, ListRow, Screen, Text, TextField } from '@thelamp/ui-mobile';
+import { BrandMark, Button, Screen, Text, TextField } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  Building2,
-  FileLock2,
-  Languages,
-  LogIn,
-  RotateCw,
-  Send,
-} from 'lucide-react-native';
+import { ArrowLeft, FileLock2, Languages, LogIn, RotateCw, Send } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { errorMessage, useLanguage } from '../i18n';
-import { saveTenants, type TenantChoice } from '../preferences';
 import { PRODUCT_NAME } from '../product';
 
 /** How long before a new code may be asked for; the server allows 3 every 10 minutes (M1). */
 const RESEND_SECONDS = 30;
 
-type Step =
-  | { name: 'phone' }
-  | { name: 'code'; phone: string }
-  | { name: 'choose'; ticket: string; tenants: TenantChoice[] };
+type Step = { name: 'phone' } | { name: 'code'; phone: string };
 
 /**
  * Signing in on a phone (spec 8.1, module M1): the number on the phone keypad, then the code with
@@ -82,20 +70,7 @@ export function SignInScreen() {
 
   function verify() {
     void run(async () => {
-      const result = await client.verifyCode(phone, code);
-      if (result.status === 'choose_tenant') {
-        saveTenants(result.tenants);
-        setStep({ name: 'choose', ticket: result.ticket, tenants: result.tenants });
-        return;
-      }
-      saveTenants([]);
-      sync();
-    });
-  }
-
-  function choose(ticket: string, tenantId: string) {
-    void run(async () => {
-      await client.selectTenant(ticket, tenantId);
+      await client.verifyCode(phone, code);
       sync();
     });
   }
@@ -207,31 +182,6 @@ export function SignInScreen() {
         </View>
       ) : null}
 
-      {step.name === 'choose' ? (
-        <View style={styles.form}>
-          <Text variant="headingXl" role="heading">
-            {t('signin.choose_title')}
-          </Text>
-          <Text tone="muted">{t('signin.choose_intro')}</Text>
-          {error ? (
-            <Text tone="danger" weight={500} role="alert">
-              {error}
-            </Text>
-          ) : null}
-          <ListGroup>
-            {step.tenants.map((tenant) => (
-              <ListRow
-                key={tenant.id}
-                icon={Building2}
-                label={tenant.name}
-                onPress={() => {
-                  if (!busy) choose(step.ticket, tenant.id);
-                }}
-              />
-            ))}
-          </ListGroup>
-        </View>
-      ) : null}
       {/* The privacy notice is readable before signing in (decision D100). */}
       <Button
         variant="ghost"

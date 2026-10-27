@@ -13,7 +13,7 @@ import { createRoot } from 'react-dom/client';
 import { webClient } from './client';
 import { LanguageProvider } from './i18n';
 import { applyBrand, applySavedBrand } from './brand';
-import { applyLocale, applyTheme, forgetTenants, savedLocale, savedTheme } from './preferences';
+import { applyLocale, applyTheme, savedLocale, savedTheme } from './preferences';
 import { createAppRouter } from './router';
 import { PUBLIC_PATHS } from './pages/public-pages';
 import { startErrorReports } from './error-reports';
@@ -33,7 +33,6 @@ const queryClient = new QueryClient({
 // Signing out, or a session the server ends, forgets the person's data and returns to sign-in.
 const client = webClient(() => {
   queryClient.clear();
-  forgetTenants();
   applyBrand(null);
   // Someone already there stays, with any reason single sign-on came back with (decision D91).
   // The public pages stay public (decision D100).

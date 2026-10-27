@@ -1,5 +1,5 @@
 import { Button, Icon } from '@thelamp/ui-web';
-import { Link, Outlet, useNavigate } from '@tanstack/react-router';
+import { Link, Outlet } from '@tanstack/react-router';
 import {
   Bell,
   ChartNoAxesColumn,
@@ -13,7 +13,6 @@ import {
   ShoppingCart,
   MapPinned,
   Network,
-  Repeat,
   Settings,
   ShieldCheck,
   Store,
@@ -30,7 +29,6 @@ import { useOrganisation } from '../settings/data';
 import { useUnread } from '../notifications/data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
-import { savedTenants } from '../preferences';
 import { Brand } from './brand';
 import { LanguagePicker, ThemePicker } from './preferences-menu';
 import { Announcements } from './announcements';
@@ -74,14 +72,12 @@ function RailLink({ link }: { link: { to: string; icon: typeof House; label: str
 
 export function AppShell() {
   const { client, queryClient } = useApp();
-  const navigate = useNavigate();
   const { t, setTerms } = useLanguage();
   const config = useConfig(client, queryClient);
   const organisation = useOrganisation();
   const me = useMe(client);
   const [error, setError] = useState<string>();
   const tenant = client.session?.tenant;
-  const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
   const access = useAccess();
   // Only what the person may use (spec 8.2), in sections; each module adds its entry when it
   // arrives, and a section with nothing in it isn't shown.
@@ -208,12 +204,6 @@ export function AppShell() {
     work().catch((caught: unknown) => setError(errorMessage(caught, t)));
   }
 
-  async function switchTo(tenantId: string) {
-    await client.switchTenant(tenantId);
-    queryClient.clear();
-    await navigate({ to: '/' });
-  }
-
   return (
     <div className="ks min-h-screen md:grid md:grid-cols-[var(--nav-web)_1fr]">
       <a href="#content" className="sr-only focus:not-sr-only">
@@ -268,17 +258,6 @@ export function AppShell() {
             )}
             <LanguagePicker />
             <ThemePicker />
-            {others.map((choice) => (
-              <Button
-                key={choice.id}
-                size="sm"
-                variant="ghost"
-                icon={<Icon icon={Repeat} size="sm" />}
-                onClick={() => act(() => switchTo(choice.id))}
-              >
-                {t('shell.switch_organisation')}: {choice.name}
-              </Button>
-            ))}
             <Button
               size="sm"
               variant="secondary"

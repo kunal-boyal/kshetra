@@ -81,13 +81,6 @@ export const SignedIn = z.object({
   session: Session,
 });
 
-/** A number in several tenants: pick one with the ticket, without a second code (M1, rule 4). */
-export const ChooseTenant = z.object({
-  status: z.literal('choose_tenant'),
-  ticket: z.string(),
-  tenants: z.array(TenantSummary.pick({ id: true, name: true })),
-});
-
 /**
  * A web sign-in by someone who can change access: an authenticator code comes next, on the
  * ticket, and only then the session (spec M1, decision D91). Someone without one sets it up first.
@@ -99,14 +92,8 @@ export const SecondFactor = z.object({
   tenant: TenantSummary.pick({ id: true, name: true }),
 });
 
-export const OtpVerifyResult = z.discriminatedUnion('status', [
-  SignedIn,
-  ChooseTenant,
-  SecondFactor,
-]);
-
-/** Choosing a tenant signs in, or asks for the authenticator code first. */
-export const SelectTenantResult = z.discriminatedUnion('status', [SignedIn, SecondFactor]);
+/** A number belongs to one organisation (decision D103), so a code signs straight in to it. */
+export const OtpVerifyResult = z.discriminatedUnion('status', [SignedIn, SecondFactor]);
 
 /** `POST /auth/v1/totp/setup`: a new authenticator secret for someone without one. */
 export const TotpSetupBody = z.strictObject({ ticket: Secret });
@@ -160,23 +147,11 @@ export const AuthenticatorCodeBody = z.strictObject({
 /** A new authenticator confirmed: its recovery codes, shown once. */
 export const AuthenticatorConfirmResult = z.object({ recoveryCodes: z.array(z.string()) });
 
-export const SelectTenantBody = z.strictObject({
-  ticket: Secret,
-  tenantId: z.uuid(),
-  device: DeviceInfo.optional(),
-});
-
 /** The app sends its refresh token; the web leaves it out and relies on its cookie. */
 export const RefreshBody = z.strictObject({ refreshToken: Secret.optional() });
 
 /** A new pair of tokens, and the tenant they belong to, so a reloaded web page knows its cell. */
 export const RefreshResult = z.object({ session: Session, tenant: TenantSummary });
-
-export const SwitchTenantBody = z.strictObject({
-  refreshToken: Secret.optional(),
-  tenantId: z.uuid(),
-  device: DeviceInfo.optional(),
-});
 
 export const LogoutBody = RefreshBody;
 
@@ -235,10 +210,8 @@ export type OtpRequestResult = z.infer<typeof OtpRequestResult>;
 export type Session = z.infer<typeof Session>;
 export type TenantSummary = z.infer<typeof TenantSummary>;
 export type SignedIn = z.infer<typeof SignedIn>;
-export type ChooseTenant = z.infer<typeof ChooseTenant>;
 export type OtpVerifyResult = z.infer<typeof OtpVerifyResult>;
 export type SecondFactor = z.infer<typeof SecondFactor>;
-export type SelectTenantResult = z.infer<typeof SelectTenantResult>;
 export type TotpVerifyResult = z.infer<typeof TotpVerifyResult>;
 export type TotpSetupResult = z.infer<typeof TotpSetupResult>;
 export type AuthenticatorStatus = z.infer<typeof AuthenticatorStatus>;

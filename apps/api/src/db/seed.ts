@@ -24,8 +24,8 @@ import { CONFIG } from '../platform/tokens';
 
 /**
  * Two fictional tenants on different templates, for local work and CI (spec 9.4, phase 0 exit
- * criteria). Every name, number and place is made up. One person belongs to both tenants, so
- * choosing a tenant after the code can be tried.
+ * criteria). Every name, number and place is made up, and each person belongs to one tenant
+ * (decision D103).
  */
 
 interface SeedPerson {
@@ -175,11 +175,10 @@ export const SEED: readonly SeedTenant[] = [
         manager: 'HAR-004',
         territories: ['W-MH-PUN-BRM'],
       },
-      // Sunrise's admin also has a seat here, so she chooses a tenant after her code.
       {
         code: 'HAR-007',
-        name: 'Anita Rao',
-        phone: '+919000000001',
+        name: 'Sunita Joshi',
+        phone: '+919000000017',
         designation: 'business_head',
         role: 'viewer',
       },

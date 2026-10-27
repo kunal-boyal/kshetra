@@ -4,6 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TenantTermination } from '../src/modules/console/tenant-termination';
 import { DirectoryDatabase } from '../src/modules/directory/directory.database';
 import { DataExportsService } from '../src/modules/governance/data-exports.service';
+import { SYSTEM } from '../src/modules/iam/actor';
+import { UsersService } from '../src/modules/iam/users.service';
 import { MediaService } from '../src/modules/media/media.service';
 import { Database } from '../src/platform/database';
 import { ObjectStore } from '../src/platform/object-store';
@@ -142,10 +144,13 @@ describe('terminating a tenant (M22, D95)', () => {
   it('erases the tenant 30 days on, keeps people of other tenants, and records it', async () => {
     const closing = await world.tenant('Erased Traders');
     const staying = await world.tenant('Staying Traders');
+    // Someone who left the closing tenant for the staying one (one organisation at a time, D103).
     const shared = newPhone();
-    const { userIds } = await world.member(shared, [closing, staying], {
-      designation: 'executive',
-    });
+    const { userIds } = await world.member(shared, [closing], { designation: 'executive' });
+    await world.database.forTenant(closing, (tx) =>
+      app.get(UsersService).update(tx, closing, SYSTEM, userIds[0]!, { status: 'inactive' }),
+    );
+    await world.user(staying, { phone: shared, designation: 'executive' });
     const alonePhone = newPhone();
     await world.user(closing, { phone: alonePhone, designation: 'head', role: 'tenant_admin' });
     const file = await app.get(Database).forTenant(closing, (tx) =>

@@ -13,7 +13,6 @@ import { SignInScreen } from './sign-in';
 import { UpdateRequiredScreen } from './update-required';
 
 const TENANT = { id: '01a10000-0000-7000-8000-000000000001', name: 'Sunrise Traders', cellUrl: '' };
-const OTHER = { id: '01a10000-0000-7000-8000-000000000009', name: 'Harit Agri Inputs' };
 const later = () => new Date(Date.now() + 15 * 60_000).toISOString();
 
 /** A client that answers like the API, without one, and raises the client's events. */
@@ -34,11 +33,6 @@ function fakeClient(verify: (events: ClientEvents) => Promise<unknown>) {
       if (result.status === 'signed_in') signIn();
       return result;
     }),
-    selectTenant: jest.fn(async () => {
-      signIn();
-      return session;
-    }),
-    switchTenant: jest.fn(),
     signOut: jest.fn(async () => {
       session = null;
       events.onSignedOut();
@@ -154,20 +148,6 @@ describe('signing in on a phone', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
     expect(await screen.findByText('A mobile number starts with 6, 7, 8 or 9')).toBeOnTheScreen();
     expect(fake.client.requestCode).not.toHaveBeenCalled();
-  });
-
-  it('lets a person in two organisations choose one after the code', async () => {
-    const fake = fakeClient(async () => ({
-      status: 'choose_tenant',
-      ticket: 't'.repeat(43),
-      tenants: [{ id: TENANT.id, name: TENANT.name }, OTHER],
-    }));
-    await renderApp(fake);
-    await enterNumberAndCode();
-    expect(await screen.findByText('Choose an organisation')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Sunrise Traders' }));
-    expect(fake.client.selectTenant).toHaveBeenCalledWith('t'.repeat(43), TENANT.id);
-    expect(await screen.findByText('Hello, Anita Rao')).toBeOnTheScreen();
   });
 
   it('says what went wrong, in the chosen language', async () => {

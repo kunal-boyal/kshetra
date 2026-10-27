@@ -1,4 +1,4 @@
-import { newId } from '@thelamp/shared';
+import { newId, NUMBER_IN_USE } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ImportsService } from '../src/modules/imports/imports.service';
@@ -167,6 +167,20 @@ describe('importing people (Appendix B.1)', () => {
     const found = (await t.api.get('/v1/users?q=RE-1')).json().items;
     expect(found).toHaveLength(1);
     expect(found[0].name).toBe('Ravi Renamed');
+  });
+
+  it('refuses a number active in another organisation, without naming it (D103)', async () => {
+    const elsewhere = await tenant('Elsewhere Exports');
+    const taken = newPhone();
+    await world.user(elsewhere.tenantId, { phone: taken });
+    const t = await tenant('Careful Crops');
+    const checked = await importFile(
+      t,
+      'users',
+      csv([HEADER, ['CC-1', 'Taken Number', taken, 'manager', '-', '', '']]),
+    );
+    expect(checked.status).toBe('invalid');
+    expect(checked.errors).toEqual([{ row: 2, field: 'mobile', issue: NUMBER_IN_USE }]);
   });
 
   it('refuses the whole file, row by row, for a loop, a repeated code or an unclear name', async () => {

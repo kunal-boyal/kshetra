@@ -99,15 +99,11 @@ export const en = {
     other: 'You can ask for a new code in {count} seconds.',
   },
   'signin.other_number': 'Use a different number',
-  'signin.choose_title': 'Choose an organisation',
-  'signin.choose_intro':
-    'Your number belongs to more than one organisation. You can switch later from the menu.',
 
   // The web portal's frame (spec 8.2).
   'shell.navigation': 'Main menu',
   'shell.home': 'Home',
   'shell.account_menu': 'Your profile and settings',
-  'shell.switch_organisation': 'Switch organisation',
   'shell.sign_out': 'Sign out',
   'shell.security': 'Sign-in security',
   'stepup.title': 'Confirm it’s you',

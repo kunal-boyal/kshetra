@@ -10,10 +10,6 @@ import {
   OtpVerifyResult,
   RefreshBody,
   RefreshResult,
-  SelectTenantBody,
-  SelectTenantResult,
-  SignedIn,
-  SwitchTenantBody,
   TotpSetupBody,
   TotpSetupResult,
   TotpVerifyBody,
@@ -65,7 +61,7 @@ export class AuthController {
   @HttpCode(200)
   @Contract({
     tag: 'Sign-in',
-    summary: 'Sign in with the code, or get a ticket to choose a tenant',
+    summary: 'Sign in with the code',
     body: OtpVerifyBody,
     response: OtpVerifyResult,
   })
@@ -78,28 +74,6 @@ export class AuthController {
   ) {
     const { phone, code, device } = OtpVerifyBody.parse(body);
     const result = await this.otp.verify(phone, code, address, device);
-    return result.status === 'signed_in'
-      ? { ...result, session: await this.cookie.handOver(request, reply, result.session) }
-      : result;
-  }
-
-  @Post('select-tenant')
-  @HttpCode(200)
-  @Contract({
-    tag: 'Sign-in',
-    summary: 'Choose a tenant with the ticket from the code',
-    body: SelectTenantBody,
-    response: SelectTenantResult,
-  })
-  @Header('Cache-Control', 'no-store')
-  async selectTenant(
-    @Body() body: unknown,
-    @ClientIp() address: string,
-    @Req() request: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
-    const { ticket, tenantId, device } = SelectTenantBody.parse(body);
-    const result = await this.sessions.selectTenant(ticket, tenantId, device, address);
     return result.status === 'signed_in'
       ? { ...result, session: await this.cookie.handOver(request, reply, result.session) }
       : result;
@@ -157,31 +131,6 @@ export class AuthController {
       ...result,
       session: await this.cookie.handOver(request, reply, result.session, { endPrevious: false }),
     };
-  }
-
-  @Post('switch-tenant')
-  @HttpCode(200)
-  @Contract({
-    tag: 'Sign-in',
-    summary: "Switch to another of the person's tenants",
-    body: SwitchTenantBody,
-    response: SignedIn,
-  })
-  @Header('Cache-Control', 'no-store')
-  async switchTenant(
-    @Body() body: unknown,
-    @ClientIp() address: string,
-    @Req() request: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
-    const { refreshToken, tenantId, device } = SwitchTenantBody.parse(body);
-    const result = await this.sessions.switchTenant(
-      this.refreshToken(request, refreshToken),
-      tenantId,
-      device,
-      address,
-    );
-    return { ...result, session: await this.cookie.handOver(request, reply, result.session) };
   }
 
   @Post('logout')

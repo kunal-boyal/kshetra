@@ -10,6 +10,7 @@ import {
   needsSecondFactor,
   newId,
   normaliseMobile,
+  NUMBER_IN_USE,
   TENANT_PERMISSIONS,
   type SecondFactorStatus,
   type TenantPermission,
@@ -43,7 +44,7 @@ import { type Access, requireStepUp, type SupportAccess } from '../../platform/a
 import type { TenantTx } from '../../platform/database';
 import { AuditLog, userActor } from '../../platform/audit';
 import { Outbox } from '../../platform/outbox';
-import { SecondFactors } from '../../platform/planes';
+import { MembershipSync, SecondFactors } from '../../platform/planes';
 import {
   type Actor,
   actorId,
@@ -154,6 +155,7 @@ export class UsersService {
     private readonly fields: UserFieldsService,
     private readonly seats: Seats,
     private readonly secondFactors: SecondFactors,
+    private readonly members: MembershipSync,
   ) {}
 
   async list(tx: TenantTx, access: Access, query: UserListQuery): Promise<UserListResult> {
@@ -261,6 +263,7 @@ export class UsersService {
       }
     }
     await this.checkUnique(tx, tenantId, null, input.code, phone);
+    if (phone !== null) await this.checkNumberFree(tenantId, phone);
     if (input.managerId !== null) {
       await this.tree.lock(tx, tenantId);
       await this.checkManager(tx, tenantId, null, input.managerId);
@@ -365,6 +368,14 @@ export class UsersService {
       code === current.code ? null : code,
       phone === current.phoneE164 ? null : phone,
     );
+    // A new number, or an inactive person made active again, takes the number (decision D103).
+    if (
+      phone !== null &&
+      status === 'active' &&
+      (phone !== current.phoneE164 || current.status !== 'active')
+    ) {
+      await this.checkNumberFree(tenantId, phone);
+    }
 
     const managerChanged = managerId !== current.managerId;
     if (managerChanged || (status === 'active' && current.status === 'inactive')) {
@@ -699,6 +710,15 @@ export class UsersService {
     ];
     if (details.length > 0) {
       throw new AppError('CONFLICT', 'Another user already has these details.', details);
+    }
+  }
+
+  /** Refuses a number that signs in to another organisation: one person, one (decision D103). */
+  private async checkNumberFree(tenantId: string, phone: string): Promise<void> {
+    if ((await this.members.activeElsewhere([phone], tenantId)).has(phone)) {
+      throw new AppError('CONFLICT', 'This mobile number is already in use.', [
+        { path: 'phone', issue: NUMBER_IN_USE },
+      ]);
     }
   }
 
