@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { DashboardResult } from '@thelamp/shared';
+import type { DashboardResult, DashboardWaiting } from '@thelamp/shared';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { ShiftsService } from '../field/shifts.service';
@@ -36,13 +36,20 @@ export class DashboardService {
         ? (await this.shifts.onDuty(tx, access.tenantId, await this.scopes.userIds(tx, access)))
             .length
         : null,
-      waiting: {
-        reviews: can('submission.review') ? await this.submissions.waitingReview(tx, access) : null,
-        approvals:
-          can('approval.act') || can('account.approve')
-            ? await this.approvals.waitingCount(tx, access)
-            : null,
-      },
+      waiting: await this.waiting(tx, access),
+    };
+  }
+
+  /** What waits for the viewer: the dashboard's part, also read alone for the rail's counts. */
+  async waiting(tx: TenantTx, access: Access): Promise<DashboardWaiting> {
+    const can = (permission: Parameters<typeof access.permissions.has>[0]) =>
+      access.permissions.has(permission);
+    return {
+      reviews: can('submission.review') ? await this.submissions.waitingReview(tx, access) : null,
+      approvals:
+        can('approval.act') || can('account.approve')
+          ? await this.approvals.waitingCount(tx, access)
+          : null,
     };
   }
 }

@@ -27,3 +27,4 @@ export type { Part, StatTileProps, Step } from './measures';
 export { DescriptionList, PageHeader, Section } from './page';
 export type { PageHeaderProps } from './page';
 export { ChipList, ChoiceCard, SwitchRow } from './settings-parts';
+export { MenuButton } from './menu';

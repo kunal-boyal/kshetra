@@ -152,6 +152,7 @@ test('signs in with a number and a code, signs out, and every screen passes axe'
   await expectAccessible(page);
 
   // Signing out forgets what belonged to the person, so the next one on this computer sees none of it.
+  await page.getByRole('button', { name: 'Your profile and settings' }).click();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('tenants'))).toBeNull();
@@ -170,7 +171,7 @@ for (const theme of ['dark', 'outdoor'] as const) {
 test('speaks Hindi when chosen, with the extra line height Devanagari needs', async ({ page }) => {
   await mockApi(page);
   await page.goto('/sign-in');
-  await page.getByRole('combobox').selectOption('hi');
+  await page.getByRole('button', { name: /Switch to हिन्दी/ }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
   await expect(page.getByRole('heading', { name: 'साइन इन करें' })).toBeVisible();
   await expect(page.getByLabel('मोबाइल नंबर')).toBeVisible();
@@ -240,7 +241,7 @@ test('finds the organisation for single sign-on from a work email, and passes ax
   );
   await page.route('**/sso-start', (route) => route.fulfill({ body: 'Identity provider' }));
   await page.goto('/sign-in');
-  await page.getByRole('button', { name: 'Sign in with SSO' }).click();
+  await page.getByRole('button', { name: 'Company SSO' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in with your organisation' })).toBeVisible();
   await page.getByLabel('Work email').fill('anita@sunrise.example');
   await expectAccessible(page);

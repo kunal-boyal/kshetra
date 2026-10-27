@@ -113,6 +113,6 @@ describe('the territory tree', () => {
   it('only shows the tree to someone who may not change it', async () => {
     renderAt('/territories', fakeClient({ '/v1/territories': TREE }, {}, []));
     await screen.findByRole('table', { name: 'Territories, each under its parent' });
-    expect(screen.queryByRole('button', { name: /Edit|Add|Switch/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^(Edit|Add|Switch)/ })).not.toBeInTheDocument();
   });
 });

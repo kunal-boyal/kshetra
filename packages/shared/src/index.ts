@@ -783,7 +783,12 @@ export {
   ReportPage,
   ReportQuery,
 } from './schemas/reports';
-export { DASHBOARD_TILES, DashboardQuery, DashboardResult } from './schemas/dashboard';
+export {
+  DASHBOARD_TILES,
+  DashboardQuery,
+  DashboardResult,
+  DashboardWaiting,
+} from './schemas/dashboard';
 export {
   ACCENT_THEMES,
   collidesWithStatus,

@@ -1,0 +1,28 @@
+<!-- @dsCard group="Navigation" height=300 subtitle="The person’s menu behind their avatar" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MenuButton</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>html,body{margin:0}</style>
+</head>
+<body>
+<div class="ks ks-pv" data-density="compact">
+ <div style="display:flex;justify-content:flex-end;max-width:420px">
+  <div class="ks-menu-wrap">
+   <button type="button" class="ks-menu-trigger" aria-label="Your profile and settings" aria-expanded="true" aria-controls="m1"><span class="ks-ico round sm hue-lilac" aria-hidden="true">KD</span></button>
+   <div id="m1" class="ks-menu end" style="animation:none">
+    <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+     <div style="display:flex;align-items:center;gap:var(--space-3)"><span class="ks-ico round hue-lilac" aria-hidden="true">KD</span><div><p class="ks-title">Kavita Deshmukh</p><p class="ks-meta">Business Head</p></div></div>
+     <a class="ks-btn ghost sm" href="#" style="justify-content:flex-start">Sign-in security</a>
+     <span class="ks-picker"><select class="ks-input" aria-label="Theme"><option>Light</option><option>Dark</option><option>High contrast</option></select></span>
+     <button type="button" class="ks-btn secondary sm">Sign out</button>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+</body>
+</html>

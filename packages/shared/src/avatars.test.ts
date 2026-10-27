@@ -17,6 +17,9 @@ describe('initialsOf', () => {
     expect(initialsOf('Balasaheb Rao Ghuge')).toBe('BG');
     expect(initialsOf('sunita')).toBe('S');
     expect(initialsOf('   ')).toBe('');
+    // Words that don't start with a letter, such as "(demo)" or "&", are passed over.
+    expect(initialsOf('Harit Agri Inputs (demo)')).toBe('HI');
+    expect(initialsOf('Shah & Sons')).toBe('SS');
   });
 
   it('keeps a Devanagari letter whole, with its vowel sign', () => {

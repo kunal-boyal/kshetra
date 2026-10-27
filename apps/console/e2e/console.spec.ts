@@ -411,7 +411,9 @@ test('signs in with all three, signs out, and the sign-in screen passes axe', as
   await page.getByLabel(/^Authenticator code/).fill('123456');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Tenants' })).toBeVisible();
-  await expect(page.getByText('Meera Iyer, Platform admin')).toBeVisible();
+  // Who is signed in sits at the rail's foot (decision D104).
+  await expect(page.getByText('Meera Iyer', { exact: true })).toBeVisible();
+  await expect(page.getByText('Platform admin · two-step sign-in on')).toBeVisible();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
 });

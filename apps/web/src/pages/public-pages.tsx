@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import markUrl from '@thelamp/design-tokens/assets/Logos/mark-small.svg?url';
 import { useLanguage } from '../i18n';
 import { PRODUCT_NAME } from '../layout/brand';
-import { LanguagePicker } from '../layout/preferences-menu';
+import { LanguageToggle } from '../layout/preferences-menu';
 
 /** The provider's privacy address, set per build; without it the notice points to the store page. */
 const PRIVACY_EMAIL = import.meta.env.VITE_PRIVACY_EMAIL || undefined;
@@ -27,7 +27,7 @@ function PublicFrame({ children }: { children: ReactNode }) {
       <div className="ks-auth-form">
         <div className="flex flex-col gap-6">
           <div className="flex justify-end">
-            <LanguagePicker />
+            <LanguageToggle />
           </div>
           <Card>
             <article className="flex flex-col gap-4">{children}</article>

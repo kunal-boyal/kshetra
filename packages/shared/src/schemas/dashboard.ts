@@ -15,6 +15,11 @@ export const DashboardQuery = z.strictObject({ period: Period });
 
 const Person = z.object({ id: z.uuid(), code: z.string(), name: z.string() });
 
+/** What waits for the viewer, also read alone for the rail's counts; null for what they can't act on. */
+export const DashboardWaiting = z
+  .object({ reviews: z.int().nullable(), approvals: z.int().nullable() })
+  .meta({ id: 'DashboardWaiting' });
+
 export const DashboardResult = z
   .object({
     period: Period,
@@ -63,9 +68,10 @@ export const DashboardResult = z
     /** On duty now in the viewer's scope; null without the live map. */
     onDuty: z.int().nullable(),
     /** What waits for the viewer; null for what they can't act on. */
-    waiting: z.object({ reviews: z.int().nullable(), approvals: z.int().nullable() }),
+    waiting: DashboardWaiting,
   })
   .meta({ id: 'DashboardResult' });
 
 export type DashboardQuery = z.output<typeof DashboardQuery>;
 export type DashboardResult = z.infer<typeof DashboardResult>;
+export type DashboardWaiting = z.infer<typeof DashboardWaiting>;

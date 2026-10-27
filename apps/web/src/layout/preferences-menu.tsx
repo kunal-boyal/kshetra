@@ -1,5 +1,5 @@
 import type { Locale } from '@thelamp/shared';
-import { Picker } from '@thelamp/ui-web';
+import { cn, Icon, Picker } from '@thelamp/ui-web';
 import { Contrast, Languages, type LucideIcon, Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { useLanguage } from '../i18n';
@@ -13,21 +13,25 @@ const LANGUAGES: { locale: Locale; name: string }[] = [
 /** The theme picker shows the theme it is in. */
 const THEME_ICONS: Record<Theme, LucideIcon> = { light: Sun, dark: Moon, outdoor: Contrast };
 
-/** Each language named in itself, so anyone can find their own. */
-export function LanguagePicker() {
+/**
+ * One tap to the other language (decision D104), named in itself so anyone can find their own;
+ * with two languages a list has nothing to choose between.
+ */
+export function LanguageToggle({ className }: { className?: string }) {
   const { locale, setLocale, t } = useLanguage();
+  const other = LANGUAGES.find((language) => language.locale !== locale)!;
+  const current = LANGUAGES.find((language) => language.locale === locale)!;
   return (
-    <Picker
-      label={t('shell.language')}
-      icon={Languages}
-      value={locale}
-      onChange={(event) => setLocale(event.target.value as Locale)}
-      options={LANGUAGES.map((language) => ({
-        value: language.locale,
-        label: language.name,
-        lang: language.locale,
-      }))}
-    />
+    <button
+      type="button"
+      className={cn('ks-btn ghost sm', className)}
+      lang={other.locale}
+      aria-label={t('shell.language_switch', { current: current.name, other: other.name })}
+      onClick={() => setLocale(other.locale)}
+    >
+      <Icon icon={Languages} size="sm" />
+      {other.name}
+    </button>
   );
 }
 

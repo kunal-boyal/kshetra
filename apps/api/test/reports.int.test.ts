@@ -292,6 +292,13 @@ describe('the home dashboard (M18)', () => {
     });
     expect(own.mix[0]).toMatchObject({ pending: 1 });
     expect((await t.api.asha.get('/v1/dashboard?period=2026-13')).statusCode).toBe(400);
+
+    // The rail's counts are the dashboard's own part, read alone (phase U, decision D104).
+    expect((await t.api.manager.get('/v1/dashboard/waiting')).json()).toEqual(team.waiting);
+    expect((await t.api.asha.get('/v1/dashboard/waiting')).json()).toEqual({
+      reviews: null,
+      approvals: null,
+    });
   });
 });
 

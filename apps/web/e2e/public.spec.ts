@@ -34,7 +34,7 @@ test('the privacy notice is public, stays put without a session, and passes axe'
   await expect(page).toHaveURL(/\/privacy$/);
   await expectAccessible(page);
 
-  await page.getByRole('combobox').selectOption('hi');
+  await page.getByRole('button', { name: /Switch to हिन्दी/ }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'निजता सूचना' })).toBeVisible();
   await expectAccessible(page);
 });

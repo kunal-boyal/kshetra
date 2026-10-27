@@ -82,6 +82,12 @@ export const en = {
 
   // Signing in (spec 8.1, module M1).
   'signin.title': 'Sign in',
+  'signin.subtitle': 'We send a one-time code. There is no password.',
+  'signin.method': 'Sign in with',
+  'signin.method_phone': 'Mobile number',
+  'signin.method_sso': 'Company SSO',
+  'signin.two_step_note': 'Two-step sign-in is on for admins',
+  'signin.used_by': 'Used by sales teams in agri inputs, pharma and FMCG.',
   'signin.tagline': 'Field work, seen clearly.',
   'signin.tagline_body':
     'Plans, visits, photos and figures from everyone in the field, in one place by evening.',
@@ -155,6 +161,7 @@ export const en = {
   'shell.theme_dark': 'Dark',
   'shell.theme_outdoor': 'High contrast',
   'shell.skip': 'Skip to content',
+  'shell.language_switch': 'Language: {current}. Switch to {other}',
   'nav.section_work': 'Daily work',
   'nav.section_team': 'Team',
   'nav.section_places': 'Places',
@@ -671,6 +678,7 @@ export const en = {
   'nav.accounts': '{term.account:other}',
   'nav.approvals': 'Approvals',
   'nav.review': 'Review',
+  'nav.waiting': '{label}, {count} waiting',
   'team.title': 'Team',
   'team.to_review': { one: '{count} to review', other: '{count} to review' },
   'team.flags': { one: '{count} flag', other: '{count} flags' },
@@ -2872,6 +2880,12 @@ export const en = {
   // The platform console (module M22, decision D88).
   'console.label': 'console',
   'console.nav': 'Console',
+  'console.section_customers': 'Customers',
+  'console.section_money': 'Money',
+  'console.section_operations': 'Operations',
+  'console.two_step_on': 'two-step sign-in on',
+  'console.environment_production': 'Production',
+  'console.environment_staging': 'Staging',
   'console.tagline': 'For the team that runs the product: tenants, plans and support.',
   'console.tenants': 'Tenants',
   'console.staff': 'Staff',
