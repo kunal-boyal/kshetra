@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodePolyline, isStale, pathLengthMeters, positionAt } from './maps';
+import { decodePolyline, isStale, offPlan, pathLengthMeters, positionAt } from './maps';
 import { encodePolyline } from './tracking';
 
 describe('maps (M17)', () => {
@@ -45,5 +45,22 @@ describe('maps (M17)', () => {
     const now = new Date('2026-10-21T10:00:00Z');
     expect(isStale('2026-10-21T09:46:00Z', now)).toBe(false);
     expect(isStale('2026-10-21T09:44:59Z', now)).toBe(true);
+  });
+});
+
+describe('off the plan (decision D104)', () => {
+  const shop = { lat: 28.6315, lng: 77.2167 };
+  // About 1.1 km north for each 0.01 degree.
+  const north = (km: number) => ({ lat: shop.lat + km / 111.32, lng: shop.lng });
+
+  it('is off only when farther than ten radii from every planned account', () => {
+    expect(offPlan(north(0.9), [shop], 100)).toBe(false);
+    expect(offPlan(north(1.1), [shop], 100)).toBe(true);
+    expect(offPlan(north(1.1), [shop, north(1.5)], 100)).toBe(false);
+  });
+
+  it('is never off without a position or a located plan', () => {
+    expect(offPlan(null, [shop], 100)).toBe(false);
+    expect(offPlan(north(50), [], 100)).toBe(false);
   });
 });

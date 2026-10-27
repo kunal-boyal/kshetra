@@ -5,6 +5,7 @@ import {
   DENSITY_CELL_DEG,
   type DensityResult,
   type LiveResult,
+  offPlan,
   pathLengthMeters,
   todayIn,
   type TrailResult,
@@ -20,6 +21,7 @@ import { VisitsService } from '../field/visits.service';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
 import { Scopes } from '../iam/scopes';
+import { PlanningService } from '../planning/planning.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 /** The most account pins one map takes (M17). */
@@ -43,20 +45,30 @@ export class MapsService {
     private readonly visits: VisitsService,
     private readonly locations: LocationsService,
     private readonly trails: TrailsService,
+    private readonly planning: PlanningService,
   ) {}
 
-  /** Everyone on duty in the caller's scope, with their newest position and current visit. */
+  /**
+   * Everyone on duty in the caller's scope, with their newest position, current visit, today's
+   * visits against their plan, where they are, and whether they are off the plan (decision D104).
+   */
   async live(tx: TenantTx, access: Access): Promise<LiveResult> {
     const tenantId = access.tenantId;
     const rows = await this.shifts.onDuty(tx, tenantId, await this.scopes.userIds(tx, access));
     const ids = rows.map((row) => row.userId);
     const people = await this.people.facts(tx, tenantId, ids);
     const visits = await this.visits.openFor(tx, tenantId, ids);
+    const { timezone, geofenceRadiusMeters } = await this.config.settings(tx, tenantId);
+    const today = todayIn(timezone);
+    const done = await this.visits.dayCounts(tx, tenantId, ids, today, timezone);
+    const plans = await this.planning.todayFor(tx, tenantId, ids, today);
+    const places = await this.accounts.geofences(tx, tenantId, [...plans.values()].flat());
     return {
       people: rows.flatMap((row) => {
         const person = people.get(row.userId);
         if (!person) return [];
         const visit = visits.get(row.userId);
+        const planned = plans.get(row.userId);
         return [
           {
             user: { id: person.id, code: person.code, name: person.name },
@@ -70,6 +82,16 @@ export class MapsService {
             visit: visit
               ? { account: visit.account, checkInAt: visit.checkInAt.toISOString() }
               : null,
+            visits: { done: done.get(row.userId)?.visits ?? 0, planned: planned?.length ?? null },
+            place: visit?.account.name ?? done.get(row.userId)?.last ?? null,
+            offPlan: offPlan(
+              row.position,
+              (planned ?? []).flatMap((id) => {
+                const place = places.get(id);
+                return place ? [place.location] : [];
+              }),
+              geofenceRadiusMeters,
+            ),
           },
         ];
       }),

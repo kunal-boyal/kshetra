@@ -61,6 +61,43 @@ body {
 .ks-map-dot.neutral {
   --dot: var(--text-subtle);
 }
+/* People on the live map (decision D104): moving or at a visit, off the plan, or no signal. */
+.ks-map-dot.inside {
+  --dot: var(--map-inside);
+}
+.ks-map-dot.outside {
+  --dot: var(--map-outside);
+}
+.ks-map-dot.stale {
+  --dot: var(--map-stale);
+}
+/* A person's dot with their initials in a tag beside it. */
+.ks-map-person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.ks-map-legend {
+  padding: var(--space-2) var(--space-3);
+}
+/* Over the map's bottom-left corner, where the map is wide enough to hold it. */
+.ks-map-frame {
+  position: relative;
+}
+.ks-map-frame > .ks-map-legend {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  max-width: calc(100% - var(--space-6));
+}
+.ks-map-tag {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
 /* Account types take the chart series in order; an account not visited this month is hollow. */
 .ks-map-dot.series-1 {
   --dot: var(--chart-1);

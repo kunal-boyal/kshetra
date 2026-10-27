@@ -15,6 +15,7 @@ import { PlanPage } from './planning/plan-page';
 import { ReviewPage } from './review/review-page';
 import { DensityPage } from './maps/density-page';
 import { LiveMapPage } from './maps/live-map-page';
+import { liveMapSearch } from './maps/views';
 import { ReplayPage } from './maps/replay-page';
 import { NotificationsPage } from './notifications/notifications-page';
 import { LeaderboardPage } from './performance/leaderboard-page';
@@ -253,7 +254,11 @@ const personPerformance = createRoute({
 const liveMap = createRoute({
   getParentRoute: () => app,
   path: '/live-map',
-  component: LiveMapPage,
+  validateSearch: liveMapSearch,
+  component: function LiveMapRoute() {
+    const { view } = liveMap.useSearch();
+    return <LiveMapPage key={view ?? 'live'} {...(view ? { view } : {})} />;
+  },
 });
 const reports = createRoute({
   getParentRoute: () => app,

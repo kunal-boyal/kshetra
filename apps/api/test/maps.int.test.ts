@@ -173,6 +173,49 @@ describe('the live map (M17)', () => {
     expect((await t.api.asha.get('/v1/live')).json().error.code).toBe('FORBIDDEN');
   });
 
+  it('says how each person’s day goes against the plan, and when they are off it (decision D104)', async () => {
+    const t = await tenant('Plan Co');
+    const unplanned = (await t.api.manager.get('/v1/live')).json().people[0];
+    expect(unplanned).toMatchObject({
+      visits: { done: 0, planned: null },
+      place: null,
+      offPlan: false,
+    });
+
+    const planned = await t.api.asha.post('/v1/plan-items', {
+      id: newId(),
+      userId: t.asha.id,
+      accountId: t.shop,
+      date: todayIn('Asia/Kolkata'),
+      purpose: 'Restock',
+    });
+    expect(planned.statusCode, planned.body).toBe(201);
+    await walk(t.api.asha, t.shiftId, t.start);
+    const visit = await t.api.asha.post('/v1/visits', {
+      id: newId(),
+      accountId: t.shop,
+      checkedInAt: new Date().toISOString(),
+      fix: fix(Date.now()),
+    });
+    expect(visit.statusCode).toBe(201);
+    expect((await t.api.manager.get('/v1/live')).json().people[0]).toMatchObject({
+      visits: { done: 1, planned: 1 },
+      place: 'Sharma Stores',
+      offPlan: false,
+    });
+
+    // Five kilometres north of the only planned shop: off the plan.
+    const far = { lat: HERE.lat + 0.045, lng: HERE.lng };
+    const moved = await t.api.asha.post('/v1/locations/batch', {
+      points: [point(t.shiftId, t.start + 40 * MIN, far)],
+    });
+    expect(moved.json().accepted).toHaveLength(1);
+    expect((await t.api.manager.get('/v1/live')).json().people[0]).toMatchObject({
+      position: far,
+      offPlan: true,
+    });
+  });
+
   it('pins the accounts the caller sees, marked once visited this month', async () => {
     const t = await tenant('Pins Co');
     const before = (await t.api.asha.get('/v1/account-pins')).json();

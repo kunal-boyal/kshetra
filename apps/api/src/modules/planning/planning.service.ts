@@ -598,6 +598,31 @@ export class PlanningService {
       );
   }
 
+  /** The accounts in each of these people's plans for a date, but cancelled items (M17). */
+  async todayFor(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    date: string,
+  ): Promise<Map<string, string[]>> {
+    const found = new Map<string, string[]>();
+    if (userIds.length === 0) return found;
+    const rows = await tx
+      .select({ userId: planItems.userId, accountId: planItems.accountId })
+      .from(planItems)
+      .where(
+        and(
+          eq(planItems.tenantId, tenantId),
+          inArray(planItems.userId, [...new Set(userIds)]),
+          eq(planItems.date, date),
+          sql`${planItems.status} <> 'cancelled'`,
+        ),
+      );
+    for (const row of rows)
+      found.set(row.userId, [...(found.get(row.userId) ?? []), row.accountId]);
+    return found;
+  }
+
   /** Who has plan items on a date, and how many, for the morning notification (M16). */
   async dueOn(
     tx: TenantTx,

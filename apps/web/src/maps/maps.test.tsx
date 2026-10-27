@@ -28,6 +28,9 @@ const LIVE = {
         account: { id: SHOP, code: 'C-80', name: 'Sharma Stores' },
         checkInAt: minutesAgo(10),
       },
+      visits: { done: 4, planned: 8 },
+      place: 'Sharma Stores',
+      offPlan: false,
     },
     {
       user: person(RAVI, 'Ravi Kumar'),
@@ -39,6 +42,23 @@ const LIVE = {
       battery: null,
       seenAt: minutesAgo(40),
       visit: null,
+      visits: { done: 2, planned: null },
+      place: 'Gupta Traders',
+      offPlan: false,
+    },
+    {
+      user: person('01a10000-0000-7000-8000-000000000006', 'Neha Joshi'),
+      shiftId: '01a10000-0000-7000-8000-0000000000c3',
+      onDutySince: minutesAgo(60),
+      paused: false,
+      position: { lat: 28.7, lng: 77.3 },
+      accuracy: 15,
+      battery: 60,
+      seenAt: minutesAgo(0),
+      visit: null,
+      visits: { done: 1, planned: 5 },
+      place: null,
+      offPlan: true,
     },
   ],
 };
@@ -76,26 +96,42 @@ const TRAIL = {
 
 const MAPS = ['live_map.view', 'trail.view', 'account.view'] as const;
 
-describe('the live map (M17)', () => {
-  it('lists who is on duty, flags a stale position, and offers each day’s replay', async () => {
+describe('the live map (M17, decision D104)', () => {
+  it('counts who is moving, off the plan and without a signal, and says how each day goes', async () => {
     renderAt('/live-map', fakeClient({ '/v1/live': LIVE }, {}, MAPS));
-    const list = await screen.findByRole('region', { name: 'People on duty' });
-    expect(await within(list).findByRole('heading', { name: '2 on duty' })).toBeVisible();
+    const list = await screen.findByRole('region', { name: '3 on duty' });
+    expect(within(list).getByText('1 moving')).toHaveClass('ks-badge', 'success');
+    expect(within(list).getByText('1 off the plan')).toHaveClass('ks-badge', 'waiting');
+    expect(within(list).getByText('1 no signal')).toHaveClass('ks-badge', 'neutral');
     const items = within(list).getAllByRole('listitem');
-    expect(items[0]).toHaveTextContent('Asha Rao');
-    expect(items[0]).toHaveTextContent('Seen 3 minutes ago');
-    expect(items[0]).toHaveTextContent('At Sharma Stores');
-    expect(items[0]).not.toHaveTextContent('Not seen for 15 minutes');
-    expect(items[1]).toHaveTextContent('Not seen for 15 minutes');
-    expect(items[1]).toHaveTextContent('Paused');
-    expect(within(items[0]!).getByRole('link', { name: 'Day replay' })).toHaveAttribute(
-      'href',
-      `/people/${ASHA}/replay`,
-    );
-    // No Maps key in tests: the map says so, and the list still works.
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Asha RaoAt Sharma Stores · visit 4 of 8' + '3 min',
+      'Ravi KumarPaused · 2 visits' + '40 min',
+      'Neha JoshiOff today’s journey plan · visit 1 of 5' + 'now',
+    ]);
+    expect(items[0]!.querySelector('.ks-map-dot')).toHaveClass('inside');
+    expect(items[1]!.querySelector('.ks-map-dot')).toHaveClass('stale');
+    expect(items[2]!.querySelector('.ks-map-dot')).toHaveClass('outside');
+    // A row opens that person's day.
+    expect(within(items[0]!).getByRole('link')).toHaveAttribute('href', `/people/${ASHA}/replay`);
+    // No Maps key in tests: the map says so, and the key and the list still show.
     expect(screen.getByRole('img', { name: 'Map of the people on duty' })).toHaveTextContent(
       'Maps need a Google Maps key',
     );
+    expect(screen.getByRole('list', { name: 'Key to the map' })).toHaveTextContent(
+      'Moving or at a visit',
+    );
+  });
+
+  it('opens a chosen person’s day from the Day replay view', async () => {
+    renderAt('/live-map', fakeClient({ '/v1/live': LIVE, '/v1/trails': TRAIL }, {}, MAPS));
+    const user = userEvent.setup();
+    const views = await screen.findByRole('group', { name: 'Map view' });
+    // Day replay shows once the viewer's permissions are read.
+    await user.click(await within(views).findByRole('button', { name: 'Day replay' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Person' }), ASHA);
+    await user.click(screen.getByRole('button', { name: 'Open their day' }));
+    expect(await screen.findByRole('heading', { level: 1, name: /Asha Rao/ })).toBeVisible();
   });
 });
 
@@ -133,7 +169,8 @@ describe('the accounts layer (M17)', () => {
     );
     renderAt('/live-map', client);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('checkbox', { name: /Show/ }));
+    const views = await screen.findByRole('group', { name: 'Map view' });
+    await user.click(within(views).getByRole('button', { name: 'Account pins' }));
     const key = await screen.findByRole('group', { name: 'Key to the map' });
     // Only the types on the map, each in its own series colour: the type's place in the list.
     const types = within(key).getAllByRole('listitem');
