@@ -8,6 +8,54 @@ const minimumVersion = z
   .transform((value) => value || undefined)
   .pipe(z.string().regex(APP_VERSION, 'Use a version such as 1.4.0').optional());
 
+export const PROCESS_ROLES = ['api', 'worker', 'scheduler'] as const;
+
+/**
+ * The cell secret's keys (docs/runbooks/deploy.md), and which each process holds (decision D101):
+ * the API all of them; the worker what its jobs use (sealed secrets, archives, media links, SMS
+ * and mail); the scheduler, which only adds jobs and reports health, the databases alone. The
+ * cell's Terraform (`infra/modules/cell/services.tf`) gives each process the same lists.
+ */
+export type CellSecret =
+  | 'DATABASE_URL'
+  | 'DIRECTORY_DATABASE_URL'
+  | 'OTP_PEPPER'
+  | 'COLUMN_KEY'
+  | 'COLUMN_KEY_PREVIOUS'
+  | 'ARCHIVE_SIGNING_KEY'
+  | 'JWT_SIGNING_KEY'
+  | 'JWT_PUBLISHED_KEYS'
+  | 'CLOUDFRONT_PRIVATE_KEY'
+  | 'MSG91_AUTH_KEY'
+  | 'SMTP_URL';
+
+const DATABASES: CellSecret[] = ['DATABASE_URL', 'DIRECTORY_DATABASE_URL'];
+
+export const ROLE_SECRETS: Record<(typeof PROCESS_ROLES)[number], readonly CellSecret[]> = {
+  api: [
+    ...DATABASES,
+    'OTP_PEPPER',
+    'COLUMN_KEY',
+    'COLUMN_KEY_PREVIOUS',
+    'ARCHIVE_SIGNING_KEY',
+    'JWT_SIGNING_KEY',
+    'JWT_PUBLISHED_KEYS',
+    'CLOUDFRONT_PRIVATE_KEY',
+    'MSG91_AUTH_KEY',
+    'SMTP_URL',
+  ],
+  worker: [
+    ...DATABASES,
+    'COLUMN_KEY',
+    'COLUMN_KEY_PREVIOUS',
+    'ARCHIVE_SIGNING_KEY',
+    'CLOUDFRONT_PRIVATE_KEY',
+    'MSG91_AUTH_KEY',
+    'SMTP_URL',
+  ],
+  scheduler: DATABASES,
+};
+
 /** The API's settings (spec Appendix F). Production values come from Secrets Manager or the task definition. */
 const schema = z
   .object({
@@ -94,6 +142,9 @@ const schema = z
     // What the cell is for (decision D70). A `demo` cell shows the product to prospects: it may run
     // without SMS, email or push providers, printing those messages with numbers masked instead.
     CELL_PURPOSE: z.enum(['live', 'demo']).default('live'),
+    // Which of the cell's processes this is (decision D101): each holds only the secrets it uses
+    // (`ROLE_SECRETS`), so production asks each for those alone. Tools run as `api`.
+    PROCESS_ROLE: z.enum(PROCESS_ROLES).default('api'),
     // Error reports to Sentry (decision D98): off until a DSN is set. The environment and release
     // name where an error came from, such as the cell and the image's commit.
     SENTRY_DSN: z.url().optional(),
@@ -215,11 +266,23 @@ const schema = z
     // Mailpit locally; Amazon SES's SMTP endpoint in AWS.
     SMTP_URL: z.url().default('smtp://127.0.0.1:1025'),
     MAIL_FROM: z.string().min(3).optional(),
-    // The secret one-time codes are hashed with (spec M1, rule 3).
-    OTP_PEPPER: z.string().min(16),
+    // The secret one-time codes are hashed with (spec M1, rule 3); the API's alone.
+    OTP_PEPPER: z.string().min(16).optional(),
     // The key that seals secrets kept in columns, such as TOTP seeds (spec 13.2): 32 random bytes
     // in base64. Production needs it; elsewhere one is derived from OTP_PEPPER.
     COLUMN_KEY: z
+      .string()
+      .optional()
+      .transform((value) => value || undefined)
+      .pipe(
+        z
+          .string()
+          .refine((value) => Buffer.from(value, 'base64').length === 32, 'Use 32 bytes in base64')
+          .optional(),
+      ),
+    // The column key before the current one, while values it sealed are sealed again under the
+    // new one (`pnpm reseal`, decision D101); unset once they are.
+    COLUMN_KEY_PREVIOUS: z
       .string()
       .optional()
       .transform((value) => value || undefined)
@@ -285,8 +348,15 @@ const schema = z
       .string()
       .optional()
       .transform((pem) => (pem ? pem.replace(/\\n/g, '\n') : undefined)),
+    // Other keys whose public halves the JWKS also publishes, as PEMs, private or public: the next
+    // key before it signs, then the last one until its tokens run out (decision D101).
+    JWT_PUBLISHED_KEYS: z
+      .string()
+      .optional()
+      .transform((pem) => (pem ? pem.replace(/\\n/g, '\n') : undefined)),
   })
   .superRefine((config, ctx) => {
+    const holds = (key: CellSecret) => ROLE_SECRETS[config.PROCESS_ROLE].includes(key);
     if (config.OTP_PROVIDER === 'none' && config.CELL_PURPOSE !== 'demo') {
       ctx.addIssue({
         code: 'custom',
@@ -324,7 +394,7 @@ const schema = z
           });
         }
       }
-      if (!config.JWT_SIGNING_KEY) {
+      if (holds('JWT_SIGNING_KEY') && !config.JWT_SIGNING_KEY) {
         ctx.addIssue({
           code: 'custom',
           path: ['JWT_SIGNING_KEY'],
@@ -338,14 +408,14 @@ const schema = z
           message: 'Production needs the URL apps reach this cell at.',
         });
       }
-      if (!config.COLUMN_KEY) {
+      if (holds('COLUMN_KEY') && !config.COLUMN_KEY) {
         ctx.addIssue({
           code: 'custom',
           path: ['COLUMN_KEY'],
           message: 'Production needs a column key of its own, not one derived from the pepper.',
         });
       }
-      if (!config.ARCHIVE_SIGNING_KEY) {
+      if (holds('ARCHIVE_SIGNING_KEY') && !config.ARCHIVE_SIGNING_KEY) {
         ctx.addIssue({
           code: 'custom',
           path: ['ARCHIVE_SIGNING_KEY'],
@@ -370,7 +440,11 @@ const schema = z
             message: 'Production uses rediss:// with REDIS_PASSWORD.',
           });
         }
-        if (config.EMAIL_PROVIDER === 'smtp' && !config.SMTP_URL.startsWith('smtps://')) {
+        if (
+          holds('SMTP_URL') &&
+          config.EMAIL_PROVIDER === 'smtp' &&
+          !config.SMTP_URL.startsWith('smtps://')
+        ) {
           ctx.addIssue({
             code: 'custom',
             path: ['SMTP_URL'],
@@ -378,7 +452,7 @@ const schema = z
           });
         }
       }
-      if (config.OTP_PEPPER.length < 32) {
+      if (config.OTP_PEPPER && config.OTP_PEPPER.length < 32) {
         ctx.addIssue({
           code: 'custom',
           path: ['OTP_PEPPER'],
@@ -386,7 +460,11 @@ const schema = z
         });
       }
     }
+    if (holds('OTP_PEPPER') && !config.OTP_PEPPER) {
+      ctx.addIssue({ code: 'custom', path: ['OTP_PEPPER'], message: 'The API needs OTP_PEPPER.' });
+    }
     if (
+      holds('MSG91_AUTH_KEY') &&
       (config.OTP_PROVIDER === 'msg91' || config.SMS_PROVIDER === 'msg91') &&
       !config.MSG91_AUTH_KEY
     ) {

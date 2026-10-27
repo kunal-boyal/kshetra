@@ -303,6 +303,27 @@ export class SecondFactorService extends SecondFactors {
     });
   }
 
+  /**
+   * Seals every authenticator's secret again under the current column key, after a rotation
+   * (`pnpm reseal`, decision D101); `only` names the identities, every one by default.
+   */
+  async resealSecrets(only?: readonly string[]): Promise<number> {
+    const rows = await this.database.db
+      .select({ identityId: totpSecrets.identityId, secretSealed: totpSecrets.secretSealed })
+      .from(totpSecrets)
+      .where(only ? inArray(totpSecrets.identityId, [...only]) : undefined);
+    let resealed = 0;
+    for (const row of rows) {
+      if (this.cipher.isCurrent(row.secretSealed)) continue;
+      await this.database.db
+        .update(totpSecrets)
+        .set({ secretSealed: this.cipher.reseal(row.secretSealed, where(row.identityId)) })
+        .where(eq(totpSecrets.identityId, row.identityId));
+      resealed += 1;
+    }
+    return resealed;
+  }
+
   /** Which of a tenant's people have an authenticator set up, by user. */
   async enrolled(tenantId: string, userIds: readonly string[]): Promise<Set<string>> {
     if (userIds.length === 0) return new Set();

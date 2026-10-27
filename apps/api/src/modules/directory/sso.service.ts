@@ -117,6 +117,26 @@ export class SsoService {
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
+  /**
+   * Seals every SSO connection's settings again under the current column key, after a rotation
+   * (`pnpm reseal`, decision D101).
+   */
+  async resealSecrets(): Promise<number> {
+    const rows = await this.database.db
+      .select({ tenantId: ssoConnections.tenantId, configSealed: ssoConnections.configSealed })
+      .from(ssoConnections);
+    let resealed = 0;
+    for (const row of rows) {
+      if (this.cipher.isCurrent(row.configSealed)) continue;
+      await this.database.db
+        .update(ssoConnections)
+        .set({ configSealed: this.cipher.reseal(row.configSealed, where(row.tenantId)) })
+        .where(eq(ssoConnections.tenantId, row.tenantId));
+      resealed += 1;
+    }
+    return resealed;
+  }
+
   /** What the identity provider's admin registers, for a tenant's slug. */
   urls(slug: string) {
     const base = `${this.config.WEB_URL}/auth/v1/sso/${slug}`;

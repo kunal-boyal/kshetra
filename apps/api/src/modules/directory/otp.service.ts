@@ -59,6 +59,12 @@ export class OtpService {
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
+  /** The secret codes are hashed with; the API holds it, as the config checks (decision D101). */
+  private pepper(): string {
+    if (!this.config.OTP_PEPPER) throw new Error('This process holds no OTP_PEPPER.');
+    return this.config.OTP_PEPPER;
+  }
+
   async request(rawPhone: string, address: string): Promise<OtpRequestResult> {
     const phone = parsePhone(rawPhone);
     await this.limiter.hit(OTP_LIMITS.requestsPerAddress, address);
@@ -74,7 +80,7 @@ export class OtpService {
     await this.database.db.insert(otpChallenges).values({
       id,
       identityKey: phone,
-      codeHmac: codeHmac(this.config.OTP_PEPPER, id, code),
+      codeHmac: codeHmac(this.pepper(), id, code),
       channel: !registered ? 'none' : demoCode ? 'demo' : 'sms',
       expiresAt: new Date(Date.now() + OTP.ttlSeconds * 1000),
       ip: address,
@@ -144,7 +150,7 @@ export class OtpService {
       ) {
         return 'expired';
       }
-      if (!sameDigest(challenge.codeHmac, codeHmac(this.config.OTP_PEPPER, challenge.id, code))) {
+      if (!sameDigest(challenge.codeHmac, codeHmac(this.pepper(), challenge.id, code))) {
         const attempts = challenge.attempts + 1;
         await tx.update(otpChallenges).set({ attempts }).where(eq(otpChallenges.id, challenge.id));
         return attempts >= OTP.maxAttempts ? 'wrong-expired' : 'invalid';

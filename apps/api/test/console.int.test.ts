@@ -138,7 +138,7 @@ describe('vendor staff (decision D88)', () => {
       'select totp_secret, password_hash from directory.platform_users where email = $1',
       [email],
     );
-    expect(rows[0].totp_secret).toMatch(/^v1:/);
+    expect(rows[0].totp_secret).toMatch(/^v2:[0-9a-f]{8}:/);
     expect(rows[0].totp_secret).not.toContain(secret);
     expect(rows[0].password_hash).toMatch(/^scrypt\$/);
   });

@@ -9,6 +9,7 @@ export default defineConfig({
     'src/bootstrap.ts',
     'src/provision.ts',
     'src/invite-staff.ts',
+    'src/reseal.ts',
     'src/licence.ts',
     'src/archive.ts',
     'src/tenant-move.ts',

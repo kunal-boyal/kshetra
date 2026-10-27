@@ -1,10 +1,4 @@
-import {
-  daysBefore,
-  LOCATION_PARTITION_KEEP_DAYS,
-  newId,
-  SETTING_DEFAULTS,
-  todayIn,
-} from '@thelamp/shared';
+import { daysBefore, newId, SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { parquetReadObjects } from 'hyparquet';
 import pg from 'pg';
@@ -247,30 +241,40 @@ describe('location partitions (decision D69)', () => {
 
   it('drops old partitions once every tenant has emptied them, and keeps any still holding points', async () => {
     const t = await worker('Partition Co');
-    // The database was made today, with a week of partitions behind it; one of them has a point.
-    expect(await partitions()).toEqual(expect.arrayContaining([named(6), named(5)]));
-    const noon = new Date(Date.now() - 5 * DAY);
-    noon.setUTCHours(12, 0, 0, 0);
+    // The database was made today, with a week of partitions behind it.
+    expect(await partitions()).toEqual(expect.arrayContaining([named(6), named(0)]));
+    // Two days of its own long past, so files running beside it, which write points in the last
+    // weeks, can't fill or empty them: one empty, one with a point.
+    for (const day of ['2001-01-01', '2001-01-02']) {
+      const name = `location_points_p${day.replaceAll('-', '')}`;
+      await sql(
+        `create table if not exists cell.${name} partition of cell.location_points
+           for values from ('${day} 00:00:00+00') to ('${day} 00:00:00+00'::timestamptz + interval '1 day')`,
+      );
+      await sql(`alter table cell.${name} owner to migrator`);
+    }
     await world.database.forTenant(t.tenantId, (tx) =>
       tx.insert(locationPoints).values({
         tenantId: t.tenantId,
         id: newId(),
         shiftId: t.shiftId,
         userId: t.userId,
-        capturedAt: noon,
+        capturedAt: new Date('2001-01-02T12:00:00Z'),
         point: pointSql(HERE),
         accuracy: 10,
         source: 'background',
       }),
     );
-    // Run as though the keeping time had passed for everything older than 4 days.
-    const now = new Date(Date.now() + (LOCATION_PARTITION_KEEP_DAYS - 4) * DAY);
-    expect(await app.get(FieldUpkeep).partitions(now)).toBeGreaterThan(0);
+    // Today's run: only partitions past the keeping time are looked at, so the last weeks' stay.
+    expect(await app.get(FieldUpkeep).partitions()).toBeGreaterThan(0);
     const left = await partitions();
-    expect(left).not.toContain(named(6));
-    expect(left).toContain(named(5));
+    expect(left).not.toContain('location_points_p20010101');
+    expect(left).toContain('location_points_p20010102');
+    expect(left).toContain(named(6));
     expect(left).toContain(named(0));
     expect(left).toContain('location_points_default');
+    // Tidy up the day this test filled.
+    await sql('drop table cell.location_points_p20010102');
   });
 
   it('runs only as the cell, never for anyone else', async () => {

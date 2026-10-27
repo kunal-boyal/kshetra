@@ -38,32 +38,50 @@ export function publicKeyId(publicKey: KeyObject): string {
 
 /**
  * Signs tenant archives (decision D95) with the cell's Ed25519 key, from `ARCHIVE_SIGNING_KEY`.
- * Production needs it. Elsewhere, without one, the seed is derived from `OTP_PEPPER`, so a local
- * archive still checks out after a restart.
+ * Production needs it where archives are made or their key shown; it is read when first needed,
+ * so a process that does neither holds none (decision D101). Elsewhere, without one, the seed is
+ * derived from `OTP_PEPPER`, so a local archive still checks out after a restart.
  */
 @Injectable()
 export class ArchiveSigner {
-  private readonly privateKey: KeyObject;
-  readonly publicKeyPem: string;
-  readonly keyId: string;
+  private key: { privateKey: KeyObject; publicKeyPem: string; keyId: string } | undefined;
 
-  constructor(@Inject(CONFIG) config: Config) {
+  constructor(@Inject(CONFIG) private readonly config: Config) {}
+
+  private loaded() {
+    if (this.key) return this.key;
     let seed: Buffer;
-    if (config.ARCHIVE_SIGNING_KEY) {
-      seed = Buffer.from(config.ARCHIVE_SIGNING_KEY, 'base64');
-    } else {
+    if (this.config.ARCHIVE_SIGNING_KEY) {
+      seed = Buffer.from(this.config.ARCHIVE_SIGNING_KEY, 'base64');
+    } else if (this.config.NODE_ENV !== 'production' && this.config.OTP_PEPPER) {
       new Logger(ArchiveSigner.name).warn('No ARCHIVE_SIGNING_KEY: deriving one from OTP_PEPPER.');
-      seed = Buffer.from(hkdfSync('sha256', config.OTP_PEPPER, 'archive-signing', 'local', 32));
+      seed = Buffer.from(
+        hkdfSync('sha256', this.config.OTP_PEPPER, 'archive-signing', 'local', 32),
+      );
+    } else {
+      throw new Error('This process holds no ARCHIVE_SIGNING_KEY.');
     }
-    this.privateKey = archivePrivateKey(seed);
-    const publicKey = createPublicKey(this.privateKey);
-    this.publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
-    this.keyId = publicKeyId(publicKey);
+    const privateKey = archivePrivateKey(seed);
+    const publicKey = createPublicKey(privateKey);
+    this.key = {
+      privateKey,
+      publicKeyPem: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+      keyId: publicKeyId(publicKey),
+    };
+    return this.key;
+  }
+
+  get publicKeyPem(): string {
+    return this.loaded().publicKeyPem;
+  }
+
+  get keyId(): string {
+    return this.loaded().keyId;
   }
 
   /** The signature of a manifest's bytes, in base64. */
   sign(manifest: Uint8Array): string {
-    return sign(null, manifest, this.privateKey).toString('base64');
+    return sign(null, manifest, this.loaded().privateKey).toString('base64');
   }
 }
 

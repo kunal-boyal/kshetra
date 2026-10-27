@@ -211,6 +211,42 @@ describe('loadConfig', () => {
     );
   });
 
+  it('asks each process for the secrets it holds, and no more (decision D101)', () => {
+    const tls = {
+      NODE_ENV: 'production',
+      CELL_API_URL: 'https://api.example.test',
+      OTP_PROVIDER: 'msg91',
+      MSG91_OTP_TEMPLATE_ID: 'otp',
+      PUSH_PROVIDER: 'expo',
+      SMS_PROVIDER: 'msg91',
+      EMAIL_PROVIDER: 'smtp',
+      DATABASE_URL: 'postgres://cell_app:x@db.example.test:5432/thelamp?sslmode=verify-full',
+      DIRECTORY_DATABASE_URL:
+        'postgres://directory_app:x@db.example.test:5432/thelamp?sslmode=verify-full',
+      REDIS_URL: 'rediss://cache.example.test:6379',
+      REDIS_PASSWORD: 'an-elasticache-auth-token',
+      S3_BUCKET: 'thelamp-media',
+    };
+    // The scheduler holds the databases alone.
+    expect(loadConfig({ ...tls, PROCESS_ROLE: 'scheduler' }).PROCESS_ROLE).toBe('scheduler');
+    // The worker needs no signing key or pepper, but its own keys, SMS and mail.
+    const worker = {
+      ...tls,
+      PROCESS_ROLE: 'worker',
+      COLUMN_KEY: Buffer.alloc(32, 1).toString('base64'),
+      ARCHIVE_SIGNING_KEY: Buffer.alloc(32, 2).toString('base64'),
+      MSG91_AUTH_KEY: 'key',
+      SMTP_URL: 'smtps://user:pw@email-smtp.example.test:465',
+    };
+    expect(loadConfig(worker).OTP_PEPPER).toBeUndefined();
+    expect(() => loadConfig({ ...worker, COLUMN_KEY: '' })).toThrow(/COLUMN_KEY/);
+    // The API needs every one.
+    expect(() => loadConfig({ ...worker, PROCESS_ROLE: 'api' })).toThrow(
+      /JWT_SIGNING_KEY[\s\S]*|OTP_PEPPER/,
+    );
+    expect(() => loadConfig({ ...tls })).toThrow(/OTP_PEPPER/);
+  });
+
   it('keeps a live cell’s database, Redis and mail on TLS (decision D101)', () => {
     const live = {
       ...required,
