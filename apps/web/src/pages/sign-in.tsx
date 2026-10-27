@@ -1,7 +1,7 @@
 import { ApiError } from '@thelamp/api-client';
 import { Button, Card, Icon, TextField } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Building2, ChevronRight, KeyRound } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { emailMessage, mobileMessage } from '@thelamp/i18n';
 import { SSO_FAILURES, type SecondFactor, type SsoFailure } from '@thelamp/shared';
@@ -11,7 +11,6 @@ import { errorMessage, useLanguage } from '../i18n';
 import markUrl from '@thelamp/design-tokens/assets/Logos/mark-small.svg?url';
 import { PRODUCT_NAME } from '../layout/brand';
 import { LanguagePicker } from '../layout/preferences-menu';
-import { saveTenants } from '../preferences';
 import { SecondFactorStep } from './second-factor';
 import { browser } from '../browser';
 
@@ -21,7 +20,6 @@ const RESEND_SECONDS = 30;
 type Step =
   | { name: 'phone' }
   | { name: 'code'; phone: string }
-  | { name: 'choose'; ticket: string; tenants: { id: string; name: string }[] }
   | { name: 'second'; ticket: string; enrolled: boolean; organisation: string }
   | { name: 'sso' };
 
@@ -134,12 +132,6 @@ export function SignInPage() {
     event.preventDefault();
     void run(async () => {
       const result = await client.verifyCode(phone, code);
-      if (result.status === 'choose_tenant') {
-        saveTenants(result.tenants);
-        setStep({ name: 'choose', ticket: result.ticket, tenants: result.tenants });
-        return;
-      }
-      saveTenants([]);
       if (result.status === 'second_factor') {
         setStep(secondStep(result));
         return;
@@ -158,17 +150,6 @@ export function SignInPage() {
       const url = await client.ssoDiscover(email.trim());
       if (url) browser.go(url);
       else setError(t('signin.sso_none'));
-    });
-  }
-
-  function choose(ticket: string, tenantId: string) {
-    void run(async () => {
-      const result = await client.selectTenant(ticket, tenantId);
-      if (result.status === 'second_factor') {
-        setStep(secondStep(result));
-        return;
-      }
-      await navigate({ to: '/' });
     });
   }
 
@@ -315,36 +296,6 @@ export function SignInPage() {
                 onSignedIn={signedIn}
                 onExpired={expired}
               />
-            ) : null}
-
-            {step.name === 'choose' ? (
-              <section className="flex flex-col gap-4" aria-labelledby="choose-title">
-                <h1 id="choose-title" className="heading-xl">
-                  {t('signin.choose_title')}
-                </h1>
-                <p className="ks-muted">{t('signin.choose_intro')}</p>
-                {error ? (
-                  <p className="ks-help error" role="alert">
-                    {error}
-                  </p>
-                ) : null}
-                <ul className="flex flex-col gap-2">
-                  {step.tenants.map((tenant) => (
-                    <li key={tenant.id}>
-                      <Button
-                        variant="secondary"
-                        block
-                        disabled={busy}
-                        onClick={() => choose(step.ticket, tenant.id)}
-                        icon={<Icon icon={Building2} />}
-                      >
-                        <span className="flex-1 text-left">{tenant.name}</span>
-                        <Icon icon={ChevronRight} size="sm" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
             ) : null}
           </Card>
           <p className="ks-subtle caption flex justify-center gap-4">

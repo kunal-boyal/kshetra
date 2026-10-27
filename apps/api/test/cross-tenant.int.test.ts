@@ -816,18 +816,6 @@ const FIXTURES: Record<string, Fixture> = {
     // B's admin ends the session of its first sign-in, which nothing uses again.
     run: async () => holdsNothingOfA(await asB('POST', '/auth/v1/sessions/end-others')),
   },
-  'POST /auth/v1/select-tenant': {
-    kind: 'sign-in',
-    run: async () => {
-      // Someone in B and a third tenant can't choose A with their ticket.
-      const phone = newPhone();
-      await world.member(phone, [b.tenantId, await world.tenant('Third Traders')]);
-      await sameAsNowhere(async (tenantId) => {
-        const ticket = (await world.verify(phone)).json().ticket as string;
-        return send(undefined, 'POST', '/auth/v1/select-tenant', { ticket, tenantId });
-      }, a.tenantId);
-    },
-  },
   'POST /auth/v1/token/refresh': {
     kind: 'sign-in',
     run: async () => {
@@ -836,14 +824,6 @@ const FIXTURES: Record<string, Fixture> = {
       expect(refreshed.json()).toMatchObject({ tenant: { id: b.tenantId } });
       holdsNothingOfA(refreshed);
     },
-  },
-  'POST /auth/v1/switch-tenant': {
-    kind: 'sign-in',
-    run: () =>
-      sameAsNowhere(async (tenantId) => {
-        const { refreshToken } = await world.signIn(b.admin.phone);
-        return send(undefined, 'POST', '/auth/v1/switch-tenant', { refreshToken, tenantId });
-      }, a.tenantId),
   },
   'POST /auth/v1/logout': {
     kind: 'sign-in',

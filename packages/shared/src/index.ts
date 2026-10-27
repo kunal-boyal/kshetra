@@ -48,6 +48,7 @@ export {
   mobileDigitsIssue,
   normaliseMobile,
   normalisePhone,
+  NUMBER_IN_USE,
 } from './phone';
 export { scrub, scrubText } from './scrub';
 export {
@@ -104,7 +105,6 @@ export {
   OwnSessionsResult,
   SessionIdParams,
   StepUpResult,
-  ChooseTenant,
   DeviceInfo,
   JwksResult,
   LogoutBody,
@@ -120,11 +120,8 @@ export {
   RefreshBody,
   RefreshResult,
   SecondFactor,
-  SelectTenantBody,
-  SelectTenantResult,
   Session,
   SignedIn,
-  SwitchTenantBody,
   TenantSummary,
   TotpSetupBody,
   TotpSetupResult,

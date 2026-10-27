@@ -186,36 +186,6 @@ describe('setting up and using an authenticator (D91)', () => {
       .where(eq(tenants.id, demo.tenantId));
     expect((await world.verify(demo.adminPhone)).json().status).toBe('signed_in');
   });
-
-  it('won’t carry a session without the second factor into a tenant that needs it', async () => {
-    const managing = await organisation('Managed Co');
-    const owning = await world.tenant('Owned Co');
-    // The same person: a manager in one tenant, an admin in the other.
-    await world.user(owning, {
-      phone: managing.managerPhone,
-      designation: 'head',
-      role: 'tenant_admin',
-    });
-    const chosen = await world.verify(managing.managerPhone);
-    expect(chosen.json().status).toBe('choose_tenant');
-    const asManager = await post('/auth/v1/select-tenant', {
-      ticket: chosen.json().ticket,
-      tenantId: managing.tenantId,
-    });
-    expect(asManager.json().status).toBe('signed_in');
-    const switched = await post('/auth/v1/switch-tenant', {
-      refreshToken: asManager.json().session.refreshToken,
-      tenantId: owning,
-    });
-    expect(switched.json().error.code).toBe('SECOND_FACTOR_REQUIRED');
-    // Choosing the admin's tenant asks for the authenticator instead.
-    const again = await world.verify(managing.managerPhone);
-    const asAdmin = await post('/auth/v1/select-tenant', {
-      ticket: again.json().ticket,
-      tenantId: owning,
-    });
-    expect(asAdmin.json()).toMatchObject({ status: 'second_factor', enrolled: false });
-  });
 });
 
 describe('resetting an authenticator (D91)', () => {

@@ -7,6 +7,7 @@ import {
   type ImportProblem,
   matchName,
   normaliseMobile,
+  NUMBER_IN_USE,
   todayIn,
   type UpdateUserBody,
   UserCode,
@@ -15,6 +16,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { designations as designationsTable, roles as rolesTable, users } from '../../db/schema/iam';
 import type { TenantTx } from '../../platform/database';
+import { MembershipSync } from '../../platform/planes';
 import { cellDate, cellText, customValues, isEmptyCell } from '../imports/reading';
 import {
   type ImportContext,
@@ -88,6 +90,7 @@ export class UsersImport implements ImportTargetSource, OnModuleInit {
     private readonly userFields: UserFieldsService,
     private readonly territories: TerritoriesService,
     private readonly config: TenantConfigService,
+    private readonly members: MembershipSync,
   ) {}
 
   onModuleInit(): void {
@@ -301,7 +304,13 @@ export class UsersImport implements ImportTargetSource, OnModuleInit {
       });
     }
 
+    // A number new to this organisation may already sign in to another (decision D103).
+    const elsewhere = await this.members.activeElsewhere(
+      [...phones.keys()].filter((phone) => !existingRows.some((user) => user.phone === phone)),
+      tenantId,
+    );
     for (const [phone, at] of phones) {
+      if (elsewhere.has(phone)) for (const row of at) problem(row, 'mobile', NUMBER_IN_USE);
       if (at.length > 1)
         for (const row of at)
           problem(row, 'mobile', `This number appears in rows ${at.join(', ')}`);

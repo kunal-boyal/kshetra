@@ -13,7 +13,6 @@ import {
   OtpRequestResult,
   OtpVerifyResult,
   RefreshResult,
-  SelectTenantResult,
   type Session,
   SignedIn,
   StepUpResult,
@@ -366,24 +365,12 @@ export function createClient(options: ClientOptions) {
       return directory('otp/request', OtpRequestResult, { phone });
     },
 
-    /** Verifies a code. One tenant signs straight in; several return a ticket to choose with. */
+    /** Verifies a code: signed in to the person's organisation, or an authenticator code next. */
     async verifyCode(phone: string, code: string) {
       const device = await options.device?.();
       const result = await directory('otp/verify', OtpVerifyResult, {
         phone,
         code,
-        ...(device ? { device } : {}),
-      });
-      if (result.status === 'signed_in') await signedIn(result);
-      return result;
-    },
-
-    /** Picks a tenant with the ticket: signed in, or an authenticator code next (D91). */
-    async selectTenant(ticket: string, tenantId: string) {
-      const device = await options.device?.();
-      const result = await directory('select-tenant', SelectTenantResult, {
-        ticket,
-        tenantId,
         ...(device ? { device } : {}),
       });
       if (result.status === 'signed_in') await signedIn(result);
@@ -411,18 +398,6 @@ export function createClient(options: ClientOptions) {
       const result = await directory('totp/verify', TotpVerifyResult, { ticket, ...answer });
       await signedIn(result);
       return result;
-    },
-
-    async switchTenant(tenantId: string) {
-      const before = await current();
-      const device = await options.device?.();
-      return signedIn(
-        await directory('switch-tenant', SignedIn, {
-          tenantId,
-          ...(web ? {} : { refreshToken: before?.refreshToken }),
-          ...(device ? { device } : {}),
-        }),
-      );
     },
 
     /**

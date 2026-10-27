@@ -15,7 +15,6 @@ Every way in, how strong it is, the limits that protect it, and how long a sessi
 | Staff setup link | A newly invited or reset staff member | A single-use link, by email, then a new password and authenticator | Possession of the mailbox, once; it leads straight to setting both factors | `pnpm invite-staff`, `POST /platform/v1/staff/{id}/reset` |
 | Vendor support entry | Staff entering a tenant under a grant | A signed-in staff session, an approved grant, and an entry link that lasts 60 seconds and works once | The staff member's two factors, bounded by the tenant's grant | `SupportService` (D93) |
 | API clients | Tenants' integrations | Client ID and secret, OAuth client credentials | One factor, a 256-bit random secret kept as a digest. Scoped, rate limited, and unable to give roles that change access | `ApiClientsService`, `oauth.controller.ts` (D94) |
-| Choosing a tenant | Someone who belongs to several organisations | A ticket from the code step, five minutes, single use | Carries the strength of the sign-in that made it | `SessionsService.selectTenant()` |
 | Step-up | A signed-in session about to change a phone, an email, an authenticator or SSO | A fresh authenticator code, good for ten minutes (`STEP_UP_SECONDS`) | Re-proves the second factor | `@StepUp()` (D101) |
 
 Every pathway ends in the same tokens: an ES256 access token of 15 minutes naming its session (`sid`), and a refresh token that rotates on every use, whose reuse ends the whole session. Sign-ins and failures are logged as security events with their factors (docs/security/logging.md).
@@ -64,9 +63,9 @@ Passwords are hashed with scrypt (docs/security/keys-and-crypto.md). Staff chang
 | Console | 15 minutes | 12 hours | 12 hours after sign-in | |
 | API client | 15 minutes, no refresh | | | A new token from the client's credentials |
 
-The limits are `SESSION_LIMITS` in `packages/shared/src/sessions.ts`, measured from when the session began, so refreshing never extends the absolute limit and switching tenant keeps the first sign-in's clock. NIST SP 800-63B asks for reauthentication within 12 hours of use at AAL2 and allows 30 days at AAL1; the web follows the first, and phones, which only reach AAL1 actions, the second, with a 90-day ceiling.
+The limits are `SESSION_LIMITS` in `packages/shared/src/sessions.ts`, measured from when the session began, so refreshing never extends the absolute limit. NIST SP 800-63B asks for reauthentication within 12 hours of use at AAL2 and allows 30 days at AAL1; the web follows the first, and phones, which only reach AAL1 actions, the second, with a 90-day ceiling.
 
-**Ending sessions.** A session ends when its person signs out, ends it from Sign-in security's list, reuses a spent refresh token, switches tenant, or has an authenticator reset; its access tokens stop at once (`EndedSessions`). An admin with `user.sign_out_all` can end every session of one person, or of everyone in the organisation but themselves. Suspending a person, a device or a tenant stops their tokens on the next request. Changing a staff password ends every other staff session.
+**Ending sessions.** A session ends when its person signs out, ends it from Sign-in security's list, reuses a spent refresh token, or has an authenticator reset; its access tokens stop at once (`EndedSessions`). An admin with `user.sign_out_all` can end every session of one person, or of everyone in the organisation but themselves. Suspending a person, a device or a tenant stops their tokens on the next request. Changing a staff password ends every other staff session.
 
 **How many at once.** Not limited. A person may be signed in on any number of browsers and one bound phone; every session is listed at Sign-in security with where and when it signed in and was last used, and any can be ended (decision D101).
 

@@ -1,8 +1,12 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createLocalJWKSet, jwtVerify } from 'jose';
+import { NUMBER_IN_USE } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { MemoryOtpSender } from '../src/modules/directory/otp-sender';
 import { SigningKey } from '../src/modules/directory/signing-key';
+import { SYSTEM } from '../src/modules/iam/actor';
+import { UsersService } from '../src/modules/iam/users.service';
+import { MembershipSync } from '../src/platform/planes';
 import { newAddress, newDevice, newPhone, startApp, testConfig, World } from './support';
 
 let app: NestFastifyApplication;
@@ -214,45 +218,69 @@ describe('verifying a code', () => {
   });
 });
 
-describe('people in several tenants', () => {
-  it('choose a tenant after one code, then switch without a second (M1, rule 4)', async () => {
-    const person = await member('Zeta Traders', 'Alpha Inputs');
-    const [zetaId, alphaId] = person.tenantIds;
-    await requestCode(person.phone);
-    const verified = (await verifyCode(person.phone, sender.lastCode(person.phone)!)).json();
-    expect(verified.status).toBe('choose_tenant');
-    expect(verified.tenants).toEqual([
-      { id: alphaId, name: 'Alpha Inputs' },
-      { id: zetaId, name: 'Zeta Traders' },
-    ]);
+describe('one organisation a person (D103)', () => {
+  const setStatus = (tenantId: string, userId: string, status: 'active' | 'inactive') =>
+    world.database.forTenant(tenantId, (tx) =>
+      app.get(UsersService).update(tx, tenantId, SYSTEM, userId, { status }),
+    );
 
-    const chosen = await post('/auth/v1/select-tenant', {
-      ticket: verified.ticket,
-      tenantId: zetaId,
+  it('refuses a number active in another organisation, without naming it', async () => {
+    const person = await member('Zeta Traders');
+    const alpha = await world.tenant('Alpha Inputs');
+    const refused = world.user(alpha, { phone: person.phone });
+    await expect(refused).rejects.toMatchObject({
+      code: 'CONFLICT',
+      details: [{ path: 'phone', issue: NUMBER_IN_USE }],
     });
-    expect(chosen.json()).toMatchObject({ status: 'signed_in', tenant: { id: zetaId } });
-    const again = await post('/auth/v1/select-tenant', {
-      ticket: verified.ticket,
-      tenantId: alphaId,
-    });
-    expect(again.json().error.code).toBe('OTP_EXPIRED');
+    // Nor can someone already there take it as a new number.
+    const other = await world.user(alpha);
+    const changed = world.database.forTenant(alpha, (tx) =>
+      app.get(UsersService).update(tx, alpha, SYSTEM, other.id, { phone: person.phone }),
+    );
+    await expect(changed).rejects.toMatchObject({ code: 'CONFLICT' });
+    // The code still signs them straight in to their own.
+    const signedIn = await signIn(person.phone);
+    expect((await me(signedIn.accessToken)).json().tenantId).toBe(person.tenantIds[0]);
+  });
 
-    const zetaSession = chosen.json().session;
-    const outsider = await world.directory.tenant('Not Theirs');
-    const refused = await post('/auth/v1/switch-tenant', {
-      refreshToken: zetaSession.refreshToken,
-      tenantId: outsider,
+  it('frees the number once the person leaves, and won’t take them back while it is in use', async () => {
+    const person = await member('Kappa Agro');
+    const [kappa] = person.tenantIds;
+    await setStatus(kappa!, person.userIds[0]!, 'inactive');
+    const lambda = await world.tenant('Lambda Seeds');
+    const joined = await world.user(lambda, { phone: person.phone });
+    const signedIn = await signIn(person.phone);
+    expect((await me(signedIn.accessToken)).json()).toMatchObject({
+      tenantId: lambda,
+      userId: joined.id,
     });
-    expect(refused.statusCode).toBe(403);
+    await expect(setStatus(kappa!, person.userIds[0]!, 'active')).rejects.toMatchObject({
+      code: 'CONFLICT',
+      details: [{ path: 'phone', issue: NUMBER_IN_USE }],
+    });
+  });
 
-    const switched = await post('/auth/v1/switch-tenant', {
-      refreshToken: zetaSession.refreshToken,
-      tenantId: alphaId,
+  it('keeps the first organisation’s membership when two take a number at once', async () => {
+    const person = await member('Mu Traders');
+    const nu = await world.tenant('Nu Inputs');
+    // As if the cell's check had passed a moment before Mu's membership arrived.
+    const late = '01a10000-0000-7000-8000-00000000d103';
+    await app.get(MembershipSync).sync({
+      tenantId: nu,
+      userId: late,
+      phone: person.phone,
+      active: true,
+      authRevision: 0,
     });
-    expect(switched.json()).toMatchObject({ status: 'signed_in', tenant: { id: alphaId } });
-    expect((await me(switched.json().session.accessToken)).json().tenantId).toBe(alphaId);
-    // The tenant left behind is signed out.
-    expect((await refresh(zetaSession.refreshToken)).json().error.code).toBe('SESSION_REVOKED');
+    expect(await world.directory.membership(nu, late)).toBeUndefined();
+    const signedIn = await signIn(person.phone);
+    expect((await me(signedIn.accessToken)).json().tenantId).toBe(person.tenantIds[0]);
+  });
+
+  it('has no way to choose or switch an organisation', async () => {
+    for (const path of ['/auth/v1/select-tenant', '/auth/v1/switch-tenant']) {
+      expect((await post(path, {})).statusCode).toBe(404);
+    }
   });
 });
 

@@ -263,11 +263,7 @@ export class DemoContent implements DemoKit {
       model: 'Demo phone',
     };
     const sessions = this.get(SessionsService);
-    let result = await sessions.signIn(phone, device);
-    // A number in several demo tenants chooses this one, as the app would ask.
-    if (result.status === 'choose_tenant') {
-      result = await sessions.selectTenant(result.ticket, this.tenantId, device);
-    }
+    const result = await sessions.signIn(phone, device);
     if (result.status !== 'signed_in') throw new Error('A demo person could not sign in.');
     const claims = JSON.parse(
       Buffer.from(result.session.accessToken.split('.')[1]!, 'base64url').toString(),

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { newId } from '@thelamp/shared';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import {
   identities,
   memberships,
@@ -44,6 +44,29 @@ export class DirectoryMembers extends MembershipSync {
       }
 
       const identityId = await this.identityFor(tx, member.phone);
+      // The cell asks before it gives a number to a user (decision D103), so the number is active
+      // in another organisation only when two of them took it at the same moment. The first
+      // keeps it; this one isn't made active until its user is changed again.
+      const [elsewhere] = await tx
+        .select({ id: memberships.id })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.identityId, identityId),
+            ne(memberships.tenantId, member.tenantId),
+            eq(memberships.status, 'active'),
+          ),
+        )
+        .for('update');
+      if (elsewhere) {
+        if (existing) {
+          await tx
+            .update(memberships)
+            .set({ status: 'inactive', authRevision: member.authRevision })
+            .where(eq(memberships.id, existing.id));
+        }
+        return;
+      }
       // The cell keeps phone numbers unique in a tenant, so another active membership with this
       // number there is out of date, and its user's own change is on its way.
       await tx
@@ -73,6 +96,22 @@ export class DirectoryMembers extends MembershipSync {
         });
       }
     });
+  }
+
+  async activeElsewhere(phones: readonly string[], tenantId: string): Promise<Set<string>> {
+    if (phones.length === 0) return new Set();
+    const rows = await this.database.db
+      .selectDistinct({ phone: identities.phoneE164 })
+      .from(memberships)
+      .innerJoin(identities, eq(identities.id, memberships.identityId))
+      .where(
+        and(
+          inArray(identities.phoneE164, [...phones]),
+          ne(memberships.tenantId, tenantId),
+          eq(memberships.status, 'active'),
+        ),
+      );
+    return new Set(rows.map((row) => row.phone));
   }
 
   /** The identity for a phone number, created on first use. */

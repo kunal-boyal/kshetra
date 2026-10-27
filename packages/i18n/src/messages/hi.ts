@@ -91,14 +91,10 @@ export const hi: Record<MessageKey, Message> = {
     other: 'आप {count} सेकंड में नया कोड मँगा सकते हैं।',
   },
   'signin.other_number': 'दूसरा नंबर इस्तेमाल करें',
-  'signin.choose_title': 'संगठन चुनें',
-  'signin.choose_intro':
-    'आपका नंबर एक से ज़्यादा संगठनों में है। बाद में आप मेनू से संगठन बदल सकते हैं।',
 
   'shell.navigation': 'मुख्य मेनू',
   'shell.home': 'होम',
   'shell.account_menu': 'आपकी प्रोफ़ाइल और सेटिंग',
-  'shell.switch_organisation': 'संगठन बदलें',
   'shell.sign_out': 'साइन आउट करें',
   'shell.security': 'साइन-इन सुरक्षा',
   'stepup.title': 'पुष्टि करें कि यह आप हैं',

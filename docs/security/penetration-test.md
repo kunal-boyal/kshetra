@@ -64,12 +64,12 @@ Two tenants, **A** and **B**, made from the generic template in the console as a
 The roles are the generic template's; their permissions are in the portal at Settings › Roles and in spec Appendix E.
 
 Plus, for the whole test:
-- one person who belongs to both tenants, to try choosing between them;
+- one number that tenant B tries to add while it is active in tenant A, to check a person belongs to one organisation (D103);
 - an API client in each tenant, with every scope, its secret given once;
 - a vendor console account for each tester, in the support role, and one platform admin account, all with authenticators;
 - in tenant A, accounts, items and a price list, so orders, visits and claims can be made.
 
-**Phone numbers and emails.** Sign-in codes go by SMS to real numbers, so the vendor gives us one Indian mobile number per person above it wants to use (a number may be the same person in both tenants), and an email per console account. We enter them; nobody else's number is used. Single sign-on is tested with the vendor's own OIDC or SAML provider, which tenant B's admin connects in Settings.
+**Phone numbers and emails.** Sign-in codes go by SMS to real numbers, so the vendor gives us one Indian mobile number per person above it wants to use (each in one tenant only), and an email per console account. We enter them; nobody else's number is used. Single sign-on is tested with the vendor's own OIDC or SAML provider, which tenant B's admin connects in Settings.
 
 ## Rules of engagement
 

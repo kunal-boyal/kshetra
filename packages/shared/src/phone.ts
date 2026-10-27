@@ -26,6 +26,13 @@ export function normaliseMobile(raw: string, defaultCountry: CountryCode = 'IN')
   return phone.number;
 }
 
+/**
+ * Why a number can't be given to a person: it signs in to another organisation, and a person
+ * belongs to one at a time (decision D103). It never says which organisation.
+ */
+export const NUMBER_IN_USE =
+  'This mobile number is already in use. Use another number, or ask the person to be removed from their current organisation first.';
+
 /** What is wrong with the digits typed in a 10-digit mobile field, or null when they will do. */
 export function mobileDigitsIssue(digits: string): 'required' | 'length' | 'start' | null {
   if (digits === '') return 'required';

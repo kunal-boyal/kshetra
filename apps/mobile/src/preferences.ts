@@ -61,31 +61,3 @@ export function saveBrand(hex: string | null): void {
     }
   }
 }
-
-export interface TenantChoice {
-  id: string;
-  name: string;
-}
-
-/** The tenants offered after the last code, for switching. They belong to whoever signed in. */
-export function savedTenants(): TenantChoice[] {
-  try {
-    const value: unknown = JSON.parse(read('tenants') ?? '[]');
-    return Array.isArray(value) ? (value as TenantChoice[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveTenants(tenants: TenantChoice[]): void {
-  write('tenants', JSON.stringify(tenants));
-}
-
-/** Forgets the tenants when the session ends, so the next person on this phone never sees them. */
-export async function forgetTenants(): Promise<void> {
-  try {
-    await storage.remove('tenants');
-  } catch {
-    // Nothing was kept.
-  }
-}

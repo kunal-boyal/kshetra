@@ -68,7 +68,6 @@ export function fakeClient(
       deviceId: null,
     })),
     signOut: vi.fn(async () => {}),
-    switchTenant: vi.fn(),
     config: vi.fn(async () => ({
       status: 'fresh',
       etag: '"1-role"',

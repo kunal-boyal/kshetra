@@ -9,7 +9,6 @@ import {
   FileLock2,
   LogOut,
   ReceiptText,
-  Repeat,
   Shield,
 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -20,7 +19,6 @@ import { appVersion } from '../device';
 import { errorMessage, useLanguage } from '../i18n';
 import { useDisplay } from '../look';
 import type { Display } from '../preferences';
-import { savedTenants } from '../preferences';
 import { useSyncStatus } from '../sync';
 import { useShift } from './shift';
 
@@ -32,7 +30,7 @@ import { useShift } from './shift';
  * claims (M12); requests arrive with their module.
  */
 export function MeScreen() {
-  const { client, queryClient, session, sync } = useApp();
+  const { client, session } = useApp();
   const { t, locale, setLocale } = useLanguage();
   const { display, setDisplay } = useDisplay();
   const me = useMe();
@@ -44,7 +42,6 @@ export function MeScreen() {
   // Signing out on duty stops recording (BR-37), so it warns first (spec 14.5, step 7).
   const onDuty = Boolean(useShift().state);
   const tenant = session?.tenant;
-  const others = savedTenants().filter((choice) => choice.id !== tenant?.id);
   const permissions = new Set<string>(config.data?.bundle.access.permissions ?? []);
   // Leave is a module of its own (D64): switched off, it hides.
   const modulesOff = config.data?.bundle.settings.modulesOff ?? [];
@@ -81,21 +78,6 @@ export function MeScreen() {
 
       <ListGroup title={t('app.organisation')}>
         <ListRow icon={Building2} label={tenant?.name ?? ''} />
-        {others.map((other) => (
-          <ListRow
-            key={other.id}
-            icon={Repeat}
-            label={other.name}
-            detail={t('shell.switch_organisation')}
-            onPress={() =>
-              act(async () => {
-                await client.switchTenant(other.id);
-                queryClient.clear();
-                sync();
-              })
-            }
-          />
-        ))}
       </ListGroup>
 
       <ChoiceGroup
