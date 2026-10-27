@@ -57,3 +57,9 @@ export function providerUsedMfa(answer: {
   if (typeof answer.acr === 'string' && MFA_CONTEXT.test(answer.acr)) return true;
   return (answer.authnContext ?? []).some((context) => MFA_CONTEXT.test(context));
 }
+
+/**
+ * How long a fresh authenticator code lets someone change what decides who signs in as whom: a
+ * person's phone or email, their authenticator, the organisation's single sign-on (decision D101).
+ */
+export const STEP_UP_SECONDS = 10 * 60;

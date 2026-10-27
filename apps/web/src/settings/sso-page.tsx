@@ -1,6 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { type SsoConnectionResult, SsoConnectionResult as Result } from '@thelamp/shared';
-import { Button, Checkbox, SelectField, TextAreaField, TextField } from '@thelamp/ui-web';
+import {
+  Button,
+  Checkbox,
+  SelectField,
+  StatusBadge,
+  TextAreaField,
+  TextField,
+} from '@thelamp/ui-web';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
@@ -11,7 +18,8 @@ import { Copyable } from './secret';
 /**
  * Single sign-on for the portal (spec M1, D5, decision D91), on the SSO module: what the
  * organisation's identity provider needs from us, and the connection to it. Secrets never come
- * back; leaving one blank keeps the one saved.
+ * back; leaving one blank keeps the one saved. Each email domain is proved by a DNS TXT record
+ * before it signs anyone in (decision D101).
  */
 export function SsoPage() {
   const { client } = useApp();
@@ -33,6 +41,9 @@ export function SsoPage() {
         <>
           <ProviderSection provider={sso.data.provider} />
           <ConnectionForm current={sso.data} />
+          {sso.data.connection && sso.data.connection.domainChecks.length > 0 ? (
+            <DomainsSection checks={sso.data.connection.domainChecks} />
+          ) : null}
         </>
       )}
     </div>
@@ -241,6 +252,89 @@ function ConnectionForm({ current }: { current: SsoConnectionResult }) {
           ) : null}
         </div>
       </form>
+    </Section>
+  );
+}
+
+type DomainCheck = NonNullable<SsoConnectionResult['connection']>['domainChecks'][number];
+
+/** Proving each email domain is the organisation's, by a TXT record at its DNS (decision D101). */
+function DomainsSection({ checks }: { checks: DomainCheck[] }) {
+  const { client } = useApp();
+  const queryClient = useQueryClient();
+  const { t } = useLanguage();
+  const [checking, setChecking] = useState<string>();
+  const [outcome, setOutcome] = useState<{ domain: string; ok: boolean; text: string }>();
+
+  async function check(domain: string) {
+    setChecking(domain);
+    setOutcome(undefined);
+    try {
+      const result = await write(client, 'POST', '/v1/sso/domains/verify', Result, { domain });
+      queryClient.setQueryData(['sso'], result);
+      setOutcome({ domain, ok: true, text: t('sso.checked', { domain }) });
+    } catch (error) {
+      setOutcome({
+        domain,
+        ok: false,
+        text: fieldErrors(error).domain ?? errorMessage(error, t),
+      });
+    } finally {
+      setChecking(undefined);
+    }
+  }
+
+  return (
+    <Section title={t('sso.domains_title')}>
+      <p className="ks-muted max-w-prose">{t('sso.domains_intro')}</p>
+      <ul className="flex flex-col gap-4">
+        {checks.map((each) => (
+          <li key={each.domain} className="ks-card flex flex-col gap-3">
+            <p className="flex flex-wrap items-center gap-2">
+              <strong>{each.domain}</strong>
+              <StatusBadge variant={each.verified ? 'success' : 'waiting'}>
+                {t(each.verified ? 'sso.verified' : 'sso.not_verified')}
+              </StatusBadge>
+            </p>
+            {each.verified ? null : (
+              <>
+                <Facts
+                  items={[
+                    [
+                      t('sso.record_name'),
+                      <Copyable key="name" label={t('sso.record_name')} value={each.recordName} />,
+                    ],
+                    [
+                      t('sso.record_value'),
+                      <Copyable
+                        key="value"
+                        label={t('sso.record_value')}
+                        value={each.recordValue}
+                      />,
+                    ],
+                  ]}
+                />
+                <Button
+                  variant="secondary"
+                  className="self-start"
+                  busy={checking === each.domain}
+                  onClick={() => void check(each.domain)}
+                >
+                  {t('sso.check')}
+                </Button>
+              </>
+            )}
+            {outcome?.domain === each.domain ? (
+              <p
+                className={outcome.ok ? 'ks-muted' : 'ks-help error'}
+                role={outcome.ok ? 'status' : 'alert'}
+              >
+                {outcome.text}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }

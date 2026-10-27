@@ -10,11 +10,19 @@ import {
   type SsoFailure,
   type SsoSettings,
 } from '@thelamp/shared';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { randomBytes } from 'node:crypto';
+import { and, asc, eq, inArray, isNotNull, ne, notInArray } from 'drizzle-orm';
 import * as oidc from 'openid-client';
 import type { Config } from '../../config';
-import { memberships, ssoConnections, tenants } from '../../db/schema/directory';
+import {
+  memberships,
+  ssoConnections,
+  ssoDomains,
+  ssoSubjects,
+  tenants,
+} from '../../db/schema/directory';
 import { ColumnCipher } from '../../platform/column-cipher';
+import { DomainRecords } from '../../platform/domain-records';
 import { Entitlements, PeopleEmails } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
 import { publicFetch, publicUrlIssue } from '../../platform/outbound';
@@ -34,9 +42,18 @@ export class SsoRefused extends Error {
   }
 }
 
+/** A domain's proof token: what its TXT record must hold (decision D101). */
+const domainToken = () => randomBytes(16).toString('hex');
+
 type Stored =
   | { protocol: 'oidc'; issuer: string; clientId: string; clientSecret: string }
   | { protocol: 'saml'; entryPoint: string; idpIssuer: string; idpCertificate: string };
+
+/** Who the provider says someone is: its issuer, and their subject there (decision D101). */
+interface ProviderSubject {
+  issuer: string;
+  subject: string;
+}
 
 interface Pending {
   tenantId: string;
@@ -96,6 +113,7 @@ export class SsoService {
     private readonly client: RedisClient,
     private readonly emails: PeopleEmails,
     private readonly entitlements: Entitlements,
+    private readonly records: DomainRecords,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -129,6 +147,7 @@ export class SsoService {
               idpIssuer: settings.protocol === 'saml' ? settings.idpIssuer : null,
               hasIdpCertificate: settings.protocol === 'saml',
               domains: row.domains,
+              domainChecks: await this.domainChecks(tenantId),
               enabled: row.enabled,
               enforced: row.enforced,
               updatedAt: row.updatedAt.toISOString(),
@@ -136,6 +155,54 @@ export class SsoService {
           : null,
       provider: this.urls(tenant.slug),
     };
+  }
+
+  /** Where a domain's proof is published, and what it says (decision D101). */
+  private record(domain: string, token: string) {
+    const slug = this.config.PRODUCT_SLUG;
+    return { recordName: `_${slug}-sso.${domain}`, recordValue: `${slug}-sso=${token}` };
+  }
+
+  private async domainChecks(tenantId: string) {
+    const rows = await this.database.db
+      .select()
+      .from(ssoDomains)
+      .where(eq(ssoDomains.tenantId, tenantId))
+      .orderBy(asc(ssoDomains.domain));
+    return rows.map((row) => ({
+      domain: row.domain,
+      verified: row.verifiedAt !== null,
+      ...this.record(row.domain, row.token),
+    }));
+  }
+
+  /**
+   * Looks for a domain's TXT record now, and marks the domain verified when it holds the token
+   * (ASVS V6.8.1, decision D101). A domain another organisation verified first stays theirs.
+   */
+  async verifyDomain(tenantId: string, domain: string): Promise<void> {
+    const wanted = domain.toLowerCase();
+    const [row] = await this.database.db
+      .select()
+      .from(ssoDomains)
+      .where(and(eq(ssoDomains.tenantId, tenantId), eq(ssoDomains.domain, wanted)));
+    if (!row) throw new AppError('NOT_FOUND', 'This domain isn’t part of your single sign-on.');
+    if (row.verifiedAt) return;
+    const { recordName, recordValue } = this.record(row.domain, row.token);
+    const values = await this.records.txt(recordName);
+    if (!values.some((value) => value.trim() === recordValue)) {
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+        { path: 'domain', issue: `No TXT record with the token was found at ${recordName} yet` },
+      ]);
+    }
+    try {
+      await this.database.db
+        .update(ssoDomains)
+        .set({ verifiedAt: new Date() })
+        .where(and(eq(ssoDomains.tenantId, tenantId), eq(ssoDomains.domain, wanted)));
+    } catch {
+      throw new AppError('CONFLICT', 'Another organisation has verified this domain already.');
+    }
   }
 
   /**
@@ -193,22 +260,33 @@ export class SsoService {
           { path: 'settings.idpCertificate', issue: 'Paste the identity provider’s certificate' },
         ]);
       }
-      const taken = await tx
-        .select({ domains: ssoConnections.domains })
-        .from(ssoConnections)
+      // Only a domain another organisation has proved is theirs is refused; an unproved claim
+      // never blocks the domain's real owner (decision D101).
+      const [taken] = await tx
+        .select({ domain: ssoDomains.domain })
+        .from(ssoDomains)
         .where(
           and(
-            ne(ssoConnections.tenantId, tenantId),
-            sql`${ssoConnections.domains} && ${sql.param(body.domains)}::text[]`,
+            ne(ssoDomains.tenantId, tenantId),
+            inArray(ssoDomains.domain, body.domains),
+            isNotNull(ssoDomains.verifiedAt),
           ),
-        );
-      const clash = body.domains.find((domain) =>
-        taken.some((row) => row.domains.includes(domain)),
-      );
-      if (clash) {
+        )
+        .limit(1);
+      if (taken) {
         throw new AppError('VALIDATION', 'Check the highlighted fields.', [
-          { path: 'domains', issue: `Another organisation signs in ${clash} already` },
+          { path: 'domains', issue: `Another organisation signs in ${taken.domain} already` },
         ]);
+      }
+      // Each domain keeps its token and proof while it stays; one taken out goes.
+      await tx
+        .delete(ssoDomains)
+        .where(and(eq(ssoDomains.tenantId, tenantId), notInArray(ssoDomains.domain, body.domains)));
+      if (body.domains.length > 0) {
+        await tx
+          .insert(ssoDomains)
+          .values(body.domains.map((domain) => ({ tenantId, domain, token: domainToken() })))
+          .onConflictDoNothing();
       }
       const values = {
         protocol: settings.protocol,
@@ -244,12 +322,14 @@ export class SsoService {
     if (!domain) return null;
     const [row] = await this.database.db
       .select({ slug: tenants.slug })
-      .from(ssoConnections)
-      .innerJoin(tenants, eq(tenants.id, ssoConnections.tenantId))
+      .from(ssoDomains)
+      .innerJoin(ssoConnections, eq(ssoConnections.tenantId, ssoDomains.tenantId))
+      .innerJoin(tenants, eq(tenants.id, ssoDomains.tenantId))
       .where(
         and(
           eq(ssoConnections.enabled, true),
-          sql`${sql.param(domain)} = any(${ssoConnections.domains})`,
+          eq(ssoDomains.domain, domain),
+          isNotNull(ssoDomains.verifiedAt),
         ),
       );
     return row ? `/auth/v1/sso/${row.slug}/start` : null;
@@ -309,6 +389,7 @@ export class SsoService {
     }
     let email: string | undefined;
     let mfa: boolean;
+    let who: ProviderSubject | undefined;
     try {
       const tokens = await oidc.authorizationCodeGrant(await this.discovery(settings), url, {
         pkceCodeVerifier: pending.verifier!,
@@ -320,12 +401,13 @@ export class SsoService {
       if (claims?.email_verified === false) throw new SsoRefused('refused');
       email = typeof claims?.email === 'string' ? claims.email : undefined;
       mfa = providerUsedMfa({ amr: claims?.amr, acr: claims?.acr });
+      who = claims ? { issuer: String(claims.iss), subject: String(claims.sub) } : undefined;
     } catch (error) {
       if (error instanceof SsoRefused) throw error;
       this.logger.warn(`OIDC sign-in for ${slug} failed: ${(error as Error).message}`);
       throw new SsoRefused('refused');
     }
-    return this.signIn(tenantId, email, domains, ip, mfa);
+    return this.signIn(tenantId, email, domains, ip, mfa, who);
   }
 
   /** The SAML provider's posted response: checks its signature and signs the person in. */
@@ -346,6 +428,7 @@ export class SsoService {
     }
     let email: string | undefined;
     let mfa: boolean;
+    let who: ProviderSubject | undefined;
     try {
       const { profile } = await this.saml(slug, settings).validatePostResponseAsync({
         SAMLResponse: body.SAMLResponse,
@@ -369,11 +452,15 @@ export class SsoService {
       email = candidates.find(
         (value): value is string => typeof value === 'string' && value.includes('@'),
       );
+      who =
+        profile?.issuer && profile.nameID
+          ? { issuer: String(profile.issuer), subject: String(profile.nameID) }
+          : undefined;
     } catch (error) {
       this.logger.warn(`SAML sign-in for ${slug} failed: ${(error as Error).message}`);
       throw new SsoRefused('refused');
     }
-    return this.signIn(tenantId, email, domains, ip, mfa);
+    return this.signIn(tenantId, email, domains, ip, mfa, who);
   }
 
   /** Our SAML service provider metadata, for the identity provider's admin. */
@@ -392,13 +479,53 @@ export class SsoService {
     }).generateServiceProviderMetadata(null, null);
   }
 
+  /**
+   * Signs in whoever the provider vouched for (decision D101): the member bound to its issuer and
+   * subject, or, the first time, the member whose email it gave in a verified domain, who is then
+   * bound to it. A member bound to another subject of the same provider isn't taken over.
+   */
   private async signIn(
     tenantId: string,
     email: string | undefined,
     domains: string[],
     ip: string | undefined,
     mfa: boolean,
+    who: ProviderSubject | undefined,
   ): Promise<SignedIn | SecondFactor> {
+    if (!who) throw new SsoRefused('refused');
+    const membership = await this.boundMember(tenantId, who, email, domains);
+    try {
+      return await this.sessions.ssoSignIn(membership, ip, mfa);
+    } catch (error) {
+      if (error instanceof AppError) throw new SsoRefused('refused');
+      throw error;
+    }
+  }
+
+  private async boundMember(
+    tenantId: string,
+    who: ProviderSubject,
+    email: string | undefined,
+    domains: string[],
+  ) {
+    const [bound] = await this.database.db
+      .select({ membershipId: ssoSubjects.membershipId })
+      .from(ssoSubjects)
+      .where(
+        and(
+          eq(ssoSubjects.tenantId, tenantId),
+          eq(ssoSubjects.issuer, who.issuer),
+          eq(ssoSubjects.subject, who.subject),
+        ),
+      );
+    if (bound) {
+      const [membership] = await activeMemberships(
+        this.database.db,
+        eq(memberships.id, bound.membershipId),
+      );
+      if (!membership) throw new SsoRefused('no_person');
+      return membership;
+    }
     const domain = email?.split('@')[1]?.toLowerCase();
     if (!email || !domain || !domains.includes(domain)) throw new SsoRefused('domain');
     const userId = await this.emails.find(tenantId, email);
@@ -408,12 +535,20 @@ export class SsoService {
       and(eq(memberships.tenantId, tenantId), eq(memberships.userId, userId)),
     );
     if (!membership) throw new SsoRefused('no_person');
-    try {
-      return await this.sessions.ssoSignIn(membership, ip, mfa);
-    } catch (error) {
-      if (error instanceof AppError) throw new SsoRefused('refused');
-      throw error;
-    }
+    // Bound to another subject of this provider already: an email moved at the provider doesn't
+    // move the person here.
+    const inserted = await this.database.db
+      .insert(ssoSubjects)
+      .values({
+        tenantId,
+        issuer: who.issuer,
+        subject: who.subject,
+        membershipId: membership.membershipId,
+      })
+      .onConflictDoNothing()
+      .returning({ membershipId: ssoSubjects.membershipId });
+    if (inserted.length === 0) throw new SsoRefused('no_person');
+    return membership;
   }
 
   /** A pending sign-in by its state, spent once, in the browser that started it. */
@@ -443,7 +578,12 @@ export class SsoService {
     if (modules && !modules.includes('sso')) throw new SsoRefused('unavailable');
     const settings = this.open(row.connection);
     if (!settings) throw new SsoRefused('unavailable');
-    return { tenantId: row.tenantId, settings, domains: row.connection.domains };
+    // Only domains the organisation has proved are its own sign anyone in (decision D101).
+    const verified = await this.database.db
+      .select({ domain: ssoDomains.domain })
+      .from(ssoDomains)
+      .where(and(eq(ssoDomains.tenantId, row.tenantId), isNotNull(ssoDomains.verifiedAt)));
+    return { tenantId: row.tenantId, settings, domains: verified.map((each) => each.domain) };
   }
 
   private async tenant(tenantId: string) {

@@ -229,6 +229,79 @@
         }
       }
     },
+    "/auth/v1/authenticator/step-up": {
+      "post": {
+        "operationId": "AuthenticatorController.stepUp",
+        "summary": "Give a fresh code, for the next ten minutes’ changes to who signs in as whom (step-up)",
+        "tags": [
+          "Sign-in"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$"
+                  }
+                },
+                "required": [
+                  "code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "accessTokenExpiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "accessToken",
+                    "accessTokenExpiresAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/v1/jwks": {
       "get": {
         "operationId": "AuthController.jwks",
@@ -8206,6 +8279,7 @@
                 "billing.mandate_started",
                 "user.second_factor_reset",
                 "sso.changed",
+                "sso.domain_verified",
                 "support.requested",
                 "support.approved",
                 "support.declined",
@@ -8467,6 +8541,7 @@
                               "billing.mandate_started",
                               "user.second_factor_reset",
                               "sso.changed",
+                              "sso.domain_verified",
                               "support.requested",
                               "support.approved",
                               "support.declined",
@@ -12300,6 +12375,7 @@
                           "billing.mandate_started",
                           "user.second_factor_reset",
                           "sso.changed",
+                          "sso.domain_verified",
                           "support.requested",
                           "support.approved",
                           "support.declined",
@@ -17177,6 +17253,7 @@
                 "billing.mandate_started",
                 "user.second_factor_reset",
                 "sso.changed",
+                "sso.domain_verified",
                 "support.requested",
                 "support.approved",
                 "support.declined",
@@ -19423,6 +19500,65 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SsoConnectionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sso/domains/verify": {
+      "post": {
+        "operationId": "SsoSettingsController.verifyDomain",
+        "summary": "Look for a domain’s TXT record now, proving the organisation holds it",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: settings.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 253
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -22851,6 +22987,7 @@
                               "billing.mandate_started",
                               "user.second_factor_reset",
                               "sso.changed",
+                              "sso.domain_verified",
                               "support.requested",
                               "support.approved",
                               "support.declined",
@@ -30405,6 +30542,7 @@
                   "billing.mandate_started",
                   "user.second_factor_reset",
                   "sso.changed",
+                  "sso.domain_verified",
                   "support.requested",
                   "support.approved",
                   "support.declined",
@@ -39210,6 +39348,33 @@
                       "type": "string"
                     }
                   },
+                  "domainChecks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "domain": {
+                          "type": "string"
+                        },
+                        "verified": {
+                          "type": "boolean"
+                        },
+                        "recordName": {
+                          "type": "string"
+                        },
+                        "recordValue": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "domain",
+                        "verified",
+                        "recordName",
+                        "recordValue"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
                   "enabled": {
                     "type": "boolean"
                   },
@@ -39231,6 +39396,7 @@
                   "idpIssuer",
                   "hasIdpCertificate",
                   "domains",
+                  "domainChecks",
                   "enabled",
                   "enforced",
                   "updatedAt"

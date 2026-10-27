@@ -1,0 +1,1 @@
+ALTER TABLE "directory"."refresh_tokens" ADD COLUMN "stepped_up_at" timestamp with time zone;

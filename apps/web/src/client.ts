@@ -1,5 +1,6 @@
 import { createClient, memoryStore } from '@thelamp/api-client';
 import type { TenantSummary } from '@thelamp/shared';
+import { askForStepUp } from './step-up';
 
 /** Where the cell answers; locally it is proxied through this page's own origin. */
 function cellUrl(tenant: TenantSummary): string {
@@ -22,6 +23,7 @@ export function webClient(onSignedOut: () => void) {
         : work(),
     cellUrl,
     onSignedOut,
+    stepUp: askForStepUp,
   });
 }
 

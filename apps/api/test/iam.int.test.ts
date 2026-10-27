@@ -74,6 +74,9 @@ function as(token: string) {
 }
 
 const web = async (person: Person) => as((await world.signIn(person.phone)).accessToken);
+/** Signed in on the web with a fresh authenticator code, as changing a phone needs (D101). */
+const stepped = async (person: Person) =>
+  as(await world.stepUp(person.phone, (await world.signIn(person.phone)).accessToken));
 const code = (response: { json: () => unknown }) =>
   (response.json() as { error?: { code: string } }).error?.code;
 const ids = (response: { json: () => unknown }) =>
@@ -186,7 +189,14 @@ describe('every request (M1, rule 7; BR-39)', () => {
     expect((await as(after.accessToken).get('/v1/me')).json().role).toBe('viewer');
 
     const newNumber = newPhone();
-    const changed = await owner.patch(`/v1/users/${person.id}`, { phone: newNumber.slice(3) });
+    // Without a fresh authenticator code the number stays (D101).
+    const refused = await owner.patch(`/v1/users/${person.id}`, { phone: newNumber.slice(3) });
+    expect(code(refused)).toBe('SECOND_FACTOR_REQUIRED');
+    const changed = await (
+      await stepped(admin)
+    ).patch(`/v1/users/${person.id}`, {
+      phone: newNumber.slice(3),
+    });
     expect(changed.json().phone).toBe(newNumber);
     expect(code(await as(after.accessToken).get('/v1/me'))).toBe('SESSION_REVOKED');
     // The old number no longer signs in; the new one does, as the same user.

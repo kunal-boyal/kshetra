@@ -17,6 +17,7 @@ import {
   type PlatformPermission,
   type PlatformRoleKey,
   StaffClaims,
+  STEP_UP_SECONDS,
   type SwitchableModule,
   type TenantPermission,
 } from '@thelamp/shared';
@@ -46,6 +47,8 @@ export interface AuthContext {
   scopes?: readonly string[];
   /** The session, its refresh-token family (decision D101); API clients have none. */
   sessionId?: string;
+  /** When the session last gave a fresh authenticator code, in epoch milliseconds (D101). */
+  steppedUpAt?: number;
 }
 
 /** An API client calling the API (module M20, decision D94). */
@@ -196,6 +199,34 @@ const WHILE_READ_ONLY = 'while_read_only';
  * export, or that settles the bill. Every other write answers `TENANT_READ_ONLY`.
  */
 export const WhileReadOnly = () => SetMetadata(WHILE_READ_ONLY, true);
+
+const STEP_UP = 'step_up';
+
+/**
+ * A change to who signs in as whom (ASVS V7.5.1, decision D101): it needs a fresh authenticator
+ * code from the last ten minutes (`requireStepUp()`), whatever else the route asks.
+ */
+export const StepUp = () => SetMetadata(STEP_UP, true);
+
+/**
+ * Refuses unless the caller's session gave a fresh authenticator code within `STEP_UP_SECONDS`,
+ * answering `SECOND_FACTOR_REQUIRED`; the web then asks for one and tries again. API clients,
+ * which act with their own secret and no session, are let through, as a route's scopes allow.
+ */
+export function requireStepUp(access: Access): void {
+  if (access.apiClient) return;
+  if (
+    access.support ||
+    !access.steppedUpAt ||
+    Date.now() - access.steppedUpAt > STEP_UP_SECONDS * 1000
+  ) {
+    throw new AppError(
+      'SECOND_FACTOR_REQUIRED',
+      'Enter a code from your authenticator to make this change.',
+      [{ path: 'stepUp', issue: 'Give a fresh authenticator code' }],
+    );
+  }
+}
 
 const READS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -378,6 +409,7 @@ export class AuthGuard implements CanActivate {
       ...(claims.sg ? { supportGrantId: claims.sg } : {}),
       ...(claims.scp ? { scopes: claims.scp } : {}),
       ...(claims.sid ? { sessionId: claims.sid } : {}),
+      ...(claims.sua ? { steppedUpAt: claims.sua * 1000 } : {}),
     });
     request.access = access;
     this.apiCalls.count(access.tenantId);
@@ -453,6 +485,14 @@ export class AuthGuard implements CanActivate {
       // What the route needs comes only from modules that are off: say so, not "no access".
       if (closedByModules(rule.permissions, access.modulesOff)) throw moduleDisabled();
       throw new AppError('FORBIDDEN', 'You do not have access to this.');
+    }
+    if (
+      this.reflector.getAllAndOverride<boolean | undefined>(STEP_UP, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      requireStepUp(access);
     }
     return true;
   }

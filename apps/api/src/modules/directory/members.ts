@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { newId } from '@thelamp/shared';
 import { and, eq, ne } from 'drizzle-orm';
-import { identities, memberships, refreshTokens, totpSecrets } from '../../db/schema/directory';
+import {
+  identities,
+  memberships,
+  refreshTokens,
+  ssoSubjects,
+  totpSecrets,
+} from '../../db/schema/directory';
 import { type MemberState, MembershipSync } from '../../platform/planes';
 import { DirectoryDatabase, type DirectoryTx } from './directory.database';
 
@@ -92,6 +98,7 @@ export class DirectoryMembers extends MembershipSync {
         .for('update');
       if (!membership) return;
       await tx.delete(refreshTokens).where(eq(refreshTokens.membershipId, membership.id));
+      await tx.delete(ssoSubjects).where(eq(ssoSubjects.membershipId, membership.id));
       await tx.delete(memberships).where(eq(memberships.id, membership.id));
       const [other] = await tx
         .select({ id: memberships.id })

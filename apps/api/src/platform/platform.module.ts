@@ -5,6 +5,7 @@ import { HealthCounters } from './health-counters';
 import { AuditLog } from './audit';
 import { BreachedPasswords, createBreachedPasswords } from './breached-passwords';
 import { Database } from './database';
+import { createDomainRecords, DomainRecords } from './domain-records';
 import { EndedSessions } from './ended-sessions';
 import { createObjectStore, ObjectStore } from './object-store';
 import { Outbox } from './outbox';
@@ -43,6 +44,7 @@ export class PlatformModule {
         { provide: BreachedPasswords, useFactory: () => createBreachedPasswords(config) },
         SecurityLog,
         EndedSessions,
+        { provide: DomainRecords, useFactory: () => createDomainRecords(config) },
       ],
       exports: [
         CONFIG,
@@ -62,6 +64,7 @@ export class PlatformModule {
         BreachedPasswords,
         SecurityLog,
         EndedSessions,
+        DomainRecords,
       ],
     };
   }

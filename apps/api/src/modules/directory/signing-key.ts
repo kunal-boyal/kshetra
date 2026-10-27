@@ -30,6 +30,8 @@ export interface AccessTokenInput {
   seconds?: number;
   /** The session, its refresh-token family (decision D101); API clients' tokens have none. */
   sessionId?: string;
+  /** When the session last gave a fresh authenticator code (decision D101). */
+  steppedUpAt?: Date | null;
 }
 
 /**
@@ -97,6 +99,7 @@ export class SigningKey extends TokenKeys implements OnModuleInit {
       ...(input.supportGrantId ? { sg: input.supportGrantId } : {}),
       ...(input.scopes ? { scp: [...input.scopes] } : {}),
       ...(input.sessionId ? { sid: input.sessionId } : {}),
+      ...(input.steppedUpAt ? { sua: Math.floor(input.steppedUpAt.getTime() / 1000) } : {}),
     })
       .setProtectedHeader({ alg: 'ES256', kid: this.publicJwk.kid!, typ: 'JWT' })
       .setSubject(input.userId)

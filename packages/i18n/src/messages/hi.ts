@@ -101,6 +101,10 @@ export const hi: Record<MessageKey, Message> = {
   'shell.switch_organisation': 'संगठन बदलें',
   'shell.sign_out': 'साइन आउट करें',
   'shell.security': 'साइन-इन सुरक्षा',
+  'stepup.title': 'पुष्टि करें कि यह आप हैं',
+  'stepup.intro':
+    'यह बदलाव तय करता है कि कौन किसके नाम से साइन इन कर सकता है। अपने ऑथेंटिकेटर ऐप में अभी दिख रहा कोड डालें।',
+  'stepup.continue': 'आगे बढ़ें',
   'security.title': 'साइन-इन सुरक्षा',
   'security.intro': 'आप पोर्टल में कैसे साइन इन करते हैं।',
   'security.sms_note':
@@ -3463,6 +3467,15 @@ export const hi: Record<MessageKey, Message> = {
   'sso.idp_issuer': 'प्रदाता की एंटिटी ID',
   'sso.certificate': 'साइनिंग सर्टिफ़िकेट',
   'sso.certificate_help': 'प्रदाता का सर्टिफ़िकेट, PEM के रूप में',
+  'sso.domains_title': 'अपने डोमेन साबित करें',
+  'sso.domains_intro':
+    'सिंगल साइन-ऑन सिर्फ़ उन डोमेन के पतों को साइन इन करता है जिन्हें आपने अपना साबित किया है। अपने DNS प्रदाता पर हर डोमेन के लिए इस नाम और मान का TXT रिकॉर्ड जोड़ें, फिर जाँचें।',
+  'sso.record_name': 'TXT रिकॉर्ड का नाम',
+  'sso.record_value': 'TXT रिकॉर्ड का मान',
+  'sso.verified': 'सत्यापित',
+  'sso.not_verified': 'अभी सत्यापित नहीं',
+  'sso.check': 'अभी जाँचें',
+  'sso.checked': '{domain} सत्यापित है।',
   'sso.domains': 'ईमेल डोमेन',
   'sso.domains_help': 'हर लाइन में एक, जैसे sunrise-agro.example',
   'sso.enabled': 'चालू',

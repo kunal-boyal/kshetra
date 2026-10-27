@@ -519,6 +519,20 @@
       "when": 1793050683607,
       "tag": "0073_session_places",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793052731605,
+      "tag": "0074_step_up",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1793054303402,
+      "tag": "0075_sso_domains_subjects",
+      "breakpoints": true
     }
   ]
 }

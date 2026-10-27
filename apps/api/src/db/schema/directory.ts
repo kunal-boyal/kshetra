@@ -174,6 +174,9 @@ export const refreshTokens = directory.table(
     // D101): the browser or app as it named itself, cut short, and the address.
     userAgent: text('user_agent'),
     ip: text('ip'),
+    // When the session last gave a fresh authenticator code (step-up, decision D101); each
+    // refresh carries it on, so changes needing one stay open for their ten minutes.
+    steppedUpAt: timestamp('stepped_up_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (table) => [
@@ -614,3 +617,51 @@ export const ssoConnections = directory.table('sso_connections', {
   createdAt: createdAt(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * The email domains an organisation's single sign-on claims, each proved by a DNS TXT record
+ * holding its token (ASVS V6.8.1, decision D101): only a verified domain signs anyone in, and a
+ * domain one organisation has verified can't be claimed by another.
+ */
+export const ssoDomains = directory.table(
+  'sso_domains',
+  {
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    domain: text('domain').notNull(),
+    token: text('token').notNull(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.domain] }),
+    uniqueIndex('sso_domains_verified')
+      .on(table.domain)
+      .where(sql`${table.verifiedAt} is not null`),
+  ],
+);
+
+/**
+ * Who a person is at the organisation's identity provider (ASVS V10.5.2, decision D101): the
+ * provider's issuer and subject, bound to the member at their first SSO sign-in by email. After
+ * that the subject decides, so an email changed or reused at the provider can't move them.
+ */
+export const ssoSubjects = directory.table(
+  'sso_subjects',
+  {
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    issuer: text('issuer').notNull(),
+    subject: text('subject').notNull(),
+    membershipId: uuid('membership_id')
+      .notNull()
+      .references(() => memberships.id),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.issuer, table.subject] }),
+    uniqueIndex('sso_subjects_member').on(table.tenantId, table.issuer, table.membershipId),
+  ],
+);

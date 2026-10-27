@@ -296,7 +296,21 @@ const ANSWERS: Record<string, unknown> = {
       entryPoint: 'https://idp.sunrise.example/sso',
       idpIssuer: 'https://idp.sunrise.example',
       hasIdpCertificate: true,
-      domains: ['sunrise.example'],
+      domains: ['sunrise.example', 'sunrise-agro.example'],
+      domainChecks: [
+        {
+          domain: 'sunrise-agro.example',
+          verified: false,
+          recordName: '_thelamp-sso.sunrise-agro.example',
+          recordValue: 'thelamp-sso=0123456789abcdef0123456789abcdef',
+        },
+        {
+          domain: 'sunrise.example',
+          verified: true,
+          recordName: '_thelamp-sso.sunrise.example',
+          recordValue: 'thelamp-sso=fedcba9876543210fedcba9876543210',
+        },
+      ],
       enabled: true,
       enforced: false,
       updatedAt: '2026-10-25T06:00:00.000Z',

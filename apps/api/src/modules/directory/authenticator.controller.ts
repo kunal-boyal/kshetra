@@ -5,11 +5,13 @@ import {
   AuthenticatorConfirmResult,
   AuthenticatorStatus,
   needsSecondFactor,
+  StepUpResult,
   TotpSetupResult,
 } from '@thelamp/shared';
 import { type Access, CurrentAccess, SignedIn } from '../../platform/auth';
 import { Contract } from '../../platform/routes';
 import { SecondFactorService } from './second-factor.service';
+import { SessionsService } from './sessions.service';
 
 /**
  * A person's own authenticator, from their account on the web (decision D101): anyone may set one
@@ -19,7 +21,10 @@ import { SecondFactorService } from './second-factor.service';
 @SignedIn()
 @Controller('auth/v1/authenticator')
 export class AuthenticatorController {
-  constructor(private readonly secondFactors: SecondFactorService) {}
+  constructor(
+    private readonly secondFactors: SecondFactorService,
+    private readonly sessions: SessionsService,
+  ) {}
 
   private person(access: Access): string {
     if (access.support || access.apiClient || access.deviceId) {
@@ -69,6 +74,23 @@ export class AuthenticatorController {
       code,
     );
     return { recoveryCodes };
+  }
+
+  @Post('step-up')
+  @HttpCode(200)
+  @Contract({
+    tag: 'Sign-in',
+    summary:
+      'Give a fresh code, for the next ten minutes’ changes to who signs in as whom (step-up)',
+    body: AuthenticatorCodeBody,
+    response: StepUpResult,
+  })
+  async stepUp(@CurrentAccess() access: Access, @Body() body: unknown) {
+    const userId = this.person(access);
+    if (!access.sessionId) throw new AppError('SESSION_REVOKED', 'Sign in again.');
+    const { code } = AuthenticatorCodeBody.parse(body);
+    await this.secondFactors.ownCheck(access.tenantId, userId, code);
+    return this.sessions.stepUp(access.tenantId, userId, access.sessionId);
   }
 
   @Post('remove')

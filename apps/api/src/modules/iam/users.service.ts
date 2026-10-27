@@ -39,7 +39,7 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { designations, devices, roles, users } from '../../db/schema/iam';
-import type { Access, SupportAccess } from '../../platform/auth';
+import { type Access, requireStepUp, type SupportAccess } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { AuditLog, userActor } from '../../platform/audit';
 import { Outbox } from '../../platform/outbox';
@@ -416,6 +416,9 @@ export class UsersService {
     };
     const before = await this.read(tx, tenantId, id);
     if (Object.keys(changes).length === 0) return before;
+    // A person's phone and email decide who signs in as them, so changing either needs a fresh
+    // authenticator code (ASVS V7.5.1, decision D101).
+    if (actor !== SYSTEM && ('phoneE164' in changes || 'email' in changes)) requireStepUp(actor);
 
     // Reactivating someone takes a seat; deactivating frees one (BR-45).
     if ('status' in changes && status === 'active') await this.seats.assertRoom(tx, tenantId);
