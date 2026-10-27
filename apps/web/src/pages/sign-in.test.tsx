@@ -228,7 +228,7 @@ describe('signing in on the web', () => {
     });
     renderApp(client);
     const user = userEvent.setup();
-    await user.selectOptions(await screen.findByRole('combobox'), 'hi');
+    await user.click(await screen.findByRole('button', { name: /Switch to हिन्दी/ }));
     await user.type(await screen.findByLabelText('मोबाइल नंबर *'), '9000000001');
     await user.click(screen.getByRole('button', { name: 'कोड भेजें' }));
     await user.type(await screen.findByLabelText('कोड *'), '000000');
@@ -247,6 +247,7 @@ describe('signing in on the web', () => {
     client.signOut.mockRejectedValueOnce(new NetworkError(new TypeError('Failed to fetch')));
     renderApp(client);
     const user = await enterNumberAndCode();
+    await user.click(await screen.findByRole('button', { name: 'Your profile and settings' }));
     await user.click(await screen.findByRole('button', { name: 'Sign out' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The server could not be reached. Check your connection, then try again.',
@@ -275,7 +276,7 @@ describe('signing in with single sign-on (decision D91)', () => {
     const client = fakeClient(async () => ({}));
     renderApp(client);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Sign in with SSO' }));
+    await user.click(await screen.findByRole('button', { name: 'Company SSO' }));
     expect(screen.getByRole('heading', { name: 'Sign in with your organisation' })).toBeVisible();
     const proceed = screen.getByRole('button', { name: 'Continue' });
     expect(proceed).toBeDisabled();
@@ -288,7 +289,7 @@ describe('signing in with single sign-on (decision D91)', () => {
     await user.click(proceed);
     expect(client.ssoDiscover).toHaveBeenLastCalledWith('anita@sunrise.example');
     expect(go).toHaveBeenCalledWith('http://127.0.0.1:3000/auth/v1/sso/sunrise/start');
-    await user.click(screen.getByRole('button', { name: 'Sign in with your mobile number' }));
+    await user.click(screen.getByRole('button', { name: 'Mobile number' }));
     expect(await screen.findByLabelText('Mobile number *')).toBeVisible();
   });
 

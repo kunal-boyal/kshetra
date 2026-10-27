@@ -31,11 +31,14 @@ const first = (word: string) =>
   graphemes.segment(word)[Symbol.iterator]().next().value?.segment ?? '';
 
 /**
- * The first letter of the first and last words, a Devanagari letter kept whole with its vowel
- * sign. Latin letters are upper-cased.
+ * The first letter of the first and last words that start with a letter, a Devanagari letter kept
+ * whole with its vowel sign. Latin letters are upper-cased.
  */
 export function initialsOf(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter((word) => /^\p{L}/u.test(word));
   if (words.length === 0) return '';
   const picked = words.length === 1 ? [words[0]!] : [words[0]!, words[words.length - 1]!];
   return picked.map((word) => first(word).toLocaleUpperCase('en')).join('');

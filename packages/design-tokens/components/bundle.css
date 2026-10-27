@@ -339,6 +339,22 @@ a.ks-kpi:hover, .ks-kpi.act:hover { border-color: var(--border-strong); box-shad
 .ks-appbar-org { display: flex; align-items: center; gap: var(--space-3); min-width: 0; font-size: 18px; line-height: calc(24px + var(--ks-lead)); font-weight: 700; }
 .ks-appbar-org img { height: 32px; width: auto; max-width: 8rem; object-fit: contain; }
 .ks-appbar-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.ks-appbar-org .ks-ico.org { border-radius: var(--radius-sm); }
+.ks-rail-count { min-height: 20px; padding: 0 var(--space-2); font-variant-numeric: tabular-nums; }
+.ks-rail-count::before { display: none; }
+.ks-rail-sub { display: block; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.ks-rail-person { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--surface); }
+.ks-rail-person > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+/* MenuButton: a button that opens a small panel under it, such as the person's menu (components/MenuButton). */
+.ks-menu-wrap { position: relative; }
+.ks-menu-trigger { display: grid; place-items: center; min-width: var(--touch-min); min-height: var(--touch-min); padding: 0; border: 0; border-radius: var(--radius-full); background: transparent; cursor: pointer; }
+.ks-menu-trigger:hover .ks-ico { box-shadow: 0 0 0 3px var(--accent-soft); }
+.ks-menu { position: absolute; top: calc(100% + var(--space-1)); z-index: var(--z-dropdown); min-width: 16rem; max-width: calc(100vw - var(--space-8)); padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-lg); animation: ks-drop var(--duration-fast) var(--ease-enter) both; }
+.ks-menu.end { right: 0; }
+.ks-menu.start { left: 0; }
+.ks-menu[hidden] { display: none; }
+/* Sign-in's code field: the digits spaced apart and bold, easy to check against the message. */
+.ks-input.code, .ks-field.code .ks-input { letter-spacing: 0.3em; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ks-auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); background: var(--bg); }
 .ks-auth-brand { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-8); padding: var(--space-10); background: var(--brand-forest); color: var(--on-brand); }
 .ks-auth-name { position: relative; display: flex; align-items: center; gap: var(--space-3); font-size: 20px; line-height: calc(28px + var(--ks-lead)); font-weight: 700; }
@@ -407,6 +423,7 @@ a.ks-kpi:hover, .ks-kpi.act:hover { border-color: var(--border-strong); box-shad
 [data-theme="outdoor"] .ks-tab[aria-current="page"] { font-weight: 700; }
 [data-theme="outdoor"] .ks-rail-link[aria-current="page"] { background: var(--surface); box-shadow: inset 0 0 0 2px var(--accent); }
 [data-theme="outdoor"] .ks-appbar { background: var(--surface); backdrop-filter: none; }
+[data-theme="outdoor"] .ks-menu { border-width: 2px; border-color: var(--border-strong); }
 [data-theme="outdoor"] .ks-seg { box-shadow: inset 0 0 0 1px var(--border); }
 [data-theme="outdoor"] .ks-seg > button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
 [data-theme="outdoor"] .ks-tablist > [role="tab"][aria-selected="true"] { font-weight: 700; }

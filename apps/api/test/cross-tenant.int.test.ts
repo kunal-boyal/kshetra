@@ -1790,6 +1790,10 @@ const FIXTURES: Record<string, Fixture> = {
         await asB('GET', `/v1/dashboard?period=${new Date().toISOString().slice(0, 7)}`),
       ),
   },
+  'GET /v1/dashboard/waiting': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/dashboard/waiting')),
+  },
   'GET /v1/reports/:key': {
     kind: 'by ID',
     run: async () => {

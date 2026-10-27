@@ -11,7 +11,8 @@ export function Brand({ label }: { label: string }) {
     <span className="ks-rail-brand">
       <img src={markUrl} alt="" width={32} height={32} />
       <span>
-        {PRODUCT_NAME} <span className="ks-muted">{label}</span>
+        {PRODUCT_NAME}
+        <span className="ks-rail-sub">{label}</span>
       </span>
     </span>
   );

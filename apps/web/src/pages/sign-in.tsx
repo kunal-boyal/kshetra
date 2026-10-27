@@ -1,5 +1,5 @@
 import { ApiError } from '@thelamp/api-client';
-import { Button, Card, Icon, TextField } from '@thelamp/ui-web';
+import { Button, Icon, SegmentedControl, TextField } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { KeyRound } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
@@ -10,7 +10,7 @@ import { EmailField, MobileField } from '../fields';
 import { errorMessage, useLanguage } from '../i18n';
 import markUrl from '@thelamp/design-tokens/assets/Logos/mark-small.svg?url';
 import { PRODUCT_NAME } from '../layout/brand';
-import { LanguagePicker } from '../layout/preferences-menu';
+import { LanguageToggle } from '../layout/preferences-menu';
 import { SecondFactorStep } from './second-factor';
 import { browser } from '../browser';
 
@@ -170,17 +170,34 @@ export function SignInPage() {
           <p className="ks-auth-tagline">{t('signin.tagline')}</p>
           <p>{t('signin.tagline_body')}</p>
         </div>
+        <p className="text-sm">{t('signin.used_by')}</p>
         <img className="ks-auth-art" src={markUrl} alt="" aria-hidden="true" />
       </aside>
       <div className="ks-auth-form">
-        <div className="flex flex-col gap-6">
-          <div className="flex justify-end">
-            <LanguagePicker />
-          </div>
-          <Card className="ks-enter">
+        <div className="ks-enter flex flex-col gap-5">
+          {step.name === 'phone' || step.name === 'sso' ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <h1 className="heading-xl">{t('signin.title')}</h1>
+                <p className="ks-meta">{t('signin.subtitle')}</p>
+              </div>
+              <SegmentedControl
+                label={t('signin.method')}
+                value={step.name}
+                onChange={(method) => {
+                  setError(undefined);
+                  setStep(method === 'sso' ? { name: 'sso' } : { name: 'phone' });
+                }}
+                choices={[
+                  { value: 'phone', label: t('signin.method_phone') },
+                  { value: 'sso', label: t('signin.method_sso') },
+                ]}
+              />
+            </div>
+          ) : null}
+          <div>
             {step.name === 'phone' ? (
               <form className="flex flex-col gap-4" onSubmit={sendCode} noValidate>
-                <h1 className="heading-xl">{t('signin.title')}</h1>
                 {spent ? (
                   <p className="ks-help error" role="alert">
                     {t('signin.support_expired')}
@@ -200,24 +217,12 @@ export function SignInPage() {
                 <Button type="submit" variant="primary" block busy={busy} disabled={!phone.trim()}>
                   {t('signin.send_code')}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="self-center"
-                  icon={<Icon icon={KeyRound} size="sm" />}
-                  onClick={() => {
-                    setError(undefined);
-                    setStep({ name: 'sso' });
-                  }}
-                >
-                  {t('signin.sso_link')}
-                </Button>
               </form>
             ) : null}
 
             {step.name === 'sso' ? (
               <form className="flex flex-col gap-4" onSubmit={startSso} noValidate>
-                <h1 className="heading-xl">{t('signin.sso_title')}</h1>
+                <h2 className="heading-md">{t('signin.sso_title')}</h2>
                 <p className="ks-muted">{t('signin.sso_intro')}</p>
                 <EmailField
                   label={t('signin.sso_email')}
@@ -228,19 +233,15 @@ export function SignInPage() {
                   required
                   autoFocus
                 />
-                <Button type="submit" variant="primary" block busy={busy} disabled={!email.trim()}>
-                  {t('signin.sso_continue')}
-                </Button>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="self-center"
-                  onClick={() => {
-                    setError(undefined);
-                    setStep({ name: 'phone' });
-                  }}
+                  type="submit"
+                  variant="primary"
+                  block
+                  busy={busy}
+                  disabled={!email.trim()}
+                  icon={<Icon icon={KeyRound} size="sm" />}
                 >
-                  {t('signin.sso_back')}
+                  {t('signin.sso_continue')}
                 </Button>
               </form>
             ) : null}
@@ -257,6 +258,7 @@ export function SignInPage() {
                   pattern="\d{6}"
                   maxLength={6}
                   numeric
+                  className="code"
                   value={code}
                   onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
                   required
@@ -297,7 +299,11 @@ export function SignInPage() {
                 onExpired={expired}
               />
             ) : null}
-          </Card>
+          </div>
+          <div className="ks-spread flex-wrap gap-2 text-sm">
+            <LanguageToggle className="-ml-3" />
+            <span className="ks-muted">{t('signin.two_step_note')}</span>
+          </div>
           <p className="ks-subtle caption flex justify-center gap-4">
             <Link to="/privacy">{t('privacy.open')}</Link>
             <Link to="/delete-account">{t('deletion.open')}</Link>

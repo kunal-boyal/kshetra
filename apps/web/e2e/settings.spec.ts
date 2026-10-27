@@ -861,6 +861,8 @@ test("takes the tenant's accent from its brand colour", async ({ page }) => {
       getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
     );
   await expect.poll(accent).toBe('#0f6e6e');
+  // The look is in the person's menu, behind their avatar (decision D104).
+  await page.getByRole('button', { name: 'Your profile and settings' }).click();
   await page.getByRole('combobox', { name: 'Theme' }).selectOption('dark');
   await expect.poll(accent).not.toBe('#0f6e6e');
   await expectAccessible(page);

@@ -1,4 +1,5 @@
-import { Button, Icon } from '@thelamp/ui-web';
+import { formatNumber } from '@thelamp/i18n';
+import { Avatar, Button, Icon, MenuButton } from '@thelamp/ui-web';
 import { Link, Outlet } from '@tanstack/react-router';
 import {
   Bell,
@@ -25,12 +26,14 @@ import { useEffect, useState } from 'react';
 import { useApp } from '../context';
 import { applyBrand } from '../brand';
 import { useConfig, useMe } from '../data';
+import { useWaiting } from '../dashboard/data';
+import { designationName } from '../people/shared';
 import { useOrganisation } from '../settings/data';
 import { useUnread } from '../notifications/data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { Brand } from './brand';
-import { LanguagePicker, ThemePicker } from './preferences-menu';
+import { LanguageToggle, ThemePicker } from './preferences-menu';
 import { Announcements } from './announcements';
 import { SupportBanner } from './support-banner';
 import { StepUpPrompt } from '../step-up';
@@ -55,18 +58,81 @@ function NotificationsLink() {
   );
 }
 
-/** One entry of the navigation rail; the current page is marked for the eye and for readers. */
-function RailLink({ link }: { link: { to: string; icon: typeof House; label: string } }) {
+/**
+ * One entry of the navigation rail; the current page is marked for the eye and for readers, and
+ * what waits there is counted beside it (decision D104).
+ */
+function RailLink({
+  link,
+}: {
+  link: { to: string; icon: typeof House; label: string; count?: number | null | undefined };
+}) {
+  const { t, locale } = useLanguage();
+  const count = link.count ?? 0;
   return (
     <Link
       to={link.to}
       className="ks-rail-link"
       activeOptions={{ exact: link.to === '/' }}
       activeProps={{ 'aria-current': 'page' }}
+      {...(count > 0 ? { 'aria-label': t('nav.waiting', { label: link.label, count }) } : {})}
     >
       <Icon icon={link.icon} />
-      {link.label}
+      <span className="flex-1">{link.label}</span>
+      {count > 0 ? (
+        <span className="ks-badge neutral ks-rail-count" aria-hidden="true">
+          {count > 99 ? '99+' : formatNumber(count, { locale })}
+        </span>
+      ) : null}
     </Link>
+  );
+}
+
+/** The person's choices behind their avatar: who they are, sign-in security, the look, sign out. */
+function AccountMenu({ onSignOut }: { onSignOut: () => void }) {
+  const { client } = useApp();
+  const { t, locale } = useLanguage();
+  const me = useMe(client);
+  const config = useConfig(client, useApp().queryClient);
+  if (!me.data) return null;
+  const designation = me.data.support
+    ? t('support.title')
+    : designationName(me.data.designation, config.data?.bundle.designations ?? [], locale);
+  return (
+    <MenuButton
+      label={t('shell.account_menu')}
+      trigger={<Avatar name={me.data.name} id={me.data.userId} size="sm" />}
+    >
+      {(close) => (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <Avatar name={me.data.name} id={me.data.userId} />
+            <div className="min-w-0">
+              <p className="ks-title truncate">{me.data.name}</p>
+              <p className="ks-meta truncate">{designation}</p>
+            </div>
+          </div>
+          {me.data.support ? null : (
+            <Link to="/security" className="ks-btn ghost sm justify-start" onClick={close}>
+              <Icon icon={ShieldCheck} size="sm" />
+              {t('shell.security')}
+            </Link>
+          )}
+          <ThemePicker />
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<Icon icon={LogOut} size="sm" />}
+            onClick={() => {
+              close();
+              onSignOut();
+            }}
+          >
+            {t('shell.sign_out')}
+          </Button>
+        </div>
+      )}
+    </MenuButton>
   );
 }
 
@@ -75,13 +141,14 @@ export function AppShell() {
   const { t, setTerms } = useLanguage();
   const config = useConfig(client, queryClient);
   const organisation = useOrganisation();
-  const me = useMe(client);
   const [error, setError] = useState<string>();
   const tenant = client.session?.tenant;
+  const orgName = organisation.data?.name || tenant?.name || '';
   const access = useAccess();
+  const waiting = useWaiting().data;
   // Only what the person may use (spec 8.2), in sections; each module adds its entry when it
   // arrives, and a section with nothing in it isn't shown.
-  type NavLink = { to: string; icon: typeof House; label: string };
+  type NavLink = { to: string; icon: typeof House; label: string; count?: number | null };
   const only = (allowed: boolean, link: NavLink): NavLink[] => (allowed ? [link] : []);
   const sections: { key: string; label: string; links: NavLink[] }[] = [
     {
@@ -93,11 +160,13 @@ export function AppShell() {
           to: '/review',
           icon: ClipboardCheck,
           label: t('nav.review'),
+          count: waiting?.reviews,
         }),
         ...only(access.can('approval.act') || access.can('account.approve'), {
           to: '/approvals',
           icon: Inbox,
           label: t('nav.approvals'),
+          count: waiting?.approvals,
         }),
         ...only(access.can('order.view') || access.can('order.create'), {
           to: '/orders',
@@ -241,31 +310,17 @@ export function AppShell() {
       <div className="flex min-w-0 flex-col">
         <header className="ks-appbar">
           <p className="ks-appbar-org">
-            {organisation.data?.logo ? <img src={organisation.data.logo.url} alt="" /> : null}
-            <span className="truncate">{organisation.data?.name || tenant?.name}</span>
+            {organisation.data?.logo ? (
+              <img src={organisation.data.logo.url} alt="" />
+            ) : orgName ? (
+              <Avatar name={orgName} id={tenant?.id ?? orgName} size="sm" className="org" />
+            ) : null}
+            <span className="truncate">{orgName}</span>
           </p>
-          <div className="ks-appbar-tools" aria-label={t('shell.account_menu')}>
+          <div className="ks-appbar-tools">
+            <LanguageToggle />
             <NotificationsLink />
-            {me.data?.support ? null : (
-              <Link
-                to="/security"
-                className="ks-btn ghost sm"
-                aria-label={t('shell.security')}
-                title={t('shell.security')}
-              >
-                <Icon icon={ShieldCheck} size="sm" />
-              </Link>
-            )}
-            <LanguagePicker />
-            <ThemePicker />
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Icon icon={LogOut} size="sm" />}
-              onClick={() => act(() => client.signOut())}
-            >
-              {t('shell.sign_out')}
-            </Button>
+            <AccountMenu onSignOut={() => act(() => client.signOut())} />
           </div>
           {error ? (
             <p className="ks-help error w-full" role="alert">

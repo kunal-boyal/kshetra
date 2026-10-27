@@ -3,6 +3,7 @@ import {
   CreateExportBody,
   DashboardQuery,
   DashboardResult,
+  DashboardWaiting,
   ExportIdParam,
   ExportListQuery,
   ExportListResult,
@@ -48,6 +49,17 @@ export class ReportsController {
     return this.database.read(access.tenantId, (tx) =>
       this.dashboard.read(tx, access, input.period),
     );
+  }
+
+  @Get('dashboard/waiting')
+  @Contract({
+    tag: 'Reports',
+    summary: 'What waits for the caller: reviews and approvals, for the counts beside the menu',
+    response: DashboardWaiting,
+  })
+  @SignedIn()
+  waiting(@CurrentAccess() access: Access) {
+    return this.database.read(access.tenantId, (tx) => this.dashboard.waiting(tx, access));
   }
 
   @Get('reports/:key')

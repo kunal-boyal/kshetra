@@ -10257,6 +10257,44 @@
         }
       }
     },
+    "/v1/dashboard/waiting": {
+      "get": {
+        "operationId": "ReportsController.waiting",
+        "summary": "What waits for the caller: reviews and approvals, for the counts beside the menu",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardWaiting"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/data-exports": {
       "get": {
         "operationId": "DataExportsController.list",
@@ -28532,38 +28570,7 @@
             ]
           },
           "waiting": {
-            "type": "object",
-            "properties": {
-              "reviews": {
-                "anyOf": [
-                  {
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "approvals": {
-                "anyOf": [
-                  {
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": [
-              "reviews",
-              "approvals"
-            ],
-            "additionalProperties": false
+            "$ref": "#/components/schemas/DashboardWaiting"
           }
         },
         "required": [
@@ -28576,6 +28583,40 @@
           "leaderboard",
           "onDuty",
           "waiting"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardWaiting": {
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "approvals": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "reviews",
+          "approvals"
         ],
         "additionalProperties": false
       },
