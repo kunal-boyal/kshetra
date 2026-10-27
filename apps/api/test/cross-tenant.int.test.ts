@@ -174,9 +174,32 @@ function send(token: string | undefined, method: Method, url: string, payload?: 
   });
 }
 
-const asB = (method: Method, url: string, payload?: object) => send(bToken, method, url, payload);
-const asBPhone = (method: Method, url: string, payload?: object) =>
-  send(bPhoneToken, method, url, payload);
+/**
+ * B's sign-ins, made again once ten minutes old: the whole run outlasts an access token's
+ * 15 minutes on a busy machine.
+ */
+const FRESH_FOR_MS = 10 * 60_000;
+let bSignedAt = 0;
+let bPhoneSignedAt = 0;
+async function bAdmin(): Promise<string> {
+  if (Date.now() - bSignedAt > FRESH_FOR_MS) {
+    bToken = (await world.signIn(b.admin.phone)).accessToken;
+    bSignedAt = Date.now();
+  }
+  return bToken;
+}
+async function bPhone(): Promise<string> {
+  if (Date.now() - bPhoneSignedAt > FRESH_FOR_MS) {
+    bPhoneToken = (await world.signIn(b.member.phone, b.memberDevice)).accessToken;
+    bPhoneSignedAt = Date.now();
+  }
+  return bPhoneToken;
+}
+
+const asB = async (method: Method, url: string, payload?: object) =>
+  send(await bAdmin(), method, url, payload);
+const asBPhone = async (method: Method, url: string, payload?: object) =>
+  send(await bPhone(), method, url, payload);
 
 /** A real fix, as a punch carries it. */
 const FIX = { location: { lat: 12.9716, lng: 77.5946 }, accuracy: 15, mocked: false };
@@ -879,7 +902,7 @@ const FIXTURES: Record<string, Fixture> = {
       const set = await app.inject({
         method: 'PUT',
         url: '/v1/organisation/logo',
-        headers: { authorization: `Bearer ${bToken}`, 'content-type': 'image/png' },
+        headers: { authorization: `Bearer ${await bAdmin()}`, 'content-type': 'image/png' },
         payload: logo,
       });
       expect(set.statusCode).toBe(200);
@@ -1008,6 +1031,7 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(await asB('POST', '/v1/users/sign-out-everyone'));
       // B's phone was signed out with everyone else; later fixtures need it again.
       bPhoneToken = (await world.signIn(b.member.phone, b.memberDevice)).accessToken;
+      bPhoneSignedAt = Date.now();
     },
   },
   'POST /v1/users/:id/sign-out-everywhere': {
@@ -1065,7 +1089,7 @@ const FIXTURES: Record<string, Fixture> = {
   'POST /v1/imports': {
     kind: 'write',
     run: async () => {
-      const uploaded = await upload(bToken, 'users', 'Employee code,Name\nB-1,Bravo One');
+      const uploaded = await upload(await bAdmin(), 'users', 'Employee code,Name\nB-1,Bravo One');
       expect(uploaded.statusCode).toBe(201);
       holdsNothingOfA(uploaded);
     },
@@ -1872,7 +1896,7 @@ const FIXTURES: Record<string, Fixture> = {
     run: async () => {
       // B can't claim a domain for itself and so take A's people; B's own connection is B's.
       // Saving it needs a fresh authenticator code (decision D101).
-      const stepped = await world.stepUp(b.admin.phone, bToken);
+      const stepped = await world.stepUp(b.admin.phone, await bAdmin());
       const reply = await send(stepped, 'PUT', '/v1/sso', {
         settings: {
           protocol: 'oidc',
@@ -1949,7 +1973,7 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: async () => {
       // With a fresh code, so the answer is about whose the ID is (decision D101).
-      const stepped = await world.stepUp(b.admin.phone, bToken);
+      const stepped = await world.stepUp(b.admin.phone, await bAdmin());
       await sameAsNowhere(
         (id) => send(stepped, 'POST', `/v1/users/${id}/second-factor/reset`),
         a.admin.id,
@@ -2600,7 +2624,9 @@ beforeAll(async () => {
   a = await tenant('Alpha Agencies', 'Alphastore');
   b = await tenant('Bravo Brands', 'Bravostall');
   bToken = (await world.signIn(b.admin.phone)).accessToken;
+  bSignedAt = Date.now();
   bPhoneToken = (await world.signIn(b.member.phone, b.memberDevice)).accessToken;
+  bPhoneSignedAt = Date.now();
   // A sync cursor of A's, made before A's rows are taken down, since signing in writes some.
   const aToken = (await world.signIn(a.admin.phone)).accessToken;
   aCursor = (await send(aToken, 'GET', '/v1/sync/pull?entities=users')).json().cursor;
@@ -3005,7 +3031,7 @@ beforeAll(async () => {
   bAccountId = newId();
   expect(
     (
-      await send(bToken, 'POST', '/v1/accounts', {
+      await send(await bAdmin(), 'POST', '/v1/accounts', {
         id: bAccountId,
         type: 'customer',
         code: 'B-SHOP',
