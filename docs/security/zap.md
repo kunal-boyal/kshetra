@@ -10,11 +10,11 @@ OWASP ZAP's dynamic scans of the product (decisions D100 and D101), run by hand 
 | API, anonymous | Every route in `/v1/openapi.json` | Active scan: injection, traversal, header and error-handling attacks on each parameter, without a token |
 | API, signed in | The same routes | The same, as a manager signed in on a phone of a fresh load-test tenant, for the 13 minutes the access token gives; the token goes in through `ZAP_AUTH_HEADER_VALUE`, which ZAP doesn't print |
 
-The API runs as in production but for `USER_REQUESTS_PER_MINUTE`, lifted so the per-person limit doesn't answer most of the scan with 429. The portal's preview sends the Content-Security-Policy and the other headers CloudFront sends (`SECURITY_HEADERS` in `infra/modules/web/content-security-policy.mjs`), all but HSTS, as it serves plain HTTP. ZAP runs from its pinned image and reaches the machine as `host.docker.internal`; its replacer sends the Host header the servers expect. The active scans get a 1.5 GB heap and two threads: more outgrows Docker Desktop's 4 GB machine, which then stops ZAP. `tools/zap/scan.sh web api signed-in` runs any of the three alone.
+The API runs as in production but for `USER_REQUESTS_PER_MINUTE`, lifted so the per-person limit doesn't answer most of the scan with 429. The portal's preview sends the Content-Security-Policy and the other headers CloudFront sends (`SECURITY_HEADERS` in `infra/modules/web/content-security-policy.mjs`), all but HSTS, as it serves plain HTTP. ZAP runs from its pinned image and reaches the machine as `host.docker.internal`; its replacer sends the Host header the servers expect. The active scans get a 1.5 GB heap and two threads, and still fill it: on Docker Desktop's default 4 GB machine a scan can stall or be stopped, so give Docker 8 GB before a full run. `tools/zap/scan.sh web api signed-in` runs any of the three alone.
 
 ## 2026-10-27 (10c5d)
 
-No high or medium finding was a vulnerability. The active scans sent about 270,000 requests between them; the API answered none with a server error, and the signed-in scan's 403 and 404 answers were the manager's scope and permissions holding.
+No high or medium finding was a vulnerability. Each API scan sent about 136,000 requests; the API answered none with a server error, and the signed-in scan's 403 and 404 answers were the manager's scope and permissions holding. The anonymous scan completed before the header fixes; after them the baseline and the signed-in scan were run again (the anonymous one ran out of memory on the 4 GB machine), and the signed-in scan, over the same routes and headers, found only the reference page's inline styles.
 
 **Fixed**
 

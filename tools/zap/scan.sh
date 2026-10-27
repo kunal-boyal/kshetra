@@ -57,7 +57,7 @@ zap() {
   docker run --rm -v "$PWD/$OUT:/zap/wrk:rw" -e ZAP_AUTH_HEADER -e ZAP_AUTH_HEADER_VALUE "$IMAGE" "$@"
 }
 # The active scans keep every request in memory: ZAP's default heap runs out, and more than
-# 1.5 GB outgrows Docker Desktop's 4 GB machine; two threads rather than one a core keep it there.
+# 1.5 GB outgrows Docker Desktop's 4 GB machine. Give Docker 8 GB for a full run.
 SCAN="-Xmx1536m -config scanner.threadPerHost=2"
 API="http://host.docker.internal:$API_PORT/v1/openapi.json"
 wanted() { [[ " $SCANS " == *" $1 "* ]]; }
