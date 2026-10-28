@@ -43,8 +43,8 @@ export interface ShiftCardProps {
 
 const BADGE = { on: 'success', paused: 'pending', stopped: 'danger' } as const;
 
-/** The live dot: green and pulsing once per `duration-loop` on duty, grey off it. */
-function LiveDot({ live }: { live: boolean }) {
+/** The live dot (`ks-live`): green and pulsing once per `duration-loop` while live, grey off. */
+export function LiveDot({ live }: { live: boolean }) {
   const theme = useTheme();
   const reduced = useReducedMotion();
   const [pulse] = useState(() => new Animated.Value(0));

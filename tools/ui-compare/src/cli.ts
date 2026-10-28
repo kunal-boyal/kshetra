@@ -9,6 +9,7 @@
 //   --app        default http://localhost:8081, the field app in a browser (`pnpm --filter
 //                @thelamp/mobile web`); its pairs (`app-*`) sign in with --app-phone, a fresh
 //                person from `pnpm --filter @thelamp/api e2e:fixtures`, never a seeded one
+//   --app-account  the fixtures' account (its ACCOUNT), which the visit's pair opens
 //   --only       keys from src/pages.ts, comma-separated
 //   --portal     default http://127.0.0.1:5173
 //   --mailpit    default http://localhost:8025
@@ -40,6 +41,7 @@ const { values } = parseArgs({
     console: { type: 'string', default: 'http://127.0.0.1:5174' },
     app: { type: 'string', default: 'http://localhost:8081' },
     'app-phone': { type: 'string' },
+    'app-account': { type: 'string' },
     mailpit: { type: 'string', default: 'http://localhost:8025' },
     out: { type: 'string' },
     'prototype-only': { type: 'boolean', default: false },
@@ -214,8 +216,7 @@ try {
     for (const theme of THEMES) {
       await scheme(theme);
       for (const pair of appPairs.filter((candidate) => !candidate.signedOut)) {
-        await page.goto(`${values.app}${pair.portal}`);
-        await page.getByText(/^Good (morning|afternoon|evening)/).waitFor({ timeout: 30_000 });
+        await openApp(page, pair);
         await shootApp(page, pair, theme);
       }
     }
@@ -272,6 +273,42 @@ async function shootPortal(page: Page, pair: Pair, theme: string, base = values.
     const file = await shoot(page, `${pair.key}.portal.${theme}.${width}.jpg`);
     shots.push({ key: pair.key, side: 'portal', theme, width, file });
   }
+}
+
+/**
+ * Opens a field app pair's screen. The app keeps its session in memory on the web, so it moves by
+ * tapping, never by loading a page: Home's tab for `/`, then the tab, More's row or the row tapped.
+ */
+async function openApp(page: Page, pair: Pair) {
+  const tab = (name: string) => page.getByTestId(`tab-${name}`).click();
+  // A screen above the tabs, such as a form, hides them: back to the tabs first.
+  for (let tries = 0; tries < 4 && !(await page.getByTestId('tab-home').isVisible()); tries += 1) {
+    await page.goBack();
+    await page.waitForTimeout(800);
+  }
+  await tab('home');
+  await page.getByText(/^Good (morning|afternoon|evening)/).waitFor({ timeout: 30_000 });
+  if (pair.portal === '/plan') await tab('plan');
+  if (pair.portal === '/accounts' || pair.portal === '/forms') {
+    await tab('me');
+    await page.getByTestId(pair.portal === '/accounts' ? 'more-accounts' : 'more-forms').click();
+  }
+  if (pair.tap === 'account') {
+    const name = values['app-account']!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    await page
+      .getByRole('button', { name: new RegExp(`^${name}`) })
+      .first()
+      .click();
+    await page
+      .getByText(/^(Stop \d+ of \d+|To do here|On this visit)$/)
+      .first()
+      .waitFor();
+  }
+  if (pair.tap === 'first-form') {
+    await page.getByTestId('form-start').first().click();
+    await page.getByText(/^Draft saved on this phone/).waitFor({ timeout: 15_000 });
+  }
+  await page.waitForTimeout(1500);
 }
 
 /** The field app at 390 px; its screen scrolls inside the page, so the shot is the viewport. */

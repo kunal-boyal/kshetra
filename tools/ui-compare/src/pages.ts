@@ -20,6 +20,12 @@ export interface Pair {
    * browser at 390 px and signed in as a fresh test person (stage M2).
    */
   app?: 'console' | 'phone';
+  /**
+   * On the field app, what to tap after opening `portal` to reach a screen that needs an ID: the
+   * fixtures' account by its name (`--app-account`), or the first form to fill, which starts a
+   * draft (stage M3).
+   */
+  tap?: 'account' | 'first-form';
 }
 
 export const PAIRS: readonly Pair[] = [
@@ -230,5 +236,31 @@ export const PAIRS: readonly Pair[] = [
     portal: '/',
     stage: 'M2',
     app: 'phone',
+  },
+  {
+    key: 'app-plan',
+    title: 'Field app: plan',
+    prototype: 'AppPlan.dc.html',
+    portal: '/plan',
+    stage: 'M3',
+    app: 'phone',
+  },
+  {
+    key: 'app-visit',
+    title: 'Field app: a visit',
+    prototype: 'AppVisit.dc.html',
+    portal: '/accounts',
+    stage: 'M3',
+    app: 'phone',
+    tap: 'account',
+  },
+  {
+    key: 'app-form',
+    title: 'Field app: a form',
+    prototype: 'AppForm.dc.html',
+    portal: '/forms',
+    stage: 'M3',
+    app: 'phone',
+    tap: 'first-form',
   },
 ];

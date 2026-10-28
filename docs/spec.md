@@ -821,7 +821,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 
 ### 8.1 Mobile app
 
-Navigation adapts to the user's permissions and the tenant's modules. Field users see four tabs: Home, Plan, Orders (when the module is on) and Me. Managers see a fifth tab, Team. Visit, form and camera screens open full screen above the tabs.
+Navigation adapts to the user's permissions and the tenant's modules. Field users see four tabs: Home, Plan, Orders (when the module is on) and More, which also opens their accounts and forms (D104). Managers see a fifth tab, Team, before More. Visit, form and camera screens open full screen above the tabs.
 
 | Screen | Contents and behaviour |
 |---|---|

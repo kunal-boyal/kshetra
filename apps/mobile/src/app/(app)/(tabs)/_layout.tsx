@@ -1,11 +1,11 @@
 import { BottomNav, useTheme } from '@thelamp/ui-mobile';
 import { Tabs } from 'expo-router';
 import {
-  ClipboardList,
+  CalendarCheck,
   House,
+  LayoutGrid,
   type LucideIcon,
-  Store,
-  UserRound,
+  ShoppingCart,
   Users,
 } from 'lucide-react-native';
 import { type ComponentProps, useEffect } from 'react';
@@ -14,13 +14,17 @@ import { useLanguage } from '../../../i18n';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-/** Plan and Orders join as their modules arrive; Team is for those who review or watch the live map (spec 8.1). */
+/**
+ * The prototype's five tabs (decision D104): Home, Plan, Orders, Team and More. Plan is for those
+ * who visit, Orders for those who take orders while the module is on, Team for those who review
+ * or watch the live map (spec 8.1); accounts and forms are reached from Home and More.
+ */
 const ICONS: Record<string, LucideIcon> = {
   index: House,
-  accounts: Store,
-  forms: ClipboardList,
+  plan: CalendarCheck,
+  orders: ShoppingCart,
   team: Users,
-  me: UserRound,
+  me: LayoutGrid,
 };
 
 /** The tabs, in the tenant's own words once the config bundle is in. */
@@ -32,6 +36,7 @@ export default function TabsLayout() {
   useEffect(() => {
     setTerms(config.data?.bundle.terminology);
   }, [config.data, setTerms]);
+  const modulesOff = config.data?.bundle.settings.modulesOff ?? [];
   const can = (permission: string) =>
     (config.data?.bundle.access.permissions ?? []).some((held) => held === permission);
 
@@ -42,12 +47,15 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" options={{ title: t('app.home') }} />
       <Tabs.Screen
-        name="accounts"
-        options={{ title: t('accounts.title'), href: can('account.view') ? undefined : null }}
+        name="plan"
+        options={{ title: t('plan.title'), href: can('visit.use') ? undefined : null }}
       />
       <Tabs.Screen
-        name="forms"
-        options={{ title: t('forms.title'), href: can('submission.create') ? undefined : null }}
+        name="orders"
+        options={{
+          title: t('orders.title'),
+          href: can('order.create') && !modulesOff.includes('orders') ? undefined : null,
+        }}
       />
       <Tabs.Screen
         name="team"
@@ -62,7 +70,7 @@ export default function TabsLayout() {
               : null,
         }}
       />
-      <Tabs.Screen name="me" options={{ title: t('app.me') }} />
+      <Tabs.Screen name="me" options={{ title: t('app.more') }} />
     </Tabs>
   );
 }

@@ -64,7 +64,11 @@ function fakeClient(verify: (events: ClientEvents) => Promise<unknown>) {
             ranked: false,
           },
         ],
-        access: { role: 'tenant_admin', scope: 'tenant', permissions: ['user.view'] },
+        access: {
+          role: 'tenant_admin',
+          scope: 'tenant',
+          permissions: ['user.view', 'account.view'],
+        },
       },
     })),
   };
@@ -229,6 +233,10 @@ describe('Me', () => {
     const fake = fakeClient(async () => signedIn());
     await renderApp(fake, 'me');
     await enterNumberAndCode();
+    // More holds the work with no tab of its own (D104): accounts here, forms only with filling.
+    expect(await screen.findByRole('heading', { name: 'More' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Accounts' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Forms' })).toBeNull();
     const outdoor = await screen.findByRole('radio', { name: 'Outdoor' });
     await fireEvent.press(outdoor);
     expect(screen.getByRole('radio', { name: 'Outdoor' })).toBeChecked();

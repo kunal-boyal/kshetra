@@ -72,6 +72,17 @@ export function formatWeekday(day: number, { locale, region }: FormatContext): s
   }).format(new Date(Date.UTC(2024, 0, day)));
 }
 
+/** A moment's time of day alone, in the tenant's timezone, such as "2:21 pm" on a bar. */
+export function formatTime(
+  instant: Date | string,
+  { locale, region, timeZone }: FormatContext & { timeZone: string },
+): string {
+  return new Intl.DateTimeFormat(localeTag(locale, region), {
+    timeStyle: 'short',
+    timeZone,
+  }).format(typeof instant === 'string' ? new Date(instant) : instant);
+}
+
 /** A moment in time, shown in the tenant's timezone. */
 export function formatDateTime(
   instant: Date | string,

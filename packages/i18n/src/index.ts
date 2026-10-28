@@ -6,6 +6,7 @@ export {
   formatMonth,
   formatWeekday,
   formatNumber,
+  formatTime,
   localeTag,
 } from './format';
 export type { FormatContext } from './format';

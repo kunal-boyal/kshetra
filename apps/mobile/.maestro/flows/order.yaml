@@ -14,8 +14,11 @@ name: order
     commands:
       - waitForAnimationToEnd
       - back
+# Accounts left the tab bar for More in stage M3 (decision D104).
 - tapOn:
-    id: tab-accounts
+    id: tab-me
+- tapOn:
+    id: more-accounts
 - tapOn: ${ACCOUNT}
 - scrollUntilVisible:
     element: New order

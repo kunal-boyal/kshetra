@@ -12,20 +12,18 @@ import { useLocalRows } from '../local-data';
 import { useOutboxItems } from '../sync';
 
 /**
- * Today's plan items the phone holds, in route order (each account's place on its route, then
- * the rest), and those planned on the phone that wait to be sent.
+ * A day's plan items the phone holds, in route order (each account's place on its route, then
+ * the rest), and those planned on the phone for that day that wait to be sent.
  */
-export function useTodayPlan(): {
+export function usePlanDay(date: string): {
   items: SyncPlanItem[];
   waiting: { id: string; accountId: string }[];
 } {
-  const config = useConfig();
   const rows = useLocalRows('plan_items') ?? [];
   const queued = useOutboxItems();
-  const today = todayIn(config.data?.bundle.settings.timezone ?? 'Asia/Kolkata');
   return {
     items: rows
-      .filter((item) => item.date === today && item.status !== 'cancelled')
+      .filter((item) => item.date === date && item.status !== 'cancelled')
       .sort(
         (a, b) =>
           (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER) ||
@@ -33,11 +31,17 @@ export function useTodayPlan(): {
       ),
     waiting: queued.flatMap((item) => {
       const payload = item.payload as { accountId?: string; date?: string };
-      return item.kind === 'plan_item.create' && payload.date === today && payload.accountId
+      return item.kind === 'plan_item.create' && payload.date === date && payload.accountId
         ? [{ id: item.id, accountId: payload.accountId }]
         : [];
     }),
   };
+}
+
+/** Today's plan on the tenant's clock (`usePlanDay()` for today). */
+export function useTodayPlan() {
+  const config = useConfig();
+  return usePlanDay(todayIn(config.data?.bundle.settings.timezone ?? 'Asia/Kolkata'));
 }
 
 /** How far the next stop is: metres under a kilometre, else kilometres to one place. */
@@ -128,7 +132,7 @@ export function TodayPlan({ from }: { from: GeoPoint | null }) {
             size="sm"
             icon={MapIcon}
             label={t('today.see_all')}
-            onPress={() => router.push('/today-route')}
+            onPress={() => router.push('/plan')}
           />
         </View>
       ) : null}

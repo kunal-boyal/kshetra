@@ -5,7 +5,8 @@ import { Icon } from './icon';
 import { Text } from './text';
 import { useTheme } from './theme';
 
-const SIDE = 64;
+/** A tile's side: 64 px in a row of evidence, 96 px where photos are taken, as in a form. */
+const SIDES = { md: 64, lg: 96 } as const;
 
 export interface Photo {
   /** Where the picture is, on the phone or behind a signed link; none while it is on its way. */
@@ -20,7 +21,13 @@ export interface Photo {
  * One photo as a 64 px tile (`ks-photo`), with the time it was taken on a tag. Without a picture
  * yet it shows a placeholder, never a broken image.
  */
-export function PhotoTile({ uri, time, label, onPress }: Photo & { onPress?: () => void }) {
+export function PhotoTile({
+  uri,
+  time,
+  label,
+  onPress,
+  size = 'md',
+}: Photo & { onPress?: () => void; size?: keyof typeof SIDES }) {
   const theme = useTheme();
   const outdoor = theme.name === 'outdoor';
   const tile = (
@@ -30,7 +37,7 @@ export function PhotoTile({ uri, time, label, onPress }: Photo & { onPress?: () 
       aria-label={label}
       style={[
         styles.tile,
-        { backgroundColor: theme.colors.surfaceSunken },
+        { width: SIDES[size], height: SIDES[size], backgroundColor: theme.colors.surfaceSunken },
         outdoor && { borderWidth: 1, borderColor: theme.colors.border },
       ]}
     >
@@ -71,7 +78,9 @@ export function PhotoStrip({
   label,
   onAdd,
   addLabel,
+  size = 'md',
 }: {
+  size?: keyof typeof SIDES;
   photos: readonly Photo[];
   label: string;
   /** Leave out when no more may be taken. */
@@ -87,7 +96,7 @@ export function PhotoStrip({
       contentContainerStyle={styles.strip}
     >
       {photos.map((photo, index) => (
-        <PhotoTile key={photo.uri ?? index} {...photo} />
+        <PhotoTile key={photo.uri ?? index} {...photo} size={size} />
       ))}
       {onAdd ? (
         <Pressable
@@ -98,6 +107,8 @@ export function PhotoStrip({
             styles.tile,
             styles.add,
             {
+              width: SIDES[size],
+              height: SIDES[size],
               borderColor: theme.colors.borderStrong,
               backgroundColor: pressed ? theme.colors.surfaceSunken : theme.colors.surface,
             },
@@ -113,8 +124,6 @@ export function PhotoStrip({
 const styles = StyleSheet.create({
   strip: { gap: spacing.space2 },
   tile: {
-    width: SIDE,
-    height: SIDE,
     borderRadius: radius.radiusMd,
     overflow: 'hidden',
     alignItems: 'center',

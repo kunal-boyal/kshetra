@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import type { SessionState } from '@thelamp/api-client';
 import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import { migrate, type SqlDatabase, Tracking, Visits } from '@thelamp/api-client/sync';
-import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@thelamp/shared';
+import { SETTING_DEFAULTS, type SyncPlanItem, type SyncPullResult, todayIn } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
@@ -13,7 +13,8 @@ import { Look } from '../look';
 import { SyncProvider } from '../sync';
 import { AccountScreen } from './account';
 import { TodayPlan } from './today-plan';
-import { TodayRouteScreen } from './today-route';
+import { OrdersScreen } from './my-orders';
+import { PlanScreen, stopState } from './plan';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
@@ -123,6 +124,17 @@ function pulled(): SyncPullResult {
       ]) as SyncPullResult['entities']['accounts'],
       contacts: full([]),
       items: full([]),
+      orders: full([
+        {
+          id: '01a10000-0000-7000-8000-0000000000e1',
+          accountId: HERE,
+          placedAt: '2026-10-27T06:30:00.000Z',
+          status: 'partially_accepted' as const,
+          total: '19780.00',
+          lineCount: 4,
+          rejectionReason: null,
+        },
+      ]),
       plan_items: full([
         {
           id: PLANNED,
@@ -172,7 +184,13 @@ function fakeClient(policy: 'advisory' | 'required') {
         access: {
           role: 'field_user',
           scope: 'self',
-          permissions: ['account.view', 'shift.use', 'visit.use', 'submission.create'],
+          permissions: [
+            'account.view',
+            'shift.use',
+            'visit.use',
+            'submission.create',
+            'order.create',
+          ],
         },
       },
     })),
@@ -183,7 +201,8 @@ function fakeClient(policy: 'advisory' | 'required') {
 function Shown({ id }: { id: string }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
-  if (id === 'route') return <TodayRouteScreen />;
+  if (id === 'route') return <PlanScreen />;
+  if (id === 'orders') return <OrdersScreen />;
   return id === 'today' ? <TodayPlan from={null} /> : <AccountScreen id={id} />;
 }
 
@@ -233,7 +252,12 @@ describe('visits on the phone (M6)', () => {
     const db = await phone(true);
     const client = await renderAt(HERE, db);
     await fireEvent.press(await screen.findByRole('button', { name: 'Check in' }));
-    expect(await screen.findByText('Checked in')).toBeOnTheScreen();
+    // The live card, the visit's forms under "On this visit", and Check out held at the foot.
+    expect(await screen.findByText(/^Checked in at /)).toBeOnTheScreen();
+    expect(screen.getByText('In progress')).toBeOnTheScreen();
+    expect(screen.getByText('On this visit for 0 min')).toBeOnTheScreen();
+    expect(screen.getByText('On this visit')).toBeOnTheScreen();
+    expect(screen.getByRole('heading', { name: 'Stop 1 of 1' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Visit report' })).toBeOnTheScreen();
     const visit = await new Visits(db).current(OWNER);
     expect(visit).toMatchObject({ accountId: HERE, shiftId: SHIFT });
@@ -283,6 +307,23 @@ describe('visits on the phone (M6)', () => {
       await screen.findByText(/^Checked in 2,\d{3} m away, outside the geofence\./),
     ).toBeOnTheScreen();
     expect(await new Visits(db).current(OWNER)).toMatchObject({ accountId: FAR });
+  });
+
+  it('says where the open visit is, and offers no check-out here', async () => {
+    const db = await phone(true);
+    await db.transaction((tx) =>
+      new Visits(db).open(tx, {
+        owner: OWNER,
+        visitId: '01a10000-0000-7000-8000-0000000000d8',
+        accountId: HERE,
+        shiftId: SHIFT,
+        checkedInAt: Date.now(),
+      }),
+    );
+    await renderAt(FAR, db);
+    expect(await screen.findByText(/^You are checked in at Janpath Mart\./)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Check out' })).toBeNull();
+    expect(screen.queryByText('In progress')).toBeNull();
   });
 
   it('asks for the day to start first', async () => {
@@ -337,6 +378,16 @@ describe('visits on the phone (M6)', () => {
   });
 });
 
+describe('the Orders tab (D104)', () => {
+  it("lists the person's orders with their account, value and status, and takes a new one", async () => {
+    await renderAt('orders', await phone(true));
+    const row = await screen.findByRole('button', { name: /^Janpath Mart, ₹19,780.00 · 4 lines/ });
+    expect(row).toHaveTextContent(/Partly accepted/);
+    await fireEvent.press(screen.getByRole('button', { name: 'New order' }));
+    expect(router.push).toHaveBeenCalledWith('/accounts');
+  });
+});
+
 describe('maps on a visit (M17)', () => {
   it('shows the place, the geofence and a green pill inside it', async () => {
     await renderAt(HERE, await phone(true));
@@ -350,17 +401,36 @@ describe('maps on a visit (M17)', () => {
     expect(await screen.findByText(/^2,\d{3} m away, outside the geofence$/)).toBeOnTheScreen();
   });
 
-  it("opens today's route as numbered stops", async () => {
-    await renderAt('today', await phone(true));
-    await fireEvent.press(await screen.findByRole('button', { name: 'See the whole plan' }));
-    expect(router.push).toHaveBeenCalledWith('/today-route');
+  it('switches to tomorrow, which has nothing planned, and back', async () => {
+    await renderAt('route', await phone(true));
+    expect(await screen.findByRole('button', { name: /^Janpath Mart/ })).toBeOnTheScreen();
+    await fireEvent.press(screen.getAllByRole('radio')[2]!);
+    expect(await screen.findByText('Nothing planned for this day.')).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Map of today's planned visits, stop by stop")).toBeNull();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Today' }));
+    expect(await screen.findByRole('button', { name: /^Janpath Mart/ })).toBeOnTheScreen();
   });
 
-  it("draws today's route, stop by stop, with each stop's status", async () => {
+  it('says where each stop stands: done, in review, missed, next or to come', () => {
+    const item = (status: SyncPlanItem['status']) => ({ status }) as SyncPlanItem;
+    expect(stopState(item('completed'), false)).toBe('done');
+    expect(stopState(item('visited'), false)).toBe('review');
+    expect(stopState(item('missed'), false)).toBe('missed');
+    expect(stopState(item('planned'), true)).toBe('next');
+    expect(stopState(item('planned'), false)).toBe('planned');
+  });
+
+  it('opens the whole plan from Home', async () => {
+    await renderAt('today', await phone(true));
+    await fireEvent.press(await screen.findByRole('button', { name: 'See the whole plan' }));
+    expect(router.push).toHaveBeenCalledWith('/plan');
+  });
+
+  it("draws today's plan, stop by stop, with each stop's state (D104)", async () => {
     await renderAt('route', await phone(true));
-    expect(await screen.findByRole('button', { name: /1\. Janpath Mart/ })).toHaveTextContent(
-      /Planned/,
-    );
+    const row = await screen.findByRole('button', { name: /^Janpath Mart, Customer/ });
+    expect(row).toHaveTextContent(/Next/);
+    expect(row).toHaveTextContent(/Collect payment/);
     expect(screen.getByLabelText("Map of today's planned visits, stop by stop")).toBeOnTheScreen();
     expect(screen.getByLabelText('1. Janpath Mart')).toBeOnTheScreen();
   });

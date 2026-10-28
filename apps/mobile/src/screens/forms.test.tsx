@@ -359,7 +359,15 @@ describe('forms on the phone', () => {
     const entries = new FormEntries(db);
     await entries.start({ id: ENTRY, owner: OWNER, form: CHECK });
     const client = await renderPhone({ name: 'entry', id: ENTRY }, db);
-    expect(await screen.findByText('Shop check')).toBeOnTheScreen();
+    // The compact bar (D104): the form's name, when the draft was kept, its version and a close
+    // that keeps the draft.
+    expect(await screen.findByRole('heading', { name: 'Shop check' })).toBeOnTheScreen();
+    expect(screen.getByText(/^Draft saved on this phone · /)).toBeOnTheScreen();
+    expect(screen.getByText('v2')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Close and keep the draft' })).toBeOnTheScreen();
+    expect(
+      screen.getByText('No signal? It sends itself when you are back online.'),
+    ).toBeOnTheScreen();
     expect(screen.queryByLabelText(/^Why closed/)).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
@@ -422,6 +430,22 @@ describe('forms on the phone', () => {
         mood: 4,
       },
       signature: ['M10 20 L40 25'],
+    });
+  });
+
+  it("takes the form's own photos as large tiles, up to its most", async () => {
+    const db = await freshDatabase();
+    const withPhotos: FormView = { ...CHECK, photos: { min: 1, max: 2, source: 'camera' } };
+    await new FormEntries(db).start({ id: ENTRY, owner: OWNER, form: withPhotos, accountId: SHOP });
+    await renderPhone({ name: 'entry', id: ENTRY }, db);
+    expect(
+      await screen.findByText('Live camera only. Each photo carries its time and place.'),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(/0 of 2/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Take a photo' }));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/camera',
+      params: { kind: 'evidence', request: `${ENTRY}|#photos` },
     });
   });
 
@@ -502,8 +526,10 @@ describe('forms on the phone', () => {
     );
     await new FormEntries(db).start({ id: ENTRY, owner: OWNER, form: DETAIL, accountId: SHOP });
     await renderPhone({ name: 'entry', id: ENTRY }, db, true);
-    // No order yet: the reason is asked.
+    // No order yet: the reason is asked, its few choices as chips (D104).
     expect(await screen.findByText('Why no order *')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Why no order *')).toHaveProp('role', 'radiogroup');
+    expect(screen.getByRole('radio', { name: 'Stocked up' })).toBeOnTheScreen();
   });
 
   it('waits for the visit’s order, and needs a signature only for samples', async () => {

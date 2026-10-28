@@ -1,7 +1,16 @@
 import type { FormEntry } from '@thelamp/api-client/sync';
 import { spacing } from '@thelamp/design-tokens';
 import { formatDateTime } from '@thelamp/i18n';
-import { EmptyState, ListGroup, ListRow, Notice, Screen, Text } from '@thelamp/ui-mobile';
+import {
+  AppBar,
+  EmptyState,
+  IconChip,
+  ListGroup,
+  ListRow,
+  Notice,
+  Screen,
+  Text,
+} from '@thelamp/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
 import { CircleCheck, ClipboardList, FilePen, Hourglass } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
@@ -77,9 +86,12 @@ export function FormsScreen() {
 
   return (
     <Screen>
-      <Text variant="headingXl" role="heading">
-        {t('forms.title')}
-      </Text>
+      {/* Off the tab bar since D104: reached from Home and More, so it goes back there. */}
+      <AppBar
+        title={t('forms.title')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        backLabel={t('common.back')}
+      />
       {failure ? (
         <Text tone="danger" role="alert">
           {failure}
@@ -107,7 +119,8 @@ export function FormsScreen() {
           {forms.map((form) => (
             <ListRow
               key={form.key}
-              icon={ClipboardList}
+              testID="form-start"
+              lead={<IconChip icon={ClipboardList} hue="sky" />}
               label={form.name[locale].one}
               onPress={() => void start(form.key)}
             />

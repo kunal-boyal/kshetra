@@ -19,7 +19,7 @@ export { PhotoStrip, PhotoTile } from './photos';
 export type { Photo } from './photos';
 export { OtpInput } from './otp-input';
 export { Screen } from './screen';
-export { ShiftCard } from './shift-card';
+export { LiveDot, ShiftCard } from './shift-card';
 export type { ShiftAction, ShiftCardProps, ShiftCardState } from './shift-card';
 export { Flag, StatusBadge, SyncBanner } from './status';
 export type { BadgeVariant } from './status';

@@ -3,6 +3,7 @@ import type { AccountTypeView } from '@thelamp/forms';
 import { formatNumber } from '@thelamp/i18n';
 import { distanceMeters, type SyncAccount } from '@thelamp/shared';
 import {
+  AppBar,
   Button,
   ChoiceGroup,
   EmptyState,
@@ -85,10 +86,13 @@ export function AccountsScreen() {
     types.find((entry) => entry.key === key)?.name[locale].one ?? key;
 
   return (
-    <Screen edges={['top', 'left', 'right']}>
-      <Text variant="headingXl" role="heading">
-        {t('accounts.title')}
-      </Text>
+    <Screen>
+      {/* Off the tab bar since D104: reached from Home and More, so it goes back there. */}
+      <AppBar
+        title={t('accounts.title')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        backLabel={t('common.back')}
+      />
       <TextField
         label={t('accounts.search')}
         help={t('accounts.search_help')}

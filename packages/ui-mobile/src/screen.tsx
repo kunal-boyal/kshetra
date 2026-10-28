@@ -13,6 +13,7 @@ export function Screen({
   edges = ['top', 'left', 'right', 'bottom'],
   centred = false,
   bleed = false,
+  footer,
 }: {
   children: ReactNode;
   /** Leave out `bottom` above a tab bar, which keeps clear of the home indicator itself. */
@@ -21,10 +22,18 @@ export function Screen({
   centred?: boolean;
   /** No padding or gaps, for a screen that draws its own, such as sign-in's band (D104). */
   bleed?: boolean;
+  /**
+   * Held below the scrolling content, such as an `ActionBar` with Check out or Submit (D104). The
+   * bar keeps clear of the home indicator itself, so the screen leaves out its bottom edge.
+   */
+  footer?: ReactNode;
 }) {
   const theme = useTheme();
   return (
-    <SafeAreaView edges={edges} style={[styles.fill, { backgroundColor: theme.colors.bg }]}>
+    <SafeAreaView
+      edges={footer ? edges.filter((edge) => edge !== 'bottom') : edges}
+      style={[styles.fill, { backgroundColor: theme.colors.bg }]}
+    >
       <KeyboardAvoidingView
         style={styles.fill}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -35,6 +44,7 @@ export function Screen({
         >
           {children}
         </ScrollView>
+        {footer}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
