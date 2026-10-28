@@ -53,6 +53,7 @@ const ANSWERS: Record<string, unknown> = {
     items: [
       {
         id: ORDER,
+        number: 1187,
         account: { id: SHOP, code: 'D-81', name: 'Beej Bhandar' },
         placedBy: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
         placedAt: '2026-10-20T05:00:00.000Z',
@@ -62,9 +63,11 @@ const ANSWERS: Record<string, unknown> = {
       },
     ],
     nextCursor: null,
+    summary: { counts: { submitted: 1 }, orders: 1, value: '10195.20' },
   },
   [`/v1/orders/${ORDER}`]: {
     id: ORDER,
+    number: 1187,
     account: { id: SHOP, code: 'D-81', name: 'Beej Bhandar' },
     supplier: { kind: 'company', account: null },
     placedBy: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
@@ -87,6 +90,14 @@ const ANSWERS: Record<string, unknown> = {
     approval: null,
     can: { decide: true, decideLines: true, fulfil: false },
     version: 1,
+    history: [
+      {
+        kind: 'placed',
+        at: '2026-10-20T05:00:00.000Z',
+        by: { id: SME, name: 'Suresh Rao' },
+        offline: false,
+      },
+    ],
   },
   '/v1/account-types': { items: [] },
 };
@@ -170,7 +181,7 @@ async function expectAccessible(page: Page) {
 
 const PAGES = [
   { path: '/orders', heading: 'Orders', shows: 'Beej Bhandar' },
-  { path: `/orders/${ORDER}`, heading: 'Beej Bhandar', shows: 'Decide each line' },
+  { path: `/orders/${ORDER}`, heading: 'Order 1187 · Beej Bhandar', shows: 'Decide each line' },
   { path: '/orders/new', heading: 'New order', shows: 'Which account' },
 ];
 

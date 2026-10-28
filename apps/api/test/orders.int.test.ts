@@ -358,6 +358,65 @@ describe('orders (M10)', () => {
       status: 'fulfilled',
       lines: [{ fulfilledUnits: '24.000' }, { fulfilledUnits: null }],
     });
+    // Its timeline: each step once, in order, with who took it (decision D104).
+    expect(
+      rest
+        .json()
+        .history.map((entry: { kind: string; by: { id: string } | null }) => [
+          entry.kind,
+          entry.by?.id,
+        ]),
+    ).toEqual([
+      ['placed', t.sme.id],
+      ['approved', t.asm.id],
+      ['lines_decided', t.head.id],
+      ['partially_fulfilled', t.head.id],
+      ['fulfilled', t.head.id],
+    ]);
+  });
+
+  it('numbers each order from 1001, and sums the register by status for its chips (D104)', async () => {
+    const t = await agri('Number Agro');
+    const first = t.order(t.distributor, [t.line(t.neem, '2')]);
+    // Placed on the phone an hour ago, sent only now: offline.
+    const second = t.order(t.distributor, [t.line(t.urea, '1')], {
+      placedAt: new Date(Date.now() - 60 * 60_000).toISOString(),
+    });
+    const placed = [
+      await t.api.sme.post('/v1/orders', first),
+      await t.api.sme.post('/v1/orders', second),
+    ];
+    expect(placed.map((reply) => reply.json().number)).toEqual([1001, 1002]);
+    expect(placed[1]!.json().history).toEqual([
+      expect.objectContaining({ kind: 'placed', offline: true }),
+    ]);
+    expect(placed[0]!.json().history[0]).toMatchObject({ offline: false });
+
+    // The placer withdraws the first: cancelled.
+    const withdrawn = await t.api.sme.post(`/v1/approvals/${placed[0]!.json().approval.id}/cancel`);
+    expect(withdrawn.statusCode, withdrawn.body).toBe(200);
+    const register = (await t.api.head.get('/v1/orders?limit=1')).json();
+    expect(register.items[0]).toMatchObject({ number: expect.any(Number) });
+    expect(register.summary).toMatchObject({ orders: 2 });
+    const totals = (await t.api.head.get('/v1/orders')).json().items as {
+      status: string;
+      total: string;
+    }[];
+    // Cancelled orders count, but their value doesn't.
+    const live = totals.filter(
+      (order) => order.status !== 'cancelled' && order.status !== 'rejected',
+    );
+    expect(register.summary.value).toBe(
+      live.reduce((sum, order) => (Number(sum) + Number(order.total)).toFixed(2), '0.00'),
+    );
+    expect(register.summary.counts).toEqual({ cancelled: 1, submitted: 1 });
+    // A later page leaves the summary out; a month with none counts none.
+    const next = (await t.api.head.get(`/v1/orders?limit=1&cursor=${register.nextCursor}`)).json();
+    expect(next.summary).toBeNull();
+    expect((await t.api.head.get('/v1/orders?period=2020-01')).json()).toMatchObject({
+      items: [],
+      summary: { orders: 0, value: '0.00', counts: {} },
+    });
   });
 
   it('rejects a whole order only with a configured reason', async () => {

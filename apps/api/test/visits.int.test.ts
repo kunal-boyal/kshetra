@@ -727,9 +727,9 @@ describe('form engine additions in a visit (decision D97)', () => {
     // Once the visit takes an order, nobody is asked why there wasn't one.
     await world.database.forTenant(t.tenantId, (tx) =>
       tx.execute(sql`
-        insert into cell.orders (id, tenant_id, account_id, supplier_kind, user_id, visit_id, shift_id,
+        insert into cell.orders (id, number, tenant_id, account_id, supplier_kind, user_id, visit_id, shift_id,
                                  placed_at, subtotal, tax_total, total)
-        values (${newId()}, ${t.tenantId}, ${t.shop}, 'company', ${t.asha.id}, ${visit.id}, ${shiftId},
+        values (${newId()}, (select coalesce(max(number), 1000) + 1 from cell.orders where tenant_id = ${t.tenantId}), ${t.tenantId}, ${t.shop}, 'company', ${t.asha.id}, ${visit.id}, ${shiftId},
                 now(), '0.00', '0.00', '0.00')`),
     );
     const ordered = await t.api.asha.post('/v1/submissions', form(detailed));

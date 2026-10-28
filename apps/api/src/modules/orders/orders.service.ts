@@ -11,6 +11,7 @@ import {
   issueAt,
   type LineDecision,
   type LineDecisionsBody,
+  monthDates,
   newId,
   type OrderDecisionBody,
   type OrderListQuery,
@@ -30,7 +31,7 @@ import {
   unscaled,
 } from '@thelamp/shared';
 import { and, asc, count, desc, eq, inArray, lt, or, type SQL, sql } from 'drizzle-orm';
-import { orderLines, orders } from '../../db/schema/orders';
+import { orderCounters, orderLines, orders } from '../../db/schema/orders';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
@@ -50,7 +51,11 @@ import { PhotosService } from '../media/photos.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 import { ApprovalsService } from '../workflow/approvals.service';
+import { AuditService } from '../audit/audit.service';
 import { OrderCredit } from './order-credit';
+
+/** An order that reached the server this long after it was placed was taken offline (D104). */
+const LATE_MS = 10 * 60_000;
 
 const invalid = (issues: ErrorDetail[]) =>
   new AppError('VALIDATION', 'Check the highlighted fields.', issues);
@@ -94,6 +99,7 @@ export class OrdersService {
     private readonly credit: OrderCredit,
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
+    private readonly auditTrail: AuditService,
   ) {}
 
   /** `POST /v1/orders`: prices, checks and keeps an order, then asks for its approval. */
@@ -235,8 +241,10 @@ export class OrdersService {
     const totals = orderTotals(priced);
     const photoIds = await this.checkPhotos(tx, access, body.photos, body.id);
 
+    const number = await this.nextNumber(tx, tenantId);
     await tx.insert(orders).values({
       id: body.id,
+      number,
       tenantId,
       accountId: account.id,
       supplierKind: account.parentAccountId ? 'account' : 'company',
@@ -393,6 +401,23 @@ export class OrdersService {
     return row;
   }
 
+  /**
+   * The tenant's next order number, from 1001 (decision D104). The counter row is locked by its
+   * upsert until the placing transaction ends, so two orders never share a number, and a failed
+   * placing gives its number back.
+   */
+  private async nextNumber(tx: TenantTx, tenantId: string): Promise<number> {
+    const [counter] = await tx
+      .insert(orderCounters)
+      .values({ tenantId, last: 1001 })
+      .onConflictDoUpdate({
+        target: orderCounters.tenantId,
+        set: { last: sql`${orderCounters.last} + 1` },
+      })
+      .returning({ last: orderCounters.last });
+    return counter!.last;
+  }
+
   async list(tx: TenantTx, access: Access, query: OrderListQuery): Promise<OrderListResult> {
     const { tenantId } = access;
     const { timezone } = await this.config.settings(tx, tenantId);
@@ -410,9 +435,24 @@ export class OrdersService {
         );
       }
     }
+    // A month on the tenant's clock, unless dates are given.
+    const month = query.period && !query.from && !query.to ? monthDates(query.period) : null;
+    const from = query.from ?? month?.from;
+    const to = query.to ?? month?.to;
+    const range = [
+      from ? sql`${orders.placedAt} >= ${dayStart(from)}` : undefined,
+      to ? sql`${orders.placedAt} < ${dayStart(to)} + interval '1 day'` : undefined,
+    ];
+    const scope = [
+      await this.visible(tx, access),
+      query.accountId ? eq(orders.accountId, query.accountId) : undefined,
+      query.userId ? eq(orders.userId, query.userId) : undefined,
+      ...range,
+    ];
     const rows = await tx
       .select({
         id: orders.id,
+        number: orders.number,
         accountId: orders.accountId,
         userId: orders.userId,
         placedAt: orders.placedAt,
@@ -420,17 +460,7 @@ export class OrdersService {
         total: orders.total,
       })
       .from(orders)
-      .where(
-        and(
-          await this.visible(tx, access),
-          query.status ? eq(orders.status, query.status) : undefined,
-          query.accountId ? eq(orders.accountId, query.accountId) : undefined,
-          query.userId ? eq(orders.userId, query.userId) : undefined,
-          query.from ? sql`${orders.placedAt} >= ${dayStart(query.from)}` : undefined,
-          query.to ? sql`${orders.placedAt} < ${dayStart(query.to)} + interval '1 day'` : undefined,
-          after,
-        ),
-      )
+      .where(and(...scope, query.status ? eq(orders.status, query.status) : undefined, after))
       .orderBy(desc(orders.placedAt), desc(orders.id))
       .limit(query.limit + 1);
     const page = rows.slice(0, query.limit);
@@ -466,6 +496,7 @@ export class OrdersService {
     return {
       items: page.map((row) => ({
         id: row.id,
+        number: row.number,
         account: refs.get(row.accountId)!,
         placedBy: {
           id: row.userId,
@@ -478,6 +509,28 @@ export class OrdersService {
         total: row.total,
       })),
       nextCursor: rows.length > query.limit ? page.at(-1)!.id : null,
+      summary: query.cursor ? null : await this.summary(tx, scope),
+    };
+  }
+
+  /** How many orders each status holds under the register's filters but status, and their value. */
+  private async summary(tx: TenantTx, scope: (SQL | undefined)[]) {
+    const rows = await tx
+      .select({
+        status: orders.status,
+        count: sql<number>`count(*)::int`,
+        value: sql<string>`coalesce(sum(${orders.total}), 0)::numeric(18,2)::text`,
+      })
+      .from(orders)
+      .where(and(...scope))
+      .groupBy(orders.status);
+    return {
+      counts: Object.fromEntries(rows.map((row) => [row.status, row.count])),
+      orders: rows.reduce((total, row) => total + row.count, 0),
+      // What was rejected or cancelled was never sold.
+      value: rows
+        .filter((row) => row.status !== 'rejected' && row.status !== 'cancelled')
+        .reduce((total, row) => unscaled(scaled(total, 2) + scaled(row.value, 2), 2), '0.00'),
     };
   }
 
@@ -516,6 +569,7 @@ export class OrdersService {
     }
     return {
       id: row.id,
+      number: row.number,
       account: refs.get(row.accountId)!,
       supplier: {
         kind: row.supplierKind,
@@ -546,7 +600,49 @@ export class OrdersService {
           access.permissions.has('order.fulfil') && statusAfterFulfilment(row.status, []) !== null,
       },
       version: row.version,
+      history: await this.history(tx, tenantId, row),
     };
+  }
+
+  /**
+   * What happened to an order, oldest first, from the audit log (decision D104): its placing,
+   * marked offline when it reached the server late, each approver's decision at their step, each
+   * fulfilment and a cancellation.
+   */
+  private async history(
+    tx: TenantTx,
+    tenantId: string,
+    row: OrderRow,
+  ): Promise<OrderResult['history']> {
+    const entries = await this.auditTrail.trail(tx, tenantId, 'order', row.id);
+    return entries.flatMap((entry): OrderResult['history'] => {
+      const at = entry.at.toISOString();
+      const after = entry.after ?? {};
+      const step = (kind: OrderResult['history'][number]['kind']) => [
+        { kind, at, by: entry.by, offline: false },
+      ];
+      switch (entry.action) {
+        case 'order.placed':
+          return [
+            {
+              kind: 'placed',
+              at: row.placedAt.toISOString(),
+              by: entry.by,
+              offline: row.receivedAt.getTime() - row.placedAt.getTime() > LATE_MS,
+            },
+          ];
+        case 'order.decided':
+          return step(after.decision === 'reject' ? 'rejected' : 'approved');
+        case 'order.lines_decided':
+          return step('lines_decided');
+        case 'order.fulfilled':
+          return step(after.status === 'fulfilled' ? 'fulfilled' : 'partially_fulfilled');
+        case 'order.cancelled':
+          return step('cancelled');
+        default:
+          return [];
+      }
+    });
   }
 
   /** The tenant's reasons for rejecting orders and lines (spec 5.11). */
