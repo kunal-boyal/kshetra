@@ -3394,6 +3394,7 @@ export const hi: Record<MessageKey, Message> = {
   'console.signin_title': 'कंसोल में साइन इन करें',
   'console.signin_intro': 'अपना काम का ईमेल, पासवर्ड और ऑथेंटिकेटर ऐप का कोड डालें।',
   'console.email': 'ईमेल',
+  'console.email_help': 'वह पता जिससे आपको आमंत्रित किया गया',
   'console.password': 'पासवर्ड',
   'console.code': 'ऑथेंटिकेटर कोड',
   'console.code_help': 'आपका ऑथेंटिकेटर ऐप अभी जो छह अंक दिखा रहा है',
@@ -4027,6 +4028,7 @@ export const hi: Record<MessageKey, Message> = {
   'signin.sso_title': 'अपने संगठन से साइन इन करें',
   'signin.sso_intro': 'अपना काम का ईमेल डालें, हम आपको आपके संगठन के साइन इन पेज पर ले जाएँगे।',
   'signin.sso_email': 'काम का ईमेल',
+  'signin.sso_email_help': 'आपके संगठन का दिया हुआ ईमेल',
   'signin.sso_continue': 'जारी रखें',
   'signin.sso_none':
     'आपका संगठन इस ईमेल के लिए सिंगल साइन-ऑन इस्तेमाल नहीं करता। अपने मोबाइल नंबर से साइन इन करें।',

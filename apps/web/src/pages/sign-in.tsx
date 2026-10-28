@@ -186,6 +186,8 @@ export function SignInPage() {
                 value={step.name}
                 onChange={(method) => {
                   setError(undefined);
+                  // A new way in starts unchecked: nothing is said until it is sent.
+                  setChecked(false);
                   setStep(method === 'sso' ? { name: 'sso' } : { name: 'phone' });
                 }}
                 choices={[
@@ -212,6 +214,7 @@ export function SignInPage() {
                   value={phone}
                   onChange={setPhone}
                   required
+                  reserveNote
                   autoFocus
                 />
                 <Button type="submit" variant="primary" block busy={busy} disabled={!phone.trim()}>
@@ -226,11 +229,13 @@ export function SignInPage() {
                 <p className="ks-muted">{t('signin.sso_intro')}</p>
                 <EmailField
                   label={t('signin.sso_email')}
+                  help={t('signin.sso_email_help')}
                   error={error}
                   checked={checked}
                   value={email}
                   onChange={setEmail}
                   required
+                  reserveNote={2}
                   autoFocus
                 />
                 <Button
@@ -262,6 +267,7 @@ export function SignInPage() {
                   value={code}
                   onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
                   required
+                  reserveNote
                   autoFocus
                 />
                 <Button

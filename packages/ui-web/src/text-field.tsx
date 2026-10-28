@@ -11,6 +11,12 @@ export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   numeric?: boolean;
   /** Fixed text before the value, such as `+91` or `₹` (the design system's `ks-affix`). */
   prefix?: string;
+  /**
+   * Keeps a line under the field for its help or error, filled or not, so an error appearing moves
+   * nothing after it (`ks-help reserve`), as on sign-in (D104); `2` keeps two, for a long message.
+   * Only a field that can show an error needs it.
+   */
+  reserveNote?: boolean | 2;
 }
 
 /** A labelled input with help or an error below it (components/TextField). */
@@ -21,6 +27,7 @@ export function TextField({
   numeric,
   prefix,
   required,
+  reserveNote = false,
   className,
   ...input
 }: TextFieldProps) {
@@ -51,11 +58,17 @@ export function TextField({
       ) : (
         field
       )}
-      {note ? (
+      {note || reserveNote ? (
         <p
-          id={noteId}
-          className={cn('ks-help', error && 'error')}
+          id={note ? noteId : undefined}
+          className={cn(
+            'ks-help',
+            error && 'error',
+            reserveNote && 'reserve',
+            reserveNote === 2 && 'two',
+          )}
           role={error ? 'alert' : undefined}
+          aria-hidden={note ? undefined : true}
         >
           {note}
         </p>

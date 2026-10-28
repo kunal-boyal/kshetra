@@ -45,11 +45,17 @@ export function SignInPage() {
 
   return (
     <main className="ks ks-auth">
+      {/* The portal's brand panel (D104): the mark and name, the line, who uses it, the art. */}
       <aside className="ks-auth-brand" aria-label={PRODUCT_NAME}>
         <span className="ks-auth-name">
+          <img src={markUrl} alt="" width={40} height={40} />
           {PRODUCT_NAME} {t('console.label')}
         </span>
-        <p className="ks-auth-tagline">{t('console.tagline')}</p>
+        <div className="flex flex-col gap-3">
+          <p className="ks-auth-tagline">{t('signin.tagline')}</p>
+          <p>{t('console.tagline')}</p>
+        </div>
+        <p className="text-sm">{t('signin.used_by')}</p>
         <img className="ks-auth-art" src={markUrl} alt="" aria-hidden="true" />
       </aside>
       <div className="ks-auth-form">
@@ -59,11 +65,13 @@ export function SignInPage() {
             <p className="ks-muted">{t('console.signin_intro')}</p>
             <EmailField
               label={t('console.email')}
+              help={t('console.email_help')}
               autoComplete="username"
               checked={checked}
               value={email}
               onChange={setEmail}
               required
+              reserveNote
             />
             <TextField
               label={t('console.password')}
@@ -83,11 +91,6 @@ export function SignInPage() {
               onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
               required
             />
-            {failure ? (
-              <p className="ks-help error" role="alert">
-                {failure}
-              </p>
-            ) : null}
             <Button
               type="submit"
               variant="primary"
@@ -97,6 +100,10 @@ export function SignInPage() {
             >
               {t('console.signin')}
             </Button>
+            {/* Under the button, in a line kept for it, so a failure moves no field (D104). */}
+            <p className={failure ? 'ks-help error reserve' : 'ks-help reserve'} role="alert">
+              {failure}
+            </p>
           </form>
         </Card>
       </div>
