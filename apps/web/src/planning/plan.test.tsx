@@ -162,7 +162,7 @@ function fakeClient(writes: Record<string, Answer> = {}, approval: unknown = nul
       id: APPROVAL,
       requestType: 'journey_plan',
       requestId: '01a10000-0000-7000-8000-0000000000d2',
-      subject: { title: 'Rahul Verma', accountId: null },
+      subject: { title: 'Rahul Verma', accountId: null, detail: null },
       requester: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
       status: 'pending',
       version: 3,

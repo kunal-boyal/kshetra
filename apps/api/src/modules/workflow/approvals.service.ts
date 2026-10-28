@@ -644,6 +644,7 @@ export class ApprovalsService {
         subject: subjects.get(`${instance.requestType}:${instance.requestId}`) ?? {
           title: '',
           accountId: null,
+          detail: null,
         },
         requester: ref(instance.requesterId),
         status: instance.status,

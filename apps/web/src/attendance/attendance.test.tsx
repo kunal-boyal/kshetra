@@ -34,7 +34,7 @@ function approval(id: string, type: 'leave' | 'regularisation', title: string, a
     id,
     requestType: type,
     requestId: id,
-    subject: { title, accountId: null },
+    subject: { title, accountId: null, detail: null },
     requester: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
     status: 'pending',
     version: 1,

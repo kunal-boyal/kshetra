@@ -1,10 +1,13 @@
 import { spacing } from '@thelamp/design-tokens';
-import { formatDateTime, notificationMessage } from '@thelamp/i18n';
-import type { NotificationCategoryKey, NotificationResult } from '@thelamp/shared';
+import { formatDateTime, formatTime, notificationMessage } from '@thelamp/i18n';
+import { type NotificationCategoryKey, type NotificationResult, todayIn } from '@thelamp/shared';
 import {
+  AppBar,
   Button,
   CheckGroup,
   EmptyState,
+  type Hue,
+  IconChip,
   ListGroup,
   ListRow,
   Notice,
@@ -13,13 +16,19 @@ import {
 } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import {
-  ArrowLeft,
   Bell,
-  BellDot,
+  CalendarCheck,
   CheckCheck,
+  ClipboardCheck,
+  LifeBuoy,
+  type LucideIcon,
+  MapPin,
   MessageCircle,
+  Moon,
   RotateCw,
   Save,
+  Target,
+  Upload,
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -34,6 +43,18 @@ import {
   useWhatsAppConsent,
 } from '../notifications';
 import { openLink } from '../push';
+import { dayOf, nowMs, when } from '../when';
+
+/** Each category's chip on a row (decision D104). */
+const CATEGORY: Record<NotificationResult['category'], { icon: LucideIcon; hue: Hue }> = {
+  plan: { icon: CalendarCheck, hue: 'sage' },
+  approvals: { icon: CheckCheck, hue: 'mint' },
+  review: { icon: ClipboardCheck, hue: 'peach' },
+  targets: { icon: Target, hue: 'butter' },
+  tracking: { icon: MapPin, hue: 'rose' },
+  imports: { icon: Upload, hue: 'sky' },
+  support: { icon: LifeBuoy, hue: 'lilac' },
+};
 
 /**
  * The inbox on the phone (M16, decision D59): newest first, in the reader's language. Opening one
@@ -51,8 +72,26 @@ export function NotificationsScreen() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [failure, setFailure] = useState<unknown>();
-  const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';
+  const settings = config.data?.bundle.settings;
+  const timeZone = settings?.timezone ?? 'Asia/Kolkata';
   const items = inbox.data?.pages.flatMap((page) => page.items) ?? [];
+  const now = nowMs();
+  const today = todayIn(timeZone, new Date(now));
+  const groups = [
+    {
+      key: 'today',
+      title: t('notifications.today'),
+      items: items.filter((item) => dayOf(item.createdAt, timeZone) === today),
+    },
+    {
+      key: 'earlier',
+      title: t('notifications.earlier'),
+      items: items.filter((item) => dayOf(item.createdAt, timeZone) !== today),
+    },
+  ].filter((group) => group.items.length > 0);
+  // Quiet hours are times of day on the tenant's clock; shown as the phone writes times.
+  const clock = (time: string) =>
+    formatTime(new Date(`2000-01-01T${time}:00Z`), { locale, timeZone: 'UTC' });
   const unread = inbox.data?.pages[0]?.unread ?? 0;
   const mutable = prefs.data?.categories.filter((entry) => entry.mutable) ?? [];
   // What the person ticks, or else what they saved: a ticked category is heard.
@@ -87,15 +126,21 @@ export function NotificationsScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <Button
-        variant="ghost"
-        icon={ArrowLeft}
-        label={t('common.back')}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      <AppBar
+        title={t('notifications.title')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        backLabel={t('common.back')}
+        action={
+          unread > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              label={t('notifications.read_all')}
+              onPress={() => void markRead({ all: true }).catch(setFailure)}
+            />
+          ) : undefined
+        }
       />
-      <Text variant="headingXl" role="heading">
-        {t('notifications.title')}
-      </Text>
       {failure ? (
         <Text tone="danger" role="alert">
           {errorMessage(failure, t)}
@@ -121,34 +166,27 @@ export function NotificationsScreen() {
         </EmptyState>
       ) : (
         <View style={styles.stack}>
-          {unread > 0 ? (
-            <Button
-              variant="tonal"
-              icon={CheckCheck}
-              label={t('notifications.read_all')}
-              onPress={() => void markRead({ all: true }).catch(setFailure)}
-            />
-          ) : null}
-          <ListGroup title={t('notifications.inbox', { count: unread })}>
-            {items.map((item) => {
-              const message = notificationMessage(item.event, item.values, locale);
-              return (
-                <ListRow
-                  key={item.id}
-                  icon={item.readAt ? Bell : BellDot}
-                  label={t(message.title, message.params)}
-                  detail={[
-                    t(message.body, message.params),
-                    formatDateTime(item.createdAt, { locale, timeZone }),
-                    item.readAt ? null : t('notifications.unread'),
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                  onPress={() => void open(item)}
-                />
-              );
-            })}
-          </ListGroup>
+          {groups.map((group) => (
+            <ListGroup key={group.key} title={group.title}>
+              {group.items.map((item) => {
+                const message = notificationMessage(item.event, item.values, locale);
+                const look = CATEGORY[item.category];
+                return (
+                  <ListRow
+                    key={item.id}
+                    lead={<IconChip icon={look.icon} hue={look.hue} />}
+                    label={t(message.title, message.params)}
+                    detail={t(message.body, message.params)}
+                    meta={when(item.createdAt, { t, locale, timeZone, now })}
+                    unread={!item.readAt}
+                    unreadLabel={t('notifications.unread')}
+                    highlight={!item.readAt}
+                    onPress={() => void open(item)}
+                  />
+                );
+              })}
+            </ListGroup>
+          ))}
           {inbox.hasNextPage ? (
             <Button
               variant="secondary"
@@ -159,6 +197,15 @@ export function NotificationsScreen() {
           ) : null}
         </View>
       )}
+
+      {settings ? (
+        <Notice icon={Moon}>
+          {t('notifications.quiet', {
+            start: clock(settings.quietHoursStart),
+            end: clock(settings.quietHoursEnd),
+          })}
+        </Notice>
+      ) : null}
 
       {prefs.data ? (
         <View style={styles.stack}>

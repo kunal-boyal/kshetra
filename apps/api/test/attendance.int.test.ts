@@ -222,7 +222,11 @@ describe('regularisation (BR-28)', () => {
     expect(asked.json()).toMatchObject({
       id: request.id,
       state: 'pending',
-      approval: { requestType: 'regularisation', status: 'pending', subject: { title: day } },
+      approval: {
+        requestType: 'regularisation',
+        status: 'pending',
+        subject: { title: day, detail: 'Met the distributor at the depot all day' },
+      },
     });
     // Sent again, the same request answers the same.
     expect((await t.field.post('/v1/regularisations', request)).json().id).toBe(request.id);

@@ -744,7 +744,11 @@ export class PlanningService {
     return new Map(
       rows.map((row) => [
         row.requestId!,
-        { title: `${names.get(row.userId)?.name ?? ''} · ${row.period}`, accountId: null },
+        {
+          title: `${names.get(row.userId)?.name ?? ''} · ${row.period}`,
+          accountId: null,
+          detail: null,
+        },
       ]),
     );
   }

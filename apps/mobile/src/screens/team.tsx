@@ -1,38 +1,110 @@
 import { spacing } from '@thelamp/design-tokens';
-import { formatDateTime, formatNumber } from '@thelamp/i18n';
-import { isStale, type LivePerson } from '@thelamp/shared';
-import { Button, EmptyState, ListGroup, ListRow, Screen, Text } from '@thelamp/ui-mobile';
+import { formatNumber } from '@thelamp/i18n';
+import { isStale, type LivePerson, type ReviewItem } from '@thelamp/shared';
+import {
+  Avatar,
+  Button,
+  Card,
+  EmptyState,
+  Flag,
+  ListGroup,
+  ListRow,
+  PhotoTile,
+  Screen,
+  SegmentedControl,
+  Text,
+} from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
 import { ClipboardCheck, MapPin, RotateCw, TriangleAlert } from 'lucide-react-native';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useApp } from '../app-state';
 import { useApprovalInbox } from '../approvals';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
+import { useLocalRows } from '../local-data';
 import { PhoneMap, Spot } from '../maps';
 import { useLive } from '../maps-data';
-import { useReviewQueue } from '../review';
-import { ApprovalRows } from './approval-item';
+import { useDecide, usePhotoLink, useReviewQueue } from '../review';
+import { when } from '../when';
+
+type TeamView = 'review' | 'duty';
 
 /**
- * Team (spec 8.1), for managers: who is on duty now, the requests waiting for their decision, and
- * what waits for their review. The team's figures join it as their module arrives.
+ * Team (spec 8.1), for managers, as the prototype's AppTeam (decision D104): how many people, the
+ * way to the requests waiting for a decision, and what waits for review and who is on duty now, as
+ * two views with their counts. Each view shows only to those who may see it.
  */
 export function TeamScreen() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const { client } = useApp();
   const config = useConfig();
+  const users = useLocalRows('users');
   const permissions = new Set<string>(config.data?.bundle.access.permissions ?? []);
+  const canReview = permissions.has('submission.review');
+  const canSeeDuty = permissions.has('live_map.view');
+  const canDecide = permissions.has('approval.act') || permissions.has('account.approve');
+  const queue = useReviewQueue(canReview);
+  const live = useLive(canSeeDuty);
+  const inbox = useApprovalInbox(undefined, canDecide);
+  const views: TeamView[] = [
+    ...(canReview ? ['review' as const] : []),
+    ...(canSeeDuty ? ['duty' as const] : []),
+  ];
+  const [chosen, setChosen] = useState<TeamView>();
+  const view = chosen && views.includes(chosen) ? chosen : views[0];
+  const self = client.owner?.split(':')[1];
+  const people = (users ?? []).filter(
+    (user) => user.id !== self && user.status === 'active',
+  ).length;
+  const waiting = Object.values(inbox.data?.pages[0]?.counts ?? {}).reduce((sum, n) => sum + n, 0);
+  const toReview =
+    queue.data?.pages[0]?.summary?.counts.pending ??
+    queue.data?.pages.flatMap((page) => page.items).length;
+  const onDuty = live.data?.people.length;
+  const count = (label: string, n: number | undefined) =>
+    n === undefined ? label : `${label} · ${formatNumber(n, { locale })}`;
+
   return (
-    <Screen>
-      <Text variant="headingXl" role="heading">
-        {t('team.title')}
-      </Text>
-      {permissions.has('live_map.view') ? (
-        <OnDutyNow canReplay={permissions.has('trail.view')} />
+    <Screen edges={['top', 'left', 'right']}>
+      <View style={styles.head}>
+        <View style={styles.grow}>
+          <Text variant="headingXl" role="heading">
+            {t('team.title')}
+          </Text>
+          {people > 0 ? (
+            <Text variant="bodySm" tone="muted">
+              {t('team.people', { count: people })}
+            </Text>
+          ) : null}
+        </View>
+        {canDecide ? (
+          <Button
+            variant="tonal"
+            size="sm"
+            label={count(t('approvals.title'), inbox.data ? waiting : undefined)}
+            onPress={() => router.push('/approvals')}
+          />
+        ) : null}
+      </View>
+      {views.length > 1 ? (
+        <SegmentedControl
+          label={t('team.views')}
+          value={view!}
+          onChange={setChosen}
+          choices={[
+            { value: 'review', label: count(t('team.view_review'), toReview) },
+            { value: 'duty', label: count(t('team.view_duty'), onDuty) },
+          ]}
+        />
       ) : null}
-      {permissions.has('approval.act') || permissions.has('account.approve') ? (
-        <ApprovalsWaiting />
+      {view === 'review' ? <ReviewQueue /> : null}
+      {view === 'duty' ? <OnDutyNow canReplay={permissions.has('trail.view')} /> : null}
+      {views.length === 0 && !canDecide ? (
+        <EmptyState icon={ClipboardCheck} title={t('team.nothing_title')}>
+          {t('team.nothing_body')}
+        </EmptyState>
       ) : null}
-      {permissions.has('submission.review') ? <ReviewQueue /> : null}
     </Screen>
   );
 }
@@ -110,88 +182,40 @@ function OnDutyNow({ canReplay }: { canReplay: boolean }) {
   );
 }
 
-/** Requests waiting for the manager's decision, oldest first (M15, decision D76). */
-function ApprovalsWaiting() {
-  const { t } = useLanguage();
-  const inbox = useApprovalInbox();
-  const items = inbox.data?.pages.flatMap((page) => page.items) ?? [];
-  const counts = Object.values(inbox.data?.pages[0]?.counts ?? {});
-  const total = counts.reduce((sum, count) => sum + count, 0);
-  if (inbox.isError) {
-    return (
-      <Text tone="danger" role="alert">
-        {errorMessage(inbox.error, t)}
-      </Text>
-    );
-  }
-  if (inbox.isPending) return <Text tone="muted">{t('common.loading')}</Text>;
-  return (
-    <>
-      <ListGroup title={t('team.to_decide', { count: total })}>
-        {items.length === 0 ? <Text tone="muted">{t('approvals.empty_title')}</Text> : null}
-        <ApprovalRows items={items} />
-      </ListGroup>
-      {inbox.hasNextPage ? (
-        <Button
-          variant="secondary"
-          label={t('common.load_more')}
-          busy={inbox.isFetchingNextPage}
-          onPress={() => void inbox.fetchNextPage()}
-        />
-      ) : null}
-    </>
-  );
-}
-
 const openDay = (id: string) => router.push({ pathname: '/day/[id]', params: { id } });
+const openItem = (id: string) => router.push({ pathname: '/review/[id]', params: { id } });
 
-/** What waits for the manager's review, newest first (M7). */
+/** What waits for the manager's review, newest first (M7), as cards to approve or open. */
 function ReviewQueue() {
-  const { t, locale } = useLanguage();
-  const config = useConfig();
+  const { t } = useLanguage();
   const queue = useReviewQueue();
   const items = queue.data?.pages.flatMap((page) => page.items) ?? [];
-  const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';
+  const summary = queue.data?.pages[0]?.summary;
 
+  if (queue.isError) {
+    return (
+      <View style={styles.stack}>
+        <Text tone="danger" role="alert">
+          {errorMessage(queue.error, t)}
+        </Text>
+        <Button
+          variant="secondary"
+          icon={RotateCw}
+          label={t('common.retry')}
+          onPress={() => void queue.refetch()}
+        />
+      </View>
+    );
+  }
+  if (queue.isPending) return <Text tone="muted">{t('common.loading')}</Text>;
   return (
-    <>
-      {queue.isError ? (
-        <View style={styles.stack}>
-          <Text tone="danger" role="alert">
-            {errorMessage(queue.error, t)}
-          </Text>
-          <Button
-            variant="secondary"
-            icon={RotateCw}
-            label={t('common.retry')}
-            onPress={() => void queue.refetch()}
-          />
-        </View>
-      ) : queue.isPending ? (
-        <Text tone="muted">{t('common.loading')}</Text>
-      ) : items.length === 0 ? (
+    <View style={styles.stack}>
+      {items.length === 0 ? (
         <EmptyState icon={ClipboardCheck} title={t('review.empty_title')}>
           {t('review.empty_body')}
         </EmptyState>
       ) : (
-        <ListGroup title={t('team.to_review', { count: items.length })}>
-          {items.map((item) => (
-            <ListRow
-              key={item.id}
-              icon={item.flags.length > 0 || item.integrityWarning ? TriangleAlert : ClipboardCheck}
-              tone={item.flags.length > 0 || item.integrityWarning ? 'danger' : 'default'}
-              label={`${item.form.name[locale].one} · ${item.user.name}`}
-              detail={[
-                item.account?.name,
-                formatDateTime(new Date(item.capturedAt), { locale, timeZone }),
-                item.flags.length > 0 ? t('team.flags', { count: item.flags.length }) : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-              onPress={() => router.push({ pathname: '/review/[id]', params: { id: item.id } })}
-            />
-          ))}
-        </ListGroup>
+        items.map((item) => <ReviewCard key={item.id} item={item} />)
       )}
       {queue.hasNextPage ? (
         <Button
@@ -201,19 +225,134 @@ function ReviewQueue() {
           onPress={() => void queue.fetchNextPage()}
         />
       ) : null}
-      {queue.isSuccess ? (
-        <Button
-          variant="ghost"
-          icon={RotateCw}
-          label={t('team.refresh')}
-          busy={queue.isRefetching}
-          onPress={() => void queue.refetch()}
-        />
+      {summary?.autoApproval ? (
+        <Text variant="bodySm" tone="muted" style={styles.centre}>
+          {t('team.auto_approve_note', { count: summary.delayHours })}
+        </Text>
       ) : null}
-    </>
+      <Button
+        variant="ghost"
+        icon={RotateCw}
+        label={t('team.refresh')}
+        busy={queue.isRefetching}
+        onPress={() => void queue.refetch()}
+      />
+    </View>
+  );
+}
+
+/** The first words written on a submission, as the card's summary. */
+function summaryOf(values: Record<string, unknown>): string | undefined {
+  return Object.values(values).find(
+    (value): value is string => typeof value === 'string' && value.trim().length > 0,
+  );
+}
+
+/**
+ * One submission waiting for review (components/ReviewCard on the phone): who and which form,
+ * where and when, two of its photos and its first words, its flags, and Open and Approve.
+ * Rejecting asks why, so it is done on the submission's own screen.
+ */
+function ReviewCard({ item }: { item: ReviewItem }) {
+  const { t, locale } = useLanguage();
+  const config = useConfig();
+  const decide = useDecide();
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string>();
+  const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';
+  const summary = summaryOf(item.values);
+
+  async function approve() {
+    setBusy(true);
+    setFailure(undefined);
+    try {
+      await decide(item.id, 'approved');
+    } catch (error) {
+      setFailure(errorMessage(error, t));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card style={styles.card}>
+      <View style={styles.who}>
+        <Avatar name={item.user.name} id={item.user.id} />
+        <View style={styles.grow}>
+          <Text variant="labelMd" weight={600}>
+            {`${item.user.name} · ${item.form.name[locale].one}`}
+          </Text>
+          <Text variant="bodySm" tone="muted">
+            {[item.account?.name, when(item.capturedAt, { t, locale, timeZone })]
+              .filter(Boolean)
+              .join(' · ')}
+          </Text>
+        </View>
+      </View>
+      {item.photoDetails.length > 0 || summary ? (
+        <View style={styles.who}>
+          {item.photoDetails.slice(0, 2).map((photo, index) => (
+            <Thumbnail key={photo.id} id={photo.id} number={index + 1} />
+          ))}
+          {summary ? (
+            <Text variant="bodySm" tone="muted" numberOfLines={3} style={styles.grow}>
+              {summary}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+      {item.flags.length > 0 || item.integrityWarning ? (
+        <View style={styles.flags}>
+          {item.flags.map((flag) => (
+            <Flag key={flag} tone="danger" label={t(`submissions.flag_${flag}`)} />
+          ))}
+          {item.integrityWarning ? <Flag tone="danger" label={t('review.integrity')} /> : null}
+        </View>
+      ) : null}
+      {failure ? (
+        <Text tone="danger" role="alert">
+          {failure}
+        </Text>
+      ) : null}
+      <View style={styles.actions}>
+        <Button
+          variant="secondary"
+          size="sm"
+          label={t('team.open')}
+          aria-label={t('team.open_item', { name: item.user.name })}
+          onPress={() => openItem(item.id)}
+        />
+        <Button
+          variant="primary"
+          size="sm"
+          label={t('review.approve')}
+          aria-label={t('team.approve_item', { name: item.user.name })}
+          busy={busy}
+          onPress={() => void approve()}
+        />
+      </View>
+    </Card>
+  );
+}
+
+/** A photo's thumbnail, 64 px, once its link answers. */
+function Thumbnail({ id, number }: { id: string; number: number }) {
+  const { t } = useLanguage();
+  const link = usePhotoLink(id);
+  return (
+    <PhotoTile
+      label={t('review.photo_alt', { number })}
+      {...(link.data ? { uri: link.data.url } : {})}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  stack: { gap: spacing.space2 },
+  head: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.space2 },
+  grow: { flex: 1, minWidth: 0 },
+  stack: { gap: spacing.space3 },
+  card: { gap: spacing.space3 },
+  who: { flexDirection: 'row', alignItems: 'center', gap: spacing.space3 },
+  flags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.space1 },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.space2 },
+  centre: { textAlign: 'center' },
 });

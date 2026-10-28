@@ -30,7 +30,7 @@ function Back() {
       variant="ghost"
       icon={ArrowLeft}
       label={t('common.back')}
-      onPress={() => (router.canGoBack() ? router.back() : router.replace('/team'))}
+      onPress={() => (router.canGoBack() ? router.back() : router.replace('/approvals'))}
     />
   );
 }
@@ -83,7 +83,9 @@ function Deciding({ item }: { item: ApprovalResult }) {
     setBusy(true);
     try {
       await decide(item, decision, decision === 'reject' ? note : undefined);
-      router.replace('/team');
+      // Back to the list it was opened from (decision D104).
+      if (router.canGoBack()) router.back();
+      else router.replace('/approvals');
     } catch (error) {
       const noteIssue =
         error instanceof ApiError && error.details?.some((detail) => detail.path === 'note');

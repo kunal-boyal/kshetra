@@ -965,14 +965,17 @@ export class AccountsService {
     tx: TenantTx,
     tenantId: string,
     accountIds: readonly string[],
-  ): Promise<Map<string, { title: string; accountId: string }>> {
+  ): Promise<Map<string, { title: string; accountId: string; detail: null }>> {
     if (accountIds.length === 0) return new Map();
     const rows = await tx
       .select({ id: accounts.id, code: accounts.code, name: accounts.name })
       .from(accounts)
       .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, [...new Set(accountIds)])));
     return new Map(
-      rows.map((row) => [row.id, { title: `${row.name} (${row.code})`, accountId: row.id }]),
+      rows.map((row) => [
+        row.id,
+        { title: `${row.name} (${row.code})`, accountId: row.id, detail: null },
+      ]),
     );
   }
 

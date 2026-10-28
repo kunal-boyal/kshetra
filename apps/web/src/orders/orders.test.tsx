@@ -101,7 +101,7 @@ function order(overrides: Record<string, unknown> = {}) {
       id: APPROVAL,
       requestType: 'order',
       requestId: ORDER,
-      subject: { title: 'Beej Bhandar (D-81)', accountId: SHOP },
+      subject: { title: 'Beej Bhandar (D-81)', accountId: SHOP, detail: null },
       requester: { id: SME, code: 'SUN-004', name: 'Suresh Rao' },
       status: 'pending',
       version: 3,

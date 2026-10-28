@@ -282,4 +282,29 @@ export const PAIRS: readonly Pair[] = [
     app: 'phone',
     tap: 'order-review',
   },
+  // Signed in as a manager: `--app-phone` is the fixtures' MANAGER_PHONE (stage M5).
+  {
+    key: 'app-team',
+    title: 'Field app: team',
+    prototype: 'AppTeam.dc.html',
+    portal: '/team',
+    stage: 'M5',
+    app: 'phone',
+  },
+  {
+    key: 'app-approvals',
+    title: 'Field app: approvals',
+    prototype: 'AppApprovals.dc.html',
+    portal: '/approvals',
+    stage: 'M5',
+    app: 'phone',
+  },
+  {
+    key: 'app-inbox',
+    title: 'Field app: notifications',
+    prototype: 'AppInbox.dc.html',
+    portal: '/notifications',
+    stage: 'M5',
+    app: 'phone',
+  },
 ];

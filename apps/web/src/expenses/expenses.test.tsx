@@ -84,7 +84,7 @@ const PAGES = {
           id: '01a10000-0000-7000-8000-0000000000a1',
           requestType: 'expense',
           requestId: DA,
-          subject: { title: '1200.00 · Tour', accountId: null },
+          subject: { title: '1200.00 · Tour', accountId: null, detail: null },
           requester: {
             id: '01a10000-0000-7000-8000-000000000004',
             code: 'SUN-004',

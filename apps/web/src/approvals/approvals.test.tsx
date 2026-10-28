@@ -33,7 +33,7 @@ function request(id: string, title: string, overrides: Record<string, unknown> =
     id,
     requestType: 'new_account',
     requestId: DEPOT,
-    subject: { title, accountId: DEPOT },
+    subject: { title, accountId: DEPOT, detail: null },
     requester: suresh,
     status: 'pending',
     version: 1,
@@ -107,7 +107,7 @@ describe('the approvals inbox', () => {
     const second = request(SECOND, 'Kisan Seva (D-82)', { version: 3 });
     const move = request(MOVE, 'Green Fields Agro', {
       requestType: 'account_location_change',
-      subject: { title: 'Green Fields Agro', accountId: SHOP },
+      subject: { title: 'Green Fields Agro', accountId: SHOP, detail: null },
       bulk: false,
     });
     const counts = { new_account: 2, account_location_change: 1 };

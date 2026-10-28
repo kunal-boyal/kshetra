@@ -28,7 +28,7 @@ const FIX = {
   id: '01a10000-0000-7000-8000-0000000000a2',
   requestType: 'regularisation',
   requestId: '01a10000-0000-7000-8000-0000000000a3',
-  subject: { title: '14 Oct', accountId: null },
+  subject: { title: '14 Oct', accountId: null, detail: null },
   requester: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
   status: 'pending',
   version: 1,

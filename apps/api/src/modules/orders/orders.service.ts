@@ -1012,7 +1012,7 @@ export class OrdersService {
   ): Promise<Map<string, ApprovalSubject>> {
     if (ids.length === 0) return new Map();
     const rows = await tx
-      .select({ id: orders.id, accountId: orders.accountId, total: orders.total })
+      .select({ id: orders.id, accountId: orders.accountId, note: orders.note })
       .from(orders)
       .where(and(eq(orders.tenantId, tenantId), inArray(orders.id, [...ids])));
     const accounts = await this.accounts.subjects(
@@ -1023,7 +1023,7 @@ export class OrdersService {
     return new Map(
       rows.flatMap((row) => {
         const account = accounts.get(row.accountId);
-        return account ? [[row.id, account]] : [];
+        return account ? [[row.id, { ...account, detail: row.note }]] : [];
       }),
     );
   }
