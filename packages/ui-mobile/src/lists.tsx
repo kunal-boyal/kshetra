@@ -40,21 +40,44 @@ export interface ListRowProps {
   label: string;
   /** A value or a line of detail under the label. */
   detail?: string;
+  /** A second line under the detail, such as where and when. */
+  meta?: string;
   icon?: LucideIcon;
+  /** What the row is, before it: an `IconChip` or an `Avatar`, in place of `icon`. */
+  lead?: ReactNode;
+  /** At its end: a value, a badge or a time. */
+  trailing?: ReactNode;
+  /** Something new here, as a dot before the end; said to screen readers as `unreadLabel`. */
+  unread?: boolean;
+  unreadLabel?: string;
+  /** The row the screen is about, tinted with the accent. */
+  highlight?: boolean;
   /** Opens something: the row shows a chevron and reads as a button. */
   onPress?: () => void;
   tone?: 'default' | 'danger';
 }
 
 /** One row, at least 56 px tall (`row-comfortable`) so a thumb finds it. */
-export function ListRow({ label, detail, icon, onPress, tone = 'default' }: ListRowProps) {
+export function ListRow({
+  label,
+  detail,
+  meta,
+  icon,
+  lead,
+  trailing,
+  unread = false,
+  unreadLabel,
+  highlight = false,
+  onPress,
+  tone = 'default',
+}: ListRowProps) {
   const theme = useTheme();
   const ink = tone === 'danger' ? theme.colors.dangerFg : theme.colors.text;
   const body = (
     <>
-      {icon ? <Icon icon={icon} color={ink} /> : null}
+      {lead ?? (icon ? <Icon icon={icon} color={ink} /> : null)}
       <View style={styles.texts}>
-        <Text variant="bodyLg" style={{ color: ink }}>
+        <Text variant="bodyLg" weight={unread ? 600 : undefined} style={{ color: ink }}>
           {label}
         </Text>
         {detail ? (
@@ -62,20 +85,38 @@ export function ListRow({ label, detail, icon, onPress, tone = 'default' }: List
             {detail}
           </Text>
         ) : null}
+        {meta ? (
+          <Text variant="bodySm" tone="subtle">
+            {meta}
+          </Text>
+        ) : null}
       </View>
+      {unread ? (
+        <View aria-hidden style={[styles.unread, { backgroundColor: theme.colors.accent }]} />
+      ) : null}
+      {trailing}
       {onPress && tone !== 'danger' ? (
         <Icon icon={ChevronRight} size="sm" color={theme.colors.textMuted} />
       ) : null}
     </>
   );
-  if (!onPress) return <View style={styles.row}>{body}</View>;
+  const tint = highlight ? { backgroundColor: theme.colors.accentSubtle } : null;
+  const name = [label, detail, meta, unread ? unreadLabel : undefined].filter(Boolean).join(', ');
+  if (!onPress) {
+    return (
+      <View style={[styles.row, tint]} {...(unread && unreadLabel ? { 'aria-label': name } : {})}>
+        {body}
+      </View>
+    );
+  }
   return (
     <Pressable
       role="button"
-      aria-label={detail ? `${label}, ${detail}` : label}
+      aria-label={name}
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
+        tint,
         pressed && { backgroundColor: theme.colors.surfaceSunken },
       ]}
     >
@@ -218,6 +259,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.space2,
   },
   texts: { flex: 1, gap: spacing.space05 },
+  unread: { width: 8, height: 8, borderRadius: radius.radiusFull },
   box: {
     width: size.iconMd,
     height: size.iconMd,

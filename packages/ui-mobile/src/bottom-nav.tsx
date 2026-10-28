@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Count, countText } from './bars';
 import { Icon } from './icon';
 import { duration, ease, useReducedMotion } from './motion';
 import { Text } from './text';
@@ -16,6 +17,8 @@ export interface NavItem {
   onPress: () => void;
   /** For end-to-end flows, which can't find a tab by its label: Android's own Home button shares it. */
   testID?: string;
+  /** What waits there, as a red count on the icon (`ks-count`); none at 0. */
+  count?: number;
 }
 
 /**
@@ -70,7 +73,7 @@ function Tab({ item }: { item: NavItem }) {
     <Pressable
       role="tab"
       aria-selected={item.active}
-      aria-label={item.label}
+      aria-label={item.count ? `${item.label}, ${countText(item.count)}` : item.label}
       {...(item.testID ? { testID: item.testID } : {})}
       onPress={item.onPress}
       style={styles.tab}
@@ -89,6 +92,7 @@ function Tab({ item }: { item: NavItem }) {
         <View>
           <Icon icon={item.icon} size="lg" color={ink} />
         </View>
+        {item.count ? <Count count={item.count} /> : null}
       </View>
       <Text
         variant="labelSm"

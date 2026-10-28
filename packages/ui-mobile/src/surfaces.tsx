@@ -26,21 +26,41 @@ export function Card({ style, ...rest }: ViewProps) {
   );
 }
 
+const NOTICE = {
+  neutral: { fill: 'surfaceSunken', ink: 'textMuted' },
+  info: { fill: 'infoBg', ink: 'infoFg' },
+  pending: { fill: 'pendingBg', ink: 'pendingFg' },
+  danger: { fill: 'dangerBg', ink: 'dangerFg' },
+} as const satisfies Record<string, { fill: keyof Colors; ink: keyof Colors }>;
+
 /**
- * States what a figure or record really is, beside it (components/Notice). Neutral, never a
- * warning, and never dismissible.
+ * States what a figure or record really is, beside it (components/Notice), never dismissible.
+ * Neutral by default; a tone and an icon say when it is news, something waiting, or a problem.
  */
-export function Notice({ children }: { children: ReactNode }) {
+export function Notice({
+  children,
+  tone = 'neutral',
+  icon,
+}: {
+  children: ReactNode;
+  tone?: keyof typeof NOTICE;
+  icon?: LucideIcon;
+}) {
   const theme = useTheme();
+  const look = NOTICE[tone];
   return (
     <View
       style={[
         styles.notice,
-        { backgroundColor: theme.colors.surfaceSunken },
-        theme.name === 'outdoor' && { borderWidth: 1, borderColor: theme.colors.border },
+        { backgroundColor: theme.colors[look.fill] },
+        theme.name === 'outdoor' && {
+          borderWidth: 1,
+          borderColor: tone === 'neutral' ? theme.colors.border : theme.colors[look.ink],
+        },
       ]}
     >
-      <Text variant="bodySm" tone="muted">
+      {icon ? <Icon icon={icon} size="sm" color={theme.colors[look.ink]} /> : null}
+      <Text variant="bodySm" style={[styles.noticeText, { color: theme.colors[look.ink] }]}>
         {children}
       </Text>
     </View>
@@ -49,7 +69,7 @@ export function Notice({ children }: { children: ReactNode }) {
 
 export type Hue = 'sky' | 'peach' | 'mint' | 'lilac' | 'butter' | 'rose' | 'sage' | 'sand';
 type Capital<T extends string> = T extends `${infer F}${infer R}` ? `${Uppercase<F>}${R}` : T;
-const pastel = (hue: Hue, part: 'Fill' | 'Fg' | 'Bg') =>
+export const pastel = (hue: Hue, part: 'Fill' | 'Fg' | 'Bg') =>
   `pastel${(hue.charAt(0).toUpperCase() + hue.slice(1)) as Capital<Hue>}${part}` as keyof Colors;
 
 const CHIP = {
@@ -148,10 +168,14 @@ const styles = StyleSheet.create({
     gap: spacing.space3,
   },
   notice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.space2,
     paddingVertical: spacing.space3,
     paddingHorizontal: spacing.space4,
     borderRadius: radius.radiusMd,
   },
+  noticeText: { flex: 1 },
   chip: { alignItems: 'center', justifyContent: 'center' },
   empty: {
     alignItems: 'center',

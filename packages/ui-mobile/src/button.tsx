@@ -19,6 +19,8 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style' |
   disabled?: boolean;
   /** Full width. */
   block?: boolean;
+  /** `sm` is 40 px, for buttons beside others in a row or a card; screens' own actions stay 48. */
+  size?: 'md' | 'sm';
 }
 
 interface Look {
@@ -48,6 +50,7 @@ export function Button({
   busy = false,
   disabled = false,
   block = false,
+  size: scale = 'md',
   ...rest
 }: ButtonProps) {
   const theme = useTheme();
@@ -71,6 +74,7 @@ export function Button({
       disabled={inactive}
       style={({ pressed }) => [
         styles.base,
+        scale === 'sm' && styles.small,
         block && styles.block,
         {
           backgroundColor:
@@ -93,7 +97,7 @@ export function Button({
       ) : null}
       <View>
         <Text
-          variant="labelLg"
+          variant={scale === 'sm' ? 'labelMd' : 'labelLg'}
           numberOfLines={1}
           style={[
             { color: theme.colors[look.ink] },
@@ -119,6 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.radiusFull,
     alignSelf: 'flex-start',
   },
+  small: { minHeight: size.controlMd, paddingHorizontal: spacing.space4 },
   block: { alignSelf: 'stretch' },
   pressed: { transform: [{ scale: 0.97 }] },
   disabled: { opacity: opacity.opacityDisabled },

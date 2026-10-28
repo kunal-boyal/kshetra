@@ -10,7 +10,7 @@ Buttons trigger an action; the accent-filled primary marks the one thing this vi
 - `danger` — `danger-solid` with `on-danger`. Only for destructive and audited actions (Reset device, Sign out everywhere) and always behind a confirmation that names the consequence.
 
 ## Sizes
-- `sm` (`control-sm`, 32) — table rows and toolbars on web only.
+- `sm` (`control-sm`, 32) — table rows and toolbars on web. On the phone `sm` is `control-md` (40), for a button beside others in a row or a card; a screen's own actions stay 48.
 - default follows density: `control-md` (40) compact, `control-lg` (48) comfortable.
 - `lg` — forces 48 with `label-lg`; every mobile button.
 

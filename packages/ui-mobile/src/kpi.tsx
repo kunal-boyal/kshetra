@@ -2,6 +2,7 @@ import { radius, spacing } from '@thelamp/design-tokens';
 import type { LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { ProgressBar } from './measures';
 import { type Hue, IconChip } from './surfaces';
 import { Text } from './text';
 import { useTheme } from './theme';
@@ -23,7 +24,6 @@ export interface KpiTileProps {
 }
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
-const percent = (value: number) => `${Math.round(clamp(value) * 1000) / 10}%` as const;
 
 /**
  * One metric's approved actual against its target, pending work apart (components/KpiTile). Tiles
@@ -54,14 +54,16 @@ export function KpiTile({ label, icon, hue, value, progress, foot, pending, badg
       <Text variant="metricXl" numberOfLines={1} adjustsFontSizeToFit>
         {value}
       </Text>
-      <View aria-hidden style={[styles.bar, { backgroundColor: theme.colors.surfaceSunken }]}>
-        {progress ? (
-          <>
-            <View style={{ width: percent(done), backgroundColor: theme.colors.accent }} />
-            <View style={{ width: percent(waiting), backgroundColor: theme.colors.pendingSolid }} />
-          </>
-        ) : null}
-      </View>
+      <ProgressBar
+        parts={
+          progress
+            ? [
+                { value: done, tone: 'done' },
+                { value: waiting, tone: 'pending' },
+              ]
+            : []
+        }
+      />
       <Text variant="labelSm" tone="muted">
         {foot}
       </Text>
@@ -85,10 +87,4 @@ const styles = StyleSheet.create({
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.space2 },
   label: { flex: 1 },
-  bar: {
-    flexDirection: 'row',
-    height: 8,
-    borderRadius: radius.radiusFull,
-    overflow: 'hidden',
-  },
 });

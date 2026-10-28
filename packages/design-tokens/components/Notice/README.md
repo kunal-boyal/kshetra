@@ -7,5 +7,5 @@ One of the required strings from the README's copy table, with placeholders fill
 
 ## Rules
 - Placed above or below the thing it qualifies, never in a tooltip or a help page.
-- Neutral styling (`surface-sunken`, `text-muted`); it is information, not a warning.
+- Neutral styling (`surface-sunken`, `text-muted`); it is information, not a warning. On the phone a tone (`info`, `pending`, `danger`, each its `-bg` with its `-fg`) and an icon may mark news, something waiting or a problem; in Outdoor it gains an edge in its ink.
 - Not dismissible. If it feels repetitive, it is working.
