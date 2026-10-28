@@ -55,6 +55,7 @@ export function Notice({ icon, children }: { icon?: ReactNode; children: ReactNo
 
 export interface EmptyStateProps {
   icon: ReactNode;
+  /** The hue of what is missing; without one, the accent's tint, as on the phone (D72). */
   hue?: Hue;
   title: string;
   /** Says what happens next, as spec 8.5 asks. */
@@ -63,10 +64,10 @@ export interface EmptyStateProps {
 }
 
 /** An empty screen that says what happens next (components/EmptyState). */
-export function EmptyState({ icon, hue = 'lilac', title, children, action }: EmptyStateProps) {
+export function EmptyState({ icon, hue, title, children, action }: EmptyStateProps) {
   return (
     <section className="ks-empty ks-enter">
-      <IconChip size="xl" hue={hue} soft>
+      <IconChip size="xl" {...(hue ? { hue } : {})} soft>
         {icon}
       </IconChip>
       <h2 className="ks-title heading-md">{title}</h2>

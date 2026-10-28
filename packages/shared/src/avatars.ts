@@ -26,9 +26,24 @@ export function avatarHue(id: string): AvatarHue {
   return AVATAR_HUES[hash % AVATAR_HUES.length]!;
 }
 
-const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
-const first = (word: string) =>
-  graphemes.segment(word)[Symbol.iterator]().next().value?.segment ?? '';
+/**
+ * A word's first grapheme: by `Intl.Segmenter` where the engine has it, else its first character
+ * with the marks that follow, such as a Devanagari vowel sign. Hermes, the phone's engine, has no
+ * `Intl.Segmenter`, so it must never be required where the module loads.
+ */
+export function firstGrapheme(
+  word: string,
+  segmenter: Pick<Intl.Segmenter, 'segment'> | null = graphemes,
+): string {
+  if (segmenter) return segmenter.segment(word)[Symbol.iterator]().next().value?.segment ?? '';
+  return /^\P{M}\p{M}*/u.exec(word)?.[0] ?? '';
+}
+
+const graphemes: Intl.Segmenter | null =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
+const first = (word: string) => firstGrapheme(word);
 
 /**
  * The first letter of the first and last words that start with a letter, a Devanagari letter kept

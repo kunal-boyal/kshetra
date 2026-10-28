@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { AVATAR_HUES, avatarHue, initialsOf, RANK_HUES, shiftPeriod } from './avatars';
+import {
+  AVATAR_HUES,
+  avatarHue,
+  firstGrapheme,
+  initialsOf,
+  RANK_HUES,
+  shiftPeriod,
+} from './avatars';
 import { newId } from './ids';
 
 describe('avatarHue', () => {
@@ -24,6 +31,13 @@ describe('initialsOf', () => {
 
   it('keeps a Devanagari letter whole, with its vowel sign', () => {
     expect(initialsOf('सुनीता जोशी')).toBe('सुजो');
+  });
+
+  it('works without Intl.Segmenter, as on the phone’s Hermes engine', () => {
+    expect(firstGrapheme('सुनीता', null)).toBe('सु');
+    expect(firstGrapheme('जोशी', null)).toBe('जो');
+    expect(firstGrapheme('Kavita', null)).toBe('K');
+    expect(firstGrapheme('', null)).toBe('');
   });
 });
 
