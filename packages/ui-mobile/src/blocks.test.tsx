@@ -12,6 +12,7 @@ import { ListRow } from './lists';
 import { ProgressBar, Steps } from './measures';
 import { PhotoStrip } from './photos';
 import { Screen } from './screen';
+import { ChoiceCard, ScoreRing } from './score';
 import { ShiftCard } from './shift-card';
 import { QuantityStepper } from './stepper';
 import { Flag } from './status';
@@ -373,5 +374,35 @@ describe('QuantityStepper, the search field and a success notice', () => {
     expect(StyleSheet.flatten(screen.getByText('Within credit.').props.style).color).toBe(
       theme.colors.successFg,
     );
+  });
+});
+
+describe('ScoreRing and ChoiceCard (stage M6)', () => {
+  it('names the score for screen readers', async () => {
+    await render(
+      <View>
+        <ScoreRing value={86} label="Score 86 out of 100" />
+        <ScoreRing value={null} label="Not ranked yet" />
+      </View>,
+    );
+    // The number is drawn in the ring; screen readers hear it in the name.
+    expect(screen.getByRole('img', { name: 'Score 86 out of 100' })).toBeOnTheScreen();
+    expect(screen.getByRole('img', { name: 'Not ranked yet' })).toBeOnTheScreen();
+  });
+
+  it('is a radio named with what is left, ringed once chosen', async () => {
+    const onPress = jest.fn();
+    const theme = createTheme('light', 'latin');
+    await render(
+      <View role="radiogroup">
+        <ChoiceCard label="Casual" detail="5 left" hue="lilac" checked onPress={onPress} />
+        <ChoiceCard label="Unpaid" hue="sand" checked={false} onPress={onPress} />
+      </View>,
+    );
+    const casual = screen.getByRole('radio', { name: 'Casual, 5 left' });
+    expect(casual).toBeChecked();
+    expect(StyleSheet.flatten(casual.props.style).borderColor).toBe(theme.colors.accent);
+    await fireEvent.press(screen.getByRole('radio', { name: 'Unpaid' }));
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });

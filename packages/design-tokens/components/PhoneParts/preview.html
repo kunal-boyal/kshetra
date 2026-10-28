@@ -1,4 +1,4 @@
-<!-- @dsCard group="Navigation" height=670 subtitle="App bar, cart bar, icon buttons, choosers, the code boxes, tiles and the stepper on the phone" -->
+<!-- @dsCard group="Navigation" height=870 subtitle="App bar, cart bar, icon buttons, choosers, the code boxes, tiles, the stepper, the score ring and choice cards on the phone" -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -42,6 +42,19 @@
    <button type="button" aria-label="Quantity of NPK 19:19:19, 40" class="label-lg ks-num" style="min-width:40px;border:0;background:var(--surface);color:var(--text);font-weight:700">40</button>
    <button type="button" aria-label="More NPK 19:19:19" style="width:40px;border:0;background:var(--accent-subtle);color:var(--accent-subtle-fg);font:inherit;font-size:18px">+</button>
   </span>
+ </div>
+ <section style="margin:0 16px;display:flex;align-items:center;gap:16px;padding:16px;border-radius:var(--radius-xl);background:var(--brand-forest);color:var(--on-brand)">
+  <svg width="88" height="88" viewBox="0 0 88 88" role="img" aria-label="Score 86 out of 100">
+   <circle cx="44" cy="44" r="39" style="fill:none;stroke:color-mix(in srgb, var(--on-brand) 22%, transparent);stroke-width:9"></circle>
+   <circle cx="44" cy="44" r="39" pathLength="100" style="fill:none;stroke:var(--brand-gold);stroke-width:9;stroke-dasharray:86 100;stroke-linecap:round;transform:rotate(-90deg);transform-origin:44px 44px"></circle>
+   <text x="44" y="52" text-anchor="middle" style="fill:var(--on-brand);font-size:22px;font-weight:700;font-family:var(--font-sans)">86</text>
+  </svg>
+  <div style="display:flex;flex-direction:column;gap:4px"><span class="label-md" style="opacity:.85">My score</span><span class="heading-lg">Rank #3 of 24</span><span class="body-sm" style="opacity:.85">Up 2 places since last week</span></div>
+ </section>
+ <div role="radiogroup" aria-label="Type" style="margin:0 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+  <button type="button" role="radio" aria-checked="true" class="ks-card tint hue-lilac" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;font:inherit;color:inherit;box-shadow:inset 0 0 0 2px var(--accent)"><span class="label-md" style="font-weight:600">Casual</span><span class="ks-meta">5 left</span></button>
+  <button type="button" role="radio" aria-checked="false" class="ks-card" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;font:inherit;color:inherit"><span class="label-md" style="font-weight:600">Sick</span><span class="ks-meta">4 left</span></button>
+  <button type="button" role="radio" aria-checked="false" class="ks-card" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;font:inherit;color:inherit"><span class="label-md" style="font-weight:600">Earned</span><span class="ks-meta">12 left</span></button>
  </div>
  <a href="#" style="margin:0 12px;display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border-radius:var(--radius-md);background:var(--accent);color:var(--on-accent);text-decoration:none;box-shadow:var(--shadow-md)">
   <span class="label-md" style="font-weight:600">4 items</span>

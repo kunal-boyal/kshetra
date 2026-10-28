@@ -2,22 +2,24 @@ import { spacing } from '@thelamp/design-tokens';
 import { formatDate, formatDateTime, formatMonth, formatNumber } from '@thelamp/i18n';
 import { type AttendanceDayResult, newId, REGULARISATION_REASON, todayIn } from '@thelamp/shared';
 import {
+  AppBar,
   type BadgeVariant,
   Button,
   Card,
   ChoiceGroup,
-  ListGroup,
+  IconButton,
   Screen,
   StatusBadge,
   Text,
   TextField,
 } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
-import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react-native';
+import { CalendarCheck, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { fixable, queueFix, useMyAttendance, useQueuedFixes } from '../attendance';
+import { leaveLeft, useLeaveBalances, useLeaveTypes } from '../leave';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useSync } from '../sync';
@@ -63,6 +65,8 @@ export function AttendanceScreen() {
   const [picked, setPicked] = useState<string | null>(today);
   const month = useMyAttendance(period);
   const queued = useQueuedFixes();
+  // Leave is a module of its own (D64): switched off, its card hides.
+  const leaveOn = !(config.data?.bundle.settings.modulesOff ?? []).includes('leave_attendance');
   const kept = month.data;
   const days = kept?.data.days ?? [];
   const day = days.find((entry) => entry.date === picked) ?? null;
@@ -77,27 +81,17 @@ export function AttendanceScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <Button
-        variant="ghost"
-        icon={ArrowLeft}
-        label={t('common.back')}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      <AppBar
+        title={t('attendance.title')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        backLabel={t('common.back')}
       />
-      <Text variant="headingXl" role="heading">
-        {t('attendance.title')}
-      </Text>
       <View style={styles.months}>
-        <Button
-          variant="ghost"
-          icon={ChevronLeft}
-          label={t('attendance.previous')}
-          onPress={() => move(-1)}
-        />
+        <IconButton icon={ChevronLeft} label={t('attendance.previous')} onPress={() => move(-1)} />
         <Text variant="headingMd" style={styles.month}>
           {formatMonth(period, { locale })}
         </Text>
-        <Button
-          variant="ghost"
+        <IconButton
           icon={ChevronRight}
           label={t('attendance.next')}
           disabled={period >= thisMonth}
@@ -126,54 +120,38 @@ export function AttendanceScreen() {
           <Text variant="bodySm" tone="muted">
             {t('attendance.read_at', { time: formatDateTime(kept.readAt, { locale, timeZone }) })}
           </Text>
-          <Card style={styles.summary}>
-            {(
-              [
-                [t('report.day_present'), number(count('present'))],
-                [t('report.day_half_day'), number(count('half_day'))],
-                [t('report.day_absent'), number(count('absent'))],
-                ...(count('paid_leave') + count('unpaid_leave') > 0
-                  ? [
-                      [t('report.day_paid_leave'), number(count('paid_leave'))],
-                      [t('report.day_unpaid_leave'), number(count('unpaid_leave'))],
-                    ]
-                  : []),
-                [t('report.day_holiday'), number(count('holiday'))],
-                [t('report.day_weekly_off'), number(count('weekly_off'))],
-                [t('attendance.scheduled'), number(kept.data.summary.scheduled)],
-                [t('attendance.paid'), number(kept.data.summary.paid)],
-              ] as [string, string][]
-            ).map(([label, value]) => (
-              <View key={label} style={styles.fact}>
-                <Text tone="muted">{label}</Text>
-                <Text weight={600}>{value}</Text>
-              </View>
-            ))}
+          <Card style={styles.stack}>
+            <MonthGrid
+              days={days}
+              picked={picked}
+              today={today}
+              queued={queued}
+              onPick={(date) => setPicked(date)}
+            />
+            <View style={styles.legend}>
+              {LEGEND.filter((status) => count(status) > 0).map((status) => (
+                <StatusBadge
+                  key={status}
+                  variant={TONE[status] ?? 'neutral'}
+                  label={`${t(`report.day_${status}`)} ${number(count(status))}`}
+                />
+              ))}
+            </View>
+            <Text variant="bodySm" tone="muted">
+              {t('attendance.days_line', {
+                scheduled: number(kept.data.summary.scheduled),
+                paid: number(kept.data.summary.paid),
+              })}
+            </Text>
           </Card>
-
-          <Text tone="muted">{t('attendance.choose_day')}</Text>
-          <MonthGrid
-            days={days}
-            picked={picked}
-            queued={queued}
-            onPick={(date) => setPicked(date)}
-          />
-
+          <Text variant="bodySm" tone="muted">
+            {t('attendance.choose_day')}
+          </Text>
           {day ? (
             <DayCard key={day.date} day={day} queuedAs={queued.get(day.date)?.status} />
           ) : null}
 
-          <ListGroup title={t('attendance.legend')}>
-            <View style={styles.legend}>
-              {LEGEND.map((status) => (
-                <StatusBadge
-                  key={status}
-                  variant={TONE[status] ?? 'neutral'}
-                  label={t(`report.day_${status}`)}
-                />
-              ))}
-            </View>
-          </ListGroup>
+          {leaveOn ? <LeaveLeft /> : null}
         </>
       )}
     </Screen>
@@ -184,11 +162,13 @@ export function AttendanceScreen() {
 function MonthGrid({
   days,
   picked,
+  today,
   queued,
   onPick,
 }: {
   days: readonly AttendanceDayResult[];
   picked: string | null;
+  today: string;
   queued: ReadonlyMap<string, unknown>;
   onPick: (date: string) => void;
 }) {
@@ -207,6 +187,7 @@ function MonthGrid({
           }),
           tone: TONE[day.status],
           selected: date === picked,
+          today: date === today,
           marked: queued.has(date) || day.regularisation?.state === 'pending',
         };
       }}
@@ -320,7 +301,48 @@ function DayCard({ day, queuedAs }: { day: AttendanceDayResult; queuedAs: Fix | 
   );
 }
 
+/** What is left of the paid leave types this year, three across, and the way to ask (D104). */
+function LeaveLeft() {
+  const { t, locale } = useLanguage();
+  const types = useLeaveTypes().data;
+  const balances = useLeaveBalances().data?.data;
+  const left = leaveLeft(types ?? [], balances).slice(0, 3);
+  if (left.length === 0) return null;
+  return (
+    <Card style={styles.stack}>
+      <View style={styles.spread}>
+        <Text variant="headingMd" role="heading" style={styles.grow}>
+          {t('attendance.leave_left')}
+        </Text>
+        <Button
+          variant="ghost"
+          size="sm"
+          label={t('attendance.apply')}
+          onPress={() => router.push('/leave/new')}
+        />
+      </View>
+      <View style={styles.three}>
+        {left.map(({ type, available }) => (
+          <View key={type.key} style={styles.third}>
+            <Text variant="headingLg" style={styles.figure}>
+              {formatNumber(available, { locale }, { maximumFractionDigits: 1 })}
+            </Text>
+            <Text variant="bodySm" tone="muted" numberOfLines={1}>
+              {type.name[locale]}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
+  spread: { flexDirection: 'row', alignItems: 'center', gap: spacing.space2 },
+  grow: { flex: 1 },
+  three: { flexDirection: 'row', gap: spacing.space2 },
+  third: { flex: 1, minWidth: 0, alignItems: 'center' },
+  figure: { fontVariant: ['tabular-nums'] },
   stack: { gap: spacing.space3 },
   months: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   month: { flex: 1, textAlign: 'center' },

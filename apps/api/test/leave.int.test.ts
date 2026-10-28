@@ -70,6 +70,8 @@ async function tenant(name: string) {
   return {
     tenantId,
     fieldId: field.id,
+    managerId: manager.id,
+    headId: head.id,
     head: as((await world.signIn(phones.head)).accessToken),
     manager: as((await world.signIn(phones.manager)).accessToken),
     field: as((await world.signIn(phones.field, newDevice())).accessToken),
@@ -100,6 +102,54 @@ async function approve(
   });
   expect(last.json().status).toBe('approved');
 }
+
+describe('who would decide (decision D104)', () => {
+  it('previews the chain from the caller with the facts given, skipping what a condition skips', async () => {
+    const t = await tenant('Preview Leave Co');
+    const preview = (facts: object) =>
+      t.field.post('/v1/approvals/preview', { requestType: 'leave', facts });
+    const both = await preview({ leave_days: 2, paid: true });
+    expect(both.statusCode, both.body).toBe(200);
+    expect(both.json()).toEqual({
+      blocked: false,
+      steps: [
+        {
+          approvers: [expect.objectContaining({ id: t.managerId })],
+          escalated: false,
+          fallback: false,
+        },
+        {
+          approvers: [expect.objectContaining({ id: t.headId })],
+          escalated: false,
+          fallback: false,
+        },
+      ],
+    });
+
+    // The head decides only past three days.
+    const chains = (await t.head.get('/v1/workflows')).json().chains;
+    const version = chains.find(
+      (entry: { requestType: string }) => entry.requestType === 'leave',
+    ).version;
+    const saved = await t.head.put('/v1/workflows/leave', {
+      version,
+      steps: [
+        { approver: { type: 'reporting_manager', level: 1 } },
+        {
+          approver: { type: 'nearest_designation', designation: 'head' },
+          condition: { match: 'all', clauses: [{ field: 'leave_days', op: 'gt', value: 3 }] },
+        },
+      ],
+    });
+    expect(saved.statusCode, saved.body).toBe(200);
+    expect((await preview({ leave_days: 2 })).json().steps).toEqual([
+      expect.objectContaining({ approvers: [expect.objectContaining({ id: t.managerId })] }),
+    ]);
+    expect((await preview({ leave_days: 5 })).json().steps).toHaveLength(2);
+    // Nothing was asked for.
+    expect((await t.field.get('/v1/approvals/mine')).json().items).toEqual([]);
+  });
+});
 
 describe('leave requests (BR-27)', () => {
   it('counts working days, keeps to the quota and refuses overlaps', async () => {

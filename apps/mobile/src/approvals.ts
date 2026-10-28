@@ -1,5 +1,11 @@
-import { ApprovalInboxResult, ApprovalResult, newId, type RequestType } from '@thelamp/shared';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import {
+  ApprovalInboxResult,
+  ApprovalPreviewResult,
+  ApprovalResult,
+  newId,
+  type RequestType,
+} from '@thelamp/shared';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useApp } from './app-state';
 
 /**
@@ -57,4 +63,24 @@ export function useDecideRequest() {
     await queryClient.invalidateQueries({ queryKey: INBOX_KEY });
     return result!;
   };
+}
+
+/**
+ * Who would decide a request of this type from the person, with these facts, as the server would
+ * route it (decision D104); read online, and quietly absent without a signal.
+ */
+export function useApprovalPreview(
+  requestType: RequestType,
+  facts: Readonly<Record<string, string | number | boolean>>,
+) {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['approval-preview', requestType, facts],
+    queryFn: async () =>
+      (await client.request('POST', '/v1/approvals/preview', ApprovalPreviewResult, {
+        body: { requestType, facts },
+      }))!,
+    retry: false,
+    staleTime: 60_000,
+  });
 }

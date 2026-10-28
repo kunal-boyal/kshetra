@@ -1,9 +1,20 @@
 import { spacing } from '@thelamp/design-tokens';
 import { formatDate, formatMoney, formatMonth } from '@thelamp/i18n';
 import { EXPENSE_DESCRIPTION, newId, todayIn } from '@thelamp/shared';
-import { Button, Card, ChoiceGroup, Notice, Screen, Text, TextField } from '@thelamp/ui-mobile';
+import {
+  ActionBar,
+  AppBar,
+  Button,
+  Card,
+  ChoiceGroup,
+  IconButton,
+  Notice,
+  Screen,
+  Text,
+  TextField,
+} from '@thelamp/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
-import { ArrowLeft, Camera, ChevronLeft, ChevronRight, RotateCw, Send } from 'lucide-react-native';
+import { Camera, ChevronLeft, ChevronRight, RotateCw, Send } from 'lucide-react-native';
 import type { ShiftOdometer } from '@thelamp/api-client/sync';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -21,6 +32,7 @@ import {
 } from '../expenses';
 import { errorMessage, useLanguage } from '../i18n';
 import { useSync } from '../sync';
+import { WhoDecides } from './who-decides';
 import { MonthDays, monthDates, shiftMonth } from './month-days';
 
 const RECEIPT_REQUEST = 'claim-receipt';
@@ -164,16 +176,35 @@ export function NewClaimScreen() {
   }
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <Button
-        variant="ghost"
-        icon={ArrowLeft}
-        label={t('common.back')}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/expenses'))}
+    <Screen
+      edges={['top', 'left', 'right', 'bottom']}
+      footer={
+        policies.data ? (
+          <ActionBar>
+            <View style={styles.grow}>
+              <Button
+                variant="primary"
+                block
+                icon={Send}
+                label={
+                  preview?.amount != null
+                    ? t('claims.send_total', { amount: money(preview.amount) })
+                    : t('claims.send')
+                }
+                busy={busy}
+                disabled={!preview || preview.issues.length > 0 || shortDescription || !sync}
+                onPress={() => void send()}
+              />
+            </View>
+          </ActionBar>
+        ) : undefined
+      }
+    >
+      <AppBar
+        title={t('claims.new_title')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/expenses'))}
+        backLabel={t('common.back')}
       />
-      <Text variant="headingXl" role="heading">
-        {t('claims.new_title')}
-      </Text>
 
       {!policies.data ? (
         policies.isError ? (
@@ -206,8 +237,7 @@ export function NewClaimScreen() {
 
           <Text tone="muted">{t('claims.pick_day')}</Text>
           <View style={styles.months}>
-            <Button
-              variant="ghost"
+            <IconButton
               icon={ChevronLeft}
               label={t('attendance.previous')}
               onPress={() => setPeriod(shiftMonth(period, -1))}
@@ -215,8 +245,7 @@ export function NewClaimScreen() {
             <Text variant="headingMd" style={styles.month}>
               {formatMonth(period, { locale })}
             </Text>
-            <Button
-              variant="ghost"
+            <IconButton
               icon={ChevronRight}
               label={t('attendance.next')}
               disabled={period >= today.slice(0, 7)}
@@ -337,19 +366,18 @@ export function NewClaimScreen() {
               ) : null}
             </Card>
           ) : null}
+          {preview?.amount != null ? (
+            <WhoDecides
+              title={t('claims.after_send')}
+              requestType="expense"
+              facts={{ amount: preview.amount, over_policy: preview.capped }}
+            />
+          ) : null}
           {failure ? (
             <Text tone="danger" role="alert">
               {failure}
             </Text>
           ) : null}
-          <Button
-            variant="primary"
-            icon={Send}
-            label={t('claims.send')}
-            busy={busy}
-            disabled={!preview || preview.issues.length > 0 || shortDescription || !sync}
-            onPress={() => void send()}
-          />
         </>
       )}
     </Screen>
@@ -358,6 +386,7 @@ export function NewClaimScreen() {
 
 const styles = StyleSheet.create({
   stack: { gap: spacing.space3 },
+  grow: { flex: 1 },
   months: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   month: { flex: 1, textAlign: 'center' },
 });

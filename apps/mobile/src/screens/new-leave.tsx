@@ -1,5 +1,5 @@
 import { spacing } from '@thelamp/design-tokens';
-import { formatDate, formatMonth } from '@thelamp/i18n';
+import { formatDate, formatMonth, formatNumber } from '@thelamp/i18n';
 import {
   type CalendarResult,
   datesBetween,
@@ -8,9 +8,22 @@ import {
   newId,
   todayIn,
 } from '@thelamp/shared';
-import { Button, Card, ChoiceGroup, Notice, Screen, Text, TextField } from '@thelamp/ui-mobile';
+import {
+  ActionBar,
+  AppBar,
+  Button,
+  Card,
+  ChoiceCard,
+  ChoiceGroup,
+  type Hue,
+  IconButton,
+  Notice,
+  Screen,
+  Text,
+  TextField,
+} from '@thelamp/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
-import { ArrowLeft, Camera, ChevronLeft, ChevronRight, RotateCw, Send } from 'lucide-react-native';
+import { Camera, ChevronLeft, ChevronRight, RotateCw, Send } from 'lucide-react-native';
 import { useCallback, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
@@ -19,16 +32,22 @@ import { useConfig, useMe } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import {
   type Asked,
+  leaveLeft,
   offDays,
   previewLeave,
   queueLeave,
   useCalendars,
+  useLeaveBalances,
   useLeaveTypes,
   useMyLeave,
   useQueuedLeave,
 } from '../leave';
 import { useSync } from '../sync';
 import { MonthDays, monthDates, shiftMonth } from './month-days';
+import { WhoDecides } from './who-decides';
+
+/** Each type's card hue, in order (decision D104). */
+const HUES: readonly Hue[] = ['lilac', 'mint', 'sky', 'peach', 'butter', 'sage', 'sand', 'rose'];
 
 const DOCUMENT_REQUEST = 'leave-document';
 
@@ -69,8 +88,12 @@ export function NewLeaveScreen() {
   const waitingForDocument = useRef(false);
 
   const types = useLeaveTypes();
+  const balances = useLeaveBalances().data?.data;
   const active = (types.data ?? []).filter((type) => type.active);
   const type = active.find((entry) => entry.key === typeKey) ?? active[0];
+  const left = new Map(
+    leaveLeft(active, balances).map((entry) => [entry.type.key, entry.available]),
+  );
   const last = end ?? start;
   const firstYear = (start ?? period).slice(0, 4);
   const lastYear = (last ?? period).slice(0, 4);
@@ -160,16 +183,31 @@ export function NewLeaveScreen() {
   const chosen = new Set(start && last && last >= start ? datesBetween(start, last) : []);
 
   return (
-    <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <Button
-        variant="ghost"
-        icon={ArrowLeft}
-        label={t('common.back')}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/leave'))}
+    <Screen
+      edges={['top', 'left', 'right', 'bottom']}
+      footer={
+        types.data ? (
+          <ActionBar>
+            <View style={styles.grow}>
+              <Button
+                variant="primary"
+                block
+                icon={Send}
+                label={t('leave.send')}
+                busy={busy}
+                disabled={!preview || preview.issues.length > 0 || !sync}
+                onPress={() => void send()}
+              />
+            </View>
+          </ActionBar>
+        ) : undefined
+      }
+    >
+      <AppBar
+        title={t('leave.new_title')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/leave'))}
+        backLabel={t('common.back')}
       />
-      <Text variant="headingXl" role="heading">
-        {t('leave.new_title')}
-      </Text>
 
       {!types.data ? (
         types.isError ? (
@@ -189,20 +227,42 @@ export function NewLeaveScreen() {
         )
       ) : (
         <>
-          <ChoiceGroup
-            title={t('leave.type')}
-            value={type?.key ?? ''}
-            onChange={(key) => {
-              setTypeKey(key);
-              setHalfDay(false);
-            }}
-            choices={active.map((entry) => ({ value: entry.key, label: entry.name[locale] }))}
-          />
+          <View style={styles.stack}>
+            <Text variant="labelMd">{t('leave.type')}</Text>
+            <View role="radiogroup" aria-label={t('leave.type')} style={styles.cards}>
+              {active.map((entry, index) => {
+                const available = left.get(entry.key);
+                return (
+                  <View key={entry.key} style={styles.third}>
+                    <ChoiceCard
+                      label={entry.name[locale]}
+                      {...(available !== undefined
+                        ? {
+                            detail: t('leave.left', {
+                              count: formatNumber(
+                                available,
+                                { locale },
+                                { maximumFractionDigits: 1 },
+                              ),
+                            }),
+                          }
+                        : {})}
+                      hue={HUES[index % HUES.length]!}
+                      checked={entry.key === type?.key}
+                      onPress={() => {
+                        setTypeKey(entry.key);
+                        setHalfDay(false);
+                      }}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+          </View>
 
           <Text tone="muted">{t('leave.pick_days')}</Text>
           <View style={styles.months}>
-            <Button
-              variant="ghost"
+            <IconButton
               icon={ChevronLeft}
               label={t('attendance.previous')}
               onPress={() => setPeriod(shiftMonth(period, -1))}
@@ -210,8 +270,7 @@ export function NewLeaveScreen() {
             <Text variant="headingMd" style={styles.month}>
               {formatMonth(period, { locale })}
             </Text>
-            <Button
-              variant="ghost"
+            <IconButton
               icon={ChevronRight}
               label={t('attendance.next')}
               onPress={() => setPeriod(shiftMonth(period, 1))}
@@ -299,19 +358,26 @@ export function NewLeaveScreen() {
             value={reason}
             onChangeText={setReason}
           />
+          {type ? (
+            <WhoDecides
+              title={t('leave.who_decides')}
+              requestType="leave"
+              facts={{ leave_days: preview?.days ?? 1, paid: type.paid }}
+              {...(preview
+                ? {
+                    asking: t('leave.asking', {
+                      count: preview.days,
+                      type: type.name[locale].toLowerCase(),
+                    }),
+                  }
+                : {})}
+            />
+          ) : null}
           {failure ? (
             <Text tone="danger" role="alert">
               {failure}
             </Text>
           ) : null}
-          <Button
-            variant="primary"
-            icon={Send}
-            label={t('leave.send')}
-            busy={busy}
-            disabled={!preview || preview.issues.length > 0 || !sync}
-            onPress={() => void send()}
-          />
         </>
       )}
     </Screen>
@@ -320,6 +386,10 @@ export function NewLeaveScreen() {
 
 const styles = StyleSheet.create({
   stack: { gap: spacing.space3 },
+  grow: { flex: 1 },
+  cards: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.space2 },
+  // Three across, each a third of the row less the gaps.
+  third: { flexBasis: '30%', flexGrow: 1, minWidth: 0 },
   months: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   month: { flex: 1, textAlign: 'center' },
 });

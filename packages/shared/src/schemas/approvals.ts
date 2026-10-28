@@ -97,6 +97,35 @@ export const ApprovalMineResult = z.object({
  * `POST /v1/approvals/decisions`: approves several requests in one go, where their types allow it
  * (M15). Each is decided on its own, on the version shown; one refused leaves the others decided.
  */
+/**
+ * `POST /v1/approvals/preview`: who would decide a request of this type from the caller, with
+ * these facts (keys from `REQUEST_FACTS`), routed as a real request would be, without one being
+ * made (decision D104). The phone shows it before a request is sent.
+ */
+export const ApprovalPreviewBody = z.strictObject({
+  requestType: RequestType,
+  facts: z
+    .record(z.string().max(40), z.union([z.string().max(200), z.number(), z.boolean()]))
+    .default({}),
+});
+
+export const ApprovalPreviewResult = z
+  .object({
+    /** Each step that would wait for someone, in order; skipped steps are left out. */
+    steps: z.array(
+      z.object({
+        approvers: z.array(Person),
+        /** Its own approvers are missing, so it goes to whom the chain escalates to. */
+        escalated: z.boolean(),
+        /** Added because nobody in the chain could decide (BR-31). */
+        fallback: z.boolean(),
+      }),
+    ),
+    /** Nobody can approve such a request yet, such as a person without a manager. */
+    blocked: z.boolean(),
+  })
+  .meta({ id: 'ApprovalPreview' });
+
 export const BulkApprovalBody = z.strictObject({
   items: z
     .array(z.strictObject({ id: z.uuid(), version: z.int().min(1) }))
@@ -137,6 +166,8 @@ export type ApprovalInboxQuery = z.output<typeof ApprovalInboxQuery>;
 export type ApprovalInboxResult = z.infer<typeof ApprovalInboxResult>;
 export type ApprovalMineQuery = z.output<typeof ApprovalMineQuery>;
 export type ApprovalMineResult = z.infer<typeof ApprovalMineResult>;
+export type ApprovalPreviewBody = z.output<typeof ApprovalPreviewBody>;
+export type ApprovalPreviewResult = z.infer<typeof ApprovalPreviewResult>;
 export type BulkApprovalBody = z.output<typeof BulkApprovalBody>;
 export type BulkApprovalResult = z.infer<typeof BulkApprovalResult>;
 export type ApprovalDecisionBody = z.output<typeof ApprovalDecisionBody>;

@@ -7,6 +7,8 @@ import {
   type ApprovalInboxResult,
   type ApprovalMineQuery,
   type ApprovalMineResult,
+  type ApprovalPreviewBody,
+  type ApprovalPreviewResult,
   type ApprovalResult,
   type BulkApprovalBody,
   type BulkApprovalResult,
@@ -69,21 +71,7 @@ export class ApprovalsService {
     actor: AuditActor,
     context: RequestContext = {},
   ): Promise<string> {
-    const requester = (await this.people.facts(tx, tenantId, [requesterId])).get(requesterId);
-    if (!requester) throw notFound();
-    const chain = await this.chains.current(tx, tenantId, type);
-    const routed = chain
-      ? routeRequest(
-          await this.approvers.resolve(tx, tenantId, requesterId, chain.steps, context),
-          requesterId,
-          await this.approvers.role(
-            tx,
-            tenantId,
-            await this.chains.fallbackRole(tx, tenantId),
-            requesterId,
-          ),
-        )
-      : await this.managerOnly(tx, tenantId, requester.managerId, requesterId, type);
+    const { chain, routed } = await this.route(tx, tenantId, requesterId, type, context);
     if (!routed) {
       throw new AppError('CONFLICT', 'Nobody can approve this yet. Ask an admin to set a manager.');
     }
@@ -126,6 +114,68 @@ export class ApprovalsService {
       approverIds: approvers,
     });
     return id;
+  }
+
+  /** How a request from this person would be routed: by the type's chain, else D38's manager. */
+  private async route(
+    tx: TenantTx,
+    tenantId: string,
+    requesterId: string,
+    type: RequestType,
+    context: RequestContext,
+  ) {
+    const requester = (await this.people.facts(tx, tenantId, [requesterId])).get(requesterId);
+    if (!requester) throw notFound();
+    const chain = await this.chains.current(tx, tenantId, type);
+    const routed = chain
+      ? routeRequest(
+          await this.approvers.resolve(tx, tenantId, requesterId, chain.steps, context),
+          requesterId,
+          await this.approvers.role(
+            tx,
+            tenantId,
+            await this.chains.fallbackRole(tx, tenantId),
+            requesterId,
+          ),
+        )
+      : await this.managerOnly(tx, tenantId, requester.managerId, requesterId, type);
+    return { chain, routed };
+  }
+
+  /**
+   * Who would decide a request of this type from the caller, with these facts, as `request()`
+   * would route it, writing nothing (decision D104). Vendor support and API clients have no user
+   * to route from.
+   */
+  async preview(
+    tx: TenantTx,
+    access: Access,
+    body: ApprovalPreviewBody,
+  ): Promise<ApprovalPreviewResult> {
+    if (access.support || access.apiClient) {
+      throw new AppError('FORBIDDEN', 'Only a person can ask who would decide their request.');
+    }
+    const { routed } = await this.route(tx, access.tenantId, access.userId, body.requestType, {
+      facts: body.facts,
+    });
+    if (!routed) return { steps: [], blocked: true };
+    const waiting = routed.filter((step) => step.status !== 'skipped');
+    const people = await this.people.facts(
+      tx,
+      access.tenantId,
+      waiting.flatMap((step) => step.approvers),
+    );
+    return {
+      steps: waiting.map((step) => ({
+        approvers: step.approvers.map((id) => {
+          const person = people.get(id);
+          return { id, code: person?.code ?? '', name: person?.name ?? '' };
+        }),
+        escalated: step.escalated,
+        fallback: step.fallback,
+      })),
+      blocked: false,
+    };
   }
 
   /**

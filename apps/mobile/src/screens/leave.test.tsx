@@ -55,6 +55,7 @@ const type = (key: string, en: string, extra: object = {}) => ({
   active: true,
   ...extra,
 });
+const MANAGER = '01a10000-0000-7000-8000-000000000003';
 const TYPES = [
   type('casual', 'Casual leave'),
   type('sick', 'Sick leave', { attachmentAfterDays: 2 }),
@@ -186,6 +187,18 @@ function fakeClient(offline = false) {
       if (method === 'GET' && url.startsWith('/v1/calendars?year=')) {
         return calendars(url.slice(-4));
       }
+      if (method === 'POST' && url === '/v1/approvals/preview') {
+        return {
+          blocked: false,
+          steps: [
+            {
+              approvers: [{ id: MANAGER, code: 'SUN-003', name: 'Meena Shah' }],
+              escalated: false,
+              fallback: false,
+            },
+          ],
+        };
+      }
       // Requests wait for a signal, as in a field with none.
       if (method === 'POST') throw new NetworkError('offline');
       return {};
@@ -275,6 +288,27 @@ describe('leave on the phone (M13, spec 8.1)', () => {
     expect(screen.getByText('Waiting')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Ask for leave' }));
     expect(router.push).toHaveBeenCalledWith('/leave/new');
+  });
+
+  it('offers each type as a card with what is left, and says who decides', async () => {
+    const client = (await renderPhone('new')).client;
+    expect(await screen.findByRole('radio', { name: 'Casual leave, 6.5 left' })).toBeChecked();
+    // A type without a quota says nothing of what is left.
+    expect(screen.getByRole('radio', { name: 'Unpaid leave' })).not.toBeChecked();
+    await pickRange(FRIDAY, MONDAY);
+    expect(await screen.findByText('Who decides')).toBeOnTheScreen();
+    expect(await screen.findByText('Meena Shah')).toBeOnTheScreen();
+    expect(screen.getByText('2 days of casual leave')).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(client.request).toHaveBeenCalledWith(
+        'POST',
+        '/v1/approvals/preview',
+        expect.anything(),
+        { body: { requestType: 'leave', facts: { leave_days: 2, paid: true } } },
+      ),
+    );
+    await fireEvent.press(screen.getByRole('radio', { name: 'Unpaid leave' }));
+    expect(screen.getByRole('radio', { name: 'Unpaid leave' })).toBeChecked();
   });
 
   it('counts working days on the calendar and queues the request (FX-20)', async () => {

@@ -143,11 +143,14 @@ export function IconButton({
   icon,
   label,
   count = 0,
+  disabled = false,
   onPress,
 }: {
   icon: LucideIcon;
   label: string;
   count?: number;
+  /** Such as the next month on a screen that goes no further than this one. */
+  disabled?: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -155,13 +158,15 @@ export function IconButton({
     <Pressable
       role="button"
       aria-label={count > 0 ? `${label}, ${countText(count)}` : label}
+      aria-disabled={disabled}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.icon,
         pressed && { backgroundColor: theme.colors.surfaceSunken },
       ]}
     >
-      <Icon icon={icon} color={theme.colors.text} />
+      <Icon icon={icon} color={disabled ? theme.colors.textDisabled : theme.colors.text} />
       {count > 0 ? <Count count={count} /> : null}
     </Pressable>
   );

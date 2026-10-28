@@ -205,10 +205,18 @@ describe('the upload queue', () => {
 });
 
 describe('signing out', () => {
+  it('says everything has uploaded when nothing waits, and offers no Send now', async () => {
+    const { db } = await phoneWith();
+    await renderPhone(db, 'me');
+    expect(await screen.findByText('Everything has uploaded')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Send now' })).toBeNull();
+  });
+
   it('warns about unsent records first, and keeps them on the phone', async () => {
     const { db, outbox } = await phoneWith({ n: 1, refuse: true });
     const fake = await renderPhone(db, 'me');
-    expect(await screen.findByText('1 waiting')).toBeOnTheScreen();
+    // More lists what waits, inline (decision D104).
+    expect(await screen.findByText(/^(Waiting|Needs you)$/)).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
     expect(

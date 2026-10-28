@@ -4,7 +4,8 @@ import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import { claim, migrate, Outbox } from '@thelamp/api-client/sync';
 import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import { router } from 'expo-router';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AppProvider, useApp } from '../app-state';
 import type { MobileClient } from '../client';
 import { LanguageProvider } from '../i18n';
@@ -112,6 +113,8 @@ function fakeClient(offline = false, permissions = ['shift.use', 'regularisation
       }
       // Requests to fix a day wait for a signal, as in a field with none.
       if (method === 'POST' && url === '/v1/regularisations') throw new NetworkError('offline');
+      if (method === 'GET' && url === '/v1/leave-types') return { items: LEAVE_TYPES };
+      if (method === 'GET' && url === '/v1/leave-balances') return LEAVE_BALANCES;
       return {};
     }),
     config: jest.fn(async () => {
@@ -134,6 +137,51 @@ function fakeClient(offline = false, permissions = ['shift.use', 'regularisation
   };
   return { client, create: () => client as unknown as MobileClient };
 }
+
+const LEAVE_TYPES = [
+  {
+    key: 'casual',
+    name: { en: 'Casual', hi: 'आकस्मिक' },
+    paid: true,
+    annualQuota: 8,
+    quotaYear: 'calendar',
+    halfDayAllowed: true,
+    active: true,
+  },
+  {
+    key: 'unpaid',
+    name: { en: 'Unpaid', hi: 'अवैतनिक' },
+    paid: false,
+    annualQuota: 0,
+    quotaYear: 'calendar',
+    halfDayAllowed: false,
+    active: true,
+  },
+];
+const LEAVE_BALANCES = {
+  userId: ASHA,
+  on: '2026-10-28',
+  items: [
+    {
+      leaveType: 'casual',
+      from: '2026-01-01',
+      to: '2026-12-31',
+      quota: 8,
+      approved: 3,
+      pending: 0,
+      available: 5,
+    },
+    {
+      leaveType: 'unpaid',
+      from: '2026-01-01',
+      to: '2026-12-31',
+      quota: null,
+      approved: 0,
+      pending: 0,
+      available: null,
+    },
+  ],
+};
 
 function Shown() {
   const { session, restored } = useApp();
@@ -181,6 +229,17 @@ const shortDate = (date: string) =>
   );
 
 describe('attendance on the phone (M13, spec 8.1)', () => {
+  it('says what is left of leave with a quota this year, and asks for more', async () => {
+    await renderPhone();
+    expect(await screen.findByText('Leave left this year')).toBeOnTheScreen();
+    expect(screen.getByText('5')).toBeOnTheScreen();
+    expect(screen.getByText('Casual')).toBeOnTheScreen();
+    // A type without a quota has nothing to count.
+    expect(screen.queryByText('Unpaid')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Apply' }));
+    expect(router.push).toHaveBeenCalledWith('/leave/new');
+  });
+
   it('shows the month as a calendar, with working and paid days', async () => {
     const { client } = await renderPhone();
     await lastMonth();
@@ -190,10 +249,11 @@ describe('attendance on the phone (M13, spec 8.1)', () => {
       expect.anything(),
     );
     const sundays = DATES.filter((date) => weekday(date) === 7).length;
-    expect(screen.getByText('Working days').parent).toHaveTextContent(
-      `Working days${DATES.length - sundays - 1}`,
-    );
-    expect(screen.getByText('Paid days').parent).toHaveTextContent('Paid days1');
+    expect(
+      screen.getByText(`Working days ${DATES.length - sundays - 1} · Paid days 1`),
+    ).toBeOnTheScreen();
+    // The legend counts each status the month has.
+    expect(screen.getByText(`Weekly off ${sundays}`)).toBeOnTheScreen();
     expect(screen.getAllByRole('button', { name: /: Weekly off$/ })).toHaveLength(sundays);
     // Next month goes no further than this one.
     await fireEvent.press(screen.getByRole('button', { name: 'Next month' }));
@@ -252,7 +312,6 @@ describe('attendance on the phone (M13, spec 8.1)', () => {
     await renderPhone({ offline: true, db: first.db });
     await lastMonth();
     expect(screen.getByText(/^As of /)).toBeOnTheScreen();
-    const legend = screen.getByText('What the colours mean').parent!;
-    expect(within(legend).getByText('Weekly off')).toBeOnTheScreen();
+    expect(screen.getByText(/^Weekly off \d+$/)).toBeOnTheScreen();
   });
 });
