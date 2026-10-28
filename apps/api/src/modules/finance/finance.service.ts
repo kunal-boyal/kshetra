@@ -25,6 +25,7 @@ import { type AuditActor, AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { AccountsService } from '../accounts/accounts.service';
+import { AccountBalances } from '../accounts/account-balances';
 import { OrderCredit } from '../orders/order-credit';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
@@ -52,9 +53,34 @@ export class FinanceService implements OnModuleInit {
     private readonly config: TenantConfigService,
     private readonly credit: OrderCredit,
     private readonly audit: AuditLog,
+    private readonly balances: AccountBalances,
   ) {}
 
   onModuleInit(): void {
+    this.balances.provide({
+      latest: async (tx, tenantId, accountIds) => {
+        if (accountIds.length === 0) return new Map();
+        // Each account's newest snapshot, as `latest()` picks it for one.
+        const rows = await tx
+          .selectDistinctOn([financeSnapshots.accountId], {
+            accountId: financeSnapshots.accountId,
+            outstanding: financeSnapshots.outstanding,
+          })
+          .from(financeSnapshots)
+          .where(
+            and(
+              eq(financeSnapshots.tenantId, tenantId),
+              inArray(financeSnapshots.accountId, [...new Set(accountIds)]),
+            ),
+          )
+          .orderBy(
+            financeSnapshots.accountId,
+            desc(financeSnapshots.asOf),
+            desc(financeSnapshots.createdAt),
+          );
+        return new Map(rows.map((row) => [row.accountId, row.outstanding]));
+      },
+    });
     this.credit.provide({
       over: async (tx, tenantId, accountId, total) => {
         const latest = await this.latest(tx, tenantId, accountId);

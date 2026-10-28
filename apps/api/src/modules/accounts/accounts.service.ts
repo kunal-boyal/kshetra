@@ -63,6 +63,7 @@ import { Scopes } from '../iam/scopes';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 import { ApprovalsService } from '../workflow/approvals.service';
+import { AccountBalances } from './account-balances';
 import { AccountTypesService, type TypeRecord } from './account-types.service';
 
 const invalid = (issues: ErrorDetail[]) =>
@@ -123,6 +124,7 @@ export class AccountsService {
     private readonly audit: AuditLog,
     private readonly approvals: ApprovalsService,
     private readonly outbox: Outbox,
+    private readonly balances: AccountBalances,
   ) {}
 
   async settings(tx: TenantTx, tenantId: string): Promise<TenantSettings> {
@@ -162,11 +164,28 @@ export class AccountsService {
   async list(tx: TenantTx, access: Access, query: AccountListQuery): Promise<AccountListResult> {
     const tenantId = access.tenantId;
     const type = query.type ? await this.types.byKey(tx, tenantId, query.type) : undefined;
-    if (query.type && !type) return { items: [], nextCursor: null };
+    if (query.type && !type) return { items: [], nextCursor: null, summary: null };
     const today = await this.today(tx, tenantId);
     const search = query.q
       ? or(ilike(accounts.name, containing(query.q)), ilike(accounts.code, containing(query.q)))
       : undefined;
+    // What narrows the list but type and status, which the summary counts by.
+    const scope = [
+      eq(accounts.tenantId, tenantId),
+      await this.reach(tx, access),
+      query.segment ? sql`${query.segment} = any(${accounts.segments})` : undefined,
+      query.territoryId
+        ? sql`${accounts.territoryId} in (${this.territories.subtree(tenantId, query.territoryId)})`
+        : undefined,
+      query.userId
+        ? sql`exists (select 1 from ${accountSlots} s
+            where s.tenant_id = ${accounts.tenantId} and s.account_id = ${accounts.id}
+              and s.user_id = ${query.userId}
+              and s.valid_from <= ${today}::date
+              and (s.valid_to is null or s.valid_to > ${today}::date))`
+        : undefined,
+      search,
+    ];
     const rows = await selectRows(tx)
       .where(
         and(
@@ -195,6 +214,40 @@ export class AccountsService {
     return {
       items: await this.results(tx, tenantId, page),
       nextCursor: rows.length > query.limit ? page.at(-1)!.id : null,
+      summary: query.cursor ? null : await this.summary(tx, tenantId, scope, type?.id),
+    };
+  }
+
+  /**
+   * How many active and pending accounts each type holds within `scope`, and how many of `typeId`
+   * (or of all) wait for approval, for the list's tabs and banner (decision D104).
+   */
+  private async summary(
+    tx: TenantTx,
+    tenantId: string,
+    scope: (SQL | undefined)[],
+    typeId?: string,
+  ) {
+    const rows = await tx
+      .select({
+        typeId: accounts.typeId,
+        status: accounts.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(accounts)
+      .where(and(...scope, sql`${accounts.status} in ('active', 'pending')`))
+      .groupBy(accounts.typeId, accounts.status);
+    const keys = new Map((await this.types.list(tx, tenantId)).map((type) => [type.id, type.key]));
+    const types: Record<string, number> = {};
+    for (const row of rows) {
+      const key = keys.get(row.typeId);
+      if (key) types[key] = (types[key] ?? 0) + row.count;
+    }
+    return {
+      types,
+      pending: rows
+        .filter((row) => row.status === 'pending' && (!typeId || row.typeId === typeId))
+        .reduce((total, row) => total + row.count, 0),
     };
   }
 
@@ -1023,6 +1076,15 @@ export class AccountsService {
               .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, parentIds)))
           ).map((parent) => [parent.id, parent]),
     );
+    // Balances come from account finance, while its module is on (decision D104).
+    const { modulesOff } = await this.settings(tx, tenantId);
+    const balances = modulesOff.includes('account_finance')
+      ? new Map<string, string>()
+      : await this.balances.latest(
+          tx,
+          tenantId,
+          rows.map((row) => row.id),
+        );
     return rows.map((row) => {
       const type = types.get(row.typeId)!;
       const holders = slots.filter((slot) => slot.accountId === row.id);
@@ -1054,6 +1116,7 @@ export class AccountsService {
         missingSlots: type.definition.slots
           .filter((slot) => slot.required && !holders.some((holder) => holder.slot === slot.key))
           .map((slot) => slot.key),
+        outstanding: balances.get(row.id) ?? null,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
       };

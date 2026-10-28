@@ -515,7 +515,7 @@ const ANSWERS: Record<string, unknown> = {
       updatedBy: null,
     })),
   },
-  '/v1/users': { items: [], nextCursor: null },
+  '/v1/users': { items: [], nextCursor: null, summary: null },
   '/v1/account-types': {
     items: [
       {

@@ -131,6 +131,13 @@ describe('account finance (M11)', () => {
       'ageing.d9',
     ]);
 
+    // The account carries its latest balance in the accounts list (decision D104).
+    const listed = (await t.admin.get('/v1/accounts')).json().items as {
+      id: string;
+      outstanding: string | null;
+    }[];
+    expect(listed.find((account) => account.id === t.accountId)?.outstanding).toBe('42000.50');
+
     const finance = (await t.admin.get(`/v1/accounts/${t.accountId}/finance`)).json();
     expect(finance.latest).toMatchObject({
       asOf: '2026-10-15',

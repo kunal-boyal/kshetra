@@ -181,6 +181,29 @@ describe('the people table', () => {
     expect(await names('q=100%25')).toEqual([]);
     expect(await names('designation=executive')).toEqual(['Farid Field', 'Faye Field']);
     expect(await names(`managerId=${t.head.id}`)).toEqual(['Meena Manager', 'Pooja Peer']);
+
+    // The first page counts people by status under the other filters (decision D104).
+    const executives = (await admin.get('/v1/users?designation=executive&limit=1')).json();
+    expect(executives.summary).toEqual({
+      counts: { active: 2, inactive: 0 },
+      seats: null,
+    });
+    expect(
+      (await admin.get(`/v1/users?limit=1&cursor=${executives.nextCursor}`)).json().summary,
+    ).toBeNull();
+
+    // By territory: those attached today to it or one under it.
+    const north = await world.territory(t.tenantId, `N-${newId().slice(-6)}`);
+    const placed = await admin.post('/v1/users', {
+      code: `SS-${newId().slice(-6)}`,
+      name: 'Nina North',
+      phone: newPhone(),
+      designation: 'executive',
+      managerId: t.m.id,
+      territoryIds: [north],
+    });
+    expect(placed.statusCode, placed.body).toBe(201);
+    expect(await names(`territoryId=${north}`)).toEqual(['Nina North']);
   });
 
   it("shows each person's manager, territories and phone, with its last heartbeat", async () => {

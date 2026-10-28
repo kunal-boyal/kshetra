@@ -57,6 +57,7 @@ function account(id: string, name: string, overrides: Record<string, unknown> = 
     name,
     territory: { id: MARKET, code: 'N-DEL', name: 'Delhi Market' },
     parent: null,
+    outstanding: null,
     address: { city: 'Delhi' },
     location: null,
     geofenceRadiusM: null,
@@ -130,9 +131,11 @@ describe('the accounts table', () => {
               segments: [],
               status: 'pending',
               missingSlots: ['asm'],
+              outstanding: '12500.00',
             }),
           ],
           nextCursor: null,
+          summary: { types: { distributor: 2, farmer: 40 }, pending: 1 },
         },
       },
       {},
@@ -144,11 +147,19 @@ describe('the accounts table', () => {
     const shop = within(table).getByRole('row', { name: /Green Fields Agro/ });
     expect(shop).toHaveTextContent('Delhi Market');
     expect(shop).toHaveTextContent('Suresh Rao');
-    expect(shop).toHaveTextContent('Commercially active');
-    expect(within(table).getByRole('columnheader', { name: 'Annual revenue' })).toBeVisible();
+    // The type's own fields and segments stay on the account's page, as the prototype has it.
+    expect(within(table).queryByRole('columnheader', { name: 'Annual revenue' })).toBeNull();
+    expect(within(table).getByRole('columnheader', { name: 'Outstanding' })).toBeVisible();
     const depot = within(table).getByRole('row', { name: /Beej Bhandar/ });
     expect(depot).toHaveTextContent('Waiting for approval');
     expect(depot).toHaveTextContent('Needs ASM');
+    expect(depot).toHaveTextContent('₹12,500.00');
+    expect(shop).toHaveTextContent('—');
+    // What waits for approval, a tap from being shown (decision D104).
+    const banner = screen.getByText(
+      '1 new Distributor was added from phones and waits for approval.',
+    );
+    expect(banner.closest('.ks-banner')).toHaveClass('info');
     expect(client.request).toHaveBeenCalledWith(
       'GET',
       '/v1/accounts?type=distributor&limit=50',
@@ -156,7 +167,12 @@ describe('the accounts table', () => {
     );
 
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Type' }), 'farmer');
+    const tabs = screen.getByRole('tablist', { name: 'Type' });
+    expect(within(tabs).getByRole('tab', { name: 'Distributors · 2' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await user.click(within(tabs).getByRole('tab', { name: 'Farmers · 40' }));
     await waitFor(() =>
       expect(client.request).toHaveBeenCalledWith(
         'GET',
@@ -164,7 +180,7 @@ describe('the accounts table', () => {
         expect.anything(),
       ),
     );
-    expect(await screen.findByRole('heading', { level: 1, name: 'Farmers' })).toBeVisible();
+    expect(await screen.findByRole('table', { name: 'Farmers you see' })).toBeVisible();
   });
   it('shows the type’s located accounts on a map when asked', async () => {
     const pin = (id: string, name: string, type: string, visited: boolean) => ({

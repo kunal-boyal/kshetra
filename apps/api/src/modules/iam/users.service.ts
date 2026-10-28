@@ -169,15 +169,23 @@ export class UsersService {
         /^\d{3,}$/.test(digits) ? like(users.phoneE164, containing(digits)) : undefined,
       );
     }
+    const today = query.territoryId ? await this.today(tx, access.tenantId) : null;
+    // What narrows the list but status, which the summary counts by.
+    const scope = [
+      eq(users.tenantId, access.tenantId),
+      await this.scopes.users(tx, access),
+      query.designation ? eq(designations.key, query.designation) : undefined,
+      query.managerId ? eq(users.managerId, query.managerId) : undefined,
+      query.territoryId && today
+        ? sql`${users.id} in (${this.territories.usersAttachedUnder(access.tenantId, query.territoryId, today, today)})`
+        : undefined,
+      search,
+    ];
     const rows = await this.query(tx)
       .where(
         and(
-          eq(users.tenantId, access.tenantId),
-          await this.scopes.users(tx, access),
+          ...scope,
           query.status ? eq(users.status, query.status) : undefined,
-          query.designation ? eq(designations.key, query.designation) : undefined,
-          query.managerId ? eq(users.managerId, query.managerId) : undefined,
-          search,
           query.cursor ? gt(users.id, query.cursor) : undefined,
         ),
       )
@@ -187,6 +195,28 @@ export class UsersService {
     return {
       items: await this.views(tx, access.tenantId, await this.results(tx, access.tenantId, page)),
       nextCursor: rows.length > query.limit ? page[page.length - 1]!.id : null,
+      summary: query.cursor ? null : await this.summary(tx, access.tenantId, scope),
+    };
+  }
+
+  /**
+   * How many people each status holds within `scope`, and the plan's seats in use, for the people
+   * list's chips and heading (decision D104).
+   */
+  private async summary(tx: TenantTx, tenantId: string, scope: (SQL | undefined)[]) {
+    const rows = await tx
+      .select({ status: users.status, count: sql<number>`count(*)::int` })
+      .from(users)
+      .innerJoin(
+        designations,
+        and(eq(designations.tenantId, users.tenantId), eq(designations.id, users.designationId)),
+      )
+      .where(and(...scope))
+      .groupBy(users.status);
+    const count = (status: string) => rows.find((row) => row.status === status)?.count ?? 0;
+    return {
+      counts: { active: count('active'), inactive: count('inactive') },
+      seats: await this.seats.usage(tx, tenantId),
     };
   }
 

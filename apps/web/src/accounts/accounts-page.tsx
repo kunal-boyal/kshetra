@@ -1,3 +1,4 @@
+import { formatMoney, formatNumber } from '@thelamp/i18n';
 import type { AccountStatus, AccountResult } from '@thelamp/shared';
 import {
   Checkbox,
@@ -6,26 +7,28 @@ import {
   DataTable,
   EmptyState,
   Icon,
+  PageHeader,
   SelectField,
+  StatusBadge,
+  Tabs,
+  tabPanelProps,
   TextField,
 } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Plus, Search, Store } from 'lucide-react';
+import { Plus, Search, Store, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';
-import { customValue } from '../people/custom-fields';
 import { useAccess } from '../people/data';
-import { PageHeader, useSettled } from '../people/shared';
+import { useSettled } from '../people/shared';
 import { AccountsMap } from './accounts-map';
 import { type AccountFilters, useAccounts, useAccountTypes } from './data';
-import { AccountStatusBadge, segmentName, slotName } from './shared';
-
-/** Custom fields that show as columns, at most this many: the type's first ones. */
-const CUSTOM_COLUMNS = 3;
+import { AccountStatusBadge, slotName } from './shared';
 
 /**
- * Accounts (spec 8.2): a table per type, with the type's own fields as columns, of the accounts
- * the viewer sees, found by name or code.
+ * Accounts (spec 8.2, decision D104): a table per type, chosen by tabs with their counts, of the
+ * accounts the viewer sees, found by name or code, with their location and outstanding balance;
+ * the type's own fields and segments are on each account's page. A banner
+ * says how many of the type wait for approval and shows them.
  */
 export function AccountsPage({ type: chosen }: { type?: string }) {
   const { t, locale } = useLanguage();
@@ -46,11 +49,16 @@ export function AccountsPage({ type: chosen }: { type?: string }) {
   };
   const accounts = useAccounts(filters, type !== undefined);
   const rows = accounts.data?.pages.flatMap((page) => page.items) ?? [];
-  const custom = (type?.fields ?? [])
-    .filter((field) => !['section', 'info_text', 'photo'].includes(field.type))
-    .slice(0, CUSTOM_COLUMNS);
+  const summary = accounts.data?.pages[0]?.summary ?? null;
+  const n = (value: number) => formatNumber(value, { locale });
 
   const columns: Column<AccountResult>[] = [
+    {
+      key: 'code',
+      header: t('account.code'),
+      align: 'num',
+      render: (account) => <code className="whitespace-nowrap">{account.code}</code>,
+    },
     {
       key: 'name',
       header: t('account.name'),
@@ -58,10 +66,9 @@ export function AccountsPage({ type: chosen }: { type?: string }) {
         <Link
           to="/accounts/$accountId"
           params={{ accountId: account.id }}
-          className="flex flex-col"
+          className="font-semibold"
         >
-          <span className="font-semibold text-[var(--accent)]">{account.name}</span>
-          <code>{account.code}</code>
+          {account.name}
         </Link>
       ),
     },
@@ -69,6 +76,11 @@ export function AccountsPage({ type: chosen }: { type?: string }) {
       key: 'territory',
       header: t('account.territory'),
       render: (account) => account.territory.name,
+    },
+    {
+      key: 'parent',
+      header: t('account.parent'),
+      render: (account) => account.parent?.name ?? '—',
     },
     {
       key: 'assignee',
@@ -88,21 +100,24 @@ export function AccountsPage({ type: chosen }: { type?: string }) {
         </span>
       ),
     },
-    ...custom.map((field): Column<AccountResult> => ({
-      key: `custom.${field.key}`,
-      header: field.label[locale],
-      render: (account) => customValue(field, account.custom[field.key], t, locale),
-    })),
-    ...((type?.segmentRules.length ?? 0) > 0
-      ? [
-          {
-            key: 'segments',
-            header: t('account.segments'),
-            render: (account: AccountResult) =>
-              account.segments.map((key) => segmentName(type, key, locale)).join(', ') || '—',
-          } satisfies Column<AccountResult>,
-        ]
-      : []),
+    {
+      key: 'location',
+      header: t('account.location'),
+      render: (account) => (
+        <StatusBadge variant={account.locationStatus === 'verified' ? 'success' : 'waiting'}>
+          {t(`account.location_${account.locationStatus}`)}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'outstanding',
+      header: t('account.outstanding'),
+      align: 'end',
+      render: (account) =>
+        account.outstanding === null
+          ? '—'
+          : formatMoney(account.outstanding as `${number}`, { locale, currency: access.currency }),
+    },
     {
       key: 'status',
       header: t('account.status'),
@@ -123,28 +138,69 @@ export function AccountsPage({ type: chosen }: { type?: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={type ? type.name[locale].other : t('accounts.title')}>
-        {type && access.can('account.manage') ? (
-          <Button
-            variant="primary"
-            icon={<Icon icon={Plus} />}
-            onClick={() => void navigate({ to: '/accounts/new', search: { type: type.key } })}
-          >
-            {t('accounts.add', { type: type.name[locale].one })}
-          </Button>
-        ) : null}
-      </PageHeader>
-
-      <div className="grid gap-4 md:grid-cols-[1fr_2fr_1fr_1fr]" role="search">
-        <SelectField
-          label={t('accounts.type')}
-          value={type?.key ?? ''}
-          options={types.map((entry) => ({ value: entry.key, label: entry.name[locale].other }))}
-          onChange={(event) => {
-            setSegment('');
-            void navigate({ to: '/accounts', search: { type: event.target.value } });
-          }}
-        />
+      <PageHeader
+        title={t('accounts.title')}
+        meta={t('accounts.meta')}
+        actions={
+          <>
+            {access.can('import.run') ? (
+              <Link to="/imports" className="ks-btn secondary sm">
+                <Icon icon={Upload} size="sm" />
+                {t('accounts.import')}
+              </Link>
+            ) : null}
+            {type && access.can('account.manage') ? (
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Icon icon={Plus} />}
+                onClick={() => void navigate({ to: '/accounts/new', search: { type: type.key } })}
+              >
+                {t('accounts.add', { type: type.name[locale].one })}
+              </Button>
+            ) : null}
+          </>
+        }
+        toolbar={
+          types.length > 1 && type ? (
+            <Tabs
+              label={t('accounts.type')}
+              idPrefix="account-types"
+              value={type.key}
+              formatCount={n}
+              onChange={(next) => {
+                setSegment('');
+                setStatus('');
+                void navigate({ to: '/accounts', search: { type: next } });
+              }}
+              choices={types.map((entry) => ({
+                value: entry.key,
+                label: entry.name[locale].other,
+                ...(summary ? { count: summary.types[entry.key] ?? 0 } : {}),
+              }))}
+            />
+          ) : null
+        }
+      />
+      {summary && summary.pending > 0 && status !== 'pending' && type ? (
+        <div className="ks-banner info m-0" role="status">
+          <span>
+            {t('accounts.pending_banner', {
+              count: summary.pending,
+              n: n(summary.pending),
+              type: summary.pending === 1 ? type.name[locale].one : type.name[locale].other,
+            })}
+          </span>
+          <button type="button" className="ks-banner-act" onClick={() => setStatus('pending')}>
+            {t('accounts.pending_review')}
+          </button>
+        </div>
+      ) : null}
+      <div
+        className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]"
+        role="search"
+        {...(types.length > 1 && type ? tabPanelProps('account-types', type.key) : {})}
+      >
         <TextField
           label={t('accounts.search')}
           help={t('accounts.search_help')}

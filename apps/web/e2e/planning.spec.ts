@@ -32,6 +32,7 @@ const SHOP_ACCOUNT = {
   slots: [],
   primarySlot: null,
   missingSlots: [],
+  outstanding: null,
   createdAt: '2026-10-01T07:00:00.000Z',
   updatedAt: '2026-10-01T07:00:00.000Z',
 };
@@ -84,7 +85,7 @@ const ANSWERS: Record<string, unknown> = {
       },
     ],
   },
-  '/v1/accounts': { items: [SHOP_ACCOUNT], nextCursor: null },
+  '/v1/accounts': { items: [SHOP_ACCOUNT], nextCursor: null, summary: null },
 };
 
 async function mockSignedIn(page: Page) {

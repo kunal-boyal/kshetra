@@ -5536,11 +5536,45 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "summary": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "types": {
+                              "type": "object",
+                              "propertyNames": {
+                                "$ref": "#/components/schemas/Key"
+                              },
+                              "additionalProperties": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "pending": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "types",
+                            "pending"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "items",
-                    "nextCursor"
+                    "nextCursor",
+                    "summary"
                   ],
                   "additionalProperties": false
                 }
@@ -21736,6 +21770,17 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "territoryId",
+            "in": "query",
+            "required": false,
+            "description": "People attached today to this territory or one under it",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
           }
         ],
         "responses": {
@@ -21763,11 +21808,76 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "summary": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "counts": {
+                              "type": "object",
+                              "properties": {
+                                "active": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "inactive": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "active",
+                                "inactive"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "seats": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "used": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "limit": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "used",
+                                    "limit"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "counts",
+                            "seats"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "items",
-                    "nextCursor"
+                    "nextCursor",
+                    "summary"
                   ],
                   "additionalProperties": false
                 }
@@ -24672,6 +24782,12 @@
               "$ref": "#/components/schemas/Key"
             }
           },
+          "outstanding": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -24700,6 +24816,7 @@
           "slots",
           "primarySlot",
           "missingSlots",
+          "outstanding",
           "createdAt",
           "updatedAt"
         ],
