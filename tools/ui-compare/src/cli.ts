@@ -289,6 +289,21 @@ async function openApp(page: Page, pair: Pair) {
   await tab('home');
   await page.getByText(/^Good (morning|afternoon|evening)/).waitFor({ timeout: 30_000 });
   if (pair.portal === '/plan') await tab('plan');
+  if (pair.portal === '/team' || pair.portal === '/approvals') await tab('team');
+  if (pair.portal === '/approvals') {
+    await page.getByRole('button', { name: /^Approvals/ }).click();
+    await page
+      .getByText(/^(You decide\.|Step \d+ of \d+|Nothing waits for you)/)
+      .first()
+      .waitFor();
+  }
+  if (pair.portal === '/notifications') {
+    await page
+      .getByRole('button', { name: /^Notifications/ })
+      .first()
+      .click();
+    await page.getByText(/^Quiet hours run from/).waitFor({ timeout: 15_000 });
+  }
   if (pair.portal === '/accounts' || pair.portal === '/forms') {
     await tab('me');
     await page.getByTestId(pair.portal === '/accounts' ? 'more-accounts' : 'more-forms').click();

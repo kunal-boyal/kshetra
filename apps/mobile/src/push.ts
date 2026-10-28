@@ -32,13 +32,14 @@ const APP_PATHS = new Set([
   '/leaderboard',
   '/uploads',
   '/team',
+  '/approvals',
   '/attendance',
   '/leave',
   '/expenses',
   '/data-requests',
 ]);
-/** The portal's paths that have a home on the phone: approvals wait in the Team tab. */
-const PHONE_PATHS: Record<string, string> = { '/approvals': '/team' };
+/** The portal's paths that have a home on the phone under another path; none since D104. */
+const PHONE_PATHS: Record<string, string> = {};
 
 export function openLink(link: unknown): void {
   const asked = typeof link === 'string' ? (PHONE_PATHS[link] ?? link) : null;

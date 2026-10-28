@@ -475,6 +475,7 @@ export class LeaveRequestsService implements OnModuleInit {
         id: leaveRequests.id,
         startDate: leaveRequests.startDate,
         endDate: leaveRequests.endDate,
+        reason: leaveRequests.reason,
       })
       .from(leaveRequests)
       .where(and(eq(leaveRequests.tenantId, tenantId), inArray(leaveRequests.id, [...ids])));
@@ -485,6 +486,7 @@ export class LeaveRequestsService implements OnModuleInit {
           title:
             row.startDate === row.endDate ? row.startDate : `${row.startDate} – ${row.endDate}`,
           accountId: null,
+          detail: row.reason,
         },
       ]),
     );

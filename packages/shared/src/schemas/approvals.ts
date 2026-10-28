@@ -36,6 +36,11 @@ export const ApprovalSubject = z.object({
   /** Such as an account's name and code. */
   title: z.string(),
   accountId: z.uuid().nullable(),
+  /**
+   * The requester's own words, where the request has some: a leave request's or a fixed day's
+   * reason, an order's note (decision D104). Null otherwise; never text the server writes.
+   */
+  detail: z.string().nullable(),
 });
 
 export const ApprovalResult = z

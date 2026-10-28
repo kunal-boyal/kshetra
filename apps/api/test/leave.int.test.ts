@@ -124,7 +124,7 @@ describe('leave requests (BR-27)', () => {
       approval: {
         requestType: 'leave',
         status: 'pending',
-        subject: { title: `${friday} – ${monday}` },
+        subject: { title: `${friday} – ${monday}`, detail: 'Family wedding' },
       },
     });
 

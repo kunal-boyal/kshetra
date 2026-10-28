@@ -210,6 +210,31 @@ describe('the inbox on the phone (M16)', () => {
     ]);
   });
 
+  it('groups by day, marks unread, reads all at once, and says when quiet hours are', async () => {
+    const client = await renderPhone('inbox');
+    // Both came before today.
+    expect(await screen.findByText('Earlier')).toBeOnTheScreen();
+    expect(screen.queryByText('Today')).toBeNull();
+    expect(
+      screen.getByText(
+        'Quiet hours run from 9:00 pm to 7:00 am. Urgent messages still come through.',
+      ),
+    ).toBeOnTheScreen();
+    // Unread rows say so to screen readers, after the time.
+    expect(
+      screen.getByRole('button', { name: /^Today's plan, 3 planned visits.*, Unread$/ }),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mark all read' }));
+    await waitFor(() =>
+      expect(writes(client)).toContainEqual([
+        'POST',
+        '/v1/notifications/read',
+        expect.anything(),
+        { body: { all: true }, idempotencyKey: expect.any(String) },
+      ]),
+    );
+  });
+
   it('saves what the person mutes, never approvals or tracking', async () => {
     const client = await renderPhone('inbox');
     const plan = await screen.findByRole('checkbox', { name: "Today's plan" });
@@ -243,11 +268,11 @@ describe('the inbox on the phone (M16)', () => {
     expect(screen.getByRole('button', { name: 'Stop WhatsApp messages' })).toBeOnTheScreen();
   });
 
-  it('opens a link the app has, approvals in the Team tab, and the inbox for any other', () => {
+  it('opens a link the app has, approvals on their own screen, and the inbox for any other', () => {
     openLink('/');
     expect(router.push).toHaveBeenLastCalledWith('/');
     openLink('/approvals');
-    expect(router.push).toHaveBeenLastCalledWith('/team');
+    expect(router.push).toHaveBeenLastCalledWith('/approvals');
     openLink('/reports');
     expect(router.push).toHaveBeenLastCalledWith('/notifications');
     openLink(null);

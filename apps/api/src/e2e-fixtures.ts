@@ -7,7 +7,14 @@ import { randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
-import { CreateAccountBody, CreateUserBody, newId, PriceListBody } from '@thelamp/shared';
+import {
+  CreateAccountBody,
+  CreateLeaveRequestBody,
+  CreateUserBody,
+  newId,
+  PriceListBody,
+  todayIn,
+} from '@thelamp/shared';
 import { createCommandContext, report } from './context';
 import { isLocalDatabase } from './db/bootstrap';
 import { AccountsService } from './modules/accounts/accounts.service';
@@ -16,6 +23,7 @@ import { ItemsImport } from './modules/catalogue/items.import';
 import { PriceListsService } from './modules/catalogue/price-lists.service';
 import { SYSTEM } from './modules/iam/actor';
 import { UsersService } from './modules/iam/users.service';
+import { LeaveRequestsService } from './modules/leave/leave-requests.service';
 import { TenantProvisioner } from './modules/provisioning/provisioner';
 import { TerritoriesService } from './modules/territories/territories.service';
 import { SYSTEM_ACTOR, userActor } from './platform/audit';
@@ -25,6 +33,8 @@ import { Database } from './platform/database';
 const { values } = parseArgs({
   options: {
     out: { type: 'string', default: '../mobile/.maestro/.env' },
+    // Requests waiting for the manager, for screenshots of their screens (phase U, stage M5).
+    waiting: { type: 'boolean', default: false },
     // A real phone's flows use its own GPS, so the place goes where the phone is.
     near: { type: 'string' },
   },
@@ -137,8 +147,38 @@ try {
     });
   });
 
+  if (values.waiting) {
+    // Leave next week for the field person, which waits for the admin, their manager.
+    const asking = await app
+      .get(AccessResolver)
+      .onBehalfOf(tenantId, field.person.id, config.CELL_ID);
+    const today = todayIn('Asia/Kolkata');
+    const day = (days: number) =>
+      new Date(Date.parse(`${today}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+    for (const [from, to, reason] of [
+      [day(7), day(8), 'Family wedding'],
+      [day(14), day(14), 'Bank work in town'],
+    ] as const) {
+      await database.forTenant(tenantId, (tx) =>
+        app.get(LeaveRequestsService).create(
+          tx,
+          asking,
+          CreateLeaveRequestBody.parse({
+            id: newId(),
+            leaveType: 'casual',
+            startDate: from,
+            endDate: to,
+            reason,
+          }),
+        ),
+      );
+    }
+  }
+
   // The number as people type it, without the country code.
   const settings = {
+    // The field person's manager, the tenant's first admin.
+    MANAGER_PHONE: phone(0).slice(3),
     PHONE: phone(1).slice(3),
     PHONE_E164_DIGITS: phone(1).slice(1),
     ACCOUNT: 'Maestro Stores',

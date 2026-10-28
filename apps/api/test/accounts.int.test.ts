@@ -307,7 +307,12 @@ describe('proposals from the field (M4, decision D38)', () => {
         requestType: 'new_account',
         requestId: proposal.id,
         requester: expect.objectContaining({ id: t.sme.id }),
-        subject: { title: `Green Fields Agro (${proposal.code})`, accountId: proposal.id },
+        // A proposal carries no words of its own (decision D104).
+        subject: {
+          title: `Green Fields Agro (${proposal.code})`,
+          accountId: proposal.id,
+          detail: null,
+        },
         version: 1,
       }),
     ]);

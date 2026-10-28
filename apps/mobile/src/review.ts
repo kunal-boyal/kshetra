@@ -16,10 +16,11 @@ import { useApp } from './app-state';
 const QUEUE_KEY = ['review-queue', 'pending'] as const;
 
 /** Submissions waiting for the person's review, newest first, a page at a time. */
-export function useReviewQueue() {
+export function useReviewQueue(enabled = true) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: QUEUE_KEY,
+    enabled,
     queryFn: async ({ pageParam }) =>
       (await client.request(
         'GET',

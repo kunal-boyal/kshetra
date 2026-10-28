@@ -618,7 +618,10 @@ export class ExpenseClaimsService implements OnModuleInit {
       .from(expenseClaims)
       .where(and(eq(expenseClaims.tenantId, tenantId), inArray(expenseClaims.id, [...ids])));
     return new Map(
-      rows.map((row) => [row.id, { title: `${row.amount} · ${row.description}`, accountId: null }]),
+      rows.map((row) => [
+        row.id,
+        { title: `${row.amount} · ${row.description}`, accountId: null, detail: null },
+      ]),
     );
   }
 }

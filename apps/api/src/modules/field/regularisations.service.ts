@@ -184,9 +184,15 @@ export class RegularisationsService implements OnModuleInit {
   ): Promise<Map<string, ApprovalSubject>> {
     if (ids.length === 0) return new Map();
     const rows = await tx
-      .select({ id: regularisations.id, date: regularisations.date })
+      .select({
+        id: regularisations.id,
+        date: regularisations.date,
+        reason: regularisations.reason,
+      })
       .from(regularisations)
       .where(and(eq(regularisations.tenantId, tenantId), inArray(regularisations.id, [...ids])));
-    return new Map(rows.map((row) => [row.id, { title: row.date, accountId: null }]));
+    return new Map(
+      rows.map((row) => [row.id, { title: row.date, accountId: null, detail: row.reason }]),
+    );
   }
 }

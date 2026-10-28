@@ -1,4 +1,4 @@
-import { ApprovalInboxResult, ApprovalResult, newId } from '@thelamp/shared';
+import { ApprovalInboxResult, ApprovalResult, newId, type RequestType } from '@thelamp/shared';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useApp } from './app-state';
 
@@ -9,15 +9,19 @@ import { useApp } from './app-state';
 
 const INBOX_KEY = ['approvals', 'inbox'] as const;
 
-/** Requests waiting for the person's decision, oldest first, a page at a time. */
-export function useApprovalInbox() {
+/**
+ * Requests waiting for the person's decision, oldest first, a page at a time; of one type when
+ * given, with the counts of every type whatever the filter.
+ */
+export function useApprovalInbox(type?: RequestType, enabled = true) {
   const { client } = useApp();
   return useInfiniteQuery({
-    queryKey: INBOX_KEY,
+    queryKey: [...INBOX_KEY, type ?? 'all'],
+    enabled,
     queryFn: async ({ pageParam }) =>
       (await client.request(
         'GET',
-        `/v1/approvals/inbox?limit=30${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ''}`,
+        `/v1/approvals/inbox?limit=30${type ? `&requestType=${type}` : ''}${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ''}`,
         ApprovalInboxResult,
       ))!,
     initialPageParam: undefined as string | undefined,

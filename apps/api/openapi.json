@@ -26355,11 +26355,18 @@
                     "type": "null"
                   }
                 ]
+              },
+              "detail": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
             "required": [
               "title",
-              "accountId"
+              "accountId",
+              "detail"
             ],
             "additionalProperties": false
           },

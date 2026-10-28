@@ -12,6 +12,7 @@ import { LanguageProvider } from '../i18n';
 import { Look } from '../look';
 import { SyncProvider } from '../sync';
 import { ApprovalItemScreen } from './approval-item';
+import { ApprovalsScreen } from './approvals';
 import { PersonDayScreen } from './person-day';
 import { ReviewItemScreen } from './review-item';
 import { TeamScreen } from './team';
@@ -31,6 +32,8 @@ const CLEAN = '01a10000-0000-7000-8000-0000000000e1';
 const FLAGGED = '01a10000-0000-7000-8000-0000000000e2';
 const PHOTO = '01a10000-0000-7000-8000-0000000000f1';
 const REQUEST = '01a10000-0000-7000-8000-0000000000d1';
+const LEAVE = '01a10000-0000-7000-8000-0000000000d2';
+const ORDER = '01a10000-0000-7000-8000-0000000000d3';
 const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
 
 function item(id: string, overrides: Record<string, unknown> = {}) {
@@ -73,7 +76,11 @@ const APPROVAL = {
   id: REQUEST,
   requestType: 'new_account',
   requestId: '01a10000-0000-7000-8000-0000000000a2',
-  subject: { title: 'Gupta Kirana (C-2)', accountId: '01a10000-0000-7000-8000-0000000000a2' },
+  subject: {
+    title: 'Gupta Kirana (C-2)',
+    accountId: '01a10000-0000-7000-8000-0000000000a2',
+    detail: null,
+  },
   requester: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
   status: 'pending',
   version: 2,
@@ -106,6 +113,39 @@ const APPROVAL = {
   page: null,
   createdAt: '2026-10-13T05:00:00.000Z',
   closedAt: null,
+};
+
+const pendingStep = (index: number, name = 'Meena Shah', status = 'pending') => ({
+  index,
+  approvers: [{ id: MANAGER, code: 'SUN-003', name }],
+  status,
+  actedBy: null,
+  actedAt: null,
+  note: null,
+  skipReason: null,
+  escalated: false,
+  fallback: false,
+});
+
+// A leave request whose second step is someone else's, and an order decided on its own page.
+const LEAVE_REQUEST = {
+  ...APPROVAL,
+  id: LEAVE,
+  requestType: 'leave',
+  requestId: '01a10000-0000-7000-8000-0000000000a3',
+  subject: { title: '2026-11-09 – 2026-11-10', accountId: null, detail: 'Family wedding' },
+  version: 1,
+  steps: [pendingStep(0), pendingStep(1, 'Vikram Singh', 'waiting')],
+};
+const ORDER_REQUEST = {
+  ...APPROVAL,
+  id: ORDER,
+  requestType: 'order',
+  requestId: '01a10000-0000-7000-8000-0000000000a4',
+  subject: { title: 'Beej Bhandar (D-81)', accountId: null, detail: 'Deliver before the rains' },
+  version: 1,
+  steps: [pendingStep(0)],
+  page: '/orders/01a10000-0000-7000-8000-0000000000a4',
 };
 
 const READ_AT = new Date().toISOString();
@@ -183,7 +223,7 @@ const full = <T,>(rows: T[]) => ({
   removed: [],
 });
 
-function fakeClient(permissions: string[] = ['submission.review']) {
+function fakeClient(permissions: string[] = ['submission.review'], emptyInbox = false) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -216,10 +256,23 @@ function fakeClient(permissions: string[] = ['submission.review']) {
               item(FLAGGED, { flags: ['outside_geofence'], geofence: 'outside', distanceM: 640 }),
             ],
             nextCursor: null,
+            summary: {
+              counts: { pending: 2, flagged: 1, clean: 1, approved: 0, rejected: 0 },
+              autoApproval: true,
+              delayHours: 48,
+            },
           };
         }
         if (method === 'GET' && url.startsWith('/v1/approvals/inbox')) {
-          return { items: [APPROVAL], nextCursor: null, counts: { new_account: 1 } };
+          if (emptyInbox) return { items: [], nextCursor: null, counts: {} };
+          const counts = { new_account: 1, leave: 1, order: 1 };
+          if (url.includes('requestType=leave')) {
+            return { items: [LEAVE_REQUEST], nextCursor: null, counts };
+          }
+          return { items: [APPROVAL, LEAVE_REQUEST, ORDER_REQUEST], nextCursor: null, counts };
+        }
+        if (method === 'POST' && url === `/v1/approvals/${LEAVE}/decision`) {
+          throw new ApiError(409, 'CONFLICT', 'Someone decided first.');
         }
         if (method === 'POST' && url === `/v1/approvals/${REQUEST}/decision`) {
           const body = (options as { body: { decision: string } }).body;
@@ -262,18 +315,19 @@ function fakeClient(permissions: string[] = ['submission.review']) {
   return { client, create: () => client as unknown as MobileClient };
 }
 
-type Page = 'team' | 'item' | 'day' | 'approval';
+type Page = 'team' | 'item' | 'day' | 'approval' | 'approvals';
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
   if (page === 'day') return <PersonDayScreen userId={RAHUL} />;
   if (page === 'approval') return <ApprovalItemScreen id={REQUEST} />;
+  if (page === 'approvals') return <ApprovalsScreen />;
   return page === 'team' ? <TeamScreen /> : <ReviewItemScreen id={CLEAN} />;
 }
 
-async function renderPhone(page: Page, permissions?: string[]) {
-  const fake = fakeClient(permissions);
+async function renderPhone(page: Page, permissions?: string[], emptyInbox = false) {
+  const fake = fakeClient(permissions, emptyInbox);
   const db = nodeSqlite();
   await migrate(db);
   await render(
@@ -299,13 +353,40 @@ const reviews = (client: ReturnType<typeof fakeClient>['client']) =>
   client.request.mock.calls.filter(([, path]) => String(path).endsWith('/review'));
 
 describe('the Team tab (M7, spec 8.1)', () => {
-  it('lists what waits for review, marking what was flagged, and opens one', async () => {
-    await renderPhone('team');
-    expect(await screen.findByText('2 to review')).toBeOnTheScreen();
-    const flagged = screen.getAllByRole('button', { name: /Shop visit · Rahul Verma/ });
-    expect(flagged[1]).toHaveTextContent(/1 flag/);
-    await fireEvent.press(flagged[0]!);
-    expect(router.push).toHaveBeenCalledWith({ pathname: '/review/[id]', params: { id: CLEAN } });
+  it('shows what waits for review as cards, approves one in place, and opens another', async () => {
+    const client = await renderPhone('team');
+    expect(await screen.findAllByText('Rahul Verma · Shop visit')).toHaveLength(2);
+    expect(screen.getAllByText('Shelf restocked')).toHaveLength(2);
+    expect(screen.getByText('Outside the geofence')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Entries without flags approve themselves after 48 hours.'),
+    ).toBeOnTheScreen();
+    // With review alone there is one view, so no segments.
+    expect(screen.queryByRole('radiogroup')).toBeNull();
+
+    const open = screen.getAllByRole('button', { name: 'Open the entry from Rahul Verma' });
+    await fireEvent.press(open[1]!);
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/review/[id]', params: { id: FLAGGED } });
+    const approve = screen.getAllByRole('button', { name: 'Approve the entry from Rahul Verma' });
+    await fireEvent.press(approve[0]!);
+    await waitFor(() =>
+      expect(reviews(client)).toEqual([
+        [
+          'POST',
+          `/v1/submissions/${CLEAN}/review`,
+          expect.anything(),
+          { body: { decision: 'approved' }, idempotencyKey: expect.any(String) },
+        ],
+      ]),
+    );
+  });
+
+  it('shows review and who is on duty as two views with their counts', async () => {
+    await renderPhone('team', ['submission.review', 'live_map.view']);
+    expect(await screen.findByRole('radio', { name: 'Review · 2' })).toBeChecked();
+    await fireEvent.press(await screen.findByRole('radio', { name: 'On duty · 2' }));
+    expect(await screen.findByText(/^Seen 4 minutes ago/)).toBeOnTheScreen();
+    expect(screen.queryByText('Rahul Verma · Shop visit')).toBeNull();
   });
 
   it('shows the evidence, and rejects only with a reason', async () => {
@@ -352,15 +433,66 @@ describe('the Team tab (M7, spec 8.1)', () => {
 });
 
 describe('approvals in the Team tab (M15, D76)', () => {
-  it('lists the requests waiting for the manager, and opens one', async () => {
+  it('opens the requests waiting for the manager from Team, with how many', async () => {
     await renderPhone('team', ['approval.act']);
-    expect(await screen.findByText('1 request to decide')).toBeOnTheScreen();
-    expect(screen.queryByText(/to review/)).toBeNull();
-    await fireEvent.press(screen.getByRole('button', { name: /New accounts? · Rahul Verma/ }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Approvals · 3' }));
+    expect(router.push).toHaveBeenCalledWith('/approvals');
+  });
+
+  it('lists each request with its kind, words and step, and filters by type', async () => {
+    const client = await renderPhone('approvals', ['approval.act']);
+    expect(await screen.findByRole('radio', { name: 'All · 3' })).toBeChecked();
+    expect(screen.getByText('Rahul Verma · Gupta Kirana (C-2)')).toBeOnTheScreen();
+    expect(screen.getByText('Family wedding')).toBeOnTheScreen();
+    expect(screen.getByText('Step 1 of 2, then Vikram Singh.')).toBeOnTheScreen();
+    expect(screen.getAllByText('You decide.')).toHaveLength(2);
+    // An order is decided on its own page: Open, never Approve, here.
+    expect(
+      screen.getByRole('button', { name: 'Open Rahul Verma · Beej Bhandar (D-81)' }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Approve Rahul Verma · Beej/ })).toBeNull();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Leave · 1' }));
+    await waitFor(() =>
+      expect(
+        client.request.mock.calls.some(([, path]) => String(path).includes('requestType=leave')),
+      ).toBe(true),
+    );
+    expect(await screen.findByText('Family wedding')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.queryByText(/Gupta Kirana/)).toBeNull());
+  });
+
+  it('approves in place at the version it saw, and says why when it can’t', async () => {
+    const client = await renderPhone('approvals', ['approval.act']);
+    await fireEvent.press(
+      await screen.findByRole('button', { name: 'Approve Rahul Verma · Gupta Kirana (C-2)' }),
+    );
+    await waitFor(() =>
+      expect(
+        client.request.mock.calls.find(
+          ([, path]) => path === `/v1/approvals/${REQUEST}/decision`,
+        )?.[3],
+      ).toEqual({ body: { decision: 'approve', version: 2 }, idempotencyKey: expect.any(String) }),
+    );
+    await fireEvent.press(
+      screen.getByRole('button', { name: /^Approve Rahul Verma · \w+,? 9 Nov – \w+,? 10 Nov$/ }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This changed somewhere else. Refresh and try again.',
+    );
+    // Rejecting asks why, on the request's own screen.
+    await fireEvent.press(
+      screen.getByRole('button', { name: /^Reject Rahul Verma · \w+,? 9 Nov – \w+,? 10 Nov$/ }),
+    );
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/approvals/[id]',
-      params: { id: REQUEST },
+      params: { id: LEAVE },
     });
+  });
+
+  it('says when nothing waits', async () => {
+    await renderPhone('approvals', ['approval.act'], true);
+    expect(await screen.findByText('Nothing waits for you')).toBeOnTheScreen();
   });
 
   it('shows the chain, rejects only with a reason, and approves at the version it saw', async () => {
@@ -381,7 +513,8 @@ describe('approvals in the Team tab (M15, D76)', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Approve' }));
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/team'));
+    // Back to the list it came from.
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
     expect(decisions()[0]?.[3]).toEqual({
       body: { decision: 'approve', version: 2 },
       idempotencyKey: expect.any(String),

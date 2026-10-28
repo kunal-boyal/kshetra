@@ -195,6 +195,8 @@ describe('orders (M10)', () => {
     const placed = await t.api.sme.post('/v1/orders', body);
     expect(placed.statusCode, placed.body).toBe(201);
     const order = placed.json();
+    // The approver reads the order's note beside it (decision D104).
+    expect(order.approval.subject).toMatchObject({ detail: 'Deliver before the rains' });
     expect(order).toMatchObject({
       status: 'submitted',
       supplier: { kind: 'company', account: null },
