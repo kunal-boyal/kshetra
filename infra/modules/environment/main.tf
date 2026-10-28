@@ -22,11 +22,14 @@ module "ecr" {
   tags   = local.tags
 }
 
-# The API's certificate lives in the cell's region; CloudFront's in us-east-1.
+# The API's certificate lives in the cell's region; CloudFront's in us-east-1. It covers the
+# directory's name and the cell's, both on the cell's load balancer until a second cell exists
+# (decision D105).
 resource "aws_acm_certificate" "api" {
-  domain_name       = var.api_domain
-  validation_method = "DNS"
-  tags              = local.tags
+  domain_name               = var.api_domain
+  subject_alternative_names = [var.cell_domain]
+  validation_method         = "DNS"
+  tags                      = local.tags
   lifecycle {
     create_before_destroy = true
   }
@@ -102,7 +105,7 @@ module "cell" {
   private_subnet_ids           = module.network.private_subnet_ids
   database_subnet_ids          = module.network.database_subnet_ids
   image                        = "${module.ecr.repository_url}:${var.initial_image_tag}"
-  api_domain                   = var.api_domain
+  cell_domain                  = var.cell_domain
   certificate_arn              = aws_acm_certificate_validation.api.certificate_arn
   media_domain                 = var.media_domain
   web_url                      = "https://${var.web_domain}"
@@ -190,6 +193,18 @@ resource "aws_route53_record" "api" {
   count   = var.route53_zone_id == null ? 0 : 1
   zone_id = var.route53_zone_id
   name    = var.api_domain
+  type    = "A"
+  alias {
+    name                   = module.cell.load_balancer_dns_name
+    zone_id                = module.cell.load_balancer_zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "cell" {
+  count   = var.route53_zone_id == null ? 0 : 1
+  zone_id = var.route53_zone_id
+  name    = var.cell_domain
   type    = "A"
   alias {
     name                   = module.cell.load_balancer_dns_name

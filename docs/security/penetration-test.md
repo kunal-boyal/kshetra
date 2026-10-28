@@ -23,14 +23,15 @@ The test runs against **staging**, a cell built from the same Terraform, image a
 |---|---|---|
 | Web portal | `https://<web_domain>` (the portal, with `/v1/*` and `/auth/*` passed to the cell) | Yes |
 | Vendor console | `https://<console_domain>` (with `/platform/*` passed to the cell) | Yes |
-| Cell API, direct | `https://<api_domain>`, as the phone app and API clients call it | Yes |
+| Sign-in (the directory) | `https://<api_domain>`, which phones build in and API clients take tokens from | Yes |
+| Cell API, direct | `https://<cell_domain>`, the cell's own name, which sign-in hands out to phones and API clients; for now the same load balancer as `api_domain` (decision D105) | Yes |
 | Media | `https://<media_domain>`, signed links to photos and files | Yes: link signing, expiry and reach |
 | API reference | `https://<api_domain>/v1/docs`, `/v1/openapi.json` | Yes |
 | Android app | An APK of the staging build, given to the testers | Yes: storage, transport, the offline queue, device binding, root and mock-location handling |
 | AWS account, its consoles and APIs | | No: AWS's own services are out of scope, as are AWS's rules for testing (no DoS, no testing of AWS itself) |
 | Third parties | MSG91 (SMS), Expo and Firebase (push), Google Maps, Sentry, Have I Been Pwned, SES | No: only how we call them |
 | Tenants' identity providers | | No: the test's own OIDC or SAML provider may be used against our SSO |
-| The demo at `app.thelamp.in` | | No |
+| The demo at `app.thelamp.in` (`try.thelamp.in` from before launch, decision D105) | | No |
 | iOS | | No: not released yet |
 
 The staging addresses are filled in when staging is set up; they are sent to the vendor with the accounts.

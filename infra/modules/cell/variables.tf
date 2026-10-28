@@ -45,13 +45,13 @@ variable "image" {
   type        = string
 }
 
-variable "api_domain" {
-  description = "Where apps reach the cell, such as api.example.com (CELL_API_URL)."
+variable "cell_domain" {
+  description = "The cell's own name, such as in1.api.example.com, which sign-in hands out (CELL_API_URL, decision D105)."
   type        = string
 }
 
 variable "certificate_arn" {
-  description = "The ACM certificate for api_domain, in the cell's region."
+  description = "The ACM certificate for every name on the load balancer (the directory's and cell_domain), in the cell's region."
   type        = string
 }
 

@@ -47,6 +47,17 @@ terraform output dns_records
 terraform apply
 ```
 
+The API answers on two names, both on the cell's load balancer and on one certificate (decision D105): `api_domain`, the directory, which phones build in and integrators copy for tokens, so it never changes; and `cell_domain`, the first cell's own name, which sign-in hands out (`CELL_API_URL`). When a second cell exists, `api_domain` moves to the directory alone and nothing outside changes. Without Route 53, each environment needs these at the DNS provider:
+
+| Environment | Records |
+|---|---|
+| Staging | `api.staging.thelamp.in` and `in1.api.staging.thelamp.in`, each a `CNAME` to the load balancer; the certificate's two validation `CNAME`s, one for each name |
+| Production | `api.thelamp.in` and `in1.api.thelamp.in`, each a `CNAME` to the load balancer; the certificate's two validation `CNAME`s, one for each name |
+
+with `app.`, `media.` and `console.` and their validation records as before. `terraform output dns_records` lists every one with its value.
+
+The provisioner records the cell's address once, with its first tenant (`directory.cells.api_base_url`). If `cell_domain` ever changes after that, set the row to the new `https://` address in the same change, or sign-in keeps handing out the old one.
+
 The services start with the image tag `bootstrap`, which doesn't exist yet, so they wait until the first deploy.
 
 ### 2. The cell's secret
@@ -96,7 +107,7 @@ aws ecs run-task --cluster thelamp-staging-cell1 --launch-type FARGATE \
   --network-configuration "awsvpcConfiguration={subnets=[<TASK_SUBNETS>],securityGroups=[<TASK_SECURITY_GROUP>]}"
 ```
 
-Its logs are in `/thelamp-staging-cell1/bootstrap`. Then run the Deploy workflow again; it migrates and starts the services. `https://<api_domain>/ready` answers `ready` once the database, the directory and Redis are reachable.
+Its logs are in `/thelamp-staging-cell1/bootstrap`. Then run the Deploy workflow again; it migrates and starts the services. `https://<api_domain>/ready`, and the same at `<cell_domain>`, answers `ready` once the database, the directory and Redis are reachable.
 
 ### 5. The first tenant
 
