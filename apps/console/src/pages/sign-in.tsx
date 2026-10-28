@@ -45,11 +45,17 @@ export function SignInPage() {
 
   return (
     <main className="ks ks-auth">
+      {/* The portal's brand panel (D104): the mark and name, the line, who uses it, the art. */}
       <aside className="ks-auth-brand" aria-label={PRODUCT_NAME}>
         <span className="ks-auth-name">
+          <img src={markUrl} alt="" width={40} height={40} />
           {PRODUCT_NAME} {t('console.label')}
         </span>
-        <p className="ks-auth-tagline">{t('console.tagline')}</p>
+        <div className="flex flex-col gap-3">
+          <p className="ks-auth-tagline">{t('signin.tagline')}</p>
+          <p>{t('console.tagline')}</p>
+        </div>
+        <p className="text-sm">{t('signin.used_by')}</p>
         <img className="ks-auth-art" src={markUrl} alt="" aria-hidden="true" />
       </aside>
       <div className="ks-auth-form">
