@@ -1,7 +1,6 @@
 /**
  * Which prototype artboard each built portal page answers to, and the phase U stage that redoes it
- * (docs/superpowers/plans/2026-10-27-ui-revamp.md). The console's pairs join with stage U12 and the
- * phone's with M1.
+ * (docs/superpowers/plans/2026-10-27-ui-revamp.md). The phone's pairs join with stage M1.
  */
 export interface Pair {
   key: string;
@@ -16,6 +15,8 @@ export interface Pair {
   stage: string;
   /** Screenshot the portal signed out. */
   signedOut?: boolean;
+  /** The platform console's page rather than the portal's, signed in as vendor staff. */
+  app?: 'console';
 }
 
 export const PAIRS: readonly Pair[] = [
@@ -168,5 +169,46 @@ export const PAIRS: readonly Pair[] = [
     prototype: 'WebCatalogue.dc.html',
     portal: '/settings/catalogue',
     stage: 'U11',
+  },
+  {
+    key: 'console-tenants',
+    title: 'Console: tenants',
+    prototype: 'ConsoleTenants.dc.html',
+    portal: '/',
+    stage: 'U12',
+    app: 'console',
+  },
+  {
+    key: 'console-tenant',
+    title: 'Console: a tenant',
+    prototype: 'ConsoleTenant.dc.html',
+    // The second tenant by slug: locally, the demo tenant, which has a month of activity.
+    portal: { list: '/', nth: 1 },
+    stage: 'U12',
+    app: 'console',
+  },
+  {
+    key: 'console-onboard',
+    title: 'Console: a new tenant',
+    prototype: 'ConsoleOnboard.dc.html',
+    portal: '/tenants/new',
+    stage: 'U12',
+    app: 'console',
+  },
+  {
+    key: 'console-billing',
+    title: 'Console: plans and invoices',
+    prototype: 'ConsoleBilling.dc.html',
+    portal: '/billing',
+    stage: 'U12',
+    app: 'console',
+  },
+  {
+    key: 'console-cells',
+    title: 'Console: cells and health',
+    prototype: 'ConsoleCells.dc.html',
+    portal: '/health',
+    stage: 'U12',
+    app: 'console',
   },
 ];

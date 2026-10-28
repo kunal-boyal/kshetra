@@ -215,6 +215,8 @@ describe('monthly subscriptions (BR-47)', () => {
     const { cgst, sgst, igst, total } = gstOn(subtotal, '18', '27', '27');
     expect(invoice).toMatchObject({
       kind: 'monthly',
+      // The plan of the subscription it bills.
+      plan: { name: { en: 'Field', hi: 'फ़ील्ड' } },
       period: { from: TODAY, to: end },
       issuedOn: INVOICE_DAY,
       dueOn: addDays(INVOICE_DAY, 15),

@@ -21,6 +21,8 @@ import {
   invoices,
   invoiceSequences,
   payments,
+  plans,
+  subscriptions,
   tenants,
 } from '../../db/schema/directory';
 import type { StaffAccess } from '../../platform/auth';
@@ -341,9 +343,12 @@ export class InvoicesService {
       .select({
         invoice: invoices,
         tenant: { id: tenants.id, name: tenants.name, slug: tenants.slug },
+        plan: { key: plans.key, name: plans.name },
       })
       .from(invoices)
       .innerJoin(tenants, eq(tenants.id, invoices.tenantId))
+      .innerJoin(subscriptions, eq(subscriptions.id, invoices.subscriptionId))
+      .innerJoin(plans, eq(plans.id, subscriptions.planId))
       .where(where)
       .orderBy(desc(invoices.issuedOn), desc(invoices.id))
       .limit(limit);
@@ -355,12 +360,13 @@ export class InvoicesService {
           .where(inArray(payments.invoiceId, ids))
           .orderBy(payments.createdAt)
       : [];
-    return rows.map(({ invoice, tenant }) => {
+    return rows.map(({ invoice, tenant, plan }) => {
       const own = paid.filter((payment) => payment.invoiceId === invoice.id);
       return {
         id: invoice.id,
         number: invoice.number,
         tenant,
+        plan,
         kind: invoice.kind,
         period: { from: invoice.periodFrom, to: invoice.periodTo },
         issuedOn: invoice.issuedOn,

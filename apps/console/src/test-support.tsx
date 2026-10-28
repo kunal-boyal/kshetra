@@ -39,6 +39,8 @@ export const TENANT = {
   trialEndsAt: '2026-11-23T10:00:00.000Z',
   demo: false,
   activeUsers: 12,
+  seatLimit: null,
+  lastActivityAt: '2026-10-28T06:00:00.000Z',
   terminatedAt: null,
   deletesAt: null,
   deletedAt: null,
@@ -89,6 +91,7 @@ export const INVOICE = {
   id: '01a10000-0000-7000-8000-0000000000e1',
   number: 'TL/26-27/00042',
   tenant: { id: TENANT.id, name: TENANT.name, slug: TENANT.slug },
+  plan: { key: 'growth', name: { en: 'Growth', hi: 'ग्रोथ' } },
   kind: 'monthly' as const,
   period: { from: '2026-10-01', to: '2026-10-31' },
   issuedOn: '2026-11-04',
@@ -152,6 +155,29 @@ export function billingAnswer(path: string): unknown {
 
 type Handler = (method: string, path: string, body: unknown) => unknown;
 
+/** A month with nobody active: what a tenant's page reads when a test doesn't say. */
+export const QUIET_ACTIVITY = {
+  days: Array.from({ length: 30 }, (_, index) => ({
+    date: `2026-10-${String(index + 1).padStart(2, '0')}`,
+    active: 0,
+  })),
+  activeToday: 0,
+  storageBytes: null,
+};
+
+/**
+ * The tenant page's own reads, when a test's handler answers them with something else, as
+ * handlers that answer every path with the tenant do.
+ */
+function standing(path: string, given: unknown): unknown {
+  const has = (key: string) => given !== null && typeof given === 'object' && key in given;
+  if (/^\/platform\/v1\/tenants\/[^/]+\/activity$/.test(path) && !has('days')) {
+    return QUIET_ACTIVITY;
+  }
+  if (path === '/platform/v1/templates' && !has('items')) return { items: [] };
+  return given;
+}
+
 /** A console client that answers from `handler` and never touches a network. */
 export function fakeClient(staff: StaffResult | null, handler: Handler = () => ({})) {
   let current = staff;
@@ -178,7 +204,9 @@ export function fakeClient(staff: StaffResult | null, handler: Handler = () => (
       async () => new Blob(['%PDF-1.3'], { type: 'application/pdf' }),
     ),
     request: vi.fn(async (method: string, path: string, _schema: unknown, body?: unknown) => {
-      const answer = handler(method, path, body);
+      const given = handler(method, path, body);
+      const answer =
+        method === 'GET' && !(given instanceof ApiError) ? standing(path, given) : given;
       if (answer instanceof ApiError) throw answer;
       return answer;
     }),

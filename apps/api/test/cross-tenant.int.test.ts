@@ -571,7 +571,12 @@ const FIXTURES: Record<string, Fixture> = {
     code: '123456',
   }),
   'GET /platform/v1/tenants': consoleShutsB('GET', '/platform/v1/tenants'),
+  'GET /platform/v1/tenants/summary': consoleShutsB('GET', '/platform/v1/tenants/summary'),
   'GET /platform/v1/tenants/:id': consoleShutsB('GET', '/platform/v1/tenants/:id'),
+  'GET /platform/v1/tenants/:id/activity': consoleShutsB(
+    'GET',
+    '/platform/v1/tenants/:id/activity',
+  ),
   'POST /platform/v1/tenants': consoleShutsB('POST', '/platform/v1/tenants', {
     id: newId(),
     name: 'B Made This',

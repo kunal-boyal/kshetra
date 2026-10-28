@@ -32,6 +32,8 @@ const TENANT = {
   trialEndsAt: '2026-11-23T10:00:00.000Z',
   demo: false,
   activeUsers: 12,
+  seatLimit: 25,
+  lastActivityAt: '2026-10-28T06:00:00.000Z',
   terminatedAt: null,
   deletesAt: null,
   deletedAt: null,
@@ -64,6 +66,7 @@ const INVOICE = {
   id: '01a10000-0000-7000-8000-0000000000e1',
   number: 'TL/26-27/00042',
   tenant: { id: TENANT.id, name: TENANT.name, slug: TENANT.slug },
+  plan: { key: 'growth', name: { en: 'Growth', hi: 'ग्रोथ' } },
   kind: 'monthly',
   period: { from: '2026-10-01', to: '2026-10-31' },
   issuedOn: '2026-11-04',
@@ -144,6 +147,32 @@ async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
   await page.route('**/platform/v1/setup/confirm', (route) => route.fulfill({ json: ADMIN }));
   await page.route('**/platform/v1/tenants?**', (route) =>
     route.fulfill({ json: { items: [TENANT], nextCursor: null } }),
+  );
+  await page.route('**/platform/v1/tenants/summary', (route) =>
+    route.fulfill({
+      json: {
+        tenants: 3,
+        paying: 1,
+        trial: 1,
+        demo: 1,
+        suspended: 0,
+        seatsInUse: 40,
+        seatsBought: 50,
+        activeToday: 30,
+      },
+    }),
+  );
+  await page.route(`**/platform/v1/tenants/${TENANT.id}/activity`, (route) =>
+    route.fulfill({
+      json: {
+        days: Array.from({ length: 30 }, (_, index) => ({
+          date: `2026-10-${String(index + 1).padStart(2, '0')}`,
+          active: (index * 7) % 13,
+        })),
+        activeToday: 9,
+        storageBytes: '1073741824',
+      },
+    }),
   );
   await page.route(`**/platform/v1/tenants/${TENANT.id}`, (route) =>
     route.fulfill({ json: TENANT }),
@@ -250,6 +279,7 @@ async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
             version: 4,
             name: { en: 'Agri inputs', hi: 'कृषि इनपुट' },
             description: { en: 'For seed, crop protection and fertiliser companies', hi: 'बीज' },
+            terms: { en: 'SME · Beat plan · Beat', hi: 'एसएमई · बीट प्लान · बीट' },
           },
         ],
       },

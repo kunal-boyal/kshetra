@@ -7,6 +7,7 @@ pnpm --filter @thelamp/ui-compare compare --phone <a demo person's number>
 ```
 
 - The portal, the API and Mailpit must be running (`pnpm dev` with `OTP_PROVIDER=mailpit`); the number signs in on the web once, with its code taken from Mailpit, so use a manager or admin of a demo tenant with data, such as one `demo:content` filled.
+- The console's pairs (`console-*`, stage U12) sign in to the console (`--console`, default http://127.0.0.1:5174) as a platform admin made for the run with `pnpm invite-staff`; its setup link, password and authenticator secret stay in the process (`src/staff.ts`). Run them against a local directory only; each run leaves its staff member there, named UI comparison.
 - `--only home,leaderboard` takes keys from `src/pages.ts`; `--prototype-only` skips the portal; `--out` picks the folder (default `out/<date and time>`, git-ignored).
 - It writes Light and Dark at 1440 and 390 px for both sides, and `index.html`, the gallery, which opens in a browser or publishes as an artifact with the images beside it.
 

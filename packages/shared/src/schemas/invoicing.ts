@@ -193,6 +193,8 @@ export const InvoiceResult = z
     id: z.uuid(),
     number: z.string(),
     tenant: z.object({ id: z.uuid(), name: z.string(), slug: z.string() }),
+    /** The plan of the subscription it bills. */
+    plan: z.object({ key: Key, name: LocalizedText }),
     kind: z.enum(INVOICE_KINDS),
     period: z.object({ from: z.iso.date(), to: z.iso.date() }),
     issuedOn: z.iso.date(),

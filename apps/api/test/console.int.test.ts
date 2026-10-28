@@ -35,7 +35,7 @@ const anyAddress = () =>
   `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
 
 function send(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PUT',
   url: string,
   options: { token?: string; body?: object; headers?: Record<string, string> } = {},
 ) {
@@ -518,6 +518,59 @@ describe('tenants in the console (M22)', () => {
       'tenant.reactivated',
     ]);
     expect(rows[1].detail).toMatchObject({ reason: 'Unpaid for two months', after: 'suspended' });
+  });
+
+  it('shows each tenant’s seats, activity and storage, and the figures of every tenant', async () => {
+    const { token } = await staffMember();
+    const templates = (await send('GET', '/platform/v1/templates', { token })).json().items;
+    expect(templates.find((each: { key: string }) => each.key === 'agri').terms).toEqual({
+      en: 'SME · Beat plan · Beat',
+      hi: 'एसएमई · बीट प्लान · बीट',
+    });
+
+    const phone = newPhone();
+    const id = newId();
+    const created = await send('POST', '/platform/v1/tenants', {
+      token,
+      body: {
+        id,
+        name: 'Busy Agro',
+        slug: `busy-${newId().slice(-8)}`,
+        template: 'agri',
+        status: 'trial',
+        trialDays: 14,
+        admin: { name: 'Kiran Patil', phone },
+      },
+    });
+    expect(created.json()).toMatchObject({ seatLimit: null, lastActivityAt: null });
+    const quiet = (await send('GET', `/platform/v1/tenants/${id}/activity`, { token })).json();
+    expect(quiet.days).toHaveLength(30);
+    expect(quiet).toMatchObject({ activeToday: 0, storageBytes: null });
+    expect(quiet.days.every((day: { active: number }) => day.active === 0)).toBe(true);
+
+    // Its admin signs in: today has one person active, and the tenant was last used now.
+    await world.signIn(phone);
+    const busy = (await send('GET', `/platform/v1/tenants/${id}/activity`, { token })).json();
+    expect(busy.activeToday).toBe(1);
+    expect(busy.days.at(-1)).toEqual({ date: expect.any(String), active: 1 });
+    const read = (await send('GET', `/platform/v1/tenants/${id}`, { token })).json();
+    expect(Date.now() - Date.parse(read.lastActivityAt)).toBeLessThan(60_000);
+
+    // A limit of its own is its seat limit.
+    const limited = await send('PUT', `/platform/v1/tenants/${id}/plan`, {
+      token,
+      body: { planId: null, limits: { users: 30 } },
+    });
+    expect(limited.statusCode, limited.body).toBe(200);
+    expect((await send('GET', `/platform/v1/tenants/${id}`, { token })).json().seatLimit).toBe(30);
+
+    // Every tenant at once; other files make tenants as this runs, so only lower bounds hold.
+    const summary = (await send('GET', '/platform/v1/tenants/summary', { token })).json();
+    expect(summary.trial).toBeGreaterThanOrEqual(1);
+    expect(summary.activeToday).toBeGreaterThanOrEqual(1);
+    expect(summary.seatsBought).toBeGreaterThanOrEqual(30);
+    expect(summary.seatsInUse).toBeGreaterThanOrEqual(1);
+    expect(summary.tenants).toBeGreaterThanOrEqual(summary.paying + summary.trial);
   });
 
   it('keeps tenant management from staff without it', async () => {

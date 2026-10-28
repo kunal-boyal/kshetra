@@ -2,8 +2,10 @@ import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/com
 import {
   CellListResult,
   ConsoleTenant,
+  ConsoleTenantActivity,
   ConsoleTenantList,
   ConsoleTenantQuery,
+  ConsoleTenantSummary,
   CreateTenantBody,
   normaliseMobile,
   SecondFactorResetBody,
@@ -43,6 +45,29 @@ export class ConsoleTenantsController {
   })
   list(@Query() query: unknown) {
     return this.tenants.list(ConsoleTenantQuery.parse(query));
+  }
+
+  @ForStaff()
+  @Get('tenants/summary')
+  @Contract({
+    tag: 'Platform console',
+    summary: 'Every tenant at once: paying, trial, demo, seats and who was active today',
+    response: ConsoleTenantSummary,
+  })
+  summary() {
+    return this.tenants.summary();
+  }
+
+  @ForStaff()
+  @Get('tenants/:id/activity')
+  @Contract({
+    tag: 'Platform console',
+    summary: "A tenant's people active on each of the last 30 days, and its storage",
+    params: TenantIdParams,
+    response: ConsoleTenantActivity,
+  })
+  activity(@Param() params: unknown) {
+    return this.tenants.activity(TenantIdParams.parse(params).id);
   }
 
   @ForStaff()
