@@ -17,6 +17,7 @@ import {
   type ImportTargetSource,
   ImportTargets,
   type TargetField,
+  checked,
 } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { FinanceService } from './finance.service';
@@ -141,7 +142,7 @@ export class FinanceSnapshotsImport implements ImportTargetSource, OnModuleInit 
   }
 
   async check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
-    return (await this.plan(tx, rows, context)).problems;
+    return checked((await this.plan(tx, rows, context)).problems);
   }
 
   async commit(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
@@ -255,7 +256,12 @@ export class LedgerEntriesImport implements ImportTargetSource, OnModuleInit {
   }
 
   async check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
-    return (await this.plan(tx, rows, context)).problems;
+    const { problems, fresh } = await this.plan(tx, rows, context);
+    // Entries already in the statement are left as they are; only new ones are added.
+    return checked(
+      problems,
+      fresh.map(() => ({ existing: false })),
+    );
   }
 
   async commit(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {

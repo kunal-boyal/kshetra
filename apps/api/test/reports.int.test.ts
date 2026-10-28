@@ -189,6 +189,13 @@ describe('reports on screen (M18)', () => {
         values: expect.stringContaining('Mr Sharma'),
       }),
     ]);
+    // The status column gives each value, as the reader sees it, its badge's tone.
+    expect(page.columns).toContainEqual({
+      key: 'status',
+      label: 'Review status',
+      kind: 'status',
+      tones: { 'Waiting for review': 'pending', Approved: 'success', Rejected: 'danger' },
+    });
     // One form chosen: its fields become columns, in the language asked for.
     const chosen = (
       await report(t.api.manager, 'activity_log', '&form=shop_note&locale=hi')
@@ -200,6 +207,8 @@ describe('reports on screen (M18)', () => {
       field_person_met: 'Mr Sharma',
       geofence: 'दायरे के भीतर',
     });
+    const status = chosen.columns.find((column: { key: string }) => column.key === 'status');
+    expect(status.tones[chosen.rows[0].status]).toBe('pending');
     // Ravi reports to the admin, outside the manager's team.
     expect(
       (await report(t.api.manager, 'activity_log', `&userId=${t.ravi.id}`)).json().error.code,

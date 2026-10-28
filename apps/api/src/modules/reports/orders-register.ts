@@ -51,7 +51,20 @@ export class OrdersRegisterReport extends ReportSource {
       { key: 'line_total', label: 'report.col_line_total', kind: 'decimal' },
       { key: 'line_decision', label: 'report.col_line_decision', kind: 'text' },
       { key: 'decision_reason', label: 'report.col_decision_reason', kind: 'text' },
-      { key: 'order_status', label: 'report.col_order_status', kind: 'text' },
+      {
+        key: 'order_status',
+        label: 'report.col_order_status',
+        kind: 'status',
+        tones: {
+          'orders.status_submitted': 'pending',
+          'orders.status_accepted': 'success',
+          'orders.status_partially_accepted': 'waiting',
+          'orders.status_rejected': 'danger',
+          'orders.status_fulfilled': 'success',
+          'orders.status_partially_fulfilled': 'waiting',
+          'orders.status_cancelled': 'neutral',
+        },
+      },
     ];
   }
 

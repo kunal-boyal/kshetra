@@ -28,6 +28,32 @@ export interface ImportContext {
 }
 
 /**
+ * What a check found: every problem, and, for a target that can tell before writing, how many
+ * rows would add a record and how many match one already (null otherwise).
+ */
+export interface ImportCheck {
+  problems: ImportProblem[];
+  planned: { create: number; update: number } | null;
+}
+
+/** A check's outcome from rows planned as new or matching. */
+export function checked(
+  problems: ImportProblem[],
+  planned?: readonly { existing: boolean }[],
+): ImportCheck {
+  return {
+    problems,
+    planned:
+      planned && problems.length === 0
+        ? {
+            create: planned.filter((entry) => !entry.existing).length,
+            update: planned.filter((entry) => entry.existing).length,
+          }
+        : null,
+  };
+}
+
+/**
  * Something an import can load (module M19), registered by the module that owns it, so the
  * imports module never reads another module's tables. `check` finds every problem without
  * writing; `commit` writes every row in the caller's transaction, checking again first, and
@@ -39,7 +65,7 @@ export interface ImportTargetSource {
   /** What an import of this target needs, besides `import.run`. */
   permission: TenantPermission;
   fields(tx: TenantTx, tenantId: string, target: ImportTarget): Promise<TargetField[]>;
-  check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext): Promise<ImportProblem[]>;
+  check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext): Promise<ImportCheck>;
   commit(
     tx: TenantTx,
     rows: readonly ImportRow[],

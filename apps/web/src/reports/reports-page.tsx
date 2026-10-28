@@ -1,4 +1,4 @@
-import { formatNumber } from '@thelamp/i18n';
+import { formatMonth, formatNumber } from '@thelamp/i18n';
 import {
   type ExportFormat,
   type ExportResult,
@@ -16,23 +16,26 @@ import {
 import {
   type BadgeVariant,
   Button,
+  ChipList,
   type Column,
   DataTable,
   EmptyState,
   Icon,
+  List,
+  ListItem,
   Notice,
+  PeriodStepper,
   SelectField,
   StatusBadge,
-  TextField,
 } from '@thelamp/ui-web';
 import { Download, FileSpreadsheet, FileText, Sheet } from 'lucide-react';
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess, useTerritories, useUsers } from '../people/data';
 import { Printable, PrintButton } from '../print';
-import { PageHeader, Section, useDates } from '../people/shared';
+import { PageHeader, useDates } from '../people/shared';
 import { download, useExports, useReport, useStartExport } from './data';
 
 type Row = Record<string, ReportCell>;
@@ -70,62 +73,84 @@ function useCell() {
   };
 }
 
-/** The person's recent files, with a fresh link to each ready one. */
-function Downloads() {
+/** One file of the person's: its report, month and format, where it stands, and its link. */
+function ExportLine({ item, onError }: { item: ExportResult; onError: (error: unknown) => void }) {
   const { client } = useApp();
   const { t } = useLanguage();
   const access = useAccess();
   const dates = useDates(access.timezone);
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <span className="font-semibold">
+        {t(`report.name_${item.report}`)} · {item.filters.period} · {item.format.toUpperCase()}
+      </span>
+      <StatusBadge variant={EXPORT_BADGE[item.status]}>
+        {t(`report.export_status_${item.status}`)}
+      </StatusBadge>
+      {item.status === 'ready' && item.expiresAt ? (
+        <span className="ks-muted text-sm">
+          {t('report.export_kept', { date: dates.dateTime(item.expiresAt) })}
+        </span>
+      ) : null}
+      {item.status === 'ready' && item.fileName ? (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={<Icon icon={Download} />}
+          onClick={() => {
+            onError(undefined);
+            download(client, item.id).catch(onError);
+          }}
+        >
+          {t('report.export_download', { file: item.fileName })}
+        </Button>
+      ) : null}
+    </span>
+  );
+}
+
+/** The person's latest file as one line, the earlier ones of the last 7 days under it. */
+function Downloads() {
+  const { t } = useLanguage();
   const exports = useExports(true);
   const [error, setError] = useState<unknown>();
-  const items = exports.data ?? [];
+  const [latest, ...earlier] = exports.data ?? [];
   return (
-    <Section title={t('report.exports')}>
+    <section className="flex flex-col gap-2" aria-label={t('report.exports')}>
       {exports.isError ? (
         <p className="ks-help error" role="alert">
           {errorMessage(exports.error, t)}
         </p>
-      ) : items.length === 0 ? (
+      ) : !latest ? (
         <p className="ks-muted">{t('report.exports_none')}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {items.map((item: ExportResult) => (
-            <li key={item.id} className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">
-                {t(`report.name_${item.report}`)} · {item.filters.period} ·{' '}
-                {item.format.toUpperCase()}
-              </span>
-              <StatusBadge variant={EXPORT_BADGE[item.status]}>
-                {t(`report.export_status_${item.status}`)}
-              </StatusBadge>
-              {item.status === 'ready' && item.expiresAt ? (
-                <span className="ks-muted text-sm">
-                  {t('report.export_kept', { date: dates.dateTime(item.expiresAt) })}
-                </span>
-              ) : null}
-              {item.status === 'ready' && item.fileName ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  icon={<Icon icon={Download} />}
-                  onClick={() => {
-                    setError(undefined);
-                    download(client, item.id).catch(setError);
-                  }}
-                >
-                  {t('report.export_download', { file: item.fileName })}
-                </Button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        <div className="ks-notice">
+          <span className="flex flex-wrap items-center gap-2">
+            <strong>{t('report.exports')}</strong>
+            <ExportLine item={latest} onError={setError} />
+          </span>
+        </div>
       )}
+      {earlier.length > 0 ? (
+        <details>
+          <summary className="cursor-pointer">
+            {t('report.exports_earlier', { count: earlier.length })}
+          </summary>
+          <ul className="mt-2 flex flex-col gap-2">
+            {earlier.map((item) => (
+              <li key={item.id}>
+                <ExportLine item={item} onError={setError} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
       {error !== undefined ? (
         <p className="ks-help error" role="alert">
           {errorMessage(error, t)}
         </p>
       ) : null}
-    </Section>
+    </section>
   );
 }
 
@@ -212,153 +237,229 @@ export function ReportsPage() {
     key: column.key,
     header: column.label,
     ...(['number', 'decimal', 'percent'].includes(column.kind) ? { align: 'end' as const } : {}),
-    render: (row) => cell(column, row[column.key] ?? null),
+    render: (row) => {
+      const value = row[column.key] ?? null;
+      return column.kind === 'status' && value !== null && value !== '' ? (
+        <StatusBadge variant={column.tones?.[String(value)] ?? 'neutral'}>
+          {String(value)}
+        </StatusBadge>
+      ) : (
+        cell(column, value)
+      );
+    },
   }));
+  // The filters set, as chips that clear them.
+  const chips = [
+    ['managerId', t('report.filter_manager'), nameOf(personOptions, filters.managerId)],
+    ['userId', t('report.filter_user'), nameOf(personOptions, filters.userId)],
+    ['territoryId', t('report.filter_territory'), nameOf(territoryOptions, filters.territoryId)],
+    [
+      'accountType',
+      t('report.filter_account_type'),
+      bundle?.accountTypes.find((type) => type.key === filters.accountType)?.name[locale].one,
+    ],
+    [
+      'form',
+      t('report.filter_form'),
+      bundle?.forms.find((form) => form.key === filters.form)?.name[locale].one,
+    ],
+  ].flatMap(([key, label, value]) =>
+    value ? [{ key: key as keyof ReportFilters, text: `${label}: ${value}` }] : [],
+  );
+
+  const filterFields = (
+    <div className="grid gap-4 md:grid-cols-2">
+      {access.can('user.view') ? (
+        <>
+          <SelectField
+            label={t('report.filter_manager')}
+            none={t('report.all')}
+            value={filters.managerId ?? ''}
+            options={personOptions}
+            onChange={(event) => set({ managerId: event.target.value })}
+          />
+          <SelectField
+            label={t('report.filter_user')}
+            none={t('report.all')}
+            value={filters.userId ?? ''}
+            options={personOptions}
+            onChange={(event) => set({ userId: event.target.value })}
+          />
+        </>
+      ) : null}
+      <SelectField
+        label={t('report.filter_territory')}
+        none={t('report.all')}
+        value={filters.territoryId ?? ''}
+        options={territoryOptions}
+        onChange={(event) => set({ territoryId: event.target.value })}
+      />
+      {report === 'activity_log' ? (
+        <>
+          <SelectField
+            label={t('report.filter_account_type')}
+            none={t('report.all')}
+            value={filters.accountType ?? ''}
+            options={(bundle?.accountTypes ?? []).map((type) => ({
+              value: type.key,
+              label: type.name[locale].one,
+            }))}
+            onChange={(event) => set({ accountType: event.target.value })}
+          />
+          <SelectField
+            label={t('report.filter_form')}
+            none={t('report.all')}
+            help={t('report.form_hint')}
+            value={filters.form ?? ''}
+            options={(bundle?.forms ?? []).map((form) => ({
+              value: form.key,
+              label: form.name[locale].one,
+            }))}
+            onChange={(event) => set({ form: event.target.value })}
+          />
+        </>
+      ) : null}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('report.title')} intro={t('report.intro')} />
-      <div className="grid gap-4 md:grid-cols-3">
-        <SelectField
-          label={t('report.choose')}
-          value={report}
-          options={offered.map((key) => ({ value: key, label: t(`report.name_${key}`) }))}
-          onChange={(event) => {
-            setReport(event.target.value as ReportKey);
-            set({ form: undefined, accountType: undefined });
-          }}
-        />
-        <TextField
-          label={t('plan.month')}
-          type="month"
-          value={filters.period}
-          onChange={(event) => {
-            if (event.target.value) set({ period: event.target.value });
-          }}
-        />
-        {access.can('user.view') ? (
-          <>
-            <SelectField
-              label={t('report.filter_manager')}
-              none={t('report.all')}
-              value={filters.managerId ?? ''}
-              options={personOptions}
-              onChange={(event) => set({ managerId: event.target.value })}
+      <div className="flex flex-wrap items-start gap-4">
+        <nav className="min-w-0 flex-[1_1_16rem]" aria-label={t('report.choose')}>
+          <List label={t('report.choose')}>
+            {offered.map((key) => (
+              <ListItem
+                key={key}
+                title={t(`report.name_${key}`)}
+                meta={t(`report.about_${key}`)}
+                selected={key === report}
+                onClick={() => {
+                  setReport(key);
+                  set({ form: undefined, accountType: undefined });
+                }}
+              />
+            ))}
+          </List>
+        </nav>
+        <section
+          className="flex min-w-0 flex-[3_1_35rem] flex-col gap-4"
+          aria-label={t(`report.name_${report}`)}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="heading-lg">
+              {t('report.heading', {
+                report: t(`report.name_${report}`),
+                month: formatMonth(filters.period, { locale }),
+              })}
+            </h2>
+            {!needsPerson ? (
+              <div className="flex flex-wrap gap-2">
+                <PrintButton printable="report" />
+                {canExport ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={<Icon icon={FileText} />}
+                      onClick={() => void exportAs('csv')}
+                    >
+                      {t('report.export_csv')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      icon={<Icon icon={FileSpreadsheet} />}
+                      onClick={() => void exportAs('xlsx')}
+                    >
+                      {t('report.export_xlsx')}
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <PeriodStepper
+              value={filters.period}
+              onChange={(period) => set({ period })}
+              format={(value) => formatMonth(value, { locale })}
+              label={t('plan.month')}
+              previousLabel={t('targets.previous_month')}
+              nextLabel={t('targets.next_month')}
             />
-            <SelectField
-              label={t('report.filter_user')}
-              none={t('report.all')}
-              value={filters.userId ?? ''}
-              options={personOptions}
-              onChange={(event) => set({ userId: event.target.value })}
+            <ChipList
+              label={t('report.filters_set')}
+              items={chips.map((chip) => chip.text)}
+              removeLabel={(text) => t('report.filter_clear', { filter: text })}
+              onRemove={(text) => {
+                const chip = chips.find((entry) => entry.text === text);
+                if (chip) set({ [chip.key]: undefined });
+              }}
             />
-          </>
-        ) : null}
-        <SelectField
-          label={t('report.filter_territory')}
-          none={t('report.all')}
-          value={filters.territoryId ?? ''}
-          options={territoryOptions}
-          onChange={(event) => set({ territoryId: event.target.value })}
-        />
-        {report === 'activity_log' ? (
-          <>
-            <SelectField
-              label={t('report.filter_account_type')}
-              none={t('report.all')}
-              value={filters.accountType ?? ''}
-              options={(bundle?.accountTypes ?? []).map((type) => ({
-                value: type.key,
-                label: type.name[locale].one,
-              }))}
-              onChange={(event) => set({ accountType: event.target.value })}
-            />
-            <SelectField
-              label={t('report.filter_form')}
-              none={t('report.all')}
-              help={t('report.form_hint')}
-              value={filters.form ?? ''}
-              options={(bundle?.forms ?? []).map((form) => ({
-                value: form.key,
-                label: form.name[locale].one,
-              }))}
-              onChange={(event) => set({ form: event.target.value })}
-            />
-          </>
-        ) : null}
-      </div>
-      {report === 'gps_audit_trail' && bundle ? (
-        <Notice>
-          {t('report.points_kept', { days: bundle.settings.rawLocationRetentionDays })}
-        </Notice>
-      ) : null}
-      {!needsPerson ? (
-        <div className="flex flex-wrap gap-2">
-          <PrintButton printable="report" />
-          {canExport ? (
-            <>
-              <Button
-                variant="secondary"
-                icon={<Icon icon={FileSpreadsheet} />}
-                onClick={() => void exportAs('xlsx')}
-              >
-                {t('report.export_xlsx')}
-              </Button>
-              <Button
-                variant="secondary"
-                icon={<Icon icon={FileText} />}
-                onClick={() => void exportAs('csv')}
-              >
-                {t('report.export_csv')}
-              </Button>
-            </>
+          </div>
+          <details className="ks-card">
+            <summary className="cursor-pointer font-semibold">{t('report.filters')}</summary>
+            <div className="mt-4">{filterFields}</div>
+          </details>
+          {report === 'gps_audit_trail' && bundle ? (
+            <Notice>
+              {t('report.points_kept', { days: bundle.settings.rawLocationRetentionDays })}
+            </Notice>
           ) : null}
-        </div>
-      ) : null}
-      {started ? <Notice>{t('report.export_started')}</Notice> : null}
-      {exportError !== undefined ? (
-        <p className="ks-help error" role="alert">
-          {errorMessage(exportError, t)}
-        </p>
-      ) : null}
-      {needsPerson ? (
-        <EmptyState icon={<Icon icon={Sheet} />} title={t('report.needs_person_title')}>
-          {t('report.needs_person')}
-        </EmptyState>
-      ) : page.isError ? (
-        <p className="ks-help error" role="alert">
-          {errorMessage(page.error, t)}
-        </p>
-      ) : page.isPending ? (
-        <p className="ks-muted">{t('common.loading')}</p>
-      ) : (
-        <Printable id="report" title={t(`report.name_${report}`)} details={printDetails}>
-          <DataTable
-            caption={t('report.caption', {
-              report: t(`report.name_${report}`),
-              month: filters.period,
-            })}
-            columns={tableColumns}
-            rows={rows}
-            rowKey={(row) => JSON.stringify(row)}
-            empty={
-              <EmptyState icon={<Icon icon={Sheet} />} title={t('report.empty_title')}>
-                {t('report.empty_body')}
-              </EmptyState>
-            }
-            {...(page.hasNextPage
-              ? {
-                  more: {
-                    label: t('common.load_more'),
-                    onClick: () => void page.fetchNextPage(),
-                    busy: page.isFetchingNextPage,
-                  },
-                }
-              : {})}
-          />
-        </Printable>
-      )}
-      {canExport ? <Downloads /> : null}
+          {started ? <Notice>{t('report.export_started')}</Notice> : null}
+          {exportError !== undefined ? (
+            <p className="ks-help error" role="alert">
+              {errorMessage(exportError, t)}
+            </p>
+          ) : null}
+          {needsPerson ? (
+            <EmptyState icon={<Icon icon={Sheet} />} title={t('report.needs_person_title')}>
+              {t('report.needs_person')}
+            </EmptyState>
+          ) : page.isError ? (
+            <p className="ks-help error" role="alert">
+              {errorMessage(page.error, t)}
+            </p>
+          ) : page.isPending ? (
+            <p className="ks-muted">{t('common.loading')}</p>
+          ) : (
+            <div
+              className="min-w-0 [&_table]:min-w-[var(--report-width)]!"
+              // Room for every column (8rem each) before the table scrolls in its box, so a
+              // report of many columns doesn't squeeze its rows tall beside the list.
+              style={{ '--report-width': `${columns.length * 8}rem` } as CSSProperties}
+            >
+              <Printable id="report" title={t(`report.name_${report}`)} details={printDetails}>
+                <DataTable
+                  caption={t('report.caption', {
+                    report: t(`report.name_${report}`),
+                    month: filters.period,
+                  })}
+                  columns={tableColumns}
+                  rows={rows}
+                  rowKey={(row) => JSON.stringify(row)}
+                  empty={
+                    <EmptyState icon={<Icon icon={Sheet} />} title={t('report.empty_title')}>
+                      {t('report.empty_body')}
+                    </EmptyState>
+                  }
+                  {...(page.hasNextPage
+                    ? {
+                        more: {
+                          label: t('common.load_more'),
+                          onClick: () => void page.fetchNextPage(),
+                          busy: page.isFetchingNextPage,
+                        },
+                      }
+                    : {})}
+                />
+              </Printable>
+            </div>
+          )}
+          {canExport ? <Downloads /> : null}
+        </section>
+      </div>
     </div>
   );
 }

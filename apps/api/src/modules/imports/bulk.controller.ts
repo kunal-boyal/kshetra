@@ -230,7 +230,7 @@ export class BulkController {
       fractions: [],
     };
     if (target.startsWith('accounts:')) await this.fieldsOf(tx, access.tenantId, target);
-    const problems = await source.check(tx, importRows, context);
+    const { problems } = await source.check(tx, importRows, context);
     if (problems.length > 0) throw refused(problems);
     try {
       return await source.commit(tx, importRows, context);

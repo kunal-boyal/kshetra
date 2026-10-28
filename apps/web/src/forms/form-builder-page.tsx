@@ -4,13 +4,14 @@ import {
   Button,
   Checkbox,
   ChoiceGroup,
+  cn,
   Icon,
   Notice,
   SelectField,
   TextField,
 } from '@thelamp/ui-web';
 import { useNavigate } from '@tanstack/react-router';
-import { Send } from 'lucide-react';
+import { Send, Smartphone } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useAccountTypes } from '../accounts/data';
 import { useApp } from '../context';
@@ -55,6 +56,9 @@ const toInt = (text: string) => (/^\d+$/.test(text.trim()) ? Number(text.trim())
  * own settings and a condition on earlier fields. Publishing makes the next version; phones take
  * it at their next sync, and submissions already made keep the version they were filled in.
  */
+/** The form element, which the header's Publish submits. */
+const FORM_ID = 'form-builder';
+
 function FormBuilder({ form }: { form?: FormView }) {
   const { client } = useApp();
   const { t, locale } = useLanguage();
@@ -78,6 +82,7 @@ function FormBuilder({ form }: { form?: FormView }) {
   const [failure, setFailure] = useState<unknown>();
   const [published, setPublished] = useState<number>();
   const [busy, setBusy] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const problems = failure instanceof ApiError ? failure.details : [];
   const at = (path: string) =>
     problems.find((problem) => problem.path === `definition.${path}`)?.issue;
@@ -131,9 +136,39 @@ function FormBuilder({ form }: { form?: FormView }) {
         title={form ? form.name[locale].one : t('builder.new_title')}
         back={{ to: '/settings/forms', label: t('forms.title') }}
         intro={form ? t('builder.edit_intro', { version: form.version }) : t('builder.new_intro')}
-      />
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <form className="flex flex-col gap-6" onSubmit={(event) => void submit(event)} noValidate>
+      >
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          aria-pressed={previewing}
+          icon={<Icon icon={Smartphone} />}
+          onClick={() => setPreviewing((now) => !now)}
+        >
+          {t('builder.preview_phone')}
+        </Button>
+        <Button
+          type="submit"
+          form={FORM_ID}
+          size="sm"
+          variant="primary"
+          busy={busy}
+          icon={<Icon icon={Send} />}
+        >
+          {form
+            ? t('builder.publish_version', { version: form.version + 1 })
+            : t('builder.publish')}
+        </Button>
+      </PageHeader>
+      <div
+        className={cn('grid items-start gap-6', previewing && 'xl:grid-cols-[minmax(0,1fr)_360px]')}
+      >
+        <form
+          id={FORM_ID}
+          className="flex min-w-0 flex-col gap-6"
+          onSubmit={(event) => void submit(event)}
+          noValidate
+        >
           <section className="ks-card flex flex-col gap-4" aria-labelledby="form-basics">
             <h2 id="form-basics" className="heading-md">
               {t('builder.basics')}
@@ -444,6 +479,7 @@ function FormBuilder({ form }: { form?: FormView }) {
               context={{ accountTypes, problems, taken: keysOf(draft.fields), locked }}
               path="definition.fields"
               outer={facts}
+              panes
             />
           </section>
 
@@ -462,15 +498,12 @@ function FormBuilder({ form }: { form?: FormView }) {
             </div>
           ) : null}
           {published ? <Notice>{t('builder.published', { version: published })}</Notice> : null}
-          <div>
-            <Button type="submit" variant="primary" busy={busy} icon={<Icon icon={Send} />}>
-              {t(form ? 'builder.publish_next' : 'builder.publish')}
-            </Button>
-          </div>
         </form>
-        <aside className="xl:sticky xl:top-4">
-          <PhonePreview form={draft} />
-        </aside>
+        {previewing ? (
+          <aside className="xl:sticky xl:top-4" aria-label={t('builder.preview_phone')}>
+            <PhonePreview form={draft} />
+          </aside>
+        ) : null}
       </div>
     </div>
   );

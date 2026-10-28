@@ -98,7 +98,16 @@ export class ActivityLogReport extends ReportSource {
       { key: 'distance', label: 'report.col_distance', kind: 'number' },
       { key: 'geofence', label: 'report.col_geofence', kind: 'text' },
       { key: 'flags', label: 'report.col_flags', kind: 'text' },
-      { key: 'status', label: 'report.col_status', kind: 'text' },
+      {
+        key: 'status',
+        label: 'report.col_status',
+        kind: 'status',
+        tones: {
+          'review.status_pending': 'pending',
+          'review.status_approved': 'success',
+          'review.status_rejected': 'danger',
+        },
+      },
       ...(form
         ? valueFields(form).map((field) => ({
             key: `field_${field.key}`,

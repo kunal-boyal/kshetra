@@ -206,11 +206,16 @@ for (const { path, heading, shows } of PAGES) {
 test("a field's settings and its condition pass axe", async ({ page }) => {
   await mockSignedIn(page);
   await page.goto(`/settings/forms/${VISIT}`);
+  const fields = page.getByRole('list', { name: 'Fields' });
+  await fields.getByRole('button', { name: /^What is short/ }).click();
   const field = page.getByRole('region', { name: 'Field What is short' });
-  await field.getByRole('button', { name: 'Edit' }).click();
   await expect(field.getByRole('group', { name: 'Show only when' })).toBeVisible();
+  await expectAccessible(page);
+  await fields.getByRole('button', { name: /^Items seen/ }).click();
   const lines = page.getByRole('region', { name: 'Field Items seen' });
-  await lines.getByRole('button', { name: 'Edit' }).click();
   await expect(lines.getByRole('textbox', { name: 'Most lines' })).toBeVisible();
+  // The phone preview beside the panes.
+  await page.getByRole('button', { name: 'Preview on a phone' }).click();
+  await expect(page.getByRole('region', { name: 'On the phone' })).toBeVisible();
   await expectAccessible(page);
 });

@@ -4,13 +4,22 @@ import {
   Button,
   Checkbox,
   ChoiceGroup,
+  cn,
   Icon,
   SelectField,
   TextAreaField,
   TextField,
 } from '@thelamp/ui-web';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
-import { useId, useState } from 'react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  Plus,
+  Trash2,
+} from 'lucide-react';
+import { type ReactNode, useId, useState } from 'react';
 import { useLanguage } from '../i18n';
 import {
   type AnyFormField,
@@ -52,6 +61,7 @@ export function FieldList({
   context,
   path,
   outer = [],
+  panes = false,
 }: {
   fields: readonly AnyFormField[];
   onChange: (fields: AnyFormField[]) => void;
@@ -61,12 +71,18 @@ export function FieldList({
   path: string;
   /** Fields before a group, which a condition inside it may refer to. */
   outer?: readonly AnyFormField[];
+  /**
+   * The form's own fields as three panes (decision D104): the types to add, the fields in order,
+   * and the chosen field's settings. A group's fields stay a list of cards inside its settings.
+   */
+  panes?: boolean;
 }) {
   const { t } = useLanguage();
   // Each field's place in the editor, kept apart from its key, which the admin may be typing.
   const [ids, setIds] = useState(() => fields.map(() => newId()));
   const idAt = (index: number) => ids[index] ?? `${index}`;
-  const [open, setOpen] = useState<string | null>(null);
+  // In panes, the first field starts chosen, so its settings show beside the list.
+  const [open, setOpen] = useState<string | null>(() => (panes ? (ids[0] ?? null) : null));
   const [adding, setAdding] = useState<FieldType>(types[0]!);
   const moved = <T,>(list: readonly T[], index: number, by: -1 | 1) => {
     const next = [...list];
@@ -74,6 +90,60 @@ export function FieldList({
     next.splice(index + by, 0, entry!);
     return next;
   };
+  const add = (type: FieldType) => {
+    const id = newId();
+    setIds([...fields.map((_, index) => idAt(index)), id]);
+    onChange([...fields, newField(type, context.taken)]);
+    setOpen(id);
+  };
+  const move = (index: number, by: -1 | 1) => {
+    setIds(moved(ids, index, by));
+    onChange(moved(fields, index, by));
+  };
+  const remove = (index: number) => {
+    setIds(ids.filter((_, i) => i !== index));
+    onChange(fields.filter((_, i) => i !== index));
+  };
+  // A refusal opens the first field it names, as the cards open themselves.
+  const refused = fields.findIndex(
+    (_, index) => problemsAt(context.problems, `${path}[${index}]`).length > 0,
+  );
+  const [shownProblems, setShownProblems] = useState(context.problems);
+  if (panes && shownProblems !== context.problems) {
+    setShownProblems(context.problems);
+    if (refused !== -1) setOpen(idAt(refused));
+  }
+  if (panes) {
+    const chosen = fields.findIndex((_, index) => idAt(index) === open);
+    const field = chosen === -1 ? undefined : fields[chosen];
+    return (
+      <PaneList
+        fields={fields}
+        types={types}
+        context={context}
+        path={path}
+        outer={outer}
+        chosen={chosen}
+        idAt={idAt}
+        onChoose={(index) => setOpen(idAt(index))}
+        onAdd={add}
+        onMove={move}
+        onRemove={remove}
+        settings={
+          field ? (
+            <FieldSettings
+              key={idAt(chosen)}
+              field={field}
+              onChange={(next) => onChange(fields.map((entry, i) => (i === chosen ? next : entry)))}
+              context={context}
+              path={`${path}[${chosen}]`}
+              earlier={[...outer, ...fields.slice(0, chosen)]}
+            />
+          ) : null
+        }
+      />
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
       <ol className="flex flex-col gap-3">
@@ -91,14 +161,8 @@ export function FieldList({
                 shown={shown}
                 problems={problems}
                 onToggle={() => setOpen(open === id ? null : id)}
-                onMove={(by) => {
-                  setIds(moved(ids, index, by));
-                  onChange(moved(fields, index, by));
-                }}
-                onRemove={() => {
-                  setIds(ids.filter((_, i) => i !== index));
-                  onChange(fields.filter((_, i) => i !== index));
-                }}
+                onMove={(by) => move(index, by)}
+                onRemove={() => remove(index)}
                 onChange={(next) =>
                   onChange(fields.map((entry, i) => (i === index ? next : entry)))
                 }
@@ -121,16 +185,163 @@ export function FieldList({
           type="button"
           variant="secondary"
           icon={<Icon icon={Plus} />}
-          onClick={() => {
-            const id = newId();
-            setIds([...fields.map((_, index) => idAt(index)), id]);
-            onChange([...fields, newField(adding, context.taken)]);
-            setOpen(id);
-          }}
+          onClick={() => add(adding)}
         >
           {t('builder.add_field')}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** The three panes: types to add, the fields in order, and the chosen field's settings. */
+function PaneList({
+  fields,
+  types,
+  context,
+  path,
+  chosen,
+  idAt,
+  onChoose,
+  onAdd,
+  onMove,
+  onRemove,
+  settings,
+}: {
+  fields: readonly AnyFormField[];
+  types: readonly FieldType[];
+  context: EditorContext;
+  path: string;
+  outer: readonly AnyFormField[];
+  chosen: number;
+  idAt: (index: number) => string;
+  onChoose: (index: number) => void;
+  onAdd: (type: FieldType) => void;
+  onMove: (index: number, by: -1 | 1) => void;
+  onRemove: (index: number) => void;
+  settings: ReactNode;
+}) {
+  const { t, locale } = useLanguage();
+  const field = fields[chosen];
+  const problems = field ? problemsAt(context.problems, `${path}[${chosen}]`) : [];
+  return (
+    <div className="flex flex-wrap items-start gap-4">
+      <section
+        className="ks-card flex min-w-0 flex-[1_1_12rem] flex-col gap-2"
+        aria-labelledby={`${path}-palette`}
+      >
+        <h3
+          id={`${path}-palette`}
+          className="text-xs font-bold tracking-[.06em] text-[var(--text-muted)] uppercase"
+        >
+          {t('builder.palette')}
+        </h3>
+        <div className="grid grid-cols-2 gap-1.5">
+          {types.map((type) => (
+            <Button
+              key={type}
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="justify-start! px-2.5! font-medium!"
+              aria-label={t('builder.add_type_named', { type: t(`builder.type_${type}`) })}
+              onClick={() => onAdd(type)}
+            >
+              {t(`builder.type_${type}`)}
+            </Button>
+          ))}
+        </div>
+      </section>
+      <ol className="flex min-w-0 flex-[2_1_22rem] flex-col gap-2" aria-label={t('builder.fields')}>
+        {fields.length === 0 ? <li className="ks-muted">{t('builder.no_fields')}</li> : null}
+        {fields.map((entry, index) => {
+          const name = title(entry, locale);
+          const selected = index === chosen;
+          const wrong = problemsAt(context.problems, `${path}[${index}]`).length > 0;
+          return (
+            <li
+              key={idAt(index)}
+              className={cn(
+                'ks-card flex items-center gap-2 px-3.5! py-3!',
+                selected && 'shadow-[inset_0_0_0_2px_var(--accent)]!',
+              )}
+            >
+              <Icon icon={GripVertical} size="sm" className="ks-subtle" />
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 cursor-pointer flex-col items-start text-start"
+                aria-pressed={selected}
+                onClick={() => onChoose(index)}
+              >
+                <span className="font-semibold">
+                  {name}
+                  {'required' in entry && entry.required ? (
+                    <>
+                      <span className="text-[var(--danger-fg)]" aria-hidden="true">
+                        {' '}
+                        *
+                      </span>
+                      <span className="sr-only">, {t('builder.required')}</span>
+                    </>
+                  ) : null}
+                </span>
+                <span className="ks-meta">
+                  {t(`builder.type_${entry.type}`)} · <code>{entry.key}</code>
+                </span>
+                {wrong ? <span className="ks-help error">{t('builder.has_problems')}</span> : null}
+              </button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                aria-label={t('builder.move_up_named', { name })}
+                disabled={index === 0}
+                icon={<Icon icon={ArrowUp} size="sm" />}
+                onClick={() => onMove(index, -1)}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                aria-label={t('builder.move_down_named', { name })}
+                disabled={index === fields.length - 1}
+                icon={<Icon icon={ArrowDown} size="sm" />}
+                onClick={() => onMove(index, 1)}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                aria-label={t('builder.remove_named', { name })}
+                icon={<Icon icon={Trash2} size="sm" />}
+                onClick={() => onRemove(index)}
+              />
+            </li>
+          );
+        })}
+      </ol>
+      <section
+        className="ks-card raised flex min-w-0 flex-[1_1_18rem] flex-col gap-3 lg:sticky lg:top-4"
+        aria-label={
+          field ? t('builder.field_named', { name: title(field, locale) }) : t('builder.settings')
+        }
+      >
+        {field ? (
+          <>
+            <h3 className="ks-title">{title(field, locale)}</h3>
+            {problems.length > 0 ? (
+              <ul className="ks-help error" role="alert">
+                {problems.map((problem) => (
+                  <li key={`${problem.path}:${problem.issue}`}>{problem.issue}</li>
+                ))}
+              </ul>
+            ) : null}
+            {settings}
+          </>
+        ) : (
+          <p className="ks-muted">{t('builder.choose_field')}</p>
+        )}
+      </section>
     </div>
   );
 }
@@ -273,9 +484,10 @@ function FieldSettings({
       }}
     />
   );
+  // Laid out by its own width: a pane beside the fields, or a card across the page.
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-4 md:grid-cols-3">
+    <div className="@container flex flex-col gap-4">
+      <div className="grid gap-4 @2xl:grid-cols-3">
         <TextField
           label={t('builder.key')}
           help={t(locked ? 'builder.key_kept' : 'builder.key_help')}
@@ -315,7 +527,7 @@ function FieldSettings({
         )}
       </div>
       {'required' in field ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 @2xl:grid-cols-3">
           <TextField
             label={t('builder.help_en')}
             value={field.help?.en ?? ''}
@@ -346,7 +558,7 @@ function FieldSettings({
       ) : null}
 
       {field.type === 'short_text' || field.type === 'long_text' ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 @2xl:grid-cols-3">
           {number('minLength', t('builder.min_length'))}
           {number('maxLength', t('builder.max_length'))}
           {field.type === 'short_text' ? (
@@ -362,14 +574,14 @@ function FieldSettings({
         </div>
       ) : null}
       {field.type === 'number' ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 @2xl:grid-cols-3">
           {number('min', t('builder.min'))}
           {number('max', t('builder.max'))}
           {number('decimals', t('builder.decimals'))}
         </div>
       ) : null}
       {field.type === 'currency' ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 @2xl:grid-cols-3">
           {(['min', 'max'] as const).map((key) => (
             <TextField
               key={key}
@@ -385,7 +597,7 @@ function FieldSettings({
         </div>
       ) : null}
       {field.type === 'date' ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 @2xl:grid-cols-3">
           {number('minDaysFromToday', t('builder.min_days'))}
           {number('maxDaysFromToday', t('builder.max_days'))}
         </div>
@@ -414,7 +626,7 @@ function FieldSettings({
             <OptionsEditor options={field.options ?? []} onChange={(options) => set({ options })} />
           ) : null}
           {field.type === 'multi_select' ? (
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 @2xl:grid-cols-3">
               {number('minSelected', t('builder.min_selected'))}
               {number('maxSelected', t('builder.max_selected'))}
             </div>
@@ -451,7 +663,7 @@ function FieldSettings({
         </ChoiceGroup>
       ) : null}
       {field.type === 'product_lines' ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 @2xl:grid-cols-3">
           <Checkbox
             label={t('builder.quantities')}
             detail={t('builder.quantities_help')}
@@ -489,7 +701,7 @@ function FieldSettings({
       ) : null}
       {field.type === 'repeating_group' ? (
         <div className="flex flex-col gap-3">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 @2xl:grid-cols-3">
             {number('maxItems', t('builder.max_items'))}
           </div>
           <h3 className="heading-md">{t('builder.group_fields')}</h3>
@@ -611,6 +823,33 @@ function ClauseValue({
   );
 }
 
+/** A condition in the reader's words: "Visit purpose equal to Crop advice and Paid equal to Yes". */
+export function conditionSentence(
+  condition: Condition,
+  earlier: readonly AnyFormField[],
+  t: ReturnType<typeof useLanguage>['t'],
+  locale: Locale,
+): string {
+  return condition.clauses
+    .map((clause) => {
+      const field = earlier.find((entry) => entry.key === clause.field);
+      const options = field && 'options' in field ? (field.options ?? []) : [];
+      const word = (value: unknown) =>
+        typeof value === 'boolean'
+          ? t(value ? 'common.yes' : 'common.no')
+          : (options.find((option) => option.key === value)?.label[locale] ?? String(value));
+      const value = Array.isArray(clause.value)
+        ? clause.value.map(word).join(', ')
+        : clause.value === undefined
+          ? ''
+          : word(clause.value);
+      return [field ? title(field, locale) : clause.field, t(`builder.op_${clause.op}`), value]
+        .filter(Boolean)
+        .join(' ');
+    })
+    .join(t(condition.match === 'any' ? 'builder.or' : 'builder.and'));
+}
+
 /**
  * "Show when …": clauses on earlier fields, all or any of which must hold (spec 5.6). Approval
  * chains use it too, on a request's facts, under their own legend (decision D74).
@@ -669,6 +908,9 @@ export function ConditionEditor({
       <legend id={groupId} className="font-semibold">
         {legend ?? t('builder.show_when')}
       </legend>
+      <div className="ks-notice">
+        <span>{conditionSentence(condition, usable, t, locale)}</span>
+      </div>
       <SelectField
         label={t('builder.match')}
         value={condition.match}

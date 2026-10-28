@@ -13,6 +13,7 @@ import {
   type ImportTargetSource,
   ImportTargets,
   type TargetField,
+  checked,
 } from '../imports/targets';
 import { MetricsService } from '../metrics/metrics.service';
 import { MetricsEngine } from './metrics-engine';
@@ -153,7 +154,7 @@ export class ExternalMetricsImport implements ImportTargetSource, OnModuleInit {
   }
 
   async check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
-    return (await this.plan(tx, rows, context)).problems;
+    return checked((await this.plan(tx, rows, context)).problems);
   }
 
   async commit(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {

@@ -23,6 +23,7 @@ import {
   type ImportTargetSource,
   ImportTargets,
   type TargetField,
+  checked,
 } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { CatalogueService } from './catalogue.service';
@@ -388,7 +389,11 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
   }
 
   async check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
-    return (await this.plan(tx, rows, context)).problems;
+    const { problems, planned } = await this.plan(tx, rows, context);
+    return checked(
+      problems,
+      planned.map((entry) => ({ existing: entry.id !== null })),
+    );
   }
 
   async commit(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {

@@ -87,14 +87,22 @@ export const REPORT_COLUMN_KINDS = [
   'date',
   'datetime',
   'boolean',
+  /** A status in words, which screens show as a badge in the tone given for it. */
+  'status',
 ] as const;
 export const ReportColumnKind = z.enum(REPORT_COLUMN_KINDS);
+
+/** The badge tones a status column may give its values. */
+export const REPORT_TONES = ['success', 'pending', 'waiting', 'info', 'danger', 'neutral'] as const;
+export type ReportTone = (typeof REPORT_TONES)[number];
 
 export const ReportColumn = z.object({
   key: z.string(),
   /** The heading in the language asked for, with the tenant's terms in it. */
   label: z.string(),
   kind: ReportColumnKind,
+  /** A status column's tone for each of its values, by the value as the reader sees it. */
+  tones: z.record(z.string(), z.enum(REPORT_TONES)).optional(),
 });
 
 /**

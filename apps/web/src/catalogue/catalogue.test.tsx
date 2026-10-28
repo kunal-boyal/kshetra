@@ -200,6 +200,55 @@ const ENTRY = {
   rate: '360.00',
 };
 
+describe('the catalogue with its price lists (decision D104)', () => {
+  it('shows a tab for each list, with who it is for, when, and its prices beside the MRP', async () => {
+    const client = fakeClient(
+      {
+        '/v1/catalogue': CATALOGUE,
+        '/v1/price-lists': { items: [LIST, RETAIL] },
+        [`/v1/price-lists/${LIST.id}/items`]: { items: [ENTRY], nextCursor: null },
+      },
+      {},
+      ['catalogue.manage', 'price_list.manage'],
+    );
+    renderAt('/settings/catalogue', client);
+    const user = userEvent.setup();
+    expect(await screen.findByText('2 items · 2 price lists')).toBeVisible();
+    const tabs = await screen.findByRole('tablist', { name: 'Items and price lists' });
+    expect(
+      within(tabs)
+        .getAllByRole('tab')
+        .map((tab) => tab.textContent),
+    ).toEqual(['All items', 'Standard', 'Retail']);
+    expect(
+      within(screen.getByRole('table', { name: 'Catalogue items' })).getByRole('row', {
+        name: /Neem Shield 500 ML/,
+      }),
+    ).toHaveTextContent('3808');
+    await user.click(within(tabs).getByRole('tab', { name: 'Standard' }));
+    const panel = screen.getByRole('tabpanel');
+    expect(within(panel).getByText('Everyone (default)')).toBeVisible();
+    const row = within(
+      await within(panel).findByRole('table', { name: 'Prices on Standard' }),
+    ).getByRole('row', { name: /Neem Shield/ });
+    expect(row).toHaveTextContent('₹450.00');
+    expect(row).toHaveTextContent('₹400.00');
+    expect(row).toHaveTextContent('3808');
+    expect(within(panel).getByRole('link', { name: 'Change this list' })).toHaveAttribute(
+      'href',
+      `/settings/price-lists/${LIST.id}`,
+    );
+  });
+
+  it('shows the items alone to those who keep no price lists', async () => {
+    const client = fakeClient({ '/v1/catalogue': CATALOGUE }, {}, ['catalogue.manage']);
+    renderAt('/settings/catalogue', client);
+    expect(await screen.findByRole('table', { name: 'Catalogue items' })).toBeVisible();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(client.request).not.toHaveBeenCalledWith('GET', '/v1/price-lists', expect.anything());
+  });
+});
+
 describe('price lists', () => {
   it('lists every price list, who it is for and when it applies', async () => {
     const client = fakeClient({ '/v1/price-lists': { items: [LIST, RETAIL] } }, {}, [

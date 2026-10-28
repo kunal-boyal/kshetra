@@ -25,6 +25,7 @@ import {
   type ImportTargetSource,
   ImportTargets,
   type TargetField,
+  checked,
 } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
@@ -392,7 +393,11 @@ export class UsersImport implements ImportTargetSource, OnModuleInit {
   }
 
   async check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
-    return (await this.plan(tx, rows, context)).problems;
+    const { problems, entries } = await this.plan(tx, rows, context);
+    return checked(
+      problems,
+      entries.map((entry) => ({ existing: entry.existing !== undefined })),
+    );
   }
 
   async commit(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {

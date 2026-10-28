@@ -34,9 +34,11 @@ function job(id: string, overrides: Record<string, unknown>) {
       { key: 'custom.hq', required: false, label: { en: 'HQ', hi: 'मुख्यालय' } },
     ],
     totalRows: 2,
+    skippedRows: null,
     errorRows: null,
     errors: [],
     preview: [],
+    planned: null,
     created: null,
     updated: null,
     createdBy: ADMIN,
@@ -55,8 +57,10 @@ const INVALID_JOB = job(INVALID, {
       row: 4,
       field: 'reports_to',
       issue: 'A Verma could be Asha Verma (OLD-1) or Anil Verma (OLD-2); write the code',
+      value: 'A Verma',
     },
   ],
+  skippedRows: 2,
   preview: [
     {
       row: 4,
@@ -176,8 +180,8 @@ async function expectAccessible(page: Page) {
 
 const PAGES = [
   { path: '/imports', heading: 'Imports', shows: 'october.xlsx' },
-  { path: `/imports/${MAPPING}`, heading: 'people.csv', shows: 'The headings are in row 3' },
-  { path: `/imports/${INVALID}`, heading: 'october.xlsx', shows: 'Nothing has been imported' },
+  { path: `/imports/${MAPPING}`, heading: 'People', shows: 'The headings are in row 3' },
+  { path: `/imports/${INVALID}`, heading: 'People', shows: 'Nothing has been imported' },
   { path: '/territories', heading: 'Territories', shows: 'Delhi' },
 ];
 

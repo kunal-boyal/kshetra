@@ -7,6 +7,8 @@ import {
   EmptyState,
   Icon,
   StatusBadge,
+  Tabs,
+  tabPanelProps,
   TextField,
 } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -17,7 +19,8 @@ import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { PageHeader } from '../people/shared';
-import { useCatalogue } from './data';
+import { PriceListTab } from './price-list-tab';
+import { useCatalogue, usePriceLists } from './data';
 
 /**
  * The catalogue (spec 5.11, 8.2): the items the tenant sells, by product, with their units and
@@ -32,6 +35,10 @@ export function CataloguePage() {
   const config = useConfig(client, queryClient);
   const catalogue = useCatalogue();
   const [q, setQ] = useState('');
+  // Price lists show as tabs to those who keep them.
+  const lists = usePriceLists(access.can('price_list.manage'));
+  const [view, setView] = useState('all');
+  const shownList = lists.data?.find((list) => list.id === view);
   const currency = config.data?.bundle.settings.currency ?? 'INR';
   const unitName = (key: string, count: number) => {
     const unit = catalogue.data?.units.find((entry) => entry.key === key);
@@ -112,6 +119,11 @@ export function CataloguePage() {
         `${formatNumber(item.taxRate as `${number}`, { locale }, { maximumFractionDigits: 4 })}%`,
     },
     {
+      key: 'hsn',
+      header: t('catalogue.hsn'),
+      render: (item) => (item.hsn ? <code>{item.hsn}</code> : '—'),
+    },
+    {
       key: 'mrp',
       header: t('catalogue.mrp'),
       align: 'end',
@@ -131,7 +143,18 @@ export function CataloguePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('catalogue.title')} intro={t('catalogue.intro')}>
+      <PageHeader
+        title={t('catalogue.title')}
+        intro={t('catalogue.intro')}
+        meta={[
+          t('catalogue.count_items', {
+            count: formatNumber(catalogue.data?.items.length ?? 0, { locale }),
+          }),
+          ...(lists.data
+            ? [t('catalogue.count_lists', { count: formatNumber(lists.data.length, { locale }) })]
+            : []),
+        ].join(' · ')}
+      >
         {access.can('catalogue.manage') ? (
           <Button
             variant="primary"
@@ -151,36 +174,56 @@ export function CataloguePage() {
           </Button>
         ) : null}
       </PageHeader>
-      <div className="grid gap-4 md:grid-cols-2" role="search">
-        <TextField
-          label={t('catalogue.search')}
-          type="search"
-          value={q}
-          onChange={(event) => setQ(event.target.value)}
+      {lists.data && lists.data.length > 0 ? (
+        <Tabs<string>
+          label={t('catalogue.views')}
+          idPrefix="catalogue"
+          value={view}
+          onChange={setView}
+          choices={[
+            { value: 'all', label: t('catalogue.all_items') },
+            ...lists.data.map((list) => ({ value: list.id, label: list.name })),
+          ]}
         />
+      ) : null}
+      <div {...tabPanelProps('catalogue', view)} className="flex min-w-0 flex-col gap-6">
+        {shownList ? (
+          <PriceListTab list={shownList} items={catalogue.data?.items ?? []} currency={currency} />
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-2" role="search">
+              <TextField
+                label={t('catalogue.search')}
+                type="search"
+                value={q}
+                onChange={(event) => setQ(event.target.value)}
+              />
+            </div>
+            {catalogue.isError ? (
+              <p className="ks-help error" role="alert">
+                {errorMessage(catalogue.error, t)}
+              </p>
+            ) : catalogue.isPending ? (
+              <p className="ks-muted">{t('common.loading')}</p>
+            ) : (
+              <DataTable
+                caption={t('catalogue.caption')}
+                columns={columns}
+                rows={rows}
+                rowKey={(item) => item.id}
+                empty={
+                  <EmptyState
+                    icon={<Icon icon={needle ? Search : Package} />}
+                    title={t(needle ? 'catalogue.no_match' : 'catalogue.empty_title')}
+                  >
+                    {t(needle ? 'catalogue.no_match_body' : 'catalogue.empty_body')}
+                  </EmptyState>
+                }
+              />
+            )}
+          </>
+        )}
       </div>
-      {catalogue.isError ? (
-        <p className="ks-help error" role="alert">
-          {errorMessage(catalogue.error, t)}
-        </p>
-      ) : catalogue.isPending ? (
-        <p className="ks-muted">{t('common.loading')}</p>
-      ) : (
-        <DataTable
-          caption={t('catalogue.caption')}
-          columns={columns}
-          rows={rows}
-          rowKey={(item) => item.id}
-          empty={
-            <EmptyState
-              icon={<Icon icon={needle ? Search : Package} />}
-              title={t(needle ? 'catalogue.no_match' : 'catalogue.empty_title')}
-            >
-              {t(needle ? 'catalogue.no_match_body' : 'catalogue.empty_body')}
-            </EmptyState>
-          }
-        />
-      )}
     </div>
   );
 }
