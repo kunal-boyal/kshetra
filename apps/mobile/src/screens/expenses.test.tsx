@@ -172,6 +172,18 @@ function fakeClient(offline = false) {
         return { items: url.includes(`period=${PERIOD}`) ? CLAIMS : [], nextCursor: null };
       }
       // Claims wait for a signal, as in a field with none.
+      if (method === 'POST' && url === '/v1/approvals/preview') {
+        return {
+          blocked: false,
+          steps: [
+            {
+              approvers: [{ id: OWNER.split(':')[1]!, code: 'SUN-003', name: 'Meena Shah' }],
+              escalated: false,
+              fallback: false,
+            },
+          ],
+        };
+      }
       if (method === 'POST') throw new NetworkError('offline');
       return {};
     }),
@@ -240,6 +252,9 @@ describe('expenses on the phone (M12, spec 8.1)', () => {
     expect(screen.getByText('₹1,200.00')).toBeOnTheScreen();
     expect(screen.getByText('Capped from ₹1,500.00')).toBeOnTheScreen();
     expect(screen.getByText('Needs a receipt before approval')).toBeOnTheScreen();
+    // The month claims both, exact as paise.
+    expect(screen.getByText('Claimed this month')).toBeOnTheScreen();
+    expect(screen.getByText('₹1,612.50')).toBeOnTheScreen();
     // Only a waiting claim takes another receipt.
     expect(screen.getAllByRole('button', { name: 'Add a receipt' })).toHaveLength(1);
     await fireEvent.press(screen.getByRole('button', { name: 'Claim an expense' }));
@@ -253,15 +268,19 @@ describe('expenses on the phone (M12, spec 8.1)', () => {
     await fireEvent.changeText(screen.getByLabelText(/^Closing reading/), '1042');
     expect(await screen.findByText('Comes to ₹336.00')).toBeOnTheScreen();
     expect(screen.getByText('Add photos of the opening and closing readings')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Send the claim' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Send the claim/ })).toBeDisabled();
 
     // FX-22: three days at the designation's 500, capped at 1,200 a claim.
     await fireEvent.press(screen.getByRole('radio', { name: /Daily allowance/ }));
     await fireEvent.changeText(screen.getByLabelText(/^Days/), '3');
     expect(await screen.findByText('Comes to ₹1,200.00')).toBeOnTheScreen();
     expect(screen.getByText('Capped from ₹1,500.00')).toBeOnTheScreen();
+    // Who decides it, routed with its amount and that it was capped.
+    expect(await screen.findByText('After you send it')).toBeOnTheScreen();
+    expect(await screen.findByText('Meena Shah')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Send the claim · ₹1,200.00' })).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText(/^Description/), 'Tour of the north');
-    await fireEvent.press(screen.getByRole('button', { name: 'Send the claim' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Send the claim/ }));
     await waitFor(async () => {
       const [item] = await new Outbox(db, {}).items(OWNER);
       expect(item).toMatchObject({
@@ -296,7 +315,7 @@ describe('expenses on the phone (M12, spec 8.1)', () => {
     expect(await screen.findByText('Comes to ₹428.00')).toBeOnTheScreen();
     expect(screen.queryByText('Add photos of the opening and closing readings')).toBeNull();
     await fireEvent.changeText(screen.getByLabelText(/^Description/), 'Beat and back');
-    await fireEvent.press(screen.getByRole('button', { name: 'Send the claim' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Send the claim/ }));
     await waitFor(async () => {
       const [item] = await new Outbox(db, {}).items(OWNER);
       expect(item).toMatchObject({

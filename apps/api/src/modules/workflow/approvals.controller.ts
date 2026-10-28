@@ -5,6 +5,8 @@ import {
   ApprovalInboxResult,
   ApprovalMineQuery,
   ApprovalMineResult,
+  ApprovalPreviewBody,
+  ApprovalPreviewResult,
   ApprovalResult,
   BulkApprovalBody,
   BulkApprovalResult,
@@ -56,6 +58,22 @@ export class ApprovalsController {
   mine(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = ApprovalMineQuery.parse(query);
     return this.database.forTenant(access.tenantId, (tx) => this.approvals.mine(tx, access, input));
+  }
+
+  @Post('preview')
+  @Contract({
+    tag: 'Approvals',
+    summary: 'Who would decide a request of this type from the caller, without making one',
+    body: ApprovalPreviewBody,
+    response: ApprovalPreviewResult,
+  })
+  @SignedIn()
+  @HttpCode(200)
+  preview(@CurrentAccess() access: Access, @Body() body: unknown) {
+    const input = ApprovalPreviewBody.parse(body);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.approvals.preview(tx, access, input),
+    );
   }
 
   @Post('decisions')

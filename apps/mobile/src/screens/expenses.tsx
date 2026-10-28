@@ -1,18 +1,22 @@
 import { spacing } from '@thelamp/design-tokens';
 import { formatDate, formatDateTime, formatMoney, formatMonth } from '@thelamp/i18n';
-import { type ExpenseClaimResult, todayIn } from '@thelamp/shared';
+import { type ExpenseClaimResult, scaled, todayIn, unscaled } from '@thelamp/shared';
 import {
+  AppBar,
   type BadgeVariant,
   Button,
   Card,
   EmptyState,
+  Flag,
+  IconButton,
+  IconChip,
+  PhotoTile,
   Screen,
   StatusBadge,
   Text,
 } from '@thelamp/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
 import {
-  ArrowLeft,
   Camera,
   ChevronLeft,
   ChevronRight,
@@ -27,6 +31,7 @@ import { takeResults } from '../capture-results';
 import { useConfig } from '../data';
 import { queueReceipts, useExpensePolicies, useMyClaims, useQueuedExpenses } from '../expenses';
 import { errorMessage, useLanguage } from '../i18n';
+import { usePhotoLink } from '../review';
 import { useSync } from '../sync';
 import { shiftMonth } from './month-days';
 
@@ -68,6 +73,13 @@ export function ExpensesScreen() {
   const money = (amount: string) => formatMoney(amount as `${number}`, { locale, currency });
   const queuedClaims = queued.claims.filter((claim) => claim.expenseDate.startsWith(period));
   const receiptsQueued = new Set(queued.receipts.map((entry) => entry.claimId));
+  // What the month claims, neither turned down nor withdrawn, exact as paise.
+  const total = unscaled(
+    (claims.data?.data ?? [])
+      .filter((claim) => claim.state !== 'rejected' && claim.state !== 'cancelled')
+      .reduce((sum, claim) => sum + scaled(claim.amount, 2), 0n),
+    2,
+  );
 
   // Back from the camera with a receipt for a waiting claim.
   useFocusEffect(
@@ -87,15 +99,11 @@ export function ExpensesScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <Button
-        variant="ghost"
-        icon={ArrowLeft}
-        label={t('common.back')}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      <AppBar
+        title={t('claims.title')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        backLabel={t('common.back')}
       />
-      <Text variant="headingXl" role="heading">
-        {t('claims.title')}
-      </Text>
       {permissions.has('expense.claim') ? (
         <Button
           variant="primary"
@@ -105,8 +113,7 @@ export function ExpensesScreen() {
         />
       ) : null}
       <View style={styles.months}>
-        <Button
-          variant="ghost"
+        <IconButton
           icon={ChevronLeft}
           label={t('attendance.previous')}
           onPress={() => setPeriod(shiftMonth(period, -1))}
@@ -114,8 +121,7 @@ export function ExpensesScreen() {
         <Text variant="headingMd" style={styles.month}>
           {formatMonth(period, { locale })}
         </Text>
-        <Button
-          variant="ghost"
+        <IconButton
           icon={ChevronRight}
           label={t('attendance.next')}
           disabled={period >= thisMonth}
@@ -146,6 +152,16 @@ export function ExpensesScreen() {
               time: formatDateTime(claims.data.readAt, { locale, timeZone }),
             })}
           </Text>
+          {claims.data.data.length > 0 ? (
+            <Card style={styles.total}>
+              <Text variant="labelLg" style={styles.texts}>
+                {t('claims.month_total')}
+              </Text>
+              <Text variant="headingLg" style={styles.figure}>
+                {money(total)}
+              </Text>
+            </Card>
+          ) : null}
           {queuedClaims.length === 0 && claims.data.data.length === 0 ? (
             <EmptyState icon={Receipt} title={t('claims.none_title')}>
               {t('claims.none_body')}
@@ -166,36 +182,47 @@ export function ExpensesScreen() {
               {claims.data.data.map((claim) => (
                 <Card key={claim.id} style={styles.stack}>
                   <View style={styles.claim}>
+                    <ReceiptThumb id={claim.receipts[0]} />
                     <View style={styles.texts}>
                       <Text weight={600}>{nameOf(claim.policy)}</Text>
-                      <Text tone="muted">
+                      <Text variant="bodySm" tone="muted">
                         {`${formatDate(claim.expenseDate, { locale })} · ${claim.description}`}
                       </Text>
-                      <Text weight={600}>{money(claim.amount)}</Text>
                       {claim.capped ? (
                         <Text variant="bodySm" tone="muted">
                           {t('claims.capped_from', { amount: money(claim.calculated) })}
                         </Text>
                       ) : null}
                     </View>
-                    <StatusBadge
-                      variant={STATE_BADGE[claim.state]}
-                      label={
-                        claim.state === 'paid'
-                          ? t('claims.state_paid')
-                          : t(`approval.status_${claim.state}`)
-                      }
-                    />
-                  </View>
-                  {claim.flags
-                    .filter((flag) => flag !== 'capped')
-                    .map((flag) => (
-                      <Text key={flag} tone={flag === 'duplicate_receipt' ? 'danger' : 'muted'}>
-                        {t(
-                          `claims.flag_${flag as 'receipt_missing' | 'duplicate_receipt' | 'odometer_changed'}`,
-                        )}
+                    <View style={styles.end}>
+                      <Text weight={600} style={styles.figure}>
+                        {money(claim.amount)}
                       </Text>
-                    ))}
+                      <StatusBadge
+                        variant={STATE_BADGE[claim.state]}
+                        label={
+                          claim.state === 'paid'
+                            ? t('claims.state_paid')
+                            : t(`approval.status_${claim.state}`)
+                        }
+                      />
+                    </View>
+                  </View>
+                  {claim.flags.some((flag) => flag !== 'capped') ? (
+                    <View style={styles.flags}>
+                      {claim.flags
+                        .filter((flag) => flag !== 'capped')
+                        .map((flag) => (
+                          <Flag
+                            key={flag}
+                            tone={flag === 'duplicate_receipt' ? 'danger' : 'waiting'}
+                            label={t(
+                              `claims.flag_${flag as 'receipt_missing' | 'duplicate_receipt' | 'odometer_changed'}`,
+                            )}
+                          />
+                        ))}
+                    </View>
+                  ) : null}
                   {claim.state === 'pending' ? (
                     receiptsQueued.has(claim.id) ? (
                       <Text tone="muted">{t('claims.receipt_queued')}</Text>
@@ -224,7 +251,21 @@ export function ExpensesScreen() {
   );
 }
 
+/** A claim's first receipt, or a receipt chip when it has none. */
+function ReceiptThumb({ id }: { id: string | undefined }) {
+  const { t } = useLanguage();
+  const link = usePhotoLink(id ?? '', id !== undefined);
+  if (!id) return <IconChip icon={Receipt} hue="sand" />;
+  return (
+    <PhotoTile label={t('claims.receipt_photo')} {...(link.data ? { uri: link.data.url } : {})} />
+  );
+}
+
 const styles = StyleSheet.create({
+  total: { flexDirection: 'row', alignItems: 'center', gap: spacing.space3 },
+  figure: { fontVariant: ['tabular-nums'], textAlign: 'right' },
+  end: { alignItems: 'flex-end', gap: spacing.space1 },
+  flags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.space1 },
   stack: { gap: spacing.space3 },
   months: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   month: { flex: 1, textAlign: 'center' },

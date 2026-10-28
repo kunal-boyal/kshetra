@@ -1323,6 +1323,16 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(await asB('GET', `/v1/approvals/mine?cursor=${aApprovalId}`));
     },
   },
+  'POST /v1/approvals/preview': {
+    kind: 'own tenant',
+    run: async () =>
+      holdsNothingOfA(
+        await asB('POST', '/v1/approvals/preview', {
+          requestType: 'leave',
+          facts: { leave_days: 1 },
+        }),
+      ),
+  },
   'POST /v1/approvals/decisions': {
     kind: 'by ID',
     run: async () => {

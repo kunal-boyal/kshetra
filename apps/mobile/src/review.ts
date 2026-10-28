@@ -55,9 +55,10 @@ export function useDecide() {
 }
 
 /** A short-lived link to a photo's thumbnail. */
-export function usePhotoLink(id: string) {
+export function usePhotoLink(id: string, enabled = true) {
   const { client } = useApp();
   return useQuery({
+    enabled,
     queryKey: ['photo-link', id],
     queryFn: async () =>
       (await client.request('GET', `/v1/media/${id}/url?variant=thumbnail`, MediaUrlResult))!,

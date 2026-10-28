@@ -235,6 +235,8 @@ export {
   ApprovalInboxResult,
   ApprovalMineQuery,
   ApprovalMineResult,
+  ApprovalPreviewBody,
+  ApprovalPreviewResult,
   ApprovalResult,
   ApprovalStatus,
   ApprovalStep,

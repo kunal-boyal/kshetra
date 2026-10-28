@@ -1,13 +1,26 @@
-import { size, spacing } from '@thelamp/design-tokens';
-import { formatDateTime, formatNumber } from '@thelamp/i18n';
+import { radius, size, spacing } from '@thelamp/design-tokens';
+import { formatDateTime, formatMonth, formatNumber, formatTime } from '@thelamp/i18n';
 import type { PerformanceMetric } from '@thelamp/shared';
-import { Button, KpiTile, ListGroup, Notice, Screen, StatusBadge, Text } from '@thelamp/ui-mobile';
+import {
+  AppBar,
+  Button,
+  KpiTile,
+  ListGroup,
+  ListRow,
+  Notice,
+  ScoreRing,
+  Screen,
+  SeqBadge,
+  StatusBadge,
+  Text,
+  useTheme,
+} from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
-import { ArrowLeft, ChartNoAxesColumn, RotateCw, Trophy } from 'lucide-react-native';
+import { ChartNoAxesColumn, RotateCw, Trophy } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
-import { useMonth, useMyMonth, useTileParts } from '../performance';
+import { useLeaderboard, useMonth, useMyMonth, useTileParts } from '../performance';
 
 /** Pairs of tiles, two-up on a phone (components/KpiTile). */
 function pairs<T>(items: readonly T[]): T[][] {
@@ -88,106 +101,194 @@ export function MonthGlance() {
   );
 }
 
-/** The whole month on a screen of its own, until stage M6 gives it the prototype's look. */
+/** How many leaderboard rows My month shows; the person's own joins them when further down. */
+const BOARD_ROWS = 5;
+
+/**
+ * `/month`: the whole month (spec 8.1, M9) as the prototype's AppMonth (decision D104): the month
+ * and when it was read in the bar, then My month below.
+ */
 export function MonthScreen() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const config = useConfig();
+  const period = useMonth();
+  const kept = useMyMonth(period).data;
+  const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <Button
-        variant="ghost"
-        icon={ArrowLeft}
-        label={t('common.back')}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      <AppBar
+        title={formatMonth(period, { locale })}
+        {...(kept
+          ? {
+              subtitle: t('performance.updated', {
+                time: formatTime(kept.readAt, { locale, timeZone }),
+              }),
+            }
+          : {})}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        backLabel={t('common.back')}
       />
       <MyMonth />
     </Screen>
   );
 }
 
+/** Where the rank moved since last week, or nothing without a rank then. */
+function movement(
+  rank: number | null,
+  previous: number | null,
+  t: ReturnType<typeof useLanguage>['t'],
+): string | null {
+  if (rank === null || previous === null) return null;
+  if (rank < previous) return t('performance.moved_up', { count: previous - rank });
+  if (rank > previous) return t('performance.moved_down', { count: rank - previous });
+  return t('performance.moved_same');
+}
+
 /**
- * My month (spec 8.1, M9): a tile per metric with a target first, the approved actual
- * against it and pending work apart, then the score and rank, and the way to the leaderboard. It
- * shows the last figures the phone read, and when, without signal.
+ * My month (spec 8.1, M9): the score as a ring on the product's Forest panel with the rank and
+ * where it moved, a tile per metric with a target first, the approved actual against it and
+ * pending work apart, and the person's group on the leaderboard. It shows the last figures the
+ * phone read, and when, without signal.
  */
 export function MyMonth() {
   const { t, locale } = useLanguage();
+  const theme = useTheme();
   const config = useConfig();
   const period = useMonth();
   const month = useMyMonth(period);
   const permissions = new Set<string>(config.data?.bundle.access.permissions ?? []);
   const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';
   const kept = month.data;
-
   if (!kept) {
-    return (
-      <ListGroup title={t('performance.my_month')}>
-        {month.isError ? (
-          <View style={styles.stack}>
-            <Text tone="danger" role="alert">
-              {errorMessage(month.error, t)}
-            </Text>
-            <Button
-              variant="secondary"
-              icon={RotateCw}
-              label={t('common.retry')}
-              onPress={() => void month.refetch()}
-            />
-          </View>
-        ) : (
-          <Text tone="muted">{t('common.loading')}</Text>
-        )}
-      </ListGroup>
+    return month.isError ? (
+      <View style={styles.stack}>
+        <Text tone="danger" role="alert">
+          {errorMessage(month.error, t)}
+        </Text>
+        <Button
+          variant="secondary"
+          icon={RotateCw}
+          label={t('common.retry')}
+          onPress={() => void month.refetch()}
+        />
+      </View>
+    ) : (
+      <Text tone="muted">{t('common.loading')}</Text>
     );
   }
-
   const data = kept.data;
   const metrics = inOrder(data);
+  const ink = { color: theme.colors.onBrand };
+  const moved = movement(data.rank, data.previousRank, t);
   return (
-    <ListGroup title={t('performance.my_month')}>
-      <View style={styles.stack}>
-        <View style={styles.summary}>
-          <Text variant="headingMd">
-            {data.score === null
+    <View style={styles.stack}>
+      <View style={[styles.panel, { backgroundColor: theme.colors.brandForest }]}>
+        <ScoreRing
+          value={data.score}
+          label={
+            data.score === null
               ? t('performance.not_ranked')
-              : t('performance.score_is', { score: data.score })}
+              : t('performance.ring_label', { score: formatNumber(data.score, { locale }) })
+          }
+        />
+        <View style={styles.grow}>
+          <Text variant="labelMd" weight={600} style={[ink, styles.soft]}>
+            {t('performance.my_score')}
           </Text>
-          {data.rank !== null && data.group ? (
-            <Text tone="muted">
-              {t('performance.rank_in', {
-                rank: data.rank,
-                size: data.group.size,
-                group: data.group.name[locale].other,
-              })}
+          <Text variant="headingLg" style={ink}>
+            {data.rank !== null && data.group
+              ? t('performance.rank_hash', {
+                  rank: formatNumber(data.rank, { locale }),
+                  size: formatNumber(data.group.size, { locale }),
+                })
+              : t('performance.not_ranked')}
+          </Text>
+          {moved ? (
+            <Text variant="bodySm" style={[ink, styles.soft]}>
+              {moved}
             </Text>
           ) : null}
         </View>
-        <Notice>{data.locked ? t('copy.pending_work') : t('performance.not_locked')}</Notice>
-        {pairs(metrics).map((row) => (
-          <View key={row.map((metric) => metric.key).join()} style={styles.pair}>
-            {row.map((metric) => (
-              <MetricTile key={metric.key} metric={metric} data={data} />
-            ))}
-            {row.length === 1 ? <View style={styles.filler} /> : null}
-          </View>
-        ))}
-        <Text variant="bodySm" tone="muted">
-          {t('performance.read_at', { time: formatDateTime(kept.readAt, { locale, timeZone }) })}
-        </Text>
-        {permissions.has('leaderboard.view') ? (
-          <Button
-            variant="tonal"
-            icon={Trophy}
-            label={t('leaderboard.title')}
-            onPress={() => router.push('/leaderboard')}
-          />
-        ) : null}
       </View>
-    </ListGroup>
+      <Notice>{data.locked ? t('copy.pending_work') : t('performance.not_locked')}</Notice>
+      {pairs(metrics).map((row) => (
+        <View key={row.map((metric) => metric.key).join()} style={styles.pair}>
+          {row.map((metric) => (
+            <MetricTile key={metric.key} metric={metric} data={data} />
+          ))}
+          {row.length === 1 ? <View style={styles.filler} /> : null}
+        </View>
+      ))}
+      <Text variant="bodySm" tone="muted">
+        {t('performance.read_at', { time: formatDateTime(kept.readAt, { locale, timeZone }) })}
+      </Text>
+      {permissions.has('leaderboard.view') ? <Board period={period} /> : null}
+    </View>
+  );
+}
+
+/** The person's group on the leaderboard: its first rows, theirs tinted, and the way to all. */
+function Board({ period }: { period: string }) {
+  const { t, locale } = useLanguage();
+  const board = useLeaderboard(period).data;
+  if (!board) return null;
+  const group = board.groups.find((entry) => entry.key === board.group);
+  const first = board.rows.slice(0, BOARD_ROWS);
+  const mine = board.rows.findIndex((row) => row.you);
+  const rows = mine >= BOARD_ROWS ? [...first, board.rows[mine]!] : first;
+  return (
+    <View style={styles.stack}>
+      <ListGroup
+        title={
+          group
+            ? t('performance.board_title', { group: group.name[locale].other })
+            : t('leaderboard.title')
+        }
+      >
+        {rows.map((row) => (
+          <ListRow
+            key={row.user.id}
+            lead={
+              row.rank === null ? (
+                <View style={styles.seqSpace} />
+              ) : (
+                <SeqBadge n={row.rank} {...(row.you ? { tone: 'now' as const } : {})} />
+              )
+            }
+            label={row.you ? t('performance.you_row', { name: row.user.name }) : row.user.name}
+            {...(row.territory ? { detail: row.territory.name } : {})}
+            trailing={
+              <Text variant="headingMd" style={styles.figure}>
+                {row.score === null ? '–' : formatNumber(row.score, { locale })}
+              </Text>
+            }
+            highlight={row.you}
+          />
+        ))}
+      </ListGroup>
+      <Button
+        variant="tonal"
+        icon={Trophy}
+        label={t('leaderboard.title')}
+        onPress={() => router.push('/leaderboard')}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   stack: { gap: spacing.space3 },
+  panel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.space4,
+    padding: spacing.space4,
+    borderRadius: radius.radiusXl,
+  },
+  soft: { opacity: 0.85 },
+  figure: { fontVariant: ['tabular-nums'] },
+  seqSpace: { width: 28 },
   summary: { gap: spacing.space1 },
   pair: { flexDirection: 'row', gap: spacing.space3 },
   filler: { flex: 1 },

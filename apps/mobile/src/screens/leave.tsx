@@ -2,6 +2,7 @@ import { spacing } from '@thelamp/design-tokens';
 import { formatDate, formatDateTime, formatNumber } from '@thelamp/i18n';
 import { todayIn } from '@thelamp/shared';
 import {
+  AppBar,
   type BadgeVariant,
   Button,
   Card,
@@ -13,7 +14,7 @@ import {
   Text,
 } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
-import { ArrowLeft, CalendarPlus, CalendarX, RotateCw } from 'lucide-react-native';
+import { CalendarPlus, CalendarX, RotateCw } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
@@ -51,15 +52,11 @@ export function LeaveScreen() {
 
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
-      <Button
-        variant="ghost"
-        icon={ArrowLeft}
-        label={t('common.back')}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      <AppBar
+        title={t('leave.title')}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        backLabel={t('common.back')}
       />
-      <Text variant="headingXl" role="heading">
-        {t('leave.title')}
-      </Text>
       {permissions.has('leave.request') ? (
         <Button
           variant="primary"

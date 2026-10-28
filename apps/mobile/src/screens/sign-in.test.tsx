@@ -237,10 +237,14 @@ describe('Me', () => {
     expect(await screen.findByRole('heading', { name: 'More' })).toBeOnTheScreen();
     expect(await screen.findByRole('button', { name: 'Accounts' })).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Forms' })).toBeNull();
+    // The look and language are segments (D104).
     const outdoor = await screen.findByRole('radio', { name: 'Outdoor' });
     await fireEvent.press(outdoor);
     expect(screen.getByRole('radio', { name: 'Outdoor' })).toBeChecked();
-    await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'हिन्दी' }));
+    expect(await screen.findByRole('heading', { name: 'और' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('radio', { name: 'English' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Sign out' }));
     expect(fake.client.signOut).toHaveBeenCalledTimes(1);
     expect(
       await screen.findByRole('heading', { name: 'Light the way for your field team' }),

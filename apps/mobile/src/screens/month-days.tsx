@@ -30,6 +30,8 @@ export interface DayLook {
   /** Filled with a status's badge tone (components/StatusBadge). */
   tone?: BadgeVariant | undefined;
   selected?: boolean;
+  /** Today, ringed in the accent (decision D104). */
+  today?: boolean;
   /** A dot for something waiting, such as a request still to upload. */
   marked?: boolean;
 }
@@ -72,7 +74,7 @@ export function MonthDays({
         <View key={row} style={styles.week}>
           {week.map((date, column) => {
             if (!date) return <View key={column} style={styles.cell} />;
-            const { label, tone, selected = false, marked = false } = look(date);
+            const { label, tone, selected = false, today = false, marked = false } = look(date);
             return (
               <Pressable
                 key={date}
@@ -88,10 +90,12 @@ export function MonthDays({
                     backgroundColor: tone ? theme.colors[`${tone}Bg`] : theme.colors.surface,
                     borderColor: selected
                       ? theme.colors.focusRing
-                      : tone
-                        ? theme.colors[`${tone}Border`]
-                        : theme.colors.border,
-                    borderWidth: selected ? 2 : 1,
+                      : today
+                        ? theme.colors.accent
+                        : tone
+                          ? theme.colors[`${tone}Border`]
+                          : theme.colors.border,
+                    borderWidth: selected || today ? 2 : 1,
                   },
                 ]}
               >

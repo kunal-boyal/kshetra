@@ -44,6 +44,23 @@ export function useLeaveBalances() {
   }));
 }
 
+/**
+ * What is left of each active type with a quota this year, paid types first (decision D104):
+ * the leave card on Attendance, the type cards and More's Leave row read it.
+ */
+export function leaveLeft(
+  types: readonly LeaveType[],
+  balances: LeaveBalanceResult | undefined,
+): { type: LeaveType; available: number }[] {
+  return types
+    .filter((type) => type.active)
+    .flatMap((type) => {
+      const balance = balances?.items.find((item) => item.leaveType === type.key);
+      return balance?.available != null ? [{ type, available: balance.available }] : [];
+    })
+    .sort((a, b) => Number(b.type.paid) - Number(a.type.paid));
+}
+
 /** The person's own requests starting in a year. */
 export function useMyLeave(year: string) {
   const { client } = useApp();

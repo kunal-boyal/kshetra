@@ -64,6 +64,13 @@ const MONTH = {
   days: [],
 };
 
+/** The month the fake answers with; a test may change it. */
+let month: Omit<typeof MONTH, 'score' | 'rank' | 'previousRank'> & {
+  score: number | null;
+  rank: number | null;
+  previousRank: number | null;
+} = MONTH;
+
 const BOARD = (group: string) => ({
   period: '2026-10',
   groups: [
@@ -129,7 +136,7 @@ function fakeClient(
     request: jest.fn<(...args: unknown[]) => Promise<unknown>>(async (method, path) => {
       if (offline) throw new NetworkError('offline');
       const url = String(path);
-      if (method === 'GET' && url.startsWith('/v1/performance?')) return MONTH;
+      if (method === 'GET' && url.startsWith('/v1/performance?')) return month;
       if (method === 'GET' && url.startsWith('/v1/leaderboard?')) {
         return BOARD(url.includes('group=officer') ? 'officer' : 'executive');
       }
@@ -214,9 +221,12 @@ async function renderPhone(
 
 describe('My month on Home (M9, spec 8.1)', () => {
   it('shows the score and rank, and tiles with targets first, money in lakh, pending apart', async () => {
+    month = MONTH;
     await renderPhone('month');
-    expect(await screen.findByText('Score 59')).toBeOnTheScreen();
-    expect(screen.getByText('Rank 2 of 7 Executives')).toBeOnTheScreen();
+    expect(await screen.findByRole('img', { name: 'Score 59 out of 100' })).toBeOnTheScreen();
+    expect(screen.getByText('Rank #2 of 7')).toBeOnTheScreen();
+    // Without last week's rank, no movement.
+    expect(screen.queryByText(/since last week/)).toBeNull();
     expect(screen.getByText('₹8.5 L')).toBeOnTheScreen();
     expect(screen.getByText('68% of ₹12.4 L')).toBeOnTheScreen();
     expect(screen.getByText('+₹1.1 L pending')).toBeOnTheScreen();
@@ -231,12 +241,33 @@ describe('My month on Home (M9, spec 8.1)', () => {
   });
 
   it('shows the last figures the phone read when there is no signal', async () => {
+    month = MONTH;
     const first = await renderPhone('month');
-    expect(await screen.findByText('Score 59')).toBeOnTheScreen();
+    expect(await screen.findByText('Rank #2 of 7')).toBeOnTheScreen();
     await first.view.unmount();
     await renderPhone('month', { offline: true, db: first.db });
-    expect(await screen.findByText('Score 59')).toBeOnTheScreen();
+    expect(await screen.findByText('Rank #2 of 7')).toBeOnTheScreen();
     expect(screen.getByText(/^As of /)).toBeOnTheScreen();
+  });
+});
+
+describe('My month as the prototype draws it (M6, decision D104)', () => {
+  it('says where the rank moved, and lists the group with the person tinted', async () => {
+    month = { ...MONTH, previousRank: 4 };
+    await renderPhone('month');
+    expect(await screen.findByText('Up 2 places since last week')).toBeOnTheScreen();
+    expect(await screen.findByText('Leaderboard · Executives')).toBeOnTheScreen();
+    expect(screen.getByText('Ravi Kumar')).toBeOnTheScreen();
+    expect(screen.getByText('Asha Rao (you)')).toBeOnTheScreen();
+    expect(screen.getByText('100')).toBeOnTheScreen();
+  });
+
+  it('says not ranked, with an empty ring, without a score', async () => {
+    month = { ...MONTH, score: null, rank: null, previousRank: null };
+    await renderPhone('month');
+    expect(await screen.findByRole('img', { name: 'Not ranked' })).toBeOnTheScreen();
+    expect(screen.getAllByText('Not ranked').length).toBeGreaterThan(0);
+    month = MONTH;
   });
 });
 

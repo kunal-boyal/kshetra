@@ -7655,6 +7655,95 @@
         }
       }
     },
+    "/v1/approvals/preview": {
+      "post": {
+        "operationId": "ApprovalsController.preview",
+        "summary": "Who would decide a request of this type from the caller, without making one",
+        "tags": [
+          "Approvals"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestType": {
+                    "type": "string",
+                    "enum": [
+                      "leave",
+                      "regularisation",
+                      "expense",
+                      "order",
+                      "new_account",
+                      "account_location_change",
+                      "journey_plan",
+                      "target_lock"
+                    ]
+                  },
+                  "facts": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "requestType"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalPreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/attendance": {
       "get": {
         "operationId": "FieldController.attendanceDays",
@@ -26579,6 +26668,64 @@
           "page",
           "createdAt",
           "closedAt"
+        ],
+        "additionalProperties": false
+      },
+      "ApprovalPreview": {
+        "type": "object",
+        "properties": {
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "approvers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "code",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "escalated": {
+                  "type": "boolean"
+                },
+                "fallback": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "approvers",
+                "escalated",
+                "fallback"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "blocked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "steps",
+          "blocked"
         ],
         "additionalProperties": false
       },

@@ -289,6 +289,22 @@ async function openApp(page: Page, pair: Pair) {
   await tab('home');
   await page.getByText(/^Good (morning|afternoon|evening)/).waitFor({ timeout: 30_000 });
   if (pair.portal === '/plan') await tab('plan');
+  if (pair.portal === '/month') {
+    await page.getByRole('link', { name: /^(See my month|Rank #)/ }).click();
+    await page.getByText(/^My score$/).waitFor({ timeout: 15_000 });
+  }
+  if (pair.portal === '/me') await tab('me');
+  if (['/attendance', '/leave/new', '/expenses'].includes(pair.portal as string)) {
+    await tab('me');
+    const row = { '/attendance': /^Attendance/, '/leave/new': /^Leave/, '/expenses': /^Expenses/ }[
+      pair.portal as '/attendance' | '/leave/new' | '/expenses'
+    ];
+    await page.getByRole('button', { name: row }).first().click();
+    if (pair.portal === '/leave/new') {
+      await page.getByRole('button', { name: 'Ask for leave' }).click();
+      await page.getByRole('radio').first().waitFor({ timeout: 15_000 });
+    }
+  }
   if (pair.portal === '/team' || pair.portal === '/approvals') await tab('team');
   if (pair.portal === '/approvals') {
     await page.getByRole('button', { name: /^Approvals/ }).click();
