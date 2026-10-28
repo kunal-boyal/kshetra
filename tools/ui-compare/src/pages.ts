@@ -88,7 +88,7 @@ export const PAIRS: readonly Pair[] = [
     key: 'attendance',
     title: 'Attendance register and leave',
     prototype: 'WebAttendance.dc.html',
-    portal: null,
+    portal: '/attendance',
     stage: 'U8',
   },
   {

@@ -54,6 +54,14 @@ export function formatMonth(period: string, { locale, region }: FormatContext): 
   }).format(new Date(`${period}-01T00:00:00Z`));
 }
 
+/** A weekday's short name, 1 being Monday (ISO 8601), such as a calendar's column. */
+export function formatWeekday(day: number, { locale, region }: FormatContext): string {
+  return new Intl.DateTimeFormat(localeTag(locale, region), {
+    weekday: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2024, 0, day)));
+}
+
 /** A moment in time, shown in the tenant's timezone. */
 export function formatDateTime(
   instant: Date | string,

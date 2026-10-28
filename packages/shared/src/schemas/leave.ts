@@ -73,13 +73,34 @@ export const LeaveRequestResult = z
   })
   .meta({ id: 'LeaveRequest' });
 
-export const LeaveRequestListQuery = z.strictObject({
-  userId: z.uuid().optional(),
-  /** Requests starting in this calendar year. */
-  year: z.coerce.number().int().min(2000).max(2100).optional(),
-});
+export const LeaveRequestListQuery = z
+  .strictObject({
+    userId: z.uuid().optional(),
+    /** Requests starting in this calendar year. */
+    year: z.coerce.number().int().min(2000).max(2100).optional(),
+    /** Everyone the caller sees instead of one person, with `period` (decision D104). */
+    team: z.stringbool().optional(),
+    /** With `team`: requests that take in a day of this month. */
+    period: z
+      .string()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use a month such as 2026-10')
+      .optional(),
+  })
+  .superRefine((query, context) => {
+    if (query.team && (!query.period || query.userId || query.year)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['team'],
+        message: 'Ask for a team with a period, and without a person or year',
+      });
+    }
+  });
 
-export const LeaveRequestListResult = z.object({ items: z.array(LeaveRequestResult) });
+export const LeaveRequestListResult = z.object({
+  items: z.array(LeaveRequestResult),
+  /** Whose requests these are. */
+  people: z.array(z.object({ id: z.uuid(), code: z.string(), name: z.string() })),
+});
 
 export const LeaveBalanceQuery = z.strictObject({
   userId: z.uuid().optional(),

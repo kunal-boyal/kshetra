@@ -303,6 +303,84 @@ describe('regularisation (BR-28)', () => {
   });
 });
 
+describe('the attendance register (decision D104)', () => {
+  type Row = {
+    user: { id: string; name: string };
+    days: { date: string; status: string }[];
+    present: number;
+  };
+  const register = async (api: ReturnType<typeof as>, query: string) => {
+    const answer = await api.get(`/v1/attendance/register?${query}`);
+    expect(answer.statusCode, answer.body).toBe(200);
+    return answer.json() as { items: Row[]; nextCursor: string | null };
+  };
+
+  it("lists everyone in scope by day, narrowed to a territory's people, a page at a time", async () => {
+    const t = await tenant('Register Co');
+    const { period, days, weekdays } = lastMonth();
+    const outsider = await world.user(t.tenantId, {
+      phone: newPhone(),
+      designation: 'executive',
+      joiningDate: '2020-01-01',
+    });
+    const north = await world.territory(t.tenantId, 'NORTH');
+    await world.attach(t.tenantId, t.fieldId, north);
+    // A day fixed as present counts in the total.
+    const fixed = weekdays[2]!;
+    const asked = await t.field.post('/v1/regularisations', {
+      id: newId(),
+      date: fixed,
+      status: 'present',
+      reason: 'Phone was off',
+    });
+    expect(asked.statusCode, asked.body).toBe(201);
+    // The chain: the reporting manager, then the head.
+    let approval = asked.json().approval;
+    for (const api of [t.manager, t.head]) {
+      const decided = await api.post(`/v1/approvals/${approval.id}/decision`, {
+        decision: 'approve',
+        version: approval.version,
+      });
+      expect(decided.statusCode, decided.body).toBe(200);
+      approval = decided.json();
+    }
+    expect(approval.status).toBe('approved');
+
+    const all = await register(t.head, `period=${period}`);
+    expect(all.items.map((row) => row.user.id)).toEqual(
+      expect.arrayContaining([t.fieldId, outsider.id]),
+    );
+    const theirs = all.items.find((row) => row.user.id === t.fieldId)!;
+    expect(theirs.days.map((day) => day.date)).toEqual(days);
+    expect(theirs.days.find((day) => day.date === fixed)!.status).toBe('present');
+    for (const day of theirs.days.filter((entry) => weekday(entry.date) === 7)) {
+      expect(day.status).toBe('weekly_off');
+    }
+    expect(theirs.present).toBe(1);
+
+    // The manager sees their own team only; someone outside it never appears.
+    const team = await register(t.manager, `period=${period}`);
+    expect(team.items.map((row) => row.user.id)).toContain(t.fieldId);
+    expect(team.items.map((row) => row.user.id)).not.toContain(outsider.id);
+
+    // A territory takes in the people attached under it in the month.
+    const narrowed = await register(t.head, `period=${period}&territoryId=${north}`);
+    expect(narrowed.items.map((row) => row.user.id)).toEqual([t.fieldId]);
+
+    // A page at a time.
+    const first = await register(t.head, `period=${period}&limit=1`);
+    expect(first.items).toHaveLength(1);
+    expect(first.nextCursor).toBe('1');
+    const second = await register(t.head, `period=${period}&limit=1&cursor=1`);
+    expect(second.items[0]!.user.id).not.toBe(first.items[0]!.user.id);
+
+    // Someone who sees no one else's work is refused.
+    expect((await t.field.get(`/v1/attendance/register?period=${period}`)).json().error.code).toBe(
+      'FORBIDDEN',
+    );
+  });
+});
+
 describe('holiday imports (Appendix B.7)', () => {
   it('finds calendars by key or name, refuses a day twice, and loads the rest', async () => {
     const t = await tenant('Holiday Import Co');

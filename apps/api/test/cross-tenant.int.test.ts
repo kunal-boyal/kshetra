@@ -1516,6 +1516,19 @@ const FIXTURES: Record<string, Fixture> = {
         a.member.id,
       ),
   },
+  'GET /v1/attendance/register': {
+    kind: 'by ID',
+    run: async () => {
+      const month = NEXT_MONTH.slice(0, 7);
+      const own = await asB('GET', `/v1/attendance/register?period=${month}`);
+      expect(own.statusCode, own.body).toBe(200);
+      holdsNothingOfA(own);
+      await sameAsNowhere(
+        (id) => asB('GET', `/v1/attendance/register?period=${month}&territoryId=${id}`),
+        aTerritoryId,
+      );
+    },
+  },
   'POST /v1/visits': {
     kind: 'by ID',
     run: async () => {
@@ -2389,6 +2402,9 @@ const FIXTURES: Record<string, Fixture> = {
       await sameAsNowhere(
         (id) => asB('GET', `/v1/leave-requests?userId=${id}&year=${LEAVE_DAY.slice(0, 4)}`),
         a.member.id,
+      );
+      holdsNothingOfA(
+        await asB('GET', `/v1/leave-requests?team=true&period=${LEAVE_DAY.slice(0, 7)}`),
       );
     },
   },
