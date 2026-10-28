@@ -1,6 +1,6 @@
 /**
  * Which prototype artboard each built portal page answers to, and the phase U stage that redoes it
- * (docs/superpowers/plans/2026-10-27-ui-revamp.md). The phone's pairs join with stage M1.
+ * (docs/superpowers/plans/2026-10-27-ui-revamp.md). The field app's pairs joined with stage M2.
  */
 export interface Pair {
   key: string;
@@ -15,8 +15,11 @@ export interface Pair {
   stage: string;
   /** Screenshot the portal signed out. */
   signedOut?: boolean;
-  /** The platform console's page rather than the portal's, signed in as vendor staff. */
-  app?: 'console';
+  /**
+   * The platform console's page, signed in as vendor staff, or the field app's screen, run in a
+   * browser at 390 px and signed in as a fresh test person (stage M2).
+   */
+  app?: 'console' | 'phone';
 }
 
 export const PAIRS: readonly Pair[] = [
@@ -210,5 +213,22 @@ export const PAIRS: readonly Pair[] = [
     portal: '/health',
     stage: 'U12',
     app: 'console',
+  },
+  {
+    key: 'app-sign-in',
+    title: 'Field app: sign in',
+    prototype: 'AppSignIn.dc.html',
+    portal: '/',
+    stage: 'M2',
+    signedOut: true,
+    app: 'phone',
+  },
+  {
+    key: 'app-home',
+    title: 'Field app: Home',
+    prototype: 'AppHome.dc.html',
+    portal: '/',
+    stage: 'M2',
+    app: 'phone',
   },
 ];

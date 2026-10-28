@@ -6,6 +6,9 @@
 //   --phone      the number to sign in with, required for portal pairs unless --prototype-only
 //   --console    default http://127.0.0.1:5174; console pairs sign in as vendor staff made for the
 //                run with `pnpm invite-staff` (src/staff.ts), so the API's directory must be local
+//   --app        default http://localhost:8081, the field app in a browser (`pnpm --filter
+//                @thelamp/mobile web`); its pairs (`app-*`) sign in with --app-phone, a fresh
+//                person from `pnpm --filter @thelamp/api e2e:fixtures`, never a seeded one
 //   --only       keys from src/pages.ts, comma-separated
 //   --portal     default http://127.0.0.1:5173
 //   --mailpit    default http://localhost:8025
@@ -35,6 +38,8 @@ const { values } = parseArgs({
     only: { type: 'string' },
     portal: { type: 'string', default: 'http://127.0.0.1:5173' },
     console: { type: 'string', default: 'http://127.0.0.1:5174' },
+    app: { type: 'string', default: 'http://localhost:8081' },
+    'app-phone': { type: 'string' },
     mailpit: { type: 'string', default: 'http://localhost:8025' },
     out: { type: 'string' },
     'prototype-only': { type: 'boolean', default: false },
@@ -45,8 +50,11 @@ const out = values.out ?? join(here, 'out', stamp);
 mkdirSync(out, { recursive: true });
 const wanted = values.only ? new Set(values.only.split(',')) : null;
 const pairs = PAIRS.filter((pair) => !wanted || wanted.has(pair.key));
-if (!values.phone && !values['prototype-only'] && pairs.some((pair) => pair.app !== 'console')) {
+if (!values.phone && !values['prototype-only'] && pairs.some((pair) => !pair.app)) {
   throw new Error('Give --phone, the number a demo person signs in with, or --prototype-only.');
+}
+if (!values['app-phone'] && !values['prototype-only'] && pairs.some((p) => p.app === 'phone')) {
+  throw new Error("Give --app-phone, a fresh e2e:fixtures person, for the field app's pairs.");
 }
 
 const THEMES = ['light', 'dark'] as const;
@@ -153,7 +161,7 @@ try {
       await proto.waitForFunction(
         () => (window as unknown as { rendered?: boolean }).rendered === true,
       );
-      for (const width of WIDTHS) {
+      for (const width of pair.app === 'phone' ? [390] : WIDTHS) {
         await proto.setViewportSize({ width, height: width === 390 ? 844 : 900 });
         const file = await shoot(proto, `${pair.key}.prototype.${theme}.${width}.jpg`);
         shots.push({ key: pair.key, side: 'prototype', theme, width, file });
@@ -180,7 +188,40 @@ try {
     }
   }
 
-  const portalPairs = pairs.filter((pair) => pair.app !== 'console');
+  const appPairs = pairs.filter((pair) => pair.app === 'phone');
+  if (!values['prototype-only'] && appPairs.length > 0) {
+    // The app follows the browser's scheme, so one sign-in serves both themes, as on the portal.
+    const page = await (
+      await browser.newContext({ viewport: { width: 390, height: 844 } })
+    ).newPage();
+    const scheme = (theme: 'light' | 'dark') => page.emulateMedia({ colorScheme: theme });
+    await page.goto(values.app!);
+    const number = page.getByLabel(/^Mobile number/);
+    await number.waitFor({ timeout: 60_000 });
+    for (const theme of THEMES) {
+      await scheme(theme);
+      for (const pair of appPairs.filter((candidate) => candidate.signedOut)) {
+        await shootApp(page, pair, theme);
+      }
+    }
+    const digits = values['app-phone']!.replace(/\D/g, '').slice(-10);
+    const before = await latestId(digits);
+    await number.fill(digits);
+    await page.getByRole('button', { name: 'Send code' }).click();
+    await page.getByLabel(/^Code sent by SMS/).fill(await codeFor(digits, before));
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.getByText(/^Good (morning|afternoon|evening)/).waitFor({ timeout: 30_000 });
+    for (const theme of THEMES) {
+      await scheme(theme);
+      for (const pair of appPairs.filter((candidate) => !candidate.signedOut)) {
+        await page.goto(`${values.app}${pair.portal}`);
+        await page.getByText(/^Good (morning|afternoon|evening)/).waitFor({ timeout: 30_000 });
+        await shootApp(page, pair, theme);
+      }
+    }
+  }
+
+  const portalPairs = pairs.filter((pair) => !pair.app);
   if (!values['prototype-only'] && portalPairs.length > 0) {
     const digits = values.phone!.replace(/\D/g, '').slice(-10);
     // The theme lives in the browser's storage, so one sign-in serves both themes: a number may
@@ -231,6 +272,15 @@ async function shootPortal(page: Page, pair: Pair, theme: string, base = values.
     const file = await shoot(page, `${pair.key}.portal.${theme}.${width}.jpg`);
     shots.push({ key: pair.key, side: 'portal', theme, width, file });
   }
+}
+
+/** The field app at 390 px; its screen scrolls inside the page, so the shot is the viewport. */
+async function shootApp(page: Page, pair: Pair, theme: string) {
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.evaluate(() => document.fonts.ready);
+  const file = `${pair.key}.portal.${theme}.390.jpg`;
+  await page.screenshot({ path: join(out, file), type: 'jpeg', quality: 72 });
+  shots.push({ key: pair.key, side: 'portal', theme, width: 390, file });
 }
 
 writeFileSync(join(out, 'index.html'), gallery(pairs, shots, new Date()));

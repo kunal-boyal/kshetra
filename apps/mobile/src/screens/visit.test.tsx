@@ -133,6 +133,9 @@ function pulled(): SyncPullResult {
           status: 'planned' as const,
           source: 'route' as const,
           visitId: null,
+          routeId: null,
+          routeName: null,
+          position: null,
         },
       ]),
     },
@@ -181,7 +184,7 @@ function Shown({ id }: { id: string }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
   if (id === 'route') return <TodayRouteScreen />;
-  return id === 'today' ? <TodayPlan /> : <AccountScreen id={id} />;
+  return id === 'today' ? <TodayPlan from={null} /> : <AccountScreen id={id} />;
 }
 
 async function phone(onDuty: boolean) {
@@ -288,10 +291,12 @@ describe('visits on the phone (M6)', () => {
     expect(screen.queryByRole('button', { name: 'Check in' })).toBeNull();
   });
 
-  it("shows today's plan with each visit's status and purpose", async () => {
+  it("shows today's plan as done of all, and the next stop with its type and purpose", async () => {
     await renderAt('today', await phone(true));
     const row = await screen.findByRole('button', { name: /Janpath Mart/ });
-    expect(row).toHaveTextContent(/Planned · Collect payment/);
+    expect(row).toHaveTextContent(/Next · Customer/);
+    expect(row).toHaveTextContent(/Collect payment/);
+    expect(screen.getByRole('progressbar', { name: '0 of 1 done' })).toBeOnTheScreen();
   });
 
   it('carries the planned visit on check-in, and offers no second plan for it', async () => {
@@ -347,9 +352,7 @@ describe('maps on a visit (M17)', () => {
 
   it("opens today's route as numbered stops", async () => {
     await renderAt('today', await phone(true));
-    await fireEvent.press(
-      await screen.findByRole('button', { name: "See today's route on a map" }),
-    );
+    await fireEvent.press(await screen.findByRole('button', { name: 'See the whole plan' }));
     expect(router.push).toHaveBeenCalledWith('/today-route');
   });
 

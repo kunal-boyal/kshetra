@@ -236,6 +236,14 @@ const MIGRATIONS: readonly string[] = [
      PRIMARY KEY (owner, shift_id)
    );
    CREATE INDEX shift_odometer_date ON shift_odometer (owner, date);`,
+  // Home's plan card and the shift's distance (decision D104): each plan item's route and the
+  // account's place on it, and the distance the open shift has covered by the phone's own points.
+  `ALTER TABLE ref_plan_items ADD COLUMN route_id TEXT;
+   ALTER TABLE ref_plan_items ADD COLUMN route_name TEXT;
+   ALTER TABLE ref_plan_items ADD COLUMN position INTEGER;
+   ALTER TABLE shift_state ADD COLUMN distance_m REAL NOT NULL DEFAULT 0;
+   ALTER TABLE shift_state ADD COLUMN last_lat REAL;
+   ALTER TABLE shift_state ADD COLUMN last_lng REAL;`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -425,6 +433,9 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       status: item.status,
       source: item.source,
       visit_id: item.visitId,
+      route_id: item.routeId,
+      route_name: item.routeName,
+      position: item.position,
     }),
     read: (record) => ({
       id: String(record.id),
@@ -435,6 +446,14 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       status: String(record.status) as SyncPlanItem['status'],
       source: record.source === 'route' ? 'route' : 'adhoc',
       visitId: record.visit_id === null ? null : String(record.visit_id),
+      routeId:
+        record.route_id === null || record.route_id === undefined ? null : String(record.route_id),
+      routeName:
+        record.route_name === null || record.route_name === undefined
+          ? null
+          : String(record.route_name),
+      position:
+        record.position === null || record.position === undefined ? null : Number(record.position),
     }),
   },
   price_lists: {

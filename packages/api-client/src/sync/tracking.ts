@@ -1,5 +1,5 @@
 import type { LocationBatchResult, LocationPointBody } from '@thelamp/shared';
-import { SHIFT_FIX_ACCURACY_M } from '@thelamp/shared';
+import { distanceMeters, SHIFT_FIX_ACCURACY_M } from '@thelamp/shared';
 import type { SqlDatabase, SqlExecutor } from './sql';
 
 /**
@@ -19,6 +19,14 @@ export interface ShiftState {
   intervalSeconds: number;
   /** The open pause's ID, or null while tracking runs. */
   pauseId: string | null;
+  /**
+   * About how far the shift has gone, in metres, by the points this phone kept (decision D104):
+   * a step counts once it is longer than the point's accuracy and `STEP_MIN_M`, so standing
+   * still adds nothing. The server's trail stays the record.
+   */
+  distanceMeters: number;
+  /** The last point counted, for how far the next stop is; null before the first. */
+  lastFix: { lat: number; lng: number } | null;
 }
 
 /** A point as the operating system hands it to the task. */
@@ -41,6 +49,9 @@ interface StateRecord {
   ends_by: number;
   interval_s: number;
   pause_id: string | null;
+  distance_m: number | null;
+  last_lat: number | null;
+  last_lng: number | null;
 }
 
 interface PointRecord {
@@ -63,6 +74,11 @@ const toState = (record: StateRecord): ShiftState => ({
   endsBy: record.ends_by,
   intervalSeconds: record.interval_s,
   pauseId: record.pause_id,
+  distanceMeters: record.distance_m ?? 0,
+  lastFix:
+    record.last_lat === null || record.last_lng === null
+      ? null
+      : { lat: record.last_lat, lng: record.last_lng },
 });
 
 /** A shift's odometer readings as the phone keeps them (decision D99). */
@@ -95,6 +111,9 @@ const toOdometer = (record: OdometerRecord): ShiftOdometer => ({
 /** Readings older than this go, as no claim starts from them any more. */
 const ODOMETER_KEEP_DAYS = 62;
 
+/** The shortest step the running distance counts, in metres, below any point's accuracy. */
+export const STEP_MIN_M = 25;
+
 /** At most this many points go in one upload (spec 12.1). */
 export const FLUSH_LIMIT = 200;
 
@@ -105,7 +124,10 @@ export class Tracking {
   constructor(private readonly db: SqlDatabase) {}
 
   /** Opens the person's shift on the phone, in the transaction that queues the punch-in. */
-  async open(tx: SqlExecutor, state: Omit<ShiftState, 'pauseId'>): Promise<void> {
+  async open(
+    tx: SqlExecutor,
+    state: Omit<ShiftState, 'pauseId' | 'distanceMeters' | 'lastFix'>,
+  ): Promise<void> {
     await tx.run(
       `INSERT OR REPLACE INTO shift_state (owner, shift_id, started_at, ends_by, interval_s, pause_id)
        VALUES (?, ?, ?, ?, ?, NULL)`,
@@ -199,7 +221,9 @@ export class Tracking {
     let kept = 0;
     await this.db.transaction(async (tx) => {
       const state = await this.current(owner, tx);
-      for (const point of points) {
+      let distance = state?.distanceMeters ?? 0;
+      let last = state?.lastFix ?? null;
+      for (const point of [...points].sort((a, b) => a.capturedAt - b.capturedAt)) {
         if (!state) drop('NO_SHIFT');
         else if (state.pauseId) drop('PAUSED');
         else if (point.capturedAt > state.endsBy) drop('PAST_LONGEST');
@@ -224,7 +248,18 @@ export class Tracking {
             ],
           );
           kept += 1;
+          const step = last ? distanceMeters(last, point) : 0;
+          if (!last || step > Math.max(point.accuracy, STEP_MIN_M)) {
+            distance += step;
+            last = { lat: point.lat, lng: point.lng };
+          }
         }
+      }
+      if (state && last) {
+        await tx.run(
+          'UPDATE shift_state SET distance_m = ?, last_lat = ?, last_lng = ? WHERE owner = ?',
+          [distance, last.lat, last.lng, owner],
+        );
       }
     });
     return { kept, dropped };

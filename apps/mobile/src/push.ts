@@ -86,9 +86,16 @@ export function usePushRegistration(): void {
   }, [client, session, locale, t]);
 }
 
+/**
+ * The tapped notification, if any. The browser that stands in for a phone in development gets no
+ * push, and expo-notifications has no last response there, so it is always none on the web.
+ */
+const useLastResponse =
+  Platform.OS === 'web' ? () => null : Notifications.useLastNotificationResponse;
+
 /** Opens where a tapped notification leads, including the one that started the app. */
 export function useNotificationTaps(): void {
-  const last = Notifications.useLastNotificationResponse();
+  const last = useLastResponse();
   const handled = useRef<string | null>(null);
 
   useEffect(() => {

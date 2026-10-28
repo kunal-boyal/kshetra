@@ -35,14 +35,16 @@ export function gallery(pairs: readonly Pair[], shots: readonly Shot[], at: Date
   };
   const sections = pairs
     .map((pair) => {
+      // The field app is a phone's only: both width views show it at 390 px.
       const views = ['light', 'dark']
         .flatMap((theme) =>
-          [1440, 390].map(
-            (width) => `<div class="pair" data-theme-view="${theme}" data-width-view="${width}">
+          [1440, 390].map((view) => {
+            const width = pair.app === 'phone' ? 390 : view;
+            return `<div class="pair" data-theme-view="${theme}" data-width-view="${view}">
 ${figure(pair.key, 'prototype', theme, width, 'Prototype', 'Not screenshot')}
 ${figure(pair.key, 'portal', theme, width, 'Built', pair.portal ? 'Not screenshot' : 'Not built yet: the stage adds this page')}
-</div>`,
-          ),
+</div>`;
+          }),
         )
         .join('\n');
       return `<section id="${pair.key}" aria-labelledby="h-${pair.key}">

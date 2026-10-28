@@ -17,6 +17,7 @@ export type { ProgressPart, Step } from './measures';
 export { ease, useReducedMotion } from './motion';
 export { PhotoStrip, PhotoTile } from './photos';
 export type { Photo } from './photos';
+export { OtpInput } from './otp-input';
 export { Screen } from './screen';
 export { ShiftCard } from './shift-card';
 export type { ShiftAction, ShiftCardProps, ShiftCardState } from './shift-card';

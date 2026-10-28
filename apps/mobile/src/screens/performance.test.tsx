@@ -11,8 +11,10 @@ import type { MobileClient } from '../client';
 import { LanguageProvider } from '../i18n';
 import { Look } from '../look';
 import { SyncProvider } from '../sync';
+import { greetingKey, StartTiles } from './home';
 import { LeaderboardScreen } from './leaderboard';
-import { MyMonth } from './my-month';
+import { MonthGlance, MyMonth } from './my-month';
+import { TodayPlan } from './today-plan';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
@@ -87,7 +89,18 @@ const full = <T,>(rows: T[]) => ({
   removed: [],
 });
 
-function fakeClient(offline = false) {
+const ALL_STARTS = [
+  'visit.use',
+  'account.view',
+  'submission.create',
+  'leave.request',
+  'expense.claim',
+];
+
+function fakeClient(
+  offline = false,
+  access: { permissions?: string[]; modulesOff?: string[] } = {},
+) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -129,13 +142,17 @@ function fakeClient(offline = false) {
         etag: '"1-role-4"',
         bundle: {
           version: 1,
-          settings: SETTING_DEFAULTS,
+          settings: { ...SETTING_DEFAULTS, modulesOff: access.modulesOff ?? [] },
           terminology: {},
           designations: [],
           accountTypes: [],
           forms: [],
           catalogue: { units: [], measureTypes: [] },
-          access: { role: 'field_user', scope: 'self', permissions: ['leaderboard.view'] },
+          access: {
+            role: 'field_user',
+            scope: 'self',
+            permissions: access.permissions ?? ['leaderboard.view'],
+          },
         },
       };
     }),
@@ -143,17 +160,33 @@ function fakeClient(offline = false) {
   return { client, create: () => client as unknown as MobileClient };
 }
 
-function Shown({ page }: { page: 'month' | 'board' }) {
+type Page = 'month' | 'board' | 'glance' | 'home';
+
+function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
+  if (page === 'glance') return <MonthGlance />;
+  if (page === 'home') {
+    return (
+      <>
+        <TodayPlan from={null} />
+        <StartTiles />
+      </>
+    );
+  }
   return page === 'month' ? <MyMonth /> : <LeaderboardScreen />;
 }
 
 async function renderPhone(
-  page: 'month' | 'board',
-  options: { offline?: boolean; db?: ReturnType<typeof nodeSqlite> } = {},
+  page: Page,
+  options: {
+    offline?: boolean;
+    db?: ReturnType<typeof nodeSqlite>;
+    permissions?: string[];
+    modulesOff?: string[];
+  } = {},
 ) {
-  const fake = fakeClient(options.offline);
+  const fake = fakeClient(options.offline, options);
   const db = options.db ?? nodeSqlite();
   if (!options.db) {
     await migrate(db);
@@ -204,6 +237,44 @@ describe('My month on Home (M9, spec 8.1)', () => {
     await renderPhone('month', { offline: true, db: first.db });
     expect(await screen.findByText('Score 59')).toBeOnTheScreen();
     expect(screen.getByText(/^As of /)).toBeOnTheScreen();
+  });
+});
+
+describe('Home at a glance (M2, decision D104)', () => {
+  it('greets by the hour on the tenant’s clock', () => {
+    const at = (iso: string) => greetingKey('Asia/Kolkata', new Date(iso));
+    expect(at('2026-10-23T03:00:00Z')).toBe('home.greeting_morning');
+    expect(at('2026-10-23T08:00:00Z')).toBe('home.greeting_afternoon');
+    expect(at('2026-10-23T13:00:00Z')).toBe('home.greeting_evening');
+  });
+
+  it('shows the first two tiles of the month and the rank, which opens the whole month', async () => {
+    await renderPhone('glance');
+    expect(await screen.findByText('Sales')).toBeOnTheScreen();
+    expect(screen.getByText('Calls')).toBeOnTheScreen();
+    expect(screen.queryByText('Coverages')).toBeNull();
+    await fireEvent.press(screen.getByRole('link', { name: 'Rank #2 of 7' }));
+    expect(router.push).toHaveBeenCalledWith('/month');
+  });
+
+  it('says when nothing is planned, with no bar, and offers what the person may start', async () => {
+    await renderPhone('home', { permissions: ALL_STARTS, modulesOff: ['expenses'] });
+    expect(await screen.findByText('Nothing planned for today.')).toBeOnTheScreen();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'See the whole plan' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Start something' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Unplanned visit' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Fill a form' })).toBeOnTheScreen();
+    // Expenses are switched off for this organisation, so its tile hides.
+    expect(screen.queryByRole('button', { name: 'Claim an expense' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ask for leave' }));
+    expect(router.push).toHaveBeenCalledWith('/leave/new');
+  });
+
+  it('offers nothing to start without the permissions', async () => {
+    await renderPhone('home');
+    await waitFor(() => expect(screen.queryByText('Start something')).toBeNull());
+    expect(screen.queryByText("Today's plan")).toBeNull();
   });
 });
 

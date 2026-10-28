@@ -8,17 +8,25 @@ import { Text } from './text';
 import { type Colors, useTheme } from './theme';
 
 /** A surface for one thing: white on the warm ground, with a soft shadow (`ks-card`). */
-export function Card({ style, ...rest }: ViewProps) {
+export function Card({ style, tint, ...rest }: ViewProps & { tint?: Hue }) {
   const theme = useTheme();
+  // A tinted card (`ks-card tint`) lies flat on its hue's wash; Outdoor keeps it white and ruled.
+  const flat = tint && theme.name !== 'outdoor';
   return (
     <View
       style={[
         styles.card,
-        {
-          backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.border,
-          boxShadow: theme.shadows.shadowSm,
-        },
+        flat
+          ? {
+              backgroundColor: theme.colors[pastel(tint, 'Bg')],
+              borderColor: 'transparent',
+              borderRadius: radius.radiusXl,
+            }
+          : {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              boxShadow: tint ? undefined : theme.shadows.shadowSm,
+            },
         style,
       ]}
       {...rest}

@@ -8,6 +8,7 @@ pnpm --filter @thelamp/ui-compare compare --phone <a demo person's number>
 
 - The portal, the API and Mailpit must be running (`pnpm dev` with `OTP_PROVIDER=mailpit`); the number signs in on the web once, with its code taken from Mailpit, so use a manager or admin of a demo tenant with data, such as one `demo:content` filled.
 - The console's pairs (`console-*`, stage U12) sign in to the console (`--console`, default http://127.0.0.1:5174) as a platform admin made for the run with `pnpm invite-staff`; its setup link, password and authenticator secret stay in the process (`src/staff.ts`). Run them against a local directory only; each run leaves its staff member there, named UI comparison.
+- The field app's pairs (`app-*`, stage M2) run the app in a browser (`pnpm --filter @thelamp/mobile web`, `--app`, default http://localhost:8081, with that address in the API's `CORS_ORIGINS`) at 390 px and sign in with `--app-phone`: a fresh person from `pnpm --filter @thelamp/api e2e:fixtures --out <file>`, whose `PHONE` the file holds. Never a seeded or demo person: each run signs the person in on a new device. Its screens scroll inside the page, so each shot is the 390 × 844 viewport, as the artboard is.
 - `--only home,leaderboard` takes keys from `src/pages.ts`; `--prototype-only` skips the portal; `--out` picks the folder (default `out/<date and time>`, git-ignored).
 - It writes Light and Dark at 1440 and 390 px for both sides, and `index.html`, the gallery, which opens in a browser or publishes as an artifact with the images beside it.
 
@@ -19,4 +20,4 @@ pnpm --filter @thelamp/ui-compare compare --phone <a demo person's number>
 
 ## Adding a pair
 
-Add an entry to `PAIRS` in `src/pages.ts`: the artboard, the portal path (or a list whose nth row to open, with a suffix), and the stage. The console's pairs join with stage U12 and the phone's with M1, each needing its own way to sign in.
+Add an entry to `PAIRS` in `src/pages.ts`: the artboard, the portal path (or a list whose nth row to open, with a suffix), and the stage. The console's pairs joined with stage U12 and the field app's with M2 (`app: 'phone'`, the screen's path as `portal`), each with its own way to sign in.

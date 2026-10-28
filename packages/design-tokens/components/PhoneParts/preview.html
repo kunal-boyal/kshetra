@@ -1,4 +1,4 @@
-<!-- @dsCard group="Navigation" height=430 subtitle="App bar, cart bar, icon buttons and choosers on the phone" -->
+<!-- @dsCard group="Navigation" height=600 subtitle="App bar, cart bar, icon buttons, choosers, the code boxes and tiles on the phone" -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -24,6 +24,15 @@
   <button type="button" aria-pressed="true" style="flex:1">Today</button>
   <button type="button" aria-pressed="false" style="flex:1">This week</button>
   <button type="button" aria-pressed="false" style="flex:1">This month</button>
+ </div>
+ <div style="display:flex;flex-direction:column;gap:4px;padding:0 16px">
+  <p class="label-md" style="margin:0">Code sent by SMS to +91•••••43210</p>
+  <div style="display:flex;gap:8px" aria-hidden="true"><span style="flex:1;display:grid;place-items:center;min-height:56px;border-radius:var(--radius-md);background:var(--surface);border:1px solid var(--border-strong)" class="heading-md ks-num">4</span><span style="flex:1;display:grid;place-items:center;min-height:56px;border-radius:var(--radius-md);background:var(--surface);border:1px solid var(--border-strong)" class="heading-md ks-num">8</span><span style="flex:1;display:grid;place-items:center;min-height:56px;border-radius:var(--radius-md);background:var(--surface);border:1px solid var(--border-strong)" class="heading-md ks-num">2</span><span style="flex:1;display:grid;place-items:center;min-height:56px;border-radius:var(--radius-md);background:var(--surface);border:2px solid var(--accent);box-shadow:0 0 0 3px var(--accent-subtle)"></span><span style="flex:1;display:grid;place-items:center;min-height:56px;border-radius:var(--radius-md);background:var(--surface);border:1px solid var(--border-strong)"></span><span style="flex:1;display:grid;place-items:center;min-height:56px;border-radius:var(--radius-md);background:var(--surface);border:1px solid var(--border-strong)"></span></div>
+  <p class="ks-meta">The code fills itself in when the SMS arrives.</p>
+ </div>
+ <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 16px">
+  <a href="#" class="ks-card tint hue-mint" style="display:flex;align-items:center;gap:10px;padding:12px;text-decoration:none;color:inherit"><span class="ks-ico sm"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path></svg></span><span class="label-md">Unplanned visit</span></a>
+  <a href="#" class="ks-card tint hue-lilac" style="display:flex;align-items:center;gap:10px;padding:12px;text-decoration:none;color:inherit"><span class="ks-ico sm"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path></svg></span><span class="label-md">Ask for leave</span></a>
  </div>
  <a href="#" style="margin:0 12px;display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border-radius:var(--radius-md);background:var(--accent);color:var(--on-accent);text-decoration:none;box-shadow:var(--shadow-md)">
   <span class="label-md" style="font-weight:600">4 items</span>

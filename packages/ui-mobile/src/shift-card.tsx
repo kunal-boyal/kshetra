@@ -17,6 +17,8 @@ export interface ShiftAction {
   onPress: () => void;
   /** At most one: Start day off duty, Resume while paused. */
   primary?: boolean;
+  /** End day on duty, on the accent's tint (the prototype's Punch out). */
+  tonal?: boolean;
   busy?: boolean;
 }
 
@@ -30,6 +32,8 @@ export interface ShiftCardProps {
   metric?: string;
   /** Distance and visits. */
   detail?: string;
+  /** On duty: time, distance and visits, three across, each a figure over its word. */
+  stats?: readonly { value: string; label: string }[];
   /** The tracking explanation from the copy table; never hidden. */
   note: string;
   actions: readonly ShiftAction[];
@@ -93,6 +97,7 @@ export function ShiftCard({
   badge,
   metric,
   detail,
+  stats,
   note,
   actions,
   fix,
@@ -107,7 +112,22 @@ export function ShiftCard({
         </Text>
         {state !== 'off' && badge ? <StatusBadge variant={BADGE[state]} label={badge} /> : null}
       </View>
-      {metric ? <Text variant="metricMd">{metric}</Text> : null}
+      {stats && state !== 'off' ? (
+        <View style={styles.stats}>
+          {stats.map((stat) => (
+            <View key={stat.label} style={styles.stat}>
+              <Text variant="metricMd" style={styles.figures}>
+                {stat.value}
+              </Text>
+              <Text variant="bodySm" tone="muted">
+                {stat.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : metric ? (
+        <Text variant="metricMd">{metric}</Text>
+      ) : null}
       {detail ? <Text tone="muted">{detail}</Text> : null}
       <Text variant="bodySm" tone="muted">
         {note}
@@ -123,7 +143,7 @@ export function ShiftCard({
         {actions.map((action) => (
           <Button
             key={action.label}
-            variant={action.primary ? 'primary' : 'secondary'}
+            variant={action.primary ? 'primary' : action.tonal ? 'tonal' : 'secondary'}
             icon={action.icon}
             label={action.label}
             onPress={action.onPress}
@@ -139,6 +159,9 @@ const styles = StyleSheet.create({
   card: { gap: spacing.space3 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.space3 },
   grow: { flex: 1 },
+  stats: { flexDirection: 'row', gap: spacing.space2 },
+  stat: { flex: 1, minWidth: 0 },
+  figures: { fontVariant: ['tabular-nums'] },
   halo: {
     width: 18,
     height: 18,
