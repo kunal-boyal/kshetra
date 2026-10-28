@@ -14,7 +14,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@thelamp/design-tokens": "workspace:*"
+    "@thelamp/design-tokens": "workspace:*",
+    "@thelamp/shared": "workspace:*"
   },
   "peerDependencies": {
     "lucide-react-native": "catalog:mobile",

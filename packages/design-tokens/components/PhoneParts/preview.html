@@ -1,0 +1,40 @@
+<!-- @dsCard group="Navigation" height=430 subtitle="App bar, cart bar, icon buttons and choosers on the phone" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PhoneParts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0}</style>
+</head>
+<body>
+<div class="ks ks-pv" style="display:flex;flex-direction:column;gap:16px;max-width:390px">
+ <header style="display:flex;align-items:center;gap:4px;padding:8px 16px 8px 8px">
+  <a href="#" aria-label="Back to the visit" style="display:grid;place-items:center;width:44px;height:44px;color:var(--text)"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+  <div style="flex:1;min-width:0"><h1 class="heading-md" style="margin:0">New order</h1><p class="ks-meta">Shree Krishna Agro Traders · Dealer prices</p></div>
+  <button type="button" aria-label="Inbox, 3" style="position:relative;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:var(--radius-full);background:none;color:var(--text)"><svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span class="ks-count" aria-hidden="true" style="left:auto;right:2px;top:4px">3</span></button>
+ </header>
+ <div class="ks-chips" role="radiogroup" aria-label="Category" style="padding:0 16px">
+  <button type="button" role="radio" aria-checked="true" class="ks-btn primary sm">All</button>
+  <button type="button" role="radio" aria-checked="false" class="ks-btn secondary sm">Fertilisers</button>
+  <button type="button" role="radio" aria-checked="false" class="ks-btn secondary sm">Seeds</button>
+ </div>
+ <div class="ks-seg" role="radiogroup" aria-label="When" style="margin:0 16px;display:flex">
+  <button type="button" aria-pressed="true" style="flex:1">Today</button>
+  <button type="button" aria-pressed="false" style="flex:1">This week</button>
+  <button type="button" aria-pressed="false" style="flex:1">This month</button>
+ </div>
+ <a href="#" style="margin:0 12px;display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border-radius:var(--radius-md);background:var(--accent);color:var(--on-accent);text-decoration:none;box-shadow:var(--shadow-md)">
+  <span class="label-md" style="font-weight:600">4 items</span>
+  <span class="label-lg ks-num" style="flex:1">₹19,780 <span class="caption" style="opacity:.85">+ GST</span></span>
+  <span class="label-md" style="font-weight:600">Review</span>
+  <svg class="ks-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+ </a>
+ <div style="display:flex;gap:12px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--border)">
+  <button type="button" class="ks-btn secondary" style="flex:1">Save draft</button>
+  <button type="button" class="ks-btn primary" style="flex:1">Submit</button>
+ </div>
+</div>
+</body>
+</html>

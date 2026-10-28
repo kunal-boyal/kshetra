@@ -1018,6 +1018,9 @@ importers:
       '@thelamp/design-tokens':
         specifier: workspace:*
         version: link:../design-tokens
+      '@thelamp/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@jest/globals':
         specifier: catalog:mobile

@@ -35,6 +35,38 @@ export function StatusBadge({ variant, label }: { variant: BadgeVariant; label: 
 }
 
 /**
+ * Something a reviewer should look at on a record, such as "Outside the geofence" (`ks-flag`,
+ * components/FlagChip): waiting's colours, or danger's for what must be fixed. In Outdoor it is
+ * outlined.
+ */
+export function Flag({
+  label,
+  tone = 'waiting',
+  icon,
+}: {
+  label: string;
+  tone?: 'waiting' | 'danger';
+  icon?: LucideIcon;
+}) {
+  const theme = useTheme();
+  const colour = theme.colors[ink(tone)];
+  return (
+    <View
+      style={[
+        styles.flag,
+        { backgroundColor: theme.colors[fill(tone)] },
+        theme.name === 'outdoor' && { borderWidth: 1, borderColor: colour },
+      ]}
+    >
+      {icon ? <Icon icon={icon} size="sm" color={colour} /> : null}
+      <Text variant="labelSm" weight={600} numberOfLines={1} style={{ color: colour }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/**
  * What is still on the phone (components/SyncBanner): amber while items wait, red once something
  * was refused, and the whole banner opens the upload queue. It never dismisses itself. In Outdoor
  * it inverts, so glare can't hide it.
@@ -98,6 +130,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dot: { width: 6, height: 6, borderRadius: radius.radiusFull },
+  flag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.space1,
+    minHeight: 26,
+    paddingLeft: spacing.space2,
+    paddingRight: spacing.space3,
+    borderRadius: radius.radiusFull,
+  },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
