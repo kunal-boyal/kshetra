@@ -4,8 +4,9 @@ import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import { migrate, Outbox, type SqlDatabase, Visits } from '@thelamp/api-client/sync';
 import { SETTING_DEFAULTS, type SwitchableModule, type SyncPullResult } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import { BackHandler } from 'react-native';
 import { AppProvider, useApp } from '../app-state';
 import type { MobileClient } from '../client';
 import { LanguageProvider } from '../i18n';
@@ -14,7 +15,7 @@ import { SyncProvider } from '../sync';
 import { AccountScreen } from './account';
 import { AccountsScreen } from './accounts';
 import { NewAccountScreen } from './new-account';
-import { repriceRefused } from '../orders';
+import { repriceRefused, stepQuantity } from '../orders';
 import { OrderScreen } from './order';
 import { PricesScreen } from './prices';
 
@@ -49,19 +50,28 @@ const OLD = '01a10000-0000-7000-8000-0000000000b2';
 const STANDARD = '01a10000-0000-7000-8000-0000000000c0';
 const JANPATH_LIST = '01a10000-0000-7000-8000-0000000000c1';
 
-function item(id: string, code: string, name: string, active = true) {
+function item(
+  id: string,
+  code: string,
+  name: string,
+  active = true,
+  extra: {
+    category?: { id: string; name: string };
+    units?: { key: string; factor: string }[];
+  } = {},
+) {
   return {
     id,
     code,
     name,
     product: { id: '01a10000-0000-7000-8000-0000000000d0', name: 'Field care' },
-    category: null,
+    category: extra.category ?? null,
     packLabel: null,
     hsn: null,
     taxRate: '18.0000',
     mrp: null,
     baseUnit: 'pack',
-    units: [{ key: 'pack', factor: '1.000' }],
+    units: extra.units ?? [{ key: 'pack', factor: '1.000' }],
     measureType: null,
     measurePerBaseUnit: null,
     custom: {},
@@ -172,8 +182,16 @@ function pulled(): SyncPullResult {
         account(UNPLACED, 'Corner Kirana', null),
       ]) as SyncPullResult['entities']['accounts'],
       items: full([
-        item(SEED, 'SEED-1', 'Hybrid seed'),
-        item(SPRAY, 'SPRAY-1', 'Neem spray'),
+        item(SEED, 'SEED-1', 'Hybrid seed', true, {
+          category: { id: '01a10000-0000-7000-8000-0000000000d1', name: 'Seeds' },
+          units: [
+            { key: 'pack', factor: '1.000' },
+            { key: 'case', factor: '10.000' },
+          ],
+        }),
+        item(SPRAY, 'SPRAY-1', 'Neem spray', true, {
+          category: { id: '01a10000-0000-7000-8000-0000000000d2', name: 'Sprays' },
+        }),
         item(OLD, 'OLD-1', 'Old stock', false),
       ]),
       price_lists: full([
@@ -195,7 +213,15 @@ function pulled(): SyncPullResult {
           creditLimit: '10000.00',
           ageing: { d0_30: '6000.00', d181: '3000.00' },
         },
-      ]),
+        {
+          id: FAR,
+          accountId: FAR,
+          asOf: '2026-10-15',
+          outstanding: '9000.00',
+          creditLimit: '50000.00',
+          ageing: { d0_30: '9000.00' },
+        },
+      ]) as SyncPullResult['entities']['balances'],
       contacts: full([
         {
           id: '01a10000-0000-7000-8000-000000000090',
@@ -433,17 +459,26 @@ describe('orders on the phone (M10, D78)', () => {
 
   it('prices the cart as the server will and sends what it showed, with a fix', async () => {
     const client = await renderPhone({ name: 'order', id: NEAR });
-    await fireEvent.press(await screen.findByRole('button', { name: /Hybrid seed · ₹360.00/ }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'More Hybrid seed' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'More Hybrid seed' }));
+    // The exact entry, from the quantity, for a count the stepper would take long to reach.
+    await fireEvent.press(screen.getByRole('button', { name: /^Quantity of Hybrid seed, 2 pack/ }));
     await fireEvent.changeText(screen.getByLabelText('Quantity'), '24');
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
-    // FX-07: 24 packs at 360.00 with 18% tax.
-    expect(await screen.findByText('Hybrid seed · ₹10,195.20')).toBeOnTheScreen();
-    expect(screen.getByText('CGST: ₹777.60')).toBeOnTheScreen();
+    // FX-07: 24 packs at 360.00 with 18% tax; the cart bar shows the sum before tax.
+    await fireEvent.press(
+      await screen.findByRole('button', { name: 'Review: 1 item, ₹8,640.00 + GST' }),
+    );
+    expect(screen.getByText('Review the order')).toBeOnTheScreen();
+    expect(screen.getByText('24 pack × ₹360.00 · GST 18%')).toBeOnTheScreen();
+    expect(screen.getAllByText('₹8,640.00')).toHaveLength(2);
+    expect(screen.getAllByText('₹777.60')).toHaveLength(2);
+    expect(screen.getByText('₹10,195.20')).toBeOnTheScreen();
     // 9,000 owed and a 10,000 limit: this order goes over it.
     expect(
       screen.getByText(/past its credit limit, so it may need another approval/),
     ).toBeOnTheScreen();
-    const place = screen.getByRole('button', { name: 'Place the order' });
+    const place = screen.getByRole('button', { name: 'Place the order · ₹10,195.20' });
     await waitFor(() => expect(place).toBeEnabled());
     await fireEvent.press(place);
     await waitFor(() =>
@@ -473,6 +508,73 @@ describe('orders on the phone (M10, D78)', () => {
       ],
       fix: { location: { lat: 28.6315, lng: 77.2167 }, accuracy: 12 },
     });
+  });
+
+  it('steps a line by one in its unit, out of the cart below one', async () => {
+    expect(stepQuantity('2.5', 1)).toBe('3.5');
+    expect(stepQuantity('2.5', -1)).toBe('1.5');
+    expect(stepQuantity('0.5', -1)).toBeNull();
+    expect(stepQuantity('9', 1)).toBe('10');
+
+    await renderPhone({ name: 'order', id: NEAR });
+    await fireEvent.press(await screen.findByRole('button', { name: 'More Neem spray' }));
+    expect(await screen.findByRole('button', { name: /^Review: 1 item/ })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Fewer Neem spray' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Review:/ })).toBeNull());
+
+    // In another unit, the stepper counts cases and the row says so.
+    await fireEvent.press(screen.getByRole('button', { name: /^Quantity of Hybrid seed, 0/ }));
+    await fireEvent.press(screen.getByRole('radio', { name: /case/ }));
+    await fireEvent.changeText(screen.getByLabelText('Quantity'), '2.5');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'More Hybrid seed' }));
+    expect(screen.getByText('3.5')).toBeOnTheScreen();
+    expect(screen.getByText('₹360.00/pack · case')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /^Review: 1 item/ }));
+    expect(screen.getByText('3.5 case = 35 pack × ₹360.00 · GST 18%')).toBeOnTheScreen();
+  });
+
+  it('narrows the items by category and search together, and says when nothing matches', async () => {
+    await renderPhone({ name: 'order', id: NEAR });
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Sprays' }));
+    expect(screen.getByText('Neem spray')).toBeOnTheScreen();
+    expect(screen.queryByText('Hybrid seed')).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText('Search items or codes'), 'seed');
+    expect(screen.getByText('No item matches. Try another name or code.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('radio', { name: 'All' }));
+    expect(screen.getByText('Hybrid seed')).toBeOnTheScreen();
+    expect(screen.queryByText('Neem spray')).toBeNull();
+  });
+
+  it('says how much credit was free, and keeps the cart going back to the items', async () => {
+    const back = jest.spyOn(BackHandler, 'addEventListener');
+    await renderPhone({ name: 'order', id: FAR });
+    await fireEvent.press(await screen.findByRole('button', { name: 'More Neem spray' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Review: 1 item/ }));
+    expect(
+      screen.getByText(
+        'Within credit: ₹41,000.00 of the ₹50,000.00 limit was free before this order.',
+      ),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the items' }));
+    expect(screen.getByRole('button', { name: /^Review: 1 item/ })).toBeOnTheScreen();
+
+    // Android's back button does the same while reviewing.
+    await fireEvent.press(screen.getByRole('button', { name: /^Review: 1 item/ }));
+    const [, onBack] = back.mock.calls.at(-1)!;
+    await act(async () => {
+      expect((onBack as () => boolean)()).toBe(true);
+    });
+    expect(screen.getByRole('button', { name: /^Review: 1 item/ })).toBeOnTheScreen();
+    back.mockRestore();
+  });
+
+  it('says nothing of credit where the account has no limit', async () => {
+    await renderPhone({ name: 'order', id: UNPLACED });
+    await fireEvent.press(await screen.findByRole('button', { name: 'More Neem spray' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Review: 1 item/ }));
+    expect(screen.getByText('Review the order')).toBeOnTheScreen();
+    expect(screen.queryByText(/credit/)).toBeNull();
   });
 
   it('prices a refused order again from what the phone keeps now', async () => {
@@ -534,8 +636,8 @@ describe('what an account owes on the phone (M11, D79)', () => {
   });
 
   it('shows nothing owed for an account without a balance', async () => {
-    await renderPhone({ name: 'account', id: FAR });
-    await screen.findByText('India Gate Stores');
+    await renderPhone({ name: 'account', id: UNPLACED });
+    await screen.findByText('Corner Kirana');
     expect(screen.queryByText('What it owes')).toBeNull();
   });
 });

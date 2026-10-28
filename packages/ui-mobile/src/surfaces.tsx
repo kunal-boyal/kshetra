@@ -37,13 +37,15 @@ export function Card({ style, tint, ...rest }: ViewProps & { tint?: Hue }) {
 const NOTICE = {
   neutral: { fill: 'surfaceSunken', ink: 'textMuted' },
   info: { fill: 'infoBg', ink: 'infoFg' },
+  success: { fill: 'successBg', ink: 'successFg' },
   pending: { fill: 'pendingBg', ink: 'pendingFg' },
   danger: { fill: 'dangerBg', ink: 'dangerFg' },
 } as const satisfies Record<string, { fill: keyof Colors; ink: keyof Colors }>;
 
 /**
  * States what a figure or record really is, beside it (components/Notice), never dismissible.
- * Neutral by default; a tone and an icon say when it is news, something waiting, or a problem.
+ * Neutral by default; a tone and an icon say when it is news, all is well, something waits, or a
+ * problem.
  */
 export function Notice({
   children,

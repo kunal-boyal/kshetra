@@ -5,6 +5,8 @@ import {
   type PriceRounding,
   priceLine,
   type PricedLine,
+  scaled,
+  unscaled,
 } from '@thelamp/shared';
 import type { Fix } from './location';
 import { type ItemPrice, pricesAt } from './prices';
@@ -34,6 +36,16 @@ export interface PricedCartLine extends CartLine {
   offer: ItemPrice;
   factor: string;
   values: PricedLine;
+}
+
+/**
+ * A quantity stepped by one in its unit, as a decimal string without trailing zeros: 2.5 steps to
+ * 3.5 and 1.5. Null once it would fall below one part of a unit, when the line leaves the cart.
+ */
+export function stepQuantity(quantity: string, by: 1 | -1): string | null {
+  const next = scaled(quantity, 3) + BigInt(by) * 1000n;
+  if (next <= 0n) return null;
+  return unscaled(next, 3).replace(/\.?0+$/, '');
 }
 
 /** Each line priced as the server will price it; lines the account has no price for drop. */

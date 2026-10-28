@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { avatarHue } from '@thelamp/shared';
-import { Bell, Info, LogOut, Pause, Store } from 'lucide-react-native';
+import { Bell, CircleCheck, Info, LogOut, Pause, Search, Store } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { ActionBar, AppBar, CartBar, IconButton } from './bars';
 import { BottomNav } from './bottom-nav';
@@ -13,9 +13,11 @@ import { ProgressBar, Steps } from './measures';
 import { PhotoStrip } from './photos';
 import { Screen } from './screen';
 import { ShiftCard } from './shift-card';
+import { QuantityStepper } from './stepper';
 import { Flag } from './status';
 import { Card, IconChip, Notice } from './surfaces';
 import { Text } from './text';
+import { TextField } from './text-field';
 import { createTheme, ThemeProvider } from './theme';
 
 /** The phone's building blocks for the revamp (phase U, stage M1, decision D104). */
@@ -310,5 +312,66 @@ describe('large photo tiles and a held footer (stage M3)', () => {
     );
     expect(screen.getByText('On this visit')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Check out' })).toBeOnTheScreen();
+  });
+});
+
+describe('QuantityStepper, the search field and a success notice', () => {
+  it('steps by its named ends and opens the exact entry from its value', async () => {
+    const onLess = jest.fn();
+    const onMore = jest.fn();
+    const onValue = jest.fn();
+    await render(
+      <QuantityStepper
+        value="40"
+        valueLabel="Quantity of NPK 19:19:19, 40"
+        lessLabel="Fewer NPK 19:19:19"
+        moreLabel="More NPK 19:19:19"
+        onLess={onLess}
+        onMore={onMore}
+        onValue={onValue}
+      />,
+    );
+    expect(screen.getByText('40')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Fewer NPK 19:19:19' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'More NPK 19:19:19' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Quantity of NPK 19:19:19, 40' }));
+    expect(onLess).toHaveBeenCalledTimes(1);
+    expect(onMore).toHaveBeenCalledTimes(1);
+    expect(onValue).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a long value whole beside its ends', async () => {
+    await render(
+      <QuantityStepper
+        value="1,250.5"
+        valueLabel="Quantity, 1,250.5"
+        lessLabel="Fewer"
+        moreLabel="More"
+        onLess={() => undefined}
+        onMore={() => undefined}
+      />,
+    );
+    expect(screen.getByText('1,250.5')).toBeOnTheScreen();
+    // Without an exact entry the value is not a button.
+    expect(screen.queryByRole('button', { name: 'Quantity, 1,250.5' })).toBeNull();
+  });
+
+  it('names a search by its hidden label, which stands as its placeholder', async () => {
+    await render(<TextField label="Search items or codes" icon={Search} labelHidden />);
+    const field = screen.getByLabelText('Search items or codes');
+    expect(field.props.placeholder).toBe('Search items or codes');
+    expect(screen.queryByText('Search items or codes')).toBeNull();
+  });
+
+  it('colours a success notice', async () => {
+    const theme = createTheme('light', 'latin');
+    await render(
+      <Notice tone="success" icon={CircleCheck}>
+        Within credit.
+      </Notice>,
+    );
+    expect(StyleSheet.flatten(screen.getByText('Within credit.').props.style).color).toBe(
+      theme.colors.successFg,
+    );
   });
 });
