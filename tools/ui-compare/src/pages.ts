@@ -130,14 +130,14 @@ export const PAIRS: readonly Pair[] = [
     key: 'security',
     title: 'Security, audit and data',
     prototype: 'WebSecurity.dc.html',
-    portal: '/settings/audit-log',
+    portal: '/settings/security',
     stage: 'U10',
   },
   {
     key: 'developers',
     title: 'API and webhooks',
     prototype: 'WebDevelopers.dc.html',
-    portal: '/settings/api-clients',
+    portal: '/settings/developers',
     stage: 'U10',
   },
   {

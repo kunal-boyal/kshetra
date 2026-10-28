@@ -114,7 +114,17 @@ describe('billing for tenant admins (spec M23, D90)', () => {
     expect(screen.getByRole('table', { name: 'Usage' })).toHaveTextContent('11.48');
     const invoices = await screen.findByRole('table', { name: 'Invoices' });
     expect(within(invoices).getByRole('row', { name: /00042/ })).toHaveTextContent('₹6,761.95');
-    expect(screen.getByRole('link', { name: 'Billing' })).toHaveAttribute('aria-current', 'page');
+    // Billing alone of its group: the group is marked, with no row of pages under it.
+    expect(screen.getByRole('link', { name: 'Organisation' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    const plan = screen.getByRole('region', { name: 'Plan' });
+    expect(within(plan).getByText('Growth')).toBeVisible();
+    expect(within(plan).getByText('Monthly')).toBeVisible();
+    expect(within(plan).getByRole('list', { name: 'Modules' })).toHaveTextContent('Orders');
+    expect(screen.getByText('13 left')).toBeInTheDocument();
+    expect(within(invoices).getByText('Due 19 Nov')).toBeVisible();
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Download invoice TL/26-27/00042' }));
     await waitFor(() =>
@@ -142,7 +152,8 @@ describe('billing for tenant admins (spec M23, D90)', () => {
     await user.type(gstin, '27zzzzz0000z1zq');
     expect(gstin).toHaveValue('27ZZZZZ0000Z1ZQ');
     await user.click(screen.getByRole('button', { name: 'Save the billing details' }));
-    expect(await screen.findByText('27ZZZZZ0000Z1ZQ')).toBeInTheDocument();
+    // In the details and beside how the organisation pays.
+    expect(await screen.findAllByText('27ZZZZZ0000Z1ZQ')).toHaveLength(2);
     expect(client.request).toHaveBeenCalledWith(
       'PUT',
       '/v1/billing/account',
@@ -156,6 +167,32 @@ describe('billing for tenant admins (spec M23, D90)', () => {
     expect(
       await screen.findByRole('link', { name: 'Authorise automatic payment' }),
     ).toHaveAttribute('href', 'https://pay.example/authorise/abc');
+  });
+
+  it('says an invoice was paid, on the day of its last payment', async () => {
+    const paid = {
+      ...INVOICE,
+      status: 'paid',
+      paid: INVOICE.total,
+      payments: [
+        {
+          id: '01a10000-0000-7000-8000-0000000000f1',
+          amount: '6761.95',
+          method: 'upi',
+          reference: null,
+          receivedOn: '2026-11-03',
+          recordedAt: '2026-11-03T10:00:00.000Z',
+        },
+      ],
+    };
+    renderAt(
+      '/settings/billing',
+      fakeClient({ ...pages(), '/v1/billing/invoices': { items: [paid], nextCursor: null } }, {}, [
+        'billing.manage',
+      ]),
+    );
+    const invoices = await screen.findByRole('table', { name: 'Invoices' });
+    expect(within(invoices).getByText('Paid 3 Nov')).toBeVisible();
   });
 
   it('says when there is no subscription or automatic payment yet', async () => {

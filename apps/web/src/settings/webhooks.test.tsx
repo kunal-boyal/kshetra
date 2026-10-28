@@ -99,7 +99,13 @@ describe('webhooks in Settings (M20, D94)', () => {
     renderAt('/settings/webhooks', client);
     const user = userEvent.setup();
     const hook = await screen.findByRole('article', { name: HOOK.url });
-    expect(hook).toHaveTextContent('Account added, Order placed');
+    const events = within(hook).getByRole('list', { name: 'Events' });
+    expect(
+      within(events)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['account.created', 'order.placed']);
+    expect(hook).toHaveTextContent('Not tried yet');
     expect(hook).toHaveTextContent('Nothing sent yet');
 
     await user.click(within(hook).getByRole('button', { name: 'Send a test' }));
@@ -114,7 +120,11 @@ describe('webhooks in Settings (M20, D94)', () => {
     await user.click(within(hook).getByRole('button', { name: 'Change' }));
     await user.click(within(hook).getByRole('checkbox', { name: /Order placed/ }));
     await user.click(within(hook).getByRole('button', { name: 'Save webhook' }));
-    await waitFor(() => expect(hook).toHaveTextContent(/Account added(?!, Order placed)/));
+    await waitFor(() =>
+      expect(
+        within(within(hook).getByRole('list', { name: 'Events' })).getAllByRole('listitem'),
+      ).toHaveLength(1),
+    );
     const writes = writesOf(client).map(([method, path, , options]) => [
       method,
       path,
@@ -136,10 +146,11 @@ describe('webhooks in Settings (M20, D94)', () => {
     renderAt('/settings/webhooks', client);
     const user = userEvent.setup();
     const hook = await screen.findByRole('article', { name: HOOK.url });
-    await user.click(within(hook).getByText('Delivery log'));
+    // The latest tries show without opening anything.
     const log = await within(hook).findByRole('table', { name: 'Delivery log' });
     expect(within(log).getAllByRole('row')).toHaveLength(2);
-    expect(log).toHaveTextContent('Not delivered · 503');
+    expect(log).toHaveTextContent('503');
+    expect(log).toHaveTextContent('80 ms');
     expect(log).toHaveTextContent('Given up');
     await user.click(within(hook).getByRole('button', { name: 'Load more' }));
     await waitFor(() => expect(within(log).getAllByRole('row')).toHaveLength(3));
@@ -150,6 +161,22 @@ describe('webhooks in Settings (M20, D94)', () => {
     expect(writesOf(client).map(([, path]) => path)).toEqual([
       `/v1/webhooks/${HOOK.id}/messages/${delivery(1).messageId}/replay`,
     ]);
+  });
+
+  it('says a webhook is healthy or failing from its latest try', async () => {
+    renderAt(
+      '/settings/developers',
+      hooksClient([
+        {
+          ...HOOK,
+          lastDelivery: { status: 'failed', responseCode: 503, at: '2026-10-26T04:00:00.000Z' },
+        },
+      ]),
+    );
+    const hook = await screen.findByRole('article', { name: HOOK.url });
+    expect(within(hook).getByText('Failing')).toBeVisible();
+    // Without api_client.manage, the keys are not shown.
+    expect(screen.queryByRole('table', { name: 'Your API clients' })).not.toBeInTheDocument();
   });
 
   it('gives a new secret only after asking', async () => {

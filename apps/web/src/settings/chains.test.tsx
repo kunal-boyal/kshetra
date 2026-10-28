@@ -64,13 +64,40 @@ const PAGES = (leave: object[] = []) => ({
 const MANAGER = { approver: { type: 'reporting_manager', level: 1 }, lineDecisions: false };
 
 describe('approval chains (spec 5.9)', () => {
-  it('shows each request type’s chain, or that requests go to the manager without one', async () => {
-    const client = fakeClient(PAGES([MANAGER]), {}, ['workflow.manage']);
+  it('lists each type with its chain in a line, and shows the chosen one by condition', async () => {
+    const client = fakeClient(
+      PAGES([
+        { ...MANAGER, reminderAfterHours: 48, escalation: { afterHours: 72, to: 'manager' } },
+        {
+          approver: { type: 'nearest_designation', designation: 'head' },
+          condition: { match: 'all', clauses: [{ field: 'leave_days', op: 'gt', value: 3 }] },
+          lineDecisions: false,
+        },
+      ]),
+      {},
+      ['workflow.manage'],
+    );
     renderAt('/settings/approvals', client);
-    const leave = await screen.findByRole('region', { name: 'Leave' });
-    expect(within(leave).getByText(/A manager above them \(1\)/)).toBeVisible();
+    const user = userEvent.setup();
+    const types = await screen.findByRole('list', { name: 'Request types' });
+    expect(
+      within(types).getByText('Their manager, then Head · some steps by condition'),
+    ).toBeVisible();
+    expect(within(types).getAllByText('The requester’s manager').length).toBeGreaterThan(0);
+
+    const leave = screen.getByRole('complementary', { name: 'Leave' });
+    expect(within(leave).getByText('Version 1')).toBeVisible();
+    expect(within(leave).getByText('Always')).toBeVisible();
+    expect(
+      within(leave).getByText('A reminder after 48 hours · After 72 hours, it goes to Manager'),
+    ).toBeVisible();
+    expect(within(leave).getByText('When Leave days more than 3')).toBeVisible();
+    expect(within(leave).getByText(/The nearest above with a designation: Head/)).toBeVisible();
     expect(within(leave).getByText(/Version 1, saved .* by Anita Rao/)).toBeVisible();
-    const claims = screen.getByRole('region', { name: 'Expense claims' });
+
+    await user.click(within(types).getByRole('button', { name: /Expense claims/ }));
+    const claims = screen.getByRole('complementary', { name: 'Expense claims' });
+    expect(within(claims).getByText('No chain')).toBeVisible();
     expect(
       within(claims).getByText('No chain: requests go to the requester’s manager.'),
     ).toBeVisible();

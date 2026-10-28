@@ -212,16 +212,26 @@ export class AuditService {
     });
   }
 
-  /** The people and API clients a page of entries names, by ID, for the audit viewer. */
-  private async actorNames(
+  /**
+   * The people and API clients a page of entries names, as actors or targets, by ID, for the
+   * audit viewer.
+   */
+  private async names(
     tx: TenantTx,
     tenant: string,
-    rows: readonly { actorKind: string; actorId: string | null }[],
+    rows: readonly {
+      actorKind: string;
+      actorId: string | null;
+      targetType: string;
+      targetId: string | null;
+    }[],
   ): Promise<Map<string, string>> {
-    const ids = (kind: string) =>
-      rows.filter((row) => row.actorKind === kind && row.actorId).map((row) => row.actorId!);
+    const ids = (kind: string) => [
+      ...rows.filter((row) => row.actorKind === kind && row.actorId).map((row) => row.actorId!),
+      ...rows.filter((row) => row.targetType === kind && row.targetId).map((row) => row.targetId!),
+    ];
     const names = new Map<string, string>();
-    const people = ids('user');
+    const people = [...new Set(ids('user'))];
     if (people.length > 0) {
       for (const [id, person] of await this.people.facts(tx, tenant, people)) {
         names.set(id, `${person.name} (${person.code})`);
@@ -270,7 +280,7 @@ export class AuditService {
       .limit(query.limit + 1);
     const page = rows.slice(0, query.limit);
     const last = page[page.length - 1];
-    const names = await this.actorNames(tx, tenantId, page);
+    const names = await this.names(tx, tenantId, page);
     return {
       items: page.map((row): AuditEntry => ({
         id: row.id,
@@ -281,7 +291,14 @@ export class AuditService {
           ...(row.actorId && names.has(row.actorId) ? { name: names.get(row.actorId)! } : {}),
         },
         action: row.action as AuditAction,
-        target: { type: row.targetType, id: row.targetId },
+        target: {
+          type: row.targetType,
+          id: row.targetId,
+          label:
+            (row.targetType === 'user' || row.targetType === 'api_client') && row.targetId
+              ? (names.get(row.targetId) ?? null)
+              : null,
+        },
         before: row.before,
         after: row.after,
         ip: row.ip,

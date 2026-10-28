@@ -34,7 +34,7 @@ type TimeKey = 'planNotificationTime' | 'quietHoursStart' | 'quietHoursEnd';
 const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
 
 /** The time zones the browser knows, or the tenant's own when it lists none. */
-function timeZones(current: string): string[] {
+export function timeZones(current: string): string[] {
   const known =
     typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
   return known.includes(current) ? known : [current, ...known];

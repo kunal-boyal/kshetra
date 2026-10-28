@@ -66,15 +66,13 @@ describe('the audit viewer (M21, D95)', () => {
       },
     });
     const client = issued.json().access_token as string;
-    expect(
-      (
-        await call('POST', '/v1/users', client, {
-          code: `W${newId().slice(-6)}`,
-          name: 'Asha Verma',
-          designation: 'executive',
-        })
-      ).statusCode,
-    ).toBe(201);
+    const code = `W${newId().slice(-6)}`;
+    const asha = await call('POST', '/v1/users', client, {
+      code,
+      name: 'Asha Verma',
+      designation: 'executive',
+    });
+    expect(asha.statusCode).toBe(201);
 
     const settings = (
       await call('GET', `/v1/audit?period=${month()}&action=settings.updated`, token)
@@ -83,6 +81,8 @@ describe('the audit viewer (M21, D95)', () => {
       expect.objectContaining({
         action: 'settings.updated',
         actor: { kind: 'user', id: admin.id, name: `Anita Rao (${admin.code})` },
+        // Only people and API clients are named as targets.
+        target: expect.objectContaining({ label: null }),
       }),
     ]);
     const byClient = (await call('GET', `/v1/audit?actorKind=api_client`, token)).json();
@@ -90,6 +90,7 @@ describe('the audit viewer (M21, D95)', () => {
       expect.objectContaining({
         action: 'user.created',
         actor: { kind: 'api_client', id: made.client.id, name: 'Tally ERP' },
+        target: { type: 'user', id: asha.json().id, label: `Asha Verma (${code})` },
       }),
     ]);
     // Provisioning wrote its own entries, as the system.

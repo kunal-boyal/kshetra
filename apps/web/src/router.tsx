@@ -53,13 +53,13 @@ import { LevelsPage } from './settings/levels-page';
 import { MetricEditorPage } from './settings/metric-editor-page';
 import { MetricsPage } from './settings/metrics-page';
 import { BillingPage } from './settings/billing-page';
-import { ApiClientsPage } from './settings/api-clients-page';
+import { DevelopersPage } from './settings/developers-page';
+import { SecurityDataPage } from './settings/security-page';
 import { AuditLogPage } from './settings/audit-log-page';
 import { DataExportPage } from './settings/data-export-page';
 import { DataRequestPage, DataRequestsPage } from './settings/data-requests-page';
 import { SsoPage } from './settings/sso-page';
 import { SupportPage } from './settings/support-page';
-import { WebhooksPage } from './settings/webhooks-page';
 import { ModulesPage } from './settings/modules-page';
 import { OrganisationPage } from './settings/organisation-page';
 import { ReportsPage } from './reports/reports-page';
@@ -383,10 +383,23 @@ const supportSettings = createRoute({
   path: '/support',
   component: SupportPage,
 });
+const developerSettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/developers',
+  component: DevelopersPage,
+});
+// API keys and webhooks share the Developers page (decision D104); their old addresses go there.
 const apiClientSettings = createRoute({
   getParentRoute: () => settings,
   path: '/api-clients',
-  component: ApiClientsPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/developers' });
+  },
+});
+const securitySettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/security',
+  component: SecurityDataPage,
 });
 const auditLogSettings = createRoute({
   getParentRoute: () => settings,
@@ -414,7 +427,9 @@ const dataExportSettings = createRoute({
 const webhookSettings = createRoute({
   getParentRoute: () => settings,
   path: '/webhooks',
-  component: WebhooksPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/developers' });
+  },
 });
 const roles = createRoute({ getParentRoute: () => settings, path: '/roles', component: RolesPage });
 const designations = createRoute({
@@ -573,8 +588,10 @@ const tree = root.addChildren([
       billingSettings,
       ssoSettings,
       supportSettings,
+      developerSettings,
       apiClientSettings,
       webhookSettings,
+      securitySettings,
       dataExportSettings,
       dataRequestSettings,
       auditLogSettings,

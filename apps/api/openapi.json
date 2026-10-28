@@ -8386,6 +8386,12 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               }
                             },
                             "required": [
@@ -23208,6 +23214,12 @@
                                   {
                                     "type": "null"
                                   }
+                                ]
+                              },
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
                                 ]
                               }
                             },
