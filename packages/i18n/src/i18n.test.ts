@@ -1,6 +1,13 @@
 import { ERROR_HTTP_STATUS, type ErrorCode, LOCALES } from '@thelamp/shared';
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, formatMoney, formatMonth, formatNumber } from './format';
+import {
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  formatMonth,
+  formatNumber,
+  formatWeekday,
+} from './format';
 import { en, type MessageKey } from './messages/en';
 import { resolveTerminology, TERMINOLOGY_DEFAULTS } from './terminology';
 import { createTranslator, MESSAGES, placeholders, translate, pluralForm } from './translate';
@@ -130,6 +137,9 @@ describe('formatting (spec 8.5)', () => {
     expect(formatDate('2026-10-05', { locale: 'en' })).toBe('5 Oct 2026');
     expect(formatMonth('2026-10', { locale: 'en' })).toBe('October 2026');
     expect(formatMonth('2026-10', { locale: 'hi' })).toBe('अक्टूबर 2026');
+    expect(formatWeekday(1, { locale: 'en' })).toBe('Mon');
+    expect(formatWeekday(7, { locale: 'en' })).toBe('Sun');
+    expect(formatWeekday(1, { locale: 'hi' })).toBe('सोम');
     expect(formatDateTime('2026-10-05T20:00:00Z', { locale: 'en', timeZone: 'Asia/Kolkata' })).toBe(
       '6 Oct 2026, 1:30 am',
     );

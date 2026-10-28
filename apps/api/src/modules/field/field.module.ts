@@ -8,6 +8,7 @@ import { MediaModule } from '../media/media.module';
 import { PhotosModule } from '../media/photos.module';
 import { ImportsModule } from '../imports/imports.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
+import { TerritoriesModule } from '../territories/territories.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { AttendanceLeave } from './attendance-leave';
 import { AttendanceController } from './attendance.controller';
@@ -33,6 +34,7 @@ import { VisitsService } from './visits.service';
 @Module({
   imports: [
     IamModule,
+    TerritoriesModule,
     MediaModule,
     PhotosModule,
     TenantConfigModule,

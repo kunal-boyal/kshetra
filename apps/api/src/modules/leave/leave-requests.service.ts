@@ -12,6 +12,7 @@ import {
   type LeaveIssue,
   leaveIssues,
   type LeaveRequestListQuery,
+  type LeaveRequestListResult,
   type LeaveRequestResult,
   type LeaveType,
   quotaYear,
@@ -197,28 +198,48 @@ export class LeaveRequestsService implements OnModuleInit {
     return this.result(tx, tenantId, await this.row(tx, tenantId, body.id));
   }
 
-  /** `GET /v1/leave-requests`: a person's requests starting in a year, theirs or someone they reach. */
+  /**
+   * `GET /v1/leave-requests`: a person's requests starting in a year, theirs or someone they reach;
+   * or, with `team`, everyone the caller reaches whose requests take in a day of a month.
+   */
   async list(
     tx: TenantTx,
     access: Access,
     query: LeaveRequestListQuery,
-  ): Promise<{ items: LeaveRequestResult[] }> {
-    const userId = await this.whose(tx, access, query.userId);
-    const { timezone } = await this.config.settings(tx, access.tenantId);
-    const year = query.year ?? Number(todayIn(timezone).slice(0, 4));
+  ): Promise<LeaveRequestListResult> {
+    let whom: SQL;
+    if (query.team && query.period) {
+      const [year, month] = query.period.split('-').map(Number) as [number, number];
+      const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      whom = and(
+        sql`${leaveRequests.userId} in (${await this.scopes.userIds(tx, access)})`,
+        lte(leaveRequests.startDate, `${query.period}-${String(last).padStart(2, '0')}`),
+        gte(leaveRequests.endDate, `${query.period}-01`),
+      )!;
+    } else {
+      const userId = await this.whose(tx, access, query.userId);
+      const { timezone } = await this.config.settings(tx, access.tenantId);
+      const year = query.year ?? Number(todayIn(timezone).slice(0, 4));
+      whom = and(
+        eq(leaveRequests.userId, userId),
+        gte(leaveRequests.startDate, `${year}-01-01`),
+        lte(leaveRequests.startDate, `${year}-12-31`),
+      )!;
+    }
     const rows = await tx
       .select()
       .from(leaveRequests)
-      .where(
-        and(
-          eq(leaveRequests.tenantId, access.tenantId),
-          eq(leaveRequests.userId, userId),
-          gte(leaveRequests.startDate, `${year}-01-01`),
-          lte(leaveRequests.startDate, `${year}-12-31`),
-        ),
-      )
+      .where(and(eq(leaveRequests.tenantId, access.tenantId), whom))
       .orderBy(asc(leaveRequests.startDate), asc(leaveRequests.createdAt));
-    return { items: await Promise.all(rows.map((row) => this.result(tx, access.tenantId, row))) };
+    const people = await this.people.facts(
+      tx,
+      access.tenantId,
+      rows.map((row) => row.userId),
+    );
+    return {
+      items: await Promise.all(rows.map((row) => this.result(tx, access.tenantId, row))),
+      people: [...people.values()].map(({ id, code, name }) => ({ id, code, name })),
+    };
   }
 
   /** `GET /v1/leave-balances`: each active type's balance in the quota year of a day. */

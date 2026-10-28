@@ -1,6 +1,11 @@
+import { formatMonth, formatWeekday } from '@thelamp/i18n';
 import {
   AccountListResult,
+  ApprovalResult,
+  CalendarListResult,
   GeneratePlanResult,
+  LeaveRequestListResult,
+  LeaveTypeListResult,
   newId,
   PlanItemListResult,
   type PlanItemResult,
@@ -13,6 +18,7 @@ import {
   todayIn,
 } from '@thelamp/shared';
 import {
+  Avatar,
   Button,
   Checkbox,
   type Column,
@@ -20,6 +26,7 @@ import {
   DataTable,
   EmptyState,
   Icon,
+  PeriodStepper,
   SelectField,
   StatusBadge,
   TextAreaField,
@@ -27,13 +34,28 @@ import {
 } from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { ArrowDown, ArrowUp, CalendarDays, CalendarPlus, Plus, Route, Send, X } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  CalendarDays,
+  CalendarPlus,
+  Check,
+  Plus,
+  Route,
+  Send,
+  X,
+} from 'lucide-react';
 import { Dot, MapView, Route as RouteLine } from '../maps/map';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
+import { useMe } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, useUser, write } from '../people/data';
-import { fieldErrors, PageHeader, Section, useDates } from '../people/shared';
+import { useDecisions } from '../approvals/data';
+import { designationName, fieldErrors, PageHeader, Section, useDates } from '../people/shared';
+import { type CalendarCell, MonthCalendar } from './month-calendar';
+import { calendarOf, planDays, visitsTitle, workingDays } from './plan-days';
+import { PlanTargets } from './plan-targets';
 
 type Translate = ReturnType<typeof useLanguage>['t'];
 
@@ -101,7 +123,7 @@ function recurrenceText(recurrence: RouteRecurrence, t: Translate): string {
 export function PlanPage({ userId }: { userId: string }) {
   const { client } = useApp();
   const queryClient = useQueryClient();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const access = useAccess();
   const dates = useDates(access.timezone);
   const user = useUser(userId);
@@ -113,6 +135,43 @@ export function PlanPage({ userId }: { userId: string }) {
   const [cancelling, setCancelling] = useState<PlanItemResult | null>(null);
   const manages = access.can('plan_item.manage');
   const approval = plan.data?.approval ?? null;
+  const routes = useRoutes(userId);
+  const attendanceOn = !access.modulesOff.includes('leave_attendance');
+  const year = period.slice(0, 4);
+  const calendars = useQuery({
+    queryKey: ['calendars', year],
+    queryFn: () => read(client, `/v1/calendars?year=${year}`, CalendarListResult),
+    enabled: attendanceOn,
+  });
+  const leave = useQuery({
+    queryKey: ['leave-requests', userId, year],
+    queryFn: () =>
+      read(client, `/v1/leave-requests?userId=${userId}&year=${year}`, LeaveRequestListResult),
+    enabled: attendanceOn,
+  });
+  const leaveTypes = useQuery({
+    queryKey: ['leave-types'],
+    queryFn: () => read(client, '/v1/leave-types', LeaveTypeListResult),
+    enabled: attendanceOn,
+  });
+  const calendar = calendarOf(calendars.data?.items, user.data?.calendarKey ?? null);
+  const decision = useQuery({
+    queryKey: ['approvals', 'one', approval?.approvalId ?? null],
+    queryFn: () => read(client, `/v1/approvals/${approval!.approvalId}`, ApprovalResult),
+    enabled: approval?.status === 'submitted' && Boolean(approval.approvalId),
+  });
+  const decisions = useDecisions();
+  const me = useMe(client);
+  const waiting =
+    decision.data?.status === 'pending' &&
+    decision.data.steps.some(
+      (step) =>
+        step.status === 'pending' && step.approvers.some((person) => person.id === me.data?.userId),
+    )
+      ? decision.data
+      : null;
+  const [sendingBack, setSendingBack] = useState(false);
+  const [note, setNote] = useState('');
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['plan', userId] });
 
@@ -175,23 +234,91 @@ export function PlanPage({ userId }: { userId: string }) {
       : []),
   ];
 
+  const month = formatMonth(period, { locale });
+  const items = plan.data?.items ?? [];
+  const days = planDays(period, items, calendar, leave.data?.items ?? []);
+  const stops = days.reduce((sum, day) => sum + day.items.length, 0);
+  const routeNames = new Map((routes.data?.items ?? []).map((route) => [route.id, route.name]));
+  const typeName = (key: string) =>
+    leaveTypes.data?.items.find((type) => type.key === key)?.name[locale] ?? key;
+  const cells: CalendarCell[] = days.map((day) => {
+    const visits = day.items.length;
+    const stopsText = visits > 0 ? t('plan.day_stops', { count: visits, n: String(visits) }) : null;
+    if (day.leave) {
+      return {
+        date: day.date,
+        tone: 'leave',
+        title: t(day.leave.state === 'approved' ? 'plan.day_leave' : 'plan.day_leave_asked'),
+        detail: [typeName(day.leave.leaveType), stopsText].filter(Boolean).join(' · '),
+      };
+    }
+    if (day.holiday || day.weeklyOff) {
+      return {
+        date: day.date,
+        tone: 'off',
+        title: day.holiday ?? t('plan.day_weekly_off'),
+        ...(stopsText ? { detail: stopsText } : {}),
+      };
+    }
+    return {
+      date: day.date,
+      title: visitsTitle(day.items, routeNames),
+      ...(stopsText ? { detail: stopsText } : {}),
+    };
+  });
+  const meta = [
+    user.data ? designationName(user.data.designation, access.designations, locale) : null,
+    user.data?.territories.map((territory) => territory.name).join(', ') || null,
+    calendar
+      ? t('plan.meta_working', {
+          count: workingDays(days),
+          n: String(workingDays(days)),
+        })
+      : null,
+    t('plan.meta_stops', { count: stops, n: String(stops) }),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={user.data ? t('plan.title_for', { name: user.data.name }) : t('plan.title')}
+        title={user.data ? t('plan.heading', { name: user.data.name, month }) : t('plan.title')}
         back={{ to: '/people/$userId', params: { userId }, label: user.data?.name ?? '' }}
-      />
-
-      <div className="flex flex-wrap items-end gap-3">
-        <TextField
-          label={t('plan.month')}
-          type="month"
-          className="max-w-xs"
-          value={period}
-          onChange={(event) => event.target.value && setPeriod(event.target.value)}
-        />
+        {...(user.data
+          ? { lead: <Avatar name={user.data.name} id={user.data.id} size="lg" /> }
+          : {})}
+        meta={meta}
+        toolbar={
+          <PeriodStepper
+            value={period}
+            onChange={setPeriod}
+            format={(value) => formatMonth(value, { locale })}
+            label={t('plan.month')}
+            previousLabel={t('targets.previous_month')}
+            nextLabel={t('targets.next_month')}
+          />
+        }
+      >
+        {approval ? (
+          <StatusBadge
+            variant={
+              approval.status === 'approved'
+                ? 'success'
+                : approval.status === 'rejected'
+                  ? 'danger'
+                  : approval.status === 'submitted'
+                    ? 'pending'
+                    : 'neutral'
+            }
+          >
+            {waiting ? t('plan.waiting_you') : t(`plan.approval_${approval.status}`)}
+          </StatusBadge>
+        ) : null}
         {manages ? (
           <Button
+            size="sm"
+            variant="secondary"
             icon={<Icon icon={CalendarPlus} />}
             busy={busy === 'generate'}
             onClick={() =>
@@ -215,6 +342,7 @@ export function PlanPage({ userId }: { userId: string }) {
         ) : null}
         {approval && (approval.status === 'draft' || approval.status === 'rejected') ? (
           <Button
+            size="sm"
             icon={<Icon icon={Send} />}
             busy={busy === 'submit'}
             onClick={() =>
@@ -230,22 +358,60 @@ export function PlanPage({ userId }: { userId: string }) {
             {t('plan.submit')}
           </Button>
         ) : null}
-        {approval ? (
-          <StatusBadge
-            variant={
-              approval.status === 'approved'
-                ? 'success'
-                : approval.status === 'rejected'
-                  ? 'danger'
-                  : approval.status === 'submitted'
-                    ? 'pending'
-                    : 'neutral'
-            }
-          >
-            {t(`plan.approval_${approval.status}`)}
-          </StatusBadge>
+        {waiting ? (
+          <>
+            <Button size="sm" variant="secondary" onClick={() => setSendingBack(true)}>
+              {t('plan.send_back')}
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              icon={<Icon icon={Check} />}
+              busy={busy === 'approve'}
+              onClick={() =>
+                void act('approve', async () => {
+                  await decisions.decide(waiting, 'approve');
+                  return t('plan.approved');
+                })
+              }
+            >
+              {t('plan.approve')}
+            </Button>
+          </>
         ) : null}
-      </div>
+      </PageHeader>
+      {waiting && sendingBack ? (
+        <div className="ks-card flex flex-col gap-3">
+          <TextAreaField
+            label={t('plan.send_back_note')}
+            required
+            rows={2}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="danger"
+              size="sm"
+              busy={busy === 'reject'}
+              disabled={note.trim().length < 3}
+              onClick={() =>
+                void act('reject', async () => {
+                  await decisions.decide(waiting, 'reject', note.trim());
+                  setSendingBack(false);
+                  setNote('');
+                  return t('plan.sent_back');
+                })
+              }
+            >
+              {t('plan.send_back')}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setSendingBack(false)}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {message ? <p role="status">{message}</p> : null}
       {failure ? (
         <p className="ks-help error" role="alert">
@@ -285,6 +451,18 @@ export function PlanPage({ userId }: { userId: string }) {
           }
         />
       ) : null}
+
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="ks-card min-w-0">
+          <MonthCalendar
+            period={period}
+            caption={t('plan.calendar_caption', { month })}
+            weekdays={[1, 2, 3, 4, 5, 6, 7].map((day) => formatWeekday(day, { locale }))}
+            cells={cells}
+          />
+        </div>
+        {access.can('target.view') ? <PlanTargets userId={userId} period={period} /> : null}
+      </div>
 
       <Section title={t('plan.visits')}>
         {plan.isError ? (

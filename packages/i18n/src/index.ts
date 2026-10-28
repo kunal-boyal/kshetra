@@ -3,6 +3,7 @@ export {
   formatDateTime,
   formatMoney,
   formatMonth,
+  formatWeekday,
   formatNumber,
   localeTag,
 } from './format';

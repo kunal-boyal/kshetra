@@ -565,6 +565,8 @@ export type {
 export {
   AttendanceDayResult,
   AttendanceQuery,
+  AttendanceRegisterQuery,
+  AttendanceRegisterResult,
   AttendanceResult,
   CurrentShiftResult,
   DayStatus,

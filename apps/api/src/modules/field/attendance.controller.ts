@@ -1,6 +1,9 @@
+import { sql } from 'drizzle-orm';
 import { Body, Controller, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
 import {
   AppError,
+  AttendanceRegisterQuery,
+  AttendanceRegisterResult,
   CalendarListQuery,
   CalendarListResult,
   CreateRegularisationBody,
@@ -20,16 +23,20 @@ import {
   CurrentAccess,
   InModule,
   Requires,
+  RequiresAny,
   ForApiClients,
   SignedIn,
 } from '../../platform/auth';
 import { AuditLog, userActor } from '../../platform/audit';
 import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';
+import { FromReplica } from '../../platform/replica';
 import { Contract } from '../../platform/routes';
 import { notFound, pathId } from '../iam/actor';
 import { People } from '../iam/people';
+import { Scopes } from '../iam/scopes';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { TerritoriesService } from '../territories/territories.service';
 import { AttendanceService } from './attendance.service';
 import { CalendarsService } from './calendars.service';
 import { RegularisationsService } from './regularisations.service';
@@ -45,7 +52,71 @@ export class AttendanceController {
     private readonly people: People,
     private readonly config: TenantConfigService,
     private readonly audit: AuditLog,
+    private readonly scopes: Scopes,
+    private readonly territories: TerritoriesService,
   ) {}
+
+  /**
+   * The attendance register (decision D104): everyone the caller sees who was still employed in the
+   * month, by code, with each day's status by the tenant's rule and their present days' total.
+   */
+  @FromReplica()
+  @Get('attendance/register')
+  @Contract({
+    tag: 'Attendance',
+    summary: "Everyone's attendance days in a month, a page of people at a time",
+    query: AttendanceRegisterQuery,
+    response: AttendanceRegisterResult,
+  })
+  @RequiresAny('user.view')
+  @InModule('leave_attendance')
+  register(@CurrentAccess() access: Access, @Query() query: unknown) {
+    const input = AttendanceRegisterQuery.parse(query);
+    const [year, month] = input.period.split('-').map(Number) as [number, number];
+    const from = `${input.period}-01`;
+    const to = `${input.period}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, '0')}`;
+    return this.database.forTenant(access.tenantId, async (tx) => {
+      const parts = [await this.scopes.userIds(tx, access)];
+      if (input.territoryId) {
+        await this.territories.get(tx, access.tenantId, input.territoryId);
+        parts.push(
+          this.territories.usersAttachedUnder(access.tenantId, input.territoryId, from, to),
+        );
+      }
+      const everyone = await this.people.among(
+        tx,
+        access.tenantId,
+        sql.join(
+          parts.map((part) => sql`(${part})`),
+          sql` intersect `,
+        ),
+        from,
+      );
+      const offset = Number(input.cursor ?? 0);
+      const page = everyone.slice(offset, offset + input.limit);
+      const months = await this.attendance.days(
+        tx,
+        access.tenantId,
+        page.map((person) => person.id),
+        from,
+        to,
+      );
+      return {
+        period: input.period,
+        items: page.map((person) => {
+          const days = months.get(person.id) ?? [];
+          return {
+            user: { id: person.id, code: person.code, name: person.name },
+            days: days.map((day) => ({ date: day.date, status: day.status })),
+            present: days
+              .filter((day) => day.status === 'present' || day.status === 'half_day')
+              .reduce((sum, day) => sum + day.value, 0),
+          };
+        }),
+        nextCursor: offset + input.limit < everyone.length ? String(offset + input.limit) : null,
+      };
+    });
+  }
 
   @Get('calendars')
   @Contract({

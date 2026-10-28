@@ -187,7 +187,30 @@ export const AttendanceResult = z.object({
   summary: z.object({ scheduled: z.int().min(0), paid: z.number().min(0) }),
 });
 
+/** `GET /v1/attendance/register`: everyone in scope by days of a month (decision D104). */
+export const AttendanceRegisterQuery = z.strictObject({
+  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use a month such as 2026-10'),
+  territoryId: z.uuid().optional(),
+  cursor: z.string().regex(/^\d+$/).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const AttendanceRegisterResult = z.object({
+  period: z.string(),
+  items: z.array(
+    z.object({
+      user: z.object({ id: z.uuid(), code: z.string(), name: z.string() }),
+      days: z.array(z.object({ date: CalendarDate, status: DayStatus })),
+      /** The present and half days' value. */
+      present: z.number().min(0),
+    }),
+  ),
+  nextCursor: z.string().nullable(),
+});
+
 export type PunchFix = z.output<typeof PunchFix>;
+export type AttendanceRegisterQuery = z.output<typeof AttendanceRegisterQuery>;
+export type AttendanceRegisterResult = z.infer<typeof AttendanceRegisterResult>;
 export type StartShiftBody = z.output<typeof StartShiftBody>;
 export type PunchOdometer = z.output<typeof PunchOdometer>;
 export type EndShiftBody = z.output<typeof EndShiftBody>;
