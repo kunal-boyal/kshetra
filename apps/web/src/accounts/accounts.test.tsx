@@ -219,6 +219,52 @@ describe('the accounts table', () => {
 });
 
 describe("an account's finance (M11, D79)", () => {
+  const snapshot = (patch: object) => ({
+    [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+    [`/v1/accounts/${SHOP}/finance`]: {
+      latest: {
+        id: '01a10000-0000-7000-8000-0000000000a9',
+        accountId: SHOP,
+        asOf: '2026-10-15',
+        outstanding: '42000.50',
+        creditLimit: '75000.00',
+        inventoryValue: null,
+        ageing: {},
+        source: 'Tally',
+        createdAt: '2026-10-15T05:00:00.000Z',
+        ...patch,
+      },
+      history: [],
+    },
+  });
+
+  it('shows no meter without a credit limit, and the danger tone past one', async () => {
+    renderAt(
+      `/accounts/${SHOP}`,
+      fakeClient(snapshot({ creditLimit: null }), {}, ['account.view', 'finance.view'], BUNDLE),
+    );
+    const finance = await screen.findByRole('region', { name: 'Finance' });
+    await waitFor(() => expect(finance).toHaveTextContent('No limit set'));
+    expect(finance.querySelector('.ks-bar')).toBeNull();
+    // Nothing aged, so no bar.
+    expect(within(finance).queryByRole('img', { name: 'Ageing' })).toBeNull();
+  });
+
+  it('marks a limit run past', async () => {
+    renderAt(
+      `/accounts/${SHOP}`,
+      fakeClient(
+        snapshot({ creditLimit: '40000.00' }),
+        {},
+        ['account.view', 'finance.view'],
+        BUNDLE,
+      ),
+    );
+    const finance = await screen.findByRole('region', { name: 'Finance' });
+    await waitFor(() => expect(finance).toHaveTextContent('105% of the limit used'));
+    expect(finance.querySelector('.ks-stat.danger')).not.toBeNull();
+  });
+
   it('shows the latest balance with its ageing, and the statement with running balances', async () => {
     const year = new Date().getFullYear() - (new Date().getMonth() < 3 ? 1 : 0);
     const client = fakeClient(
@@ -274,8 +320,12 @@ describe("an account's finance (M11, D79)", () => {
     renderAt(`/accounts/${SHOP}`, client);
     const finance = await screen.findByRole('region', { name: 'Finance' });
     await waitFor(() => expect(finance).toHaveTextContent('Outstanding₹42,000.50'));
-    expect(finance).toHaveTextContent('0–30 days₹32,000.50');
-    expect(finance).toHaveTextContent('Over 180 days₹10,000.00');
+    // Where the ledger came from, the limit's use, and the ageing in the status colours (D104).
+    expect(finance).toHaveTextContent('Ledger from Tally');
+    expect(finance).toHaveTextContent('56% of the limit used');
+    const ageing = within(finance).getByRole('img', { name: 'Ageing' });
+    expect(ageing.parentElement).toHaveTextContent('0–30 days: ₹32,000.50');
+    expect(ageing.parentElement).toHaveTextContent('Over 180 days: ₹10,000.00');
     const statement = await within(finance).findByRole('table', { name: 'Statement' });
     expect(within(statement).getByRole('row', { name: /RCPT-1/ })).toHaveTextContent('₹8,000.00');
     expect(finance).toHaveTextContent('Opening balance₹1,000.00');

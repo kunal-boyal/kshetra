@@ -149,6 +149,22 @@ export const ExpenseClaimListQuery = z.strictObject({
 export const ExpenseClaimListResult = z.object({
   items: z.array(ExpenseClaimResult),
   nextCursor: z.string().nullable(),
+  /**
+   * The month's totals under the filters but `state`, on the first page only (decision D104):
+   * every claim but cancelled ones, those waiting for a decision, what the caps cut (BR-29), and
+   * those approved and not yet paid.
+   */
+  summary: z
+    .object({
+      claimed: Money,
+      claims: z.int().min(0),
+      waiting: Money,
+      waitingClaims: z.int().min(0),
+      overPolicy: Money,
+      approved: Money,
+      approvedClaims: z.int().min(0),
+    })
+    .nullable(),
 });
 
 /** `POST /v1/expense-claims/{id}/receipts`: more receipt photos while the claim waits. */

@@ -71,6 +71,15 @@ const ANSWERS: Record<string, unknown> = {
       }),
     ],
     nextCursor: null,
+    summary: {
+      claimed: '1612.50',
+      claims: 2,
+      waiting: '1200.00',
+      waitingClaims: 1,
+      overPolicy: '300.00',
+      approved: '412.50',
+      approvedClaims: 1,
+    },
   },
 };
 
@@ -144,7 +153,7 @@ for (const theme of ['light', 'outdoor']) {
     await mockSignedIn(page);
     await page.addInitScript((chosen) => localStorage.setItem('theme', chosen), theme);
     await page.goto('/expenses');
-    await expect(page.getByRole('heading', { level: 1, name: 'Expense claims' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /^Expenses · / })).toBeVisible();
     await expect(page.getByText('Receipt seen before')).toBeVisible();
     await expectAccessible(page);
     await page.getByRole('button', { name: /Mark paid: Rahul Verma/ }).click();

@@ -1,4 +1,4 @@
-import { formatDate, formatMoney } from '@thelamp/i18n';
+import { formatDate, formatDateTime, formatMoney, formatNumber } from '@thelamp/i18n';
 import {
   AccountFinanceResult,
   type AgeingBucket,
@@ -6,17 +6,21 @@ import {
   financialYear,
   LedgerEntriesResult,
   newId,
+  scaled,
   type StatementResult,
   StatementResult as StatementSchema,
   todayIn,
 } from '@thelamp/shared';
 import {
+  type BadgeVariant,
   Button,
   type Column,
   DataTable,
   Icon,
   Notice,
   SelectField,
+  StackedBar,
+  StatTile,
   TextField,
 } from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -36,6 +40,17 @@ export function bucketLabel(bucket: AgeingBucket, t: Translate): string {
   return bucket.toDays === null
     ? t('finance.bucket_over', { days: bucket.fromDays - 1 })
     : t('finance.bucket', { from: bucket.fromDays, to: bucket.toDays });
+}
+
+/** How much of the limit is used, from 0 up; an amount's share, not an amount. */
+const used = (outstanding: string, limit: string) =>
+  Number(scaled(outstanding, 2)) / Number(scaled(limit, 2));
+
+/** Ageing tones from the newest bucket (on time) to the oldest (danger). */
+export function ageingTone(index: number, count: number): BadgeVariant {
+  if (index === 0) return 'success';
+  if (index === count - 1) return 'danger';
+  return index % 2 === 1 ? 'pending' : 'waiting';
 }
 
 /**
@@ -112,30 +127,57 @@ export function FinanceSection({
           {errorMessage(finance.error, t)}
         </p>
       ) : latest ? (
-        <>
-          <Facts
-            items={[
-              [t('finance.as_of'), date(latest.asOf)],
-              [t('finance.outstanding'), money(latest.outstanding)],
-              [t('finance.credit_limit'), latest.creditLimit ? money(latest.creditLimit) : '—'],
-              [
-                t('finance.inventory_value'),
-                latest.inventoryValue ? money(latest.inventoryValue) : '—',
-              ],
-              [t('finance.source'), latest.source],
-              ...buckets.flatMap((bucket) =>
-                latest.ageing[bucket.key]
-                  ? [
-                      [bucketLabel(bucket, t), money(latest.ageing[bucket.key]!)] as [
-                        string,
-                        string,
-                      ],
-                    ]
-                  : [],
-              ),
-            ]}
-          />
-        </>
+        <div className="flex flex-col gap-4">
+          <p className="ks-meta">
+            {t('finance.ledger_from', {
+              source: latest.source,
+              when: formatDateTime(latest.createdAt, { locale, timeZone: access.timezone }),
+            })}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <StatTile
+              label={t('finance.outstanding')}
+              value={money(latest.outstanding)}
+              sub={t('finance.as_of_date', { date: date(latest.asOf) })}
+            />
+            {latest.creditLimit && scaled(latest.creditLimit, 2) > 0n ? (
+              <StatTile
+                label={t('finance.credit_limit')}
+                value={money(latest.creditLimit)}
+                meter={used(latest.outstanding, latest.creditLimit)}
+                {...(scaled(latest.outstanding, 2) > scaled(latest.creditLimit, 2)
+                  ? { tone: 'danger' as const }
+                  : {})}
+                sub={t('finance.credit_used', {
+                  share: formatNumber(
+                    used(latest.outstanding, latest.creditLimit),
+                    { locale },
+                    { style: 'percent', maximumFractionDigits: 0 },
+                  ),
+                })}
+              />
+            ) : (
+              <StatTile label={t('finance.credit_limit')} value="—" sub={t('finance.no_limit')} />
+            )}
+            {latest.inventoryValue ? (
+              <StatTile label={t('finance.inventory_value')} value={money(latest.inventoryValue)} />
+            ) : null}
+          </div>
+          {buckets.some((bucket) => latest.ageing[bucket.key]) ? (
+            <div className="flex flex-col gap-2">
+              <h3 className="heading-sm">{t('finance.ageing')}</h3>
+              <StackedBar
+                label={t('finance.ageing')}
+                format={(value) => money(String(value))}
+                parts={buckets.map((bucket, index) => ({
+                  label: bucketLabel(bucket, t),
+                  value: Number(latest.ageing[bucket.key] ?? 0),
+                  tone: ageingTone(index, buckets.length),
+                }))}
+              />
+            </div>
+          ) : null}
+        </div>
       ) : finance.isPending ? (
         <p className="ks-muted">{t('common.loading')}</p>
       ) : (

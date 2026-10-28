@@ -80,9 +80,59 @@ const PAGES = {
         receipts: [],
         flags: ['capped'],
         state: 'pending',
+        approval: {
+          id: '01a10000-0000-7000-8000-0000000000a1',
+          requestType: 'expense',
+          requestId: DA,
+          subject: { title: '1200.00 · Tour', accountId: null },
+          requester: {
+            id: '01a10000-0000-7000-8000-000000000004',
+            code: 'SUN-004',
+            name: 'Rahul Verma',
+          },
+          status: 'pending',
+          version: 1,
+          steps: [0, 1].map((index) => ({
+            index,
+            approvers: [
+              index === 0
+                ? {
+                    id: '01a10000-0000-7000-8000-000000000003',
+                    code: 'SUN-003',
+                    name: 'Priya Nair',
+                  }
+                : {
+                    id: '01a10000-0000-7000-8000-000000000002',
+                    code: 'SUN-002',
+                    name: 'Anita Rao',
+                  },
+            ],
+            status: index === 0 ? 'pending' : 'waiting',
+            actedBy: null,
+            actedAt: null,
+            note: null,
+            skipReason: null,
+            escalated: false,
+            fallback: false,
+          })),
+          cancellable: true,
+          bulk: true,
+          page: null,
+          createdAt: `${PERIOD}-05T09:00:00.000Z`,
+          closedAt: null,
+        },
       }),
     ],
     nextCursor: null,
+    summary: {
+      claimed: '1612.50',
+      claims: 2,
+      waiting: '1200.00',
+      waitingClaims: 1,
+      overPolicy: '300.00',
+      approved: '412.50',
+      approvedClaims: 1,
+    },
   },
 };
 
@@ -108,8 +158,20 @@ describe('expense claims (M12)', () => {
     expect(meals).toHaveTextContent('Approved');
     const da = within(table).getByRole('row', { name: /Tour/ });
     expect(da).toHaveTextContent('₹1,200.00');
-    expect(da).toHaveTextContent('of ₹1,500.00 calculated');
+    // What the caps cut, and where the claim waits (decision D104).
+    expect(da).toHaveTextContent('₹300.00');
+    expect(da).toHaveTextContent('Priya Nair, step 1 of 2');
+    expect(meals).toHaveTextContent('Approved, to be paid');
     expect(within(da).queryByRole('button', { name: /Mark paid/ })).toBeNull();
+
+    // The month's totals, and the policies in a line each.
+    expect(screen.getByText('₹1,612.50')).toBeInTheDocument();
+    expect(screen.getByText('cut by the caps, never paid')).toBeInTheDocument();
+    const policies = screen.getByRole('region', { name: 'Policies' });
+    expect(within(policies).getByText('As billed · bill needed')).toBeInTheDocument();
+    expect(
+      within(policies).getByText('₹500.00 a day · up to ₹1,200.00 a claim'),
+    ).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(within(meals).getByRole('button', { name: /Mark paid/ }));
@@ -127,9 +189,7 @@ describe('expense claims (M12)', () => {
     renderAt('/expenses', client);
     await screen.findByRole('table', { name: 'Expense claims' });
     expect(screen.queryByRole('button', { name: /Mark paid/ })).toBeNull();
-    await userEvent
-      .setup()
-      .selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'pending');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Waiting' }));
     expect(client.request).toHaveBeenCalledWith(
       'GET',
       `/v1/expense-claims?period=${PERIOD}&state=pending`,

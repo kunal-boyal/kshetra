@@ -81,10 +81,13 @@ function Segments({
   label,
   parts,
   labels,
+  format = String,
 }: {
   label: string;
   parts: readonly (Part & { colour: string })[];
   labels: boolean;
+  /** How each value reads in the list for screen readers. */
+  format?: (value: number) => string;
 }) {
   const total = parts.reduce((sum, part) => sum + Math.max(0, part.value), 0);
   if (total <= 0) return null;
@@ -106,7 +109,7 @@ function Segments({
       <ul className="sr-only">
         {parts.map((part) => (
           <li key={part.label}>
-            {part.label}: {part.value}
+            {part.label}: {format(part.value)}
           </li>
         ))}
       </ul>
@@ -155,6 +158,7 @@ export function StackedBar({
       <Segments
         label={label}
         labels={false}
+        format={format}
         parts={parts.map((part) => ({ ...part, colour: `var(--${part.tone}-solid)` }))}
       />
       <ul className="ks-legend" aria-hidden="true">

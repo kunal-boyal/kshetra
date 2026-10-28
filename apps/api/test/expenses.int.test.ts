@@ -217,6 +217,25 @@ describe('expense claims (BR-29)', () => {
       { path: 'policy', issue: 'The caps for this day or month are used up' },
     ]);
 
+    // The month's totals (decision D104): every claim, those waiting, and what the caps cut.
+    const month = LAST_MONTH().slice(0, 7);
+    const listed = (await t.head.get(`/v1/expense-claims?period=${month}&limit=1`)).json();
+    expect(listed.summary).toEqual({
+      claimed: '3336.00',
+      claims: 4,
+      waiting: '3336.00',
+      waitingClaims: 4,
+      overPolicy: '1000.00',
+      approved: '0',
+      approvedClaims: 0,
+    });
+    const next = (
+      await t.head.get(
+        `/v1/expense-claims?period=${month}&limit=1&cursor=${encodeURIComponent(listed.nextCursor)}`,
+      )
+    ).json();
+    expect(next.summary).toBeNull();
+
     expect(
       (
         await claim(t.field, {

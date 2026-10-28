@@ -7,6 +7,7 @@ import {
   claimIssues,
   type CreateExpenseClaimBody,
   type ExpenseClaimListQuery,
+  type ExpenseClaimListResult,
   type ExpenseClaimResult,
   type ExpenseIssue,
   issueAt,
@@ -317,7 +318,7 @@ export class ExpenseClaimsService implements OnModuleInit {
     tx: TenantTx,
     access: Access,
     query: ExpenseClaimListQuery,
-  ): Promise<{ items: ExpenseClaimResult[]; nextCursor: string | null }> {
+  ): Promise<ExpenseClaimListResult> {
     if (
       query.userId &&
       query.userId !== access.userId &&
@@ -326,6 +327,13 @@ export class ExpenseClaimsService implements OnModuleInit {
       throw outOfScope();
     }
     const [afterDate, afterId] = query.cursor?.split('|') ?? [];
+    const scope = and(
+      eq(expenseClaims.tenantId, access.tenantId),
+      query.userId ? eq(expenseClaims.userId, query.userId) : await this.scopes.users(tx, access),
+      query.period
+        ? sql`to_char(${expenseClaims.expenseDate}, 'YYYY-MM') = ${query.period}`
+        : undefined,
+    );
     const rows = await tx
       .select({ claim: expenseClaims })
       .from(expenseClaims)
@@ -335,13 +343,7 @@ export class ExpenseClaimsService implements OnModuleInit {
       )
       .where(
         and(
-          eq(expenseClaims.tenantId, access.tenantId),
-          query.userId
-            ? eq(expenseClaims.userId, query.userId)
-            : await this.scopes.users(tx, access),
-          query.period
-            ? sql`to_char(${expenseClaims.expenseDate}, 'YYYY-MM') = ${query.period}`
-            : undefined,
+          scope,
           query.state ? eq(expenseClaims.state, query.state) : undefined,
           afterDate && afterId
             ? sql`(${expenseClaims.expenseDate}, ${expenseClaims.id}) < (${afterDate}::date, ${afterId}::uuid)`
@@ -355,6 +357,40 @@ export class ExpenseClaimsService implements OnModuleInit {
     return {
       items: await this.results(tx, access.tenantId, page),
       nextCursor: rows.length > query.limit && last ? `${last.expenseDate}|${last.id}` : null,
+      summary: query.cursor ? null : await this.summary(tx, scope),
+    };
+  }
+
+  /**
+   * The totals of the claims `scope` selects (which may name the claimant's user row), summed as
+   * numeric (decision D104).
+   */
+  private async summary(tx: TenantTx, scope: SQL | undefined) {
+    const [row] = await tx
+      .select({
+        claimed: sql<string>`coalesce(sum(${expenseClaims.amount}) filter (where ${expenseClaims.state} <> 'cancelled'), 0)::text`,
+        claims: sql<number>`(count(*) filter (where ${expenseClaims.state} <> 'cancelled'))::int`,
+        waiting: sql<string>`coalesce(sum(${expenseClaims.amount}) filter (where ${expenseClaims.state} = 'pending'), 0)::text`,
+        waitingClaims: sql<number>`(count(*) filter (where ${expenseClaims.state} = 'pending'))::int`,
+        overPolicy: sql<string>`coalesce(sum(${expenseClaims.calculated} - ${expenseClaims.amount}) filter (where ${expenseClaims.capped} and ${expenseClaims.state} <> 'cancelled'), 0)::text`,
+        approved: sql<string>`coalesce(sum(${expenseClaims.amount}) filter (where ${expenseClaims.state} = 'approved'), 0)::text`,
+        approvedClaims: sql<number>`(count(*) filter (where ${expenseClaims.state} = 'approved'))::int`,
+      })
+      .from(expenseClaims)
+      .innerJoin(
+        users,
+        and(eq(users.tenantId, expenseClaims.tenantId), eq(users.id, expenseClaims.userId)),
+      )
+      .where(scope);
+    const money = (value: string | undefined) => value ?? '0';
+    return {
+      claimed: money(row?.claimed),
+      claims: row?.claims ?? 0,
+      waiting: money(row?.waiting),
+      waitingClaims: row?.waitingClaims ?? 0,
+      overPolicy: money(row?.overPolicy),
+      approved: money(row?.approved),
+      approvedClaims: row?.approvedClaims ?? 0,
     };
   }
 
