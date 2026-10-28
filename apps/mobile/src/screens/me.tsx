@@ -5,11 +5,13 @@ import {
   Building2,
   CalendarCheck,
   CalendarX,
+  ClipboardList,
   CloudUpload,
   FileLock2,
   LogOut,
   ReceiptText,
   Shield,
+  Store,
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -23,9 +25,9 @@ import { useSyncStatus } from '../sync';
 import { useShift } from './shift';
 
 /**
- * Me (spec 8.1). For now it holds what the More screen will: the profile, the tenant switcher,
- * language, display, the upload queue and sign-out, which warns about unsent records and about
- * recording stopping on duty.
+ * More (spec 8.1, the prototype's fifth tab, decision D104): the person's work that has no tab of
+ * its own (accounts and forms first), the profile, language, display, the upload queue and
+ * sign-out, which warns about unsent records and about recording stopping on duty.
  * Attendance opens the month calendar, Leave the balances and requests (M13), and Expenses the
  * claims (M12); requests arrive with their module.
  */
@@ -60,7 +62,7 @@ export function MeScreen() {
   return (
     <Screen edges={['top', 'left', 'right']}>
       <Text variant="headingXl" role="heading">
-        {t('app.me')}
+        {t('app.more')}
       </Text>
       {me.data ? (
         <Card>
@@ -74,6 +76,27 @@ export function MeScreen() {
         <Text tone="danger" weight={500} role="alert">
           {error}
         </Text>
+      ) : null}
+
+      {permissions.has('account.view') || permissions.has('submission.create') ? (
+        <ListGroup title={t('app.my_work')}>
+          {permissions.has('account.view') ? (
+            <ListRow
+              testID="more-accounts"
+              icon={Store}
+              label={t('accounts.title')}
+              onPress={() => router.push('/accounts')}
+            />
+          ) : null}
+          {permissions.has('submission.create') ? (
+            <ListRow
+              testID="more-forms"
+              icon={ClipboardList}
+              label={t('forms.title')}
+              onPress={() => router.push('/forms')}
+            />
+          ) : null}
+        </ListGroup>
       ) : null}
 
       <ListGroup title={t('app.organisation')}>

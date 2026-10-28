@@ -55,6 +55,8 @@ export interface ListRowProps {
   /** Opens something: the row shows a chevron and reads as a button. */
   onPress?: () => void;
   tone?: 'default' | 'danger';
+  /** For the Maestro flows, which find a row by it (decision D68). */
+  testID?: string;
 }
 
 /** One row, at least 56 px tall (`row-comfortable`) so a thumb finds it. */
@@ -70,6 +72,7 @@ export function ListRow({
   highlight = false,
   onPress,
   tone = 'default',
+  testID,
 }: ListRowProps) {
   const theme = useTheme();
   const ink = tone === 'danger' ? theme.colors.dangerFg : theme.colors.text;
@@ -104,13 +107,18 @@ export function ListRow({
   const name = [label, detail, meta, unread ? unreadLabel : undefined].filter(Boolean).join(', ');
   if (!onPress) {
     return (
-      <View style={[styles.row, tint]} {...(unread && unreadLabel ? { 'aria-label': name } : {})}>
+      <View
+        testID={testID}
+        style={[styles.row, tint]}
+        {...(unread && unreadLabel ? { 'aria-label': name } : {})}
+      >
         {body}
       </View>
     );
   }
   return (
     <Pressable
+      testID={testID}
       role="button"
       aria-label={name}
       onPress={onPress}

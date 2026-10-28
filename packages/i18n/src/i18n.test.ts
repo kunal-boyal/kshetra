@@ -5,6 +5,7 @@ import {
   formatDateTime,
   formatMoney,
   formatDay,
+  formatTime,
   formatMonth,
   formatNumber,
   formatWeekday,
@@ -138,6 +139,9 @@ describe('formatting (spec 8.5)', () => {
     expect(formatDate('2026-10-05', { locale: 'en' })).toBe('5 Oct 2026');
     expect(formatMonth('2026-10', { locale: 'en' })).toBe('October 2026');
     expect(formatDay('2026-10-23', { locale: 'en' })).toBe('Fri, 23 Oct');
+    expect(formatTime('2026-10-23T08:51:00Z', { locale: 'en', timeZone: 'Asia/Kolkata' })).toBe(
+      '2:21 pm',
+    );
     expect(formatMonth('2026-10', { locale: 'hi' })).toBe('अक्टूबर 2026');
     expect(formatWeekday(1, { locale: 'en' })).toBe('Mon');
     expect(formatWeekday(7, { locale: 'en' })).toBe('Sun');

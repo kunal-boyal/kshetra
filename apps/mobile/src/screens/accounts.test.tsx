@@ -335,7 +335,8 @@ describe('accounts on the phone', () => {
     const client = await renderPhone({ name: 'account', id: UNPLACED });
     expect(await screen.findByText('Corner Kirana')).toBeOnTheScreen();
     expect(screen.getByText('Meena Shah')).toBeOnTheScreen();
-    expect(screen.getByText('Rahul Verma')).toBeOnTheScreen();
+    // In the details as the contact, and in the contacts list.
+    expect(screen.getAllByText(/^Rahul Verma/).length).toBeGreaterThan(0);
 
     await fireEvent.press(screen.getByRole('button', { name: 'Find my location' }));
     expect(await screen.findByText('Your location is known to within 12 m.')).toBeOnTheScreen();

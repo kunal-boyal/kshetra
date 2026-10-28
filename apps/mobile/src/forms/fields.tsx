@@ -17,9 +17,11 @@ import {
   Button,
   Card,
   CheckGroup,
+  ChipGroup,
   ChoiceGroup,
   Icon,
   Notice,
+  PhotoStrip,
   Text,
   TextField,
   useTheme,
@@ -410,6 +412,9 @@ function NumberInput({
   );
 }
 
+/** A single choice with this many options or fewer, all its own, shows as chips. */
+const CHIP_CHOICES = 8;
+
 function SelectInput({
   field,
   value,
@@ -437,6 +442,20 @@ function SelectInput({
           choices={choices}
           value={chosen}
           onChange={(next) => !data.readOnly && onChange(next.length > 0 ? next : undefined)}
+        />
+      </Labelled>
+    );
+  }
+  // A few short choices of the form's own read best as chips, as the prototype draws them (D104).
+  if (!field.optionsFrom && choices.length <= CHIP_CHOICES) {
+    return (
+      <Labelled error={error}>
+        <Text variant="labelMd">{title}</Text>
+        <ChipGroup
+          label={title}
+          choices={choices}
+          value={text(value)}
+          onChange={(next) => !data.readOnly && onChange(next)}
         />
       </Labelled>
     );
@@ -524,21 +543,33 @@ function Capture({
   error: string | undefined;
 }) {
   const { t } = useLanguage();
+  // As a 96 px tile, with the dashed one that takes it while there is none (D104).
   return (
     <Labelled error={error}>
       <Text variant="labelMd">{title}</Text>
-      {done ? <Notice>{t(`entry.${kind}_taken`)}</Notice> : null}
-      {readOnly ? null : (
+      <PhotoStrip
+        size="lg"
+        label={title}
+        photos={done ? [{ label: t(`entry.${kind}_taken`) }] : []}
+        addLabel={t('entry.photo_take')}
+        {...(readOnly || done ? {} : { onAdd: onCapture })}
+      />
+      {readOnly || !done ? null : (
         <View style={styles.row}>
           <Button
             variant="secondary"
+            size="sm"
             icon={Camera}
-            label={t(done ? 'entry.photo_retake' : 'entry.photo_take')}
+            label={t('entry.photo_retake')}
             onPress={onCapture}
           />
-          {done ? (
-            <Button variant="ghost" icon={Trash2} label={t('common.remove')} onPress={onClear} />
-          ) : null}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={Trash2}
+            label={t('common.remove')}
+            onPress={onClear}
+          />
         </View>
       )}
     </Labelled>

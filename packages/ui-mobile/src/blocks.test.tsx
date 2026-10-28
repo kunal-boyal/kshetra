@@ -11,6 +11,7 @@ import { Avatar } from './identity';
 import { ListRow } from './lists';
 import { ProgressBar, Steps } from './measures';
 import { PhotoStrip } from './photos';
+import { Screen } from './screen';
 import { ShiftCard } from './shift-card';
 import { Flag } from './status';
 import { Card, IconChip, Notice } from './surfaces';
@@ -271,5 +272,43 @@ describe('ShiftCard stats and tinted cards (stage M2)', () => {
     const flat = StyleSheet.flatten(screen.getByTestId('tile').props.style);
     expect(flat.backgroundColor).toBe(light.colors.pastelMintBg);
     expect(flat.boxShadow).toBeUndefined();
+  });
+});
+
+describe('large photo tiles and a held footer (stage M3)', () => {
+  it("draws a form's photo tiles at 96 px, the add tile too", async () => {
+    await render(
+      <PhotoStrip
+        size="lg"
+        label="Photos"
+        photos={[{ label: 'Photo 1' }]}
+        onAdd={() => undefined}
+        addLabel="Take a photo"
+      />,
+    );
+    expect(
+      StyleSheet.flatten(screen.getByRole('img', { name: 'Photo 1' }).props.style),
+    ).toMatchObject({ width: 96, height: 96 });
+    const add = screen.getByRole('button', { name: 'Take a photo' });
+    const style = StyleSheet.flatten(
+      typeof add.props.style === 'function' ? add.props.style({ pressed: false }) : add.props.style,
+    );
+    expect(style).toMatchObject({ width: 96, height: 96 });
+  });
+
+  it('holds a footer below the scrolling content', async () => {
+    await render(
+      <Screen
+        footer={
+          <ActionBar>
+            <Button label="Check out" />
+          </ActionBar>
+        }
+      >
+        <Text>On this visit</Text>
+      </Screen>,
+    );
+    expect(screen.getByText('On this visit')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Check out' })).toBeOnTheScreen();
   });
 });

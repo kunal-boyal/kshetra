@@ -1,11 +1,21 @@
 import type { FormEntry } from '@thelamp/api-client/sync';
 import { spacing } from '@thelamp/design-tokens';
 import { signatureRequired, VISIT_ORDERED, type Values } from '@thelamp/forms';
-import { formatDateTime, formatNumber } from '@thelamp/i18n';
+import { formatDateTime, formatNumber, formatTime } from '@thelamp/i18n';
 import { punchFixIssue, timeIn, todayIn } from '@thelamp/shared';
-import { Button, Card, Notice, Screen, StatusBadge, Text } from '@thelamp/ui-mobile';
+import {
+  ActionBar,
+  AppBar,
+  Button,
+  Card,
+  Notice,
+  PhotoStrip,
+  Screen,
+  StatusBadge,
+  Text,
+} from '@thelamp/ui-mobile';
 import { router, useFocusEffect } from 'expo-router';
-import { ArrowLeft, Camera, Send, Trash2, X } from 'lucide-react-native';
+import { ArrowLeft, Send, Trash2, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
@@ -108,6 +118,8 @@ function Filling({ entry }: { entry: FormEntry }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string>();
   const [discarding, setDiscarding] = useState(false);
+  // When the draft was last kept on the phone, for the bar's "Draft saved" line.
+  const [savedAt, setSavedAt] = useState(entry.updatedAt);
   // Whether the open visit at the entry's account took an order, for `visit_ordered` (D97).
   const [ordered, setOrdered] = useState<boolean>();
   const pending = useRef(new Set<string>());
@@ -153,6 +165,7 @@ function Filling({ entry }: { entry: FormEntry }) {
             photos: [...photos],
             signature: signature ? [...signature] : null,
           })
+          .then((kept) => setSavedAt(kept.updatedAt))
           .catch(() => setFailure(t('entry.not_saved')));
       }, SAVE_AFTER_MS);
     },
@@ -313,29 +326,55 @@ function Filling({ entry }: { entry: FormEntry }) {
           .filter((account) => account.status !== 'inactive' || account.id === parts.accountId)
           .map((account) => ({ value: account.id, label: account.name, detail: account.code }));
 
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/forms'));
   return (
-    <Screen>
-      <Back />
-      <Text variant="headingXl" role="heading">
-        {form.name[locale].one}
-      </Text>
-      {readOnly && !waiting ? (
-        <StatusBadge variant="success" label={t('entry.state_sent')} />
-      ) : readOnly ? (
-        <View style={styles.stack}>
-          <StatusBadge variant="waiting" label={t('entry.state_queued')} />
-          <Notice>
-            {t('entry.queued_note', {
-              when: formatDateTime(new Date(entry.submittedAt ?? entry.updatedAt), {
-                locale,
-                timeZone,
-              }),
-            })}
-          </Notice>
-        </View>
-      ) : (
-        <Text tone="muted">{t('entry.saved_on_phone')}</Text>
-      )}
+    <Screen
+      footer={
+        readOnly ? undefined : (
+          <ActionBar>
+            <View style={styles.footer}>
+              <Button
+                variant="primary"
+                block
+                icon={Send}
+                label={t('entry.submit')}
+                busy={busy}
+                onPress={() => void submit()}
+              />
+              <Text variant="bodySm" tone="muted" style={styles.centre}>
+                {t('entry.sends_itself')}
+              </Text>
+            </View>
+          </ActionBar>
+        )
+      }
+    >
+      <AppBar
+        title={form.name[locale].one}
+        subtitle={
+          readOnly
+            ? t(waiting ? 'entry.state_queued' : 'entry.state_sent')
+            : t('entry.draft_saved_at', {
+                time: formatTime(new Date(savedAt), { locale, timeZone }),
+              })
+        }
+        onBack={close}
+        backLabel={t(readOnly ? 'common.back' : 'entry.close_keep')}
+        action={
+          <StatusBadge variant="neutral" label={t('entry.version', { n: entry.formVersion })} />
+        }
+      />
+      {/* The bar says whether it is sent; while it waits, this says since when. */}
+      {readOnly && waiting ? (
+        <Notice>
+          {t('entry.queued_note', {
+            when: formatDateTime(new Date(entry.submittedAt ?? entry.updatedAt), {
+              locale,
+              timeZone,
+            }),
+          })}
+        </Notice>
+      ) : null}
       {tried && issues.size > 0 ? (
         <Text tone="danger" role="alert">
           {t('entry.check_fields', { count: issues.size })}
@@ -369,7 +408,7 @@ function Filling({ entry }: { entry: FormEntry }) {
       />
 
       {form.photos ? (
-        <Card style={styles.stack}>
+        <View style={styles.stack}>
           <Text variant="labelMd">
             {t('entry.photos')}
             {form.photos.min > 0 ? (
@@ -377,41 +416,44 @@ function Filling({ entry }: { entry: FormEntry }) {
                 {' *'}
               </Text>
             ) : null}
+            <Text variant="labelMd" tone="muted" weight={400}>
+              {`  ${t('entry.photos_of', { count: parts.photos.length, max: form.photos.max })}`}
+            </Text>
           </Text>
-          <Text tone="muted">
-            {t('entry.photos_count', {
-              count: parts.photos.length,
-              min: form.photos.min,
-              max: form.photos.max,
-            })}
-          </Text>
-          {parts.photos.map((photo, index) => (
-            <View key={photo} style={styles.row}>
-              <Text style={styles.grow}>{t('entry.photo_number', { count: index + 1 })}</Text>
-              {readOnly ? null : (
+          <PhotoStrip
+            size="lg"
+            label={t('entry.photos')}
+            photos={parts.photos.map((photo, index) => ({
+              label: t('entry.photo_number', { count: index + 1 }),
+            }))}
+            addLabel={t('entry.photo_take')}
+            {...(readOnly || parts.photos.length >= form.photos.max
+              ? {}
+              : { onAdd: () => data.capture('photo', FORM_PHOTOS) })}
+          />
+          {form.photos.source === 'camera' ? (
+            <Text variant="bodySm" tone="muted">
+              {t('entry.photos_help')}
+            </Text>
+          ) : null}
+          {readOnly
+            ? null
+            : parts.photos.map((photo, index) => (
                 <Button
+                  key={photo}
                   variant="ghost"
+                  size="sm"
                   icon={X}
                   label={t('entry.remove_photo', { count: index + 1 })}
                   onPress={() => change({ photos: parts.photos.filter((kept) => kept !== photo) })}
                 />
-              )}
-            </View>
-          ))}
+              ))}
           {issues.get('photos') ? (
             <Text variant="bodySm" tone="danger" role="alert">
               {issues.get('photos')}
             </Text>
           ) : null}
-          {readOnly || parts.photos.length >= form.photos.max ? null : (
-            <Button
-              variant="secondary"
-              icon={Camera}
-              label={t('entry.photo_take')}
-              onPress={() => data.capture('photo', FORM_PHOTOS)}
-            />
-          )}
-        </Card>
+        </View>
       ) : null}
 
       {form.signature !== 'none' ? (
@@ -432,13 +474,6 @@ function Filling({ entry }: { entry: FormEntry }) {
       ) : null}
       {readOnly ? null : (
         <View style={styles.stack}>
-          <Button
-            variant="primary"
-            icon={Send}
-            label={t('entry.submit')}
-            busy={busy}
-            onPress={() => void submit()}
-          />
           {discarding ? (
             <Card style={styles.stack} role="group" aria-label={t('entry.discard_question')}>
               <Text>{t('entry.discard_question')}</Text>
@@ -484,4 +519,6 @@ const styles = StyleSheet.create({
   stack: { gap: spacing.space2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.space2 },
   grow: { flex: 1 },
+  footer: { flex: 1, gap: spacing.space1 },
+  centre: { textAlign: 'center' },
 });

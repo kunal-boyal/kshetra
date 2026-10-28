@@ -1,16 +1,24 @@
 import type { VisitState } from '@thelamp/api-client/sync';
 import { spacing } from '@thelamp/design-tokens';
-import type { AccountType, FormView } from '@thelamp/forms';
+import type { AccountType } from '@thelamp/forms';
 import { formatDateTime, formatNumber } from '@thelamp/i18n';
 import { punchFixIssue, type SyncAccount, todayIn } from '@thelamp/shared';
-import { Button, Card, ListGroup, ListRow, Notice, StatusBadge, Text } from '@thelamp/ui-mobile';
+import {
+  ActionBar,
+  Button,
+  Card,
+  ListRow,
+  LiveDot,
+  Notice,
+  StatusBadge,
+  Text,
+} from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
-import { CalendarPlus, ClipboardList, LogIn, LogOut, MapPin } from 'lucide-react-native';
+import { CalendarPlus, LogIn, LogOut, MapPin } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useApp } from '../app-state';
 import { useConfig } from '../data';
-import { startEntry } from '../forms/start';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
@@ -18,7 +26,6 @@ import { useSync, useSyncStatus } from '../sync';
 import { checkIn, checkOut, geofenceAt, planVisit } from '../visits';
 import { useTodayPlan } from './today-plan';
 import { useShift } from './shift';
-import { VisitMap } from './visit-map';
 
 /**
  * The person's open visit on this phone, read again whenever the sync's status moves (every
@@ -47,6 +54,11 @@ export function useVisit(): { visit: VisitState | null | undefined; refresh: () 
     };
   }, [sync, client, status, tick]);
   return { visit, refresh };
+}
+
+/** Whole minutes since a moment, as the visit card counts its time; the card reads again each minute. */
+function minutesSince(at: number): number {
+  return Math.max(0, Math.floor((Date.now() - at) / 60_000));
 }
 
 type Said = { kind: 'error'; text: string } | { kind: 'note'; text: string } | { kind: 'none' };
@@ -88,15 +100,6 @@ export function VisitCard({
       item.accountId === account.id && (item.status === 'planned' || item.status === 'visited'),
   );
   const plannedOnPhone = today.waiting.some((item) => item.accountId === account.id);
-  const visitForms: FormView[] = permissions.has('submission.create')
-    ? (bundle.forms ?? []).filter(
-        (form) =>
-          form.visitSession &&
-          form.accountLink.mode !== 'none' &&
-          form.accountLink.accountTypes.includes(account.type),
-      )
-    : [];
-
   /** A fresh fix good enough for a record, or what is wrong with it said on the card. */
   async function freshFix(): Promise<Fix | null> {
     const found = await currentFix();
@@ -174,56 +177,45 @@ export function VisitCard({
     setSaid({ kind: 'note', text: t('today.added') });
   }
 
-  async function leave() {
-    // A check-out without a fix still counts; the fix is only recorded when there is one.
-    const found = await currentFix();
-    await act(() => checkOut(sync!, owner, found.status === 'ready' ? found.fix : null));
+  const note =
+    said.kind === 'error' ? (
+      <Text tone="danger" role="alert">
+        {said.text}
+      </Text>
+    ) : said.kind === 'note' ? (
+      <Notice>{said.text}</Notice>
+    ) : null;
+
+  if (here) {
+    const minutes = minutesSince(visit.checkedInAt);
+    return (
+      <View style={styles.stack}>
+        <Card style={styles.live} role="group" aria-label={t('visit.in_visit')}>
+          <LiveDot live />
+          <View style={styles.grow}>
+            <Text variant="labelMd" weight={600}>
+              {t('visit.since', {
+                time: formatDateTime(new Date(visit.checkedInAt), {
+                  locale,
+                  timeZone: settings.timezone,
+                }),
+              })}
+            </Text>
+            <Text variant="bodySm" tone="muted" style={styles.figures}>
+              {t('visit.on_visit_for', { count: minutes })}
+            </Text>
+          </View>
+          <StatusBadge variant="info" label={t('visit.in_progress')} />
+        </Card>
+        {note}
+      </View>
+    );
   }
 
   return (
     <Card style={styles.stack}>
-      <View style={styles.row}>
-        <Text variant="headingMd" style={styles.grow}>
-          {t('visit.title')}
-        </Text>
-        {here ? <StatusBadge variant="success" label={t('visit.in_visit')} /> : null}
-      </View>
-      {account.location ? <VisitMap account={account} type={type} /> : null}
-      {here ? (
-        <>
-          <Text tone="muted">
-            {t('visit.since', {
-              time: formatDateTime(new Date(visit.checkedInAt), {
-                locale,
-                timeZone: settings.timezone,
-              }),
-            })}
-          </Text>
-          {visitForms.length > 0 ? (
-            <ListGroup title={t('visit.forms')}>
-              {visitForms.map((form) => (
-                <ListRow
-                  key={form.key}
-                  icon={ClipboardList}
-                  label={form.name[locale].one}
-                  onPress={() => {
-                    startEntry(sync, owner, form, account.id).catch(() =>
-                      setSaid({ kind: 'error', text: t('entry.not_saved') }),
-                    );
-                  }}
-                />
-              ))}
-            </ListGroup>
-          ) : null}
-          <Button
-            variant="secondary"
-            icon={LogOut}
-            label={t('visit.check_out')}
-            busy={busy}
-            onPress={() => void leave()}
-          />
-        </>
-      ) : !shift.state ? (
+      <Text variant="headingMd">{t('visit.title')}</Text>
+      {!shift.state ? (
         <Text tone="muted">{t('visit.need_shift')}</Text>
       ) : (
         <>
@@ -258,14 +250,56 @@ export function VisitCard({
           ) : null}
         </>
       )}
-      {said.kind === 'error' ? (
-        <Text tone="danger" role="alert">
-          {said.text}
-        </Text>
-      ) : said.kind === 'note' ? (
-        <Notice>{said.text}</Notice>
-      ) : null}
+      {note}
     </Card>
+  );
+}
+
+/**
+ * Check out, held at the foot of the account's screen during the visit there (D104). A check-out
+ * without a fix still counts; the fix is only recorded when there is one.
+ */
+export function CheckOutBar() {
+  const { client } = useApp();
+  const { t } = useLanguage();
+  const sync = useSync();
+  const { refresh } = useVisit();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  async function leave() {
+    if (!sync || !client.owner) return;
+    setBusy(true);
+    setFailed(false);
+    try {
+      const found = await currentFix();
+      await checkOut(sync, client.owner, found.status === 'ready' ? found.fix : null);
+      await sync.runner.refresh();
+      void sync.runner.sync();
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  }
+  return (
+    <ActionBar>
+      <View style={styles.bar}>
+        {failed ? (
+          <Text tone="danger" role="alert">
+            {t('account.not_saved')}
+          </Text>
+        ) : null}
+        <Button
+          variant="primary"
+          block
+          icon={LogOut}
+          label={t('visit.check_out')}
+          busy={busy}
+          onPress={() => void leave()}
+        />
+      </View>
+    </ActionBar>
   );
 }
 
@@ -289,4 +323,7 @@ const styles = StyleSheet.create({
   stack: { gap: spacing.space2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.space2 },
   grow: { flex: 1 },
+  live: { flexDirection: 'row', alignItems: 'center', gap: spacing.space3 },
+  figures: { fontVariant: ['tabular-nums'] },
+  bar: { flex: 1, gap: spacing.space2 },
 });
