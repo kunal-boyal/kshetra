@@ -104,7 +104,11 @@ type Answer = (body: unknown) => unknown;
 /** A signed-in admin's client: GETs answer from `pages`, writes from `writes`, by path. */
 function fakeClient(writes: Record<string, Answer> = {}) {
   const pages: Record<string, unknown> = {
-    '/v1/users': { items: [PRIYA_VIEW, RAHUL_VIEW], nextCursor: null },
+    '/v1/users': {
+      items: [PRIYA_VIEW, RAHUL_VIEW],
+      nextCursor: null,
+      summary: { counts: { active: 2, inactive: 1 }, seats: { used: 2, limit: 50 } },
+    },
     [`/v1/users/${RAHUL}`]: RAHUL_VIEW,
     [`/v1/users/${PRIYA}`]: PRIYA_VIEW,
     [`/v1/users/${RAHUL}/transfers`]: { items: [] },
@@ -479,6 +483,15 @@ describe('the people table', () => {
     expect(rahul).toHaveTextContent('Delhi Area');
     expect(rahul).toHaveTextContent('Field phone');
     expect(within(table).getByRole('row', { name: /^Priya Nair/ })).toHaveTextContent('No phone');
+    // The number masked, the heading's counts and seats, and the status chips (decision D104).
+    expect(rahul).toHaveTextContent('+91•••••00004');
+    expect(screen.getByText('3 people · 2 active · 2 seats used of 50')).toBeVisible();
+    const chips = screen.getByRole('group', { name: 'Status' });
+    expect(within(chips).getByRole('button', { name: 'Active · 2' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(within(chips).getByRole('button', { name: 'Inactive · 1' })).toBeVisible();
 
     const user = userEvent.setup();
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'rah');

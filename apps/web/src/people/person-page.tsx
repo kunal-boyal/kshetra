@@ -1,5 +1,5 @@
 import type { AuditEntry, TransferResult, UserView } from '@thelamp/shared';
-import { Button, Confirm, Icon, Notice } from '@thelamp/ui-web';
+import { Avatar, Button, Confirm, Icon, Notice } from '@thelamp/ui-web';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
@@ -109,7 +109,22 @@ function Person({ user }: { user: UserView }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={user.name} back={{ to: '/people', label: t('people.title') }}>
+      <PageHeader
+        title={user.name}
+        back={{ to: '/people', label: t('people.title') }}
+        lead={<Avatar name={user.name} id={user.id} size="lg" />}
+        meta={
+          <span className="flex flex-wrap items-center gap-2">
+            {[
+              designationName(user.designation, access.designations, locale),
+              user.territories.map((territory) => territory.name).join(', ') || null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            <UserStatusBadge status={user.status} />
+          </span>
+        }
+      >
         {access.can('plan_item.manage') || access.can('route.manage') ? (
           <Button
             icon={<Icon icon={CalendarDays} />}
@@ -154,7 +169,6 @@ function Person({ user }: { user: UserView }) {
 
       <div className="flex flex-wrap items-center gap-3">
         <code>{user.code}</code>
-        <UserStatusBadge status={user.status} />
       </div>
 
       {message ? <Notice>{message}</Notice> : null}

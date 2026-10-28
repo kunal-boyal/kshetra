@@ -79,6 +79,7 @@ function account(id: string, name: string, overrides: Record<string, unknown> = 
     ],
     primarySlot: 'sme',
     missingSlots: [],
+    outstanding: '42000.50',
     createdAt: '2026-10-01T07:00:00.000Z',
     updatedAt: '2026-10-01T07:00:00.000Z',
     ...overrides,
@@ -95,9 +96,11 @@ const ANSWERS: Record<string, unknown> = {
         segments: [],
         location: null,
         locationStatus: 'unverified',
+        outstanding: null,
       }),
     ],
     nextCursor: null,
+    summary: { types: { distributor: 2 }, pending: 1 },
   },
   '/v1/submissions': {
     items: [
@@ -403,7 +406,7 @@ async function expectAccessible(page: Page) {
 }
 
 const PAGES = [
-  { path: '/accounts', heading: 'Distributors', shows: 'Green Fields Agro' },
+  { path: '/accounts', heading: 'Accounts', shows: 'Green Fields Agro' },
   { path: `/accounts/${SHOP}`, heading: 'Green Fields Agro', shows: 'Meena Shah' },
   {
     path: '/accounts/new?type=distributor',

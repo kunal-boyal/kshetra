@@ -215,7 +215,11 @@ const ANSWERS: Record<string, unknown> = {
       },
     ],
   },
-  '/v1/users': { items: [PRIYA_VIEW, RAHUL_VIEW], nextCursor: null },
+  '/v1/users': {
+    items: [PRIYA_VIEW, RAHUL_VIEW],
+    nextCursor: null,
+    summary: { counts: { active: 2, inactive: 0 }, seats: { used: 2, limit: 50 } },
+  },
   [`/v1/users/${RAHUL}`]: RAHUL_VIEW,
   [`/v1/users/${PRIYA}`]: PRIYA_VIEW,
   [`/v1/users/${RAHUL}/transfers`]: {

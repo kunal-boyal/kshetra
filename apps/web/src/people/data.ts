@@ -70,6 +70,8 @@ export interface UserFilters {
   status?: 'active' | 'inactive';
   designation?: string;
   managerId?: string;
+  /** People attached today to this territory or one under it. */
+  territoryId?: string;
 }
 
 function search(params: Record<string, string | undefined>): string {

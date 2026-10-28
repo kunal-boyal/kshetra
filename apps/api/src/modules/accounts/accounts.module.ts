@@ -5,6 +5,7 @@ import { SyncModule } from '../sync/sync.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { WorkflowModule } from '../workflow/workflow.module';
+import { AccountBalances } from './account-balances';
 import { AccountTypesController } from './account-types.controller';
 import { AccountTypesService } from './account-types.service';
 import { AccountsController } from './accounts.controller';
@@ -33,7 +34,8 @@ import { AccountsUpkeep } from './accounts.upkeep';
     ContactsSync,
     AccountsImport,
     AccountsUpkeep,
+    AccountBalances,
   ],
-  exports: [AccountTypesService, AccountsService],
+  exports: [AccountTypesService, AccountsService, AccountBalances],
 })
 export class AccountsModule {}

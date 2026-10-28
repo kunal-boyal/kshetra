@@ -226,11 +226,25 @@ export const UserListQuery = z.strictObject({
   }),
   designation: Key.optional(),
   managerId: z.uuid().optional().meta({ description: "Only this person's direct reports" }),
+  territoryId: z
+    .uuid()
+    .optional()
+    .meta({ description: 'People attached today to this territory or one under it' }),
 });
 
 export const UserListResult = z.object({
   items: z.array(UserView),
   nextCursor: z.uuid().nullable(),
+  /**
+   * With the first page only (null after): how many people each status holds under the filters
+   * but status, and the plan's seats in use (null without a limit) (decision D104).
+   */
+  summary: z
+    .object({
+      counts: z.object({ active: z.int(), inactive: z.int() }),
+      seats: z.object({ used: z.int(), limit: z.int() }).nullable(),
+    })
+    .nullable(),
 });
 
 /** `GET /v1/users/{id}/history`: what changed about a person, newest first. */

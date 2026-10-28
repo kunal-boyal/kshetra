@@ -292,6 +292,14 @@ describe('proposals from the field (M4, decision D38)', () => {
       missingSlots: ['asm'],
     });
     expect((await t.api.sme.get('/v1/accounts')).json().items).toHaveLength(1);
+    // The list's summary counts it by type and as waiting (decision D104).
+    const listed = (await t.api.admin.get('/v1/accounts?type=distributor')).json();
+    expect(listed.summary).toMatchObject({ pending: 1 });
+    expect(listed.summary.types.distributor).toBeGreaterThanOrEqual(1);
+    expect((await t.api.admin.get('/v1/accounts?type=retailer')).json().summary.pending).toBe(0);
+    expect(
+      (await t.api.admin.get(`/v1/accounts?limit=1&cursor=${proposal.id}`)).json().summary,
+    ).toBeNull();
 
     const inbox = (await t.api.tm.get('/v1/approvals/inbox')).json();
     expect(inbox.items).toEqual([

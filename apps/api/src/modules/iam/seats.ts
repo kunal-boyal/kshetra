@@ -22,6 +22,13 @@ export class Seats {
     return row?.active ?? 0;
   }
 
+  /** Seats in use against the plan's limit, for the people list; null without a limit (D104). */
+  async usage(tx: TenantTx, tenantId: string): Promise<{ used: number; limit: number } | null> {
+    const { limits } = await this.entitlements.forTenant(tenantId);
+    if (limits.users === null) return null;
+    return { used: await this.active(tx, tenantId), limit: limits.users };
+  }
+
   /**
    * Refuses one more active person past the plan's limit (SEAT_LIMIT). The tenant's seats are
    * counted one change at a time, so two people made active together can't both take the last

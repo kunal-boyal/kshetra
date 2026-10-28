@@ -78,6 +78,8 @@ export const AccountResult = z
      * them from the account (decision D43).
      */
     missingSlots: z.array(Key),
+    /** The latest outstanding balance; null without one, or while account finance is off. */
+    outstanding: z.string().nullable(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
   })
@@ -97,6 +99,12 @@ export const AccountListQuery = z.strictObject({
 export const AccountListResult = z.object({
   items: z.array(AccountResult),
   nextCursor: z.uuid().nullable(),
+  /**
+   * With the first page only (null after), under the filters but type and status: how many active
+   * and pending accounts each type holds, and how many of the type asked for wait for approval
+   * (decision D104).
+   */
+  summary: z.object({ types: z.record(Key, z.int()), pending: z.int() }).nullable(),
 });
 
 /**
