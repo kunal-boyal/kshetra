@@ -2,6 +2,8 @@ export { Button } from './button';
 export type { ButtonProps } from './button';
 export { cn } from './cn';
 export { Confirm, DataTable, StatusBadge } from './data';
+export { PAGE_SIZE, Pager, PagerTextProvider, usePagedRows } from './pager';
+export type { More, Paging, PagerText } from './pager';
 export type { BadgeVariant, Column } from './data';
 export { Checkbox, ChoiceGroup, SelectField, TextAreaField } from './fields';
 export type { CheckboxProps, SelectFieldProps, TextAreaFieldProps } from './fields';

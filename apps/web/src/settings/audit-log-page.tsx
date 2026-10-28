@@ -228,7 +228,6 @@ export function AuditLog() {
             {...(log.hasNextPage
               ? {
                   more: {
-                    label: t('common.load_more'),
                     busy: log.isFetchingNextPage,
                     onClick: () => void log.fetchNextPage(),
                   },

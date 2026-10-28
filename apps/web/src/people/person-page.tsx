@@ -1,5 +1,5 @@
 import type { AuditEntry, TransferResult, UserView } from '@thelamp/shared';
-import { Avatar, Button, Confirm, Icon, Notice } from '@thelamp/ui-web';
+import { Avatar, Button, Confirm, Icon, Notice, Pager } from '@thelamp/ui-web';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
@@ -45,6 +45,7 @@ import {
 import { SubmissionsSection } from '../submissions/submissions-section';
 import { LeaveSection } from './leave-section';
 import { WorkSection } from './work-section';
+import { useQueryPaging } from '../paging';
 
 type Pending = 'reset' | 'sign_out' | 'deactivate' | null;
 
@@ -598,6 +599,7 @@ function History({ userId }: { userId: string }) {
   const dates = useDates(access.timezone);
   const history = useHistory(userId);
   const entries = history.data?.pages.flatMap((page) => page.items) ?? [];
+  const paging = useQueryPaging(entries.length, history);
   const label = (entry: AuditEntry) =>
     HISTORY_ACTIONS.has(entry.action)
       ? t(`history.${entry.action}` as 'history.user.created')
@@ -608,28 +610,20 @@ function History({ userId }: { userId: string }) {
         <p className="ks-muted">{t('person.no_history')}</p>
       ) : (
         <ol className="flex flex-col gap-2">
-          {entries.map((entry) => (
-            <li key={entry.id} className="flex flex-wrap gap-2">
-              <span className="font-semibold">{label(entry)}</span>
-              <span className="ks-muted">{dates.dateTime(entry.createdAt)}</span>
-              {entry.actor.kind === 'system' ? (
-                <span className="ks-muted">{t('history.by_system')}</span>
-              ) : null}
-            </li>
-          ))}
+          {entries
+            .filter((_, index) => paging.onPage(index))
+            .map((entry) => (
+              <li key={entry.id} className="flex flex-wrap gap-2">
+                <span className="font-semibold">{label(entry)}</span>
+                <span className="ks-muted">{dates.dateTime(entry.createdAt)}</span>
+                {entry.actor.kind === 'system' ? (
+                  <span className="ks-muted">{t('history.by_system')}</span>
+                ) : null}
+              </li>
+            ))}
         </ol>
       )}
-      {history.hasNextPage ? (
-        <div>
-          <Button
-            size="sm"
-            busy={history.isFetchingNextPage}
-            onClick={() => void history.fetchNextPage()}
-          >
-            {t('common.load_more')}
-          </Button>
-        </div>
-      ) : null}
+      <Pager paging={paging} />
     </Section>
   );
 }

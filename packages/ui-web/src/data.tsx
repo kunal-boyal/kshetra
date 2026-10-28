@@ -1,6 +1,6 @@
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
-import { Button } from './button';
 import { cn } from './cn';
+import { type More, Pager, usePagedRows } from './pager';
 
 /** The fixed mapping of record states to badge variants (components/StatusBadge). */
 export type BadgeVariant = 'success' | 'pending' | 'waiting' | 'info' | 'danger' | 'neutral';
@@ -39,7 +39,9 @@ function useScrolls(box: RefObject<HTMLElement | null>, shown: boolean): boolean
 
 /**
  * The portal's register (components/DataTable): compact rows, a caption for screen readers, and
- * cursor paging with a Load more button, as the API pages.
+ * ten rows a page with Previous and Next (decision D104). `more` asks the server for the rows after
+ * those loaded, as the API's cursor pages, when Next runs past them. Every loaded row stays in the
+ * table, those off the page hidden, so a printed sheet still holds them all.
  */
 export function DataTable<Row>({
   caption,
@@ -57,7 +59,8 @@ export function DataTable<Row>({
   rowKey: (row: Row) => string;
   /** Shown instead of the table when there are no rows. */
   empty?: ReactNode;
-  more?: { label: string; onClick: () => void; busy?: boolean };
+  /** The server has rows after those loaded: Next asks for them, as its cursor pages. */
+  more?: More;
   /** The row shown beside its detail (SplitDetail), marked chosen. */
   selectedKey?: string | null | undefined;
   /** Keeps the first column in view while the table scrolls sideways, for wide registers. */
@@ -68,6 +71,7 @@ export function DataTable<Row>({
   const box = useRef<HTMLDivElement>(null);
   const shown = rows.length > 0 || !empty;
   const scrolls = useScrolls(box, shown);
+  const paging = usePagedRows(rows.length, more, rows[0] ? rowKey(rows[0]) : null);
   if (!shown) return <>{empty}</>;
   return (
     <div className="flex flex-col items-start gap-3">
@@ -88,13 +92,13 @@ export function DataTable<Row>({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => {
+            {rows.map((row, index) => {
               const key = rowKey(row);
               const selected = selectedKey !== undefined && selectedKey === key;
               return (
                 <tr
                   key={key}
-                  className={selected ? 'sel' : undefined}
+                  className={cn(selected && 'sel', !paging.onPage(index) && 'ks-off-page')}
                   aria-selected={selectedKey === undefined ? undefined : selected}
                 >
                   {columns.map((column) => (
@@ -108,11 +112,7 @@ export function DataTable<Row>({
           </tbody>
         </table>
       </div>
-      {more ? (
-        <Button size="sm" variant="secondary" busy={more.busy ?? false} onClick={more.onClick}>
-          {more.label}
-        </Button>
-      ) : null}
+      <Pager paging={paging} />
     </div>
   );
 }

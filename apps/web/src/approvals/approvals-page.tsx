@@ -16,6 +16,7 @@ import {
   Notice,
   StatusBadge,
   TextAreaField,
+  Pager,
 } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowRight, Check, CircleCheck, Inbox, Send, Undo2, X } from 'lucide-react';
@@ -26,6 +27,7 @@ import { useAccess } from '../people/data';
 import { fieldErrors, PageHeader, useDates } from '../people/shared';
 import { useDecisions, useInbox, useMine } from './data';
 import { ApprovalSteps } from './steps';
+import { useQueryPaging } from '../paging';
 
 export type ApprovalsView = 'waiting' | 'mine';
 
@@ -100,6 +102,7 @@ function Waiting({ type }: { type?: RequestType }) {
   const [outcome, setOutcome] = useState<{ approved: number; refused: Refusal[] }>();
 
   const items = inbox.data?.pages.flatMap((page) => page.items) ?? [];
+  const inboxPaging = useQueryPaging(items.length, inbox, type);
   const counts = inbox.data?.pages[0]?.counts ?? {};
   const types = REQUEST_TYPES.filter((key) => counts[key]);
   const total = types.reduce((sum, key) => sum + (counts[key] ?? 0), 0);
@@ -193,23 +196,25 @@ function Waiting({ type }: { type?: RequestType }) {
             </div>
           ) : null}
           <ul className="flex flex-col gap-4" aria-label={t('approvals.view_waiting')}>
-            {items.map((item) => (
-              <li key={item.id}>
-                <Request
-                  item={item}
-                  {...(bulk && item.bulk
-                    ? {
-                        chosen: selected.has(item.id),
-                        onChoose: (on: boolean) => choose(item.id, on),
-                      }
-                    : {})}
-                />
-              </li>
-            ))}
+            {items
+              .filter((_, index) => inboxPaging.onPage(index))
+              .map((item) => (
+                <li key={item.id}>
+                  <Request
+                    item={item}
+                    {...(bulk && item.bulk
+                      ? {
+                          chosen: selected.has(item.id),
+                          onChoose: (on: boolean) => choose(item.id, on),
+                        }
+                      : {})}
+                  />
+                </li>
+              ))}
           </ul>
         </>
       )}
-      <More query={inbox} />
+      <Pager paging={inboxPaging} />
     </>
   );
 }
@@ -411,6 +416,7 @@ function Mine() {
   const { t } = useLanguage();
   const mine = useMine();
   const items = mine.data?.pages.flatMap((page) => page.items) ?? [];
+  const minePaging = useQueryPaging(items.length, mine);
   if (mine.isError) {
     return (
       <p className="ks-help error" role="alert">
@@ -427,14 +433,16 @@ function Mine() {
         </EmptyState>
       ) : (
         <ul className="flex flex-col gap-4" aria-label={t('approvals.view_mine')}>
-          {items.map((item) => (
-            <li key={item.id}>
-              <MyRequest item={item} />
-            </li>
-          ))}
+          {items
+            .filter((_, index) => minePaging.onPage(index))
+            .map((item) => (
+              <li key={item.id}>
+                <MyRequest item={item} />
+              </li>
+            ))}
         </ul>
       )}
-      <More query={mine} />
+      <Pager paging={minePaging} />
     </>
   );
 }
@@ -503,22 +511,4 @@ function MyRequest({ item }: { item: ApprovalResult }) {
       ) : null}
     </article>
   );
-}
-
-function More({
-  query,
-}: {
-  query: { hasNextPage: boolean; isFetchingNextPage: boolean; fetchNextPage: () => unknown };
-}) {
-  const { t } = useLanguage();
-  return query.hasNextPage ? (
-    <Button
-      variant="secondary"
-      className="self-start"
-      busy={query.isFetchingNextPage}
-      onClick={() => void query.fetchNextPage()}
-    >
-      {t('common.load_more')}
-    </Button>
-  ) : null;
 }

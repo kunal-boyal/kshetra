@@ -397,7 +397,6 @@ export function ReviewPage() {
               {...(queue.hasNextPage
                 ? {
                     more: {
-                      label: t('common.load_more'),
                       busy: queue.isFetchingNextPage,
                       onClick: () => void queue.fetchNextPage(),
                     },

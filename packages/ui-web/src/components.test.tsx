@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { Languages } from 'lucide-react';
 import { Button } from './button';
+import { DataTable } from './data';
 import { Picker } from './picker';
 import { EmptyState } from './surfaces';
 import { TextField } from './text-field';
@@ -78,5 +79,59 @@ describe('EmptyState', () => {
       </EmptyState>,
     );
     expect(chip()).toHaveClass('hue-mint');
+  });
+});
+
+describe('DataTable paging (D104)', () => {
+  const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `r${i + 1}` }));
+  const table = (list: { id: string }[], more?: { onClick: () => void }) => (
+    <DataTable
+      caption="Rows"
+      rows={list}
+      rowKey={(row) => row.id}
+      columns={[{ key: 'id', header: 'Row', render: (row) => row.id }]}
+      {...(more ? { more } : {})}
+    />
+  );
+  const shown = () =>
+    screen
+      .getAllByRole('row')
+      .filter((row) => !row.classList.contains('ks-off-page'))
+      .slice(1)
+      .map((row) => row.textContent);
+
+  it('shows ten rows a page, with Previous and Next', () => {
+    render(table(rows(25)));
+    expect(shown()).toHaveLength(10);
+    expect(shown()[0]).toBe('r1');
+    expect(screen.getByText('Showing 1–10')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(shown()[0]).toBe('r11');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(shown()).toEqual(['r21', 'r22', 'r23', 'r24', 'r25']);
+    expect(screen.getByText('Showing 21–25')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    // Every row stays in the table for printing; only the page is shown.
+    expect(screen.getAllByRole('row')).toHaveLength(26);
+  });
+
+  it('asks the server for more past the rows loaded, and moves on once they come', () => {
+    const onClick = vi.fn();
+    const { rerender } = render(table(rows(10), { onClick }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(shown()[0]).toBe('r1');
+    rerender(table(rows(20)));
+    expect(shown()[0]).toBe('r11');
+  });
+
+  it('starts a new list at its first page, and shows no pager for one page', () => {
+    const { rerender } = render(table(rows(25)));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    rerender(table(rows(25).map((row) => ({ id: `x-${row.id}` }))));
+    expect(shown()[0]).toBe('x-r1');
+    rerender(table(rows(4)));
+    expect(screen.queryByRole('group', { name: 'Pages' })).toBeNull();
   });
 });

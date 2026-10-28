@@ -223,7 +223,6 @@ export function OrdersPage() {
               {...(orders.hasNextPage
                 ? {
                     more: {
-                      label: t('common.load_more'),
                       busy: orders.isFetchingNextPage,
                       onClick: () => void orders.fetchNextPage(),
                     },

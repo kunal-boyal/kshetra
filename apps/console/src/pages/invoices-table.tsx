@@ -120,7 +120,6 @@ export function InvoicesTable({
       {...(invoices.hasNextPage
         ? {
             more: {
-              label: t('console.load_more'),
               busy: invoices.isFetchingNextPage,
               onClick: () => void invoices.fetchNextPage(),
             },

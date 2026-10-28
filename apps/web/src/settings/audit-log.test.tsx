@@ -87,7 +87,7 @@ describe('the audit log in Settings (M21, D95)', () => {
     const user = userEvent.setup();
     await user.click(within(rows[1]!).getByText('Before and after'));
     expect(within(rows[1]!).getByText(/"planNotificationTime": "07:30"/)).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Load more' }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(4));
     // The audit log alone of its group: the group is marked.
     expect(screen.getByRole('link', { name: 'Data' })).toHaveAttribute('aria-current', 'page');

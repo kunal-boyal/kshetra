@@ -156,7 +156,6 @@ export function PriceListTab({
           {...(prices.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: prices.isFetchingNextPage,
                   onClick: () => void prices.fetchNextPage(),
                 },

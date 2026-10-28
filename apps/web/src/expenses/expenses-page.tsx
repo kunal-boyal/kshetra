@@ -424,7 +424,6 @@ export function ExpensesPage() {
           {...(claims.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: claims.isFetchingNextPage,
                   onClick: () => void claims.fetchNextPage(),
                 },

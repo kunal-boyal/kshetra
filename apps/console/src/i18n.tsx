@@ -1,5 +1,6 @@
 import { ApiError, NetworkError } from '@thelamp/api-client';
-import { type MessageKey, translate } from '@thelamp/i18n';
+import { formatNumber, type MessageKey, translate } from '@thelamp/i18n';
+import { type PagerText, PagerTextProvider } from '@thelamp/ui-web';
 import type { Locale } from '@thelamp/shared';
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import { applyLocale, savedLocale } from './preferences';
@@ -26,7 +27,25 @@ export function LanguageProvider({ children, initial }: { children: ReactNode; i
     [locale],
   );
   const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+  // Every table's pager speaks the reader's language (decision D104).
+  const pager = useMemo<PagerText>(
+    () => ({
+      previous: t('pager.previous'),
+      next: t('pager.next'),
+      label: t('pager.label'),
+      showing: (from, to) =>
+        t('pager.showing', {
+          from: formatNumber(from, { locale }),
+          to: formatNumber(to, { locale }),
+        }),
+    }),
+    [t, locale],
+  );
+  return (
+    <LanguageContext.Provider value={value}>
+      <PagerTextProvider value={pager}>{children}</PagerTextProvider>
+    </LanguageContext.Provider>
+  );
 }
 
 export function useLanguage(): Language {

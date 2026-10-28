@@ -5,7 +5,7 @@ import {
   type NotificationResult,
   NotificationPrefsResult,
 } from '@thelamp/shared';
-import { Button, EmptyState, Icon } from '@thelamp/ui-web';
+import { Button, EmptyState, Icon, Pager } from '@thelamp/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Bell, CheckCheck, Save } from 'lucide-react';
@@ -16,6 +16,7 @@ import { useAccess, write } from '../people/data';
 import { PageHeader, Section, useDates } from '../people/shared';
 import { useInbox, useNotificationPrefs } from './data';
 import { WhatsAppSection } from './whatsapp-section';
+import { useQueryPaging } from '../paging';
 
 /** One entry, in the reader's language: unread ones stand out; one with a link opens it. */
 function Entry({ item, onOpen }: { item: NotificationResult; onOpen: () => void }) {
@@ -60,6 +61,7 @@ export function NotificationsPage() {
   const [saved, setSaved] = useState(false);
   const [failure, setFailure] = useState<unknown>();
   const items = inbox.data?.pages.flatMap((page) => page.items) ?? [];
+  const paging = useQueryPaging(items.length, inbox);
   const unread = inbox.data?.pages[0]?.unread ?? 0;
 
   // What the person ticks, or else what they saved.
@@ -132,20 +134,13 @@ export function NotificationsPage() {
         ) : (
           <>
             <ul>
-              {items.map((item) => (
-                <Entry key={item.id} item={item} onOpen={() => void open(item)} />
-              ))}
+              {items
+                .filter((_, index) => paging.onPage(index))
+                .map((item) => (
+                  <Entry key={item.id} item={item} onOpen={() => void open(item)} />
+                ))}
             </ul>
-            {inbox.hasNextPage ? (
-              <Button
-                variant="secondary"
-                className="self-start"
-                busy={inbox.isFetchingNextPage}
-                onClick={() => void inbox.fetchNextPage()}
-              >
-                {t('common.load_more')}
-              </Button>
-            ) : null}
+            <Pager paging={paging} />
           </>
         )}
       </Section>

@@ -176,7 +176,6 @@ export function WorkSection({
           {...(shifts.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: shifts.isFetchingNextPage,
                   onClick: () => void shifts.fetchNextPage(),
                 },

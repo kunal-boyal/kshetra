@@ -190,7 +190,6 @@ export function TenantsPage() {
           {...(tenants.hasNextPage
             ? {
                 more: {
-                  label: t('console.load_more'),
                   busy: tenants.isFetchingNextPage,
                   onClick: () => void tenants.fetchNextPage(),
                 },
