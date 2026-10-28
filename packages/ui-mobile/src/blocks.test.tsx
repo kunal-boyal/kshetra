@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { avatarHue } from '@thelamp/shared';
-import { Bell, Info, Store } from 'lucide-react-native';
+import { Bell, Info, LogOut, Pause, Store } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { ActionBar, AppBar, CartBar, IconButton } from './bars';
 import { BottomNav } from './bottom-nav';
@@ -11,8 +11,9 @@ import { Avatar } from './identity';
 import { ListRow } from './lists';
 import { ProgressBar, Steps } from './measures';
 import { PhotoStrip } from './photos';
+import { ShiftCard } from './shift-card';
 import { Flag } from './status';
-import { IconChip, Notice } from './surfaces';
+import { Card, IconChip, Notice } from './surfaces';
 import { Text } from './text';
 import { createTheme, ThemeProvider } from './theme';
 
@@ -232,5 +233,43 @@ describe('BottomNav counts and small buttons', () => {
         : button.props.style,
     );
     expect(style.minHeight).toBe(40);
+  });
+});
+
+describe('ShiftCard stats and tinted cards (stage M2)', () => {
+  it('counts time, distance and visits three across on duty, and ends the day on the tint', async () => {
+    const theme = createTheme('light', 'latin');
+    await render(
+      <ShiftCard
+        state="on"
+        title="On duty since 9:12"
+        badge="Tracking"
+        stats={[
+          { value: '4 h 18 min', label: 'on duty' },
+          { value: '18.4 km', label: 'travelled, about' },
+          { value: '3', label: 'visits' },
+        ]}
+        note="Location is recorded only while you are on duty."
+        actions={[
+          { label: 'Pause', icon: Pause, onPress: () => undefined },
+          { label: 'End day', icon: LogOut, tonal: true, onPress: () => undefined },
+        ]}
+      />,
+    );
+    expect(screen.getByText('18.4 km')).toBeOnTheScreen();
+    expect(screen.getByText('travelled, about')).toBeOnTheScreen();
+    const end = screen.getByRole('button', { name: 'End day' });
+    const style = StyleSheet.flatten(
+      typeof end.props.style === 'function' ? end.props.style({ pressed: false }) : end.props.style,
+    );
+    expect(style.backgroundColor).toBe(theme.colors.accentSubtle);
+  });
+
+  it('lies a tinted card flat on its hue', async () => {
+    const light = createTheme('light', 'latin');
+    await render(<Card tint="mint" testID="tile" />);
+    const flat = StyleSheet.flatten(screen.getByTestId('tile').props.style);
+    expect(flat.backgroundColor).toBe(light.colors.pastelMintBg);
+    expect(flat.boxShadow).toBeUndefined();
   });
 });

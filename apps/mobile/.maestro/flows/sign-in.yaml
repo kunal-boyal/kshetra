@@ -24,13 +24,10 @@ name: sign-in
           env:
             MAILPIT: ${MAILPIT}
             TO: ${PHONE_E164_DIGITS}@otp.local
-# The code field takes focus by itself too.
 - inputText: ${output.code}
 - hideKeyboard
-# The title says Sign in as well; the button is the second.
-- tapOn:
-    text: Sign in
-    index: 1
+# The code field takes focus by itself, drawn as six boxes over it (decision D104).
+- tapOn: Sign in
 - extendedWaitUntil:
     visible: Start day
     timeout: 30000

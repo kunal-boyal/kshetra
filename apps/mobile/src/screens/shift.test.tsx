@@ -161,6 +161,8 @@ describe('the shift on the phone (M5)', () => {
     expect(router.push).toHaveBeenCalledWith('/punch-in');
     expect(screen.getByText('Off duty')).toBeOnTheScreen();
     expect(screen.getByText(/Location is recorded only while you are on duty/)).toBeOnTheScreen();
+    // Off duty there is nothing to count yet.
+    expect(screen.queryByText('travelled, about')).toBeNull();
   });
 
   it('punches in after consent and a good fix, saves on the phone, sends it and starts recording', async () => {
@@ -230,6 +232,11 @@ describe('the shift on the phone (M5)', () => {
     );
     const client = await renderPhone('home', db);
     expect(await screen.findByText('Tracking')).toBeOnTheScreen();
+    // Time on duty, the distance the phone counted (about), and today's visits.
+    expect(screen.getByText('on duty')).toBeOnTheScreen();
+    expect(screen.getByText('0.0 km')).toBeOnTheScreen();
+    expect(screen.getByText('travelled, about')).toBeOnTheScreen();
+    expect(screen.getByText('visits')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Pause tracking' }));
     await fireEvent.press(await screen.findByRole('radio', { name: 'A break' }));
     expect(await screen.findByText('Paused')).toBeOnTheScreen();

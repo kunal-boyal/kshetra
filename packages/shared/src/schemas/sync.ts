@@ -115,6 +115,10 @@ export const SyncPlanItem = z
     status: PlanItemStatus,
     source: z.enum(['route', 'adhoc']),
     visitId: z.uuid().nullable(),
+    /** The route it came from, by name, and the account's place on it; null for one added by hand. */
+    routeId: z.uuid().nullable(),
+    routeName: z.string().nullable(),
+    position: z.int().min(1).nullable(),
   })
   .meta({ id: 'SyncPlanItem' });
 

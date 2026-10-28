@@ -1,6 +1,7 @@
 export {
   formatDate,
   formatDateTime,
+  formatDay,
   formatMoney,
   formatMonth,
   formatWeekday,

@@ -67,6 +67,30 @@ describe('tracking on the phone (spec 12.1)', () => {
     expect(await tracking.waiting('tenant-a:user-b')).toBe(0);
   });
 
+  it('adds up the distance walked, but not the wander of a phone standing still (D104)', async () => {
+    await open();
+    expect(await tracking.current(ME)).toMatchObject({ distanceMeters: 0, lastFix: null });
+    // About 111 m a step north, then three readings jittering within their accuracy.
+    await tracking.record(ME, [
+      raw(1, { lat: 28.6 }),
+      raw(2, { lat: 28.601 }),
+      raw(3, { lat: 28.602 }),
+      raw(4, { lat: 28.60205, accuracy: 20 }),
+      raw(5, { lat: 28.60195, accuracy: 20 }),
+    ]);
+    const walked = (await tracking.current(ME))!;
+    expect(walked.distanceMeters).toBeGreaterThan(220);
+    expect(walked.distanceMeters).toBeLessThan(225);
+    expect(walked.lastFix).toEqual({ lat: 28.602, lng: 77.2 });
+    // Points handed over out of order count in time order.
+    await tracking.record(ME, [raw(7, { lat: 28.604 }), raw(6, { lat: 28.603 })]);
+    expect((await tracking.current(ME))!.distanceMeters).toBeGreaterThan(440);
+    // A new shift starts at nothing.
+    await db.transaction((tx) => tracking.close(tx, ME));
+    await open();
+    expect((await tracking.current(ME))!.distanceMeters).toBe(0);
+  });
+
   it('uploads once the shift is known, 200 at a time, and drops what the server answered', async () => {
     await open();
     await tracking.record(

@@ -45,6 +45,16 @@ export function formatDate(date: string, { locale, region }: FormatContext): str
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
+/** A calendar date with its weekday, short, such as Home's "Fri, 23 Oct". */
+export function formatDay(date: string, { locale, region }: FormatContext): string {
+  return new Intl.DateTimeFormat(localeTag(locale, region), {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
 /** A month (`YYYY-MM`), such as a period of attendance. */
 export function formatMonth(period: string, { locale, region }: FormatContext): string {
   return new Intl.DateTimeFormat(localeTag(locale, region), {

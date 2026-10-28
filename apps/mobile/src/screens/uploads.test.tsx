@@ -162,7 +162,7 @@ describe('the sync banner', () => {
   it('is gone when everything has uploaded', async () => {
     const { db } = await phoneWith({ n: 1 });
     await renderPhone(db, 'home');
-    expect(await screen.findByText('Hello, Anita Rao')).toBeOnTheScreen();
+    expect(await screen.findByText(/^Good (morning|afternoon|evening), Anita$/)).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: /View$/ })).toBeNull();
   });
 });

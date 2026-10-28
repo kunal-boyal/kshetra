@@ -351,6 +351,45 @@ describe("a month's plan approved by the manager (M8, journey_plan)", () => {
   });
 
   describe('plan items on the phone (M8, spec 11.3)', () => {
+    it('carry their route by name and the place on it, and follow a renamed route (D104)', async () => {
+      const t = await tenant('Route Sync Co');
+      const made = (
+        await t.api.manager.post('/v1/routes', route(t, [t.shop, t.corner], [1, 2, 3, 4, 5, 6, 7]))
+      ).json();
+      await t.api.manager.post('/v1/plans/generate', { userId: t.asha.id, period: nextMonth() });
+      const pull = async (cursor?: string) =>
+        (
+          await t.api.asha.get(
+            `/v1/sync/pull?entities=plan_items${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+          )
+        ).json();
+      const read = await pull();
+      const first = read.entities.plan_items;
+      const routed = first.rows.filter((row: { routeId: string | null }) => row.routeId);
+      expect(routed.length).toBeGreaterThan(0);
+      expect(routed.find((row: { accountId: string }) => row.accountId === t.corner)).toMatchObject(
+        { routeId: made.id, routeName: 'Market road', position: 2 },
+      );
+      expect(routed.find((row: { accountId: string }) => row.accountId === t.shop)).toMatchObject({
+        position: 1,
+      });
+      const adhocItem = (await t.api.asha.post('/v1/plan-items', adhoc(t))).json();
+      const own = (await pull()).entities.plan_items.rows.find(
+        (row: { id: string }) => row.id === adhocItem.id,
+      );
+      expect(own).toMatchObject({ routeId: null, routeName: null, position: null });
+
+      // A renamed route changes the scope, so a phone that had them takes every item again.
+      const settled = (await pull(read.cursor)).cursor;
+      expect((await pull(settled)).entities.plan_items.pass).toBe('changes');
+      await t.api.manager.patch(`/v1/routes/${made.id}`, { name: 'Bazaar road' });
+      const again = (await pull(settled)).entities.plan_items;
+      expect(again.pass).toBe('full');
+      expect(
+        again.rows.find((row: { accountId: string }) => row.accountId === t.corner),
+      ).toMatchObject({ routeName: 'Bazaar road' });
+    });
+
     it("keeps the person's own items from yesterday to next month, approved months only where asked", async () => {
       const t = await tenant('Sync Co');
       const pull = async () =>

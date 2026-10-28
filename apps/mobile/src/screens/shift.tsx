@@ -1,6 +1,6 @@
 import type { ShiftState } from '@thelamp/api-client/sync';
 import { spacing } from '@thelamp/design-tokens';
-import { formatDateTime } from '@thelamp/i18n';
+import { formatDateTime, formatNumber } from '@thelamp/i18n';
 import { punchFixIssue } from '@thelamp/shared';
 import { Button, Card, ChoiceGroup, ShiftCard, type ShiftAction, Text } from '@thelamp/ui-mobile';
 import { router } from 'expo-router';
@@ -13,6 +13,7 @@ import { useLanguage } from '../i18n';
 import { currentFix } from '../location';
 import { useSync, useSyncStatus } from '../sync';
 import { pauseShift, punchOut, resumeShift, startTracking, trackingRuns } from '../tracking';
+import { useTodayPlan } from './today-plan';
 
 /**
  * The person's shift on this phone, and whether recording runs, read again whenever the sync's
@@ -64,6 +65,7 @@ export function ShiftSection() {
   const status = useSyncStatus();
   const config = useConfig();
   const shift = useShift();
+  const plan = useTodayPlan();
   const [pausing, setPausing] = useState(false);
   const [ending, setEnding] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -128,11 +130,16 @@ export function ShiftSection() {
   }
 
   const paused = state.pauseId !== null;
+  // Visits today are the day's plan items visited or done (spec 8.1).
+  const visitsToday = plan.items.filter(
+    (item) => item.status === 'visited' || item.status === 'completed',
+  ).length;
   const stopped = !paused && !shift.running;
   const unsent = (status?.counts.queued ?? 0) > 0;
   const endAction: ShiftAction = {
     label: t('shift.punch_out'),
     icon: LogOut,
+    tonal: true,
     busy,
     // The odometer at punch-out has its own screen (decision D99); otherwise End day asks first
     // only when something is still on the phone (components/ShiftCard).
@@ -187,7 +194,24 @@ export function ShiftSection() {
           time: formatDateTime(new Date(state.startedAt), { locale, timeZone }),
         })}
         badge={t(paused ? 'shift.paused' : stopped ? 'shift.not_recording' : 'shift.tracking')}
-        metric={sinceStart(state.startedAt, t)}
+        stats={[
+          { value: sinceStart(state.startedAt, t), label: t('shift.stat_on_duty') },
+          // Counted on the phone from the points it keeps, so only about; the trail is the record.
+          {
+            value: t('shift.stat_km', {
+              km: formatNumber(
+                state.distanceMeters / 1000,
+                { locale },
+                { minimumFractionDigits: 1, maximumFractionDigits: 1 },
+              ),
+            }),
+            label: t('shift.stat_travelled'),
+          },
+          {
+            value: formatNumber(visitsToday, { locale }),
+            label: t('shift.stat_visits', { count: visitsToday }),
+          },
+        ]}
         note={note}
         actions={actions}
         {...(stopped

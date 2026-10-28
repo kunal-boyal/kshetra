@@ -107,7 +107,11 @@ async function renderApp(fake: ReturnType<typeof fakeClient>, signedIn: 'home' |
 async function enterNumberAndCode(code = '123456') {
   await fireEvent.changeText(await screen.findByLabelText('Mobile number *'), '90000 00001');
   await fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
-  await fireEvent.changeText(await screen.findByLabelText('Code *'), code);
+  // The code's label names the number it went to, masked.
+  await fireEvent.changeText(
+    await screen.findByLabelText(/^Code sent by SMS to \+91•+\d{5}$/),
+    code,
+  );
   await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
 }
 
@@ -127,13 +131,16 @@ describe('signing in on a phone', () => {
   it('goes from the number and code to home, in the tenant’s words', async () => {
     const fake = fakeClient(async () => signedIn());
     await renderApp(fake);
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeOnTheScreen();
+    expect(
+      await screen.findByRole('heading', { name: 'Light the way for your field team' }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(/This phone becomes your work phone/)).toBeOnTheScreen();
     await enterNumberAndCode();
     // The field keeps the ten digits, whatever spacing was typed (decision D102).
     expect(fake.client.requestCode).toHaveBeenCalledWith('9000000001');
     expect(fake.client.verifyCode).toHaveBeenCalledWith('9000000001', '123456');
-    expect(await screen.findByText('Hello, Anita Rao')).toBeOnTheScreen();
-    expect(await screen.findByText('Head at Sunrise Traders')).toBeOnTheScreen();
+    expect(await screen.findByText(/^Good (morning|afternoon|evening), Anita$/)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Notifications' })).toBeOnTheScreen();
   });
 
   it('asks for a 10-digit mobile number before sending anything (decision D102)', async () => {
@@ -150,6 +157,20 @@ describe('signing in on a phone', () => {
     expect(fake.client.requestCode).not.toHaveBeenCalled();
   });
 
+  it('shows the number the code went to masked, waits before a resend, and goes back to change it', async () => {
+    const fake = fakeClient(async () => signedIn());
+    await renderApp(fake);
+    await fireEvent.changeText(await screen.findByLabelText('Mobile number *'), '90000 00001');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
+    expect(await screen.findByLabelText('Code sent by SMS to +91•••••00001')).toBeOnTheScreen();
+    expect(screen.queryByText(/9000000001|90000 00001/)).toBeNull();
+    expect(screen.getByText('You can ask for a new code in 30 seconds.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Send a new code' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Use a different number' }));
+    expect(await screen.findByLabelText('Mobile number *')).toHaveProp('value', '9000000001');
+    expect(fake.client.requestCode).toHaveBeenCalledTimes(1);
+  });
+
   it('says what went wrong, in the chosen language', async () => {
     const fake = fakeClient(async () => {
       throw new ApiError(400, 'OTP_INVALID', 'That code is not right.');
@@ -158,11 +179,15 @@ describe('signing in on a phone', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'हिन्दी' }));
     await fireEvent.changeText(await screen.findByLabelText('मोबाइल नंबर *'), '9000000001');
     await fireEvent.press(screen.getByRole('button', { name: 'कोड भेजें' }));
-    await fireEvent.changeText(await screen.findByLabelText('कोड *'), '000000');
+    const code = await screen.findByLabelText(/पर SMS से भेजा गया कोड$/);
+    await fireEvent.changeText(code, '000000');
     await fireEvent.press(screen.getByRole('button', { name: 'साइन इन करें' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'यह कोड सही नहीं है। जाँचकर फिर कोशिश करें।',
     );
+    // The boxes keep the digits under the error, so one wrong digit is fixed in place.
+    expect(code).toHaveProp('value', '000000');
+    expect(code).toHaveProp('aria-invalid', true);
   });
 
   it('tells a person whose phone is not linked to ask their manager', async () => {
@@ -195,7 +220,7 @@ describe('signing in on a phone', () => {
     await renderApp(fake);
     await enterNumberAndCode();
     expect(await screen.findByText('Update the app')).toBeOnTheScreen();
-    expect(screen.queryByText('Sign in')).toBeNull();
+    expect(screen.queryByText('Light the way for your field team')).toBeNull();
   });
 });
 
@@ -209,6 +234,8 @@ describe('Me', () => {
     expect(screen.getByRole('radio', { name: 'Outdoor' })).toBeChecked();
     await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
     expect(fake.client.signOut).toHaveBeenCalledTimes(1);
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeOnTheScreen();
+    expect(
+      await screen.findByRole('heading', { name: 'Light the way for your field team' }),
+    ).toBeOnTheScreen();
   });
 });

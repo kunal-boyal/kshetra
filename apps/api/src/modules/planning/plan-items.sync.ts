@@ -1,7 +1,7 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { type SyncPlanItem, todayIn } from '@thelamp/shared';
 import { and, asc, eq, gte, lte, or, sql } from 'drizzle-orm';
-import { planItems, planMonths } from '../../db/schema/planning';
+import { planItems, planMonths, routeAccounts, routes } from '../../db/schema/planning';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import {
@@ -24,7 +24,8 @@ const DAY_MS = 86_400_000;
 @Injectable()
 export class PlanItemsSync implements SyncSource<SyncPlanItem>, OnModuleInit {
   readonly name = 'plan_items';
-  readonly version = 1;
+  // 2: items carry their route's name and the account's place on it (decision D104).
+  readonly version = 2;
 
   constructor(
     private readonly entities: SyncEntities,
@@ -66,7 +67,13 @@ export class PlanItemsSync implements SyncSource<SyncPlanItem>, OnModuleInit {
     if (!access.permissions.has('visit.use')) return 'none';
     const [from] = await this.window(tx, access.tenantId);
     const approved = await this.approved(tx, access);
-    return approved === null ? from : `${from}|${approved.join(',')}`;
+    // A route renamed or reordered changes items' names and places without changing the items.
+    const [routed] = await tx
+      .select({ at: sql<string | null>`max(${routes.updatedAt})::text` })
+      .from(routes)
+      .where(and(eq(routes.tenantId, access.tenantId), eq(routes.userId, access.userId)));
+    const base = approved === null ? from : `${from}|${approved.join(',')}`;
+    return `${base}|${routed?.at ?? ''}`;
   }
 
   async rows(tx: TenantTx, access: Access, page: SyncRowsPage): Promise<SyncRow<SyncPlanItem>[]> {
@@ -84,8 +91,23 @@ export class PlanItemsSync implements SyncSource<SyncPlanItem>, OnModuleInit {
         status: planItems.status,
         source: planItems.source,
         visitId: planItems.visitId,
+        routeId: planItems.routeId,
+        routeName: routes.name,
+        position: routeAccounts.seq,
       })
       .from(planItems)
+      .leftJoin(
+        routes,
+        and(eq(routes.tenantId, planItems.tenantId), eq(routes.id, planItems.routeId)),
+      )
+      .leftJoin(
+        routeAccounts,
+        and(
+          eq(routeAccounts.tenantId, planItems.tenantId),
+          eq(routeAccounts.routeId, planItems.routeId),
+          eq(routeAccounts.accountId, planItems.accountId),
+        ),
+      )
       .where(
         and(
           eq(planItems.tenantId, access.tenantId),
@@ -111,6 +133,11 @@ export class PlanItemsSync implements SyncSource<SyncPlanItem>, OnModuleInit {
       )
       .orderBy(asc(planItems.rowVersion), asc(planItems.id))
       .limit(page.limit);
-    return found.map(({ version, ...row }) => ({ version, id: row.id, row }));
+    return found.map(({ version, position, ...row }) => ({
+      version,
+      id: row.id,
+      // Places on a route count from 1 on the phone, whatever the stored order starts from.
+      row: { ...row, position: position === null ? null : position + 1 },
+    }));
   }
 }
