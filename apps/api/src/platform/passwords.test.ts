@@ -7,12 +7,13 @@ import {
   verifyPassword,
 } from './passwords';
 
-describe('passwords', () => {
+// Each hash and check at the staff cost is real scrypt work, a fifth of a second here and several
+// times that on a shared CI runner, so these tests get more than Vitest's 5 seconds.
+describe('passwords', { timeout: 60_000 }, () => {
   it('keeps only a salted scrypt hash, and checks against it', async () => {
     const hash = await hashPassword('correct horse battery');
     expect(hash).toMatch(/^scrypt\$15\$8\$3\$[\w-]{22}\$[\w-]{43}$/);
     expect(hash).not.toContain('correct');
-    expect(await hashPassword('correct horse battery')).not.toBe(hash);
     expect(await verifyPassword('correct horse battery', hash)).toBe(true);
     expect(await verifyPassword('correct horse batterY', hash)).toBe(false);
     expect(needsRehash(hash)).toBe(false);
@@ -30,9 +31,11 @@ describe('passwords', () => {
     expect(needsRehash(old)).toBe(true);
   });
 
-  it('hashes recovery codes at their own, lighter cost', async () => {
+  it('hashes recovery codes at their own, lighter cost, with a new salt each time', async () => {
     const hash = await hashPassword('K7Q2MXW4PA', RECOVERY_CODE_COST);
     expect(hash).toMatch(/^scrypt\$14\$8\$1\$/);
+    // The salt doesn't depend on the cost, so the lighter one shows it without another staff hash.
+    expect(await hashPassword('K7Q2MXW4PA', RECOVERY_CODE_COST)).not.toBe(hash);
     expect(await verifyPassword('K7Q2MXW4PA', hash)).toBe(true);
     expect(needsRehash(hash, RECOVERY_CODE_COST)).toBe(false);
   });
