@@ -69,7 +69,10 @@ const forgetLastCode = (email: string) =>
     [email],
   );
 
-/** A staff member invited, set up and signed in, with their secret for later codes. */
+/**
+ * A staff member invited, set up and signed in, with their secret for later codes and the code
+ * they signed in with, from the step it was made in.
+ */
 async function staffMember(role: PlatformRoleKey = 'platform_admin') {
   const email = `staff-${newId().slice(-8)}@vendor.example`;
   const { setupUrl } = await app
@@ -84,11 +87,19 @@ async function staffMember(role: PlatformRoleKey = 'platform_admin') {
   });
   expect(confirmed.statusCode, confirmed.body).toBe(200);
   await forgetLastCode(email);
+  const step = totpStep();
+  const used = totpAt(secret, step);
   const signedIn = await send('POST', '/platform/v1/session', {
-    body: { email, password: PASSWORD, code: code(secret) },
+    body: { email, password: PASSWORD, code: used },
   });
   expect(signedIn.statusCode, signedIn.body).toBe(200);
-  return { email, secret, token: signedIn.json().accessToken as string, signedIn };
+  return {
+    email,
+    secret,
+    used: { code: used, step },
+    token: signedIn.json().accessToken as string,
+    signedIn,
+  };
 }
 
 describe('vendor staff (decision D88)', () => {
@@ -144,7 +155,7 @@ describe('vendor staff (decision D88)', () => {
   });
 
   it('signs in with all three, refuses a used code, refreshes by cookie and signs out', async () => {
-    const { email, secret, token, signedIn } = await staffMember();
+    const { email, secret, used, token, signedIn } = await staffMember();
     expect(signedIn.json().staff).toMatchObject({ email, role: 'platform_admin' });
     const cookie = signedIn.cookies.find((each) => each.name === 'thelamp_console')!;
     expect(cookie).toMatchObject({
@@ -154,10 +165,14 @@ describe('vendor staff (decision D88)', () => {
     });
     expect((await send('GET', '/platform/v1/me', { token })).json()).toMatchObject({ email });
 
-    // The code just used doesn't work twice, and a wrong part answers the same as any other.
+    // The code just used doesn't work twice, and a wrong part answers the same as any other. The
+    // replay sends that very code: a code made now would be a fresh one once a 30-second step has
+    // passed. It is still within the server's window (this step or the one before), so only its
+    // being spent refuses it.
     const replay = await send('POST', '/platform/v1/session', {
-      body: { email, password: PASSWORD, code: code(secret) },
+      body: { email, password: PASSWORD, code: used.code },
     });
+    expect(totpStep() - used.step).toBeLessThanOrEqual(1);
     expect(replay.json().error.code).toBe('UNAUTHENTICATED');
     const badPassword = await send('POST', '/platform/v1/session', {
       body: { email, password: 'not the password', code: code(secret) },
