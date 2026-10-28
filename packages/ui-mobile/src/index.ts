@@ -24,6 +24,7 @@ export type { ShiftAction, ShiftCardProps, ShiftCardState } from './shift-card';
 export { Flag, StatusBadge, SyncBanner } from './status';
 export type { BadgeVariant } from './status';
 export { Card, EmptyState, IconChip, Notice } from './surfaces';
+export { QuantityStepper } from './stepper';
 export type { Hue } from './surfaces';
 export { Text } from './text';
 export type { TextProps, Tone } from './text';

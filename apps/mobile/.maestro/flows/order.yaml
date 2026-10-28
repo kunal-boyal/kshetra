@@ -1,5 +1,5 @@
-# An order at the place (M10, BR-13 to BR-15): find an item on the place's prices, add a line,
-# place it, and see it among the place's orders, waiting for its approval (decision D86).
+# An order at the place (M10, BR-13 to BR-15): find an item on the place's prices, step it into
+# the cart, review and place it, and see it among the place's orders, waiting for its approval (decision D86).
 appId: com.thelamp.app.e2e
 name: order
 ---
@@ -25,31 +25,27 @@ name: order
     centerElement: true
 - tapOn: New order
 - extendedWaitUntil:
-    visible: Items here
+    visible: Search items or codes
     timeout: 20000
-- tapOn: Find by item code or name
+- tapOn: Search items or codes
 - inputText: ${ITEM_CODE}
 - pressKey: Enter
-- tapOn: Maestro Seeds 1 kg.*
-- tapOn: Quantity
-- inputText: '3'
-- tapOn: Add
-- extendedWaitUntil:
-    visible: 1 line
-    timeout: 10000
-# 3 at ₹200 with 5% tax: ₹600 taxable, ₹630 in all.
+# Three, a step at a time (stage M4, decision D104).
+- repeat:
+    times: 3
+    commands:
+      - tapOn: More Maestro Seeds 1 kg.*
+# 3 at ₹200 with 5% tax: ₹600 taxable on the cart bar, ₹630 in all on the review.
+- tapOn: 'Review: 1 item, ₹600.00 \+ GST'
 - scrollUntilVisible:
-    element: 'Total: ₹630.00'
-- scrollUntilVisible:
-    element: Place the order
-    centerElement: true
+    element: '₹630.00'
 # Placing waits for a location fix, as a visit does.
 - extendedWaitUntil:
     visible:
-      text: Place the order
+      text: 'Place the order · ₹630.00'
       enabled: true
     timeout: 45000
-- tapOn: Place the order
+- tapOn: 'Place the order · ₹630.00'
 - scrollUntilVisible:
     element: Orders here
     timeout: 30000

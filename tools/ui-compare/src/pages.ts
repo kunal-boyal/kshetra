@@ -23,9 +23,10 @@ export interface Pair {
   /**
    * On the field app, what to tap after opening `portal` to reach a screen that needs an ID: the
    * fixtures' account by its name (`--app-account`), or the first form to fill, which starts a
-   * draft (stage M3).
+   * draft (stage M3); or the account's new order, with a few items stepped into the cart, and its
+   * review (stage M4).
    */
-  tap?: 'account' | 'first-form';
+  tap?: 'account' | 'first-form' | 'order' | 'order-review';
 }
 
 export const PAIRS: readonly Pair[] = [
@@ -262,5 +263,23 @@ export const PAIRS: readonly Pair[] = [
     stage: 'M3',
     app: 'phone',
     tap: 'first-form',
+  },
+  {
+    key: 'app-order',
+    title: 'Field app: take an order',
+    prototype: 'AppOrder.dc.html',
+    portal: '/accounts',
+    stage: 'M4',
+    app: 'phone',
+    tap: 'order',
+  },
+  {
+    key: 'app-order-review',
+    title: 'Field app: review the order',
+    prototype: 'AppOrderReview.dc.html',
+    portal: '/accounts',
+    stage: 'M4',
+    app: 'phone',
+    tap: 'order-review',
   },
 ];

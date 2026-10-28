@@ -491,7 +491,7 @@ function useVisitEntries(visitId: string | undefined): FormEntry[] {
 }
 
 /** The account types' hues, in the order the tenant lists its types (components/IconChip). */
-const HUES = ['sky', 'mint', 'butter', 'lilac', 'peach', 'rose', 'sage', 'sand'] as const;
+export const HUES = ['sky', 'mint', 'butter', 'lilac', 'peach', 'rose', 'sage', 'sand'] as const;
 
 /** One line of the account's details (`ks-dl`): what, then its value. */
 function Detail({ label, value }: { label: string; value: string }) {

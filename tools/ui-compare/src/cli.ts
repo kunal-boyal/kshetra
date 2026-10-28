@@ -293,7 +293,7 @@ async function openApp(page: Page, pair: Pair) {
     await tab('me');
     await page.getByTestId(pair.portal === '/accounts' ? 'more-accounts' : 'more-forms').click();
   }
-  if (pair.tap === 'account') {
+  if (pair.tap && pair.tap !== 'first-form') {
     const name = values['app-account']!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     await page
       .getByRole('button', { name: new RegExp(`^${name}`) })
@@ -303,6 +303,26 @@ async function openApp(page: Page, pair: Pair) {
       .getByText(/^(Stop \d+ of \d+|To do here|On this visit)$/)
       .first()
       .waitFor();
+  }
+  if (pair.tap === 'order' || pair.tap === 'order-review') {
+    await page
+      .getByRole('button', { name: /^New order/ })
+      .first()
+      .click();
+    await page.getByLabel('Search items or codes').waitFor({ timeout: 20_000 });
+    const more = page.getByRole('button', { name: /^More / });
+    for (const [nth, times] of [
+      [0, 3],
+      [1, 2],
+    ] as const) {
+      for (let step = 0; step < times && (await more.count()) > nth; step += 1) {
+        await more.nth(nth).click();
+      }
+    }
+    if (pair.tap === 'order-review') {
+      await page.getByRole('button', { name: /^Review:/ }).click();
+      await page.getByText(/^Review the order$/).waitFor();
+    }
   }
   if (pair.tap === 'first-form') {
     await page.getByTestId('form-start').first().click();
