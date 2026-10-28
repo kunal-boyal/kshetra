@@ -262,6 +262,40 @@ describe('leave requests (BR-27)', () => {
   });
 });
 
+describe("the team's leave (decision D104)", () => {
+  it('lists the requests of everyone the caller reaches that take in a day of a month', async () => {
+    const t = await tenant('Team Leave Co');
+    const thisMonth = TODAY().slice(0, 7);
+    const nextMonth = after(`${thisMonth}-01`, 32).slice(0, 7);
+    const inMonth = next(after(`${nextMonth}-01`, 0), 2);
+    const later = after(`${nextMonth}-01`, 40);
+    const asked = await ask(t, 'casual', inMonth, inMonth);
+    expect(asked.statusCode, asked.body).toBe(201);
+    expect((await ask(t, 'casual', next(later, 2), next(later, 2))).statusCode).toBe(201);
+
+    const team = await t.manager.get(`/v1/leave-requests?team=true&period=${nextMonth}`);
+    expect(team.statusCode, team.body).toBe(200);
+    expect(team.json().items.map((item: { id: string }) => item.id)).toEqual([asked.json().id]);
+    expect(team.json().people).toEqual([
+      expect.objectContaining({ id: t.fieldId, name: expect.any(String) }),
+    ]);
+
+    // Someone who reaches only themselves sees only their own.
+    const own = await t.field.get(`/v1/leave-requests?team=true&period=${nextMonth}`);
+    expect(own.json().items.map((item: { userId: string }) => item.userId)).toEqual([t.fieldId]);
+    const elsewhere = await world.tenant('Team Leave Elsewhere');
+    const stranger = newPhone();
+    await world.user(elsewhere, { phone: stranger, designation: 'manager' });
+    const outside = as((await world.signIn(stranger)).accessToken);
+    expect(
+      (await outside.get(`/v1/leave-requests?team=true&period=${nextMonth}`)).json().items,
+    ).toEqual([]);
+
+    // A team is asked for by month only.
+    expect((await t.manager.get('/v1/leave-requests?team=true')).statusCode).toBe(400);
+  });
+});
+
 describe('leave types (spec 5.10)', () => {
   it('keeps every type, switches one off, and refuses requests of it', async () => {
     const t = await tenant('Leave Types Co');

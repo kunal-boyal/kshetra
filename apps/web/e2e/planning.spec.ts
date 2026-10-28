@@ -175,7 +175,7 @@ async function expectAccessible(page: Page) {
 test('a person’s plan shows the month and routes, and passes axe', async ({ page }) => {
   await mockSignedIn(page);
   await page.goto(`/people/${RAHUL}/plan`);
-  await expect(page.getByRole('heading', { level: 1, name: "Rahul Verma's plan" })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /^Rahul Verma · / })).toBeVisible();
   await expect(page.getByText('Collect payment')).toBeVisible();
   await expect(page.getByText('Waiting for approval')).toBeVisible();
   await expectAccessible(page);

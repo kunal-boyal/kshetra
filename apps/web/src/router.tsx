@@ -44,6 +44,7 @@ import { PersonPage } from './people/person-page';
 import { TransferPage } from './people/transfer-page';
 import { CalendarsPage } from './settings/calendars-page';
 import { ExpensePoliciesPage } from './settings/expense-policies-page';
+import { AttendancePage } from './attendance/attendance-page';
 import { ExpensesPage } from './expenses/expenses-page';
 import { LeaveTypesPage } from './settings/leave-types-page';
 import { ConfigurationPage } from './settings/configuration-page';
@@ -209,6 +210,12 @@ const approvals = createRoute({
   },
 });
 const review = createRoute({ getParentRoute: () => app, path: '/review', component: ReviewPage });
+const attendanceRoute = createRoute({
+  getParentRoute: () => app,
+  path: '/attendance',
+  component: AttendancePage,
+});
+
 const expensesRoute = createRoute({
   getParentRoute: () => app,
   path: '/expenses',
@@ -538,6 +545,7 @@ const tree = root.addChildren([
     approvals,
     review,
     ordersRoute,
+    attendanceRoute,
     expensesRoute,
     newOrder,
     order,

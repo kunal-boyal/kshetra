@@ -180,6 +180,7 @@ function fakeClient(offline = false) {
             url.endsWith(`year=${YEAR}`) || url.endsWith(`year=${NEXT.slice(0, 4)}`)
               ? REQUESTS
               : [],
+          people: [],
         };
       }
       if (method === 'GET' && url.startsWith('/v1/calendars?year=')) {

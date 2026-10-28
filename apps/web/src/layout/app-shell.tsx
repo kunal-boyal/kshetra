@@ -3,6 +3,7 @@ import { Avatar, Button, Icon, MenuButton } from '@thelamp/ui-web';
 import { Link, Outlet } from '@tanstack/react-router';
 import {
   Bell,
+  CalendarCheck,
   ChartNoAxesColumn,
   ClipboardCheck,
   FileSpreadsheet,
@@ -207,6 +208,11 @@ export function AppShell() {
           to: '/org-chart',
           icon: Network,
           label: t('nav.org_chart'),
+        }),
+        ...only(access.can('user.view') && !access.modulesOff.includes('leave_attendance'), {
+          to: '/attendance',
+          icon: CalendarCheck,
+          label: t('nav.attendance'),
         }),
         ...only(access.can('target.view'), {
           to: '/targets',
