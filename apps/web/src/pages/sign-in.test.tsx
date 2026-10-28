@@ -165,6 +165,9 @@ describe('signing in on the web', () => {
     expect(field).toHaveValue('9198765');
     await user.clear(field);
     await user.type(field, '98765');
+    // Leaving the field says nothing; only sending does (D104).
+    await user.tab();
+    expect(screen.queryByText('Enter all 10 digits of the mobile number')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Send code' }));
     expect(screen.getByText('Enter all 10 digits of the mobile number')).toBeVisible();
     await user.clear(field);

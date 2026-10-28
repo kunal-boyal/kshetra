@@ -1,7 +1,6 @@
 import { emailMessage, mobileMessage } from '@thelamp/i18n';
 import { mobileDigitsFrom } from '@thelamp/shared';
 import { TextField, type TextFieldProps } from '@thelamp/ui-web';
-import { useState } from 'react';
 import { useApp } from './context';
 import { useConfig } from './data';
 import { useLanguage } from './i18n';
@@ -9,7 +8,10 @@ import { useLanguage } from './i18n';
 type FieldProps = Omit<TextFieldProps, 'value' | 'onChange' | 'prefix' | 'type'> & {
   value: string;
   onChange: (value: string) => void;
-  /** Shows the check's message now, as after a submit; it shows anyway once the field is left. */
+  /**
+   * Shows the check's message, once the form was sent (its button or Enter): never on leaving the
+   * field, so clicking elsewhere says nothing (D104).
+   */
   checked?: boolean;
 };
 
@@ -24,11 +26,9 @@ export function MobileField({
   error,
   required,
   landline,
-  onBlur,
   ...field
 }: FieldProps & { landline?: boolean }) {
   const { t } = useLanguage();
-  const [left, setLeft] = useState(false);
   const message = mobileMessage(value, Boolean(required), landline);
   return (
     <TextField
@@ -40,28 +40,15 @@ export function MobileField({
       inputMode="numeric"
       autoComplete="tel-national"
       value={value}
-      error={error ?? ((left || checked) && message ? t(message) : undefined)}
+      error={error ?? (checked && message ? t(message) : undefined)}
       onChange={(event) => onChange(mobileDigitsFrom(event.target.value))}
-      onBlur={(event) => {
-        setLeft(true);
-        onBlur?.(event);
-      }}
     />
   );
 }
 
 /** An email address, checked by the rule the API applies (decision D102). */
-export function EmailField({
-  value,
-  onChange,
-  checked,
-  error,
-  required,
-  onBlur,
-  ...field
-}: FieldProps) {
+export function EmailField({ value, onChange, checked, error, required, ...field }: FieldProps) {
   const { t } = useLanguage();
-  const [left, setLeft] = useState(false);
   const message = emailMessage(value, Boolean(required));
   return (
     <TextField
@@ -71,12 +58,8 @@ export function EmailField({
       inputMode="email"
       autoComplete="email"
       value={value}
-      error={error ?? ((left || checked) && message ? t(message) : undefined)}
+      error={error ?? (checked && message ? t(message) : undefined)}
       onChange={(event) => onChange(event.target.value)}
-      onBlur={(event) => {
-        setLeft(true);
-        onBlur?.(event);
-      }}
     />
   );
 }

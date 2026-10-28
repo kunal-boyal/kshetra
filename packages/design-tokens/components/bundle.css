@@ -146,7 +146,8 @@
 .ks-input:focus { border-color: var(--accent); }
 .ks-input::placeholder { color: var(--text-subtle); }
 .ks-input.num { font-variant-numeric: tabular-nums; text-align: right; }
-.ks-input.invalid { border-color: var(--danger-solid); box-shadow: inset 0 0 0 1px var(--danger-solid), 0 0 0 4px var(--danger-bg); }
+.ks-input.invalid { border-color: var(--danger-solid); }
+.ks-input.invalid:focus { box-shadow: 0 0 0 3px var(--danger-bg); }
 /* Select: the browser's arrow sits on the edge, so a chevron drawn from the tokens replaces it, with the field's own padding beside it. */
 select.ks-input { --ks-chevron-end: var(--space-4); appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: calc(var(--ks-chevron-end) + 11px + var(--space-2)); background-image: linear-gradient(45deg, transparent calc(50% - 0.8px), var(--text-muted) calc(50% - 0.8px), var(--text-muted) calc(50% + 0.8px), transparent calc(50% + 0.8px)), linear-gradient(-45deg, transparent calc(50% - 0.8px), var(--text-muted) calc(50% - 0.8px), var(--text-muted) calc(50% + 0.8px), transparent calc(50% + 0.8px)); background-size: 6px 6px; background-position: right calc(var(--ks-chevron-end) + 5px) center, right var(--ks-chevron-end) center; background-repeat: no-repeat; }
 select.ks-input:disabled { cursor: not-allowed; color: var(--text-subtle); }
@@ -157,6 +158,8 @@ select.ks-input:disabled { cursor: not-allowed; color: var(--text-subtle); }
 .ks-picker > select.ks-input:hover { background-color: var(--surface-sunken); }
 .ks-help { font-size: 13px; line-height: calc(18px + var(--ks-lead)); color: var(--text-muted); }
 .ks-help.error { color: var(--danger-fg); font-weight: 500; }
+.ks-help.reserve { min-height: calc(18px + var(--ks-lead)); margin: 0; }
+.ks-help.reserve.two { min-height: calc(2 * (18px + var(--ks-lead))); }
 .ks-affix { position: relative; }
 .ks-affix > span { position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 .ks-affix > .ks-input { padding-left: calc(var(--space-4) + 14px); }

@@ -59,11 +59,13 @@ export function SignInPage() {
             <p className="ks-muted">{t('console.signin_intro')}</p>
             <EmailField
               label={t('console.email')}
+              help={t('console.email_help')}
               autoComplete="username"
               checked={checked}
               value={email}
               onChange={setEmail}
               required
+              reserveNote
             />
             <TextField
               label={t('console.password')}
@@ -83,11 +85,6 @@ export function SignInPage() {
               onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
               required
             />
-            {failure ? (
-              <p className="ks-help error" role="alert">
-                {failure}
-              </p>
-            ) : null}
             <Button
               type="submit"
               variant="primary"
@@ -97,6 +94,10 @@ export function SignInPage() {
             >
               {t('console.signin')}
             </Button>
+            {/* Under the button, in a line kept for it, so a failure moves no field (D104). */}
+            <p className={failure ? 'ks-help error reserve' : 'ks-help reserve'} role="alert">
+              {failure}
+            </p>
           </form>
         </Card>
       </div>

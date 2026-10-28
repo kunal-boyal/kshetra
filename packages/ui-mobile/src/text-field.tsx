@@ -98,9 +98,10 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
                 : focused
                   ? theme.colors.accent
                   : theme.colors.borderStrong,
-              borderWidth: error || outdoor ? 2 : 1,
+              borderWidth: outdoor ? 2 : 1,
             },
-            error ? { boxShadow: `0 0 0 4px ${theme.colors.dangerBg}` } : null,
+            // A soft halo only while the person is in the field, as on the web (D104).
+            error && focused ? { boxShadow: `0 0 0 3px ${theme.colors.dangerBg}` } : null,
             numeric && styles.numeric,
             prefix || icon ? styles.prefixed : null,
           ]}
