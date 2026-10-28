@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Languages } from 'lucide-react';
 import { Button } from './button';
 import { Picker } from './picker';
+import { EmptyState } from './surfaces';
 import { TextField } from './text-field';
 
 describe('TextField', () => {
@@ -58,5 +59,24 @@ describe('Picker', () => {
     expect(select).toHaveValue('hi');
     expect(screen.getByRole('option', { name: 'हिन्दी' })).toHaveAttribute('lang', 'hi');
     expect(container.querySelector('.ks-picker svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+});
+
+describe('EmptyState', () => {
+  it('draws its chip in the accent unless given the hue of what is missing (D72)', () => {
+    const { container, rerender } = render(
+      <EmptyState icon={<Languages />} title="Nobody on duty">
+        People show here once they start their day.
+      </EmptyState>,
+    );
+    const chip = () => container.querySelector('.ks-ico')!;
+    // No pastel class: the chip falls back to accent-subtle in bundle.css.
+    expect(chip().className).not.toMatch(/hue-/);
+    rerender(
+      <EmptyState icon={<Languages />} hue="mint" title="Nothing waiting for review">
+        New submissions appear here.
+      </EmptyState>,
+    );
+    expect(chip()).toHaveClass('hue-mint');
   });
 });
