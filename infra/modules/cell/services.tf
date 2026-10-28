@@ -172,7 +172,7 @@ locals {
       # The load balancer is the one proxy believed (decision D101).
       TRUST_PROXY       = "1"
       CELL_ID           = var.cell_id
-      CELL_API_URL      = "https://${var.api_domain}"
+      CELL_API_URL      = "https://${var.cell_domain}"
       CELL_REGION       = data.aws_region.current.region
       REDIS_URL         = "rediss://${aws_elasticache_replication_group.this.primary_endpoint_address}:6379"
       OBJECT_STORE      = "s3"

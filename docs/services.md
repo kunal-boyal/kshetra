@@ -30,7 +30,7 @@ The region is ap-south-1 (Mumbai), with disaster recovery in ap-south-2 (Hyderab
 | SES | Sends email (directory plane) |
 | ECS on Fargate | Runs the `api`, `worker`, `scheduler` and one-off `migrate` and `bootstrap` tasks, all from one image (`apps/api/Dockerfile`) |
 | ECR | Stores the container images, one per commit |
-| Application Load Balancer, ACM, WAF | HTTPS entry point, certificates and web firewall |
+| Application Load Balancer, ACM, WAF | HTTPS entry point, certificates and web firewall. The load balancer answers to the directory's name (`api.thelamp.in`, staging `api.staging.thelamp.in`) and the first cell's (`in1.api.thelamp.in`, staging `in1.api.staging.thelamp.in`), both on one certificate (decision D105) |
 | Secrets Manager, KMS | Holds secrets, one JSON secret per cell, and the keys for encrypted columns, outside the code |
 | IAM with GitHub's OIDC | The deploy role GitHub Actions takes, so no AWS keys are stored in GitHub |
 | CloudWatch, OpenTelemetry collector | Logs, alarms and traces. The cell's logs, security events among them, are encrypted under a KMS key of the cell's own and kept 180 days (decision D101) |
@@ -46,7 +46,7 @@ The whole product on one EC2 instance in Kunal's personal AWS sandbox, on the Fr
 
 | Service | What it does |
 |---|---|
-| EC2 `t4g.small` with an Elastic IP | Runs PostgreSQL, Redis, the API, worker, scheduler and Caddy in Docker Compose, at `app.thelamp.in` |
+| EC2 `t4g.small` with an Elastic IP | Runs PostgreSQL, Redis, the API, worker, scheduler and Caddy in Docker Compose, at `app.thelamp.in` until it moves to `try.thelamp.in` before launch (decision D105) |
 | S3 | Photos and exports, through presigned links |
 | ECR | The demo's images, built on the Mac for ARM |
 | Systems Manager | Session Manager and Run Command reach the instance with no SSH; Parameter Store holds its settings |

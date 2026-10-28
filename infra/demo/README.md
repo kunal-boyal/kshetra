@@ -60,4 +60,13 @@ From the repository root, with Docker running:
 
 It runs the app's own services as each person, on a simulated clock set to each moment, so every rule applies and the events work out attendance, metrics and leaderboards. At the end it releases the fictional phones of the demo numbers, so real phones can sign in with them.
 
+## Moving to try.thelamp.in
+
+Production's portal needs `app.thelamp.in`, so the demo moves before launch, to `try.thelamp.in` (decision D105; the name may still change):
+
+1. Set `domain = "try.thelamp.in"` in `terraform.tfvars`, then `demo.sh apply` and `demo.sh deploy`. Caddy asks for the new name's certificate once its record resolves.
+2. Add the `A` record for `try.thelamp.in` with the demo's address at the registrar, and remove the one for `app.thelamp.in` once nothing uses it.
+3. The provisioner wrote the cell's address once, with the first demo tenant, so sign-in would keep handing out the old one: on the box, set `directory.cells.api_base_url` to `https://try.thelamp.in` for the cell `demo`.
+4. Make a phone preview build with `EXPO_PUBLIC_DIRECTORY_URL=https://try.thelamp.in`; builds pointed at `app.thelamp.in` stop working once production takes the name.
+
 Changing `terraform.tfvars` (new demo numbers) needs `apply`, then `deploy`, which copies the settings to the box. The state lives in `infra/environments/demo` on the machine that applied it, as it holds the generated passwords; don't lose it, and never commit it.

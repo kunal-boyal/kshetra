@@ -1,6 +1,7 @@
 # Copy to terraform.tfvars (git-ignored), fill in, then terraform plan. No secrets go here: they
 # go in the cell's Secrets Manager secret (docs/runbooks/deploy.md).
 api_domain           = "api.production.example.com"
+cell_domain          = "in1.api.production.example.com"
 web_domain           = "app.production.example.com"
 media_domain         = "media.production.example.com"
 route53_zone_id      = null

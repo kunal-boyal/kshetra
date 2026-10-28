@@ -25,6 +25,7 @@ output "dns_records" {
     }
     domains = merge(
       { (var.api_domain) = "CNAME ${module.cell.load_balancer_dns_name}" },
+      { (var.cell_domain) = "CNAME ${module.cell.load_balancer_dns_name}" },
       { (var.web_domain) = "CNAME ${module.web.distribution_domain}" },
       var.media_domain == null ? {} : { (var.media_domain) = "CNAME ${module.cell.media_distribution_domain}" },
       var.console_domain == null ? {} : { (var.console_domain) = "CNAME ${module.console[0].distribution_domain}" },
