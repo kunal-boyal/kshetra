@@ -185,6 +185,16 @@ export class ReportsService {
           ? context.text(column.label)
           : column.label[context.locale],
       kind: column.kind,
+      ...(column.tones
+        ? {
+            tones: Object.fromEntries(
+              Object.entries(column.tones).map(([key, tone]) => [
+                context.text(key as MessageKey),
+                tone,
+              ]),
+            ),
+          }
+        : {}),
     }));
   }
 

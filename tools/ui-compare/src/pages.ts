@@ -151,7 +151,8 @@ export const PAIRS: readonly Pair[] = [
     key: 'imports',
     title: 'Imports',
     prototype: 'WebImports.dc.html',
-    portal: '/imports',
+    // The latest import, as it stands after its check.
+    portal: { list: '/imports' },
     stage: 'U11',
   },
   {

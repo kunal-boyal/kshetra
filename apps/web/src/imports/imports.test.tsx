@@ -28,9 +28,11 @@ function job(overrides: Record<string, unknown> = {}) {
     mapping: { 'Emp code': 'code', 'Full name': 'name', Phone: 'mobile', 'Head office': null },
     fields: FIELDS,
     totalRows: 2,
+    skippedRows: null,
     errorRows: null,
     errors: [],
     preview: [],
+    planned: null,
     created: null,
     updated: null,
     createdBy: ADMIN,
@@ -84,7 +86,8 @@ describe('the imports page', () => {
     const file = new File(['Emp code,Full name\nS-1,Sita'], 'people.csv', { type: 'text/csv' });
     await user.upload(screen.getByLabelText('Choose a file'), file);
     await user.click(screen.getByRole('button', { name: 'Upload and read' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'people.csv' })).toBeVisible();
+    expect(await screen.findByRole('heading', { level: 1, name: 'People' })).toBeVisible();
+    expect(screen.getByText('people.csv · 2 rows')).toBeVisible();
     expect(writesOf(client)).toEqual([
       [
         'POST',
@@ -170,8 +173,15 @@ describe('one import', () => {
         [`/v1/imports/${JOB}`]: job({
           status: 'invalid',
           errorRows: 1,
+          skippedRows: 4,
           errors: [
-            { row: 3, field: 'code', issue: 'This code appears more than once, in rows 2, 3' },
+            {
+              row: 3,
+              field: 'code',
+              issue: 'This code appears more than once, in rows 2, 3',
+              value: 'S-1',
+            },
+            { row: null, field: null, issue: 'The file has no Name column' },
           ],
           preview: PREVIEW,
         }),
@@ -181,9 +191,15 @@ describe('one import', () => {
     );
     renderAt(`/imports/${JOB}`, client);
     const problems = await screen.findByRole('table', { name: 'Problems, by row of the file' });
-    expect(within(problems).getByRole('row', { name: /^3 Employee code/ })).toHaveTextContent(
+    expect(within(problems).getByRole('row', { name: /^3 Employee code S-1/ })).toHaveTextContent(
       'appears more than once',
     );
+    // A problem with the whole file has no row or value.
+    expect(within(problems).getByRole('row', { name: /^Whole file — —/ })).toBeVisible();
+    expect(screen.getByRole('list', { name: 'Steps' })).toBeVisible();
+    expect(screen.getByText('Check').closest('li')).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByText('in 1 rows')).toBeVisible();
+    expect(screen.getByText('Empty rows, left out')).toBeVisible();
     const preview = screen.getByRole('table', { name: 'The first rows, as they will be imported' });
     expect(within(preview).getByRole('row', { name: /^2 S-1 Sita Field/ })).toHaveTextContent(
       'No problems',
@@ -200,6 +216,7 @@ describe('one import', () => {
           errorRows: 0,
           preview: PREVIEW.slice(0, 1),
           totalRows: 1,
+          planned: { create: 1, update: 0 },
         }),
       },
       {
@@ -210,6 +227,7 @@ describe('one import', () => {
     );
     renderAt(`/imports/${JOB}`, client);
     const user = userEvent.setup();
+    expect(await screen.findByText('new 1 · updated 0')).toBeVisible();
     await user.click(await screen.findByRole('button', { name: 'Import 1 row' }));
     const question = screen.getByRole('group', { name: 'Import 1 row now?' });
     expect(writesOf(client)).toEqual([]);

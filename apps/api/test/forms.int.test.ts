@@ -355,9 +355,15 @@ describe('the catalogue (spec 5.11)', () => {
           row: 2,
           field: 'pack_label',
           issue: 'The pack label says 0.5 L a unit, but the measure is 0.4',
+          value: '500 ML',
         },
-        { row: 3, field: 'base_unit', issue: 'There is no unit called Bottle; use Pack or Case' },
-        { row: 3, field: 'tax_rate', issue: 'Fill in the tax rate' },
+        {
+          row: 3,
+          field: 'base_unit',
+          issue: 'There is no unit called Bottle; use Pack or Case',
+          value: 'Bottle',
+        },
+        { row: 3, field: 'tax_rate', issue: 'Fill in the tax rate', value: null },
       ]),
     );
     expect((await t.admin.get('/v1/catalogue')).json().items).toEqual([]);

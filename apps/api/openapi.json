@@ -32185,6 +32185,18 @@
               }
             ]
           },
+          "skippedRows": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "errorRows": {
             "anyOf": [
               {
@@ -32222,6 +32234,12 @@
                 },
                 "issue": {
                   "type": "string"
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
               "required": [
@@ -32265,6 +32283,33 @@
               ],
               "additionalProperties": false
             }
+          },
+          "planned": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "create": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "update": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "create",
+                  "update"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "created": {
             "anyOf": [
@@ -32325,9 +32370,11 @@
           "mapping",
           "fields",
           "totalRows",
+          "skippedRows",
           "errorRows",
           "errors",
           "preview",
+          "planned",
           "created",
           "updated",
           "createdBy",
@@ -38559,8 +38606,26 @@
                     "percent",
                     "date",
                     "datetime",
-                    "boolean"
+                    "boolean",
+                    "status"
                   ]
+                },
+                "tones": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "enum": [
+                      "success",
+                      "pending",
+                      "waiting",
+                      "info",
+                      "danger",
+                      "neutral"
+                    ]
+                  }
                 }
               },
               "required": [

@@ -5,6 +5,7 @@ import type {
   ReportColumnKind,
   ReportFilters,
   ReportKey,
+  ReportTone,
 } from '@thelamp/shared';
 import type { SQL } from 'drizzle-orm';
 import type { Access } from '../../platform/auth';
@@ -15,6 +16,8 @@ export interface ColumnSpec {
   key: string;
   label: MessageKey | { en: string; hi: string };
   kind: ReportColumnKind;
+  /** A status column's tone for each value, by the message that words it. */
+  tones?: Partial<Record<MessageKey, ReportTone>>;
 }
 
 /** What a report reads with: whose records, which month, and words in the reader's language. */

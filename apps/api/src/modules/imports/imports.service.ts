@@ -36,7 +36,13 @@ import {
   suggestMapping,
   UnreadableFileError,
 } from './reading';
-import { type ImportRow, ImportRefused, ImportTargets, type TargetField } from './targets';
+import {
+  type ImportCheck,
+  type ImportRow,
+  ImportRefused,
+  ImportTargets,
+  type TargetField,
+} from './targets';
 
 type Job = typeof importJobs.$inferSelect;
 
@@ -75,6 +81,17 @@ function importRows(
     for (const [index, field] of columns) cells[field] = row[index] ?? null;
     return [{ row: start + offset + 1, cells }];
   });
+}
+
+/**
+ * Empty rows between the header and the last row with anything in it, which `importRows` leaves
+ * out; empty rows after the last are not part of the data.
+ */
+function skippedRows(rows: readonly Cell[][], headerRow: number): number {
+  const data = rows.slice(headerRow);
+  const filled = data.map((row) => !row.every((cell) => isEmptyCell(cell)));
+  const last = filled.lastIndexOf(true);
+  return filled.slice(0, last + 1).filter((value) => !value).length;
 }
 
 /**
@@ -528,6 +545,7 @@ export class ImportsService implements OnModuleInit {
             saved.map((entry) => entry.mapping),
           ),
           totalRows: total,
+          skippedRows: skippedRows(sheet.rows, headerIndex + 1),
           status: 'mapping',
           updatedAt: new Date(),
         })
@@ -542,14 +560,21 @@ export class ImportsService implements OnModuleInit {
     const prepared = await this.prepare(tenantId, job);
     if (!prepared) return;
     const { rows, context, target } = prepared;
-    const problems = await this.database.forTenant(
+    const { problems, planned } = await this.database.forTenant(
       tenantId,
       (tx) => target.check(tx, rows, context),
       { readOnly: true },
     );
     await this.database.forTenant(tenantId, async (tx) => {
       if (await this.unchanged(tx, job)) {
-        await this.settle(tx, job, rows, problems, problems.length === 0 ? 'ready' : 'invalid');
+        await this.settle(
+          tx,
+          job,
+          rows,
+          problems,
+          problems.length === 0 ? 'ready' : 'invalid',
+          planned,
+        );
       }
     });
   }
@@ -644,14 +669,24 @@ export class ImportsService implements OnModuleInit {
     };
   }
 
-  /** Records a check's outcome: the first problems, the rows with any, and the preview. */
+  /**
+   * Records a check's outcome: the first problems, each with the file's value where it names a
+   * row and field, the rows with any, what the rows would add and change, and the preview.
+   */
   private async settle(
     tx: TenantTx,
     job: Job,
     rows: readonly ImportRow[],
     problems: readonly ImportProblem[],
     status: 'ready' | 'invalid',
+    planned: ImportCheck['planned'] = null,
   ): Promise<void> {
+    const byNumber = new Map(rows.map((row) => [row.row, row]));
+    const valueOf = (problem: ImportProblem) => {
+      if (problem.row === null || problem.field === null) return null;
+      const cell = byNumber.get(problem.row)?.cells[problem.field];
+      return cell === undefined || cell === null ? null : cellText(cell) || null;
+    };
     const byRow = new Map<number, string[]>();
     for (const problem of problems) {
       if (problem.row === null) continue;
@@ -668,8 +703,12 @@ export class ImportsService implements OnModuleInit {
       .update(importJobs)
       .set({
         status,
-        errors: problems.slice(0, MAX_PROBLEMS),
+        errors: problems
+          .slice(0, MAX_PROBLEMS)
+          .map((problem) => ({ ...problem, value: valueOf(problem) })),
         errorRows: new Set(problems.map((problem) => problem.row)).size,
+        plannedCreate: planned?.create ?? null,
+        plannedUpdate: planned?.update ?? null,
         preview,
         updatedAt: new Date(),
       })
@@ -760,9 +799,14 @@ export class ImportsService implements OnModuleInit {
         ...(field.label ? { label: field.label } : {}),
       })),
       totalRows: job.totalRows,
+      skippedRows: job.skippedRows,
       errorRows: job.errorRows,
       errors: job.errors,
       preview: job.preview,
+      planned:
+        job.plannedCreate === null || job.plannedUpdate === null
+          ? null
+          : { create: job.plannedCreate, update: job.plannedUpdate },
       created: job.created,
       updated: job.updated,
       createdBy: job.createdBy,

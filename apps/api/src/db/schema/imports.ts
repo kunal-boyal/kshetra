@@ -58,9 +58,14 @@ export const importJobs = cell
       mapping: jsonb('mapping').$type<Record<string, string | null>>().notNull().default({}),
       status: importStatus('status').notNull().default('reading'),
       totalRows: integer('total_rows'),
+      /** Empty rows between the header and the last row with anything in it. */
+      skippedRows: integer('skipped_rows'),
       errorRows: integer('error_rows'),
       errors: jsonb('errors').$type<ImportProblem[]>().notNull().default([]),
       preview: jsonb('preview').$type<PreviewRow[]>().notNull().default([]),
+      /** What a clean check found the rows would add and change, for targets that can tell. */
+      plannedCreate: integer('planned_create'),
+      plannedUpdate: integer('planned_update'),
       created: integer('created'),
       updated: integer('updated'),
       createdBy: uuid('created_by').notNull(),

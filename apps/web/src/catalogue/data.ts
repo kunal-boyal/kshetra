@@ -20,11 +20,12 @@ export function useCatalogue() {
   });
 }
 
-export function usePriceLists() {
+export function usePriceLists(enabled = true) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['price-lists'],
     queryFn: async () => (await read(client, '/v1/price-lists', PriceListListResult)).items,
+    enabled,
   });
 }
 

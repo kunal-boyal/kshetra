@@ -332,9 +332,14 @@ describe('importing targets and account plans (Appendix B.4, B.6)', () => {
     );
     expect(refused.status).toBe('invalid');
     expect(refused.errors).toEqual([
-      { row: 2, field: 'metric.visits', issue: 'Enter a whole number' },
-      { row: 3, field: 'code', issue: 'No one has this employee code' },
-      { row: 4, field: 'code', issue: 'Your own targets are set by your manager' },
+      { row: 2, field: 'metric.visits', issue: 'Enter a whole number', value: '40.5' },
+      { row: 3, field: 'code', issue: 'No one has this employee code', value: 'NOBODY' },
+      {
+        row: 4,
+        field: 'code',
+        issue: 'Your own targets are set by your manager',
+        value: t.admin.code,
+      },
     ]);
 
     const done = await importFile(
@@ -364,7 +369,9 @@ describe('importing targets and account plans (Appendix B.4, B.6)', () => {
         [t.asha.code, MONTH, '50'],
       ]),
     );
-    expect(locked.errors).toEqual([{ row: 2, field: null, issue: 'These targets are locked' }]);
+    expect(locked.errors).toEqual([
+      { row: 2, field: null, issue: 'These targets are locked', value: null },
+    ]);
   });
 
   it('imports account plans for accounts the importer sees', async () => {

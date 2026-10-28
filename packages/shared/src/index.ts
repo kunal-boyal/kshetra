@@ -788,6 +788,7 @@ export {
   REPORT_MODULE,
   REPORT_PERMISSION,
   REPORT_FOR_ONE_PERSON,
+  REPORT_TONES,
   ReportCell,
   ReportColumn,
   ReportColumnKind,
@@ -796,6 +797,7 @@ export {
   ReportKeyParam,
   ReportPage,
   ReportQuery,
+  type ReportTone,
 } from './schemas/reports';
 export {
   DASHBOARD_TILES,

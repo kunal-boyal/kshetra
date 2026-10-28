@@ -41,7 +41,18 @@ export class VisitComplianceReport extends ReportSource {
       { key: 'account_type', label: 'report.col_account_type', kind: 'text' },
       { key: 'purpose', label: 'report.col_purpose', kind: 'text' },
       { key: 'planned_by', label: 'report.col_planned_by', kind: 'text' },
-      { key: 'plan_status', label: 'report.col_plan_status', kind: 'text' },
+      {
+        key: 'plan_status',
+        label: 'report.col_plan_status',
+        kind: 'status',
+        tones: {
+          'plan.status_planned': 'info',
+          'plan.status_visited': 'waiting',
+          'plan.status_completed': 'success',
+          'plan.status_missed': 'danger',
+          'plan.status_cancelled': 'neutral',
+        },
+      },
     ];
   }
 

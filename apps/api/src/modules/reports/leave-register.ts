@@ -39,7 +39,17 @@ export class LeaveRegisterReport extends ReportSource {
       { key: 'end_date', label: 'report.col_end_date', kind: 'date' },
       { key: 'half_day', label: 'report.col_half_day', kind: 'boolean' },
       { key: 'days', label: 'report.col_days', kind: 'decimal' },
-      { key: 'status', label: 'report.col_status', kind: 'text' },
+      {
+        key: 'status',
+        label: 'report.col_status',
+        kind: 'status',
+        tones: {
+          'approval.status_pending': 'pending',
+          'approval.status_approved': 'success',
+          'approval.status_rejected': 'danger',
+          'approval.status_cancelled': 'neutral',
+        },
+      },
       { key: 'requested_at', label: 'report.col_requested_at', kind: 'datetime' },
       { key: 'decided_at', label: 'report.col_decided_at', kind: 'datetime' },
     ];

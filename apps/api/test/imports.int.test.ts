@@ -169,6 +169,43 @@ describe('importing people (Appendix B.1)', () => {
     expect(found[0].name).toBe('Ravi Renamed');
   });
 
+  it('says before writing what is new and what matches, what was empty, and what each problem read', async () => {
+    const t = await tenant('Counting Cottons');
+    const kept = ['CNT-1', 'Kept Person', '', 'manager', '-', '', ''];
+    expect(await importFile(t, 'users', csv([HEADER, kept]))).toMatchObject({ created: 1 });
+    const ready = await importFile(
+      t,
+      'users',
+      csv([
+        HEADER,
+        kept,
+        ['', '', '', '', '', '', ''],
+        ['CNT-2', 'New Person', '', 'executive', 'CNT-1', '', ''],
+        ['CNT-3', 'Another Person', '', 'executive', 'CNT-1', '', ''],
+      ]),
+    );
+    expect(ready).toMatchObject({
+      status: 'committed',
+      skippedRows: 1,
+      planned: { create: 2, update: 1 },
+      created: 2,
+    });
+    const invalid = await importFile(
+      t,
+      'users',
+      csv([HEADER, ['CNT-4', 'Late Joiner', '', 'executive', '', '', 'someday']]),
+    );
+    expect(invalid).toMatchObject({ status: 'invalid', planned: null, skippedRows: 0 });
+    expect(invalid.errors).toEqual([
+      {
+        row: 2,
+        field: 'joining_date',
+        issue: 'Write a date such as 2026-04-01 or 01-04-2026',
+        value: 'someday',
+      },
+    ]);
+  });
+
   it('refuses a number active in another organisation, without naming it (D103)', async () => {
     const elsewhere = await tenant('Elsewhere Exports');
     const taken = newPhone();
@@ -180,7 +217,9 @@ describe('importing people (Appendix B.1)', () => {
       csv([HEADER, ['CC-1', 'Taken Number', taken, 'manager', '-', '', '']]),
     );
     expect(checked.status).toBe('invalid');
-    expect(checked.errors).toEqual([{ row: 2, field: 'mobile', issue: NUMBER_IN_USE }]);
+    expect(checked.errors).toEqual([
+      { row: 2, field: 'mobile', issue: NUMBER_IN_USE, value: expect.any(String) },
+    ]);
   });
 
   it('refuses the whole file, row by row, for a loop, a repeated code or an unclear name', async () => {
@@ -203,20 +242,42 @@ describe('importing people (Appendix B.1)', () => {
     expect(checked.errorRows).toBe(5);
     expect(checked.errors).toEqual(
       expect.arrayContaining([
-        { row: 2, field: 'reports_to', issue: 'This would make a reporting loop' },
-        { row: 3, field: 'reports_to', issue: 'This would make a reporting loop' },
-        { row: 4, field: 'code', issue: 'This code appears more than once, in rows 4, 5' },
+        {
+          row: 2,
+          field: 'reports_to',
+          issue: 'This would make a reporting loop',
+          value: 'LOOP-2',
+        },
+        {
+          row: 3,
+          field: 'reports_to',
+          issue: 'This would make a reporting loop',
+          value: 'LOOP-1',
+        },
+        {
+          row: 4,
+          field: 'code',
+          issue: 'This code appears more than once, in rows 4, 5',
+          value: 'TWICE',
+        },
         {
           row: 6,
           field: 'reports_to',
           issue: 'A Verma could be Asha Verma (OLD-1) or Anil Verma (OLD-2); write the code',
+          value: 'A Verma',
         },
         {
           row: 6,
           field: 'territory_codes',
           issue: 'There is no active territory with the code NOWHERE',
+          value: 'NOWHERE',
         },
-        { row: 6, field: 'joining_date', issue: 'Write a date such as 2026-04-01 or 01-04-2026' },
+        {
+          row: 6,
+          field: 'joining_date',
+          issue: 'Write a date such as 2026-04-01 or 01-04-2026',
+          value: 'yesterday',
+        },
       ]),
     );
     expect(checked.preview[0]).toMatchObject({
@@ -355,8 +416,13 @@ describe('importing territories', () => {
       'wrong.csv',
     );
     expect(wrong.errors).toEqual([
-      { row: 2, field: 'parent_code', issue: 'There is no territory with the code NOPE' },
-      { row: 3, field: 'level', issue: 'Under this parent, a territory is level 2' },
+      {
+        row: 2,
+        field: 'parent_code',
+        issue: 'There is no territory with the code NOPE',
+        value: 'NOPE',
+      },
+      { row: 3, field: 'level', issue: 'Under this parent, a territory is level 2', value: '1' },
     ]);
   });
 });

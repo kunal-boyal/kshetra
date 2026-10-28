@@ -52,6 +52,8 @@ export const ImportProblem = z.object({
   row: z.int().nullable(),
   field: z.string().nullable(),
   issue: z.string(),
+  /** What the file has in that row and field, as text; none for the file as a whole. */
+  value: z.string().nullable().optional(),
 });
 
 export const ImportPreviewRow = z.object({
@@ -75,11 +77,18 @@ export const ImportResult = z
     mapping: z.record(z.string(), z.string().nullable()),
     fields: z.array(ImportFieldInfo),
     totalRows: z.int().nullable(),
+    /** Empty rows between the header and the file's last row, left out. */
+    skippedRows: z.int().nullable(),
     errorRows: z.int().nullable(),
     /** The first thousand problems. */
     errors: z.array(ImportProblem),
     /** The first 200 rows, as the import reads them. */
     preview: z.array(ImportPreviewRow),
+    /**
+     * Once a check finds no problem, how many rows would add a record and how many match one
+     * already; null for targets that can't tell before writing.
+     */
+    planned: z.object({ create: z.int(), update: z.int() }).nullable(),
     created: z.int().nullable(),
     updated: z.int().nullable(),
     createdBy: z.uuid(),

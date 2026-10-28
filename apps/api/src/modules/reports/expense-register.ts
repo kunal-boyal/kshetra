@@ -41,7 +41,18 @@ export class ExpenseRegisterReport extends ReportSource {
       { key: 'calculated', label: 'report.col_calculated', kind: 'decimal' },
       { key: 'amount', label: 'report.col_amount', kind: 'decimal' },
       { key: 'receipts', label: 'report.col_receipts', kind: 'number' },
-      { key: 'status', label: 'report.col_status', kind: 'text' },
+      {
+        key: 'status',
+        label: 'report.col_status',
+        kind: 'status',
+        tones: {
+          'approval.status_pending': 'pending',
+          'approval.status_approved': 'success',
+          'approval.status_rejected': 'danger',
+          'approval.status_cancelled': 'neutral',
+          'report.state_paid': 'success',
+        },
+      },
       { key: 'paid_at', label: 'report.col_paid_at', kind: 'datetime' },
       { key: 'reference', label: 'report.col_reference', kind: 'text' },
     ];

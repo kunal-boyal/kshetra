@@ -77,10 +77,14 @@ describe('the phone preview', () => {
   it('shows the form as a phone would, following its conditions, in either language', async () => {
     const client = fakeClient(PAGES, {}, MANAGE, BUNDLE);
     renderAt(`/settings/forms/${VISIT}`, client);
+    const user = userEvent.setup();
+    const toggle = await screen.findByRole('button', { name: 'Preview on a phone' });
+    expect(screen.queryByRole('region', { name: 'On the phone' })).toBeNull();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
     const phone = await screen.findByRole('region', { name: 'On the phone' });
     expect(within(phone).getByText('Shop visit')).toBeVisible();
     expect(within(phone).queryByRole('textbox', { name: 'What is short' })).toBeNull();
-    const user = userEvent.setup();
     await user.selectOptions(
       within(phone).getByRole('combobox', { name: 'Stock is fine *' }),
       'no',
@@ -153,30 +157,38 @@ describe('forms', () => {
       'Shop checks',
     );
 
-    // The first field is there to start with; it becomes a yes-or-no question's sibling.
+    // The first field is there to start with, chosen, its settings beside the list.
+    const list = screen.getByRole('list', { name: 'Fields' });
+    expect(within(list).getByRole('button', { name: /^field_1/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     const first = screen.getByRole('region', { name: 'Field field_1' });
-    await user.click(within(first).getByRole('button', { name: 'Edit' }));
     await user.type(within(first).getByRole('textbox', { name: 'Label in English' }), 'Owner');
-    // The card stays open while its key is typed.
+    // The settings stay while the key is typed.
     const key = within(first).getByRole('textbox', { name: 'Key' });
     await user.clear(key);
     await user.type(key, 'owner');
-    expect(within(first).getByRole('textbox', { name: 'Key' })).toHaveValue('owner');
+    expect(
+      within(screen.getByRole('region', { name: 'Field Owner' })).getByRole('textbox', {
+        name: 'Key',
+      }),
+    ).toHaveValue('owner');
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'New field type' }), 'yes_no');
-    await user.click(screen.getByRole('button', { name: 'Add field' }));
+    // A type from the palette adds a field and chooses it.
+    await user.click(screen.getByRole('button', { name: 'Add a field: Yes or no' }));
     const second = screen.getByRole('region', { name: 'Field field_2' });
+    expect(within(list).getByRole('button', { name: /^field_2/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await user.type(
       within(second).getByRole('textbox', { name: 'Label in English' }),
       'Open today',
     );
     await user.click(within(second).getByRole('checkbox', { name: 'Must be filled' }));
 
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'New field type' }),
-      'single_select',
-    );
-    await user.click(screen.getByRole('button', { name: 'Add field' }));
+    await user.click(screen.getByRole('button', { name: 'Add a field: One choice' }));
     const third = screen.getByRole('region', { name: 'Field field_3' });
     await user.type(within(third).getByRole('textbox', { name: 'Label in English' }), 'Why closed');
     await user.type(
@@ -186,6 +198,9 @@ describe('forms', () => {
     await user.click(within(third).getByRole('button', { name: 'Show only when…' }));
     await user.selectOptions(within(third).getByRole('combobox', { name: 'Field' }), 'field_2');
     await user.selectOptions(within(third).getByRole('combobox', { name: 'Value' }), 'no');
+    // The condition reads as a sentence.
+    expect(within(third).getByText('Open today equal to No')).toBeVisible();
+    expect(within(list).getByRole('button', { name: /^Open today/ })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Publish' }));
     await waitFor(() => expect(writesOf(client)).toHaveLength(1));
@@ -228,11 +243,7 @@ describe('forms', () => {
     const user = userEvent.setup({ delay: null });
     expect(await screen.findByRole('heading', { level: 1, name: 'Shop visit' })).toBeVisible();
 
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'New field type' }),
-      'product_lines',
-    );
-    await user.click(screen.getByRole('button', { name: 'Add field' }));
+    await user.click(screen.getByRole('button', { name: 'Add a field: Item lines' }));
     const lines = screen.getByRole('region', { name: 'Field field_3' });
     await user.type(
       within(lines).getByRole('textbox', { name: 'Label in English' }),
@@ -250,13 +261,14 @@ describe('forms', () => {
     await user.selectOptions(within(when).getByRole('combobox', { name: 'Value' }), 'yes');
 
     // The preview tries it both ways.
+    await user.click(screen.getByRole('button', { name: 'Preview on a phone' }));
     const phone = screen.getByRole('region', { name: 'On the phone' });
     expect(within(phone).getByText('Signature')).toBeVisible();
     expect(within(phone).getByText('Items from the catalogue, without quantities')).toBeVisible();
     await user.click(within(phone).getByRole('checkbox', { name: 'Orders taken in the visit' }));
     expect(within(phone).getByText('Signature *')).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Publish the next version' }));
+    await user.click(screen.getByRole('button', { name: 'Publish version 3' }));
     expect(await screen.findByText('Version 3 is published.')).toBeVisible();
     const [, , , options] = writesOf(client)[0]!;
     expect((options as { body: { definition: object } }).body.definition).toMatchObject({
@@ -303,16 +315,16 @@ describe('forms', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Shop visit' })).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'Key*' })).toHaveAttribute('readonly');
 
+    await user.click(screen.getByRole('button', { name: /^Stock is fine/ }));
     const stock = screen.getByRole('region', { name: 'Field Stock is fine' });
-    await user.click(within(stock).getByRole('button', { name: 'Edit' }));
     expect(within(stock).getByRole('textbox', { name: 'Key' })).toHaveAttribute('readonly');
 
-    await user.click(screen.getByRole('button', { name: 'Publish the next version' }));
+    await user.click(screen.getByRole('button', { name: 'Publish version 3' }));
     const shortfall = await screen.findByRole('region', { name: 'Field What is short' });
     expect(within(shortfall).getByRole('alert')).toHaveTextContent('There is no field `stock_ok`');
     expect(within(shortfall).getByRole('group', { name: 'Show only when' })).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Publish the next version' }));
+    await user.click(screen.getByRole('button', { name: 'Publish version 3' }));
     expect(await screen.findByText('Version 3 is published.')).toBeVisible();
     const [, path] = writesOf(client)[1]!;
     expect(path).toBe(`/v1/forms/${VISIT}/versions`);

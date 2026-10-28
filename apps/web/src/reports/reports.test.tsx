@@ -16,7 +16,12 @@ const PAGE = {
   columns: [
     { key: 'date', label: 'Date', kind: 'date' },
     { key: 'user_name', label: 'Name', kind: 'text' },
-    { key: 'day_status', label: 'Status', kind: 'text' },
+    {
+      key: 'day_status',
+      label: 'Status',
+      kind: 'status',
+      tones: { Present: 'success', Absent: 'danger' },
+    },
     { key: 'hours', label: 'Hours', kind: 'number' },
   ],
   rows: [{ date: '2026-10-21', user_name: 'Asha Rao', day_status: 'Present', hours: 8.5 }],
@@ -62,18 +67,18 @@ describe('reports (M18)', () => {
     renderAt('/reports', client);
     const user = userEvent.setup();
     expect(await screen.findByText('Nothing to show')).toBeVisible();
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Report' }),
-      'Attendance register',
-    );
+    const reports = screen.getByRole('list', { name: 'Report' });
+    await user.click(within(reports).getByRole('button', { name: /^Attendance register/ }));
     const table = await screen.findByRole('table', { name: /Attendance register/ });
     expect(within(table).getByRole('columnheader', { name: 'Hours' })).toBeVisible();
     expect(within(table).getByRole('row', { name: /Asha Rao/ })).toHaveTextContent('8.5');
+    // A status column's values are badges in their tone.
+    expect(within(table).getByText('Present')).toHaveClass('ks-badge', 'success');
     expect(screen.getByRole('button', { name: 'Load more' })).toBeVisible();
     // Reports whose records the reader may not see elsewhere aren't offered (D86).
-    const offered = within(screen.getByRole('combobox', { name: 'Report' }))
-      .getAllByRole('option')
-      .map((option) => option.textContent);
+    const offered = within(reports)
+      .getAllByRole('button')
+      .map((item) => item.querySelector('.ks-title')?.textContent);
     expect(offered).toEqual(expect.arrayContaining(['Visit compliance', 'Location summary']));
     expect(offered).not.toContain('Audit log');
     expect(offered).not.toContain('GPS audit trail');
@@ -81,10 +86,13 @@ describe('reports (M18)', () => {
     // Field users can't export; this reader can't either.
     expect(screen.queryByRole('button', { name: 'Download as Excel' })).toBeNull();
 
+    await user.click(screen.getByText('Filters'));
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Person' }),
       'Asha Rao (SUN-004)',
     );
+    // The filter shows as a chip that clears it.
+    expect(screen.getByRole('button', { name: 'Clear Person: Asha Rao (SUN-004)' })).toBeVisible();
     await waitFor(() =>
       expect(client.request).toHaveBeenCalledWith(
         'GET',
@@ -108,7 +116,7 @@ describe('reports (M18)', () => {
     renderAt('/reports', client);
     const user = userEvent.setup();
     expect(await screen.findByText('Nothing to show')).toBeVisible();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Report' }), 'GPS audit trail');
+    await user.click(screen.getByRole('button', { name: /^GPS audit trail/ }));
     expect(await screen.findByText('Choose a person')).toBeVisible();
     expect(screen.getByText(/Points are kept for 35 days/)).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Download as Excel' })).toBeNull();
@@ -118,6 +126,7 @@ describe('reports (M18)', () => {
       );
     expect(asked()).toEqual([]);
 
+    await user.click(screen.getByText('Filters'));
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Person' }),
       'Asha Rao (SUN-004)',
@@ -134,10 +143,8 @@ describe('reports (M18)', () => {
     renderAt('/reports', client);
     const user = userEvent.setup();
     expect(await screen.findByText('Nothing to show')).toBeVisible();
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Report' }),
-      'Attendance register',
-    );
+    await user.click(screen.getByRole('button', { name: /^Attendance register/ }));
+    await user.click(screen.getByText('Filters'));
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Person' }),
       'Asha Rao (SUN-004)',

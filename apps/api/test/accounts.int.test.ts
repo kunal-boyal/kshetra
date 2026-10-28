@@ -557,8 +557,13 @@ describe('importing accounts (Appendix B.2)', () => {
     );
     expect(checked.errors).toEqual(
       expect.arrayContaining([
-        { row: 4, field: 'territory_code', issue: 'There is no territory with the code NOWHERE' },
-        { row: 4, field: 'slot.asm', issue: 'Fill in this slot' },
+        {
+          row: 4,
+          field: 'territory_code',
+          issue: 'There is no territory with the code NOWHERE',
+          value: 'NOWHERE',
+        },
+        { row: 4, field: 'slot.asm', issue: 'Fill in this slot', value: null },
       ]),
     );
     expect((await t.api.admin.get('/v1/accounts')).json().items).toEqual([]);

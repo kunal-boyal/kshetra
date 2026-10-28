@@ -6,28 +6,31 @@ import {
 } from '@thelamp/shared';
 import {
   Button,
+  cn,
   type Column,
   Confirm,
   DataTable,
   Icon,
   Notice,
   SelectField,
+  StatTile,
   TextField,
 } from '@thelamp/ui-web';
+import { formatNumber } from '@thelamp/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { CircleCheck, Columns3, Info, LoaderCircle, Upload } from 'lucide-react';
+import { Check, CircleCheck, Columns3, Info, LoaderCircle, Upload } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { write } from '../people/data';
-import { Facts, fieldErrors, PageHeader, Section } from '../people/shared';
+import { fieldErrors, PageHeader, Section } from '../people/shared';
 import { isBusy, useImport, useImportChanged, useImportTargets } from './data';
 import { fieldName, ImportStatusBadge } from './shared';
 
 /** One import, from its columns to its outcome (M19). */
 export function ImportPage({ importId }: { importId: string }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const job = useImport(importId);
   const targets = useImportTargets();
   const queryClient = useQueryClient();
@@ -55,12 +58,18 @@ export function ImportPage({ importId }: { importId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={view.fileName}
+        title={targets.name(view.target)}
         back={{ to: '/imports', label: t('nav.imports') }}
-        intro={targets.name(view.target)}
+        meta={[
+          view.fileName,
+          ...(view.totalRows === null
+            ? []
+            : [t('import.rows_count', { count: formatNumber(view.totalRows, { locale }) })]),
+        ].join(' · ')}
       >
         <ImportStatusBadge status={view.status} />
       </PageHeader>
+      <ImportSteps status={view.status} editing={editing} />
 
       {isBusy(view.status) ? (
         <div role="status">
@@ -92,6 +101,58 @@ export function ImportPage({ importId }: { importId: string }) {
         </section>
       ) : null}
     </div>
+  );
+}
+
+const STEPS = ['what', 'upload', 'columns', 'check', 'import'] as const;
+
+/** Where an import has got to, as five steps: done, now, or still to come. */
+function ImportSteps({ status, editing }: { status: ImportView['status']; editing: boolean }) {
+  const { t } = useLanguage();
+  const now =
+    status === 'reading'
+      ? 1
+      : status === 'mapping' || (editing && (status === 'ready' || status === 'invalid'))
+        ? 2
+        : status === 'validating' || status === 'ready' || status === 'invalid'
+          ? 3
+          : status === 'committing'
+            ? 4
+            : status === 'committed'
+              ? 5
+              : null;
+  return (
+    <ol className="flex flex-wrap gap-2" aria-label={t('import.steps')}>
+      {STEPS.map((step, index) => {
+        const state = now === null ? 'todo' : index < now ? 'done' : index === now ? 'now' : 'todo';
+        return (
+          <li
+            key={step}
+            className={cn(
+              'flex flex-[1_1_9rem] items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2.5',
+              state === 'now'
+                ? 'border-[var(--accent)] bg-[var(--accent-subtle)]'
+                : 'border-[var(--border)] bg-[var(--surface)]',
+            )}
+            {...(state === 'now' ? { 'aria-current': 'step' as const } : {})}
+          >
+            <span
+              className={cn(
+                'ks-seq',
+                state === 'done' && 'bg-[var(--success-solid)]! text-[var(--on-accent)]!',
+                state === 'now' && 'bg-[var(--accent)]! text-[var(--on-accent)]!',
+              )}
+            >
+              {state === 'done' ? <Icon icon={Check} size="sm" /> : index + 1}
+            </span>
+            <span className="font-semibold">
+              {t(`import.step_${step}`)}
+              <span className="sr-only"> {t(`import.step_state_${state}`)}</span>
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -274,6 +335,11 @@ function Checked({ view, onChangeColumns }: { view: ImportView; onChangeColumns:
       header: t('import.col_column'),
       render: (problem) => (problem.field ? name(problem.field) : '—'),
     },
+    {
+      key: 'value',
+      header: t('import.col_value'),
+      render: (problem) => (problem.value ? <code>{problem.value}</code> : '—'),
+    },
     { key: 'issue', header: t('import.col_problem'), render: (problem) => problem.issue },
   ];
 
@@ -296,55 +362,41 @@ function Checked({ view, onChangeColumns }: { view: ImportView; onChangeColumns:
     },
   ];
 
+  const count = (value: number) => formatNumber(value, { locale });
+  const ready = Math.max(0, total - (view.errorRows ?? 0));
   return (
     <>
-      <Section title={t('import.summary')}>
-        <Facts
-          items={[
-            [t('import.rows'), String(total)],
-            [t('import.rows_with_problems'), String(view.errorRows ?? 0)],
-          ]}
-        />
+      <section className="flex flex-col gap-4" aria-label={t('import.summary')}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12.5rem),1fr))] gap-4">
+          <StatTile
+            label={t('import.tile_ready')}
+            value={count(ready)}
+            tone="success"
+            sub={
+              view.planned
+                ? t('import.tile_ready_planned', {
+                    create: count(view.planned.create),
+                    update: count(view.planned.update),
+                  })
+                : t('import.tile_ready_of', { total: count(total) })
+            }
+          />
+          <StatTile
+            label={t('import.tile_problems')}
+            value={count(view.errors.length)}
+            {...(view.errors.length > 0 ? { tone: 'danger' as const } : {})}
+            sub={t('import.tile_problems_rows', { count: count(view.errorRows ?? 0) })}
+          />
+          <StatTile
+            label={t('import.tile_skipped')}
+            value={count(view.skippedRows ?? 0)}
+            sub={t('import.tile_skipped_sub')}
+          />
+        </div>
         {view.status === 'invalid' ? (
           <Notice icon={<Icon icon={Info} />}>{t('import.invalid_notice')}</Notice>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          {view.status === 'ready' && total > 0 ? (
-            <Button
-              variant="primary"
-              icon={<Icon icon={CircleCheck} />}
-              onClick={() => setAsking(true)}
-            >
-              {t('import.commit', { count: total })}
-            </Button>
-          ) : null}
-          <Button variant="secondary" icon={<Icon icon={Columns3} />} onClick={onChangeColumns}>
-            {t('import.change_columns')}
-          </Button>
-        </div>
-        {asking ? (
-          <Confirm
-            question={t('import.commit_confirm', { count: total })}
-            action={
-              <Button variant="primary" busy={busy} onClick={() => void commit()}>
-                {t('import.commit', { count: total })}
-              </Button>
-            }
-            cancel={
-              <Button variant="secondary" onClick={() => setAsking(false)}>
-                {t('common.cancel')}
-              </Button>
-            }
-          >
-            <p>{t('import.commit_detail')}</p>
-          </Confirm>
-        ) : null}
-        {error !== undefined ? (
-          <p className="ks-help error" role="alert">
-            {errorMessage(error, t)}
-          </p>
-        ) : null}
-      </Section>
+      </section>
 
       {view.errors.length > 0 ? (
         <section className="flex flex-col gap-3" aria-label={t('import.problems')}>
@@ -374,6 +426,49 @@ function Checked({ view, onChangeColumns }: { view: ImportView; onChangeColumns:
           empty={<p className="ks-muted">{t('import.no_rows')}</p>}
         />
       </section>
+
+      <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" icon={<Icon icon={Columns3} />} onClick={onChangeColumns}>
+            {t('import.change_columns')}
+          </Button>
+          <Link to="/imports" className="ks-btn secondary">
+            <Icon icon={Upload} size="sm" />
+            {t('import.upload_fixed')}
+          </Link>
+          {view.status === 'ready' && total > 0 ? (
+            <Button
+              variant="primary"
+              icon={<Icon icon={CircleCheck} />}
+              onClick={() => setAsking(true)}
+            >
+              {t('import.commit', { count: total })}
+            </Button>
+          ) : null}
+        </div>
+        {asking ? (
+          <Confirm
+            question={t('import.commit_confirm', { count: total })}
+            action={
+              <Button variant="primary" busy={busy} onClick={() => void commit()}>
+                {t('import.commit', { count: total })}
+              </Button>
+            }
+            cancel={
+              <Button variant="secondary" onClick={() => setAsking(false)}>
+                {t('common.cancel')}
+              </Button>
+            }
+          >
+            <p>{t('import.commit_detail')}</p>
+          </Confirm>
+        ) : null}
+        {error !== undefined ? (
+          <p className="ks-help error" role="alert">
+            {errorMessage(error, t)}
+          </p>
+        ) : null}
+      </div>
     </>
   );
 }

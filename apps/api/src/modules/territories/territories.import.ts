@@ -10,6 +10,7 @@ import {
   type ImportTargetSource,
   ImportTargets,
   type TargetField,
+  checked,
 } from '../imports/targets';
 import { TerritoriesService } from './territories.service';
 
@@ -185,7 +186,11 @@ export class TerritoriesImport implements ImportTargetSource, OnModuleInit {
   }
 
   async check(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
-    return (await this.plan(tx, rows, context)).problems;
+    const { problems, planned } = await this.plan(tx, rows, context);
+    return checked(
+      problems,
+      planned.map((entry) => ({ existing: entry.id !== null })),
+    );
   }
 
   async commit(tx: TenantTx, rows: readonly ImportRow[], context: ImportContext) {
