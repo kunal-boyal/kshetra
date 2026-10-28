@@ -11669,11 +11669,61 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "summary": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "claimed": {
+                              "$ref": "#/components/schemas/Money"
+                            },
+                            "claims": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "waiting": {
+                              "$ref": "#/components/schemas/Money"
+                            },
+                            "waitingClaims": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "overPolicy": {
+                              "$ref": "#/components/schemas/Money"
+                            },
+                            "approved": {
+                              "$ref": "#/components/schemas/Money"
+                            },
+                            "approvedClaims": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "claimed",
+                            "claims",
+                            "waiting",
+                            "waitingClaims",
+                            "overPolicy",
+                            "approved",
+                            "approvedClaims"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "items",
-                    "nextCursor"
+                    "nextCursor",
+                    "summary"
                   ],
                   "additionalProperties": false
                 }
