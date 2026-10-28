@@ -185,6 +185,8 @@ export const refreshTokens = directory.table(
   },
   (table) => [
     index('refresh_tokens_family_idx').on(table.familyId),
+    // Who used the apps when: the console's activity and usage's active people.
+    index('refresh_tokens_membership_created_idx').on(table.membershipId, table.createdAt),
     check(
       'refresh_tokens_one_holder',
       sql`(${table.membershipId} is null) <> (${table.supportGrantId} is null)`,

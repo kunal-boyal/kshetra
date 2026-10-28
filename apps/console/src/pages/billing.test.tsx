@@ -2,7 +2,10 @@ import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ADMIN, fakeClient, INVOICE, renderConsole } from '../test-support';
+import { formatDate } from '@thelamp/i18n';
+import { addDays } from '@thelamp/shared';
+import { ADMIN, fakeClient, INVOICE, PLAN, renderConsole } from '../test-support';
+import { billingToday } from './shared';
 
 const SUPPORT = {
   ...ADMIN,
@@ -29,6 +32,46 @@ const SETTINGS = {
 };
 
 describe('invoices in the console (D90)', () => {
+  it('shows the plans as cards, and what happens next to each unpaid invoice', async () => {
+    const today = billingToday();
+    const due = (days: number, n: string) => ({
+      ...INVOICE,
+      id: INVOICE.id.replace('e1', n),
+      number: `TL/26-27/000${n}`,
+      dueOn: addDays(today, days),
+    });
+    const client = fakeClient(ADMIN, (_method, path) =>
+      path === '/platform/v1/billing/settings'
+        ? SETTINGS
+        : path === '/platform/v1/plans'
+          ? { items: [{ ...PLAN, tenants: 3 }] }
+          : {
+              items: [
+                due(5, '51'),
+                due(-2, '52'),
+                due(-10, '53'),
+                due(-30, '54'),
+                { ...due(-40, '55'), status: 'paid' },
+              ],
+              nextCursor: null,
+            },
+    );
+    renderConsole('/billing', client);
+    const card = await screen.findByRole('link', { name: /Growth/ });
+    expect(card).toHaveTextContent('3 tenants');
+    const table = await screen.findByRole('table', { name: 'Invoices' });
+    const day = (offset: number) => formatDate(addDays(today, offset), { locale: 'en' });
+    const row = (n: string) => within(table).getByRole('row', { name: new RegExp(`000${n}`) });
+    await waitFor(() => expect(row('52')).toHaveTextContent(`Read only from ${day(-2 + 1 + 7)}`));
+    expect(row('51')).toHaveTextContent(`Due ${day(5)}`);
+    expect(row('53')).toHaveTextContent(`Read only; suspended from ${day(-10 + 1 + 7 + 14)}`);
+    expect(row('54')).toHaveTextContent(`Suspended since ${day(-30 + 1 + 7 + 14)}`);
+    expect(row('51')).toHaveTextContent('Growth');
+    expect(
+      screen.getByText(/in grace for 7 days, then the tenant is read only for 14/),
+    ).toBeVisible();
+  });
+
   it('lists every tenant’s invoices with their state, and filters them', async () => {
     const overdue = {
       ...INVOICE,

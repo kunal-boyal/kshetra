@@ -125,6 +125,10 @@ export const ConsoleTenant = z
     demo: z.boolean(),
     /** People who may sign in now. */
     activeUsers: z.int().min(0),
+    /** The people its plan and entitlements allow; null for no limit. */
+    seatLimit: z.int().min(0).nullable(),
+    /** When anyone of it last used the apps: a session refreshed; null if nobody has. */
+    lastActivityAt: z.iso.datetime().nullable(),
     /**
      * Termination (decision D95): when it happened, when the data goes, and when it went; null
      * for a tenant that isn't terminated.
@@ -143,6 +147,38 @@ export const ConsoleTenantQuery = z.strictObject({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   cursor: z.string().max(200).optional(),
 });
+
+/**
+ * `GET /platform/v1/tenants/summary`: every tenant at once, as the tenants page's figures. Paying
+ * tenants have an active subscription and aren't demo; trial ones are within a trial without one.
+ * Active today counts people whose session was refreshed today on the vendor's clock.
+ */
+export const ConsoleTenantSummary = z
+  .object({
+    tenants: z.int().min(0),
+    paying: z.int().min(0),
+    trial: z.int().min(0),
+    demo: z.int().min(0),
+    suspended: z.int().min(0),
+    seatsInUse: z.int().min(0),
+    /** The seat limits of tenants that have one. */
+    seatsBought: z.int().min(0),
+    activeToday: z.int().min(0),
+  })
+  .meta({ id: 'ConsoleTenantSummary' });
+
+/**
+ * `GET /platform/v1/tenants/{id}/activity`: the people active on each of the last 30 days on the
+ * vendor's clock, oldest first, and what its files take this month.
+ */
+export const ConsoleTenantActivity = z
+  .object({
+    days: z.array(z.object({ date: z.iso.date(), active: z.int().min(0) })),
+    activeToday: z.int().min(0),
+    /** As metered this month, in bytes; null before the first metering. */
+    storageBytes: z.string().nullable(),
+  })
+  .meta({ id: 'ConsoleTenantActivity' });
 
 export const ConsoleTenantList = z.object({
   items: z.array(ConsoleTenant),
@@ -187,6 +223,8 @@ export const TemplateSummary = z.object({
   version: z.int(),
   name: z.object({ en: z.string(), hi: z.string() }),
   description: z.object({ en: z.string(), hi: z.string() }),
+  /** Its words for a field user, a journey plan and a plan item: "SME · Beat plan · Beat". */
+  terms: z.object({ en: z.string(), hi: z.string() }),
 });
 
 export const TemplateListResult = z.object({ items: z.array(TemplateSummary) });
@@ -205,6 +243,8 @@ export const CellListResult = z.object({ items: z.array(CellSummary) });
 export type StaffResult = z.infer<typeof StaffResult>;
 export type StaffSession = z.infer<typeof StaffSession>;
 export type ConsoleTenant = z.infer<typeof ConsoleTenant>;
+export type ConsoleTenantSummary = z.infer<typeof ConsoleTenantSummary>;
+export type ConsoleTenantActivity = z.infer<typeof ConsoleTenantActivity>;
 export type CreateTenantBody = z.output<typeof CreateTenantBody>;
 export type ConsoleTenantQuery = z.output<typeof ConsoleTenantQuery>;
 export type InviteStaffBody = z.output<typeof InviteStaffBody>;

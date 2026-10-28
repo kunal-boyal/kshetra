@@ -8,6 +8,7 @@ import {
   fakeClient,
   OPEN,
   PLAN,
+  QUIET_ACTIVITY,
   renderConsole,
   TENANT,
 } from '../test-support';
@@ -48,6 +49,38 @@ describe('tenants in the console (M22)', () => {
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
   });
 
+  it('sums every tenant up in tiles, and gives each its seats and last activity', async () => {
+    const limited = {
+      ...TENANT,
+      id: '01a10000-0000-7000-8000-0000000000b3',
+      slug: 'quiet-co',
+      name: 'Quiet Co',
+      seatLimit: 25,
+      lastActivityAt: null,
+    };
+    const client = fakeClient(ADMIN, (_method, path) =>
+      path === '/platform/v1/tenants/summary'
+        ? {
+            tenants: 9,
+            paying: 5,
+            trial: 2,
+            demo: 1,
+            suspended: 1,
+            seatsInUse: 120,
+            seatsBought: 200,
+            activeToday: 90,
+          }
+        : { items: [TENANT, limited], nextCursor: null },
+    );
+    renderConsole('/', client);
+    expect(await screen.findByText('2 in trial · 1 demo')).toBeVisible();
+    expect(screen.getByText('of 200 bought')).toBeVisible();
+    expect(screen.getByText('75% of seats in use')).toBeVisible();
+    const table = screen.getByRole('table', { name: 'Tenants' });
+    expect(within(table).getByRole('row', { name: /Quiet Co/ })).toHaveTextContent('12 / 25');
+    expect(within(table).getByRole('row', { name: /Quiet Co/ })).toHaveTextContent('Never');
+  });
+
   it('filters by status and search, and offers creating only to those who may', async () => {
     const client = fakeClient(SUPPORT, () => ({ items: [], nextCursor: null }));
     renderConsole('/', client);
@@ -78,12 +111,14 @@ describe('tenants in the console (M22)', () => {
               version: 4,
               name: { en: 'Agri inputs', hi: 'कृषि' },
               description: { en: 'For seed companies', hi: '' },
+              terms: { en: 'SME · Beat plan · Beat', hi: '' },
             },
             {
               key: 'generic',
               version: 2,
               name: { en: 'Generic', hi: 'सामान्य' },
               description: { en: 'Anyone', hi: '' },
+              terms: { en: 'Field user · Journey plan · Planned visit', hi: '' },
             },
           ],
         };
@@ -108,19 +143,34 @@ describe('tenants in the console (M22)', () => {
     });
     const { router } = renderConsole('/tenants/new', client);
     const user = userEvent.setup();
+    const next = () => user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByText(/^Step 1 of 5/)).toBeVisible();
     await user.type(await screen.findByLabelText(/^Organisation name/), 'Sunrise Agro & Co.');
     expect(screen.getByLabelText(/^Slug/)).toHaveValue('sunrise-agro-co');
-    expect(await screen.findByText('For seed companies')).toBeInTheDocument();
+    await next();
+    // Each template says what it calls people, plans and their items.
+    const agri = await screen.findByRole('button', { name: /Agri inputs/ });
+    expect(agri).toHaveAttribute('aria-pressed', 'true');
+    expect(within(agri).getByText('SME · Beat plan · Beat')).toBeVisible();
+    expect(within(agri).getByText('For seed companies')).toBeVisible();
+    const soFar = screen.getByRole('complementary', { name: 'So far' });
+    expect(soFar).toHaveTextContent('Agri inputs, version 4');
+    await next();
+    await user.type(screen.getByLabelText(/^Name/), 'Kiran Patil');
+    await user.type(screen.getByLabelText(/^Mobile number/), '98765 43210');
+    await next();
     // Only plans on sale are offered.
     const plan = screen.getByLabelText('Plan');
     await waitFor(() => expect(within(plan).getAllByRole('option')).toHaveLength(2));
     await user.selectOptions(plan, 'Growth');
-    await user.type(screen.getByLabelText(/^Name/), 'Kiran Patil');
-    await user.type(screen.getByLabelText(/^Mobile number/), '98765 43210');
+    await next();
     await user.click(screen.getByRole('button', { name: 'Create the tenant' }));
+    // Refused for the slug: back on the first step, with the reason beside it.
     expect(await screen.findByText('Already used by another tenant')).toBeInTheDocument();
+    expect(screen.getByText(/^Step 1 of 5/)).toBeVisible();
     await user.clear(screen.getByLabelText(/^Slug/));
     await user.type(screen.getByLabelText(/^Slug/), 'sunrise-agro');
+    for (let step = 0; step < 4; step += 1) await next();
     await user.click(screen.getByRole('button', { name: 'Create the tenant' }));
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/tenants\/01/));
     expect(sent[1]).toMatchObject({
@@ -163,5 +213,40 @@ describe('tenants in the console (M22)', () => {
     expect(screen.getByText('Suspended')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reactivate' }));
     expect(await screen.findByRole('button', { name: 'Suspend' })).toBeInTheDocument();
+  });
+
+  it('heads a tenant with its slug, template and since when, its figures and a month of activity', async () => {
+    const days = QUIET_ACTIVITY.days.map((day, index) => ({ ...day, active: index % 7 }));
+    const client = fakeClient(ADMIN, (_method, path) => {
+      if (billingAnswer(path)) return billingAnswer(path);
+      if (path.endsWith('/entitlements')) return OPEN;
+      if (path.includes('/usage')) return { items: [] };
+      if (path.endsWith('/activity')) {
+        return { days, activeToday: 4, storageBytes: String(2.5 * 1024 ** 3) };
+      }
+      if (path === '/platform/v1/templates') {
+        return {
+          items: [
+            {
+              key: 'agri',
+              version: 4,
+              name: { en: 'Agri inputs', hi: 'कृषि इनपुट' },
+              description: { en: 'Agri', hi: 'कृषि' },
+              terms: { en: 'SME · Beat plan · Beat', hi: 'एसएमई · बीट प्लान · बीट' },
+            },
+          ],
+        };
+      }
+      return { ...TENANT, seatLimit: 10 };
+    });
+    renderConsole(`/tenants/${TENANT.id}`, client);
+    expect(
+      await screen.findByText('Agri inputs v4 · customer since 24 Oct 2026', { exact: false }),
+    ).toBeVisible();
+    expect(screen.getByText('12 / 10')).toBeVisible();
+    expect(screen.getByText('2.5 GB')).toBeVisible();
+    expect(screen.getByText(/^Up to 6 people a day/)).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Tenant tools' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Suspend' })).toHaveClass('danger');
   });
 });

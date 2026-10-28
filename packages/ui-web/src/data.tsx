@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 import { Button } from './button';
 import { cn } from './cn';
 
@@ -16,6 +16,25 @@ export interface Column<Row> {
   /** `end` right-aligns numbers in tabular figures; `num` keeps tabular figures at the start, for codes and phone numbers. */
   align?: 'start' | 'end' | 'num';
   render: (row: Row) => ReactNode;
+}
+
+/**
+ * Whether a box's content is wider than the box, kept current as either changes size. A box that
+ * scrolls must take keyboard focus, so people who don't use a mouse can scroll it too.
+ */
+function useScrolls(box: RefObject<HTMLElement | null>, shown: boolean): boolean {
+  const [scrolls, setScrolls] = useState(false);
+  useEffect(() => {
+    const element = box.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const check = () => setScrolls(element.scrollWidth > element.clientWidth + 1);
+    const observer = new ResizeObserver(check);
+    observer.observe(element);
+    if (element.firstElementChild) observer.observe(element.firstElementChild);
+    check();
+    return () => observer.disconnect();
+  }, [box, shown]);
+  return scrolls;
 }
 
 /**
@@ -46,10 +65,17 @@ export function DataTable<Row>({
 }) {
   const cell = (align: Column<Row>['align']) =>
     align === 'end' ? 'r' : align === 'num' ? 'ks-num' : undefined;
-  if (rows.length === 0 && empty) return <>{empty}</>;
+  const box = useRef<HTMLDivElement>(null);
+  const shown = rows.length > 0 || !empty;
+  const scrolls = useScrolls(box, shown);
+  if (!shown) return <>{empty}</>;
   return (
     <div className="flex flex-col items-start gap-3">
-      <div className="relative w-full overflow-x-auto">
+      <div
+        ref={box}
+        className="relative w-full overflow-x-auto"
+        {...(scrolls ? { role: 'region', 'aria-label': caption, tabIndex: 0 } : {})}
+      >
         <table className={cn('ks-table', stickyFirst && 'sticky-first')}>
           <caption className="sr-only">{caption}</caption>
           <thead>

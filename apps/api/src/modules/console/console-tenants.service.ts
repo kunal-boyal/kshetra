@@ -2,16 +2,31 @@ import { Injectable } from '@nestjs/common';
 import {
   AppError,
   type CellSummary,
+  addDays,
+  BILLING_TIME_ZONE,
   type ConsoleTenant,
+  type ConsoleTenantActivity,
   type ConsoleTenantQuery,
+  type ConsoleTenantSummary,
   type CreateTenantBody,
   deletionDue,
   type TemplateSummary,
   type TenantStatus,
+  todayIn,
 } from '@thelamp/shared';
+import { resolveTerminology } from '@thelamp/i18n';
 import { loadTemplate, TEMPLATE_KEYS } from '@thelamp/templates';
-import { and, asc, eq, gt, ilike, or, sql, type SQL } from 'drizzle-orm';
-import { cells, memberships, plans, tenants } from '../../db/schema/directory';
+import { and, asc, eq, gt, gte, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
+import {
+  cells,
+  memberships,
+  plans,
+  refreshTokens,
+  tenants,
+  usageRecords,
+} from '../../db/schema/directory';
+import { startOfLocalDate } from '../../platform/local-day';
+import { Entitlements } from '../../platform/planes';
 import type { StaffAccess } from '../../platform/auth';
 import { DirectoryDatabase } from '../directory/directory.database';
 import { TenantProvisioner } from '../provisioning/provisioner';
@@ -32,6 +47,7 @@ export class ConsoleTenantsService {
     private readonly database: DirectoryDatabase,
     private readonly provisioner: TenantProvisioner,
     private readonly audit: PlatformAudit,
+    private readonly entitlements: Entitlements,
   ) {}
 
   async list(
@@ -121,6 +137,102 @@ export class ConsoleTenantsService {
     });
   }
 
+  /** Every tenant at once, as the tenants page's figures. */
+  async summary(): Promise<ConsoleTenantSummary> {
+    const now = new Date();
+    // Columns named in full: a query without a join leaves its own unqualified, and inside a
+    // subquery those would name the subquery's table.
+    const active = sql.raw(
+      `exists (select 1 from directory.subscriptions s where s.tenant_id = directory.tenants.id and s.status = 'active')`,
+    );
+    const [counts] = await this.database.db
+      .select({
+        tenants: sql<number>`count(*)::int`,
+        demo: sql<number>`count(*) filter (where ${tenants.demo})::int`,
+        suspended: sql<number>`count(*) filter (where ${tenants.status} = 'suspended')::int`,
+        paying: sql<number>`count(*) filter (where not ${tenants.demo} and ${active})::int`,
+        trial: sql<number>`count(*) filter (where ${tenants.trialEndsAt} > ${now} and not ${active})::int`,
+      })
+      .from(tenants)
+      .where(isNull(tenants.deletedAt));
+    const seats = await this.database.db
+      .select({
+        id: tenants.id,
+        used: sql<number>`count(${memberships.id}) filter (where ${memberships.status} = 'active')::int`,
+      })
+      .from(tenants)
+      .leftJoin(memberships, eq(memberships.tenantId, tenants.id))
+      .where(isNull(tenants.deletedAt))
+      .groupBy(tenants.id);
+    const limits = await Promise.all(seats.map((row) => this.seatLimit(row.id)));
+    const [today] = await this.database.db
+      .select({ count: sql<number>`count(distinct ${memberships.userId})::int` })
+      .from(refreshTokens)
+      .innerJoin(memberships, eq(memberships.id, refreshTokens.membershipId))
+      .where(
+        gte(
+          refreshTokens.createdAt,
+          startOfLocalDate(todayIn(BILLING_TIME_ZONE, now), BILLING_TIME_ZONE),
+        ),
+      );
+    return {
+      tenants: counts?.tenants ?? 0,
+      paying: counts?.paying ?? 0,
+      trial: counts?.trial ?? 0,
+      demo: counts?.demo ?? 0,
+      suspended: counts?.suspended ?? 0,
+      seatsInUse: seats.reduce((sum, row) => sum + row.used, 0),
+      seatsBought: limits.reduce<number>((sum, limit) => sum + (limit ?? 0), 0),
+      activeToday: today?.count ?? 0,
+    };
+  }
+
+  /** The people active on each of a tenant's last 30 days, and its storage this month. */
+  async activity(id: string): Promise<ConsoleTenantActivity> {
+    await this.get(id);
+    const today = todayIn(BILLING_TIME_ZONE, new Date());
+    const first = addDays(today, -29);
+    const rows = await this.database.db
+      .select({
+        date: sql<string>`to_char(${refreshTokens.createdAt} at time zone ${BILLING_TIME_ZONE}, 'YYYY-MM-DD')`,
+        active: sql<number>`count(distinct ${memberships.userId})::int`,
+      })
+      .from(refreshTokens)
+      .innerJoin(memberships, eq(memberships.id, refreshTokens.membershipId))
+      .where(
+        and(
+          eq(memberships.tenantId, id),
+          gte(refreshTokens.createdAt, startOfLocalDate(first, BILLING_TIME_ZONE)),
+        ),
+      )
+      .groupBy(sql`1`);
+    const byDate = new Map(rows.map((row) => [row.date, row.active]));
+    const days = Array.from({ length: 30 }, (_, index) => {
+      const date = addDays(first, index);
+      return { date, active: byDate.get(date) ?? 0 };
+    });
+    const [storage] = await this.database.db
+      .select({ quantity: usageRecords.quantity })
+      .from(usageRecords)
+      .where(
+        and(
+          eq(usageRecords.tenantId, id),
+          eq(usageRecords.period, today.slice(0, 7)),
+          eq(usageRecords.metric, 'storage_bytes'),
+        ),
+      );
+    return {
+      days,
+      activeToday: byDate.get(today) ?? 0,
+      storageBytes: storage ? storage.quantity.replace(/\.0+$/, '') : null,
+    };
+  }
+
+  /** The people a tenant's plan and entitlements allow; null for no limit. */
+  private async seatLimit(tenantId: string): Promise<number | null> {
+    return (await this.entitlements.forTenant(tenantId)).limits.users ?? null;
+  }
+
   templates(): TemplateSummary[] {
     return TEMPLATE_KEYS.map((key) => {
       const template = loadTemplate(key);
@@ -129,6 +241,10 @@ export class ConsoleTenantsService {
         version: template.version,
         name: template.name,
         description: template.description,
+        terms: {
+          en: termsLine(resolveTerminology(template.terminology, 'en')),
+          hi: termsLine(resolveTerminology(template.terminology, 'hi')),
+        },
       };
     });
   }
@@ -198,6 +314,9 @@ export class ConsoleTenantsService {
         planKey: plans.key,
         planName: plans.name,
         activeUsers: sql<number>`(select count(*)::int from ${memberships} where ${memberships.tenantId} = ${tenants.id} and ${memberships.status} = 'active')`,
+        lastActivityAt: sql<
+          string | null
+        >`(select max(${refreshTokens.createdAt}) from ${refreshTokens} join ${memberships} on ${memberships.id} = ${refreshTokens.membershipId} where ${memberships.tenantId} = ${tenants.id})`,
       })
       .from(tenants)
       .innerJoin(cells, eq(cells.id, tenants.cellId))
@@ -205,7 +324,8 @@ export class ConsoleTenantsService {
       .where(where)
       .orderBy(asc(tenants.slug))
       .limit(limit);
-    return rows.map((row) => ({
+    const limits = await Promise.all(rows.map((row) => this.seatLimit(row.id)));
+    return rows.map((row, index) => ({
       id: row.id,
       slug: row.slug,
       name: row.name,
@@ -219,6 +339,8 @@ export class ConsoleTenantsService {
       trialEndsAt: row.trialEndsAt?.toISOString() ?? null,
       demo: row.demo,
       activeUsers: row.activeUsers,
+      seatLimit: limits[index] ?? null,
+      lastActivityAt: row.lastActivityAt ? new Date(row.lastActivityAt).toISOString() : null,
       terminatedAt: row.terminatedAt?.toISOString() ?? null,
       deletesAt:
         row.terminatedAt && !row.deletedAt ? deletionDue(row.terminatedAt).toISOString() : null,
@@ -226,6 +348,15 @@ export class ConsoleTenantsService {
       createdAt: row.createdAt.toISOString(),
     }));
   }
+}
+
+/** A template's words for the people, the plan and its items, as a line. */
+function termsLine(terms: ReturnType<typeof resolveTerminology>): string {
+  const one = (entry: unknown) =>
+    typeof entry === 'string' ? entry : (entry as { one: string }).one;
+  return [terms['term.field_user'], terms['term.journey_plan'], terms['term.plan_item']]
+    .map(one)
+    .join(' · ');
 }
 
 /** A search term with LIKE's wildcards taken literally. */

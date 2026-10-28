@@ -1,7 +1,7 @@
 import { formatDateTime, formatNumber } from '@thelamp/i18n';
 import type { CellHealthResult, HealthHour } from '@thelamp/shared';
 import { Card, type Column, DataTable, StatusBadge } from '@thelamp/ui-web';
-import { useCellHealth } from '../data';
+import { useCellHealth, useCells } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { VIEWER_TIME_ZONE } from './shared';
 
@@ -36,9 +36,105 @@ export function HealthPage() {
       ) : health.data.items.length === 0 ? (
         <p className="ks-muted">{t('console.health_none')}</p>
       ) : (
-        health.data.items.map((cell) => <CellCard key={cell.cell.name} cell={cell} />)
+        <>
+          <CellsTable cells={health.data.items} />
+          {health.data.items.map((cell) => (
+            <CellCard key={cell.cell.name} cell={cell} />
+          ))}
+        </>
       )}
     </>
+  );
+}
+
+/** Every cell in a row: its last minute, what waits, when it last reported, and its state. */
+function CellsTable({ cells }: { cells: readonly CellHealthResult[] }) {
+  const { t, locale } = useLanguage();
+  const known = useCells();
+  const number = (value: number) => formatNumber(value, { locale });
+  const tenantsIn = (name: string) => known.data?.items.find((cell) => cell.name === name)?.tenants;
+  const columns: Column<CellHealthResult>[] = [
+    {
+      key: 'cell',
+      header: t('console.col_cell'),
+      render: (row) => (
+        <span className="flex flex-col">
+          <code>{row.cell.name}</code>
+          <span className="ks-meta">
+            {row.cell.region} · {t(`console.cell_${row.cell.kind}`)}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: 'tenants',
+      header: t('console.tenants'),
+      align: 'end',
+      render: (row) => {
+        const count = tenantsIn(row.cell.name);
+        return count === undefined ? '—' : number(count);
+      },
+    },
+    {
+      key: 'minute',
+      header: t('console.col_last_minute'),
+      render: (row) =>
+        row.latest
+          ? t('console.last_minute_value', {
+              requests: number(row.latest.figures.requests),
+              errors: number(row.latest.figures.errors),
+            })
+          : '—',
+    },
+    {
+      key: 'jobs',
+      header: t('console.col_jobs_waiting'),
+      align: 'end',
+      render: (row) =>
+        row.latest
+          ? number(
+              Object.values(row.latest.figures.queues).reduce(
+                (sum, queue) => sum + queue.waiting,
+                0,
+              ),
+            )
+          : '—',
+    },
+    {
+      key: 'phones',
+      header: t('console.health_phones_waiting'),
+      align: 'end',
+      render: (row) => (row.latest ? number(row.latest.figures.phones.waiting) : '—'),
+    },
+    {
+      key: 'reported',
+      header: t('console.col_last_report'),
+      render: (row) =>
+        row.latest
+          ? formatDateTime(row.latest.at, { locale, timeZone: VIEWER_TIME_ZONE })
+          : t('console.never'),
+    },
+    {
+      key: 'status',
+      header: t('console.col_status'),
+      render: (row) =>
+        row.issues.length === 0 ? (
+          <StatusBadge variant="success">{t('console.health_healthy')}</StatusBadge>
+        ) : row.issues.some((issue) => issue.key === 'silent') ? (
+          <StatusBadge variant="danger">{t('console.health_silent')}</StatusBadge>
+        ) : (
+          <StatusBadge variant="waiting">{t('console.health_needs')}</StatusBadge>
+        ),
+    },
+  ];
+  return (
+    <DataTable
+      caption={t('console.health_cells')}
+      columns={columns}
+      rows={[...cells]}
+      rowKey={(row) => row.cell.name}
+      empty={null}
+    />
   );
 }
 

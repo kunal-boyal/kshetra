@@ -9,7 +9,9 @@ import {
   BillingSettingsResult,
   CellListResult,
   ConsoleTenant,
+  ConsoleTenantActivity,
   ConsoleTenantList,
+  ConsoleTenantSummary,
   type CreatePlanBody,
   CreateTenantBody,
   InviteStaffResult,
@@ -55,6 +57,25 @@ export function useTenants(filters: { status?: TenantStatus; q?: string }) {
       return client.request('GET', `/platform/v1/tenants?${query}`, ConsoleTenantList);
     },
     getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
+}
+
+/** Every tenant at once, as the tenants page's figures. */
+export function useTenantSummary() {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['tenants', 'summary'],
+    queryFn: () => client.request('GET', '/platform/v1/tenants/summary', ConsoleTenantSummary),
+  });
+}
+
+/** A tenant's people active on each of the last 30 days, and its storage. */
+export function useTenantActivity(id: string) {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['tenant', id, 'activity'],
+    queryFn: () =>
+      client.request('GET', `/platform/v1/tenants/${id}/activity`, ConsoleTenantActivity),
   });
 }
 

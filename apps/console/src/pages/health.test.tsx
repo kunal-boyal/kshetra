@@ -52,6 +52,13 @@ describe('health per cell in the console (M22, D93)', () => {
     const mumbai = (
       await screen.findByRole('heading', { name: 'mumbai-1 · ap-south-1 · shared' })
     ).closest('section')!;
+    // Every cell in one table first, with its state.
+    const cells = screen.getByRole('table', { name: 'Cells' });
+    expect(within(cells).getByRole('row', { name: /mumbai-1/ })).toHaveTextContent(
+      'Needs looking at',
+    );
+    expect(within(cells).getAllByRole('row').at(-1)).toHaveTextContent('Silent');
+    expect(within(cells).getAllByRole('row').at(-1)).toHaveTextContent('Never');
     expect(within(mumbai).getByText('Server errors above 2% of requests')).toBeVisible();
     expect(within(mumbai).getByText('Jobs waiting more than 5 minutes in exports')).toBeVisible();
     expect(within(mumbai).getByText('Phones with uploads waiting more than an hour')).toBeVisible();

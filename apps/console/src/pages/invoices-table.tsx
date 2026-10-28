@@ -1,11 +1,11 @@
 import { Link } from '@tanstack/react-router';
 import { formatDate, formatMoney } from '@thelamp/i18n';
-import type { InvoiceResult } from '@thelamp/shared';
+import { addDays, dunning, type InvoiceResult } from '@thelamp/shared';
 import { Button, type Column, DataTable, EmptyState } from '@thelamp/ui-web';
 import { Receipt } from 'lucide-react';
-import { useInvoices } from '../data';
+import { useBillingSettings, useInvoices } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
-import { InvoiceStatusBadge } from './shared';
+import { billingToday, InvoiceStatusBadge } from './shared';
 
 /** Invoices newest first, for every tenant or one, a page at a time (decision D90). */
 export function InvoicesTable({
@@ -23,6 +23,25 @@ export function InvoicesTable({
     ...(status ? { status } : {}),
   });
   const day = (value: string) => formatDate(value, { locale });
+  const settings = useBillingSettings();
+  /** What happens next to an invoice, by the dunning rule (BR-48) and the settings' periods. */
+  const nextStep = (row: InvoiceResult): string => {
+    if (row.status === 'paid') return '—';
+    const today = billingToday();
+    if (row.dueOn >= today) return t('console.next_due', { date: day(row.dueOn) });
+    if (!settings.data) return '';
+    const stage = dunning({
+      overdueSince: addDays(row.dueOn, 1),
+      today,
+      graceDays: settings.data.graceDays,
+      readOnlyDays: settings.data.readOnlyDays,
+    });
+    return stage.status === 'grace'
+      ? t('console.next_read_only', { date: day(stage.readOnlyOn) })
+      : stage.status === 'read_only'
+        ? t('console.next_suspended', { date: day(stage.suspendOn) })
+        : t('console.next_suspended_since', { date: day(stage.suspendOn) });
+  };
   const columns: Column<InvoiceResult>[] = [
     {
       key: 'number',
@@ -46,6 +65,7 @@ export function InvoicesTable({
             ),
           },
         ]),
+    { key: 'plan', header: t('console.col_plan'), render: (row) => row.plan.name[locale] },
     { key: 'kind', header: t('console.col_kind'), render: (row) => t(`console.kind_${row.kind}`) },
     {
       key: 'period',
@@ -65,6 +85,11 @@ export function InvoicesTable({
       key: 'status',
       header: t('console.col_status'),
       render: (row) => <InvoiceStatusBadge invoice={row} />,
+    },
+    {
+      key: 'next',
+      header: t('console.col_next_step'),
+      render: (row) => <span className="ks-muted">{nextStep(row)}</span>,
     },
   ];
 

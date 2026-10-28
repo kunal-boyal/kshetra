@@ -3473,13 +3473,30 @@
                               "hi"
                             ],
                             "additionalProperties": false
+                          },
+                          "terms": {
+                            "type": "object",
+                            "properties": {
+                              "en": {
+                                "type": "string"
+                              },
+                              "hi": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "en",
+                              "hi"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
                           "key",
                           "version",
                           "name",
-                          "description"
+                          "description",
+                          "terms"
                         ],
                         "additionalProperties": false
                       }
@@ -3774,6 +3791,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConsoleTenant"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/tenants/{id}/activity": {
+      "get": {
+        "operationId": "ConsoleTenantsController.activity",
+        "summary": "A tenant's people active on each of the last 30 days, and its storage",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Any active vendor staff member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleTenantActivity"
                 }
               }
             }
@@ -4918,6 +4984,44 @@
                     "items"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/tenants/summary": {
+      "get": {
+        "operationId": "ConsoleTenantsController.summary",
+        "summary": "Every tenant at once: paying, trial, demo, seats and who was active today",
+        "tags": [
+          "Platform console"
+        ],
+        "security": [
+          {
+            "staffToken": []
+          }
+        ],
+        "x-access": "Any active vendor staff member",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleTenantSummary"
                 }
               }
             }
@@ -28222,6 +28326,30 @@
             "minimum": 0,
             "maximum": 9007199254740991
           },
+          "seatLimit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastActivityAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "terminatedAt": {
             "anyOf": [
               {
@@ -28275,10 +28403,113 @@
           "trialEndsAt",
           "demo",
           "activeUsers",
+          "seatLimit",
+          "lastActivityAt",
           "terminatedAt",
           "deletesAt",
           "deletedAt",
           "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "ConsoleTenantActivity": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "active": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "date",
+                "active"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "activeToday": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "storageBytes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "days",
+          "activeToday",
+          "storageBytes"
+        ],
+        "additionalProperties": false
+      },
+      "ConsoleTenantSummary": {
+        "type": "object",
+        "properties": {
+          "tenants": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "paying": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "trial": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "demo": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "suspended": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "seatsInUse": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "seatsBought": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "activeToday": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "tenants",
+          "paying",
+          "trial",
+          "demo",
+          "suspended",
+          "seatsInUse",
+          "seatsBought",
+          "activeToday"
         ],
         "additionalProperties": false
       },
@@ -32573,6 +32804,22 @@
             ],
             "additionalProperties": false
           },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "name": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "key",
+              "name"
+            ],
+            "additionalProperties": false
+          },
           "kind": {
             "type": "string",
             "enum": [
@@ -32795,6 +33042,7 @@
           "id",
           "number",
           "tenant",
+          "plan",
           "kind",
           "period",
           "issuedOn",

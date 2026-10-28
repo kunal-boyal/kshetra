@@ -3,7 +3,9 @@
 // and writes a gallery page beside them. The portal, the API and Mailpit must be running
 // (`pnpm dev` with OTP_PROVIDER=mailpit); the number signs in on the web as a demo person.
 //
-//   --phone      the number to sign in with, required unless --prototype-only
+//   --phone      the number to sign in with, required for portal pairs unless --prototype-only
+//   --console    default http://127.0.0.1:5174; console pairs sign in as vendor staff made for the
+//                run with `pnpm invite-staff` (src/staff.ts), so the API's directory must be local
 //   --only       keys from src/pages.ts, comma-separated
 //   --portal     default http://127.0.0.1:5173
 //   --mailpit    default http://localhost:8025
@@ -19,8 +21,10 @@ import { parseArgs } from 'node:util';
 import { chromium, type Page } from '@playwright/test';
 import { PAIRS, type Pair } from './pages.ts';
 import { gallery, type Shot } from './gallery.ts';
+import { freshCode, makeStaff } from './staff.ts';
 
 const here = fileURLToPath(new URL('..', import.meta.url));
+const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const MARK = fileURLToPath(
   new URL('../../../packages/design-tokens/assets/Logos/mark.webp', import.meta.url),
 );
@@ -30,19 +34,20 @@ const { values } = parseArgs({
     phone: { type: 'string' },
     only: { type: 'string' },
     portal: { type: 'string', default: 'http://127.0.0.1:5173' },
+    console: { type: 'string', default: 'http://127.0.0.1:5174' },
     mailpit: { type: 'string', default: 'http://localhost:8025' },
     out: { type: 'string' },
     'prototype-only': { type: 'boolean', default: false },
   },
 });
-if (!values.phone && !values['prototype-only']) {
-  throw new Error('Give --phone, the number a demo person signs in with, or --prototype-only.');
-}
 const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 const out = values.out ?? join(here, 'out', stamp);
 mkdirSync(out, { recursive: true });
 const wanted = values.only ? new Set(values.only.split(',')) : null;
 const pairs = PAIRS.filter((pair) => !wanted || wanted.has(pair.key));
+if (!values.phone && !values['prototype-only'] && pairs.some((pair) => pair.app !== 'console')) {
+  throw new Error('Give --phone, the number a demo person signs in with, or --prototype-only.');
+}
 
 const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [1440, 390] as const;
@@ -156,7 +161,27 @@ try {
     }
   }
 
-  if (!values['prototype-only']) {
+  const consolePairs = pairs.filter((pair) => pair.app === 'console');
+  if (!values['prototype-only'] && consolePairs.length > 0) {
+    const staff = await makeStaff(repo, values.console!);
+    const confirmed = Math.floor(Date.now() / 30_000);
+    const page = await (await browser.newContext()).newPage();
+    await page.goto(`${values.console}/sign-in`);
+    await page.getByRole('textbox', { name: /^Email/ }).fill(staff.email);
+    await page.getByLabel(/^Password/).fill(staff.password);
+    await page
+      .getByRole('textbox', { name: /^Authenticator code/ })
+      .fill(await freshCode(staff.secret, confirmed));
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.waitForURL(`${values.console}/`);
+    for (const theme of THEMES) {
+      await page.evaluate((value: string) => localStorage.setItem('theme', value), theme);
+      for (const pair of consolePairs) await shootPortal(page, pair, theme, values.console!);
+    }
+  }
+
+  const portalPairs = pairs.filter((pair) => pair.app !== 'console');
+  if (!values['prototype-only'] && portalPairs.length > 0) {
     const digits = values.phone!.replace(/\D/g, '').slice(-10);
     // The theme lives in the browser's storage, so one sign-in serves both themes: a number may
     // ask for 3 codes in 10 minutes (spec M1).
@@ -166,11 +191,11 @@ try {
     await outside.goto(`${values.portal}/sign-in`);
     for (const theme of THEMES) {
       await setTheme(outside, theme);
-      for (const pair of pairs.filter((candidate) => candidate.signedOut)) {
+      for (const pair of portalPairs.filter((candidate) => candidate.signedOut)) {
         await shootPortal(outside, pair, theme);
       }
     }
-    const inside = pairs.filter((pair) => !pair.signedOut);
+    const inside = portalPairs.filter((pair) => !pair.signedOut);
     if (inside.length > 0) {
       const page = await (await browser.newContext()).newPage();
       await page.goto(`${values.portal}/sign-in`);
@@ -190,16 +215,16 @@ try {
   await browser.close();
 }
 
-async function shootPortal(page: Page, pair: Pair, theme: string) {
+async function shootPortal(page: Page, pair: Pair, theme: string, base = values.portal!) {
   if (!pair.portal) return;
   await page.setViewportSize({ width: 1440, height: 900 });
   if (typeof pair.portal === 'string') {
-    await page.goto(`${values.portal}${pair.portal}`);
+    await page.goto(`${base}${pair.portal}`);
   } else {
-    await page.goto(`${values.portal}${pair.portal.list}`);
+    await page.goto(`${base}${pair.portal.list}`);
     const link = page.locator('main table tbody a[href]').nth(pair.portal.nth ?? 0);
     const href = await link.getAttribute('href', { timeout: 15_000 });
-    await page.goto(`${values.portal}${href}${pair.portal.suffix ?? ''}`);
+    await page.goto(`${base}${href}${pair.portal.suffix ?? ''}`);
   }
   for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });

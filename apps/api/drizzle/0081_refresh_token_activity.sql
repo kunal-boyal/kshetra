@@ -1,0 +1,1 @@
+CREATE INDEX "refresh_tokens_membership_created_idx" ON "directory"."refresh_tokens" USING btree ("membership_id","created_at");
