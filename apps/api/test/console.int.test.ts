@@ -436,12 +436,26 @@ describe('tenants in the console (M22)', () => {
     );
     const cells = (await send('GET', '/platform/v1/cells', { token })).json().items;
     expect(cells).toContainEqual(expect.objectContaining({ name: 'local', kind: 'shared' }));
-    // Every tenant so far lives in the local cell.
-    const local = cells.find((cell: { name: string }) => cell.name === 'local');
-    const counted = await world.directory.client.query(
-      `select count(*)::int as n from directory.tenants t join directory.cells c on c.id = t.cell_id where c.name = 'local'`,
-    );
-    expect(local.tenants).toBe(counted.rows[0].n);
+    // The console counts the local cell's tenants as the directory holds them. Other files make
+    // tenants, and move one to another cell, as this runs, so the counts are compared only when
+    // the local cell held the same tenants just before and just after the console's read.
+    const inLocal = async (): Promise<{ ids: string; n: number }> =>
+      (
+        await world.directory.client.query(
+          `select coalesce(string_agg(t.id::text, ',' order by t.id), '') as ids, count(*)::int as n
+           from directory.tenants t join directory.cells c on c.id = t.cell_id where c.name = 'local'`,
+        )
+      ).rows[0];
+    let compared = false;
+    for (let attempt = 0; attempt < 10 && !compared; attempt++) {
+      const before = await inLocal();
+      const read = (await send('GET', '/platform/v1/cells', { token })).json().items;
+      const after = await inLocal();
+      if (before.ids !== after.ids) continue;
+      expect(read.find((cell: { name: string }) => cell.name === 'local').tenants).toBe(before.n);
+      compared = true;
+    }
+    expect(compared, 'the local cell’s tenants never held still for a read').toBe(true);
 
     const phone = newPhone();
     const slug = `console-${newId().slice(-8)}`;
