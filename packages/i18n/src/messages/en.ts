@@ -3401,6 +3401,7 @@ export const en = {
   'console.signin_intro':
     'Use your work email, your password and the code from your authenticator app.',
   'console.email': 'Email',
+  'console.email_help': 'The address you were invited with',
   'console.password': 'Password',
   'console.code': 'Authenticator code',
   'console.code_help': 'The six digits your authenticator app shows now',
@@ -4035,6 +4036,7 @@ export const en = {
   'signin.sso_title': 'Sign in with your organisation',
   'signin.sso_intro': 'Enter your work email, and we take you to your organisation’s sign-in page.',
   'signin.sso_email': 'Work email',
+  'signin.sso_email_help': 'The email your organisation gave you',
   'signin.sso_continue': 'Continue',
   'signin.sso_none':
     'Your organisation doesn’t use single sign-on for this email. Sign in with your mobile number.',
