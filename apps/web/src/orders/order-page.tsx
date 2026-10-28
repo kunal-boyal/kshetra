@@ -22,7 +22,7 @@ import { useAccess } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section, useDates } from '../people/shared';
 import { Printable, PrintButton } from '../print';
 import { useOrder, useOrderWrites } from './data';
-import { ORDER_BADGE } from './orders-page';
+import { ORDER_BADGE, OrderTimeline } from './order-preview';
 
 /** The tenant's reasons for rejecting orders and lines, or the defaults (spec 5.11). */
 function useReasons() {
@@ -134,7 +134,7 @@ function Showing({ order }: { order: OrderResult }) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={order.account.name}
+        title={t('orders.number_title', { number: String(order.number), name: order.account.name })}
         back={{ to: '/orders', label: t('orders.title') }}
         intro={t('orders.placed_on', {
           name: order.placedBy.name,
@@ -200,6 +200,11 @@ function Showing({ order }: { order: OrderResult }) {
             ]}
           />
         </Section>
+        {order.history.length > 0 ? (
+          <Section title={t('orders.timeline')}>
+            <OrderTimeline order={order} />
+          </Section>
+        ) : null}
         {order.approval && order.approval.steps.length > 0 ? (
           <Section title={t('approvals.chain')}>
             <ApprovalSteps item={order.approval} />
