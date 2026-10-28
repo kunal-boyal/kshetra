@@ -137,7 +137,6 @@ export function SubmissionsSection(props: Whose) {
           {...(submissions.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: submissions.isFetchingNextPage,
                   onClick: () => void submissions.fetchNextPage(),
                 },

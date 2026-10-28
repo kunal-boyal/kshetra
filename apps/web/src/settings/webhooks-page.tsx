@@ -471,7 +471,6 @@ function Log({ webhook }: { webhook: WebhookResult }) {
           {...(log.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: log.isFetchingNextPage,
                   onClick: () => void log.fetchNextPage(),
                 },

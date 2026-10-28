@@ -155,7 +155,6 @@ export function ImportsPage() {
             {...(imports.hasNextPage
               ? {
                   more: {
-                    label: t('common.load_more'),
                     busy: imports.isFetchingNextPage,
                     onClick: () => void imports.fetchNextPage(),
                   },

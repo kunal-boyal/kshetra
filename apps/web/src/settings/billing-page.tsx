@@ -616,7 +616,6 @@ function InvoicesSection() {
           {...(invoices.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: invoices.isFetchingNextPage,
                   onClick: () => void invoices.fetchNextPage(),
                 },

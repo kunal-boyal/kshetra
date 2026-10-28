@@ -10,6 +10,7 @@ import {
   StatusBadge,
   Tabs,
   tabPanelProps,
+  Pager,
 } from '@thelamp/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -22,6 +23,7 @@ import { read, useAccess, useTerritories } from '../people/data';
 import { monthDates } from '../planning/plan-days';
 import { useStartExport } from '../reports/data';
 import { LETTER_TONE, LETTERS, letterOf, useRegister, useTeamLeave } from './data';
+import { useQueryPaging } from '../paging';
 
 type View = 'register' | 'leave';
 
@@ -170,6 +172,7 @@ function Register({
   const { t, locale } = useLanguage();
   const register = useRegister(period, territoryId);
   const rows = register.data?.pages.flatMap((page) => page.items) ?? [];
+  const paging = useQueryPaging(rows.length, register, rows[0]?.user.id);
   const dates = monthDates(period);
   if (register.isError) {
     return (
@@ -212,48 +215,40 @@ function Register({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.user.id}>
-                <th
-                  scope="row"
-                  className="sticky left-0 z-[1] bg-[var(--surface)]! whitespace-nowrap!"
-                >
-                  {row.user.name}
-                </th>
-                {row.days.map((day) => {
-                  const letter = letterOf(day.status);
-                  return (
-                    <td key={day.date} className="px-0.5! text-center">
-                      {letter ? (
-                        <span
-                          className={`inline-flex size-6 items-center justify-center rounded-[var(--radius-sm)] border text-xs font-semibold ${LETTER_TONE[letter]}`}
-                        >
-                          <span aria-hidden="true">{t(`attendance.letter_${letter}`)}</span>
-                          <span className="sr-only">{t(`attendance.status_${letter}`)}</span>
-                        </span>
-                      ) : null}
-                    </td>
-                  );
-                })}
-                <td className="r font-semibold">
-                  {formatNumber(row.present, { locale }, { maximumFractionDigits: 1 })}
-                </td>
-              </tr>
-            ))}
+            {rows
+              .filter((_, index) => paging.onPage(index))
+              .map((row) => (
+                <tr key={row.user.id}>
+                  <th
+                    scope="row"
+                    className="sticky left-0 z-[1] bg-[var(--surface)]! whitespace-nowrap!"
+                  >
+                    {row.user.name}
+                  </th>
+                  {row.days.map((day) => {
+                    const letter = letterOf(day.status);
+                    return (
+                      <td key={day.date} className="px-0.5! text-center">
+                        {letter ? (
+                          <span
+                            className={`inline-flex size-6 items-center justify-center rounded-[var(--radius-sm)] border text-xs font-semibold ${LETTER_TONE[letter]}`}
+                          >
+                            <span aria-hidden="true">{t(`attendance.letter_${letter}`)}</span>
+                            <span className="sr-only">{t(`attendance.status_${letter}`)}</span>
+                          </span>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                  <td className="r font-semibold">
+                    {formatNumber(row.present, { locale }, { maximumFractionDigits: 1 })}
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
-      {register.hasNextPage ? (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="self-center"
-          busy={register.isFetchingNextPage}
-          onClick={() => void register.fetchNextPage()}
-        >
-          {t('common.load_more')}
-        </Button>
-      ) : null}
+      <Pager paging={paging} />
     </div>
   );
 }

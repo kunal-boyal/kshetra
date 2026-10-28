@@ -601,7 +601,6 @@ function Prices({ list }: { list: PriceListResult }) {
           {...(entries.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: entries.isFetchingNextPage,
                   onClick: () => void entries.fetchNextPage(),
                 },

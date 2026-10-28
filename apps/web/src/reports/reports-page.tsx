@@ -447,7 +447,6 @@ export function ReportsPage() {
                   {...(page.hasNextPage
                     ? {
                         more: {
-                          label: t('common.load_more'),
                           onClick: () => void page.fetchNextPage(),
                           busy: page.isFetchingNextPage,
                         },

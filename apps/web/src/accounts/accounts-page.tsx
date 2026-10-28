@@ -259,7 +259,6 @@ export function AccountsPage({ type: chosen }: { type?: string }) {
           {...(accounts.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: accounts.isFetchingNextPage,
                   onClick: () => void accounts.fetchNextPage(),
                 },

@@ -152,7 +152,7 @@ describe('webhooks in Settings (M20, D94)', () => {
     expect(log).toHaveTextContent('503');
     expect(log).toHaveTextContent('80 ms');
     expect(log).toHaveTextContent('Given up');
-    await user.click(within(hook).getByRole('button', { name: 'Load more' }));
+    await user.click(within(hook).getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(within(log).getAllByRole('row')).toHaveLength(3));
 
     const failed = within(log).getAllByRole('row')[1]!;

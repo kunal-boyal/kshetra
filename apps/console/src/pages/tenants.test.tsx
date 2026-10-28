@@ -42,11 +42,11 @@ describe('tenants in the console (M22)', () => {
     expect(row).toHaveTextContent('12');
     expect(row).toHaveTextContent('No plan');
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Load more' }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
     expect(await within(table).findByRole('row', { name: /Zen Pharma/ })).toHaveTextContent(
       'Suspended',
     );
-    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
   });
 
   it('sums every tenant up in tiles, and gives each its seats and last activity', async () => {

@@ -74,7 +74,7 @@ describe('reports (M18)', () => {
     expect(within(table).getByRole('row', { name: /Asha Rao/ })).toHaveTextContent('8.5');
     // A status column's values are badges in their tone.
     expect(within(table).getByText('Present')).toHaveClass('ks-badge', 'success');
-    expect(screen.getByRole('button', { name: 'Load more' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeVisible();
     // Reports whose records the reader may not see elsewhere aren't offered (D86).
     const offered = within(reports)
       .getAllByRole('button')

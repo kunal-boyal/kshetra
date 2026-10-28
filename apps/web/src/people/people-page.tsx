@@ -279,7 +279,6 @@ export function PeoplePage() {
           {...(users.hasNextPage
             ? {
                 more: {
-                  label: t('common.load_more'),
                   busy: users.isFetchingNextPage,
                   onClick: () => void users.fetchNextPage(),
                 },
