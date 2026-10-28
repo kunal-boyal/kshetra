@@ -33,7 +33,13 @@ provider "aws" {
 }
 
 variable "api_domain" {
-  type = string
+  description = "The directory's name, which never changes (decision D105)."
+  type        = string
+}
+
+variable "cell_domain" {
+  description = "The first cell's own name, such as in1.api.example.com (decision D105)."
+  type        = string
 }
 
 variable "web_domain" {
@@ -81,6 +87,7 @@ module "environment" {
   name                 = "thelamp-production"
   github_environment   = "production"
   api_domain           = var.api_domain
+  cell_domain          = var.cell_domain
   web_domain           = var.web_domain
   media_domain         = var.media_domain
   console_domain       = var.console_domain

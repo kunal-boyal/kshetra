@@ -30,7 +30,12 @@ variable "vpc_cidr" {
 }
 
 variable "api_domain" {
-  description = "Where apps reach the cell, such as api.example.com."
+  description = "The directory, where people sign in and API clients take tokens, such as api.example.com. Phones build it in and integrators copy it, so it never changes (decision D105)."
+  type        = string
+}
+
+variable "cell_domain" {
+  description = "The cell's own name, such as in1.api.example.com: the address sign-in hands out for it (CELL_API_URL). It shares api_domain's load balancer until a second cell exists (decision D105)."
   type        = string
 }
 

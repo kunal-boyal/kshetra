@@ -1,5 +1,5 @@
 output "load_balancer_dns_name" {
-  description = "Point api_domain here (a CNAME, or an alias record in Route 53)."
+  description = "Point the directory's name and cell_domain here (CNAMEs, or alias records in Route 53)."
   value       = aws_lb.this.dns_name
 }
 
