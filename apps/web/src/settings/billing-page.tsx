@@ -1,5 +1,12 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { emailMessage, formatDate, formatMoney, formatMonth, formatNumber } from '@thelamp/i18n';
+import {
+  emailMessage,
+  formatDate,
+  formatMoney,
+  formatMonth,
+  formatNumber,
+  localeTag,
+} from '@thelamp/i18n';
 import {
   BILLING_TIME_ZONE,
   GST_STATES,
@@ -13,8 +20,10 @@ import {
   Button,
   type Column,
   DataTable,
+  DescriptionList,
   Notice,
   SelectField,
+  StatTile,
   StatusBadge,
   TextAreaField,
   TextField,
@@ -61,11 +70,17 @@ export function BillingPage() {
       ) : (
         <>
           <Standing billing={billing.data} />
-          <PlanSection billing={billing.data} />
-          <PaymentSection billing={billing.data} />
+          <div className="flex flex-wrap items-stretch gap-4">
+            <PlanHero billing={billing.data} />
+            <Seats billing={billing.data} />
+          </div>
+          <div className="flex flex-wrap items-start gap-4">
+            <InvoicesSection />
+            <PaymentSection billing={billing.data} />
+          </div>
+          <SubscriptionSection billing={billing.data} />
           <DetailsSection billing={billing.data} />
           <UsageSection billing={billing.data} />
-          <InvoicesSection />
         </>
       )}
     </div>
@@ -77,6 +92,13 @@ function useFormats() {
   return {
     money: (amount: string) => formatMoney(amount as `${number}`, { locale }),
     day: (value: string) => formatDate(value, { locale }),
+    /** "3 Oct", for a badge. */
+    short: (value: string) =>
+      new Intl.DateTimeFormat(localeTag(locale), {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      }).format(new Date(`${value}T00:00:00Z`)),
   };
 }
 
@@ -98,37 +120,99 @@ function Standing({ billing }: { billing: Billing }) {
   );
 }
 
-function PlanSection({ billing }: { billing: Billing }) {
+/**
+ * The plan as the prototype's hero draws it (decision D104): on the product's own Forest, since
+ * the plan is the product's, with its cycle, price, renewal and modules.
+ */
+function PlanHero({ billing }: { billing: Billing }) {
   const { t, locale } = useLanguage();
   const { money, day } = useFormats();
-  const { plan, people, subscription } = billing;
+  const { plan, subscription } = billing;
+  const renewal = subscription?.endsOn
+    ? t('billing.ends_on', { date: day(subscription.endsOn) })
+    : subscription?.term
+      ? t('billing.renews_on', { date: day(subscription.term.to) })
+      : billing.trialEndsAt
+        ? t('billing.trial_ends_on', {
+            date: day(todayIn(BILLING_TIME_ZONE, new Date(billing.trialEndsAt))),
+          })
+        : null;
+  const chip =
+    'rounded-[var(--radius-full)] bg-[color-mix(in_srgb,var(--on-brand)_16%,transparent)] px-2.5 py-0.5 text-sm font-semibold';
+  return (
+    <section
+      className="ks-card flex min-w-0 flex-[2_1_26rem] flex-col gap-3 border-0! bg-[var(--brand-forest)]! text-[var(--on-brand)]"
+      aria-label={t('billing.plan')}
+    >
+      <div className="ks-spread">
+        <h2 className="text-sm font-bold tracking-[.06em] uppercase opacity-85">
+          {t('billing.your_plan')}
+        </h2>
+        {subscription ? (
+          <span className={chip}>{t(`billing.cycle_short_${subscription.cycle}`)}</span>
+        ) : null}
+      </div>
+      <p className="text-[2rem] leading-9 font-bold">
+        {plan ? plan.name[locale] : t('billing.no_plan')}
+      </p>
+      {plan || renewal ? (
+        <p className="opacity-90">
+          {[
+            ...(plan
+              ? [
+                  t('billing.price_value', {
+                    month: money(plan.priceMonth),
+                    year: money(plan.priceYear),
+                  }),
+                ]
+              : []),
+            ...(renewal ? [renewal] : []),
+          ].join(' · ')}
+        </p>
+      ) : null}
+      <ul className="flex flex-wrap gap-1.5" aria-label={t('billing.modules')}>
+        {billing.modules.map((key) => (
+          <li key={key} className={chip}>
+            {t(`admin.module_${key}`)}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The people the plan covers: a meter of the limit, or the count without one. */
+function Seats({ billing }: { billing: Billing }) {
+  const { t, locale } = useLanguage();
   const count = (value: number) => formatNumber(value, { locale });
-  const facts: [string, string][] = [
-    [t('billing.plan'), plan ? plan.name[locale] : t('billing.no_plan')],
-    ...(plan
-      ? ([
-          [
-            t('billing.price'),
-            t('billing.price_value', {
-              month: money(plan.priceMonth),
-              year: money(plan.priceYear),
-            }),
-          ],
-        ] as [string, string][])
-      : []),
-    [
-      t('billing.people'),
-      people.limit === null
-        ? t('billing.people_open', { active: count(people.active) })
-        : t('billing.people_value', { active: count(people.active), limit: count(people.limit) }),
-    ],
-    [t('billing.modules'), billing.modules.map((key) => t(`admin.module_${key}`)).join(', ')],
-    ...(billing.trialEndsAt
-      ? ([
-          [t('billing.trial_ends'), day(todayIn(BILLING_TIME_ZONE, new Date(billing.trialEndsAt)))],
-        ] as [string, string][])
-      : []),
-  ];
+  const { active, limit } = billing.people;
+  return (
+    <div className="flex min-w-0 flex-[1_1_16rem] [&>*]:flex-1">
+      <StatTile
+        label={t('billing.people')}
+        value={
+          limit === null
+            ? t('billing.people_open', { active: count(active) })
+            : t('billing.people_value', { active: count(active), limit: count(limit) })
+        }
+        {...(limit ? { meter: active / limit } : {})}
+        {...(limit !== null && active > limit ? { tone: 'danger' as const } : {})}
+        sub={
+          limit === null
+            ? t('billing.seats_open')
+            : t('billing.seats_left', { count: count(Math.max(0, limit - active)) })
+        }
+      />
+    </div>
+  );
+}
+
+/** The subscription's terms: its cycle, start, term and commitment. */
+function SubscriptionSection({ billing }: { billing: Billing }) {
+  const { t, locale } = useLanguage();
+  const { day } = useFormats();
+  const { subscription } = billing;
+  const count = (value: number) => formatNumber(value, { locale });
   const term: [string, string][] = subscription
     ? [
         [t('billing.cycle'), t(`billing.cycle_${subscription.cycle}`)],
@@ -151,14 +235,9 @@ function PlanSection({ billing }: { billing: Billing }) {
       ]
     : [];
   return (
-    <>
-      <Section title={t('billing.plan')}>
-        <Facts items={facts} />
-      </Section>
-      <Section title={t('billing.subscription')}>
-        {subscription ? <Facts items={term} /> : <p>{t('billing.no_subscription')}</p>}
-      </Section>
-    </>
+    <Section title={t('billing.subscription')}>
+      {subscription ? <Facts items={term} /> : <p>{t('billing.no_subscription')}</p>}
+    </Section>
   );
 }
 
@@ -186,8 +265,18 @@ function PaymentSection({ billing }: { billing: Billing }) {
   }
 
   return (
-    <Section title={t('billing.payment')}>
-      <p>{t(`billing.mandate_${mandate}`)}</p>
+    <Section title={t('billing.payment')} className="min-w-0 flex-[1_1_18rem]">
+      <DescriptionList
+        items={[
+          [t('billing.how'), t(`billing.mandate_${mandate}`)],
+          ...(billing.account
+            ? ([
+                [t('billing.bills_to'), billing.account.email],
+                [t('billing.gstin'), billing.account.gstin ?? '—'],
+              ] as [string, string][])
+            : []),
+        ]}
+      />
       {!billing.automaticPayment ? (
         <p className="ks-muted">{t('billing.automatic_soon')}</p>
       ) : billing.account && mandate !== 'active' ? (
@@ -424,7 +513,7 @@ function UsageSection({ billing }: { billing: Billing }) {
 function InvoicesSection() {
   const { client } = useApp();
   const { t } = useLanguage();
-  const { money, day } = useFormats();
+  const { money, day, short } = useFormats();
   const [failure, setFailure] = useState<unknown>();
   const invoices = useInfiniteQuery({
     queryKey: ['billing-invoices'],
@@ -454,16 +543,20 @@ function InvoicesSection() {
     }
   }
 
+  /** When an invoice was paid in full: its last payment's day. */
+  const paidOn = (row: InvoiceResult) =>
+    row.payments
+      .map((payment) => payment.receivedOn)
+      .sort()
+      .at(-1) ?? null;
   const columns: Column<InvoiceResult>[] = [
-    { key: 'number', header: t('billing.col_number'), render: (row) => row.number },
+    { key: 'number', header: t('billing.col_number'), render: (row) => <code>{row.number}</code> },
     {
       key: 'period',
       header: t('billing.col_period'),
       render: (row) =>
         t('billing.period_value', { from: day(row.period.from), to: day(row.period.to) }),
     },
-    { key: 'issued', header: t('billing.col_issued'), render: (row) => day(row.issuedOn) },
-    { key: 'due', header: t('billing.col_due'), render: (row) => day(row.dueOn) },
     {
       key: 'total',
       header: t('billing.col_total'),
@@ -473,14 +566,20 @@ function InvoicesSection() {
     {
       key: 'status',
       header: t('billing.col_status'),
-      render: (row) =>
-        row.status === 'paid' ? (
-          <StatusBadge variant="success">{t('billing.paid')}</StatusBadge>
+      render: (row) => {
+        const paid = row.status === 'paid' ? paidOn(row) : null;
+        return row.status === 'paid' ? (
+          <StatusBadge variant="success">
+            {paid ? t('billing.paid_on', { date: short(paid) }) : t('billing.paid')}
+          </StatusBadge>
         ) : row.dueOn < today ? (
           <StatusBadge variant="danger">{t('billing.overdue')}</StatusBadge>
         ) : (
-          <StatusBadge variant="pending">{t('billing.unpaid')}</StatusBadge>
-        ),
+          <StatusBadge variant="pending">
+            {t('billing.due_on', { date: short(row.dueOn) })}
+          </StatusBadge>
+        );
+      },
     },
     {
       key: 'file',
@@ -500,7 +599,7 @@ function InvoicesSection() {
   ];
 
   return (
-    <Section title={t('billing.invoices')}>
+    <Section title={t('billing.invoices')} className="min-w-0 flex-[2_1_30rem]">
       {invoices.isError ? (
         <p className="ks-help error" role="alert">
           {errorMessage(invoices.error, t)}

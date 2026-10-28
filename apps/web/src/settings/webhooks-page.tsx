@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { formatDateTime } from '@thelamp/i18n';
+import { formatDateTime, formatNumber } from '@thelamp/i18n';
 import {
   newId,
   WEBHOOK_EVENTS,
@@ -17,6 +17,7 @@ import {
   type BadgeVariant,
   Button,
   Checkbox,
+  ChipList,
   ChoiceGroup,
   type Column,
   Confirm,
@@ -28,10 +29,17 @@ import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
-import { fieldErrors, PageHeader, Section } from '../people/shared';
+import { fieldErrors, Section } from '../people/shared';
 import { SecretPanel } from './secret';
 
 const KEY = ['webhooks'];
+
+/** A webhook's health from its latest try: reaching its receiver, failing, or not tried yet. */
+const HEALTH: Record<'delivered' | 'failed' | 'none', BadgeVariant> = {
+  delivered: 'success',
+  failed: 'danger',
+  none: 'neutral',
+};
 const LOG_PAGE = 20;
 
 const MESSAGE_BADGE: Record<WebhookDelivery['messageStatus'], BadgeVariant> = {
@@ -47,11 +55,12 @@ function useEventName() {
 }
 
 /**
- * Webhooks (module M20, spec 12.4, decision D94), for holders of `webhook.manage`: receivers of
- * the organisation's events, each with its address, events and signing secret, shown once; a
- * test, a pause, a new secret, and the log of every try with a way to send a message again.
+ * Webhooks (module M20, spec 12.4, decision D94), for holders of `webhook.manage`, on the
+ * Developers page: receivers of the organisation's events, each with its address, events, health
+ * and signing secret, shown once; a test, a pause, a new secret, and its recent tries beside it
+ * with a way to send a message again.
  */
-export function WebhooksPage() {
+export function Webhooks() {
   const { client } = useApp();
   const { t } = useLanguage();
   const webhooks = useQuery({
@@ -60,8 +69,7 @@ export function WebhooksPage() {
   });
   const [shown, setShown] = useState<{ webhook: WebhookResult; secret: string }>();
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t('webhooks.title')} intro={t('webhooks.intro')} />
+    <>
       {shown ? (
         <SecretPanel
           title={t('webhooks.secret_title', { url: shown.webhook.url })}
@@ -71,11 +79,6 @@ export function WebhooksPage() {
           onDone={() => setShown(undefined)}
         />
       ) : null}
-      <WebhookForm
-        onSaved={(made) => {
-          if ('secret' in made) setShown(made);
-        }}
-      />
       <Section title={t('webhooks.list_title')}>
         {webhooks.isError ? (
           <p className="ks-help error" role="alert">
@@ -91,7 +94,12 @@ export function WebhooksPage() {
           ))
         )}
       </Section>
-    </div>
+      <WebhookForm
+        onSaved={(made) => {
+          if ('secret' in made) setShown(made);
+        }}
+      />
+    </>
   );
 }
 
@@ -237,7 +245,6 @@ function Webhook({
   const queryClient = useQueryClient();
   const { t, locale } = useLanguage();
   const access = useAccess();
-  const eventName = useEventName();
   const [editing, setEditing] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [busy, setBusy] = useState<'pause' | 'test' | 'rotate'>();
@@ -277,90 +284,100 @@ function Webhook({
 
   return (
     <article
-      className="flex flex-col gap-3 border-t border-[var(--border)] pt-3 first:border-0 first:pt-0"
+      className="flex flex-wrap items-start gap-4 border-t border-[var(--border)] pt-4 first:border-0 first:pt-0"
       aria-label={webhook.url}
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <code className="min-w-0 break-all font-semibold">{webhook.url}</code>
-        <StatusBadge variant={webhook.status === 'active' ? 'success' : 'neutral'}>
-          {t(`webhooks.status_${webhook.status}`)}
-        </StatusBadge>
-      </div>
-      {webhook.description ? <p>{webhook.description}</p> : null}
-      <p className="ks-muted">{webhook.events.map(eventName).join(', ')}</p>
-      {webhook.status === 'paused' ? <p className="ks-muted">{t('webhooks.paused_note')}</p> : null}
-      <p className="ks-muted">
-        {webhook.lastDelivery
-          ? t(`webhooks.last_${webhook.lastDelivery.status}`, { time: at(webhook.lastDelivery.at) })
-          : t('webhooks.never')}
-      </p>
-      {tested ? (
-        <p role="status" className={tested.status === 'delivered' ? undefined : 'ks-help error'}>
-          {tested.status === 'delivered'
-            ? t('webhooks.test_delivered', {
-                code: String(tested.responseCode ?? ''),
-                ms: String(tested.durationMs),
+      <div className="flex min-w-0 flex-[1_1_22rem] flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="min-w-0 break-all font-semibold">{webhook.url}</code>
+          {webhook.status === 'paused' ? (
+            <StatusBadge variant="neutral">{t('webhooks.status_paused')}</StatusBadge>
+          ) : (
+            <StatusBadge variant={HEALTH[webhook.lastDelivery?.status ?? 'none']}>
+              {t(`webhooks.health_${webhook.lastDelivery?.status ?? 'none'}`)}
+            </StatusBadge>
+          )}
+        </div>
+        {webhook.description ? <p>{webhook.description}</p> : null}
+        <ChipList label={t('webhooks.events')} items={webhook.events} />
+        {webhook.status === 'paused' ? (
+          <p className="ks-muted">{t('webhooks.paused_note')}</p>
+        ) : null}
+        <p className="ks-muted">
+          {webhook.lastDelivery
+            ? t(`webhooks.last_${webhook.lastDelivery.status}`, {
+                time: at(webhook.lastDelivery.at),
               })
-            : t('webhooks.test_failed', {
-                reason:
-                  tested.responseCode !== null
-                    ? t('webhooks.answered', { code: String(tested.responseCode) })
-                    : (tested.error ?? ''),
-              })}
+            : t('webhooks.never')}
         </p>
-      ) : null}
-      {failure ? (
-        <p className="ks-help error" role="alert">
-          {errorMessage(failure, t)}
-        </p>
-      ) : null}
-      {editing ? (
-        <WebhookForm
-          current={webhook}
-          onSaved={() => setEditing(false)}
-          onCancel={() => setEditing(false)}
-        />
-      ) : rotating ? (
-        <Confirm
-          question={t('webhooks.rotate_question')}
-          action={
-            <Button variant="primary" busy={busy === 'rotate'} onClick={() => act('rotate')}>
+        {tested ? (
+          <p role="status" className={tested.status === 'delivered' ? undefined : 'ks-help error'}>
+            {tested.status === 'delivered'
+              ? t('webhooks.test_delivered', {
+                  code: String(tested.responseCode ?? ''),
+                  ms: String(tested.durationMs),
+                })
+              : t('webhooks.test_failed', {
+                  reason:
+                    tested.responseCode !== null
+                      ? t('webhooks.answered', { code: String(tested.responseCode) })
+                      : (tested.error ?? ''),
+                })}
+          </p>
+        ) : null}
+        {failure ? (
+          <p className="ks-help error" role="alert">
+            {errorMessage(failure, t)}
+          </p>
+        ) : null}
+        {editing ? (
+          <WebhookForm
+            current={webhook}
+            onSaved={() => setEditing(false)}
+            onCancel={() => setEditing(false)}
+          />
+        ) : rotating ? (
+          <Confirm
+            question={t('webhooks.rotate_question')}
+            action={
+              <Button variant="primary" busy={busy === 'rotate'} onClick={() => act('rotate')}>
+                {t('webhooks.rotate')}
+              </Button>
+            }
+            cancel={
+              <Button variant="ghost" onClick={() => setRotating(false)}>
+                {t('common.cancel')}
+              </Button>
+            }
+          />
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              busy={busy === 'test'}
+              disabled={webhook.status !== 'active'}
+              onClick={() => act('test')}
+            >
+              {t('webhooks.test')}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+              {t('webhooks.change')}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              busy={busy === 'pause'}
+              onClick={() => act('pause')}
+            >
+              {webhook.status === 'active' ? t('webhooks.pause') : t('webhooks.resume')}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setRotating(true)}>
               {t('webhooks.rotate')}
             </Button>
-          }
-          cancel={
-            <Button variant="ghost" onClick={() => setRotating(false)}>
-              {t('common.cancel')}
-            </Button>
-          }
-        />
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            busy={busy === 'test'}
-            disabled={webhook.status !== 'active'}
-            onClick={() => act('test')}
-          >
-            {t('webhooks.test')}
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
-            {t('webhooks.change')}
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            busy={busy === 'pause'}
-            onClick={() => act('pause')}
-          >
-            {webhook.status === 'active' ? t('webhooks.pause') : t('webhooks.resume')}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setRotating(true)}>
-            {t('webhooks.rotate')}
-          </Button>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
       <Log webhook={webhook} />
     </article>
   );
@@ -372,10 +389,8 @@ function Log({ webhook }: { webhook: WebhookResult }) {
   const { t, locale } = useLanguage();
   const access = useAccess();
   const eventName = useEventName();
-  const [open, setOpen] = useState(false);
   const log = useInfiniteQuery({
     queryKey: [...KEY, webhook.id, 'log'],
-    enabled: open,
     initialPageParam: '',
     queryFn: ({ pageParam }) =>
       read(
@@ -392,22 +407,41 @@ function Log({ webhook }: { webhook: WebhookResult }) {
       header: t('webhooks.col_time'),
       render: (row) => formatDateTime(row.createdAt, { locale, timeZone: access.timezone }),
     },
-    { key: 'event', header: t('webhooks.col_event'), render: (row) => eventName(row.event) },
+    {
+      key: 'event',
+      header: t('webhooks.col_event'),
+      render: (row) => (
+        <span className="flex flex-col">
+          <span>{eventName(row.event)}</span>
+          <code>{row.event}</code>
+        </span>
+      ),
+    },
+    {
+      key: 'answer',
+      header: t('webhooks.col_result'),
+      render: (row) => (
+        <StatusBadge variant={row.status === 'delivered' ? 'success' : 'danger'}>
+          {row.responseCode !== null
+            ? String(row.responseCode)
+            : t(`webhooks.result_${row.status}`)}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'took',
+      header: t('webhooks.col_took'),
+      align: 'end',
+      render: (row) =>
+        row.durationMs === null
+          ? '—'
+          : t('webhooks.ms', { ms: formatNumber(row.durationMs, { locale }) }),
+    },
     {
       key: 'attempt',
       header: t('webhooks.col_attempt'),
       align: 'end',
       render: (row) => String(row.attempt),
-    },
-    {
-      key: 'result',
-      header: t('webhooks.col_result'),
-      render: (row) =>
-        row.status === 'delivered'
-          ? t('webhooks.result_delivered')
-          : [t('webhooks.result_failed'), row.responseCode ?? row.error]
-              .filter(Boolean)
-              .join(' · '),
     },
     {
       key: 'message',
@@ -416,8 +450,11 @@ function Log({ webhook }: { webhook: WebhookResult }) {
     },
   ];
   return (
-    <details onToggle={(event) => setOpen((event.target as HTMLDetailsElement).open)}>
-      <summary className="cursor-pointer">{t('webhooks.log')}</summary>
+    <section
+      className="flex min-w-0 flex-[2_1_30rem] flex-col gap-2"
+      aria-label={t('webhooks.log')}
+    >
+      <h3 className="ks-title">{t('webhooks.log')}</h3>
       {log.isError ? (
         <p className="ks-help error" role="alert">
           {errorMessage(log.error, t)}
@@ -442,7 +479,7 @@ function Log({ webhook }: { webhook: WebhookResult }) {
             : {})}
         />
       )}
-    </details>
+    </section>
   );
 }
 

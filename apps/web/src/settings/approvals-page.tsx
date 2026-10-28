@@ -1,6 +1,15 @@
 import { type Approver, type ChainView, REQUEST_FACTS, type WorkflowStep } from '@thelamp/forms';
-import { ACCOUNT_REQUEST_TYPES, type RequestType } from '@thelamp/shared';
-import { Button, Icon, SelectField, TextField } from '@thelamp/ui-web';
+import { ACCOUNT_REQUEST_TYPES, type Locale, type RequestType } from '@thelamp/shared';
+import {
+  Button,
+  Icon,
+  List,
+  ListItem,
+  SelectField,
+  SplitDetail,
+  StatusBadge,
+  TextField,
+} from '@thelamp/ui-web';
 import { ArrowDown, ArrowUp, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
@@ -47,6 +56,7 @@ export function ApprovalChainsPage() {
   const config = useConfig(client, queryClient);
   const dates = useDates(config.data?.bundle.settings.timezone ?? 'Asia/Kolkata');
   const [editing, setEditing] = useState<RequestType | null>(null);
+  const [shown, setShown] = useState<RequestType | null>(null);
   const [fallbackError, setFallbackError] = useState<unknown>();
   const [saved, setSaved] = useState<string | null>(null);
   if (!chains.data) return <p className="ks-muted">{t('common.loading')}</p>;
@@ -78,6 +88,10 @@ export function ApprovalChainsPage() {
     }
   }
 
+  const chosen =
+    chains.data.chains.find((chain) => chain.requestType === shown) ?? chains.data.chains[0];
+  const name = (type: RequestType) => t(`chains.type_${type}`);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('chains.title')} intro={t('chains.intro')} />
@@ -96,37 +110,128 @@ export function ApprovalChainsPage() {
           {saved}
         </p>
       ) : null}
-      {chains.data.chains.map((chain) => (
-        <Section key={chain.requestType} title={t(`chains.type_${chain.requestType}`)}>
-          {editing === chain.requestType ? (
-            <ChainEditor
-              chain={chain}
-              choices={choices}
-              onCancel={() => setEditing(null)}
-              onSave={async (steps) => {
-                const next = await save.chain(chain.requestType, steps, chain.version);
-                setEditing(null);
-                setSaved(t('chains.saved', { version: next.version }));
-              }}
-            />
-          ) : (
-            <ChainSummary
-              chain={chain}
-              choices={choices}
-              when={chain.updatedAt ? dates.dateTime(chain.updatedAt) : ''}
-              onEdit={() => {
-                setSaved(null);
-                setEditing(chain.requestType);
-              }}
-            />
-          )}
-        </Section>
-      ))}
+      <SplitDetail
+        detailLabel={chosen ? name(chosen.requestType) : t('chains.title')}
+        list={
+          <List label={t('chains.types')}>
+            {chains.data.chains.map((chain) => (
+              <ListItem
+                key={chain.requestType}
+                title={name(chain.requestType)}
+                meta={summary(chain, choices, t)}
+                selected={chain === chosen}
+                onClick={() => {
+                  setSaved(null);
+                  setEditing(null);
+                  setShown(chain.requestType);
+                }}
+              />
+            ))}
+          </List>
+        }
+        detail={
+          chosen ? (
+            <section
+              key={chosen.requestType}
+              className="flex flex-col gap-4"
+              aria-label={name(chosen.requestType)}
+            >
+              <div className="ks-spread">
+                <h2 className="heading-lg">{name(chosen.requestType)}</h2>
+                {chosen.version === 0 ? (
+                  <StatusBadge variant="neutral">{t('chains.badge_none')}</StatusBadge>
+                ) : (
+                  <StatusBadge variant="success">
+                    {t('chains.badge_version', { version: chosen.version })}
+                  </StatusBadge>
+                )}
+              </div>
+              {editing === chosen.requestType ? (
+                <ChainEditor
+                  chain={chosen}
+                  choices={choices}
+                  onCancel={() => setEditing(null)}
+                  onSave={async (steps) => {
+                    const next = await save.chain(chosen.requestType, steps, chosen.version);
+                    setEditing(null);
+                    setSaved(t('chains.saved', { version: next.version }));
+                  }}
+                />
+              ) : (
+                <ChainSummary
+                  chain={chosen}
+                  choices={choices}
+                  when={chosen.updatedAt ? dates.dateTime(chosen.updatedAt) : ''}
+                  onEdit={() => {
+                    setSaved(null);
+                    setEditing(chosen.requestType);
+                  }}
+                />
+              )}
+            </section>
+          ) : null
+        }
+      />
     </div>
   );
 }
 
-/** "Version 3: a manager above them, then the nearest head", with a way to edit. */
+/** A request type's chain in one line: who decides, in order. */
+function summary(chain: ChainView, choices: Choices, t: Translate): string {
+  if (chain.version === 0) return t('chains.none_short');
+  const conditional = chain.steps.filter((step) => step.condition).length;
+  const line = chain.steps.map((step) => brief(step.approver, choices, t)).join(t('chains.then'));
+  return conditional > 0 ? `${line} · ${t('chains.conditional')}` : line;
+}
+
+/** Who decides, in a few words: "Their manager", "Head", "Rahul Verma". */
+function brief(approver: Approver, choices: Choices, t: Translate): string {
+  const name = (list: Option[], key: string) =>
+    list.find((entry) => entry.value === key)?.label ?? key;
+  switch (approver.type) {
+    case 'reporting_manager':
+      return approver.level === 1
+        ? t('chains.brief_manager')
+        : t('chains.brief_manager_up', { level: approver.level });
+    case 'nearest_designation':
+      return name(choices.designations, approver.designation);
+    case 'role_in_scope':
+      return name(choices.roles, approver.role);
+    case 'account_slot':
+      return name(choices.slots, approver.slot);
+    case 'specific_user':
+      // People are listed as "Name (code)"; the name alone reads better in a line.
+      return name(choices.people, approver.userId).replace(/ \(.*\)$/, '');
+  }
+}
+
+/** "Leave days more than 3 and Paid leave equal to Yes", in the reader's language. */
+function sentence(
+  type: RequestType,
+  condition: NonNullable<WorkflowStep['condition']>,
+  t: Translate,
+  locale: Locale,
+): string {
+  const facts = REQUEST_FACTS[type];
+  const value = (entry: unknown) =>
+    typeof entry === 'boolean'
+      ? t(entry ? 'common.yes' : 'common.no')
+      : Array.isArray(entry)
+        ? entry.join(', ')
+        : String(entry ?? '');
+  return condition.clauses
+    .map((clause) => {
+      const field = facts.find((fact) => fact.key === clause.field);
+      const label = field && 'label' in field ? field.label[locale] : clause.field;
+      const empty = clause.op === 'is_empty' || clause.op === 'is_not_empty';
+      return [label, t(`builder.op_${clause.op}`), ...(empty ? [] : [value(clause.value)])].join(
+        ' ',
+      );
+    })
+    .join(t(condition.match === 'any' ? 'chains.or' : 'chains.and'));
+}
+
+/** The chain's steps in order, those sharing a condition under it, then its version and Edit. */
 function ChainSummary({
   chain,
   choices,
@@ -138,38 +243,84 @@ function ChainSummary({
   when: string;
   onEdit: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const roleName = (key: string) => choices.roles.find((role) => role.value === key)?.label ?? key;
+  // Runs of steps that share a condition, numbered across the whole chain.
+  const groups: { condition: WorkflowStep['condition']; steps: [number, WorkflowStep][] }[] = [];
+  chain.steps.forEach((step, index) => {
+    const last = groups.at(-1);
+    if (last && JSON.stringify(last.condition) === JSON.stringify(step.condition)) {
+      last.steps.push([index, step]);
+    } else {
+      groups.push({ condition: step.condition, steps: [[index, step]] });
+    }
+  });
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="flex min-w-0 flex-col gap-2">
-        {chain.version === 0 ? (
-          <p className="ks-muted">{t('chains.none')}</p>
-        ) : (
-          <>
-            <ol className="flex flex-col gap-1">
-              {chain.steps.map((step, index) => (
-                <li key={index}>
-                  <span className="font-semibold">{t('chains.step', { n: index + 1 })}:</span>{' '}
-                  {describe(step.approver, choices, t)}
-                </li>
-              ))}
-            </ol>
-            <p className="ks-meta">
-              {chain.updatedBy
-                ? t('chains.version_by', {
-                    version: chain.version,
-                    when,
-                    name: chain.updatedBy.name,
-                  })
-                : t('chains.version', { version: chain.version, when })}
-            </p>
-          </>
-        )}
-      </div>
+    <div className="flex flex-col gap-4">
+      {chain.version === 0 ? (
+        <p className="ks-muted">{t('chains.none')}</p>
+      ) : (
+        <>
+          {groups.map((group, index) => (
+            <div
+              key={index}
+              className="flex flex-col gap-3 rounded-[var(--radius-md)] bg-[var(--surface-sunken)] p-4"
+            >
+              <p className="font-semibold">
+                {group.condition
+                  ? t('chains.when', {
+                      condition: sentence(chain.requestType, group.condition, t, locale),
+                    })
+                  : t('chains.always')}
+              </p>
+              <ol className="ks-steps" aria-label={t('chains.steps')}>
+                {group.steps.map(([n, step]) => {
+                  const meta = [
+                    ...(step.reminderAfterHours
+                      ? [t('chains.reminder_after', { hours: step.reminderAfterHours })]
+                      : []),
+                    ...(step.escalation
+                      ? [
+                          t('chains.escalates', {
+                            hours: step.escalation.afterHours,
+                            role: roleName(step.escalation.to),
+                          }),
+                        ]
+                      : []),
+                    ...(step.escalateIfNoApprover
+                      ? [t('chains.nobody_then', { role: roleName(step.escalateIfNoApprover) })]
+                      : []),
+                    ...(step.lineDecisions ? [t('chains.line_decisions')] : []),
+                  ];
+                  return (
+                    <li key={n} className="ks-step">
+                      <span className="ks-node">{n + 1}</span>
+                      <div>
+                        <p className="ks-title">{describe(step.approver, choices, t)}</p>
+                        {meta.length ? <p className="ks-meta">{meta.join(' · ')}</p> : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          ))}
+          <p className="ks-meta">
+            {chain.updatedBy
+              ? t('chains.version_by', {
+                  version: chain.version,
+                  when,
+                  name: chain.updatedBy.name,
+                })
+              : t('chains.version', { version: chain.version, when })}
+          </p>
+        </>
+      )}
       <Button
         type="button"
         size="sm"
         variant="secondary"
+        className="self-start"
         icon={<Icon icon={Pencil} size="sm" />}
         aria-label={`${t('common.edit')}: ${t(`chains.type_${chain.requestType}`)}`}
         onClick={onEdit}

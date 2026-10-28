@@ -141,7 +141,12 @@ export const AuditEntry = z.object({
     name: z.string().nullable().optional(),
   }),
   action: z.enum(AUDIT_ACTIONS),
-  target: z.object({ type: z.string(), id: z.uuid().nullable() }),
+  target: z.object({
+    type: z.string(),
+    id: z.uuid().nullable(),
+    /** What it was, as the audit viewer shows it: a person, an API client; null otherwise. */
+    label: z.string().nullable().optional(),
+  }),
   before: z.unknown(),
   after: z.unknown(),
   ip: z.string().nullable(),

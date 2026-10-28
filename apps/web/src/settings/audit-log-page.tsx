@@ -23,12 +23,23 @@ const PAGE = 50;
 /** The actions, sorted, so one can be found in the list. */
 const ACTIONS = [...AUDIT_ACTIONS].sort();
 
+/** The audit log as its own page; Security and data shows the same log under its cards. */
+export function AuditLogPage() {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title={t('audit_log.title')} intro={t('audit_log.intro')} />
+      <AuditLog />
+    </div>
+  );
+}
+
 /**
  * The audit log (module M21, decision D95), for those who may view it: every change made in the
  * organisation, by month, narrowed to one action, one kind of actor or one person, with what each
  * changed before and after, and the same filters exported as a file.
  */
-export function AuditLogPage() {
+export function AuditLog() {
   const { client } = useApp();
   const { t, locale } = useLanguage();
   const access = useAccess();
@@ -93,17 +104,20 @@ export function AuditLogPage() {
     {
       key: 'target',
       header: t('audit_log.col_target'),
-      render: (row) => (
-        <span className="break-all">
-          {row.target.type}
-          {row.target.id ? (
-            <>
-              {' '}
-              <code className="ks-muted">{row.target.id}</code>
-            </>
-          ) : null}
-        </span>
-      ),
+      render: (row) =>
+        row.target.label ? (
+          <span className="font-semibold">{row.target.label}</span>
+        ) : (
+          <span className="break-all">
+            {row.target.type}
+            {row.target.id ? (
+              <>
+                {' '}
+                <code className="ks-muted">{row.target.id}</code>
+              </>
+            ) : null}
+          </span>
+        ),
     },
     { key: 'from', header: t('audit_log.col_from'), render: (row) => row.ip ?? '—' },
     {
@@ -139,8 +153,7 @@ export function AuditLogPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t('audit_log.title')} intro={t('audit_log.intro')} />
+    <>
       <Section title={t('audit_log.filters')}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <TextField
@@ -224,6 +237,6 @@ export function AuditLogPage() {
           />
         )}
       </Section>
-    </div>
+    </>
   );
 }

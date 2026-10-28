@@ -56,10 +56,13 @@ describe('API clients in Settings (M20, D94)', () => {
     expect(
       within(connecting).getByRole('link', { name: 'Open the API reference' }),
     ).toHaveAttribute('href', expect.stringMatching(/\/v1\/docs$/));
-    expect(screen.getByRole('link', { name: 'API clients' })).toHaveAttribute(
+    // The old address opens the Developers page, its group marked.
+    expect(screen.getByRole('heading', { level: 1, name: 'API and webhooks' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Developers' })).toHaveAttribute(
       'aria-current',
       'page',
     );
+    expect(screen.getByRole('link', { name: 'Create a key' })).toHaveAttribute('href', '#new-key');
   });
 
   it('makes a client with the chosen scopes and shows its secret once', async () => {

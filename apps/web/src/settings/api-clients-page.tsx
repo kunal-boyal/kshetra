@@ -23,10 +23,13 @@ import { apiAddresses } from '../client';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
-import { Facts, fieldErrors, PageHeader, Section } from '../people/shared';
+import { Facts, fieldErrors, Section } from '../people/shared';
 import { Copyable, SecretPanel } from './secret';
 
 const KEY = ['api-clients'];
+
+/** The new key's form, which the Developers page's Create a key goes to. */
+export const NEW_KEY = 'new-key';
 
 type ApiScope = (typeof API_SCOPE_KEYS)[number];
 
@@ -52,11 +55,11 @@ function scopeName(t: ReturnType<typeof useLanguage>['t'], scope: ApiScope) {
 }
 
 /**
- * API clients (module M20, decision D94), for holders of `api_client.manage`: how the
- * organisation's own systems connect, the clients they connect as with their scopes, and making,
- * re-keying and revoking them. A secret is shown once, when it is made.
+ * API clients (module M20, decision D94), for holders of `api_client.manage`, on the Developers
+ * page: the clients the organisation's own systems connect as with their scopes, making,
+ * re-keying and revoking them, and how to connect. A secret is shown once, when it is made.
  */
-export function ApiClientsPage() {
+export function ApiClients() {
   const { client } = useApp();
   const { t } = useLanguage();
   const clients = useQuery({
@@ -66,8 +69,7 @@ export function ApiClientsPage() {
   const [shown, setShown] = useState<{ client: ApiClientResult; clientSecret: string }>();
   const addresses = apiAddresses(client);
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t('api_clients.title')} intro={t('api_clients.intro')} />
+    <>
       {shown ? (
         <SecretPanel
           title={t('api_clients.secret_title', { name: shown.client.name })}
@@ -80,6 +82,17 @@ export function ApiClientsPage() {
           onDone={() => setShown(undefined)}
         />
       ) : null}
+      <Section title={t('api_clients.list_title')}>
+        {clients.isError ? (
+          <p className="ks-help error" role="alert">
+            {errorMessage(clients.error, t)}
+          </p>
+        ) : !clients.data ? (
+          <p className="ks-muted">{t('common.loading')}</p>
+        ) : (
+          <Clients clients={clients.data.items} onRotated={setShown} />
+        )}
+      </Section>
       <Section title={t('api_clients.connect_title')}>
         <p className="ks-muted">{t('api_clients.connect_intro')}</p>
         <Facts
@@ -112,18 +125,7 @@ export function ApiClientsPage() {
         />
       </Section>
       <NewClient onMade={setShown} />
-      <Section title={t('api_clients.list_title')}>
-        {clients.isError ? (
-          <p className="ks-help error" role="alert">
-            {errorMessage(clients.error, t)}
-          </p>
-        ) : !clients.data ? (
-          <p className="ks-muted">{t('common.loading')}</p>
-        ) : (
-          <Clients clients={clients.data.items} onRotated={setShown} />
-        )}
-      </Section>
-    </div>
+    </>
   );
 }
 
@@ -176,8 +178,8 @@ function NewClient({
   }
 
   return (
-    <Section title={t('api_clients.new_title')}>
-      <form className="flex flex-col gap-4" onSubmit={make} noValidate>
+    <Section title={t('api_clients.new_title')} className="scroll-mt-4">
+      <form id={NEW_KEY} className="flex flex-col gap-4" onSubmit={make} noValidate>
         <TextField
           className="max-w-md"
           label={t('api_clients.name')}

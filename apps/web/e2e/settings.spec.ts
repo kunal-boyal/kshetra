@@ -766,8 +766,8 @@ for (const path of [
   'billing',
   'sso',
   'support',
-  'api-clients',
-  'webhooks',
+  'developers',
+  'security',
   'data-export',
   'data-requests',
   'data-requests/01a10000-0000-7000-8000-0000000000a1',
@@ -784,7 +784,7 @@ for (const path of [
   }
 }
 
-test('opens a webhook’s delivery log and shows a new secret once, accessibly', async ({ page }) => {
+test('shows a webhook’s recent deliveries and a new secret once, accessibly', async ({ page }) => {
   await mockSignedIn(page);
   await page.route('**/v1/webhooks/*/rotate', (route) =>
     route.fulfill({
@@ -794,9 +794,10 @@ test('opens a webhook’s delivery log and shows a new secret once, accessibly',
       },
     }),
   );
+  // The old address opens the Developers page.
   await page.goto('/settings/webhooks');
+  await expect(page.getByRole('heading', { level: 1, name: 'API and webhooks' })).toBeVisible();
   const erp = page.getByRole('article', { name: 'https://erp.sunrise.example/hooks' });
-  await erp.getByText('Delivery log').click();
   await expect(erp.getByRole('table', { name: 'Delivery log' })).toBeVisible();
   await erp.getByRole('button', { name: 'New secret' }).click();
   await erp.getByRole('group').getByRole('button', { name: 'New secret' }).click();
@@ -900,7 +901,7 @@ test('edits an approval chain, accessibly', async ({ page }) => {
   await mockSignedIn(page);
   await page.goto('/settings/approvals');
   const leave = page.getByRole('region', { name: 'Leave' });
-  await expect(leave.getByText('Version 2', { exact: false })).toBeVisible();
+  await expect(leave.getByText('Version 2', { exact: true })).toBeVisible();
   await leave.getByRole('button', { name: 'Edit: Leave' }).click();
   await expect(leave.getByRole('group', { name: 'Step 2' })).toBeVisible();
   await expect(leave.getByRole('group', { name: 'Use this step only when' })).toBeVisible();

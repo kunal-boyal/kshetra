@@ -10,7 +10,7 @@ const ORGANISATION = { name: 'Sunrise Traders', logo: null };
 const saved = (body: unknown) => ({ ...SETTING_DEFAULTS, ...(body as object) });
 
 describe('the organisation (M2)', () => {
-  it('saves the legal details, and renames only when the name changed', async () => {
+  it('saves the details, the colour and the modules at once, and renames only when changed', async () => {
     const client = fakeClient(
       { '/v1/organisation': ORGANISATION },
       {
@@ -21,7 +21,9 @@ describe('the organisation (M2)', () => {
     );
     renderAt('/settings/organisation', client);
     const user = userEvent.setup();
-    const form = await screen.findByRole('form', { name: 'Name and legal details' });
+    const form = await screen.findByRole('form', { name: 'Organisation' });
+    const save = within(form).getByRole('button', { name: 'Save' });
+    expect(save).toBeDisabled();
     await user.type(
       within(form).getByRole('textbox', { name: 'Legal name' }),
       'Sunrise Traders Pvt Ltd',
@@ -31,19 +33,58 @@ describe('the organisation (M2)', () => {
       within(form).getByRole('textbox', { name: /Your privacy policy/ }),
       'https://sunrise.example/privacy',
     );
-    await user.click(within(form).getByRole('button', { name: 'Save' }));
-    expect(await within(form.parentElement!).findByText('Saved.')).toBeVisible();
+    await user.type(within(form).getByRole('textbox', { name: 'Colour code' }), '#0f6e6e');
+    await user.click(within(form).getByRole('switch', { name: /Orders/ }));
+    await user.click(save);
+    expect(await within(form).findByText('Saved.')).toBeVisible();
     expect(writesOf(client).map(([method, path]) => `${method} ${path}`)).toEqual([
       'PATCH /v1/settings',
     ]);
-    expect(writesOf(client)[0]![3]).toMatchObject({
-      body: {
-        legalName: 'Sunrise Traders Pvt Ltd',
-        address: null,
-        taxId: '07ABCDE1234F1Z5',
-        privacyPolicyUrl: 'https://sunrise.example/privacy',
-      },
-    });
+    expect(writesOf(client)[0]![3]).toEqual(
+      expect.objectContaining({
+        body: {
+          legalName: 'Sunrise Traders Pvt Ltd',
+          taxId: '07ABCDE1234F1Z5',
+          privacyPolicyUrl: 'https://sunrise.example/privacy',
+          brandColour: '#0f6e6e',
+          modulesOff: ['orders'],
+        },
+      }),
+    );
+  });
+
+  it('renames through the organisation, apart from the settings', async () => {
+    const client = fakeClient(
+      { '/v1/organisation': ORGANISATION },
+      { 'PATCH /v1/organisation': ({ body }) => ({ ...ORGANISATION, ...(body as object) }) },
+      ADMIN,
+    );
+    renderAt('/settings/organisation', client);
+    const user = userEvent.setup();
+    const name = await screen.findByRole('textbox', { name: /Display name/ });
+    await user.clear(name);
+    await user.type(name, 'Sunrise Agro');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(writesOf(client).map(([method, path]) => `${method} ${path}`)).toEqual([
+        'PATCH /v1/organisation',
+      ]),
+    );
+  });
+
+  it('shows the words, the field rules and the modules that cannot be switched', async () => {
+    const client = fakeClient({ '/v1/organisation': ORGANISATION }, {}, ADMIN);
+    renderAt('/settings/organisation', client);
+    const words = await screen.findByRole('table');
+    expect(within(words).getAllByRole('row')).toHaveLength(10);
+    expect(screen.getByRole('link', { name: 'Change words' })).toHaveAttribute(
+      'href',
+      '/settings/terminology',
+    );
+    const rules = screen.getByRole('region', { name: 'Field rules' });
+    expect(within(rules).getByText('Within 300 m')).toBeVisible();
+    expect(screen.getByText('Always on')).toBeVisible();
+    expect(screen.getAllByText('Arrives later')).toHaveLength(4);
   });
 
   it('says when a logo is too big, before sending it', async () => {
@@ -69,15 +110,45 @@ describe('the organisation (M2)', () => {
     const hex = await screen.findByRole('textbox', { name: 'Colour code' });
     await user.type(hex, '#9fd3ff');
     expect(screen.getByText(/Too light/)).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Use this colour' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: /Use #[0-9a-f]{6} instead/ }));
     expect(screen.queryByText(/Too light/)).toBeNull();
     expect(screen.getByRole('group', { name: 'How it looks' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Use this colour' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(writesOf(client)[0]![3]).toMatchObject({
         body: { brandColour: expect.stringMatching(/^#[0-9a-f]{6}$/) },
       }),
+    );
+  });
+});
+
+describe('settings navigation (decision D104)', () => {
+  it('groups the pages, marks the group holding the page, and lists its pages', async () => {
+    const client = fakeClient({ '/v1/organisation': ORGANISATION }, {}, ADMIN);
+    renderAt('/settings/rules', client);
+    const nav = await screen.findByRole('navigation', { name: 'Settings' });
+    // The group and its first page share the name.
+    const [group] = await within(nav).findAllByRole('link', { name: 'Organisation' });
+    expect(group).toHaveAttribute('aria-current', 'true');
+    const pages = within(nav).getByRole('list', { name: 'Pages in Organisation' });
+    expect(within(pages).getByRole('link', { name: 'Rules' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(nav).getByRole('link', { name: 'People and access' })).toBeVisible();
+  });
+
+  it('shows a caller only the groups and pages they may open', async () => {
+    const client = fakeClient({}, {}, ['form.manage']);
+    renderAt('/settings/designations', client);
+    const nav = await screen.findByRole('navigation', { name: 'Settings' });
+    await waitFor(() =>
+      expect(
+        within(nav)
+          .getAllByRole('link')
+          .map((link) => link.textContent),
+      ).toEqual(['People and access', 'Field work', 'Designations', 'People fields']),
     );
   });
 });
