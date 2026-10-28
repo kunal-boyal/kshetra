@@ -1,8 +1,8 @@
-import '../src/demo/clock';
+import { haltTravel, resumeTravel, returnToNow } from '../src/demo/clock';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ProvisionTenantInput } from '@thelamp/shared';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
 import { DemoContent } from '../src/demo/content';
 import { TenantProvisioner } from '../src/modules/provisioning/provisioner';
 import { newPhone, startApp, testConfig, World } from './support';
@@ -17,6 +17,24 @@ beforeAll(async () => {
   app = await startApp(testConfig());
   world = await World.create(app);
 });
+
+/** The generator a test started: one its test gave up on is stopped before the next test. */
+let running: Promise<unknown> | undefined;
+
+function fill(options: ConstructorParameters<typeof DemoContent>[1]) {
+  const run = new DemoContent(app, options).run();
+  running = run;
+  return run;
+}
+
+// A halted generator stops within one person's day, which can take a minute beside the suite.
+afterEach(async () => {
+  haltTravel();
+  await running?.catch(() => {});
+  running = undefined;
+  resumeTravel();
+  returnToNow();
+}, 120_000);
 
 afterAll(async () => {
   await world.end();
@@ -60,12 +78,12 @@ describe('demo content (decision D70)', () => {
       const { tenantId } = await provision(slug, true);
       const lines: string[] = [];
       // Ten days take in a Saturday, two holidays and decided requests.
-      const counts = await new DemoContent(app, {
+      const counts = await fill({
         slug,
         days: 10,
         seed: 3,
         log: (line) => lines.push(line),
-      }).run();
+      });
 
       // Nothing was refused along the way, and every kind of record was made.
       expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
@@ -119,14 +137,14 @@ describe('demo content (decision D70)', () => {
       expect(phase2!.approved).toBeGreaterThan(0);
 
       // A tenant is filled once, and only a demo tenant.
-      await expect(
-        new DemoContent(app, { slug, days: 1, seed: 3, log: () => {} }).run(),
-      ).rejects.toThrow(/has content already/);
+      await expect(fill({ slug, days: 1, seed: 3, log: () => {} })).rejects.toThrow(
+        /has content already/,
+      );
       const realSlug = `real-agro-${Date.now().toString(36)}`;
       await provision(realSlug, false);
-      await expect(
-        new DemoContent(app, { slug: realSlug, days: 1, seed: 3, log: () => {} }).run(),
-      ).rejects.toThrow(/isn't a demo tenant/);
+      await expect(fill({ slug: realSlug, days: 1, seed: 3, log: () => {} })).rejects.toThrow(
+        /isn't a demo tenant/,
+      );
     },
     DEMO_TIMEOUT_MS,
   );
@@ -137,12 +155,12 @@ describe('demo content (decision D70)', () => {
       const slug = `demo-pharma-${Date.now().toString(36)}`;
       const { tenantId } = await provision(slug, true, 'pharma');
       const lines: string[] = [];
-      const counts = await new DemoContent(app, {
+      const counts = await fill({
         slug,
         days: 10,
         seed: 5,
         log: (line) => lines.push(line),
-      }).run();
+      });
       expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
       expect(counts.entries).toBeGreaterThan(0);
       expect(counts.orders).toBeGreaterThan(0);
@@ -187,12 +205,12 @@ describe('demo content (decision D70)', () => {
       const slug = `demo-fmcg-${Date.now().toString(36)}`;
       const { tenantId } = await provision(slug, true, 'fmcg');
       const lines: string[] = [];
-      const counts = await new DemoContent(app, {
+      const counts = await fill({
         slug,
         days: 10,
         seed: 9,
         log: (line) => lines.push(line),
-      }).run();
+      });
       expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
       expect(counts.orders).toBeGreaterThan(0);
       expect(counts.proposals).toBeGreaterThan(0);

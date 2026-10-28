@@ -22,6 +22,7 @@ class SimulatedDate extends RealDate {
 globalThis.Date = SimulatedDate as DateConstructor;
 
 const listeners: ((offset: number) => void)[] = [];
+let halted = false;
 
 /**
  * Called with the clock's offset from real time whenever it moves, for what must keep real time,
@@ -33,8 +34,21 @@ export function onTravel(listener: (offset: number) => void): void {
 
 /** Moves the clock to `moment` (milliseconds); it runs on from there. */
 export function travelTo(moment: number): void {
+  if (halted) throw new Error('The demo clock is halted.');
   offset = moment - RealDate.now();
   for (const listener of listeners) listener(offset);
+}
+
+/**
+ * Stops every later move until `resumeTravel()`, so a generator still running when its test has
+ * given up fails at its next step rather than moving the clock under the next test.
+ */
+export function haltTravel(): void {
+  halted = true;
+}
+
+export function resumeTravel(): void {
+  halted = false;
 }
 
 /** Back to the present. */
