@@ -341,6 +341,11 @@ Spec 15 leaves this phase to customer demand and fixes no exit criteria. Kunal a
 | A run of the Maestro flows on your phone, now with `order` and `leave` (`apps/mobile/.maestro/README.md`) | Kunal | Phase 2 step 9 |
 | A Razorpay account with test keys, for checking billing end to end; live keys once prices (D3) are set and the company exists | Kunal | Phase 3 step 3 |
 | A penetration test vendor, booked for after phase 3 step 10's scope pack | Kunal | Phase 3 step 10 |
+| 3 or 4 real schemes or promotions (discounts, slabs, free goods) from agri, pharma or FMCG, to test the scheme engine against (D109) | Kunal | Phase 4 step D1 |
+| One example of how product forecasts per account are made today (D109) | Kunal | Phase 4 step D2 |
+| One real liquidation sheet, names blacked out (D109) | Kunal | Phase 4 step D3 |
+| A Zoho Books test company, a free trial will do, for the first ERP connector (D109) | Kunal | Phase 4 step D5 |
+| A native speaker to review Marathi, and later each further language, before a tenant turns it on (D109) | Kunal | Phase 4 step E2 |
 | Register the new company that publishes the apps (D1), then send its name: the D-U-N-S number, DLT and the Play Console all need it | Kunal | Before DLT registration and store listings |
 | D2: name the pilot customer (agri inputs) | Kunal | Phase 1 |
 | D3: seat prices and plan contents; the demo's plans carry fictional prices until then (D87) | Kunal | Before billing goes live (phase 3 step 3) |
