@@ -312,6 +312,8 @@ export const en = {
   'search.searching': 'Searching…',
   'search.nothing': 'Nothing matches “{q}”.',
   'search.more_letters': 'Type at least two letters, or a number.',
+  'search.phone_kept':
+    'The phone searches the screens you can open and the people and {term.account:other:lower} it keeps, even without signal.',
   'nav.org_chart': 'Organisation chart',
   'nav.attendance': 'Attendance',
   'nav.settings': 'Settings',

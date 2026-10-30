@@ -23,6 +23,7 @@ import {
   MapPin,
   Receipt,
   RotateCw,
+  Search,
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useConfig, useMe } from '../data';
@@ -200,6 +201,11 @@ export function HomeScreen() {
             {[formatDay(todayIn(timeZone), { locale }), route].filter(Boolean).join(' · ')}
           </Text>
         </View>
+        <IconButton
+          icon={Search}
+          label={t('search.label')}
+          onPress={() => router.push('/search')}
+        />
         <IconButton
           icon={Bell}
           label={t('notifications.title')}
