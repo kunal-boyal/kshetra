@@ -186,6 +186,11 @@ export interface Flavour {
   topics: readonly string[];
   /** The chance of such an activity after each stop. */
   activityChance: number;
+  /**
+   * Which folder of real photographs a capture draws from, by the words of its caption (the
+   * form's or field's name), checked in order; anything else is a shop front or a shelf.
+   */
+  scenes: readonly { match: RegExp; scene: 'field' | 'shelf' }[];
 }
 
 const AGRI: Flavour = {
@@ -243,6 +248,10 @@ const AGRI: Flavour = {
   gatherings: VILLAGES,
   topics: ['Seed treatment', 'Spray schedule', 'Soil health', 'Crop nutrition'],
   activityChance: 0.4,
+  scenes: [
+    { match: /crop|field|farm|demo|plot|soil|harvest|grower/, scene: 'field' },
+    { match: /stock|display|shelf|merchand|product|audit/, scene: 'shelf' },
+  ],
 };
 
 const PHARMA: Flavour = {
@@ -315,6 +324,7 @@ const PHARMA: Flavour = {
     'Free blood sugar camp',
   ],
   activityChance: 0.05,
+  scenes: [{ match: /stock|display|shelf|product|audit|pharmacy|chemist/, scene: 'shelf' }],
 };
 
 const FMCG: Flavour = {
@@ -367,6 +377,7 @@ const FMCG: Flavour = {
   ],
   topics: ['Retailer meet', 'Scheme launch', 'Display contest'],
   activityChance: 0.08,
+  scenes: [{ match: /stock|display|shelf|merchand|product|audit|planogram/, scene: 'shelf' }],
 };
 
 /** The flavour of a tenant's industry template; any other template takes agri's. */
@@ -376,6 +387,22 @@ export function flavourOf(templateKey: string): Flavour {
 
 function parts(dice: Dice, town: string): Parts {
   return { first: dice.pick(FIRST_NAMES), surname: dice.pick(SURNAMES), town };
+}
+
+/** A scene of the demo's real photographs (`DemoOptions.photos`), one subfolder each. */
+export type Scene = 'odometer' | 'field' | 'shelf' | 'shop';
+
+/**
+ * The scene a capture draws from: a dashboard for an odometer, else the first of the template's
+ * scenes whose words its caption has, else a shop front or a shelf as the dice fall.
+ */
+export function sceneFor(flavour: Flavour, caption: string, kind: string, dice: Dice): Scene {
+  if (kind === 'odometer') return 'odometer';
+  const name = caption.toLowerCase();
+  return (
+    flavour.scenes.find((entry) => entry.match.test(name))?.scene ??
+    dice.pick(['shop', 'shop', 'shelf'] as const)
+  );
 }
 
 /** A name for an account of a type, by the type's own name, or as a supplier or a shop. */
