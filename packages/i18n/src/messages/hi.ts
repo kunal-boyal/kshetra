@@ -296,6 +296,8 @@ export const hi: Record<MessageKey, Message> = {
   'search.searching': 'खोज रहे हैं…',
   'search.nothing': '“{q}” से कुछ नहीं मिला।',
   'search.more_letters': 'कम से कम दो अक्षर या कोई नंबर लिखें।',
+  'search.phone_kept':
+    'फ़ोन उन स्क्रीन और उन लोगों व {term.account:other} में खोजता है जो इसमें रखे हैं, सिग्नल न होने पर भी।',
   'nav.org_chart': 'संगठन चार्ट',
   'nav.attendance': 'उपस्थिति',
   'nav.settings': 'सेटिंग',
