@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type EventPayload, monthOf, todayIn } from '@thelamp/shared';
+import { type EventPayload, todayIn } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
@@ -7,6 +7,7 @@ import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
 import { AccountsService } from '../accounts/accounts.service';
 import { People } from '../iam/people';
+import { TargetPeriods } from '../metrics/target-periods';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { MetricsEngine } from './metrics-engine';
 import { PerformanceService } from './performance.service';
@@ -42,6 +43,7 @@ export class PerformanceUpkeep implements OnModuleInit {
     private readonly engine: MetricsEngine,
     private readonly performance: PerformanceService,
     private readonly accounts: AccountsService,
+    private readonly periods: TargetPeriods,
   ) {}
 
   /** Recomputes the day a moment falls on, on the tenant's clock. */
@@ -50,7 +52,7 @@ export class PerformanceUpkeep implements OnModuleInit {
     await this.engine.recompute(tx, tenantId, userId, todayIn(timezone, new Date(moment)));
   }
 
-  /** Everyone's day just gone, and the month's scores as they stand. */
+  /** Everyone's day just gone, and the scores of its period (D108) as they stand. */
   async nightly(tenantId: string): Promise<void> {
     await this.database.forTenant(tenantId, async (tx) => {
       const { timezone } = await this.config.settings(tx, tenantId);
@@ -58,7 +60,11 @@ export class PerformanceUpkeep implements OnModuleInit {
       for (const person of await this.people.matching(tx, tenantId, sql`true`)) {
         await this.engine.recompute(tx, tenantId, person.id, yesterday);
       }
-      await this.performance.snapshot(tx, tenantId, monthOf(yesterday));
+      await this.performance.snapshot(
+        tx,
+        tenantId,
+        await this.periods.current(tx, tenantId, yesterday),
+      );
     });
   }
 

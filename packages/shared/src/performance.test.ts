@@ -88,20 +88,27 @@ describe('months', () => {
 describe('last week’s rank', () => {
   it('counts up to the Sunday before this week, within the month', () => {
     // Tuesday 27 October 2026: the week began on Monday the 26th.
-    expect(rankCutoff('2026-10', '2026-10-27')).toBe('2026-10-25');
+    expect(rankCutoff(monthDates('2026-10'), '2026-10-27')).toBe('2026-10-25');
     // A Sunday belongs to its own week, so it reaches back a whole week.
-    expect(rankCutoff('2026-10', '2026-10-25')).toBe('2026-10-18');
-    expect(rankCutoff('2026-10', '2026-10-26')).toBe('2026-10-25');
+    expect(rankCutoff(monthDates('2026-10'), '2026-10-25')).toBe('2026-10-18');
+    expect(rankCutoff(monthDates('2026-10'), '2026-10-26')).toBe('2026-10-25');
   });
 
   it('shows no movement in a month’s first days, or before it begins', () => {
-    expect(rankCutoff('2026-10', '2026-10-03')).toBeNull();
-    expect(rankCutoff('2026-11', '2026-11-01')).toBeNull();
-    expect(rankCutoff('2026-11', '2026-10-27')).toBeNull();
+    expect(rankCutoff(monthDates('2026-10'), '2026-10-03')).toBeNull();
+    expect(rankCutoff(monthDates('2026-11'), '2026-11-01')).toBeNull();
+    expect(rankCutoff(monthDates('2026-11'), '2026-10-27')).toBeNull();
   });
 
   it('measures a month gone from its last week', () => {
     // September 2026 ended on Wednesday the 30th.
-    expect(rankCutoff('2026-09', '2026-10-27')).toBe('2026-09-27');
+    expect(rankCutoff(monthDates('2026-09'), '2026-10-27')).toBe('2026-09-27');
+  });
+
+  it('reaches across months within a quarter', () => {
+    // Q3 of an April year is October to December; Tuesday 3 November 2026.
+    const quarter = { from: '2026-10-01', to: '2026-12-31' };
+    expect(rankCutoff(quarter, '2026-11-03')).toBe('2026-11-01');
+    expect(rankCutoff(quarter, '2026-10-03')).toBeNull();
   });
 });

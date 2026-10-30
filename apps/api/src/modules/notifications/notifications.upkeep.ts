@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { formatDateTime, resolveTerminology, translate } from '@thelamp/i18n';
+import { formatDateTime, formatPeriod, resolveTerminology, translate } from '@thelamp/i18n';
 import {
   type EventPayload,
   type Locale,
@@ -220,10 +220,16 @@ export class NotificationsUpkeep implements OnModuleInit {
     });
     this.outbox.consume(['target.locked'], 'notifications.targets', async (event, tx) => {
       const locked = event.payload as EventPayload<'target.locked'>;
+      // The period as each language names it: a month, or a quarter or year (D108).
+      const { financialYearStartMonth: start, defaultCountry: region } = await this.config.settings(
+        tx,
+        event.tenantId,
+      );
+      const named = (locale: 'en' | 'hi') => formatPeriod(locked.period, start, { locale, region });
       await this.notifications.notify(tx, event.tenantId, {
         userId: locked.userId,
         event: 'target.locked',
-        values: { month: locked.period },
+        values: { month_en: named('en'), month_hi: named('hi') },
         link: null,
         dedupeKey: `target:${event.id}`,
       });

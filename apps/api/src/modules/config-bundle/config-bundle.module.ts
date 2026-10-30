@@ -3,6 +3,7 @@ import { AccountsModule } from '../accounts/accounts.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
+import { MetricsModule } from '../metrics/metrics.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { ConfigBundleController } from './config-bundle.controller';
 
@@ -11,7 +12,14 @@ import { ConfigBundleController } from './config-bundle.controller';
  * them, so none of them depends on another to build it.
  */
 @Module({
-  imports: [TenantConfigModule, IamModule, AccountsModule, FormsModule, CatalogueModule],
+  imports: [
+    TenantConfigModule,
+    IamModule,
+    AccountsModule,
+    FormsModule,
+    CatalogueModule,
+    MetricsModule,
+  ],
   controllers: [ConfigBundleController],
 })
 export class ConfigBundleModule {}

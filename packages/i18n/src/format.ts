@@ -1,4 +1,4 @@
-import type { Locale } from '@thelamp/shared';
+import { type Locale, periodDates, periodKind } from '@thelamp/shared';
 
 /**
  * Numbers, money and dates for display (spec 8.5): the user's language with the tenant's region,
@@ -62,6 +62,34 @@ export function formatMonth(period: string, { locale, region }: FormatContext): 
     year: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(`${period}-01T00:00:00Z`));
+}
+
+/** "Quarter" before its number, in each language. */
+const QUARTER_WORD: Record<Locale, string> = { en: 'Q', hi: 'तिमाही ' };
+
+/**
+ * A target period (D108) as people read it, with the tenant's financial year start: a month as
+ * "October 2026"; a quarter as "Q3 2026–27 (Oct–Dec)"; a year as "2026–27", or "2026" when the
+ * year starts in January.
+ */
+export function formatPeriod(
+  key: string,
+  startMonth: number,
+  { locale, region }: FormatContext,
+): string {
+  const kind = periodKind(key);
+  if (kind === 'month') return formatMonth(key, { locale, region });
+  const startYear = Number(key.slice(2, 6));
+  const year =
+    startMonth === 1 ? String(startYear) : `${startYear}–${String(startYear + 1).slice(-2)}`;
+  if (kind === 'year') return year;
+  const { from, to } = periodDates(key, startMonth);
+  const month = new Intl.DateTimeFormat(localeTag(locale, region), {
+    month: 'short',
+    timeZone: 'UTC',
+  });
+  const span = `${month.format(new Date(`${from}T00:00:00Z`))}–${month.format(new Date(`${to}T00:00:00Z`))}`;
+  return `${QUARTER_WORD[locale]}${key.slice(-1)} ${year} (${span})`;
 }
 
 /** A weekday's short name, 1 being Monday (ISO 8601), such as a calendar's column. */

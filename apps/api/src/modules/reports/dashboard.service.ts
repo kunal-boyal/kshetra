@@ -8,6 +8,7 @@ import { SubmissionsService } from '../field/submissions.service';
 import { VisitsService } from '../field/visits.service';
 import { People } from '../iam/people';
 import { Scopes } from '../iam/scopes';
+import { TargetPeriods } from '../metrics/target-periods';
 import { PerformanceService } from '../performance/performance.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ApprovalsService } from '../workflow/approvals.service';
@@ -33,6 +34,7 @@ export class DashboardService {
     private readonly leave: AttendanceLeave,
     private readonly people: People,
     private readonly config: TenantConfigService,
+    private readonly periods: TargetPeriods,
   ) {}
 
   async read(tx: TenantTx, access: Access, period: string): Promise<DashboardResult> {
@@ -43,7 +45,12 @@ export class DashboardService {
     return {
       period,
       ...figures,
-      mix: await this.submissions.mixByForm(tx, access.tenantId, ids, period),
+      mix: await this.submissions.mixByForm(
+        tx,
+        access.tenantId,
+        ids,
+        await this.periods.dates(tx, access.tenantId, period),
+      ),
       onDuty: duty?.count ?? null,
       onDutyPeople: duty?.people ?? null,
       onLeaveToday: duty?.onLeave ?? null,

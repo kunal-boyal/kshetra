@@ -346,7 +346,7 @@ Values belong to the submitting or ordering user and to the local date of captur
 
 ### 5.8 Targets and score
 
-- A target set belongs to one user and one period (month by default; quarter or year when the tenant enables them) and holds one value per targetable metric the tenant chooses.
+- A target set belongs to one user and one period (month by default; quarter or year when the tenant enables them) and holds one value per targetable metric the tenant chooses. A tenant counts by one kind of period at a time, its score definition's `periodType`; quarters and years follow its financial year (`financialYearStartMonth`), and a change of kind starts at a period still to come, where the kind before it ends (D108).
 - Target sets move from `draft` to `locked`. Locking is final unless the tenant enables admin unlock, which needs a reason and is audited. If two people lock at once, the first wins and the second receives `TARGET_LOCKED`.
 - Targets can be entered one by one, copied from the previous period or imported (Appendix B.4).
 - The score is a weighted, capped attainment across the metrics in the tenant's score definition (BR-06). Users are ranked within ranking groups, by default one group per designation.
@@ -1081,7 +1081,7 @@ Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group c
 
 - Primary keys are UUID version 7 (time-ordered, good index locality). Device-created records get their ID on the device: shifts, location points, visits, submissions, media, orders, claims, leave and regularisation requests.
 - Every tenant-owned table has `tenant_id` first in its primary or unique keys and in its main indexes.
-- Times are `timestamptz` in UTC. Calendar dates (plan items, holidays, leave, statement entries) are `date` values in the tenant timezone. Periods are text `YYYY-MM` (or `YYYY-Qn`, `YYYY`).
+- Times are `timestamptz` in UTC. Calendar dates (plan items, holidays, leave, statement entries) are `date` values in the tenant timezone. Periods are text `YYYY-MM`; target and score periods may also be a quarter `FYYYYY-Qn` or a year `FYYYYY` of the tenant's financial year, named by the year it starts in (D108).
 - Money is `numeric(18,2)`, percentages `numeric(7,4)`, quantities `numeric(18,3)`. The shared package uses a decimal library for pricing and converts only at the edges; money never passes through binary floating point in calculations.
 - Locations are `geography(Point, 4326)` with GiST indexes.
 - Fixed system statuses use PostgreSQL enums. Tenant-defined data (custom fields, form data, settings, workflow steps) is `jsonb`, validated in the application against the versioned definition. Frequently filtered custom fields can be promoted to indexed generated columns.
@@ -1934,7 +1934,7 @@ The rules shared by every import are in M19. Column names below are canonical; t
 
 | Column | Rules |
 |---|---|
-| Employee code*, Period* | Period `YYYY-MM` (or the tenant's period format) |
+| Employee code*, Period* | Period `YYYY-MM`, or `FY2026-Q3` or `FY2026` when the tenant counts by the quarter or the year (D108) |
 | One column per targetable metric | Non-negative numbers; a blank cell leaves the value unchanged |
 | Lock | Yes locks the set after import (requires the lock permission) |
 

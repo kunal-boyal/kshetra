@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { METRIC_UNITS } from '../targets';
 import { Key, LocalizedNoun } from './config';
-import { Period } from './planning';
+import { Period, TargetPeriod } from './planning';
 
 /** A metric as the targets and plans screens need it (spec 5.7). */
 export const MetricView = z
@@ -28,7 +28,7 @@ export const TARGET_STATUSES = ['none', 'draft', 'locked'] as const;
 export const TargetSetResult = z
   .object({
     user: z.object({ id: z.uuid(), code: z.string(), name: z.string() }),
-    period: Period,
+    period: TargetPeriod,
     status: z.enum(TARGET_STATUSES),
     values: z.record(Key, z.string()),
     lockedAt: z.iso.datetime().nullable(),
@@ -38,10 +38,10 @@ export const TargetSetResult = z
   .meta({ id: 'TargetSetResult' });
 
 /** `GET /v1/targets`: the month's targets of the people in the caller's scope. */
-export const TargetListQuery = z.strictObject({ period: Period });
+export const TargetListQuery = z.strictObject({ period: TargetPeriod });
 
 export const TargetListResult = z.object({
-  period: Period,
+  period: TargetPeriod,
   /** The targetable metrics, as the grid's columns. */
   metrics: z.array(MetricView),
   /** The people in the caller's scope, the caller apart. */
@@ -54,7 +54,7 @@ export const TargetListResult = z.object({
 
 /** `PUT /v1/targets`: draft values for some people, each at the version the editor saw. */
 export const PutTargetsBody = z.strictObject({
-  period: Period,
+  period: TargetPeriod,
   sets: z
     .array(z.strictObject({ userId: z.uuid(), values: TargetValues, version: z.int().min(0) }))
     .min(1)
@@ -73,7 +73,7 @@ export const TARGET_SKIP_REASONS = [
 
 /** `POST /v1/targets/lock`: locks the drafts of these people for the month (BR-08). */
 export const LockTargetsBody = z.strictObject({
-  period: Period,
+  period: TargetPeriod,
   userIds: z.array(z.uuid()).min(1).max(200),
 });
 
@@ -85,14 +85,14 @@ export const LockTargetsResult = z.object({
 /** `POST /v1/targets/unlock`: back to draft, with a reason (BR-08). */
 export const UnlockTargetBody = z.strictObject({
   userId: z.uuid(),
-  period: Period,
+  period: TargetPeriod,
   reason: z.string().trim().max(500),
 });
 
 /** `POST /v1/targets/copy`: the values of an earlier month into these people's drafts. */
 export const CopyTargetsBody = z.strictObject({
-  period: Period,
-  from: Period,
+  period: TargetPeriod,
+  from: TargetPeriod,
   userIds: z.array(z.uuid()).min(1).max(200),
 });
 

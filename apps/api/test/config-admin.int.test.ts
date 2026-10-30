@@ -146,7 +146,7 @@ describe('territory levels (M2, spec 5.4)', () => {
 });
 
 describe('metrics and the score (M2, spec 5.7, 5.8)', () => {
-  it('are changed with their rules kept: key, unit, the score’s metrics, monthly targets', async () => {
+  it('are changed with their rules kept: key, unit, the score’s metrics, its period from one to come', async () => {
     const t = await tenant('Metrics Co');
     const { metrics, score } = (await t.admin('GET', '/v1/metric-definitions')).json();
     const visits = metrics.find(
@@ -186,7 +186,9 @@ describe('metrics and the score (M2, spec 5.7, 5.8)', () => {
           definition: { ...score, periodType: 'quarter' },
         })
       ).json().error.details,
-    ).toEqual([expect.objectContaining({ path: 'definition.periodType' })]);
+    ).toEqual([
+      { path: 'definition.periodFrom', issue: 'Choose the first period the new kind counts from' },
+    ]);
     const reweighted = await t.admin('PUT', '/v1/score', {
       definition: {
         ...score,

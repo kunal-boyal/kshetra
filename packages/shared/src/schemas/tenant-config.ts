@@ -2,6 +2,7 @@ import { type CountryCode, isSupportedCountry } from 'libphonenumber-js';
 import { z } from 'zod';
 import { DataScope, Permission } from './common';
 import { contrastRatio, HEX_COLOUR } from '../colour';
+import { TARGET_PERIOD_KINDS } from '../periods';
 import { bucketsIssue, DEFAULT_AGEING_BUCKETS } from '../finance';
 import { SWITCHABLE_MODULES } from '../modules';
 import { RAW_LOCATION_RETENTION_DAYS_MAX, SYNC_WINDOW_HOURS_MAX } from '../retention';
@@ -294,6 +295,18 @@ export const CoreConfigBundle = z.object({
   designations: z.array(
     z.object({ key: Key, name: LocalizedNoun, level: z.int(), ranked: z.boolean() }),
   ),
+  /**
+   * The periods targets and scores count over (spec 5.8, D108), from the score definition: with
+   * `financialYearStartMonth`, `currentPeriod()` gives the period in force on a day. Months when
+   * left out, as in a bundle from before it.
+   */
+  targetPeriods: z
+    .object({
+      periodType: z.enum(TARGET_PERIOD_KINDS),
+      periodFrom: z.string().optional(),
+      earlierPeriodType: z.enum(TARGET_PERIOD_KINDS).optional(),
+    })
+    .default({ periodType: 'month' }),
   /** What the caller may do: their role, its scope and its permissions (spec 4.2). */
   access: z.object({
     role: Key,

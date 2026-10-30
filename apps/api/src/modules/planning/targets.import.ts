@@ -1,5 +1,11 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type ImportProblem, Period, targetValueIssue, type TargetValues } from '@thelamp/shared';
+import {
+  type ImportProblem,
+  periodKeyIssue,
+  TargetPeriod,
+  targetValueIssue,
+  type TargetValues,
+} from '@thelamp/shared';
 import type { TenantTx } from '../../platform/database';
 import { People } from '../iam/people';
 import { cellText, cellYesNo, isEmptyCell } from '../imports/reading';
@@ -13,6 +19,7 @@ import {
   checked,
 } from '../imports/targets';
 import { MetricsService } from '../metrics/metrics.service';
+import { TargetPeriods } from '../metrics/target-periods';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TargetsService } from './targets.service';
 
@@ -25,7 +32,8 @@ interface Planned {
 }
 
 /**
- * Target imports (spec Appendix B.4): employee code, period, one column per targetable metric,
+ * Target imports (spec Appendix B.4): employee code, period (a month such as 2026-10, or a
+ * quarter or year such as FY2026-Q3 or FY2026, as the tenant counts, D108), one column per targetable metric,
  * and an optional lock. A blank cell leaves a value as it is. Rows for locked sets fail, unless
  * the tenant allows admin unlock and the importer holds that permission (BR-08); locking needs
  * the lock permission. People are found by code, within the importer's scope, never themselves.
@@ -41,6 +49,7 @@ export class TargetsImport implements ImportTargetSource, OnModuleInit {
     private readonly metrics: MetricsService,
     private readonly people: People,
     private readonly settings: TenantConfigService,
+    private readonly periods: TargetPeriods,
   ) {}
 
   onModuleInit(): void {
@@ -77,6 +86,7 @@ export class TargetsImport implements ImportTargetSource, OnModuleInit {
     );
     const { targetUnlockByAdmin } = await this.settings.settings(tx, tenantId);
     const overwriteLocked = targetUnlockByAdmin && access.permissions.has('target.unlock');
+    const rules = await this.periods.rules(tx, tenantId);
     const seen = new Set<string>();
     const planned: Planned[] = [];
     for (const { row, cells } of rows) {
@@ -91,12 +101,17 @@ export class TargetsImport implements ImportTargetSource, OnModuleInit {
         continue;
       }
       const period = cellText(cells.period).trim();
-      if (!Period.safeParse(period).success) {
-        problem(row, 'period', 'Write the month as 2026-10');
+      if (!TargetPeriod.safeParse(period).success) {
+        problem(row, 'period', 'Write the period as 2026-10, FY2026-Q3 or FY2026');
+        continue;
+      }
+      const kindIssue = periodKeyIssue(period, rules.setting, rules.startMonth);
+      if (kindIssue) {
+        problem(row, 'period', kindIssue);
         continue;
       }
       if (seen.has(`${userId}|${period}`)) {
-        problem(row, 'code', 'This person and month are in the file already');
+        problem(row, 'code', 'This person and period are in the file already');
         continue;
       }
       seen.add(`${userId}|${period}`);

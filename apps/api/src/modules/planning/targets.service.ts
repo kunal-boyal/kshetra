@@ -9,6 +9,7 @@ import {
   type LockTargetsResult,
   type MetricView,
   newId,
+  periodKind,
   type PutTargetsBody,
   type PutTargetsResult,
   targetValueIssue,
@@ -30,6 +31,7 @@ import { outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
 import { Scopes } from '../iam/scopes';
 import { MetricsService } from '../metrics/metrics.service';
+import { TargetPeriods } from '../metrics/target-periods';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 type SetRow = typeof targetSets.$inferSelect;
@@ -39,9 +41,10 @@ type Skip = LockTargetsResult['skipped'][number]['reason'];
 const tidy = (value: string) => value.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
 
 /**
- * Targets (spec 5.8, BR-08): one set per person per month, holding a value for each targetable
- * metric. Managers draft them for the people in their scope, never their own, copy them from an
- * earlier month or import them, and lock them. A locked set changes only through an admin unlock
+ * Targets (spec 5.8, BR-08): one set per person per period (a month, or a quarter or year of the
+ * financial year, D108), holding a value for each targetable metric. Managers draft them for the
+ * people in their scope, never their own, copy them from an earlier period or import them, and
+ * lock them; drafts and locks take only periods of the kind the tenant counts by. A locked set changes only through an admin unlock
  * with a reason, where the tenant allows it. Every edit carries the version it was made on.
  */
 @Injectable()
@@ -53,6 +56,7 @@ export class TargetsService {
     private readonly metrics: MetricsService,
     private readonly settings: TenantConfigService,
     private readonly outbox: Outbox,
+    private readonly periods: TargetPeriods,
   ) {}
 
   /** These people's target sets for a month, by person: an empty one where none exists. */
@@ -282,6 +286,7 @@ export class TargetsService {
    */
   async put(tx: TenantTx, access: Access, body: PutTargetsBody): Promise<PutTargetsResult> {
     const tenantId = access.tenantId;
+    await this.periods.check(tx, tenantId, body.period);
     const metrics = await this.metrics.targetable(tx, tenantId);
     const issues = body.sets.flatMap((set, index) =>
       TargetsService.valueIssues(metrics, set.values, ['sets', index, 'values']),
@@ -323,6 +328,7 @@ export class TargetsService {
    */
   async lock(tx: TenantTx, access: Access, body: LockTargetsBody): Promise<LockTargetsResult> {
     const tenantId = access.tenantId;
+    await this.periods.check(tx, tenantId, body.period);
     const locked: string[] = [];
     const skipped: LockTargetsResult['skipped'] = [];
     for (const userId of [...new Set(body.userIds)]) {
@@ -436,8 +442,15 @@ export class TargetsService {
   async copy(tx: TenantTx, access: Access, body: CopyTargetsBody): Promise<CopyTargetsResult> {
     const tenantId = access.tenantId;
     if (body.from === body.period) {
-      throw new AppError('VALIDATION', 'Copy from another month.', [
-        { path: 'from', issue: 'Choose an earlier month' },
+      throw new AppError('VALIDATION', 'Copy from another period.', [
+        { path: 'from', issue: 'Choose an earlier period' },
+      ]);
+    }
+    await this.periods.check(tx, tenantId, body.period);
+    if (periodKind(body.from) !== periodKind(body.period)) {
+      // The first quarter after months, say, has no earlier quarter to copy.
+      throw new AppError('VALIDATION', 'Copy from a period of the same kind.', [
+        { path: 'from', issue: `Choose an earlier ${periodKind(body.period)}` },
       ]);
     }
     const keys = new Set((await this.metrics.targetable(tx, tenantId)).map((metric) => metric.key));

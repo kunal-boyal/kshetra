@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ORDER_STATUSES } from './orders';
+import { isPeriodKey } from './periods';
 import { UserStatus } from './schemas/iam';
 
 /**
@@ -108,7 +109,8 @@ export const PlanItemStatusChangedPayload = z.object({
 export const TargetSetEventPayload = z.object({
   targetSetId: z.uuid(),
   userId: z.uuid(),
-  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+  /** A month, quarter or year (D108). */
+  period: z.string().refine(isPeriodKey),
 });
 
 /** A request now waits for these approvers (M16: they hear of it). */

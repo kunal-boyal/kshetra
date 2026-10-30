@@ -10,6 +10,7 @@ import { FieldModule } from '../field/field.module';
 import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
 import { MediaModule } from '../media/media.module';
+import { MetricsModule } from '../metrics/metrics.module';
 import { MediaUrls } from '../media/media-urls';
 import { PerformanceModule } from '../performance/performance.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
@@ -52,6 +53,7 @@ import { TargetAchievementReport } from './target-achievement';
     TerritoriesModule,
     TenantConfigModule,
     MediaModule,
+    MetricsModule,
     WorkflowModule,
   ],
   controllers: [ReportsController],

@@ -10,7 +10,14 @@ import {
   type ScoreDefinition,
   type UpdateMetricBody,
 } from '@thelamp/metrics';
-import { AppError, type ErrorDetail, issueAt, todayIn } from '@thelamp/shared';
+import {
+  AppError,
+  type ErrorDetail,
+  issueAt,
+  periodKindOn,
+  periodSwitchIssue,
+  todayIn,
+} from '@thelamp/shared';
 import { type AuditActor, AuditLog } from '../../platform/audit';
 import type { TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
@@ -36,7 +43,8 @@ function daysBefore(date: string, days: number): string {
  * template's metrics are, against the tenant's forms, account types and roles. A metric keeps its
  * key and unit, as targets and facts are in it; one the score or a ratio uses can't retire. A
  * changed metric publishes `metrics.changed`, and people's facts from the chosen date are worked
- * out again. Targets stay monthly in phase 1, so the score does too.
+ * out again. The score's period is the tenant's target period: a month, or a quarter or year of
+ * the financial year from a period still to come (D108).
  */
 @Injectable()
 export class MetricsAdmin {
@@ -201,7 +209,11 @@ export class MetricsAdmin {
     return this.read(tx, tenantId);
   }
 
-  /** The score's next definition; scores are worked out on reading, so nothing is recomputed. */
+  /**
+   * The score's next definition; scores are worked out on reading, so nothing is recomputed. A
+   * new kind of period (D108) starts at `periodFrom`, a period still to come where the kind in
+   * force ends; the server keeps the kind before it as `earlierPeriodType`.
+   */
   async updateScore(
     tx: TenantTx,
     tenantId: string,
@@ -216,20 +228,33 @@ export class MetricsAdmin {
         .map((entry) => [entry.definition.key, entry.definition]),
     );
     const issues = checkScore(definition, active, ['definition']);
-    if (definition.periodType !== 'month') {
-      issues.push(
-        issueAt(['definition', 'periodType'], 'Targets are monthly for now, so the score is too'),
-      );
-    }
-    if (issues.length > 0) throw invalid(issues);
     const before = await this.metrics.score(tx, tenantId);
-    await this.metrics.saveScore(tx, tenantId, definition);
+    const settings = await this.config.settings(tx, tenantId);
+    const today = todayIn(settings.timezone);
+    const startMonth = settings.financialYearStartMonth;
+    const inForce = periodKindOn(before, today, startMonth);
+    const switchIssue = periodSwitchIssue(before, definition, today, startMonth);
+    if (switchIssue) issues.push(issueAt(['definition', 'periodFrom'], switchIssue));
+    if (issues.length > 0) throw invalid(issues);
+    // The kind before the switch, so periods already counted keep theirs; none without a switch.
+    const switching = definition.periodType !== inForce;
+    const saved = {
+      ...definition,
+      periodFrom: switching ? definition.periodFrom : undefined,
+      earlierPeriodType: switching ? inForce : undefined,
+    };
+    if (!switching && before?.periodFrom && before.periodType === definition.periodType) {
+      // A switch already under way stays as it was, unless the kind changed back.
+      saved.periodFrom = before.periodFrom;
+      saved.earlierPeriodType = before.earlierPeriodType;
+    }
+    await this.metrics.saveScore(tx, tenantId, saved);
     await this.config.touch(tx, tenantId, actorId);
     await this.audit.record(tx, tenantId, actor, {
       action: 'score.updated',
       target: { type: 'tenant', id: tenantId },
       before,
-      after: definition,
+      after: saved,
     });
     return this.read(tx, tenantId);
   }

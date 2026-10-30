@@ -7,15 +7,15 @@ import {
   type DashboardResult,
   type Leaderboard,
   type MetricFigures,
-  monthDates,
   type PerformanceMetric,
+  periodDates,
+  periodMonths,
   type PersonPerformance,
   rankByScore,
   rankCutoff,
   ratioOf,
   scoreOf,
   type TeamPerformance,
-  todayIn,
 } from '@thelamp/shared';
 import { and, asc, between, eq, inArray, sql } from 'drizzle-orm';
 import { metricFactAccounts, metricFactsDaily, scoreSnapshots } from '../../db/schema/metrics';
@@ -27,8 +27,8 @@ import { notFound, outOfScope } from '../iam/actor';
 import { People, type PersonFacts } from '../iam/people';
 import { Scopes } from '../iam/scopes';
 import { MetricsService } from '../metrics/metrics.service';
+import { TargetPeriods } from '../metrics/target-periods';
 import { TargetsService } from '../planning/targets.service';
-import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 
 /** A metric's period value with the parts it came from, for ratios and team totals (BR-04). */
@@ -43,12 +43,16 @@ interface Value {
 
 type Values = Map<string, Value>;
 
-/** The tenant's metrics and score, read once per request. */
+/** The tenant's metrics, score and periods, read once per request. */
 interface Setup {
   definitions: MetricDefinition[];
   byKey: Map<string, MetricDefinition>;
   score: ScoreDefinition | null;
   metrics: PerformanceMetric[];
+  /** The tenant's financial year start, which places quarters and years (D108). */
+  startMonth: number;
+  /** Today on the tenant's clock. */
+  today: string;
 }
 
 const DISTINCT = new Set([
@@ -88,7 +92,7 @@ export class PerformanceService {
     private readonly accounts: AccountsService,
     private readonly accountTypes: AccountTypesService,
     private readonly territories: TerritoriesService,
-    private readonly config: TenantConfigService,
+    private readonly periods: TargetPeriods,
   ) {}
 
   private async setup(tx: TenantTx, tenantId: string): Promise<Setup> {
@@ -105,14 +109,16 @@ export class PerformanceService {
       available: computed(definition, byKey),
       weight: weights.get(definition.key) ?? null,
     }));
-    return { definitions, byKey, score, metrics };
+    const { startMonth, today } = await this.periods.rules(tx, tenantId);
+    return { definitions, byKey, score, metrics, startMonth, today };
   }
 
   /**
-   * Each person's value of every computed metric over a month: sums of daily facts, distinct
-   * counts from the accounts behind them, coverage against the accounts they held, frequency
-   * compliance from the days each held account with a norm was called on (decision D97), and
-   * ratios from summed parts (BR-04). With `until`, only the month's days up to that date count.
+   * Each person's value of every computed metric over a period (a month, quarter or year, D108):
+   * sums of daily facts, distinct counts from the accounts behind them, coverage against the
+   * accounts they held, frequency compliance from the days each held account with a norm was
+   * called on (decision D97; a norm is a month's, so a quarter asks three times as many), and
+   * ratios from summed parts (BR-04). With `until`, only the period's days up to that date count.
    */
   private async values(
     tx: TenantTx,
@@ -124,9 +130,10 @@ export class PerformanceService {
   ): Promise<Map<string, Values>> {
     const result = new Map<string, Values>(userIds.map((id) => [id, new Map()]));
     if (userIds.length === 0) return result;
-    const month = monthDates(period);
-    const from = month.from;
-    const to = until !== undefined && until < month.to ? until : month.to;
+    const dates = periodDates(period, setup.startMonth);
+    const from = dates.from;
+    const to = until !== undefined && until < dates.to ? until : dates.to;
+    const months = periodMonths(period);
     const sums = await tx
       .select({
         userId: metricFactsDaily.userId,
@@ -211,7 +218,7 @@ export class PerformanceService {
     const normOf = (typeKey: string, segments: readonly string[]) => {
       const bySegment = norms.get(typeKey);
       const found = segments.flatMap((segment) => bySegment?.get(segment) ?? []);
-      return found.length > 0 ? Math.max(...found) : null;
+      return found.length > 0 ? Math.max(...found) * months : null;
     };
 
     for (const userId of userIds) {
@@ -391,8 +398,8 @@ export class PerformanceService {
   }
 
   /**
-   * The score of each of these people for the month (BR-06), from their locked targets; with
-   * `until`, on the month's work up to that date.
+   * The score of each of these people for the period (BR-06), from their locked targets; with
+   * `until`, on the period's work up to that date.
    */
   private async scores(
     tx: TenantTx,
@@ -436,8 +443,8 @@ export class PerformanceService {
   }
 
   /**
-   * One ranking group's scores and ranks for a month (BR-07): its active people; with `until`, on
-   * the month's work up to that date.
+   * One ranking group's scores and ranks for a period (BR-07): its active people; with `until`,
+   * on the period's work up to that date.
    */
   private async ranking(
     tx: TenantTx,
@@ -462,16 +469,11 @@ export class PerformanceService {
     ).map(({ row, rank }) => ({ ...row, rank }));
   }
 
-  /** Today on the tenant's clock. */
-  private async today(tx: TenantTx, tenantId: string): Promise<string> {
-    return todayIn((await this.config.settings(tx, tenantId)).timezone);
-  }
-
   private async rankedGroups(tx: TenantTx, tenantId: string) {
     return this.people.rankingGroups(tx, tenantId);
   }
 
-  /** A person's month: the caller's own, or someone their team view reaches. */
+  /** A person's period: the caller's own, or someone their team view reaches. */
   async person(
     tx: TenantTx,
     access: Access,
@@ -499,14 +501,15 @@ export class PerformanceService {
     let rank: number | null = null;
     let previousRank: number | null = null;
     let size = 0;
-    const today = await this.today(tx, tenantId);
+    const today = setup.today;
+    const dates = periodDates(period, setup.startMonth);
     if (group) {
       const ranking = await this.ranking(tx, tenantId, setup, group.key, period);
       const mine = ranking.find((entry) => entry.person.id === userId);
       score = mine?.score ?? null;
       rank = mine?.rank ?? null;
       size = ranking.length;
-      const cutoff = rankCutoff(period, today);
+      const cutoff = rankCutoff(dates, today);
       if (cutoff !== null) {
         const before = await this.ranking(tx, tenantId, setup, group.key, period, cutoff);
         previousRank = before.find((entry) => entry.person.id === userId)?.rank ?? null;
@@ -514,7 +517,7 @@ export class PerformanceService {
     } else {
       score = (await this.scores(tx, tenantId, setup, [userId], period)).get(userId) ?? null;
     }
-    const { from, to } = monthDates(period);
+    const { from, to } = dates;
     const trend = setup.definitions
       .filter((d) => !HELD.has(d.source.type) && computed(d, setup.byKey))
       .map((d) => d.key);
@@ -558,7 +561,7 @@ export class PerformanceService {
     };
   }
 
-  /** The month for everyone the caller's scope reaches, but the caller, with the team's totals. */
+  /** The period for everyone the caller's scope reaches, but the caller, with the team's totals. */
   async team(tx: TenantTx, access: Access, period: string): Promise<TeamPerformance> {
     const tenantId = access.tenantId;
     const team = (
@@ -568,7 +571,7 @@ export class PerformanceService {
   }
 
   /**
-   * Some people's figures, score and rank for a month, with the group's totals: the team view, and
+   * Some people's figures, score and rank for a period, with the group's totals: the team view, and
    * the target against achievement report (M18), which names its people itself. Ranks at the end
    * of last week (`previousRank`) are worked out only when `movement` asks for them.
    */
@@ -584,8 +587,8 @@ export class PerformanceService {
     const values = await this.values(tx, tenantId, setup, ids, period);
     const sets = await this.targets.sets(tx, tenantId, period, ids);
     const ranked = new Set((await this.rankedGroups(tx, tenantId)).map((group) => group.key));
-    const today = await this.today(tx, tenantId);
-    const cutoff = movement ? rankCutoff(period, today) : null;
+    const today = setup.today;
+    const cutoff = movement ? rankCutoff(periodDates(period, setup.startMonth), today) : null;
     const standing = new Map<string, { score: number | null; rank: number | null }>();
     const before = new Map<string, number | null>();
     for (const group of new Set(team.map((person) => person.designation))) {
@@ -674,7 +677,7 @@ export class PerformanceService {
         const definition = setup.byKey.get(key);
         return definition !== undefined && additive(definition);
       });
-    const { from, to } = monthDates(period);
+    const { from, to } = periodDates(period, setup.startMonth);
     const days =
       trendKeys.length && ids.length
         ? await tx
@@ -728,7 +731,7 @@ export class PerformanceService {
     return { view, people: view === 'team' ? team.length : 1, tiles, trend, leaderboard, ids };
   }
 
-  /** A ranking group's leaderboard for a month: the caller's own group unless one is named. */
+  /** A ranking group's leaderboard for a period: the caller's own group unless one is named. */
   async leaderboard(
     tx: TenantTx,
     access: Access,
@@ -778,7 +781,7 @@ export class PerformanceService {
     };
   }
 
-  /** Writes every ranking group's scores and ranks for a month, for history (spec 12.5). */
+  /** Writes every ranking group's scores and ranks for a period, for history (spec 12.5). */
   async snapshot(tx: TenantTx, tenantId: string, period: string): Promise<number> {
     const setup = await this.setup(tx, tenantId);
     let written = 0;
