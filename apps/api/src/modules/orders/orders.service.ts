@@ -447,6 +447,7 @@ export class OrdersService {
       await this.visible(tx, access),
       query.accountId ? eq(orders.accountId, query.accountId) : undefined,
       query.userId ? eq(orders.userId, query.userId) : undefined,
+      query.number ? eq(orders.number, query.number) : undefined,
       ...range,
     ];
     const rows = await tx

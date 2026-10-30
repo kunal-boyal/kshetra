@@ -300,6 +300,18 @@ export const en = {
 
   // The people screens of the web portal (spec 8.2, M3) and their settings (M2).
   'nav.people': 'People',
+  'search.label': 'Search',
+  'search.placeholder': 'Search people, {term.account:other:lower}, {term.order:other:lower}',
+  'search.results': 'Search results',
+  'search.group_screens': 'Screens',
+  'search.group_people': 'People',
+  'search.group_accounts': '{term.account:other}',
+  'search.group_orders': '{term.order:other}',
+  'search.group_forms': 'Forms',
+  'search.order': '#{number}',
+  'search.searching': 'Searching…',
+  'search.nothing': 'Nothing matches “{q}”.',
+  'search.more_letters': 'Type at least two letters, or a number.',
   'nav.org_chart': 'Organisation chart',
   'nav.attendance': 'Attendance',
   'nav.settings': 'Settings',

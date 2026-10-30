@@ -314,3 +314,50 @@ test('/security shows the authenticator and the sessions, and passes axe (D101)'
   await expect(page.getByRole('button', { name: 'Sign out everywhere else' })).toBeVisible();
   await expectAccessible(page);
 });
+
+test('searches from the bar, grouped, and passes axe with the matches open (D110)', async ({
+  page,
+}) => {
+  await mockSignedIn(page);
+  await page.route('**/v1/search**', (route) =>
+    route.fulfill({
+      json: {
+        people: [
+          {
+            id: '01a10000-0000-7000-8000-000000000004',
+            code: 'SUN-004',
+            name: 'Asha Verma',
+            designation: 'executive',
+            status: 'active',
+          },
+        ],
+        accounts: [
+          {
+            id: '01a10000-0000-7000-8000-000000000009',
+            code: 'C-101',
+            name: 'Asha Stores',
+            type: 'customer',
+            status: 'active',
+          },
+        ],
+        orders: [],
+        forms: null,
+      },
+    }),
+  );
+  for (const theme of ['light', 'dark']) {
+    await page.addInitScript((chosen) => localStorage.setItem('theme', chosen), theme);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Forms this period' })).toBeVisible();
+    await page.keyboard.press('/');
+    const box = page.getByRole('combobox', { name: 'Search' });
+    await expect(box).toBeFocused();
+    await box.fill('as');
+    const list = page.getByRole('listbox', { name: 'Search results' });
+    await expect(list.getByRole('option', { name: /Asha Verma/ })).toBeVisible();
+    await expect(list.getByRole('group', { name: 'Accounts' })).toContainText('Asha Stores');
+    await page.screenshot({ path: `test-results/search-${theme}.png` });
+    await expectAccessible(page);
+  }
+});

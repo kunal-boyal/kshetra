@@ -1217,6 +1217,15 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(imported);
     },
   },
+  'GET /v1/search': {
+    kind: 'own tenant',
+    run: async () => {
+      // A's shop by its code and name, A's first order by number: B finds none of them.
+      holdsNothingOfA(await asB('GET', '/v1/search?q=A-SHOP'));
+      holdsNothingOfA(await asB('GET', `/v1/search?q=${encodeURIComponent(`${a.word} shop`)}`));
+      holdsNothingOfA(await asB('GET', '/v1/search?q=1001'));
+    },
+  },
   'GET /v1/accounts': {
     kind: 'own tenant',
     run: async () => {

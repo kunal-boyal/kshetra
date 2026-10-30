@@ -187,6 +187,27 @@ async function agri(name: string) {
 }
 
 describe('orders (M10)', () => {
+  it('are found by their number, by those who see them (search, D110)', async () => {
+    const t = await agri('Search Agro');
+    const placed = await t.api.sme.post(
+      '/v1/orders',
+      t.order(t.distributor, [t.line(t.neem, '1')]),
+    );
+    expect(placed.statusCode, placed.body).toBe(201);
+    const { id, number } = placed.json();
+    const found = (await t.api.asm.get(`/v1/search?q=%23${number}`)).json();
+    expect(found.orders).toEqual([
+      expect.objectContaining({
+        id,
+        number,
+        account: expect.objectContaining({ id: t.distributor }),
+      }),
+    ]);
+    // Someone who neither placed it nor sees its account finds nothing by its number, nor by words.
+    expect((await t.api.other.get(`/v1/search?q=${number}`)).json().orders).toEqual([]);
+    expect((await t.api.asm.get('/v1/search?q=distributor')).json().orders).toEqual([]);
+  });
+
   it('FX-07, FX-08: prices on the server, keeps each line as it was, and splits GST', async () => {
     const t = await agri('Order Agro');
     const body = t.order(t.distributor, [t.line(t.neem, '2'), t.line(t.urea, '3')], {

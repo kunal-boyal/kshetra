@@ -171,6 +171,8 @@ export const OrderSummary = z
   .meta({ id: 'OrderSummary' });
 
 export const OrderListQuery = z.strictObject({
+  /** The order's number, as search finds it (D110). */
+  number: z.coerce.number().int().positive().optional(),
   status: OrderStatus.optional(),
   accountId: z.uuid().optional(),
   userId: z.uuid().optional(),

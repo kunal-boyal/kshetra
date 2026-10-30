@@ -35,6 +35,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { Brand } from './brand';
 import { LanguageToggle, ThemePicker } from './preferences-menu';
+import { SearchBox } from './search';
 import { Announcements } from './announcements';
 import { SupportBanner } from './support-banner';
 import { StepUpPrompt } from '../step-up';
@@ -333,6 +334,11 @@ export function AppShell() {
             <span className="truncate">{orgName}</span>
           </p>
           <div className="ks-appbar-tools">
+            <SearchBox
+              screens={[...sections.flatMap((section) => section.links), ...settings].map(
+                ({ to, icon, label }) => ({ to, icon, label }),
+              )}
+            />
             <LanguageToggle />
             <NotificationsLink />
             <AccountMenu onSignOut={() => act(() => client.signOut())} />

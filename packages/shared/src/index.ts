@@ -1116,3 +1116,4 @@ export {
   LogDataRequestBody,
   RaiseDataRequestBody,
 } from './schemas/data-requests';
+export { SEARCH_LIMIT, SearchQuery, SearchResult } from './schemas/search';
