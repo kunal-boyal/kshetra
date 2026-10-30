@@ -95,12 +95,14 @@ export function monthDates(period: string): { from: string; to: string } {
 }
 
 /**
- * The last day counted for a rank "since last week": the Sunday before the week of the month's
- * reference day (today, or the month's last day once it has gone). Null before the month begins,
- * and when that Sunday falls before it, so a month's first days show no movement.
+ * The last day counted for a rank "since last week": the Sunday before the week of the period's
+ * reference day (today, or the period's last day once it has gone). Null before the period
+ * begins, and when that Sunday falls before it, so a period's first days show no movement.
  */
-export function rankCutoff(period: string, today: string): string | null {
-  const { from, to } = monthDates(period);
+export function rankCutoff(
+  { from, to }: { from: string; to: string },
+  today: string,
+): string | null {
   if (today < from) return null;
   const day = new Date(`${today < to ? today : to}T00:00:00Z`);
   // Monday is 1 and Sunday 7, so a Sunday reaches back to the Sunday before.

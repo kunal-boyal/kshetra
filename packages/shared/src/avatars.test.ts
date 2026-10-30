@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  AVATAR_HUES,
-  avatarHue,
-  firstGrapheme,
-  initialsOf,
-  RANK_HUES,
-  shiftPeriod,
-} from './avatars';
+import { AVATAR_HUES, avatarHue, firstGrapheme, initialsOf, RANK_HUES } from './avatars';
+import { shiftPeriod } from './periods';
 import { newId } from './ids';
 
 describe('avatarHue', () => {

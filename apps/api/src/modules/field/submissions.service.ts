@@ -556,11 +556,19 @@ export class SubmissionsService {
     };
   }
 
-  /** The home dashboard's mix (M18): these people's submissions of a month, by form and status. */
-  async mixByForm(tx: TenantTx, tenantId: string, userIds: readonly string[], period: string) {
+  /**
+   * The home dashboard's mix (M18): these people's submissions captured between two dates on the
+   * tenant's clock (a period's, D108), by form and status.
+   */
+  async mixByForm(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    { from, to }: { from: string; to: string },
+  ) {
     if (userIds.length === 0) return [];
     const { timezone } = await this.config.settings(tx, tenantId);
-    const month = sql`to_char(${submissions.capturedAt} at time zone ${timezone}, 'YYYY-MM')`;
+    const day = sql`(${submissions.capturedAt} at time zone ${timezone})::date`;
     const rows = await tx
       .select({
         formId: submissions.formId,
@@ -572,7 +580,7 @@ export class SubmissionsService {
         and(
           eq(submissions.tenantId, tenantId),
           inArray(submissions.userId, [...userIds]),
-          sql`${month} = ${period}`,
+          sql`${day} between ${from}::date and ${to}::date`,
         ),
       )
       .groupBy(submissions.formId, submissions.status);

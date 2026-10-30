@@ -1,8 +1,8 @@
-import { newId } from '@thelamp/shared';
+import { newId, nextPeriod, periodOf, todayIn } from '@thelamp/shared';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { outboxEvents } from '../src/db/schema';
+import { metricFactsDaily, outboxEvents, scoreDefinitions } from '../src/db/schema';
 import { ImportsService } from '../src/modules/imports/imports.service';
 import { Database } from '../src/platform/database';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
@@ -24,6 +24,8 @@ afterAll(async () => {
 
 const MONTH = '2030-01';
 const NEXT = '2030-02';
+/** The quarter `MONTH` falls in, with the financial year from April: January to March 2030. */
+const QUARTER = 'FY2029-Q4';
 
 function as(token: string) {
   const call = (method: 'GET' | 'POST' | 'PUT' | 'PATCH', url: string, payload?: object) =>
@@ -103,6 +105,20 @@ async function tenant(name: string) {
 }
 
 type Tenant = Awaited<ReturnType<typeof tenant>>;
+
+/** Makes the tenant count targets and scores by a quarter or a year from now on (D108). */
+async function countBy(t: Tenant, periodType: 'quarter' | 'year') {
+  await app.get(Database).forTenant(t.tenantId, async (tx) => {
+    const [row] = await tx
+      .select({ definition: scoreDefinitions.definition })
+      .from(scoreDefinitions)
+      .where(eq(scoreDefinitions.tenantId, t.tenantId));
+    await tx
+      .update(scoreDefinitions)
+      .set({ definition: { ...row!.definition, periodType } })
+      .where(eq(scoreDefinitions.tenantId, t.tenantId));
+  });
+}
 
 const put = (api: Api, userId: string, values: object, version: number, period = MONTH) =>
   api.put('/v1/targets', { period, sets: [{ userId, values, version }] });
@@ -374,6 +390,47 @@ describe('importing targets and account plans (Appendix B.4, B.6)', () => {
     ]);
   });
 
+  it("imports a quarter's targets for a tenant that counts by the quarter (D108)", async () => {
+    const t = await tenant('Quarter Import Co');
+    await countBy(t, 'quarter');
+    const refused = await importFile(
+      t,
+      'targets',
+      csv([
+        ['Employee code', 'Period', 'Visit'],
+        [t.asha.code, MONTH, '40'],
+        [t.ravi.code, 'Q4', '40'],
+      ]),
+    );
+    expect(refused.errors).toEqual([
+      {
+        row: 2,
+        field: 'period',
+        issue: 'This period is counted by the quarter; use a key such as FY2029-Q4',
+        value: MONTH,
+      },
+      {
+        row: 3,
+        field: 'period',
+        issue: 'Write the period as 2026-10, FY2026-Q3 or FY2026',
+        value: 'Q4',
+      },
+    ]);
+    const done = await importFile(
+      t,
+      'targets',
+      csv([
+        ['Employee code', 'Period', 'Visit', 'Lock'],
+        [t.asha.code, QUARTER, '120', 'Yes'],
+      ]),
+    );
+    expect(done.status).toBe('committed');
+    const grid = (await t.api.admin.get(`/v1/targets?period=${QUARTER}`)).json();
+    expect(
+      grid.sets.find((set: { user: { id: string } }) => set.user.id === t.asha.id),
+    ).toMatchObject({ period: QUARTER, status: 'locked', values: { visits: '120' } });
+  });
+
   it('imports account plans for accounts the importer sees', async () => {
     const t = await tenant('Plan Import Co');
     const done = await importFile(
@@ -389,5 +446,119 @@ describe('importing targets and account plans (Appendix B.4, B.6)', () => {
       await t.api.admin.get(`/v1/account-plans?accountId=${t.shop}&period=${MONTH}`)
     ).json();
     expect(plan.values).toEqual({ order_value: '500000', visits: '4' });
+  });
+});
+
+describe('quarter and year targets (spec 5.8, D108)', () => {
+  it('sets, locks and scores a quarter from all three of its months', async () => {
+    const t = await tenant('Quarter Co');
+    await countBy(t, 'quarter');
+    expect((await t.api.manager.get('/v1/config')).json().targetPeriods).toEqual({
+      periodType: 'quarter',
+    });
+
+    // A month is no period this tenant sets targets for.
+    const monthly = await put(t.api.manager, t.asha.id, { visits: '40' }, 0);
+    expect(monthly.statusCode).toBe(400);
+    expect(monthly.json().error.details).toEqual([
+      {
+        path: 'period',
+        issue: 'This period is counted by the quarter; use a key such as FY2029-Q4',
+      },
+    ]);
+
+    expect((await put(t.api.manager, t.asha.id, { visits: '120' }, 0, QUARTER)).statusCode).toBe(
+      200,
+    );
+    const locked = await t.api.manager.post('/v1/targets/lock', {
+      period: QUARTER,
+      userIds: [t.asha.id],
+    });
+    expect(locked.json().locked).toEqual([t.asha.id]);
+
+    // Visits on the quarter's first and last days, and one the day after it ends.
+    await app.get(Database).forTenant(t.tenantId, (tx) =>
+      tx.insert(metricFactsDaily).values(
+        [
+          ['2030-01-01', '20'],
+          ['2030-03-31', '10'],
+          ['2030-04-01', '99'],
+        ].map(([date, value]) => ({
+          tenantId: t.tenantId,
+          userId: t.asha.id,
+          date: date!,
+          metricKey: 'visits',
+          value: value!,
+        })),
+      ),
+    );
+    const figures = (await t.api.asha.get(`/v1/performance?period=${QUARTER}`)).json();
+    expect(figures).toMatchObject({ period: QUARTER, locked: true });
+    expect(figures.figures.visits).toMatchObject({ actual: '30', target: '120', attainment: 0.25 });
+    // The month alone has no targets of its own.
+    const january = (await t.api.asha.get(`/v1/performance?period=${MONTH}`)).json();
+    expect(january.figures.visits).toMatchObject({ actual: '20', target: null });
+  });
+
+  it('copies only from a period of the same kind', async () => {
+    const t = await tenant('Quarter Copy Co');
+    await countBy(t, 'quarter');
+    const copied = await t.api.manager.post('/v1/targets/copy', {
+      period: QUARTER,
+      from: '2029-12',
+      userIds: [t.asha.id],
+    });
+    expect(copied.statusCode).toBe(400);
+    expect(copied.json().error.details).toEqual([
+      { path: 'from', issue: 'Choose an earlier quarter' },
+    ]);
+    expect((await put(t.api.manager, t.asha.id, { visits: '90' }, 0, 'FY2029-Q3')).statusCode).toBe(
+      200,
+    );
+    const again = await t.api.manager.post('/v1/targets/copy', {
+      period: QUARTER,
+      from: 'FY2029-Q3',
+      userIds: [t.asha.id],
+    });
+    expect(again.json()).toEqual({ copied: [t.asha.id], skipped: [] });
+  });
+
+  it('switches to quarters only from a quarter still to come', async () => {
+    const t = await tenant('Switch Co');
+    const today = todayIn('Asia/Kolkata');
+    const current = periodOf('quarter', today, 4);
+    const next = nextPeriod(current);
+    const score = (await t.api.admin.get('/v1/metric-definitions')).json().score;
+    const save = (definition: object) =>
+      t.api.admin.put('/v1/score', { definition: { ...score, ...definition } });
+
+    const begun = await save({ periodType: 'quarter', periodFrom: current });
+    expect(begun.statusCode).toBe(400);
+    expect(begun.json().error.details).toEqual([
+      {
+        path: 'definition.periodFrom',
+        issue: 'That period has begun; start from one still to come',
+      },
+    ]);
+    expect((await save({ periodType: 'quarter' })).json().error.details).toEqual([
+      { path: 'definition.periodFrom', issue: 'Choose the first period the new kind counts from' },
+    ]);
+
+    expect((await save({ periodType: 'quarter', periodFrom: next })).statusCode).toBe(200);
+    expect((await t.api.admin.get('/v1/config')).json().targetPeriods).toEqual({
+      periodType: 'quarter',
+      periodFrom: next,
+      earlierPeriodType: 'month',
+    });
+    // This month keeps its monthly targets until the switch; the next quarter takes its own.
+    const month = today.slice(0, 7);
+    expect((await put(t.api.manager, t.asha.id, { visits: '40' }, 0, month)).statusCode).toBe(200);
+    expect((await put(t.api.manager, t.asha.id, { visits: '120' }, 0, next)).statusCode).toBe(200);
+
+    // Choosing months again before the switch calls it off.
+    expect((await save({ periodType: 'month', periodFrom: undefined })).statusCode).toBe(200);
+    expect((await t.api.admin.get('/v1/config')).json().targetPeriods).toEqual({
+      periodType: 'month',
+    });
   });
 });

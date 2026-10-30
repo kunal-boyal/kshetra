@@ -10098,6 +10098,37 @@
                         "additionalProperties": false
                       }
                     },
+                    "targetPeriods": {
+                      "default": {
+                        "periodType": "month"
+                      },
+                      "type": "object",
+                      "properties": {
+                        "periodType": {
+                          "type": "string",
+                          "enum": [
+                            "month",
+                            "quarter",
+                            "year"
+                          ]
+                        },
+                        "periodFrom": {
+                          "type": "string"
+                        },
+                        "earlierPeriodType": {
+                          "type": "string",
+                          "enum": [
+                            "month",
+                            "quarter",
+                            "year"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "periodType"
+                      ],
+                      "additionalProperties": false
+                    },
                     "access": {
                       "type": "object",
                       "properties": {
@@ -10220,6 +10251,7 @@
                     "settings",
                     "terminology",
                     "designations",
+                    "targetPeriods",
                     "access",
                     "accountTypes",
                     "forms",
@@ -10637,7 +10669,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Period"
+              "$ref": "#/components/schemas/TargetPeriod"
             }
           }
         ],
@@ -13503,7 +13535,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Period"
+              "$ref": "#/components/schemas/TargetPeriod"
             }
           },
           {
@@ -16202,7 +16234,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Period"
+              "$ref": "#/components/schemas/TargetPeriod"
             }
           },
           {
@@ -16259,7 +16291,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Period"
+              "$ref": "#/components/schemas/TargetPeriod"
             }
           }
         ],
@@ -20949,7 +20981,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Period"
+              "$ref": "#/components/schemas/TargetPeriod"
             }
           }
         ],
@@ -20962,7 +20994,7 @@
                   "type": "object",
                   "properties": {
                     "period": {
-                      "$ref": "#/components/schemas/Period"
+                      "$ref": "#/components/schemas/TargetPeriod"
                     },
                     "metrics": {
                       "type": "array",
@@ -21051,7 +21083,7 @@
                 "type": "object",
                 "properties": {
                   "period": {
-                    "$ref": "#/components/schemas/Period"
+                    "$ref": "#/components/schemas/TargetPeriod"
                   },
                   "sets": {
                     "minItems": 1,
@@ -21182,10 +21214,10 @@
                 "type": "object",
                 "properties": {
                   "period": {
-                    "$ref": "#/components/schemas/Period"
+                    "$ref": "#/components/schemas/TargetPeriod"
                   },
                   "from": {
-                    "$ref": "#/components/schemas/Period"
+                    "$ref": "#/components/schemas/TargetPeriod"
                   },
                   "userIds": {
                     "minItems": 1,
@@ -21309,7 +21341,7 @@
                 "type": "object",
                 "properties": {
                   "period": {
-                    "$ref": "#/components/schemas/Period"
+                    "$ref": "#/components/schemas/TargetPeriod"
                   },
                   "userIds": {
                     "minItems": 1,
@@ -21437,7 +21469,7 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "period": {
-                    "$ref": "#/components/schemas/Period"
+                    "$ref": "#/components/schemas/TargetPeriod"
                   },
                   "reason": {
                     "type": "string",
@@ -29215,7 +29247,7 @@
         "type": "object",
         "properties": {
           "period": {
-            "$ref": "#/components/schemas/Period"
+            "$ref": "#/components/schemas/TargetPeriod"
           },
           "view": {
             "type": "string",
@@ -33519,7 +33551,7 @@
         "type": "object",
         "properties": {
           "period": {
-            "$ref": "#/components/schemas/Period"
+            "$ref": "#/components/schemas/TargetPeriod"
           },
           "groups": {
             "type": "array",
@@ -36755,7 +36787,7 @@
         "type": "object",
         "properties": {
           "period": {
-            "$ref": "#/components/schemas/Period"
+            "$ref": "#/components/schemas/TargetPeriod"
           },
           "user": {
             "type": "object",
@@ -39698,6 +39730,20 @@
         "properties": {
           "periodType": {
             "default": "month",
+            "description": "The period targets and scores count over: a month, or a quarter or the year of the tenant's financial year",
+            "type": "string",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ]
+          },
+          "periodFrom": {
+            "description": "The first period of `periodType`, when it replaced another kind",
+            "type": "string"
+          },
+          "earlierPeriodType": {
+            "description": "The kind of period before `periodFrom`; the server keeps it",
             "type": "string",
             "enum": [
               "month",
@@ -39757,6 +39803,20 @@
         "properties": {
           "periodType": {
             "default": "month",
+            "description": "The period targets and scores count over: a month, or a quarter or the year of the tenant's financial year",
+            "type": "string",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ]
+          },
+          "periodFrom": {
+            "description": "The first period of `periodType`, when it replaced another kind",
+            "type": "string"
+          },
+          "earlierPeriodType": {
+            "description": "The kind of period before `periodFrom`; the server keeps it",
             "type": "string",
             "enum": [
               "month",
@@ -41840,6 +41900,9 @@
         ],
         "additionalProperties": false
       },
+      "TargetPeriod": {
+        "type": "string"
+      },
       "TargetSetResult": {
         "type": "object",
         "properties": {
@@ -41866,7 +41929,7 @@
             "additionalProperties": false
           },
           "period": {
-            "$ref": "#/components/schemas/Period"
+            "$ref": "#/components/schemas/TargetPeriod"
           },
           "status": {
             "type": "string",
@@ -41943,7 +42006,7 @@
         "type": "object",
         "properties": {
           "period": {
-            "$ref": "#/components/schemas/Period"
+            "$ref": "#/components/schemas/TargetPeriod"
           },
           "metrics": {
             "type": "array",

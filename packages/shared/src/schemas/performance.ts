@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Key, LocalizedNoun } from './config';
-import { Period } from './planning';
+import { TargetPeriod } from './planning';
 import { MetricView } from './targets';
 
 /** Performance (M9, spec 12.5): actuals from the metric engine, against targets and scores. */
@@ -39,14 +39,14 @@ const PreviousRank = z.int().nullable();
 export const RankingGroup = z.object({ key: Key, name: LocalizedNoun });
 
 export const PerformanceQuery = z.strictObject({
-  period: Period,
+  period: TargetPeriod,
   /** Another person's month, for those who see their team's; the caller's own by default. */
   userId: z.uuid().optional(),
 });
 
 export const PersonPerformance = z
   .object({
-    period: Period,
+    period: TargetPeriod,
     user: Person,
     territory: PersonTerritory,
     metrics: z.array(PerformanceMetric),
@@ -63,11 +63,11 @@ export const PersonPerformance = z
   })
   .meta({ id: 'PersonPerformance' });
 
-export const TeamPerformanceQuery = z.strictObject({ period: Period });
+export const TeamPerformanceQuery = z.strictObject({ period: TargetPeriod });
 
 export const TeamPerformance = z
   .object({
-    period: Period,
+    period: TargetPeriod,
     metrics: z.array(PerformanceMetric),
     rows: z.array(
       z.object({
@@ -87,14 +87,14 @@ export const TeamPerformance = z
   .meta({ id: 'TeamPerformance' });
 
 export const LeaderboardQuery = z.strictObject({
-  period: Period,
+  period: TargetPeriod,
   /** A designation key; the caller's own group by default. */
   group: Key.optional(),
 });
 
 export const Leaderboard = z
   .object({
-    period: Period,
+    period: TargetPeriod,
     /** Each ranking group with how many it holds. */
     groups: z.array(RankingGroup.extend({ size: z.int() })),
     group: Key.nullable(),

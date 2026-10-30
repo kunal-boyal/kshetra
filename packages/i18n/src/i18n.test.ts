@@ -7,6 +7,7 @@ import {
   formatDay,
   formatTime,
   formatMonth,
+  formatPeriod,
   formatNumber,
   formatWeekday,
 } from './format';
@@ -133,6 +134,16 @@ describe('formatting (spec 8.5)', () => {
     expect(formatNumber(1234567.891, { locale: 'en' }, { maximumFractionDigits: 2 })).toBe(
       '12,34,567.89',
     );
+  });
+
+  it('names target periods by the financial year (D108)', () => {
+    expect(formatPeriod('2026-10', 4, { locale: 'en' })).toBe('October 2026');
+    expect(formatPeriod('FY2026-Q3', 4, { locale: 'en' })).toBe('Q3 2026–27 (Oct–Dec)');
+    expect(formatPeriod('FY2026-Q4', 4, { locale: 'en' })).toBe('Q4 2026–27 (Jan–Mar)');
+    expect(formatPeriod('FY2026', 4, { locale: 'en' })).toBe('2026–27');
+    expect(formatPeriod('FY2026', 1, { locale: 'en' })).toBe('2026');
+    expect(formatPeriod('FY2026-Q1', 1, { locale: 'en' })).toBe('Q1 2026 (Jan–Mar)');
+    expect(formatPeriod('FY2026-Q3', 4, { locale: 'hi' })).toMatch(/^तिमाही 3 2026–27 \(/);
   });
 
   it("shows dates as they are and times in the tenant's timezone", () => {

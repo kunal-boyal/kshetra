@@ -1,5 +1,12 @@
 import { Condition } from '@thelamp/forms';
-import { Key, LocalizedNoun, METRIC_UNITS, ORDER_STATUSES } from '@thelamp/shared';
+import {
+  isPeriodKey,
+  Key,
+  LocalizedNoun,
+  METRIC_UNITS,
+  ORDER_STATUSES,
+  TARGET_PERIOD_KINDS,
+} from '@thelamp/shared';
 import { z } from 'zod';
 
 export { METRIC_UNITS };
@@ -87,7 +94,18 @@ export const MetricDefinition = z
  */
 export const ScoreDefinition = z
   .strictObject({
-    periodType: z.enum(['month', 'quarter', 'year']).default('month'),
+    periodType: z.enum(TARGET_PERIOD_KINDS).default('month').meta({
+      description:
+        "The period targets and scores count over: a month, or a quarter or the year of the tenant's financial year",
+    }),
+    periodFrom: z
+      .string()
+      .refine(isPeriodKey, 'Use a period such as 2026-10, FY2026-Q3 or FY2026')
+      .optional()
+      .meta({ description: 'The first period of `periodType`, when it replaced another kind' }),
+    earlierPeriodType: z.enum(TARGET_PERIOD_KINDS).optional().meta({
+      description: 'The kind of period before `periodFrom`; the server keeps it',
+    }),
     cap: z.number().min(1).max(2).default(1).meta({
       description: 'The highest attainment one metric can contribute: 1 is 100%',
     }),

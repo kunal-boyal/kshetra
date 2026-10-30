@@ -2699,6 +2699,20 @@
       "properties": {
         "periodType": {
           "default": "month",
+          "description": "The period targets and scores count over: a month, or a quarter or the year of the tenant's financial year",
+          "type": "string",
+          "enum": [
+            "month",
+            "quarter",
+            "year"
+          ]
+        },
+        "periodFrom": {
+          "description": "The first period of `periodType`, when it replaced another kind",
+          "type": "string"
+        },
+        "earlierPeriodType": {
+          "description": "The kind of period before `periodFrom`; the server keeps it",
           "type": "string",
           "enum": [
             "month",

@@ -1,11 +1,21 @@
 import { z } from 'zod';
 import { PLAN_ITEM_STATUSES } from '../planning';
+import { isPeriodKey } from '../periods';
 
 /** A month, `YYYY-MM`. */
 export const Period = z
   .string()
   .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use a month such as 2026-10')
   .meta({ id: 'Period' });
+
+/**
+ * A target and score period (spec 5.8, decision D108): a month (`2026-10`), a quarter of the
+ * financial year (`FY2026-Q3`) or the financial year (`FY2026`), named by the year it starts in.
+ */
+export const TargetPeriod = z
+  .string()
+  .refine(isPeriodKey, 'Use a period such as 2026-10, FY2026-Q3 or FY2026')
+  .meta({ id: 'TargetPeriod' });
 
 const Weekday = z.int().min(1).max(7);
 

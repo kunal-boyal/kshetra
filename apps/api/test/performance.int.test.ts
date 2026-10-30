@@ -1,5 +1,5 @@
 import { MetricDefinition } from '@thelamp/metrics';
-import { newId, rankCutoff, todayIn } from '@thelamp/shared';
+import { monthDates, newId, rankCutoff, todayIn } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -29,7 +29,7 @@ const H = 3_600_000;
 const HERE = { lat: 28.6315, lng: 77.2167 };
 const MONTH = todayIn('Asia/Kolkata').slice(0, 7);
 /** The last day counted for last week's rank, or null early in the month. */
-const CUTOFF = rankCutoff(MONTH, todayIn('Asia/Kolkata'));
+const CUTOFF = rankCutoff(monthDates(MONTH), todayIn('Asia/Kolkata'));
 const text = (en: string) => ({ en, hi: en });
 const noun = (one: string) => ({ en: { one, other: `${one}s` }, hi: { one, other: one } });
 

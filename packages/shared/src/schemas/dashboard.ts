@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Key, LocalizedNoun } from './config';
 import { MetricFigures, PerformanceMetric, PersonTerritory } from './performance';
-import { Period } from './planning';
+import { TargetPeriod } from './planning';
 
 /**
  * The home dashboard (M18, spec 8.2, decision D63): one read per month, by the viewer's role. A
@@ -11,7 +11,7 @@ import { Period } from './planning';
 /** The most metrics the home shows as tiles. */
 export const DASHBOARD_TILES = 6;
 
-export const DashboardQuery = z.strictObject({ period: Period });
+export const DashboardQuery = z.strictObject({ period: TargetPeriod });
 
 const Person = z.object({ id: z.uuid(), code: z.string(), name: z.string() });
 
@@ -29,7 +29,7 @@ export const DashboardWaiting = z
 
 export const DashboardResult = z
   .object({
-    period: Period,
+    period: TargetPeriod,
     /** Whose figures: the viewer's own, or the team their scope reaches. */
     view: z.enum(['self', 'team']),
     /** How many people the team view sums; 1 for the viewer's own. */

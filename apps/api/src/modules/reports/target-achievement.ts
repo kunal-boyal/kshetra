@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { TenantTx } from '../../platform/database';
 import { People } from '../iam/people';
+import { TargetPeriods } from '../metrics/target-periods';
 import { PerformanceService } from '../performance/performance.service';
 import {
   type ColumnSpec,
@@ -15,7 +16,8 @@ import {
 const amount = (value: string | null): number | null => (value === null ? null : Number(value));
 
 /**
- * Target against achievement (M18): for each person, every metric of the month with its target,
+ * Target against achievement (M18): for each person, every metric of the target period the
+ * report's month falls in (the month itself, or its quarter or year, D108) with its target,
  * approved figure, what waits for review, and attainment, and the person's score (BR-06). It pages
  * by person, as the score belongs to the person.
  */
@@ -26,6 +28,7 @@ export class TargetAchievementReport extends ReportSource {
   constructor(
     private readonly people: People,
     private readonly performance: PerformanceService,
+    private readonly periods: TargetPeriods,
   ) {
     super();
   }
@@ -52,23 +55,14 @@ export class TargetAchievementReport extends ReportSource {
   ): Promise<SourcePage> {
     const everyone = await this.people.among(tx, context.tenantId, context.people, context.from);
     const offset = personOffset(cursor);
+    const period = await this.periods.current(tx, context.tenantId, context.from);
     // A page holds whole people: as many as their metrics fit in it, at least one.
-    const { metrics } = await this.performance.figuresFor(
-      tx,
-      context.tenantId,
-      [],
-      context.filters.period,
-    );
+    const { metrics } = await this.performance.figuresFor(tx, context.tenantId, [], period);
     const team = everyone.slice(
       offset,
       offset + Math.max(1, Math.floor(limit / Math.max(1, metrics.length))),
     );
-    const figures = await this.performance.figuresFor(
-      tx,
-      context.tenantId,
-      team,
-      context.filters.period,
-    );
+    const figures = await this.performance.figuresFor(tx, context.tenantId, team, period);
     const rows: ReportRow[] = figures.rows.flatMap((person) =>
       figures.metrics.map((metric) => {
         const figure = person.figures[metric.key];

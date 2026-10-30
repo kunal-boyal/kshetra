@@ -65,10 +65,3 @@ export const RANK_HUES: Readonly<Record<1 | 2 | 3, AvatarHue>> = {
   2: 'sand',
   3: 'sage',
 };
-
-/** A `YYYY-MM` period moved by a number of months. */
-export function shiftPeriod(period: string, by: number): string {
-  const [year, month] = period.split('-').map(Number) as [number, number];
-  const index = year * 12 + (month - 1) + by;
-  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
-}

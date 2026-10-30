@@ -36,14 +36,7 @@ export { HealthResult, IdParams, ReadyResult } from './schemas/common';
 export type { ErrorBody, ErrorCode, ErrorDetail } from './errors';
 export { EVENT_PAYLOADS, EVENT_TYPES, TenantProvisionedPayload, UserEventPayload } from './events';
 export type { EventPayload, EventType } from './events';
-export {
-  AVATAR_HUES,
-  type AvatarHue,
-  avatarHue,
-  initialsOf,
-  RANK_HUES,
-  shiftPeriod,
-} from './avatars';
+export { AVATAR_HUES, type AvatarHue, avatarHue, initialsOf, RANK_HUES } from './avatars';
 export { isId, newId } from './ids';
 export {
   EmailAddress,
@@ -654,6 +647,7 @@ export {
   GeneratePlanResult,
   Period,
   PLAN_STATUSES,
+  TargetPeriod,
   PlanItemListQuery,
   PlanItemListResult,
   PlanItemResult,
@@ -678,6 +672,23 @@ export {
   scoreOf,
 } from './performance';
 export type { MetricDirection, RankedRow, ScoredMetric, ScoreInput } from './performance';
+export {
+  currentPeriod,
+  isPeriodKey,
+  nextPeriod,
+  periodDates,
+  periodKeyIssue,
+  periodKind,
+  periodKindOn,
+  periodMonthKeys,
+  periodMonths,
+  periodOf,
+  periodSwitchIssue,
+  previousPeriod,
+  shiftPeriod,
+  TARGET_PERIOD_KINDS,
+} from './periods';
+export type { PeriodSetting, TargetPeriodKind } from './periods';
 export {
   AccountPlanQuery,
   AccountPlanResult,
