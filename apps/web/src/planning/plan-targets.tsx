@@ -1,7 +1,8 @@
-import { formatDate, formatMonth } from '@thelamp/i18n';
+import { formatDate } from '@thelamp/i18n';
 import {
   CopyTargetsResult,
   TargetListResult,
+  nextPeriod,
   TargetSetResult,
   UNLOCK_REASON_MIN,
 } from '@thelamp/shared';
@@ -12,24 +13,21 @@ import { useId, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
-import { useFigure, usePersonPerformance } from '../performance/shared';
-
-/** The month after a `YYYY-MM` month. */
-export function nextMonth(period: string): string {
-  const [year, month] = period.split('-').map(Number) as [number, number];
-  return month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}`;
-}
+import { useFigure, usePersonPerformance, useTargetPeriods } from '../performance/shared';
 
 /**
- * A person's targets for the month beside their plan (decision D104): each metric's target and how
- * far they have come, whether the set is locked and by whom, with an unlock (with its reason) and
- * a copy to the next month for those allowed.
+ * A person's targets beside their plan's month (decision D104): for the target period the month
+ * falls in (the month itself, or its quarter or year, D108), each metric's target and how far they
+ * have come, whether the set is locked and by whom, with an unlock (with its reason) and a copy to
+ * the next period for those allowed.
  */
-export function PlanTargets({ userId, period }: { userId: string; period: string }) {
+export function PlanTargets({ userId, period: month }: { userId: string; period: string }) {
   const { client } = useApp();
   const queryClient = useQueryClient();
   const { t, locale } = useLanguage();
   const access = useAccess();
+  const periods = useTargetPeriods();
+  const period = periods.of(`${month}-01`);
   const figure = useFigure();
   const headingId = useId();
   const targets = useQuery({
@@ -48,8 +46,8 @@ export function PlanTargets({ userId, period }: { userId: string; period: string
     data?.sets.find((entry) => entry.user.id === userId) ??
     (data?.own.user.id === userId ? data.own : undefined);
   const metrics = (data?.metrics ?? []).filter((metric) => metric.targetable);
-  const month = formatMonth(period, { locale });
-  const following = nextMonth(period);
+  const named = periods.format(period);
+  const following = nextPeriod(period);
 
   async function act(work: () => Promise<string>) {
     setBusy(true);
@@ -91,7 +89,7 @@ export function PlanTargets({ userId, period }: { userId: string; period: string
     <section className="ks-card flex min-w-0 flex-col gap-4" aria-labelledby={headingId}>
       <div className="ks-spread items-start gap-3">
         <h2 id={headingId} className="heading-md">
-          {t('plan.targets_title', { month })}
+          {t('plan.targets_title', { month: named })}
         </h2>
         {set && set.status === 'locked' ? (
           <StatusBadge variant="success">
@@ -117,11 +115,11 @@ export function PlanTargets({ userId, period }: { userId: string; period: string
         <div
           className="relative overflow-x-auto"
           role="region"
-          aria-label={t('plan.targets_caption', { month })}
+          aria-label={t('plan.targets_caption', { month: named })}
           tabIndex={0}
         >
           <table className="ks-table">
-            <caption className="sr-only">{t('plan.targets_caption', { month })}</caption>
+            <caption className="sr-only">{t('plan.targets_caption', { month: named })}</caption>
             <thead>
               <tr>
                 <th scope="col">{t('plan.targets_metric')}</th>
@@ -206,7 +204,7 @@ export function PlanTargets({ userId, period }: { userId: string; period: string
               busy={busy}
               onClick={() => void copy()}
             >
-              {t('plan.copy_to', { month: formatMonth(following, { locale }) })}
+              {t('plan.copy_to', { month: periods.format(following) })}
             </Button>
           ) : null}
         </div>

@@ -1,6 +1,6 @@
 import { radius, size, spacing } from '@thelamp/design-tokens';
-import { formatDateTime, formatMonth, formatNumber, formatTime } from '@thelamp/i18n';
-import type { PerformanceMetric } from '@thelamp/shared';
+import { formatDateTime, formatNumber, formatTime } from '@thelamp/i18n';
+import { type PerformanceMetric, periodKind } from '@thelamp/shared';
 import {
   AppBar,
   Button,
@@ -20,7 +20,7 @@ import { ChartNoAxesColumn, RotateCw, Trophy } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
-import { useLeaderboard, useMonth, useMyMonth, useTileParts } from '../performance';
+import { useLeaderboard, useMyMonth, usePeriod, usePeriodName, useTileParts } from '../performance';
 
 /** Pairs of tiles, two-up on a phone (components/KpiTile). */
 function pairs<T>(items: readonly T[]): T[][] {
@@ -67,7 +67,7 @@ function MetricTile({ metric, data }: { metric: PerformanceMetric; data: Month }
  */
 export function MonthGlance() {
   const { t, locale } = useLanguage();
-  const period = useMonth();
+  const period = usePeriod();
   const data = useMyMonth(period).data?.data;
   if (!data) return null;
   const first = inOrder(data).slice(0, 2);
@@ -76,7 +76,7 @@ export function MonthGlance() {
     <View style={styles.stack}>
       <View style={styles.spread}>
         <Text variant="headingMd" role="heading" style={styles.grow}>
-          {t('performance.my_month')}
+          {t(`performance.my_${periodKind(period)}`)}
         </Text>
         <Pressable role="link" onPress={open} style={styles.link}>
           <Text variant="labelMd" weight={600} tone="accent">
@@ -111,13 +111,14 @@ const BOARD_ROWS = 5;
 export function MonthScreen() {
   const { t, locale } = useLanguage();
   const config = useConfig();
-  const period = useMonth();
+  const period = usePeriod();
+  const named = usePeriodName();
   const kept = useMyMonth(period).data;
   const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';
   return (
     <Screen edges={['top', 'left', 'right', 'bottom']}>
       <AppBar
-        title={formatMonth(period, { locale })}
+        title={named(period)}
         {...(kept
           ? {
               subtitle: t('performance.updated', {
@@ -155,7 +156,7 @@ export function MyMonth() {
   const { t, locale } = useLanguage();
   const theme = useTheme();
   const config = useConfig();
-  const period = useMonth();
+  const period = usePeriod();
   const month = useMyMonth(period);
   const permissions = new Set<string>(config.data?.bundle.access.permissions ?? []);
   const timeZone = config.data?.bundle.settings.timezone ?? 'Asia/Kolkata';

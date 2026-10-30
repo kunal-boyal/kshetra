@@ -131,7 +131,7 @@ describe('the home dashboard (M18, decision D104)', () => {
 
   it('shows who is on duty first, then each metric as a tile that leads to performance', async () => {
     renderAt('/', fakeClient({ '/v1/dashboard': DASHBOARD }, {}, ['live_map.view']));
-    const figures = await screen.findByRole('region', { name: 'Your team of 4 this month' });
+    const figures = await screen.findByRole('region', { name: 'Your team of 4 this period' });
     const links = within(figures).getAllByRole('link');
     expect(links[0]).toHaveAttribute('href', '/live-map');
     expect(links[0]).toHaveTextContent('On duty now3of 4 people1 on leave');
@@ -205,12 +205,12 @@ describe('the home dashboard (M18, decision D104)', () => {
     const loading = { timeout: 10_000 };
     await screen.findByRole(
       'img',
-      { name: 'Visits each day this month, approved and waiting for review' },
+      { name: 'Visits each day of this period, approved and waiting for review' },
       loading,
     );
     await screen.findByRole(
       'img',
-      { name: 'Forms filled this month, by form and review status' },
+      { name: 'Forms filled this period, by form and review status' },
       loading,
     );
     const user = userEvent.setup();
@@ -218,14 +218,14 @@ describe('the home dashboard (M18, decision D104)', () => {
     await user.click(trendNumbers!);
     const trend = screen.getByRole('table', { name: /Visits each day/ });
     expect(within(trend).getAllByRole('row')).toHaveLength(3);
-    expect(screen.getByRole('table', { name: /Forms filled this month/ })).toHaveTextContent(
+    expect(screen.getByRole('table', { name: /Forms filled this period/ })).toHaveTextContent(
       'Shop visits',
     );
   });
 
   it('shows a field person their own month, without the team’s cards', async () => {
     renderAt('/', fakeClient({ '/v1/dashboard': SELF }));
-    expect(await screen.findByRole('region', { name: 'Your month' })).toBeVisible();
+    expect(await screen.findByRole('region', { name: 'Your figures this period' })).toBeVisible();
     expect(screen.queryByText('On duty now')).toBeNull();
     expect(screen.queryByRole('region', { name: 'Waiting for you' })).toBeNull();
   });
@@ -238,6 +238,6 @@ describe('the home dashboard (M18, decision D104)', () => {
       }),
     );
     expect(await screen.findByText('No figures yet')).toBeVisible();
-    expect(screen.getByText('No forms filled this month.')).toBeVisible();
+    expect(screen.getByText('No forms filled this period.')).toBeVisible();
   });
 });

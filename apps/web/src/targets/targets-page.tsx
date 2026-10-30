@@ -1,4 +1,4 @@
-import { formatMonth, localeTag } from '@thelamp/i18n';
+import { localeTag } from '@thelamp/i18n';
 import {
   CopyTargetsResult,
   LockTargetsResult,
@@ -9,7 +9,6 @@ import {
   type TargetSetResult,
   TargetSetResult as TargetSetSchema,
   targetValueIssue,
-  todayIn,
   UNLOCK_REASON_MIN,
 } from '@thelamp/shared';
 import {
@@ -17,31 +16,21 @@ import {
   Confirm,
   EmptyState,
   Icon,
+  PeriodStepper,
   StatusBadge,
   TextAreaField,
-  TextField,
 } from '@thelamp/ui-web';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Lock,
-  LockOpen,
-  RotateCcw,
-  Save,
-  Target,
-  X,
-} from 'lucide-react';
+import { Copy, Lock, LockOpen, RotateCcw, Save, Target, X } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
 import { PageHeader, Section } from '../people/shared';
-import { useFigure } from '../performance/shared';
+import { useFigure, useTargetPeriods } from '../performance/shared';
 
-/** The month before a `YYYY-MM`. */
-const previousMonth = (period: string) => shiftPeriod(period, -1);
+/** The period before a key, of the same kind: a month, quarter or year (D108). */
+const previousPeriod = (period: string) => shiftPeriod(period, -1);
 
 const STATUS_BADGE = { locked: 'success', draft: 'pending', none: 'neutral' } as const;
 
@@ -56,9 +45,10 @@ function useTargets(period: string) {
 type Edits = Record<string, Record<string, string>>;
 
 /**
- * Targets (spec 5.8, 8.2): the month's grid of the people in the viewer's scope against each
+ * Targets (spec 5.8, 8.2): the period's grid (a month, or a quarter or year, D108) of the people
+ * in the viewer's scope against each
  * targetable metric, with the team's totals beside the viewer's own target. Drafts are edited in
- * place and saved together; drafts are locked after asking (BR-08), copied from the month before,
+ * place and saved together; drafts are locked after asking (BR-08), copied from the period before,
  * and unlocked with a reason where the tenant allows it.
  */
 export function TargetsPage() {
@@ -66,7 +56,9 @@ export function TargetsPage() {
   const queryClient = useQueryClient();
   const { t, locale } = useLanguage();
   const access = useAccess();
-  const [period, setPeriod] = useState(() => todayIn(access.timezone).slice(0, 7));
+  const periods = useTargetPeriods();
+  const [picked, setPeriod] = useState<string>();
+  const period = picked ?? periods.current;
   const targets = useTargets(period);
   const [edits, setEdits] = useState<Edits>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -162,7 +154,7 @@ export function TargetsPage() {
     act(async () => {
       const result = await write(client, 'POST', '/v1/targets/copy', CopyTargetsResult, {
         period,
-        from: previousMonth(period),
+        from: previousPeriod(period),
         userIds: [...selected],
       });
       setAsking(null);
@@ -222,34 +214,14 @@ export function TargetsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t('targets.title')} intro={t('targets.intro')} />
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex items-end gap-2">
-          <Button
-            variant="secondary"
-            icon={<Icon icon={ChevronLeft} />}
-            aria-label={t('targets.previous_month')}
-            onClick={() => goTo(shiftPeriod(period, -1))}
-          />
-          <TextField
-            label={t('plan.month')}
-            type="month"
-            className="max-w-[12rem]"
-            value={period}
-            onChange={(event) => {
-              if (event.target.value) goTo(event.target.value);
-            }}
-          />
-          <Button
-            variant="secondary"
-            icon={<Icon icon={ChevronRight} />}
-            aria-label={t('targets.next_month')}
-            onClick={() => goTo(shiftPeriod(period, 1))}
-          />
-        </div>
+        <PeriodStepper
+          value={period}
+          onChange={goTo}
+          format={periods.format}
+          {...periods.stepper(period)}
+        />
         {data && data.sets.length > 0 ? (
-          <p
-            className="flex flex-wrap items-center gap-2"
-            aria-label={formatMonth(period, { locale })}
-          >
+          <p className="flex flex-wrap items-center gap-2" aria-label={periods.format(period)}>
             <span className="ks-muted">{t('targets.people', { count: data.sets.length })}</span>
             <StatusBadge variant="success">
               {t('targets.count_locked', { count: counts.locked })}
@@ -342,7 +314,7 @@ export function TargetsPage() {
             <Confirm
               question={t(asking === 'lock' ? 'targets.lock_question' : 'targets.copy_question', {
                 count: selected.size,
-                month: formatMonth(previousMonth(period), { locale }),
+                month: periods.format(previousPeriod(period)),
               })}
               action={
                 <Button

@@ -1,11 +1,20 @@
 import type { MetricEntry, ScoreDefinition } from '@thelamp/metrics';
 import {
+  periodKindOn,
+  periodOf,
+  periodSwitchIssue,
+  shiftPeriod,
+  TARGET_PERIOD_KINDS,
+  type TargetPeriodKind,
+} from '@thelamp/shared';
+import {
   Button,
   type Column,
   DataTable,
   EmptyState,
   Icon,
   Notice,
+  SegmentedControl,
   SelectField,
   StatusBadge,
   TextField,
@@ -15,6 +24,7 @@ import { Gauge, Plus, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';
 import { fieldErrors, PageHeader, Section } from '../people/shared';
+import { useTargetPeriods } from '../performance/shared';
 import { useMetricDefinitions, useSaveMetrics } from './metrics-data';
 
 /**
@@ -103,7 +113,32 @@ interface WeightDraft {
   weight: string;
 }
 
-/** The score's metrics and weights, and the cap on any one metric's attainment (BR-06). */
+/**
+ * The first few periods of a kind a switch could start from (D108): still to come, and beginning
+ * where the kind in force ends.
+ */
+function switchStarts(
+  score: ScoreDefinition | null,
+  kind: TargetPeriodKind,
+  today: string,
+  startMonth: number,
+): string[] {
+  const here = periodOf(kind, today, startMonth);
+  const starts: string[] = [];
+  for (let step = 1; step <= 12 && starts.length < 4; step += 1) {
+    const from = shiftPeriod(here, step);
+    if (!periodSwitchIssue(score, { periodType: kind, periodFrom: from }, today, startMonth)) {
+      starts.push(from);
+    }
+  }
+  return starts;
+}
+
+/**
+ * The score's metrics and weights, the cap on any one metric's attainment (BR-06), and the period
+ * targets and scores count over: a month, or a quarter or year of the financial year (D108), a
+ * change starting from a period still to come.
+ */
 function ScoreEditor({
   score,
   metrics,
@@ -118,6 +153,13 @@ function ScoreEditor({
     (score?.metrics ?? []).map((entry) => ({ metric: entry.metric, weight: String(entry.weight) })),
   );
   const [cap, setCap] = useState(() => String((score?.cap ?? 1) * 100));
+  const periods = useTargetPeriods();
+  const inForce = periodKindOn(score, periods.today, periods.startMonth);
+  const [kind, setKind] = useState<TargetPeriodKind>(() => score?.periodType ?? 'month');
+  const starts = switchStarts(score, kind, periods.today, periods.startMonth);
+  const [from, setFrom] = useState(() => score?.periodFrom ?? '');
+  const switching = kind !== inForce;
+  const startsFrom = switching ? (starts.includes(from) ? from : (starts[0] ?? '')) : undefined;
   const [failure, setFailure] = useState<unknown>();
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -136,7 +178,8 @@ function ScoreEditor({
     setSaved(false);
     try {
       await save.score({
-        periodType: 'month',
+        periodType: kind,
+        ...(startsFrom ? { periodFrom: startsFrom } : {}),
         rankingGroupBy: score?.rankingGroupBy ?? 'designation',
         cap: (Number(cap) || 100) / 100,
         metrics: weights.map((entry) => ({ metric: entry.metric, weight: Number(entry.weight) })),
@@ -230,7 +273,33 @@ function ScoreEditor({
           {...(errors['definition.cap'] ? { error: errors['definition.cap'] } : {})}
           onChange={(event) => setCap(event.target.value)}
         />
-        <p className="ks-muted text-sm">{t('score.monthly')}</p>
+        <div className="flex flex-col gap-2">
+          <span className="ks-label" aria-hidden="true">
+            {t('score.period')}
+          </span>
+          <SegmentedControl
+            label={t('score.period')}
+            value={kind}
+            onChange={setKind}
+            choices={TARGET_PERIOD_KINDS.map((value) => ({
+              value,
+              label: t(`period.label_${value}`),
+            }))}
+          />
+          <p className="ks-muted text-sm">{t('score.period_help')}</p>
+        </div>
+        {switching ? (
+          <SelectField
+            label={t('score.period_from')}
+            value={startsFrom ?? ''}
+            options={starts.map((value) => ({ value, label: periods.format(value) }))}
+            {...(errors['definition.periodFrom'] ? { error: errors['definition.periodFrom'] } : {})}
+            onChange={(event) => setFrom(event.target.value)}
+          />
+        ) : null}
+        {score?.periodFrom && score.periodType !== inForce ? (
+          <Notice>{t('score.period_pending', { period: periods.format(score.periodFrom) })}</Notice>
+        ) : null}
         <div>
           <Button type="submit" variant="primary" busy={busy} icon={<Icon icon={Save} />}>
             {t('score.save')}

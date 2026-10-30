@@ -77,15 +77,18 @@
 
 - Settings › Metrics: the score's period as a segmented choice (Month, Quarter, Year) with "From …", which shows the next period's label.
 - Targets, Performance and Home use a period stepper (`PeriodStepper` in `apps/web/src/performance/shared.tsx`) in place of the month stepper, labelled with `formatPeriod()`.
-- [ ] Tests (Vitest and Playwright with axe): the setting; the stepper moves by quarter; a copy that has nothing to copy says so.
+- Home's and Targets' words say "this period" in place of "this month" ("इस अवधि" in Hindi), as the stepper beside them names it; the Targets page's month field becomes the same stepper.
+- The plan page's targets panel reads the period its month falls in.
+- [x] Tests (Vitest and Playwright with axe): the setting and its start; a pending switch's notice; a quarterly tenant's Targets asks for the quarter and steps by it. Copying across kinds is refused by the server (part 1's tests). Checked in the browser: a quarterly tenant's Targets, Performance and Home in Hindi at 390 px.
 
 ### Task 4: the phone
 
 - My month becomes My period: the bar says "Q3 2026–27" or the month, from the bundle's kind; the ring, tiles and leaderboard read the same routes with the period key.
-- [ ] Tests (Jest): the label by kind; the screen asks for the quarter's key.
+- `useMonth()` becomes `usePeriod()` with `usePeriodName()`; My month says "My quarter" or "My year".
+- [x] Tests (Jest): the label by kind; the screen asks for the quarter's key.
 
 ### Task 5: finish
 
-- [ ] Template schema: `score.periodType` stays additive, and templates keep `month`.
-- [ ] Decision D108 and the progress row; the open item on quarters closes.
-- [ ] Pull requests: 1, the shared rules and the server (tasks 1 and 2); 2, the portal and the phone (tasks 3 and 4). `pnpm verify` before each merge.
+- [x] Template schema: `score.periodType` stays additive, and templates keep `month`.
+- [x] Decision D108 and the progress row; the open item on quarters closes.
+- [x] Pull requests: 1, the shared rules and the server (tasks 1 and 2); 2, the portal and the phone (tasks 3 and 4). `pnpm verify` before each merge.

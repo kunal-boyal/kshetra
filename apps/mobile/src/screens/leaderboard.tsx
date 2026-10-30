@@ -14,7 +14,7 @@ import { ArrowLeft, Medal, RotateCw, Trophy, User } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { errorMessage, useLanguage } from '../i18n';
-import { useLeaderboard, useMonth } from '../performance';
+import { useLeaderboard, usePeriod } from '../performance';
 
 /**
  * The leaderboard on the phone (M9, BR-07), labelled indicative: the person's own group for the
@@ -22,7 +22,7 @@ import { useLeaderboard, useMonth } from '../performance';
  */
 export function LeaderboardScreen() {
   const { t, locale } = useLanguage();
-  const period = useMonth();
+  const period = usePeriod();
   const [group, setGroup] = useState<string>();
   const board = useLeaderboard(period, group);
   const data = board.data;
