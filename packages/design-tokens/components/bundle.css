@@ -360,6 +360,18 @@ a.ks-kpi:hover, .ks-kpi.act:hover { border-color: var(--border-strong); box-shad
 .ks-menu.end { right: 0; }
 .ks-menu.start { left: 0; }
 .ks-menu[hidden] { display: none; }
+/* Search in the app bar (D110): a field whose matches open under it as a list box, grouped by
+   kind, the option the arrow keys reach tinted in the accent. */
+.ks-search { position: relative; width: 18rem; max-width: 100%; }
+.ks-search .ks-input { height: 40px; padding-left: calc(var(--space-4) + 24px); }
+.ks-search-results { position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: var(--z-dropdown); width: max(100%, min(24rem, calc(100vw - var(--space-8)))); max-height: min(28rem, 70vh); overflow-y: auto; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-lg); animation: ks-drop var(--duration-fast) var(--ease-enter) both; }
+.ks-search-results[hidden] { display: none; }
+.ks-search-group + .ks-search-group { margin-top: var(--space-2); }
+.ks-search-group > .ks-rail-label { padding: var(--space-1) var(--space-2); }
+.ks-search-option { display: flex; align-items: center; gap: var(--space-3); min-height: var(--touch-min); padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); color: var(--text); cursor: pointer; }
+.ks-search-option[aria-selected="true"] { background: var(--accent-soft); }
+.ks-search-option > .ks-meta { margin-left: auto; white-space: nowrap; }
+.ks-search-note { padding: var(--space-2); }
 /* Sign-in's code field: the digits spaced apart and bold, easy to check against the message. */
 .ks-input.code, .ks-field.code .ks-input { letter-spacing: 0.3em; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ks-auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); background: var(--bg); }

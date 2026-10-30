@@ -11,6 +11,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { FieldModule } from './modules/field/field.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { MapsModule } from './modules/maps/maps.module';
+import { SearchModule } from './modules/search/search.module';
 import { MeteringModule } from './modules/metering/metering.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -77,6 +78,7 @@ export const FEATURE_MODULES = [
   ConfigurationModule,
   NotificationsModule,
   MapsModule,
+  SearchModule,
   ReportsModule,
   FieldModule,
   LeaveModule,

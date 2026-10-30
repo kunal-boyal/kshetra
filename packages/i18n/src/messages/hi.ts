@@ -284,6 +284,18 @@ export const hi: Record<MessageKey, Message> = {
 
   // The people screens of the web portal (spec 8.2, M3) and their settings (M2).
   'nav.people': 'लोग',
+  'search.label': 'खोजें',
+  'search.placeholder': 'लोग, {term.account:other} और {term.order:other} खोजें',
+  'search.results': 'खोज के नतीजे',
+  'search.group_screens': 'स्क्रीन',
+  'search.group_people': 'लोग',
+  'search.group_accounts': '{term.account:other}',
+  'search.group_orders': '{term.order:other}',
+  'search.group_forms': 'फ़ॉर्म',
+  'search.order': '#{number}',
+  'search.searching': 'खोज रहे हैं…',
+  'search.nothing': '“{q}” से कुछ नहीं मिला।',
+  'search.more_letters': 'कम से कम दो अक्षर या कोई नंबर लिखें।',
   'nav.org_chart': 'संगठन चार्ट',
   'nav.attendance': 'उपस्थिति',
   'nav.settings': 'सेटिंग',
