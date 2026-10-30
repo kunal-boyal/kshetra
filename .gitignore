@@ -51,3 +51,6 @@ tools/zap/reports/
 
 # Prototype and portal screenshots (tools/ui-compare)
 tools/ui-compare/out/
+
+# Real photographs for the demo generator (--photos), never committed
+demo-photos/
