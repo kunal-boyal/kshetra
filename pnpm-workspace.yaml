@@ -100,3 +100,7 @@ auditConfig:
     - GHSA-qrxm-fqhp-jwvm
     # zod 3 under Expo's CLI, which has no fixed release; every zod 4 is lifted by the override above.
     - GHSA-mrhx-c7xc-m3w5
+    # re2js in the form engine; the fix (2.8.7) arrived on 2026-10-17, so it is taken on 2026-10-31.
+    - GHSA-gg6h-894w-4m9c
+    # decode-uri-component 0.2 under Expo Router's query-string 7; the only fix is 0.5.1, ESM only.
+    - GHSA-qr28-fpjm-wq7f
