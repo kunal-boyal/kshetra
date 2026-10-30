@@ -39,7 +39,7 @@ import { fixable, useMyAttendance, useQueuedFixes } from '../attendance';
 import { useMyClaims } from '../expenses';
 import { leaveLeft, useLeaveBalances, useLeaveTypes } from '../leave';
 import { itemLabel } from '../outbox-kinds';
-import { useMonth, useMyMonth } from '../performance';
+import { usePeriod, useMyMonth } from '../performance';
 import { useOutboxItems, useSync, useSyncStatus } from '../sync';
 import { when } from '../when';
 import { useShift } from './shift';
@@ -372,7 +372,7 @@ function ClaimsOpen() {
 /** The person's rank this month, once the month is on the phone. */
 function MyRank() {
   const { locale } = useLanguage();
-  const rank = useMyMonth(useMonth()).data?.data.rank;
+  const rank = useMyMonth(usePeriod()).data?.data.rank;
   return rank == null ? null : (
     <Text variant="bodySm" tone="muted">
       {`#${formatNumber(rank, { locale })}`}

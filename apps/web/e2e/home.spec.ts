@@ -229,11 +229,13 @@ test('/ shows the team dashboard with its charts, and passes axe', async ({ page
   await mockSignedIn(page);
   await page.setViewportSize({ width: 1280, height: 1100 });
   await page.goto('/');
-  await expect(page.getByRole('region', { name: 'Your team of 12 this month' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your team of 12 this period' })).toBeVisible();
   await expect(page.getByRole('link', { name: /^Forms to review\s*6$/ })).toBeVisible();
   await expect(page.getByRole('table', { name: 'On duty now · 9 of 12' })).toBeVisible();
   await expect(
-    page.getByRole('img', { name: 'Visits each day this month, approved and waiting for review' }),
+    page.getByRole('img', {
+      name: 'Visits each day of this period, approved and waiting for review',
+    }),
   ).toBeVisible();
   await expect(page.locator('[role="img"] svg').first()).toBeVisible();
   await page.screenshot({ path: 'test-results/home-light.png', fullPage: true });
@@ -246,7 +248,7 @@ test('/ passes axe in the dark and outdoor themes', async ({ page }) => {
     await page.addInitScript((chosen) => localStorage.setItem('theme', chosen), theme);
     await page.setViewportSize({ width: 1280, height: 1100 });
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Forms this month' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Forms this period' })).toBeVisible();
     await page.screenshot({ path: `test-results/home-${theme}.png`, fullPage: true });
     await expectAccessible(page);
   }
@@ -267,7 +269,7 @@ test('runs under its Content-Security-Policy, which nothing on the page breaks (
   await mockSignedIn(page);
   const reply = await page.goto('/');
   expect(reply?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
-  await expect(page.getByRole('region', { name: 'Your team of 12 this month' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your team of 12 this period' })).toBeVisible();
   expect(violations).toEqual([]);
 });
 

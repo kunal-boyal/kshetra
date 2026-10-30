@@ -1,5 +1,6 @@
-import { formatNumber, shortFigure } from '@thelamp/i18n';
+import { formatNumber, formatPeriod, shortFigure } from '@thelamp/i18n';
 import {
+  currentPeriod,
   Leaderboard,
   type MetricFigures,
   type PerformanceMetric,
@@ -12,9 +13,9 @@ import { useConfig, useKept } from './data';
 import { useLanguage } from './i18n';
 
 /**
- * Performance on the phone (M9, decision D57): the person's own month and their group's
- * leaderboard. My month is kept on the phone with when it was read, so Home shows the last
- * figures offline; the leaderboard is read online only.
+ * Performance on the phone (M9, decision D57): the person's own period (a month, or a quarter or
+ * year as the tenant counts, D108) and their group's leaderboard. It is kept on the phone with
+ * when it was read, so Home shows the last figures offline; the leaderboard is read online only.
  */
 
 export interface Kept<T> {
@@ -23,13 +24,28 @@ export interface Kept<T> {
   readAt: string;
 }
 
-/** The current month on the tenant's clock. */
-export function useMonth(): string {
-  const config = useConfig();
-  return todayIn(config.data?.bundle.settings.timezone ?? 'Asia/Kolkata').slice(0, 7);
+/**
+ * The target period in force today on the tenant's clock (D108): the month, or the quarter or
+ * year the tenant counts targets and scores by.
+ */
+export function usePeriod(): string {
+  const bundle = useConfig().data?.bundle;
+  return currentPeriod(
+    bundle?.targetPeriods ?? null,
+    todayIn(bundle?.settings.timezone ?? 'Asia/Kolkata'),
+    bundle?.settings.financialYearStartMonth ?? 4,
+  );
 }
 
-/** The person's own month, kept on the phone. */
+/** A period's name in the reader's language: "October 2026", "Q3 2026–27 (Oct–Dec)". */
+export function usePeriodName(): (period: string) => string {
+  const bundle = useConfig().data?.bundle;
+  const { locale } = useLanguage();
+  const startMonth = bundle?.settings.financialYearStartMonth ?? 4;
+  return (period) => formatPeriod(period, startMonth, { locale });
+}
+
+/** The person's own period, kept on the phone. */
 export function useMyMonth(period: string) {
   const { client } = useApp();
   return useKept<Kept<PersonPerformance>>(`performance:${period}`, async () => ({

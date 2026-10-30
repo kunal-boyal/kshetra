@@ -1,4 +1,4 @@
-import { formatMonth, formatNumber, localeTag } from '@thelamp/i18n';
+import { formatNumber, localeTag } from '@thelamp/i18n';
 import { type DashboardResult, timeIn, todayIn } from '@thelamp/shared';
 import {
   Avatar,
@@ -34,7 +34,7 @@ import { useDashboard } from '../dashboard/data';
 import { useMe } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
-import { MetricTile, RankCell, useFigure } from '../performance/shared';
+import { MetricTile, RankCell, useFigure, useTargetPeriods } from '../performance/shared';
 import { rowLink } from '../row-link';
 
 /** ECharts loads in its own chunk, so only pages with charts fetch it (decision D63). */
@@ -544,7 +544,10 @@ export function HomePage() {
   const { t, locale } = useLanguage();
   const access = useAccess();
   const me = useMe(client);
-  const [period, setPeriod] = useState(() => todayIn(access.timezone).slice(0, 7));
+  // The dashboard's figures count over the tenant's target period: a month, quarter or year (D108).
+  const periods = useTargetPeriods();
+  const [picked, setPeriod] = useState<string>();
+  const period = picked ?? periods.current;
   const dashboard = useDashboard(period);
   const data = dashboard.data;
 
@@ -584,10 +587,8 @@ export function HomePage() {
             <PeriodStepper
               value={period}
               onChange={setPeriod}
-              format={(value) => formatMonth(value, { locale })}
-              label={t('plan.month')}
-              previousLabel={t('targets.previous_month')}
-              nextLabel={t('targets.next_month')}
+              format={periods.format}
+              {...periods.stepper(period)}
             />
             {access.can('report.view') ? (
               <Link to="/reports" className="ks-btn tonal sm">

@@ -1,18 +1,57 @@
-import { formatMoney, formatNumber, shortFigure } from '@thelamp/i18n';
+import { formatMoney, formatNumber, formatPeriod, shortFigure } from '@thelamp/i18n';
 import {
+  currentPeriod,
   Leaderboard,
   type MetricFigures,
   type PerformanceMetric,
   PersonPerformance,
+  periodKind,
+  type TargetPeriodKind,
   TeamPerformance,
+  todayIn,
 } from '@thelamp/shared';
 import { Avatar, Icon, KpiTile, RankBadge, type RowLink, StatusBadge } from '@thelamp/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import { useMemo } from 'react';
 import { useApp } from '../context';
+import { useConfig } from '../data';
 import { useLanguage } from '../i18n';
 import { read, useAccess } from '../people/data';
 import { metricLook } from './metric-look';
+
+/**
+ * The tenant's target and score periods (D108): the one in force today, the one a day falls in,
+ * and how to name one, from the config bundle's `targetPeriods` and the financial year's start.
+ */
+export function useTargetPeriods() {
+  const { client, queryClient } = useApp();
+  const config = useConfig(client, queryClient);
+  const { t, locale } = useLanguage();
+  const bundle = config.data?.bundle;
+  return useMemo(() => {
+    const startMonth = bundle?.settings.financialYearStartMonth ?? 4;
+    const today = todayIn(bundle?.settings.timezone ?? 'Asia/Kolkata');
+    const setting = bundle?.targetPeriods ?? null;
+    const kindOf = (key: string): TargetPeriodKind => periodKind(key);
+    return {
+      ready: bundle !== undefined,
+      startMonth,
+      today,
+      setting,
+      current: currentPeriod(setting, today, startMonth),
+      /** The period a day falls in, as the tenant counts on that day. */
+      of: (date: string) => currentPeriod(setting, date, startMonth),
+      format: (key: string) => formatPeriod(key, startMonth, { locale }),
+      /** The stepper's names for a key's kind: the group, and the way back and on. */
+      stepper: (key: string) => ({
+        label: t(`period.label_${kindOf(key)}`),
+        previousLabel: t(`period.previous_${kindOf(key)}`),
+        nextLabel: t(`period.next_${kindOf(key)}`),
+      }),
+    };
+  }, [bundle, locale, t]);
+}
 
 /** A person's month: the caller's own without `userId` (M9). */
 export function usePersonPerformance(period: string, userId?: string) {

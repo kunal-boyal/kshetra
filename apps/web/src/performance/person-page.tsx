@@ -1,22 +1,23 @@
-import { formatDate, formatMonth, formatNumber } from '@thelamp/i18n';
-import { todayIn } from '@thelamp/shared';
+import { formatDate, formatNumber } from '@thelamp/i18n';
 import { Avatar, Card, Notice, PeriodStepper } from '@thelamp/ui-web';
 import { useState } from 'react';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { PageHeader, Section } from '../people/shared';
 import { SubmissionsSection } from '../submissions/submissions-section';
-import { MetricTile, Movement, useFigure, usePersonPerformance } from './shared';
+import { MetricTile, Movement, useFigure, usePersonPerformance, useTargetPeriods } from './shared';
 
 /**
- * A person's month (M9): a tile per metric with the approved actual against the target and
+ * A person's period (M9; a month, or a quarter or year, D108): a tile per metric with the approved actual against the target and
  * pending work apart, the score and rank in the person's group, the daily trend, and the forms
- * behind the figures. `me` is the viewer's own month.
+ * behind the figures. `me` is the viewer's own.
  */
 export function PersonPerformancePage({ userId }: { userId: string }) {
   const { t, locale } = useLanguage();
   const access = useAccess();
-  const [period, setPeriod] = useState(() => todayIn(access.timezone).slice(0, 7));
+  const periods = useTargetPeriods();
+  const [picked, setPeriod] = useState<string>();
+  const period = picked ?? periods.current;
   const own = userId === 'me';
   const month = usePersonPerformance(period, own ? undefined : userId);
   const figure = useFigure();
@@ -42,10 +43,8 @@ export function PersonPerformancePage({ userId }: { userId: string }) {
           <PeriodStepper
             value={period}
             onChange={setPeriod}
-            format={(value) => formatMonth(value, { locale })}
-            label={t('plan.month')}
-            previousLabel={t('targets.previous_month')}
-            nextLabel={t('targets.next_month')}
+            format={periods.format}
+            {...periods.stepper(period)}
           />
         }
         {...(access.can('performance.view_team')

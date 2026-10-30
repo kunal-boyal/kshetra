@@ -1,5 +1,5 @@
-import { formatMonth } from '@thelamp/i18n';
-import { SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
+import { formatMonth, formatPeriod } from '@thelamp/i18n';
+import { periodOf, previousPeriod, SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -101,7 +101,7 @@ describe('targets (M8)', () => {
         ],
       ]),
     );
-    expect(await screen.findByRole('status')).toHaveTextContent('Changes saved.');
+    expect(await screen.findByText('Changes saved.')).toHaveAttribute('role', 'status');
   });
 
   it('locks and copies the people chosen, after asking', async () => {
@@ -124,7 +124,10 @@ describe('targets (M8)', () => {
     expect(writesOf(client)).toEqual([]);
     const lockButtons = screen.getAllByRole('button', { name: 'Lock 1 person' });
     await user.click(lockButtons[lockButtons.length - 1]!);
-    expect(await screen.findByRole('status')).toHaveTextContent('Targets locked for 1 person.');
+    expect(await screen.findByText('Targets locked for 1 person.')).toHaveAttribute(
+      'role',
+      'status',
+    );
 
     await user.click(screen.getByRole('checkbox', { name: 'Select Rahul Verma' }));
     await user.click(screen.getByRole('button', { name: 'Copy for 1 person' }));
@@ -188,7 +191,9 @@ describe('targets (M8)', () => {
     const user = userEvent.setup();
     await user.type(await screen.findByRole('textbox', { name: 'Visit for Rahul Verma' }), '5');
     await user.click(screen.getByRole('button', { name: 'Previous month' }));
-    expect(screen.getByLabelText('Month')).toHaveValue(PREVIOUS);
+    expect(screen.getByRole('group', { name: 'Month' })).toHaveTextContent(
+      formatMonth(PREVIOUS, { locale: 'en' }),
+    );
     await waitFor(() =>
       expect(client.request.mock.calls.map(([method, path]) => `${method} ${path}`)).toContain(
         `GET /v1/targets?period=${PREVIOUS}`,
@@ -226,7 +231,10 @@ describe('targets (M8)', () => {
         ],
       ]),
     );
-    expect(await screen.findByRole('status')).toHaveTextContent('Targets of Suresh Rao unlocked.');
+    expect(await screen.findByText('Targets of Suresh Rao unlocked.')).toHaveAttribute(
+      'role',
+      'status',
+    );
   });
 
   it('shows the grid read only to those who only view it', async () => {
@@ -236,5 +244,27 @@ describe('targets (M8)', () => {
     expect(screen.queryByRole('textbox', { name: /for Rahul Verma/ })).toBeNull();
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
+  });
+
+  it('counts by the quarter where the tenant does (D108)', async () => {
+    const quarter = periodOf('quarter', todayIn(SETTING_DEFAULTS.timezone), 4);
+    const client = fakeClient({ '/v1/targets': { ...LIST, period: quarter } }, {}, ALL, {
+      targetPeriods: { periodType: 'quarter' },
+    });
+    renderAt('/targets', client);
+    const user = userEvent.setup();
+    const stepper = await screen.findByRole('group', { name: 'Quarter' });
+    expect(stepper).toHaveTextContent(formatPeriod(quarter, 4, { locale: 'en' }));
+    await waitFor(() =>
+      expect(client.request.mock.calls.map(([method, path]) => `${method} ${path}`)).toContain(
+        `GET /v1/targets?period=${quarter}`,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Previous quarter' }));
+    await waitFor(() =>
+      expect(client.request.mock.calls.map(([method, path]) => `${method} ${path}`)).toContain(
+        `GET /v1/targets?period=${previousPeriod(quarter)}`,
+      ),
+    );
   });
 });

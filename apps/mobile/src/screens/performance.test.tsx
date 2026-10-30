@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { NetworkError, type SessionState } from '@thelamp/api-client';
 import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import { claim, migrate } from '@thelamp/api-client/sync';
-import { SETTING_DEFAULTS, type SyncPullResult } from '@thelamp/shared';
+import { periodOf, SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
@@ -106,7 +106,11 @@ const ALL_STARTS = [
 
 function fakeClient(
   offline = false,
-  access: { permissions?: string[]; modulesOff?: string[] } = {},
+  access: {
+    permissions?: string[];
+    modulesOff?: string[];
+    targetPeriods?: { periodType: 'month' | 'quarter' | 'year' };
+  } = {},
 ) {
   const session: SessionState = {
     tenant: TENANT,
@@ -155,6 +159,7 @@ function fakeClient(
           accountTypes: [],
           forms: [],
           catalogue: { units: [], measureTypes: [] },
+          ...(access.targetPeriods ? { targetPeriods: access.targetPeriods } : {}),
           access: {
             role: 'field_user',
             scope: 'self',
@@ -191,6 +196,7 @@ async function renderPhone(
     db?: ReturnType<typeof nodeSqlite>;
     permissions?: string[];
     modulesOff?: string[];
+    targetPeriods?: { periodType: 'month' | 'quarter' | 'year' };
   } = {},
 ) {
   const fake = fakeClient(options.offline, options);
@@ -286,6 +292,16 @@ describe('Home at a glance (M2, decision D104)', () => {
     expect(screen.queryByText('Coverages')).toBeNull();
     await fireEvent.press(screen.getByRole('link', { name: 'Rank #2 of 7' }));
     expect(router.push).toHaveBeenCalledWith('/month');
+  });
+
+  it('reads the quarter where the tenant counts by it (D108)', async () => {
+    month = MONTH;
+    const { client } = await renderPhone('glance', { targetPeriods: { periodType: 'quarter' } });
+    expect(await screen.findByText('My quarter')).toBeOnTheScreen();
+    const quarter = periodOf('quarter', todayIn(SETTING_DEFAULTS.timezone), 4);
+    expect(client.request.mock.calls.map(([, path]) => path)).toContain(
+      `/v1/performance?period=${quarter}`,
+    );
   });
 
   it('says when nothing is planned, with no bar, and offers what the person may start', async () => {

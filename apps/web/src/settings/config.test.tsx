@@ -1,4 +1,5 @@
-import { todayIn } from '@thelamp/shared';
+import { formatPeriod } from '@thelamp/i18n';
+import { nextPeriod, periodOf, SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -301,5 +302,51 @@ describe('metrics and the score (M2, spec 5.7, 5.8)', () => {
         },
       },
     });
+  });
+
+  it('counts targets and scores by the quarter from one still to come (D108)', async () => {
+    const client = fakeClient(PAGES, { 'PUT /v1/score': () => DEFINITIONS }, ['metric.manage']);
+    renderAt('/settings/metrics', client);
+    const user = userEvent.setup();
+    const score = await screen.findByRole('region', { name: 'The score' });
+    const kind = within(score).getByRole('group', { name: 'Count targets and scores by' });
+    expect(within(kind).getByRole('button', { name: 'Month' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    // Staying with months asks for no start.
+    expect(within(score).queryByRole('combobox', { name: 'Starting from' })).toBeNull();
+    await user.click(within(kind).getByRole('button', { name: 'Quarter' }));
+    const next = nextPeriod(periodOf('quarter', todayIn(SETTING_DEFAULTS.timezone), 4));
+    const from = within(score).getByRole('combobox', { name: 'Starting from' });
+    expect(from).toHaveDisplayValue(formatPeriod(next, 4, { locale: 'en' }));
+    await user.click(within(score).getByRole('button', { name: 'Save the score' }));
+    expect(await within(score).findByText('Saved.')).toBeVisible();
+    expect(writesOf(client)[0]![3]).toMatchObject({
+      body: { definition: { periodType: 'quarter', periodFrom: next } },
+    });
+  });
+
+  it('says when a switch to quarters is waiting to begin', async () => {
+    const next = nextPeriod(periodOf('quarter', todayIn(SETTING_DEFAULTS.timezone), 4));
+    const pending = {
+      ...DEFINITIONS,
+      score: {
+        ...DEFINITIONS.score,
+        periodType: 'quarter',
+        periodFrom: next,
+        earlierPeriodType: 'month',
+      },
+    };
+    const client = fakeClient({ ...PAGES, '/v1/metric-definitions': pending }, {}, [
+      'metric.manage',
+    ]);
+    renderAt('/settings/metrics', client);
+    const score = await screen.findByRole('region', { name: 'The score' });
+    expect(
+      within(score).getByText(
+        `From ${formatPeriod(next, 4, { locale: 'en' })}, targets and scores count by this period. Choose the current one again to call it off.`,
+      ),
+    ).toBeVisible();
   });
 });
