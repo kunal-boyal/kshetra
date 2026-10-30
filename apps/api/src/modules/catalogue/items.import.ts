@@ -24,6 +24,7 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { CatalogueService } from './catalogue.service';
@@ -123,6 +124,40 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
         required: false,
         label: field.label,
       })),
+    ];
+  }
+
+  /** Two items of one product in the catalogue's own units, with prices (D111). */
+  async example(tx: TenantTx, tenantId: string): Promise<ExampleRow[]> {
+    const { units } = await this.catalogue.settings(tx, tenantId);
+    const base = units.find((unit) => unit.base)?.key ?? 'pack';
+    const item = {
+      product_name: 'Sample product',
+      category: 'Sample category',
+      base_unit: base,
+      case_factor: '12',
+      hsn: '3808',
+      tax_rate: '18',
+      active: 'Yes',
+    };
+    return [
+      {
+        ...item,
+        item_code: 'ITEM-101',
+        item_name: 'Sample product 500 ML',
+        pack_label: '500 ML',
+        mrp: '450',
+        price: '400',
+        discount_pct: '5',
+      },
+      {
+        ...item,
+        item_code: 'ITEM-102',
+        item_name: 'Sample product 1 L',
+        pack_label: '1 L',
+        mrp: '850',
+        price: '760',
+      },
     ];
   }
 

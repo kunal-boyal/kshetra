@@ -13,6 +13,7 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { AttendanceService } from './attendance.service';
@@ -52,6 +53,18 @@ export class HolidaysImport implements ImportTargetSource, OnModuleInit {
       { key: 'date', names: ['Date'], required: true },
       { key: 'name', names: ['Name', 'Holiday'], required: true },
       { key: 'optional', names: ['Optional'], required: false },
+    ];
+  }
+
+  /** Two national holidays of the coming year on the tenant's default calendar (D111). */
+  async example(tx: TenantTx, tenantId: string): Promise<ExampleRow[]> {
+    const { items } = await this.calendars.list(tx, tenantId);
+    const calendar = items.find((entry) => entry.default) ?? items[0];
+    const year = new Date().getUTCFullYear() + 1;
+    const name = calendar?.key ?? '';
+    return [
+      { calendar: name, date: `${year}-01-26`, name: 'Republic Day', optional: 'No' },
+      { calendar: name, date: `${year}-08-15`, name: 'Independence Day', optional: 'No' },
     ];
   }
 

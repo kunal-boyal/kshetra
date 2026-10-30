@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ADMIN, fakeClient, renderAt, writesOf } from '../test-support';
 
 const JOB = '01a10000-0000-7000-8000-000000000070';
@@ -112,6 +112,22 @@ describe('the imports page', () => {
         .map((option) => option.textContent),
     ).toEqual(['Territories', 'Catalogue items']);
     expect(screen.getByText('No imports yet')).toBeInTheDocument();
+  });
+
+  it('downloads the chosen target’s example file, in the reader’s language (D111)', async () => {
+    const client = fakeClient({ '/v1/imports': { items: [], nextCursor: null } }, {}, PERMISSIONS);
+    URL.createObjectURL = vi.fn(() => 'blob:example');
+    URL.revokeObjectURL = vi.fn();
+    renderAt('/imports', client);
+    const user = userEvent.setup();
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'What to import' }),
+      'territories',
+    );
+    await user.click(screen.getByRole('button', { name: 'Download an example' }));
+    await waitFor(() =>
+      expect(client.file).toHaveBeenCalledWith('/v1/imports/example?target=territories&locale=en'),
+    );
   });
 });
 

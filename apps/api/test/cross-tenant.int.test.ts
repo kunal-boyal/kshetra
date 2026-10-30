@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { type DeviceInfo, newId, todayIn } from '@thelamp/shared';
 import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import ExcelJS from 'exceljs';
 import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -248,6 +249,17 @@ async function sameAsNowhere(call: (id: string) => Promise<Reply>, theirId: stri
 function holdsNothingOfA(reply: Reply) {
   for (const id of aIds) expect(reply.body, `B's answer names A's ${id}`).not.toContain(id);
   expect(reply.body).not.toContain(a.word);
+}
+
+/** Every cell of an XLSX answer as text, since the file itself is zipped. */
+async function workbookText(reply: Reply): Promise<string> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(reply.rawPayload as unknown as ArrayBuffer);
+  const cells: string[] = [];
+  workbook.eachSheet((sheet) =>
+    sheet.eachRow((row) => row.eachCell((cell) => cells.push(String(cell.value ?? '')))),
+  );
+  return cells.join('\n');
 }
 
 const named = (en: string) => ({ en, hi: en });
@@ -1215,6 +1227,19 @@ const FIXTURES: Record<string, Fixture> = {
       const imported = await asB('POST', '/v1/configuration/import', { template });
       expect(imported.statusCode).toBe(200);
       holdsNothingOfA(imported);
+    },
+  },
+  'GET /v1/imports/example': {
+    kind: 'own tenant',
+    run: async () => {
+      // B's example files use B's own designations, territories and metrics, never A's.
+      for (const target of ['users', 'territories', 'accounts:customer', 'targets']) {
+        const reply = await asB('GET', `/v1/imports/example?target=${target}`);
+        expect(reply.statusCode, reply.body).toBe(200);
+        const text = await workbookText(reply);
+        for (const id of aIds) expect(text).not.toContain(id);
+        expect(text).not.toContain(a.word);
+      }
     },
   },
   'GET /v1/search': {

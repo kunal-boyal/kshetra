@@ -26,6 +26,7 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
@@ -120,6 +121,36 @@ export class UsersImport implements ImportTargetSource, OnModuleInit {
         required: false,
         label: field.label,
       })),
+    ];
+  }
+
+  /**
+   * A head and someone reporting to them, at the tenant's highest and lowest designations, in its
+   * first territory; fictional names, no mobile numbers (D111).
+   */
+  async example(tx: TenantTx, tenantId: string): Promise<ExampleRow[]> {
+    const designations = await this.designations.list(tx, tenantId);
+    const territory = (await this.territories.list(tx, tenantId, { active: true }))[0];
+    const top = designations[0]?.key ?? '';
+    const field = designations[designations.length - 1]?.key ?? top;
+    const joined = new Date().toISOString().slice(0, 10);
+    return [
+      {
+        code: 'EMP-101',
+        name: 'Meera Joshi',
+        email: 'meera.joshi@example.com',
+        designation: top,
+        territory_codes: territory?.code ?? '',
+        joining_date: joined,
+      },
+      {
+        code: 'EMP-102',
+        name: 'Arjun Rao',
+        designation: field,
+        reports_to: 'EMP-101',
+        territory_codes: territory?.code ?? '',
+        joining_date: joined,
+      },
     ];
   }
 

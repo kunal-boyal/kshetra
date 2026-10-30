@@ -229,6 +229,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 - Files live in the object store through the media module (`MediaService.store()` and `read()`), never through S3 directly. Locally that is MinIO, whose bucket the API creates on start; tests use `OBJECT_STORE=memory`.
 - The module that owns some records makes them importable: a class implementing `ImportTargetSource`, registered with `ImportTargets` in `onModuleInit`, as `apps/api/src/modules/territories/territories.import.ts` does. `check` finds every problem without writing; `commit` writes every row in the caller's transaction, checking again first, and throws `ImportRefused` rather than write part of a file. Add the target to `IMPORT_TARGETS` in `packages/shared/src/schemas/imports.ts`, its permission to `TARGET_PERMISSIONS` in `apps/web/src/imports/data.ts`, and its field names to the web's `fieldName` and the strings as `import.field_<target>_<key>`.
+- Every import target also provides `example()`: two rows for its example file (`GET /v1/imports/example`, `ImportExamples` in `src/modules/imports/examples.ts`, decision D111), with fictional names and the tenant's own keys and codes; figures for metrics come from `exampleFigure()` by unit.
 - Match names in files with `matchName` from `@thelamp/shared` (BR-42); it never guesses between two close names.
 
 ## Accounts and approvals (decision D43)

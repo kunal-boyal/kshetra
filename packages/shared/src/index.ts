@@ -186,6 +186,7 @@ export {
   IMPORT_STATUSES,
   IMPORT_TARGETS,
   ImportFieldInfo,
+  ImportExampleQuery,
   ImportListQuery,
   ImportListResult,
   ImportPreviewRow,

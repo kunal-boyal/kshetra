@@ -11,6 +11,7 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
 import { TerritoriesService } from './territories.service';
 
@@ -53,6 +54,21 @@ export class TerritoriesImport implements ImportTargetSource, OnModuleInit {
       { key: 'parent_code', names: ['Parent', 'Parent code', 'Parent territory'], required: false },
       { key: 'level', names: ['Level', 'Type'], required: false },
       { key: 'active', names: ['Active', 'Status'], required: false },
+    ];
+  }
+
+  /** A top territory and one under it, at the tenant's first two levels by name (D111). */
+  async example(tx: TenantTx, tenantId: string): Promise<ExampleRow[]> {
+    const [top, next] = await this.territories.levels(tx, tenantId);
+    return [
+      { code: 'T-NORTH', name: 'North', level: top?.name.en.one ?? '1', active: 'Yes' },
+      {
+        code: 'T-NORTH-1',
+        name: 'North 1',
+        parent_code: 'T-NORTH',
+        level: next?.name.en.one ?? '2',
+        active: 'Yes',
+      },
     ];
   }
 

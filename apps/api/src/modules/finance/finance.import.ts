@@ -18,6 +18,7 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { FinanceService } from './finance.service';
@@ -77,6 +78,32 @@ export class FinanceSnapshotsImport implements ImportTargetSource, OnModuleInit 
         },
       })),
       { key: 'source', names: ['Source'], required: true },
+    ];
+  }
+
+  /** Two accounts' balances today, split over the tenant's first ageing buckets (D111). */
+  async example(tx: TenantTx, tenantId: string): Promise<ExampleRow[]> {
+    const { ageingBuckets } = await this.config.settings(tx, tenantId);
+    const [first, second] = ageingBuckets;
+    const asOf = new Date().toISOString().slice(0, 10);
+    return [
+      {
+        account_code: 'A-101',
+        as_of: asOf,
+        outstanding: '125000.00',
+        credit_limit: '200000.00',
+        ...(first ? { [`ageing.${first.key}`]: '75000.00' } : {}),
+        ...(second ? { [`ageing.${second.key}`]: '50000.00' } : {}),
+        source: 'Accounts export',
+      },
+      {
+        account_code: 'A-102',
+        as_of: asOf,
+        outstanding: '18500.00',
+        credit_limit: '50000.00',
+        ...(first ? { [`ageing.${first.key}`]: '18500.00' } : {}),
+        source: 'Accounts export',
+      },
     ];
   }
 
@@ -191,6 +218,27 @@ export class LedgerEntriesImport implements ImportTargetSource, OnModuleInit {
       { key: 'description', names: ['Description', 'Narration'], required: false },
       { key: 'debit', names: ['Debit', 'Dr'], required: false },
       { key: 'credit', names: ['Credit', 'Cr'], required: false },
+    ];
+  }
+
+  /** An invoice and the payment against it (D111). */
+  async example(): Promise<ExampleRow[]> {
+    const day = new Date().toISOString().slice(0, 10);
+    return [
+      {
+        reference: 'INV-2041',
+        account_code: 'A-101',
+        date: day,
+        description: 'Invoice 2041',
+        debit: '42000.00',
+      },
+      {
+        reference: 'RCPT-118',
+        account_code: 'A-101',
+        date: day,
+        description: 'Payment received',
+        credit: '30000.00',
+      },
     ];
   }
 

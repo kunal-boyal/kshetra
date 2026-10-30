@@ -14,6 +14,7 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
 import { MetricsService } from '../metrics/metrics.service';
 import { MetricsEngine } from './metrics-engine';
@@ -71,6 +72,30 @@ export class ExternalMetricsImport implements ImportTargetSource, OnModuleInit {
       { key: 'employee_code', names: ['Employee code', 'Emp code'], required: false },
       { key: 'account_code', names: ['Account code', 'Customer code'], required: false },
       { key: 'value', names: ['Value', 'Amount'], required: true },
+    ];
+  }
+
+  /**
+   * A person's value for a day and an account's for a month, on the tenant's first metric loaded
+   * from outside, else its first metric (D111).
+   */
+  async example(tx: TenantTx, tenantId: string): Promise<ExampleRow[]> {
+    const definitions = await this.metrics.definitions(tx, tenantId);
+    const metric = (definitions.find((entry) => entry.source.type === 'external') ?? definitions[0])
+      ?.key;
+    return [
+      {
+        metric: metric ?? '',
+        date: new Date().toISOString().slice(0, 10),
+        employee_code: 'EMP-102',
+        value: '12500',
+      },
+      {
+        metric: metric ?? '',
+        period: new Date().toISOString().slice(0, 7),
+        account_code: 'A-101',
+        value: '48000',
+      },
     ];
   }
 
