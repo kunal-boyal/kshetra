@@ -1,4 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import type { INestApplicationContext } from '@nestjs/common';
 import { type FormView, signatureRequired } from '@thelamp/forms';
 import {
@@ -64,6 +66,7 @@ import {
   Dice,
   type Flavour,
   flavourOf,
+  sceneFor,
   MARKETS,
   type Market,
   personName,
@@ -79,6 +82,11 @@ export interface DemoOptions {
   days: number;
   seed: number;
   log: (line: string) => void;
+  /**
+   * A folder of real photographs to take pictures from, locally only: `field`, `shop`, `shelf`
+   * and `odometer` subfolders of JPEGs. Without it, pictures are shapes in the place's colours.
+   */
+  photos?: string;
 }
 
 type Field = FormView['fields'][number];
@@ -1054,7 +1062,7 @@ export class DemoContent implements DemoKit {
     }
   }
 
-  /** A photo the person takes: a picture of shapes in the place's own colours, never repeated. */
+  /** A photo the person takes, uploaded and confirmed as the phone does; never repeated. */
   async photo(
     person: Person,
     place: { name: string; location: GeoPoint },
@@ -1063,19 +1071,9 @@ export class DemoContent implements DemoKit {
     at: number,
   ): Promise<string | null> {
     travelTo(at);
-    const hue = this.dice.int(0, 359);
-    const shapes = Array.from({ length: 14 }, () => {
-      const x = this.dice.int(0, 960);
-      const y = this.dice.int(0, 720);
-      const size = this.dice.int(40, 260);
-      const colour = `hsl(${(hue + this.dice.int(-60, 60) + 360) % 360},${this.dice.int(35, 75)}%,${this.dice.int(30, 70)}%)`;
-      return this.dice.chance(0.5)
-        ? `<circle cx="${x}" cy="${y}" r="${size / 2}" fill="${colour}"/>`
-        : `<rect x="${x}" y="${y}" width="${size}" height="${Math.round(size * 0.7)}" rx="18" fill="${colour}"/>`;
-    }).join('');
-    const label = `${caption} · ${place.name}`.replace(/[<&>"]/g, '');
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720"><rect width="960" height="720" fill="hsl(${hue},30%,88%)"/>${shapes}<rect x="0" y="640" width="960" height="80" fill="rgba(0,0,0,0.45)"/><text x="24" y="690" font-family="sans-serif" font-size="30" fill="#fff">Demo photo · ${label}</text></svg>`;
-    const bytes = new Uint8Array(await sharp(Buffer.from(svg)).jpeg({ quality: 72 }).toBuffer());
+    const bytes =
+      (this.options.photos && (await this.realPhoto(this.options.photos, caption, kind))) ||
+      (await this.shapes(place, caption));
     const id = newId();
     try {
       await this.tx((tx) =>
@@ -1112,6 +1110,54 @@ export class DemoContent implements DemoKit {
       this.once('photo', error);
       return null;
     }
+  }
+  /** A picture of shapes in random colours, captioned, for a tenant without real photos. */
+  private async shapes(place: { name: string }, caption: string): Promise<Uint8Array> {
+    const hue = this.dice.int(0, 359);
+    const shapes = Array.from({ length: 14 }, () => {
+      const x = this.dice.int(0, 960);
+      const y = this.dice.int(0, 720);
+      const size = this.dice.int(40, 260);
+      const colour = `hsl(${(hue + this.dice.int(-60, 60) + 360) % 360},${this.dice.int(35, 75)}%,${this.dice.int(30, 70)}%)`;
+      return this.dice.chance(0.5)
+        ? `<circle cx="${x}" cy="${y}" r="${size / 2}" fill="${colour}"/>`
+        : `<rect x="${x}" y="${y}" width="${size}" height="${Math.round(size * 0.7)}" rx="18" fill="${colour}"/>`;
+    }).join('');
+    const label = `${caption} · ${place.name}`.replace(/[<&>"]/g, '');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720"><rect width="960" height="720" fill="hsl(${hue},30%,88%)"/>${shapes}<rect x="0" y="640" width="960" height="80" fill="rgba(0,0,0,0.45)"/><text x="24" y="690" font-family="sans-serif" font-size="30" fill="#fff">Demo photo · ${label}</text></svg>`;
+    return new Uint8Array(await sharp(Buffer.from(svg)).jpeg({ quality: 72 }).toBuffer());
+  }
+
+  /**
+   * A real photograph from the local folder, from the scene `sceneFor()` picks, or null when the
+   * folder has none of it. Each use is a different crop, sometimes mirrored, so the media pipeline
+   * sees a new picture, not a duplicate.
+   */
+  private async realPhoto(
+    folder: string,
+    caption: string,
+    kind: string,
+  ): Promise<Uint8Array | null> {
+    const scene = sceneFor(this.flavour, caption, kind, this.dice);
+    const where = join(folder, scene);
+    // A scene the folder has no photographs of is drawn as shapes instead.
+    const files = existsSync(where)
+      ? readdirSync(where).filter((file) => /\.jpe?g$/i.test(file))
+      : [];
+    if (files.length === 0) return null;
+    const file = join(where, this.dice.pick(files));
+    const image = sharp(file);
+    const { width = 1600, height = 1200 } = await image.metadata();
+    const share = this.dice.int(65, 85) / 100;
+    const crop = { width: Math.round(width * share), height: Math.round(height * share) };
+    const left = this.dice.int(0, width - crop.width);
+    const top = this.dice.int(0, height - crop.height);
+    let picture = sharp(file).extract({ left, top, ...crop });
+    if (this.dice.chance(0.4)) picture = picture.flop();
+    // As the phone takes it: 1,600 px on the long side, JPEG at 0.7 (spec 12.2).
+    return new Uint8Array(
+      await picture.resize(1600, 1600, { fit: 'inside' }).jpeg({ quality: 70 }).toBuffer(),
+    );
   }
 
   /** Plausible values for a form's fields; complex fields are left out unless required. */
