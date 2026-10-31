@@ -2188,6 +2188,8 @@ export const en = {
   'policies.save': 'Save policies',
   'leave.read_at': 'As of {time}',
   'leave.left_of': '{left} of {quota} left',
+  'leave.credited_so_far': '{days} credited so far',
+  'leave.carried_in': '{days} carried in',
   'leave.taken': '{days} taken',
   'leave.waiting': '{days} waiting',
   'leave.queued': 'Sends when there is signal',

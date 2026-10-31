@@ -2180,6 +2180,8 @@ export const hi: Record<MessageKey, Message> = {
   'policies.save': 'नीतियाँ सहेजें',
   'leave.read_at': '{time} तक का',
   'leave.left_of': '{quota} में से {left} बाक़ी',
+  'leave.credited_so_far': 'अब तक {days} जमा',
+  'leave.carried_in': 'पिछले वर्ष से {days}',
   'leave.taken': '{days} ली गईं',
   'leave.waiting': '{days} इंतज़ार में',
   'leave.queued': 'सिग्नल मिलने पर जाएगा',

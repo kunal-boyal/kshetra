@@ -129,6 +129,7 @@ export function NewLeaveScreen() {
           isOff,
           asked,
           financialYearStartMonth: settings.financialYearStartMonth,
+          balances,
         })
       : null;
   const needsDocument =

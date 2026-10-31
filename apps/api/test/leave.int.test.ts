@@ -212,6 +212,7 @@ describe('leave requests (BR-27)', () => {
     expect((await ask(t, 'unpaid', may, after(may, 13))).statusCode).toBe(201);
 
     const balances = (await t.field.get(`/v1/leave-balances?on=${year}-03-01`)).json();
+    expect(balances.joiningDate).toBe('2020-01-01');
     expect(balances.items).toEqual([
       {
         leaveType: 'casual',
