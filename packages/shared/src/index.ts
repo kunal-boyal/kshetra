@@ -794,6 +794,7 @@ export {
   EXPORT_FORMATS,
   EXPORT_STATUSES,
   ExportFormat,
+  ExportReport,
   ExportIdParam,
   ExportListQuery,
   ExportListResult,

@@ -389,6 +389,42 @@ describe('exports (M18)', () => {
     });
   });
 
+  it('writes every report the person may see into one workbook, a sheet each (D112)', async () => {
+    const t = await tenant('Workbook Co');
+    const filters = { period: MONTH(), managerId: t.manager.id, form: 'shop_note' };
+    const refused = await t.api.manager.post('/v1/exports', {
+      id: newId(),
+      report: 'workbook',
+      filters,
+      format: 'csv',
+      locale: 'en',
+    });
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json().error.details).toEqual([{ path: 'format', issue: 'Choose xlsx' }]);
+
+    const { id, result } = await exported(t, {
+      report: 'workbook',
+      filters,
+      format: 'xlsx',
+      locale: 'en',
+    });
+    expect(result).toMatchObject({
+      report: 'workbook',
+      status: 'ready',
+      fileName: `reports-${MONTH()}.xlsx`,
+    });
+    const sheets = await readXlsxFile(Buffer.from(await fileOf(t, id)));
+    const names = sheets.map((sheet) => sheet.sheet);
+    expect(names.length).toBeGreaterThan(3);
+    // One person's points need a person; the audit log needs its own permission.
+    expect(names).not.toContain('GPS audit trail');
+    expect(names).not.toContain('Audit log');
+    // The activity log holds every form's work, as the one-form filter is the screen's alone.
+    const log = sheets.find((sheet) => sheet.data.some((row) => row.includes('Sharma Stores')));
+    expect(log, names.join(', ')).toBeDefined();
+    expect(result.rows).toBe(sheets.reduce((sum, sheet) => sum + sheet.data.length - 1, 0));
+  });
+
   it('writes CSV with Hindi headings, and refuses filters out of reach before queueing', async () => {
     const t = await tenant('CSV Co');
     const { id, result } = await exported(t, {

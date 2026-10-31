@@ -10,6 +10,7 @@ import {
   type ReportPage,
   type ReportQuery,
   REPORT_FOR_ONE_PERSON,
+  REPORT_KEYS,
   REPORT_MODULE,
   REPORT_PERMISSION,
 } from '@thelamp/shared';
@@ -127,8 +128,14 @@ export class ReportsService {
    * Checks an export before it is queued: its report's module is on, and the people and places
    * its filters name are reachable.
    */
-  async check(tx: TenantTx, access: Access, key: ReportKey, filters: ReportFilters): Promise<void> {
-    this.source(access, key, filters);
+  async check(
+    tx: TenantTx,
+    access: Access,
+    key: ReportKey | 'workbook',
+    filters: ReportFilters,
+  ): Promise<void> {
+    // A workbook takes only the reports the person may see (`visible`), so only its filters count.
+    if (key !== 'workbook') this.source(access, key, filters);
     await this.whose(tx, access, filters);
   }
 
@@ -254,6 +261,57 @@ export class ReportsService {
       rows: rows.slice(0, most),
       truncated: rows.length > most || cursor !== undefined,
     };
+  }
+
+  /**
+   * The reports a person may export with these filters, in the order of `REPORT_KEYS`: those of
+   * modules on, whose records they may see, and those read one person at a time only when the
+   * filters name one (decision D112).
+   */
+  visible(access: Access, filters: ReportFilters): ReportKey[] {
+    return REPORT_KEYS.filter((key) => {
+      const module = REPORT_MODULE[key];
+      const permission = REPORT_PERMISSION[key];
+      return (
+        (!module || !access.modulesOff.includes(module)) &&
+        (!permission || access.permissions.has(permission)) &&
+        (!REPORT_FOR_ONE_PERSON.includes(key) || filters.userId !== undefined)
+      );
+    });
+  }
+
+  /**
+   * Every report the person may see, a sheet each, for a workbook (phase 4 step A3, decision
+   * D112): each with the filters every report takes (the month and whose), at most `most` rows in
+   * all, a report that would run past them cut where they end.
+   */
+  async everyReport(
+    tx: TenantTx,
+    access: Access,
+    filters: ReportFilters,
+    locale: Locale,
+    most = EXPORT_MAX_ROWS,
+  ): Promise<{
+    timezone: string;
+    sheets: { name: string; columns: ReportColumn[]; rows: ReportRow[] }[];
+  }> {
+    const { period, managerId, territoryId, userId } = filters;
+    const shared: ReportFilters = {
+      period,
+      ...(managerId ? { managerId } : {}),
+      ...(territoryId ? { territoryId } : {}),
+      ...(userId ? { userId } : {}),
+    };
+    const sheets: { name: string; columns: ReportColumn[]; rows: ReportRow[] }[] = [];
+    let timezone = 'Asia/Kolkata';
+    let left = most;
+    for (const key of this.visible(access, shared)) {
+      const found = await this.everyRow(tx, access, key, shared, locale, Math.max(left, 0));
+      timezone = found.timezone;
+      sheets.push({ name: found.name, columns: found.columns, rows: found.rows });
+      left -= found.rows.length;
+    }
+    return { timezone, sheets };
   }
 
   /** A report's name in a language, with the tenant's terms. */

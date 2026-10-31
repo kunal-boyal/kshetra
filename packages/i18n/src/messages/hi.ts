@@ -2654,6 +2654,10 @@ export const hi: Record<MessageKey, Message> = {
     'किसी महीने की रिपोर्ट पढ़ें, किसी टीम, क्षेत्र या व्यक्ति तक सीमित करें, और फ़ाइल के रूप में डाउनलोड करें।',
   'report.choose': 'रिपोर्ट',
   'report.name_activity_log': '{term.activity} लॉग',
+  'report.name_workbook': 'सभी रिपोर्ट',
+  'report.export_workbook': 'सभी रिपोर्ट एक्सपोर्ट करें',
+  'report.export_workbook_help':
+    'एक Excel फ़ाइल, जिसमें आपकी देखी जा सकने वाली हर रिपोर्ट की अलग शीट हो, इस महीने और चुने गए लोगों के लिए।',
   'report.name_attendance_register': 'उपस्थिति रजिस्टर',
   'report.name_target_achievement': '{term.target:other} बनाम उपलब्धि',
   'report.name_leave_register': 'छुट्टी रजिस्टर',
