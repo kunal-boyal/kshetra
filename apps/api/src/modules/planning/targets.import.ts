@@ -17,7 +17,9 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
+import { exampleFigure } from '../imports/examples';
 import { MetricsService } from '../metrics/metrics.service';
 import { TargetPeriods } from '../metrics/target-periods';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
@@ -68,6 +70,20 @@ export class TargetsImport implements ImportTargetSource, OnModuleInit {
         required: false,
         label: { en: metric.name.en.one, hi: metric.name.hi.one },
       })),
+    ];
+  }
+
+  /** Two people's targets for the period in force, on the first two targetable metrics (D111). */
+  async example(tx: TenantTx, tenantId: string): Promise<ExampleRow[]> {
+    const metrics = (await this.metrics.targetable(tx, tenantId)).slice(0, 2);
+    const period = await this.periods.current(tx, tenantId);
+    const values = (second: boolean) =>
+      Object.fromEntries(
+        metrics.map((metric) => [`metric.${metric.key}`, exampleFigure(metric.unit, second)]),
+      );
+    return [
+      { code: 'EMP-101', period, ...values(false), lock: 'No' },
+      { code: 'EMP-102', period, ...values(true), lock: 'Yes' },
     ];
   }
 

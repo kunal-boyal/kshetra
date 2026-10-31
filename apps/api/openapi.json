@@ -13438,6 +13438,67 @@
         }
       }
     },
+    "/v1/imports/example": {
+      "get": {
+        "operationId": "ImportsController.example",
+        "summary": "An example XLSX for a target: its columns, example rows and what each column is",
+        "tags": [
+          "Imports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: import.run",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ImportTargetInput"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "type": "string",
+              "enum": [
+                "en",
+                "hi"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the file",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/items/{itemId}": {
       "put": {
         "operationId": "ItemsController.put",

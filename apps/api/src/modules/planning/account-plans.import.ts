@@ -11,7 +11,9 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
+import { exampleFigure } from '../imports/examples';
 import { MetricsService } from '../metrics/metrics.service';
 import { AccountPlansService } from './account-plans.service';
 
@@ -53,6 +55,20 @@ export class AccountPlansImport implements ImportTargetSource, OnModuleInit {
         required: false,
         label: { en: metric.name.en.one, hi: metric.name.hi.one },
       })),
+    ];
+  }
+
+  /** Two accounts' plans for this month, on the first two targetable metrics (D111). */
+  async example(tx: TenantTx, tenantId: string): Promise<ExampleRow[]> {
+    const metrics = (await this.metrics.targetable(tx, tenantId)).slice(0, 2);
+    const period = new Date().toISOString().slice(0, 7);
+    const values = (second: boolean) =>
+      Object.fromEntries(
+        metrics.map((metric) => [`metric.${metric.key}`, exampleFigure(metric.unit, second)]),
+      );
+    return [
+      { account_code: 'A-101', period, ...values(false) },
+      { account_code: 'A-102', period, ...values(true) },
     ];
   }
 

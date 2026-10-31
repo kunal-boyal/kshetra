@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Key, LocalizedText } from './config';
+import { Key, LOCALES, LocalizedText } from './config';
 
 /**
  * Imports (module M19). Each module adds its target as its import arrives; accounts import one
@@ -115,6 +115,12 @@ export const ImportListQuery = z.strictObject({
   target: ImportTarget.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
   cursor: z.uuid().optional(),
+});
+
+/** `GET /v1/imports/example`: a target's example file, in the reader's language (D111). */
+export const ImportExampleQuery = z.strictObject({
+  target: ImportTarget,
+  locale: z.enum(LOCALES).default('en'),
 });
 
 export const ImportListResult = z.object({

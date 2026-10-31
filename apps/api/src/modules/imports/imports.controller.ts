@@ -1,9 +1,21 @@
 import { createHash } from 'node:crypto';
-import { Body, Controller, Get, Headers, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+  Query,
+  Res,
+} from '@nestjs/common';
 import {
   AppError,
   CreateImportQuery,
   IdParams,
+  ImportExampleQuery,
   ImportListQuery,
   ImportListResult,
   ImportResult,
@@ -14,6 +26,8 @@ import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { pathId } from '../iam/actor';
+import type { FastifyReply } from 'fastify';
+import { ImportExamples } from './examples';
 import { ImportsService } from './imports.service';
 
 /** Imports (spec 11.2, M19). Each target needs its own permission too, such as `user.manage`. */
@@ -22,6 +36,7 @@ export class ImportsController {
   constructor(
     private readonly database: Database,
     private readonly imports: ImportsService,
+    private readonly examples: ImportExamples,
   ) {}
 
   @Post()
@@ -81,6 +96,33 @@ export class ImportsController {
   list(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = ImportListQuery.parse(query);
     return this.database.forTenant(access.tenantId, (tx) => this.imports.list(tx, access, input));
+  }
+
+  @Get('example')
+  @Contract({
+    tag: 'Imports',
+    summary: 'An example XLSX for a target: its columns, example rows and what each column is',
+    query: ImportExampleQuery,
+    file: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  @Requires('import.run')
+  async example(
+    @CurrentAccess() access: Access,
+    @Query() query: unknown,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { target, locale } = ImportExampleQuery.parse(query);
+    const file = await this.database.forTenant(access.tenantId, (tx) =>
+      this.examples.workbook(tx, access, target, locale),
+    );
+    void reply
+      .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .header(
+        'content-disposition',
+        `attachment; filename="example-${target.replace(':', '-')}.xlsx"`,
+      )
+      .header('cache-control', 'private, no-store');
+    return file;
   }
 
   @Get(':id')

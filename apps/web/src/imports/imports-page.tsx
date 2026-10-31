@@ -1,7 +1,7 @@
 import type { ImportSummary, ImportTarget } from '@thelamp/shared';
 import { Button, type Column, cn, DataTable, EmptyState, Icon, SelectField } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { FileSpreadsheet, FileUp, Upload } from 'lucide-react';
+import { Download, FileSpreadsheet, FileUp, Upload } from 'lucide-react';
 import { type FormEvent, useId, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
@@ -16,7 +16,7 @@ import { ImportStatusBadge } from './shared';
  */
 export function ImportsPage() {
   const { client } = useApp();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const access = useAccess();
   const dates = useDates(access.timezone);
@@ -45,6 +45,23 @@ export function ImportsPage() {
     } catch (caught) {
       setError(caught);
       setBusy(false);
+    }
+  }
+
+  /** The chosen target's example file (D111): its columns to fill, example rows and notes. */
+  async function example() {
+    if (!chosen) return;
+    setError(undefined);
+    try {
+      const file = await client.file(`/v1/imports/example?target=${chosen}&locale=${locale}`);
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `example-${chosen.replace(':', '-')}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (caught) {
+      setError(caught);
     }
   }
 
@@ -125,6 +142,17 @@ export function ImportsPage() {
               {t('imports.upload')}
             </Button>
           </form>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<Icon icon={Download} size="sm" />}
+              onClick={() => void example()}
+            >
+              {t('imports.example')}
+            </Button>
+            <p className="ks-meta">{t('imports.example_help')}</p>
+          </div>
           {formError ? (
             <p className="ks-help error" role="alert">
               {formError}

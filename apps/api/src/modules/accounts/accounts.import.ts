@@ -24,6 +24,7 @@ import {
   ImportTargets,
   type TargetField,
   checked,
+  type ExampleRow,
 } from '../imports/targets';
 import { TerritoriesService } from '../territories/territories.service';
 import { AccountTypesService, type TypeRecord } from './account-types.service';
@@ -115,6 +116,38 @@ export class AccountsImport implements ImportTargetSource, OnModuleInit {
         label: field.label,
       })),
       { key: 'active', names: ['Active', 'Status'], required: false },
+    ];
+  }
+
+  /**
+   * Two accounts of the type in the tenant's first territory, with fictional names; its slots and
+   * fields are left for the tenant's own people and values (D111).
+   */
+  async example(tx: TenantTx, tenantId: string, target: ImportTarget): Promise<ExampleRow[]> {
+    await this.type(tx, tenantId, target);
+    const territory = (await this.territories.list(tx, tenantId, { active: true }))[0];
+    const place = {
+      territory_code: territory?.code ?? '',
+      city: 'Jaipur',
+      state: 'Rajasthan',
+      pin: '302001',
+      active: 'Yes',
+    };
+    return [
+      {
+        ...place,
+        code: 'A-101',
+        name: 'Sharma and Sons',
+        latitude: '26.9124',
+        longitude: '75.7873',
+        address: '12 Station Road',
+      },
+      {
+        ...place,
+        code: 'A-102',
+        name: 'Patel Enterprises',
+        address: '4 Market Lane',
+      },
     ];
   }
 

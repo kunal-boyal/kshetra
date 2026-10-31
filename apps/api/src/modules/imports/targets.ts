@@ -71,7 +71,16 @@ export interface ImportTargetSource {
     rows: readonly ImportRow[],
     context: ImportContext,
   ): Promise<{ created: number; updated: number }>;
+  /**
+   * Two or three rows for the target's example file (phase 4 step A2, decision D111), by field
+   * key: fictional names, with the tenant's own keys and codes where a column refers to its
+   * records, so the example reads as the tenant's file would.
+   */
+  example(tx: TenantTx, tenantId: string, target: ImportTarget): Promise<ExampleRow[]>;
 }
+
+/** An example row: each field's value as a cell would hold it, by field key; blank when absent. */
+export type ExampleRow = Readonly<Record<string, string>>;
 
 /** Problems found while committing: nothing was written. */
 export class ImportRefused extends Error {
