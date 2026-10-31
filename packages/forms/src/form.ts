@@ -11,6 +11,7 @@ import {
 import { z } from 'zod';
 import { checkCondition, Condition } from './conditions';
 import { type AnyField, FormField, PHOTO_SOURCES } from './fields';
+import { FORMULA_LIMITS, formulaFields, parseFormula } from './formula';
 import { compilePattern, conditionHolds, type Values } from './values';
 
 type Path = readonly PropertyKey[];
@@ -147,6 +148,11 @@ function fieldIssues(field: AnyField, context: FieldContext, path: Path): ErrorD
     case 'date':
       range(field.minDaysFromToday, field.maxDaysFromToday, 'date');
       break;
+    case 'calculated':
+      if (field.result === 'currency' && field.decimals !== 2) {
+        issues.push(issueAt([...path, 'decimals'], 'An amount keeps 2 places'));
+      }
+      break;
     case 'single_select':
     case 'multi_select': {
       if ((field.options === undefined) === (field.optionsFrom === undefined)) {
@@ -200,6 +206,45 @@ function fieldIssues(field: AnyField, context: FieldContext, path: Path): ErrorD
   return issues;
 }
 
+/** The fields a formula may read (decision D118): figures, by type. */
+const FORMULA_SOURCES: readonly string[] = ['number', 'currency', 'calculated', 'product_lines'];
+
+/**
+ * A calculated field's formula (decision D118): it reads, and refers only to earlier number,
+ * currency, quantity and calculated fields, at most `FORMULA_LIMITS.references` of them.
+ */
+function formulaIssues(
+  field: Extract<AnyField, { type: 'calculated' }>,
+  scope: ReadonlyMap<string, AnyField>,
+  path: Path,
+  unknown: (key: string) => string,
+): ErrorDetail[] {
+  const at = [...path, 'formula'];
+  const parsed = parseFormula(field.formula);
+  if ('problem' in parsed) {
+    return [issueAt(at, `${parsed.problem.issue}, at character ${parsed.problem.at + 1}`)];
+  }
+  const issues: ErrorDetail[] = [];
+  const keys = formulaFields(parsed.tree);
+  if (keys.length > FORMULA_LIMITS.references) {
+    issues.push(issueAt(at, `Use at most ${FORMULA_LIMITS.references} fields in one formula`));
+  }
+  for (const key of keys) {
+    const source = scope.get(key);
+    if (key === field.key) issues.push(issueAt(at, 'A formula can’t use its own field'));
+    else if (!source) issues.push(issueAt(at, unknown(key)));
+    else if (!FORMULA_SOURCES.includes(source.type)) {
+      issues.push(
+        issueAt(
+          at,
+          `\`${key}\` is a ${source.type} field; use number, currency, quantity or calculated fields`,
+        ),
+      );
+    }
+  }
+  return issues;
+}
+
 /**
  * Checks a list of fields: keys are unique, each field's settings make sense, and each visibility
  * condition refers to an earlier field. Inside a repeating group, a condition may also refer to
@@ -245,6 +290,8 @@ export function checkFields(
     }
     seen.add(field.key);
     issues.push(...fieldIssues(field, context, at));
+    if (field.type === 'calculated')
+      issues.push(...formulaIssues(field, scope, at, unknown(group)));
     if (field.visibleWhen) {
       issues.push(
         ...checkCondition(field.visibleWhen, scope, [...at, 'visibleWhen'], unknown(group)),

@@ -177,6 +177,38 @@ export const InfoTextField = z
   })
   .meta({ id: 'InfoTextField' });
 
+/** What a calculated field holds: a plain number, or an amount in the tenant's currency. */
+export const CALCULATED_RESULTS = ['number', 'currency'] as const;
+
+/**
+ * A figure worked out from earlier number, currency, quantity and calculated fields (decision
+ * D118): nobody types into it, so it is never required. An amount always keeps 2 places.
+ */
+export const CalculatedField = z
+  .strictObject({
+    key: Key,
+    type: z.literal('calculated'),
+    label: LocalizedText,
+    help: valueField.help,
+    visibleWhen: valueField.visibleWhen,
+    formula: z
+      .string()
+      .trim()
+      .min(1)
+      .max(500)
+      .meta({
+        description:
+          'Such as `acres * rate`: + - * /, brackets, round(x, places), min(…), max(…), ' +
+          'if(a > b, then, else) and default(field, value), over earlier fields',
+      }),
+    result: z.enum(CALCULATED_RESULTS).default('number'),
+    decimals: z.int().min(0).max(4).default(2).meta({
+      description: 'Places a number keeps, rounded half away from zero; an amount keeps 2',
+    }),
+    unit: LocalizedText.optional().meta({ description: 'Shown after the value, such as "kg"' }),
+  })
+  .meta({ id: 'CalculatedField' });
+
 const groupItems = [
   ShortTextField,
   LongTextField,
@@ -214,7 +246,7 @@ export const RepeatingGroupField = z
 
 /** Any field of a form: the field types of spec 5.6, version 1. */
 export const FormField = z
-  .discriminatedUnion('type', [...groupItems, SectionField, RepeatingGroupField])
+  .discriminatedUnion('type', [...groupItems, SectionField, RepeatingGroupField, CalculatedField])
   .meta({ id: 'FormField' });
 
 /**

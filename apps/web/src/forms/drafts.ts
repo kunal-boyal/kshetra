@@ -21,6 +21,7 @@ export const FIELD_TYPES: readonly FieldType[] = [
   'account_picker',
   'contact_picker',
   'product_lines',
+  'calculated',
   'repeating_group',
   'section',
   'info_text',
@@ -28,7 +29,7 @@ export const FIELD_TYPES: readonly FieldType[] = [
 
 /** What a repeating group may hold: anything but a section or another group. */
 export const GROUP_ITEM_TYPES = FIELD_TYPES.filter(
-  (type) => type !== 'section' && type !== 'repeating_group',
+  (type) => type !== 'section' && type !== 'repeating_group' && type !== 'calculated',
 );
 
 const blank = { en: '', hi: '' };
@@ -44,6 +45,9 @@ export function newField(type: FieldType, taken: ReadonlySet<string>): AnyFormFi
       return { key, type, label: { ...blank } };
     case 'info_text':
       return { key, type, text: { ...blank } };
+    // Worked out, never typed, so never required (decision D118).
+    case 'calculated':
+      return { key, type, label: { ...blank }, formula: '', result: 'number', decimals: 2 };
     case 'short_text':
       return { ...value, type, maxLength: 200 };
     case 'long_text':

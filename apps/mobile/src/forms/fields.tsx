@@ -33,7 +33,10 @@ import { useLanguage } from '../i18n';
 import { PickList } from './pick-list';
 
 type Field = FormField | GroupItemField;
-type ValueField = Exclude<Field, { type: 'section' } | { type: 'info_text' }>;
+type ValueField = Exclude<
+  Field,
+  { type: 'section' } | { type: 'info_text' } | { type: 'calculated' }
+>;
 
 /** What the fields read beyond the form: the phone's copies, and how to open the camera. */
 export interface EntryData {
@@ -144,6 +147,8 @@ function FieldInput({
     );
   }
   if (field.type === 'info_text') return <Notice>{field.text[locale]}</Notice>;
+  // Not shown on the phone yet; the server works it out from what is entered (decision D118).
+  if (field.type === 'calculated') return null;
   const error = issues.get(path);
   const common = {
     // Field keys never change, so end-to-end flows find inputs by them (decision D68).

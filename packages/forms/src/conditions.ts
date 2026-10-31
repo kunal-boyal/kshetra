@@ -62,6 +62,7 @@ export function operatorsFor(field: AnyField): readonly Operator[] {
     case 'number':
     case 'currency':
     case 'rating':
+    case 'calculated':
       return ORDERED;
     case 'short_text':
     case 'yes_no':
@@ -84,6 +85,15 @@ function valueProblem(field: AnyField, op: Operator, value: Clause['value']): st
     return value === undefined ? undefined : `Leave out the value for \`${op}\``;
   }
   if (value === undefined) return 'Give a value to compare with';
+  // A calculated field compares as what it holds (decision D118).
+  if (field.type === 'calculated') {
+    if (field.result === 'number') {
+      return typeof value === 'number' ? undefined : 'Compare a number with a number';
+    }
+    return typeof value === 'string' && Money.safeParse(value).success
+      ? undefined
+      : 'Compare an amount with a decimal string, such as "5000"';
+  }
   switch (field.type) {
     case 'number':
       return typeof value === 'number' ? undefined : 'Compare a number with a number';

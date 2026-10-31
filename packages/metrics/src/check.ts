@@ -116,7 +116,9 @@ function checkMetric(
       const fieldTypes = new Set<string>();
       for (const form of forms) {
         const field = fieldsOf(form).get(source.field);
-        if (field?.type === 'number' || field?.type === 'currency') fieldTypes.add(field.type);
+        // A calculated field sums as what it holds (decision D118).
+        const type = field?.type === 'calculated' ? field.result : field?.type;
+        if (type === 'number' || type === 'currency') fieldTypes.add(type);
         else
           at(
             ['source', 'field'],

@@ -28450,6 +28450,150 @@
         ],
         "additionalProperties": false
       },
+      "CalculatedField": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "type": {
+            "type": "string",
+            "const": "calculated"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/Condition"
+          },
+          "formula": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Such as `acres * rate`: + - * /, brackets, round(x, places), min(…), max(…), if(a > b, then, else) and default(field, value), over earlier fields"
+          },
+          "result": {
+            "default": "number",
+            "type": "string",
+            "enum": [
+              "number",
+              "currency"
+            ]
+          },
+          "decimals": {
+            "default": 2,
+            "description": "Places a number keeps, rounded half away from zero; an amount keeps 2",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "unit": {
+            "description": "Shown after the value, such as \"kg\"",
+            "$ref": "#/components/schemas/LocalizedText"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "label",
+          "formula",
+          "result",
+          "decimals"
+        ],
+        "additionalProperties": false
+      },
+      "CalculatedFieldInput": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "type": {
+            "type": "string",
+            "const": "calculated"
+          },
+          "label": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "help": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              },
+              "hi": {
+                "type": "string",
+                "maxLength": 500,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+              }
+            },
+            "required": [
+              "en",
+              "hi"
+            ],
+            "additionalProperties": false
+          },
+          "visibleWhen": {
+            "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+            "$ref": "#/components/schemas/ConditionInput"
+          },
+          "formula": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Such as `acres * rate`: + - * /, brackets, round(x, places), min(…), max(…), if(a > b, then, else) and default(field, value), over earlier fields"
+          },
+          "result": {
+            "default": "number",
+            "type": "string",
+            "enum": [
+              "number",
+              "currency"
+            ]
+          },
+          "decimals": {
+            "default": 2,
+            "description": "Places a number keeps, rounded half away from zero; an amount keeps 2",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "unit": {
+            "description": "Shown after the value, such as \"kg\"",
+            "$ref": "#/components/schemas/LocalizedText"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "label",
+          "formula"
+        ],
+        "additionalProperties": false
+      },
       "Calendar": {
         "type": "object",
         "properties": {
@@ -32967,6 +33111,9 @@
           },
           {
             "$ref": "#/components/schemas/RepeatingGroupFieldInput"
+          },
+          {
+            "$ref": "#/components/schemas/CalculatedFieldInput"
           }
         ]
       },
