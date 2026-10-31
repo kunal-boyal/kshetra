@@ -865,10 +865,13 @@ export {
 } from './schemas/finance';
 export { paidDays, REGULARISATION_REASON, regularisationIssue, scheduledDays } from './attendance';
 export {
+  closeLeaveYear,
   datesBetween,
   LEAVE_MAX_SPAN_DAYS,
   LEAVE_REASON_MAX,
+  type LeaveAccrual,
   leaveBalance,
+  leaveCredited,
   leaveDays,
   type LeaveIssue,
   leaveIssues,

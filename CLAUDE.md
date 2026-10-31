@@ -376,6 +376,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 - Leave lives in `apps/api/src/modules/leave`: `LeaveTypesService` (types keyed by configuration key, never removed, switched off instead) and `LeaveRequestsService` (requests, balances, the `leave` request type, and the days it provides to attendance through `AttendanceLeave`). The rules are pure functions in `packages/shared/src/leave.ts`: `leaveDays()` and `leaveIssues()` (BR-27), `quotaYear()`, `leaveBalance()`.
 - Count a request's days on the person's own calendar (`CalendarsService.forPeople()` and `offOn()`); approved leave never marks a weekly off or holiday.
+- Accrual and carry-forward (decision D114): credits are `leaveCredited()`, worked out from the type and the joining date; year ends are `closeLeaveYear()`, frozen in `cell.leave_year_closings` by `LeaveYears` (`src/modules/leave/leave-years.ts`: the nightly `leave.close_years`, and `reclose()` after a decision on a closed year). Judge requests with `allowance` (credited by the start date and carried in), never the year's quota.
 - `LeaveType` is `@thelamp/shared`'s; templates re-export it.
 - On the phone, `/leave` and `/leave/new` read through the kept hooks in `apps/mobile/src/leave.ts`, preview a request with `previewLeave()` and queue it with `queueLeave()` (outbox kind `leave_request.create`). Month grids use `MonthDays` (`src/screens/month-days.tsx`).
 

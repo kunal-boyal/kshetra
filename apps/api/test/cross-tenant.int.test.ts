@@ -2875,6 +2875,14 @@ beforeAll(async () => {
      values ($1, $2, $3, $4, current_date + 7, current_date + 9)`,
     [aDelegationId, a.tenantId, a.admin.id, a.member.id],
   );
+  // A's member closed last year's casual leave with days carried in (decision D114).
+  await admin(
+    `insert into cell.leave_year_closings
+       (tenant_id, user_id, leave_type_key, year_from, year_to, credited, carried_in, taken, carried_out, lapsed, cap)
+     values ($1, $2, 'casual', make_date(extract(year from current_date)::int - 1, 1, 1),
+       make_date(extract(year from current_date)::int - 1, 12, 31), 12, 0, 4, 5, 3, 5)`,
+    [a.tenantId, a.member.id],
+  );
   // A's member asks to count a day as present.
   aRegularisationId = newId();
   const fixed = await send(memberToken, 'POST', '/v1/regularisations', {

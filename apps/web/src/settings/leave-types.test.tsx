@@ -33,6 +33,14 @@ describe('leave types (M13, spec 5.10)', () => {
       within(casual).getByRole('textbox', { name: /^A document is needed after/ }),
       '2',
     );
+    // Credited month by month, with up to five days carried into the next year (D114).
+    await user.selectOptions(
+      within(casual).getByRole('combobox', { name: 'How days are credited' }),
+      'monthly',
+    );
+    const carry = within(casual).getByRole('textbox', { name: /^Carry into next year/ });
+    await user.clear(carry);
+    await user.type(carry, '5');
 
     await user.click(screen.getByRole('button', { name: 'Add a leave type' }));
     const study = cards()[1]!;
@@ -52,7 +60,13 @@ describe('leave types (M13, spec 5.10)', () => {
     expect(writesOf(client)[0]![3]).toMatchObject({
       body: {
         items: [
-          { ...CASUAL, annualQuota: 15, attachmentAfterDays: 2 },
+          {
+            ...CASUAL,
+            annualQuota: 15,
+            attachmentAfterDays: 2,
+            accrual: 'monthly',
+            carryForwardMax: 5,
+          },
           {
             key: 'study',
             name: { en: 'Study leave', hi: 'Study leave' },
@@ -61,6 +75,8 @@ describe('leave types (M13, spec 5.10)', () => {
             quotaYear: 'financial',
             halfDayAllowed: false,
             active: true,
+            accrual: 'yearly',
+            carryForwardMax: 0,
           },
         ],
       },

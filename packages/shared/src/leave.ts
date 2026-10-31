@@ -53,6 +53,48 @@ export interface LeaveTypeRule {
   active: boolean;
 }
 
+/** How a type credits its quota (decision D114): all on the year's first day, or month by month. */
+export type LeaveAccrual = 'yearly' | 'monthly';
+
+const monthIndex = (day: string) => Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7)) - 1;
+
+/**
+ * D114: the days of a type credited by a day of its quota year. A yearly type credits its whole
+ * quota; a monthly one credits a share for each month from the year's first month, or the
+ * person's joining month if later, through the day's month, in whole half days rounded down, so
+ * the year's last month brings the total to the quota exactly.
+ */
+export function leaveCredited(
+  type: { annualQuota: number; accrual: LeaveAccrual },
+  year: { from: string; to: string },
+  day: string,
+  joiningDate: string | null,
+): number {
+  if (type.annualQuota <= 0 || (joiningDate !== null && joiningDate > year.to)) return 0;
+  if (type.accrual === 'yearly') return type.annualQuota;
+  const first = monthIndex(year.from);
+  const last = monthIndex(year.to);
+  const start = Math.max(first, joiningDate ? monthIndex(joiningDate) : first);
+  const through = Math.min(last, monthIndex(day));
+  const months = Math.max(0, through - start + 1);
+  return Math.floor(((type.annualQuota * months) / (last - first + 1)) * 2) / 2;
+}
+
+/**
+ * D114: a quota year closed. What was credited and carried in, less what was taken, carries into
+ * the next year up to the cap; the rest lapses.
+ */
+export function closeLeaveYear(year: {
+  credited: number;
+  carriedIn: number;
+  taken: number;
+  cap: number;
+}): { carriedOut: number; lapsed: number } {
+  const unused = Math.max(0, year.credited + year.carriedIn - year.taken);
+  const carriedOut = Math.min(Math.max(0, year.cap), unused);
+  return { carriedOut, lapsed: unused - carriedOut };
+}
+
 /** Why a request is refused, with the field it concerns and the spec 11.4 code it answers. */
 export interface LeaveIssue {
   path: 'leaveType' | 'startDate' | 'endDate' | 'halfDay' | 'attachmentId';
@@ -72,7 +114,9 @@ export interface LeaveIssue {
 /**
  * BR-27: what refuses a leave request, every problem in the order a person fixes them. `used` is
  * the days of this type already pending or approved in the start date's quota year, and
- * `overlaps` whether another pending or approved request covers any of its dates.
+ * `overlaps` whether another pending or approved request covers any of its dates. `allowance` is
+ * what the year allows by the start date, credited and carried in (D114); the year's quota when
+ * left out.
  */
 export function leaveIssues(request: {
   start: string;
@@ -83,6 +127,7 @@ export function leaveIssues(request: {
   type: LeaveTypeRule;
   used: number;
   overlaps: boolean;
+  allowance?: number | undefined;
 }): LeaveIssue[] {
   const issues: LeaveIssue[] = [];
   const { type } = request;
@@ -111,22 +156,43 @@ export function leaveIssues(request: {
     issues.push({ path: 'attachmentId', issue: 'attachment_required', code: 'VALIDATION' });
   }
   if (request.overlaps) issues.push({ path: 'startDate', issue: 'overlap', code: 'CONFLICT' });
-  if (type.annualQuota > 0 && request.used + request.days > type.annualQuota) {
+  const allowance = request.allowance ?? type.annualQuota;
+  if (type.annualQuota > 0 && request.used + request.days > allowance) {
     issues.push({ path: 'leaveType', issue: 'quota', code: 'QUOTA_EXCEEDED' });
   }
   return issues;
 }
 
-/** A type's balance in a quota year; `available` is null for a type without a quota. */
-export function leaveBalance(
-  annualQuota: number,
-  approved: number,
-  pending: number,
-): { quota: number | null; approved: number; pending: number; available: number | null } {
+/**
+ * A type's balance in a quota year (D114): what was credited by the day read and carried in, what
+ * was approved and waits, what is left, and what lapsed once the year ended. The figures are null
+ * for a type without a quota.
+ */
+export function leaveBalance(figures: {
+  annualQuota: number;
+  credited: number;
+  carriedIn: number;
+  approved: number;
+  pending: number;
+  lapsed: number;
+}): {
+  quota: number | null;
+  credited: number | null;
+  carriedIn: number;
+  approved: number;
+  pending: number;
+  available: number | null;
+  lapsed: number;
+} {
+  const { annualQuota, credited, carriedIn, approved, pending, lapsed } = figures;
+  const limited = annualQuota > 0;
   return {
-    quota: annualQuota > 0 ? annualQuota : null,
+    quota: limited ? annualQuota : null,
+    credited: limited ? credited : null,
+    carriedIn: limited ? carriedIn : 0,
     approved,
     pending,
-    available: annualQuota > 0 ? Math.max(0, annualQuota - approved - pending) : null,
+    available: limited ? Math.max(0, credited + carriedIn - approved - pending) : null,
+    lapsed: limited ? lapsed : 0,
   };
 }

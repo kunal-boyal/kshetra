@@ -3048,6 +3048,22 @@
         "active": {
           "default": true,
           "type": "boolean"
+        },
+        "accrual": {
+          "default": "yearly",
+          "type": "string",
+          "enum": [
+            "yearly",
+            "monthly"
+          ]
+        },
+        "carryForwardMax": {
+          "default": 0,
+          "description": "Unused days carried into the next quota year, at most; the rest lapses",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 366,
+          "multipleOf": 0.5
         }
       },
       "required": [

@@ -18,6 +18,8 @@ interface TypeDraft {
   halfDayAllowed: boolean;
   attachmentAfterDays: string;
   active: boolean;
+  accrual: LeaveType['accrual'];
+  carryForwardMax: string;
 }
 
 const MAX_TYPES = 30;
@@ -34,6 +36,8 @@ function draftOf(type: LeaveType): TypeDraft {
     attachmentAfterDays:
       type.attachmentAfterDays === undefined ? '' : String(type.attachmentAfterDays),
     active: type.active,
+    accrual: type.accrual,
+    carryForwardMax: String(type.carryForwardMax),
   };
 }
 
@@ -47,11 +51,14 @@ const EMPTY: TypeDraft = {
   halfDayAllowed: true,
   attachmentAfterDays: '',
   active: true,
+  accrual: 'yearly',
+  carryForwardMax: '0',
 };
 
 /**
  * Leave types (M13, spec 5.10, decision D81): whether each is paid, its days a year and when that
- * year runs, half days, and when a document is needed. A type keeps its key once saved and is
+ * year runs, how they are credited and how many carry into the next year (D114), half days, and
+ * when a document is needed. A type keeps its key once saved and is
  * switched off rather than removed, as requests name it.
  */
 export function LeaveTypesPage() {
@@ -104,6 +111,8 @@ function Editor({ types }: { types: readonly LeaveType[] }) {
             ? { attachmentAfterDays: Number(draft.attachmentAfterDays) }
             : {}),
           active: draft.active,
+          accrual: draft.accrual,
+          carryForwardMax: Number(draft.carryForwardMax || 0),
         })),
       });
       if (result) {
@@ -192,6 +201,26 @@ function Editor({ types }: { types: readonly LeaveType[] }) {
                     onChange={(event) =>
                       change(index, { quotaYear: event.target.value as TypeDraft['quotaYear'] })
                     }
+                  />
+                  <SelectField
+                    label={t('leave.accrual')}
+                    help={t('leave.accrual_help')}
+                    value={draft.accrual}
+                    options={[
+                      { value: 'yearly', label: t('leave.accrual_yearly') },
+                      { value: 'monthly', label: t('leave.accrual_monthly') },
+                    ]}
+                    onChange={(event) =>
+                      change(index, { accrual: event.target.value as TypeDraft['accrual'] })
+                    }
+                  />
+                  <TextField
+                    label={t('leave.carry_forward')}
+                    help={t('leave.carry_forward_help')}
+                    inputMode="decimal"
+                    value={draft.carryForwardMax}
+                    {...at(index, 'carryForwardMax')}
+                    onChange={(event) => change(index, { carryForwardMax: event.target.value })}
                   />
                   <TextField
                     label={t('leave.attachment_after')}

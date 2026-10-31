@@ -236,18 +236,24 @@ function fakeClient(writes: Record<string, Answer> = {}) {
           from: '2026-01-01',
           to: '2026-12-31',
           quota: 12,
+          credited: 10,
+          carriedIn: 2,
           approved: 4,
           pending: 1.5,
           available: 6.5,
+          lapsed: 1,
         },
         {
           leaveType: 'unpaid',
           from: '2026-01-01',
           to: '2026-12-31',
           quota: null,
+          credited: null,
+          carriedIn: 0,
           approved: 2,
           pending: 0,
           available: null,
+          lapsed: 0,
         },
       ],
     },
@@ -542,12 +548,15 @@ describe("a person's page", () => {
   });
 
   it("shows their leave balances and this year's requests", async () => {
-    renderAt(`/people/${RAHUL}`, fakeClient());
+    const client = fakeClient();
+    renderAt(`/people/${RAHUL}`, client);
     const leave = await screen.findByRole('region', { name: 'Leave' });
     const balances = await within(leave).findByRole('table', { name: 'Balances' });
+    // Days a year, credited, carried in, taken, waiting and left (D114).
     expect(within(balances).getByRole('row', { name: /Casual leave/ })).toHaveTextContent(
-      /12\s*4\s*1\.5\s*6\.5/,
+      /12\s*10\s*2\s*4\s*1\.5\s*6\.5/,
     );
+    expect(within(balances).queryByRole('columnheader', { name: 'Lapsed' })).toBeNull();
     expect(within(balances).getByRole('row', { name: /Unpaid leave/ })).toHaveTextContent(
       'No limit',
     );
@@ -555,6 +564,17 @@ describe("a person's page", () => {
     const rows = within(requests).getAllByRole('row').slice(1);
     expect(rows[0]).toHaveTextContent(/5 Oct 2026 to 6 Oct 2026.*Casual leave.*2.*Approved/);
     expect(rows[1]).toHaveTextContent(/2 Nov 2026.*Half day.*Waiting/);
+
+    // The year before shows what lapsed when it ended.
+    await userEvent.setup().click(within(leave).getByRole('button', { name: 'Last year' }));
+    const last = await within(leave).findByRole('columnheader', { name: 'Lapsed' });
+    expect(last).toBeInTheDocument();
+    const lastYear = Number(new Date().getUTCFullYear()) - 1;
+    expect(
+      client.request.mock.calls.some(([, path]) =>
+        String(path).includes(`/v1/leave-balances?userId=${RAHUL}&on=${lastYear}-`),
+      ),
+    ).toBe(true);
   });
 
   it('keeps them on a holiday calendar, the default unless one is chosen', async () => {
