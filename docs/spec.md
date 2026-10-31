@@ -372,7 +372,7 @@ Templates seed common defaults: leave, regularisation and expenses go to the rep
 - Holiday calendars: named calendars (for example one per state) with dated holidays (optional holidays allowed) and weekly offs. Each user belongs to one calendar.
 - Attendance rule: `punch_is_present` (default, any shift on a day counts as present) or hours-based (minimum hours for a full day and for a half day).
 - Leave types: name, paid or unpaid, annual quota (0 means none), quota year (calendar or financial), half days allowed, attachment required beyond N days, active, how days are credited (all on the quota year's first day, or a share each month from the joining month) and how many unused days carry into the next quota year, the rest lapsing (D114).
-- Expense policies: name, category (`travel`, `daily_allowance`, `other`), calculation (`per_km`, `per_day`, `per_visit`, `actual`), rate (flat or per designation), caps (per claim, per day, per month), receipt required, odometer photos required for per-km, active. Policies are versioned and claims keep the version in force on the expense date.
+- Expense policies: name, category (`travel`, `daily_allowance`, `other`), calculation (`per_km`, `per_day`, `per_visit`, `actual`), rate (flat or per designation), caps (per claim, per day, per month), receipt required, odometer photos required for per-km, where per-km takes its kilometres from (odometer readings or tracked distance, D115), active. Policies are versioned and claims keep the version in force on the expense date.
 
 ### 5.11 Catalogue and pricing
 
@@ -613,7 +613,7 @@ Rules: BR-20, BR-21, BR-22.
 - The amount is calculated by the policy version in force on the expense date, with caps (BR-29).
 - Receipts can be added while the claim is pending. Optional OCR suggests a bill amount and flags mismatches; duplicate receipt photos are flagged.
 - Approval through the `expense` workflow. Back office marks approved claims as paid or exports them for payroll.
-- Travel claims calculated from tracked shift distance are a version 2 option.
+- A per-km policy pays odometer readings or the day's tracked distance: the distance of the claimant's ended shifts that started that day (D115). Every per-km claim keeps the day's tracked kilometres beside its readings, and a claim whose two figures differ by more than 10% of the larger and at least 2 km is flagged to the approver.
 
 Rules: BR-29, BR-30, BR-31.
 
@@ -785,7 +785,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-26 | Provisional pay = `round(gross × min(paid, scheduled) / scheduled, 2)`, and 0 when no day is scheduled. |
 | BR-27 | Leave days = working days in the range (excluding weekly offs and holidays of the user's calendar), halved for a half-day leave, and must be above zero. The quota counts pending plus approved days in the quota year of the start date. Requests overlapping a pending or approved request are refused. |
 | BR-28 | Regularisation: the date is not in the future and not before the joining date; one non-rejected, non-cancelled request per user per date; requested status `present` or `half_day`. |
-| BR-29 | Claim amount: `per_km` = `round(closing − opening, 2)` × rate; `per_day` = days × rate; `per_visit` = completed visits that day × rate; `actual` = bill amount. The per-claim cap applies first, then per-day and per-month caps counting approved and pending claims. The result must be above zero, and closing must be at least opening. |
+| BR-29 | Claim amount: `per_km` = `round(closing − opening, 2)` × rate, or under a policy that takes tracked distance, `round(tracked metres ÷ 1000, 2)` × rate (D115); `per_day` = days × rate; `per_visit` = completed visits that day × rate; `actual` = bill amount. The per-claim cap applies first, then per-day and per-month caps counting approved and pending claims. The result must be above zero, and closing must be at least opening. |
 | BR-30 | A claim under a policy that requires receipts cannot pass any approval step without at least one receipt image. |
 
 ### 7.5 Approvals
@@ -1310,7 +1310,7 @@ expense_policies(tid, key, current_version, active, position)                PK(
 expense_policy_versions(tid, policy_key, version, definition jsonb, valid_from) PK(tid, policy_key, version)
 expense_claims(id, tid, user_id, policy_key, policy_version, expense_date, description, quantity,
        rate, odometer_open NULL, odometer_close NULL, bill_amount NULL, calculated, amount, capped,
-       shift_id NULL, odometer_changed, status, paid_at NULL, paid_by NULL, payment_reference NULL,
+       shift_id NULL, odometer_changed, tracked_km NULL, status, paid_at NULL, paid_by NULL, payment_reference NULL,
        workflow_instance_id, created_at, decided_at)     receipts and odometer photos are media owned by the claim
 
 ── Workflow, notifications, integration and operations ──────────────────────────

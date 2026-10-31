@@ -1,0 +1,1 @@
+ALTER TABLE "cell"."expense_claims" ADD COLUMN "tracked_km" numeric(10, 2);

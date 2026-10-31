@@ -17,6 +17,7 @@ const claim = (id: string, patch: object) => ({
   rate: null,
   odometerOpen: null,
   odometerClose: null,
+  trackedKm: null,
   shiftId: null,
   billAmount: '412.50',
   calculated: '412.50',
@@ -136,6 +137,50 @@ const PAGES = {
   },
 };
 
+const FUEL = '01a10000-0000-7000-8000-0000000000e3';
+const TRACKED = {
+  ...PAGES,
+  '/v1/expense-policies': {
+    items: [
+      {
+        key: 'travel',
+        name: { en: 'Travel', hi: 'यात्रा' },
+        category: 'travel',
+        calculation: 'per_km',
+        kmFrom: 'tracked',
+        rate: { flat: '5' },
+        caps: {},
+        receiptRequired: false,
+        odometerPhotosRequired: false,
+        active: true,
+        version: 1,
+        validFrom: '2000-01-01',
+      },
+    ],
+  },
+  '/v1/expense-claims': {
+    items: [
+      claim(FUEL, {
+        policy: 'travel',
+        description: 'Route and back',
+        quantity: '30.400',
+        rate: '5.00',
+        odometerOpen: '1000.0',
+        odometerClose: '1042.0',
+        trackedKm: '30.40',
+        billAmount: null,
+        calculated: '152.00',
+        amount: '152.00',
+        receipts: [],
+        flags: ['distance_gap'],
+        state: 'pending',
+      }),
+    ],
+    nextCursor: null,
+    summary: null,
+  },
+};
+
 describe('expense claims (M12)', () => {
   it('shows each claim with its caps and flags, and marks an approved one paid after asking', async () => {
     const client = fakeClient(PAGES, {}, ['expense.mark_paid']);
@@ -195,5 +240,15 @@ describe('expense claims (M12)', () => {
       `/v1/expense-claims?period=${PERIOD}&state=pending`,
       expect.anything(),
     );
+  });
+
+  it('shows tracked kilometres beside the odometer, and the gap between them (D115)', async () => {
+    renderAt('/expenses', fakeClient(TRACKED, {}, ['approval.act']));
+    const table = await screen.findByRole('table', { name: 'Expense claims' });
+    const row = within(table).getByRole('row', { name: /Route and back/ });
+    expect(row).toHaveTextContent('42 km on the odometer · 30.4 km tracked');
+    expect(row).toHaveTextContent('Tracked and odometer km differ');
+    const policies = screen.getByRole('region', { name: 'Policies' });
+    expect(within(policies).getByText('₹5.00 a km · from tracked distance')).toBeInTheDocument();
   });
 });

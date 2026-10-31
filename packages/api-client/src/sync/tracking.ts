@@ -207,6 +207,24 @@ export class Tracking {
   }
 
   /**
+   * Every shift punched in on the phone on a day, latest first, with the punch-out's upload once
+   * it ended (null while open): a claim from tracked distance waits for those uploads (D115).
+   */
+  async dayShifts(
+    owner: string,
+    date: string,
+  ): Promise<{ shiftId: string; closeUploadId: string | null }[]> {
+    const records = await this.db.all<OdometerRecord>(
+      'SELECT * FROM shift_odometer WHERE owner = ? AND date = ? ORDER BY rowid DESC',
+      [owner, date],
+    );
+    return records.map((record) => ({
+      shiftId: record.shift_id,
+      closeUploadId: record.close_upload_id,
+    }));
+  }
+
+  /**
    * Keeps what the server would accept and drops the rest (spec 12.1): no open shift, paused,
    * past the shift's longest end, mocked, or further out than 250 m. Returns what each point did.
    */

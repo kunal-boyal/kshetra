@@ -6,6 +6,7 @@ import {
   ExpenseClaimResult as ClaimSchema,
   ExpensePolicyListResult,
   type ExpensePolicyResult,
+  odometerDistance,
   scaled,
   unscaled,
   type ExpenseState,
@@ -92,6 +93,9 @@ export function policyLine(
   else if (policy.rate && 'flat' in policy.rate)
     parts.push(t(`expenses.policy_rate_${policy.calculation}`, { rate: money(policy.rate.flat) }));
   else parts.push(t('expenses.policy_by_designation'));
+  if (policy.calculation === 'per_km' && policy.kmFrom === 'tracked') {
+    parts.push(t('expenses.policy_from_tracked'));
+  }
   if (policy.caps.perDay)
     parts.push(t('expenses.policy_cap_day', { amount: money(policy.caps.perDay) }));
   if (policy.caps.perMonth)
@@ -108,6 +112,8 @@ const FLAG_BADGE: Record<string, BadgeVariant> = {
   capped: 'neutral',
   // A reading changed from the shift's punch readings (decision D99).
   odometer_changed: 'pending',
+  // Tracked and odometer kilometres beyond the tolerance (decision D115).
+  distance_gap: 'pending',
 };
 
 /**
@@ -195,6 +201,23 @@ export function ExpensesPage() {
     }
   }
 
+  // A per-km claim's kilometres: on the odometer and tracked, side by side (decision D115).
+  const kilometres = (row: ExpenseClaimResult) =>
+    [
+      row.odometerOpen !== null && row.odometerClose !== null
+        ? t('expenses.odometer_km', {
+            km: formatNumber(Number(odometerDistance(row.odometerOpen, row.odometerClose)), {
+              locale,
+            }),
+          })
+        : null,
+      row.trackedKm !== null
+        ? t('expenses.tracked_km', { km: formatNumber(Number(row.trackedKm), { locale }) })
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
   const columns: Column<ExpenseClaimResult>[] = [
     { key: 'date', header: t('expenses.col_date'), render: (row) => dates.date(row.expenseDate) },
     {
@@ -209,6 +232,7 @@ export function ExpensesPage() {
         <span className="flex min-w-0 flex-col">
           <span className="font-semibold">{names.get(row.policy) ?? row.policy}</span>
           <span className="ks-meta">{row.description}</span>
+          {kilometres(row) ? <span className="ks-meta">{kilometres(row)}</span> : null}
         </span>
       ),
     },
@@ -223,7 +247,7 @@ export function ExpensesPage() {
             .map((flag) => (
               <StatusBadge key={flag} variant={FLAG_BADGE[flag] ?? 'neutral'}>
                 {t(
-                  `expenses.flag_${flag as 'duplicate_receipt' | 'receipt_missing' | 'odometer_changed'}`,
+                  `expenses.flag_${flag as 'duplicate_receipt' | 'receipt_missing' | 'odometer_changed' | 'distance_gap'}`,
                 )}
               </StatusBadge>
             ))}

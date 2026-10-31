@@ -86,6 +86,11 @@ export const expenseClaims = cell
        */
       shiftId: uuid('shift_id'),
       odometerChanged: boolean('odometer_changed').notNull().default(false),
+      /**
+       * Per-km claims: the day's tracked kilometres when the claim was made, from the person's
+       * ended shifts; null without one (decision D115).
+       */
+      trackedKm: numeric('tracked_km', { precision: 10, scale: 2 }),
       billAmount: numeric('bill_amount', { precision: 18, scale: 2 }),
       /** Before caps. */
       calculated: numeric('calculated', { precision: 18, scale: 2 }).notNull(),

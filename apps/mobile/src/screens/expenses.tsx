@@ -1,5 +1,5 @@
 import { spacing } from '@thelamp/design-tokens';
-import { formatDate, formatDateTime, formatMoney, formatMonth } from '@thelamp/i18n';
+import { formatDate, formatDateTime, formatMoney, formatMonth, formatNumber } from '@thelamp/i18n';
 import { type ExpenseClaimResult, scaled, todayIn, unscaled } from '@thelamp/shared';
 import {
   AppBar,
@@ -188,6 +188,13 @@ export function ExpensesScreen() {
                       <Text variant="bodySm" tone="muted">
                         {`${formatDate(claim.expenseDate, { locale })} · ${claim.description}`}
                       </Text>
+                      {claim.trackedKm !== null ? (
+                        <Text variant="bodySm" tone="muted">
+                          {t('claims.tracked_km', {
+                            km: formatNumber(Number(claim.trackedKm), { locale }),
+                          })}
+                        </Text>
+                      ) : null}
                       {claim.capped ? (
                         <Text variant="bodySm" tone="muted">
                           {t('claims.capped_from', { amount: money(claim.calculated) })}
@@ -217,7 +224,7 @@ export function ExpensesScreen() {
                             key={flag}
                             tone={flag === 'duplicate_receipt' ? 'danger' : 'waiting'}
                             label={t(
-                              `claims.flag_${flag as 'receipt_missing' | 'duplicate_receipt' | 'odometer_changed'}`,
+                              `claims.flag_${flag as 'receipt_missing' | 'duplicate_receipt' | 'odometer_changed' | 'distance_gap'}`,
                             )}
                           />
                         ))}
