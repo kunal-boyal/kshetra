@@ -111,6 +111,36 @@ const CHECK: FormView = {
   ],
 };
 
+/** A crop report whose total and yield are worked out as the person types (decision D118). */
+const CROP: FormView = {
+  ...base,
+  id: '01a10000-0000-7000-8000-0000000000f4',
+  key: 'crop_report',
+  name: noun('Crop report', 'Crop reports'),
+  accountLink: { mode: 'none' },
+  visitSession: false,
+  fields: [
+    { key: 'acres', type: 'number', label: text('Acres'), required: true, decimals: 2 },
+    { key: 'rate', type: 'currency', label: text('Rate per acre'), required: true },
+    {
+      key: 'total',
+      type: 'calculated',
+      label: text('Total'),
+      formula: 'acres * rate',
+      result: 'currency',
+      decimals: 2,
+    },
+    {
+      key: 'big_order',
+      type: 'short_text',
+      label: text('Who approved it'),
+      required: true,
+      maxLength: 100,
+      visibleWhen: { match: 'all', clauses: [{ field: 'total', op: 'gt', value: '1000' }] },
+    },
+  ],
+};
+
 /** Filled inside a visit, so it opens from the visit, not from Forms. */
 const VISIT: FormView = {
   ...base,
@@ -252,7 +282,7 @@ function fakeClient(offline: boolean) {
         terminology: {},
         designations: [],
         accountTypes: [],
-        forms: [CHECK, VISIT, DETAIL],
+        forms: [CHECK, VISIT, DETAIL, CROP],
         catalogue: {
           units: [{ key: 'pack', name: noun('Pack', 'Packs'), base: true }],
           measureTypes: ['kg', 'L'],
@@ -639,5 +669,24 @@ describe('forms on the phone', () => {
     await fireEvent.press(buttons.at(-1)!);
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/forms'));
     expect(await entries.get(OWNER, ENTRY)).toBeNull();
+  });
+
+  it('works a calculated field out as the person types, read only, as the server will', async () => {
+    const db = await freshDatabase();
+    const entries = new FormEntries(db);
+    const id = '01a10000-0000-7000-8000-0000000000e4';
+    await entries.start({ id, owner: OWNER, form: CROP });
+    await renderPhone({ name: 'entry', id }, db);
+    const total = await screen.findByLabelText('Total');
+    expect(total).toHaveDisplayValue('');
+    expect(total.props.editable).toBe(false);
+    await fireEvent.changeText(screen.getByLabelText('Acres *'), '2.5');
+    // Blank until everything it reads is filled.
+    expect(screen.getByLabelText('Total')).toHaveDisplayValue('');
+    expect(screen.queryByLabelText(/^Who approved it/)).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText('Rate per acre *'), '412.30');
+    expect(await screen.findByDisplayValue('1030.75')).toBeOnTheScreen();
+    // A later field's condition reads the worked-out total.
+    expect(await screen.findByLabelText('Who approved it *')).toBeOnTheScreen();
   });
 });

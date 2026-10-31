@@ -5,6 +5,7 @@ import {
   type GroupItemField,
   type ProductLine,
   type Values,
+  withCalculated,
 } from '@thelamp/forms';
 import type {
   CatalogueUnitView,
@@ -95,13 +96,15 @@ export function FieldList({
   prefix?: string;
   outer?: Values;
 }) {
+  // Calculated fields are worked out as the person types, as the server will (decision D118).
+  const shown = withCalculated(fields, values, outer);
   return (
     <View style={styles.list}>
-      {shownFields(fields, { ...outer, ...values }).map((field) => (
+      {shownFields(fields, { ...outer, ...shown }).map((field) => (
         <FieldInput
           key={field.key}
           field={field}
-          value={values[field.key]}
+          value={shown[field.key]}
           onChange={(value) => {
             const next = { ...values };
             if (value === undefined) delete next[field.key];
@@ -111,7 +114,7 @@ export function FieldList({
           issues={issues}
           data={data}
           path={`${prefix}${field.key}`}
-          outer={{ ...outer, ...values }}
+          outer={{ ...outer, ...shown }}
         />
       ))}
     </View>
@@ -147,8 +150,21 @@ function FieldInput({
     );
   }
   if (field.type === 'info_text') return <Notice>{field.text[locale]}</Notice>;
-  // Not shown on the phone yet; the server works it out from what is entered (decision D118).
-  if (field.type === 'calculated') return null;
+  // Worked out, never typed: shown read-only, blank until what it reads is filled (D118).
+  if (field.type === 'calculated') {
+    const unit = field.unit ? ` ${field.unit[locale]}` : '';
+    return (
+      <TextField
+        testID={`field-${field.key}`}
+        label={field.label[locale]}
+        {...(field.help ? { help: field.help[locale] } : {})}
+        numeric
+        editable={false}
+        value={value === undefined || value === null ? '' : `${String(value)}${unit}`}
+        onChangeText={() => undefined}
+      />
+    );
+  }
   const error = issues.get(path);
   const common = {
     // Field keys never change, so end-to-end flows find inputs by them (decision D68).
