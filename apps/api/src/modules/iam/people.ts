@@ -259,6 +259,27 @@ export class People {
   }
 
   /**
+   * The active people whose role grants a permission, at any scope, by code: such as those who
+   * may approve, to choose a delegate from (decision D113).
+   */
+  async withPermission(
+    tx: TenantTx,
+    tenantId: string,
+    permission: TenantPermission,
+  ): Promise<PersonFacts[]> {
+    return this.select(tx)
+      .innerJoin(roles, and(eq(roles.tenantId, users.tenantId), eq(roles.id, users.roleId)))
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          eq(users.status, 'active'),
+          sql`${permission} = any(${roles.permissions})`,
+        ),
+      )
+      .orderBy(asc(users.name), asc(users.code));
+  }
+
+  /**
    * Anonymises a deactivated person (decision D95): their name gives way to "Former employee"
    * and their code, their phone number, email and custom fields go, and their phones forget their
    * push tokens. Everything they did keeps pointing at this row, so the records stay whole.

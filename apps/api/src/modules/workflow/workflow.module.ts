@@ -5,6 +5,8 @@ import { ApprovalsController } from './approvals.controller';
 import { ApprovalsService } from './approvals.service';
 import { Approvers } from './approvers';
 import { ChainsService } from './chains.service';
+import { DelegationsController } from './delegations.controller';
+import { DelegationsService } from './delegations.service';
 import { RequestTypes } from './request-types';
 import { WorkflowUpkeep } from './workflow.upkeep';
 import { WorkflowsController } from './workflows.controller';
@@ -15,8 +17,15 @@ import { WorkflowsController } from './workflows.controller';
  */
 @Module({
   imports: [IamModule, TenantConfigModule],
-  controllers: [ApprovalsController, WorkflowsController],
-  providers: [ApprovalsService, Approvers, ChainsService, RequestTypes, WorkflowUpkeep],
-  exports: [ApprovalsService, ChainsService, RequestTypes],
+  controllers: [ApprovalsController, WorkflowsController, DelegationsController],
+  providers: [
+    ApprovalsService,
+    Approvers,
+    ChainsService,
+    DelegationsService,
+    RequestTypes,
+    WorkflowUpkeep,
+  ],
+  exports: [ApprovalsService, ChainsService, DelegationsService, RequestTypes],
 })
 export class WorkflowModule {}

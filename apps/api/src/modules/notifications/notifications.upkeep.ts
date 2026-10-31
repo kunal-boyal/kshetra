@@ -9,7 +9,7 @@ import {
   timeIn,
   todayIn,
 } from '@thelamp/shared';
-import { Database } from '../../platform/database';
+import { Database, type TenantTx } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
@@ -17,6 +17,7 @@ import { ShiftsService } from '../field/shifts.service';
 import { FormsService } from '../forms/forms.service';
 import { People } from '../iam/people';
 import { PlanningService } from '../planning/planning.service';
+import { DelegationsService } from '../workflow/delegations.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { DELIVER, NotificationsService } from './notifications.service';
 import { NotificationDelivery } from './delivery';
@@ -55,6 +56,7 @@ export class NotificationsUpkeep implements OnModuleInit {
     private readonly shifts: ShiftsService,
     private readonly notifications: NotificationsService,
     private readonly delivery: NotificationDelivery,
+    private readonly delegations: DelegationsService,
   ) {}
 
   private async name(
@@ -157,6 +159,22 @@ export class NotificationsUpkeep implements OnModuleInit {
     });
   }
 
+  /**
+   * A request's approvers and, for today, the delegates they named (decision D113), but never
+   * the requester, who decides nothing of their own.
+   */
+  private async withDelegates(
+    tx: TenantTx,
+    tenantId: string,
+    request: { approverIds: readonly string[]; requesterId: string },
+  ): Promise<string[]> {
+    const today = await this.delegations.today(tx, tenantId);
+    const delegates = await this.delegations.delegatesOf(tx, tenantId, request.approverIds, today);
+    return [...new Set([...request.approverIds, ...delegates.values()])].filter(
+      (id) => id !== request.requesterId,
+    );
+  }
+
   onModuleInit(): void {
     this.outbox.consume(['submission.reviewed'], 'notifications.rejected', async (event, tx) => {
       const review = event.payload as EventPayload<'submission.reviewed'>;
@@ -180,7 +198,7 @@ export class NotificationsUpkeep implements OnModuleInit {
     this.outbox.consume(['approval.requested'], 'notifications.approvals', async (event, tx) => {
       const request = event.payload as EventPayload<'approval.requested'>;
       const name = await this.name(tx, event.tenantId, request.requesterId);
-      for (const approver of request.approverIds) {
+      for (const approver of await this.withDelegates(tx, event.tenantId, request)) {
         await this.notifications.notify(tx, event.tenantId, {
           userId: approver,
           event: 'approval.waiting',
@@ -195,7 +213,7 @@ export class NotificationsUpkeep implements OnModuleInit {
     this.outbox.consume(['approval.waiting'], 'notifications.waiting', async (event, tx) => {
       const waiting = event.payload as EventPayload<'approval.waiting'>;
       const name = await this.name(tx, event.tenantId, waiting.requesterId);
-      for (const approver of waiting.approverIds) {
+      for (const approver of await this.withDelegates(tx, event.tenantId, waiting)) {
         await this.notifications.notify(tx, event.tenantId, {
           userId: approver,
           event: 'approval.waiting',

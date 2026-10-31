@@ -2,6 +2,7 @@ import type { WorkflowStep } from '@thelamp/forms';
 import { APPROVAL_STATUSES, REQUEST_TYPES, SKIP_REASONS, STEP_STATUSES } from '@thelamp/shared';
 import {
   boolean,
+  date,
   foreignKey,
   index,
   integer,
@@ -131,6 +132,8 @@ export const workflowSteps = cell
       escalatedAt: timestamp('escalated_at', { withTimezone: true }),
       /** Order approvers at this step decide line by line (BR-19). */
       lineDecisions: boolean('line_decisions').notNull().default(false),
+      /** The approver whose delegate decided the step, standing in for them (decision D113). */
+      onBehalfOf: uuid('on_behalf_of'),
       dueAt: timestamp('due_at', { withTimezone: true }),
     },
     (table) => [
@@ -141,6 +144,46 @@ export const workflowSteps = cell
         name: 'workflow_steps_instance_fk',
         columns: [table.tenantId, table.instanceId],
         foreignColumns: [workflowInstances.tenantId, workflowInstances.id],
+      }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * Approval delegations (M15, decision D113): while one covers a day of the tenant's calendar, what
+ * waits for the delegator waits for the delegate too. Days are inclusive; one ended early stands
+ * no more. Read when the inbox is read and a decision made, never copied onto steps.
+ */
+export const approvalDelegations = cell
+  .table(
+    'approval_delegations',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      delegatorId: uuid('delegator_id').notNull(),
+      delegateId: uuid('delegate_id').notNull(),
+      startsOn: date('starts_on', { mode: 'string' }).notNull(),
+      endsOn: date('ends_on', { mode: 'string' }).notNull(),
+      note: text('note'),
+      createdBy: uuid('created_by'),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      endedAt: timestamp('ended_at', { withTimezone: true }),
+      endedBy: uuid('ended_by'),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      index('approval_delegations_delegator').on(table.tenantId, table.delegatorId, table.endsOn),
+      index('approval_delegations_delegate').on(table.tenantId, table.delegateId, table.endsOn),
+      foreignKey({
+        name: 'approval_delegations_delegator_fk',
+        columns: [table.tenantId, table.delegatorId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      foreignKey({
+        name: 'approval_delegations_delegate_fk',
+        columns: [table.tenantId, table.delegateId],
+        foreignColumns: [users.tenantId, users.id],
       }),
       isolation(),
     ],

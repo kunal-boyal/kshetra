@@ -636,7 +636,7 @@ Rules: BR-29, BR-30, BR-31.
 - One inbox on web and mobile for every request waiting for the signed-in user, grouped by type, with counts, filters and bulk approval where the request type allows it.
 - Request detail shows the whole chain: steps, who acted, notes and times.
 - Requesters see the status of their requests and can cancel before the first decision.
-- Reminders and escalations follow each step's SLA. Delegation during absence arrives in version 2.
+- Reminders and escalations follow each step's SLA. An approver away names a delegate for some days, who decides on their behalf while the delegation stands; the chain and the audit say so (D113).
 
 Rules: BR-31.
 

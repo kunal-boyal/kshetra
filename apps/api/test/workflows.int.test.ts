@@ -369,3 +369,156 @@ describe('approval chains (spec 5.9, BR-31)', () => {
     expect(await keep(100)).toBe(0);
   });
 });
+
+describe('approval delegation (M15, D113)', () => {
+  const day = (offset: number) => {
+    const at = new Date(`${TODAY()}T00:00:00Z`);
+    at.setUTCDate(at.getUTCDate() + offset);
+    return at.toISOString().slice(0, 10);
+  };
+
+  /** Another manager under the head, who may approve, to delegate to. */
+  async function peer(t: Awaited<ReturnType<typeof tenant>>) {
+    const phone = newPhone();
+    const person = await world.user(t.tenantId, {
+      phone,
+      designation: 'manager',
+      role: 'manager',
+      managerId: t.head.id,
+    });
+    return { person, api: as((await world.signIn(phone)).accessToken) };
+  }
+
+  const delegate = (api: ReturnType<typeof as>, body: object) =>
+    api.post('/v1/approval-delegations', { id: newId(), ...body });
+
+  it('lets a delegate decide for the approver while the delegation stands, saying so', async () => {
+    const t = await tenant('Delegation Co');
+    const p = await peer(t);
+    const made = await delegate(t.api.manager, {
+      delegateId: p.person.id,
+      startsOn: TODAY(),
+      endsOn: day(3),
+      note: 'On leave',
+    });
+    expect(made.statusCode, made.body).toBe(201);
+    expect(made.json()).toMatchObject({
+      delegator: { id: t.manager.id },
+      delegate: { id: p.person.id },
+      state: 'active',
+    });
+    expect((await t.api.manager.get('/v1/approval-delegations')).json().items).toHaveLength(1);
+    expect((await p.api.get('/v1/approval-delegations')).json().items).toHaveLength(1);
+
+    const id = await t.submit('asha');
+    const inbox = (await p.api.get('/v1/approvals/inbox')).json();
+    expect(inbox.items).toEqual([
+      expect.objectContaining({ id, onBehalfOf: expect.objectContaining({ id: t.manager.id }) }),
+    ]);
+    expect(inbox.counts).toEqual({ journey_plan: 1 });
+    // The manager still sees it as theirs, with nobody stood in for.
+    expect((await t.api.manager.get('/v1/approvals/inbox')).json().items[0]).toMatchObject({
+      id,
+      onBehalfOf: null,
+    });
+    const decided = await p.api.post(`/v1/approvals/${id}/decision`, {
+      decision: 'approve',
+      version: inbox.items[0].version,
+    });
+    expect(decided.statusCode, decided.body).toBe(200);
+    expect(decided.json()).toMatchObject({ status: 'approved' });
+    expect(decided.json().steps[0]).toMatchObject({
+      status: 'approved',
+      actedBy: { id: p.person.id },
+      onBehalfOf: { id: t.manager.id },
+    });
+    // Asha reads who decided and for whom.
+    expect((await t.api.asha.get(`/v1/approvals/${id}`)).json().steps[0].onBehalfOf).toMatchObject({
+      id: t.manager.id,
+    });
+  });
+
+  it('stands only on its days and until ended, and the approver still decides', async () => {
+    const t = await tenant('Delegation Days Co');
+    const p = await peer(t);
+    const later = await delegate(t.api.manager, {
+      delegateId: p.person.id,
+      startsOn: day(1),
+      endsOn: day(2),
+    });
+    expect(later.json().state).toBe('upcoming');
+    const id = await t.submit('asha');
+    expect((await p.api.get('/v1/approvals/inbox')).json().items).toEqual([]);
+    const version = (await t.api.manager.get(`/v1/approvals/${id}`)).json().version;
+    expect(
+      (await p.api.post(`/v1/approvals/${id}/decision`, { decision: 'approve', version })).json()
+        .error.code,
+    ).toBe('NOT_CURRENT_APPROVER');
+
+    const now = await delegate(t.api.manager, {
+      delegateId: p.person.id,
+      startsOn: TODAY(),
+      endsOn: TODAY(),
+    });
+    expect(now.statusCode, now.body).toBe(201);
+    expect((await p.api.get('/v1/approvals/inbox')).json().items).toHaveLength(1);
+    const ended = await t.api.manager.post(`/v1/approval-delegations/${now.json().id}/end`);
+    expect(ended.json().state).toBe('ended');
+    expect((await p.api.get('/v1/approvals/inbox')).json().items).toEqual([]);
+    // A delegate can't end it; the approver decided all along.
+    expect(
+      (await p.api.post(`/v1/approval-delegations/${later.json().id}/end`)).json().error.code,
+    ).toBe('FORBIDDEN');
+    const decided = await t.api.manager.post(`/v1/approvals/${id}/decision`, {
+      decision: 'approve',
+      version,
+    });
+    expect(decided.json().steps[0]).toMatchObject({
+      actedBy: { id: t.manager.id },
+      onBehalfOf: null,
+    });
+  });
+
+  it('refuses oneself, someone who may not approve, days gone and days already covered', async () => {
+    const t = await tenant('Delegation Rules Co');
+    const p = await peer(t);
+    const issues = async (body: object) =>
+      (await delegate(t.api.manager, body))
+        .json()
+        .error.details.map((d: { path: string }) => d.path);
+    expect(await issues({ delegateId: t.manager.id, startsOn: TODAY(), endsOn: TODAY() })).toEqual([
+      'delegateId',
+    ]);
+    expect(await issues({ delegateId: t.asha.id, startsOn: TODAY(), endsOn: TODAY() })).toEqual([
+      'delegateId',
+    ]);
+    expect(await issues({ delegateId: p.person.id, startsOn: day(-1), endsOn: TODAY() })).toEqual([
+      'startsOn',
+    ]);
+    expect(
+      (await delegate(t.api.manager, { delegateId: p.person.id, startsOn: day(1), endsOn: day(5) }))
+        .statusCode,
+    ).toBe(201);
+    expect(await issues({ delegateId: p.person.id, startsOn: day(5), endsOn: day(6) })).toEqual([
+      'startsOn',
+    ]);
+    // Someone who manages people delegates for a person in their scope; a field person can't ask.
+    const forManager = await delegate(t.api.head, {
+      delegatorId: t.manager.id,
+      delegateId: p.person.id,
+      startsOn: day(10),
+      endsOn: day(12),
+    });
+    expect(forManager.statusCode, forManager.body).toBe(201);
+    expect(
+      (await t.api.head.get(`/v1/approval-delegations?userId=${t.manager.id}`)).json().items,
+    ).toHaveLength(2);
+    expect((await t.api.asha.get('/v1/approval-delegations')).statusCode).toBe(403);
+    const candidates = (await t.api.manager.get('/v1/approval-delegations/candidates')).json()
+      .items;
+    expect(candidates.map((person: { id: string }) => person.id)).toEqual(
+      expect.arrayContaining([t.head.id, p.person.id]),
+    );
+    expect(candidates.map((person: { id: string }) => person.id)).not.toContain(t.asha.id);
+  });
+});
