@@ -64,7 +64,7 @@
 ### Task 4: the phone (pull request 2)
 
 - `FieldList` shows a calculated field read-only, worked out live as the person types, with its unit; `checkEntry` works it out as the server will.
-- [ ] Tests (Jest).
+- [x] Tests (Jest).
 
 ### Task 5: finish
 
