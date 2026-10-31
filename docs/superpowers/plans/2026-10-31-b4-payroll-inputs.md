@@ -81,7 +81,7 @@ There are no statutory deductions (PF, ESI, PT, TDS) and no integrations.
 ### Task 4: the phone (pull request 2)
 
 - My pay estimate.
-- [ ] Tests (Jest).
+- [x] Tests (Jest).
 
 ### Task 5: finish
 

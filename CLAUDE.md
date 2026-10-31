@@ -384,7 +384,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 
 - Payroll lives in `apps/api/src/modules/payroll` behind the `payroll_inputs` module: `PayrollService` (gross, the month, the payslip, `erasePerson()`), the `payroll_gross` import and the `payroll_summary` report. The rules are pure functions in `packages/shared/src/payroll.ts`: `grossOn()` (the gross in force for a month) and `provisionalPay()` (BR-26, with the month's calendar working days as scheduled, so a part month and the current month earn a part). Days come only from `AttendanceService.days()`, whose `working` says the calendar schedules a day.
 - Gross is personal data: `cell.payroll_gross` keeps each change from a month and refuses one earlier than the latest; audit entries never hold the figure. An estimate only, never statutory payroll (D14); show it with the 8.4 words, `copy.provisional_pay`.
-- The portal's pages are `apps/web/src/payroll/` (the month's table and the printable payslip at `/payroll/$userId/$period`).
+- The portal's pages are `apps/web/src/payroll/` (the month's table and the printable payslip at `/payroll/$userId/$period`). On the phone, My pay estimate (`/pay`, `src/screens/my-pay.tsx`, `useMyPayslip()` in `src/payroll.ts`) reads this month and last online, for `payslip.view`.
 
 ## Expenses (decision D83)
 
