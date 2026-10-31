@@ -35,6 +35,12 @@ export const leaveTypes = cell
       halfDayAllowed: boolean('half_day_allowed').notNull(),
       attachmentAfterDays: integer('attachment_after_days'),
       active: boolean('active').notNull().default(true),
+      /** `yearly` (the whole quota on the year's first day) or `monthly` (D114). */
+      accrual: text('accrual').notNull().default('yearly'),
+      /** Unused days carried into the next quota year, at most (D114). */
+      carryForwardMax: numeric('carry_forward_max', { precision: 5, scale: 1 })
+        .notNull()
+        .default('0'),
       /** Its place in the list, as configuration orders it. */
       position: integer('position').notNull().default(0),
       updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -42,6 +48,7 @@ export const leaveTypes = cell
     (table) => [
       primaryKey({ columns: [table.tenantId, table.key] }),
       check('leave_types_quota_year', sql`${table.quotaYear} in ('calendar', 'financial')`),
+      check('leave_types_accrual', sql`${table.accrual} in ('yearly', 'monthly')`),
       isolation(),
     ],
   )
@@ -91,6 +98,49 @@ export const leaveRequests = cell
         'leave_requests_state',
         sql`${table.state} in ('pending', 'approved', 'rejected', 'cancelled')`,
       ),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * Closed quota years (D114): for a type that carries days forward, each person's year as it stood
+ * when it ended: credited, carried in, taken, carried out and lapsed, with the cap in force then,
+ * so later changes to the type never rewrite it. A decision that changes a closed year closes it
+ * and the years after it again.
+ */
+export const leaveYearClosings = cell
+  .table(
+    'leave_year_closings',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      userId: uuid('user_id').notNull(),
+      leaveTypeKey: text('leave_type_key').notNull(),
+      yearFrom: date('year_from').notNull(),
+      yearTo: date('year_to').notNull(),
+      credited: numeric('credited', { precision: 6, scale: 1 }).notNull(),
+      carriedIn: numeric('carried_in', { precision: 6, scale: 1 }).notNull(),
+      taken: numeric('taken', { precision: 6, scale: 1 }).notNull(),
+      carriedOut: numeric('carried_out', { precision: 6, scale: 1 }).notNull(),
+      lapsed: numeric('lapsed', { precision: 6, scale: 1 }).notNull(),
+      cap: numeric('cap', { precision: 5, scale: 1 }).notNull(),
+      closedAt: timestamp('closed_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+      primaryKey({
+        columns: [table.tenantId, table.userId, table.leaveTypeKey, table.yearFrom],
+      }),
+      foreignKey({
+        name: 'leave_year_closings_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      foreignKey({
+        name: 'leave_year_closings_type_fk',
+        columns: [table.tenantId, table.leaveTypeKey],
+        foreignColumns: [leaveTypes.tenantId, leaveTypes.key],
+      }),
+      check('leave_year_closings_range', sql`${table.yearTo} >= ${table.yearFrom}`),
       isolation(),
     ],
   )

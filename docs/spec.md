@@ -371,7 +371,7 @@ Templates seed common defaults: leave, regularisation and expenses go to the rep
 
 - Holiday calendars: named calendars (for example one per state) with dated holidays (optional holidays allowed) and weekly offs. Each user belongs to one calendar.
 - Attendance rule: `punch_is_present` (default, any shift on a day counts as present) or hours-based (minimum hours for a full day and for a half day).
-- Leave types: name, paid or unpaid, annual quota (0 means none), quota year (calendar or financial), half days allowed, attachment required beyond N days, active. Accrual and carry-forward arrive in version 2.
+- Leave types: name, paid or unpaid, annual quota (0 means none), quota year (calendar or financial), half days allowed, attachment required beyond N days, active, how days are credited (all on the quota year's first day, or a share each month from the joining month) and how many unused days carry into the next quota year, the rest lapsing (D114).
 - Expense policies: name, category (`travel`, `daily_allowance`, `other`), calculation (`per_km`, `per_day`, `per_visit`, `actual`), rate (flat or per designation), caps (per claim, per day, per month), receipt required, odometer photos required for per-km, active. Policies are versioned and claims keep the version in force on the expense date.
 
 ### 5.11 Catalogue and pricing
@@ -1065,9 +1065,9 @@ Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group c
 | `catalogue` | Categories, products, items, units, price lists | `product_categories`, `products`, `items`, `item_units`, `price_lists`, `price_list_items` |
 | `orders` | Orders and lines, decisions, fulfilment | `orders`, `order_lines` |
 | `finance` | Snapshots and statement entries | `finance_snapshots`, `ledger_entries` |
-| `hr` | Calendars, holidays, leave, regularisation, attendance days, payroll inputs | `calendars`, `holidays`, `leave_types`, `leave_requests`, `regularisations`, `attendance_days`, `payroll_profiles` |
+| `hr` | Calendars, holidays, leave, regularisation, attendance days, payroll inputs | `calendars`, `holidays`, `leave_types`, `leave_requests`, `leave_year_closings`, `regularisations`, `attendance_days`, `payroll_profiles` |
 | `expenses` | Policies and claims | `expense_policies`, `expense_policy_versions`, `expense_claims` |
-| `workflow` | Definitions, instances, steps, SLA timers | `workflow_definitions`, `workflow_instances`, `workflow_steps` |
+| `workflow` | Definitions, instances, steps, SLA timers, delegations | `workflow_definitions`, `workflow_instances`, `workflow_steps`, `approval_delegations` |
 | `notifications` | Templates, preferences, delivery, in-app inbox | `notification_templates`, `notifications`, `notification_prefs` |
 | `imports`, `exports` | File-based jobs | `import_jobs`, `import_mappings`, `export_jobs` |
 | `integrations` | API clients, webhooks, deliveries | `api_clients`, `webhook_subscriptions`, `webhook_deliveries` |
@@ -1293,7 +1293,10 @@ ledger_entries(id, tid, account_id, date, reference, description, debit, credit,
 calendars(tid, key, name jsonb, weekly_offs int[], is_default)               PK(tid, key) · one default (D80)
 holidays(tid, calendar_key, date, name, optional, active)                     PK(tid, calendar_key, date)
 leave_types(tid, key, name jsonb, paid, annual_quota, quota_year enum(calendar,financial),
-       half_day_allowed, attachment_after_days, active, position)            PK(tid, key) (D81)
+       half_day_allowed, attachment_after_days, active, accrual enum(yearly,monthly),
+       carry_forward_max, position)                                          PK(tid, key) (D81, D114)
+leave_year_closings(tid, user_id, leave_type_key, year_from, year_to, credited, carried_in, taken,
+       carried_out, lapsed, cap, closed_at)               PK(tid, user_id, leave_type_key, year_from) (D114)
 leave_requests(id, tid, user_id, leave_type_key, start_date, end_date, half_day, days, reason,
        attachment_id, status enum(pending,approved,rejected,cancelled), workflow_instance_id,
        created_at, decided_at)                                               IX(tid, user_id, start_date, end_date)
@@ -1315,8 +1318,11 @@ workflow_definitions(id, tid, request_type, version, steps jsonb, fallback_role_
 workflow_instances(id, tid, definition_id NULL, request_type, request_id, requester_id, current_step,
        status enum(pending,approved,rejected,cancelled), version int, created_at, closed_at)
 workflow_steps(instance_id, step_index, approver_ids uuid[],
-       status enum(waiting,pending,approved,rejected,skipped), acted_by NULL, acted_at NULL, note, due_at NULL)
+       status enum(waiting,pending,approved,rejected,skipped), acted_by NULL, acted_at NULL,
+       on_behalf_of NULL, note, due_at NULL)
        PK(instance_id, step_index)
+approval_delegations(id, tid, delegator_id, delegate_id, starts_on, ends_on, note, created_by,
+       ended_at NULL, ended_by NULL)                     IX(tid, delegator_id, ends_on) · IX(tid, delegate_id, ends_on) (D113)
 notification_templates(id, tid NULL, event, channel, locale, body, provider_template NULL)
 notifications(id, tid, user_id, event, category, values jsonb, link, dedupe_key, inbox, read_at,
        created_at)                                       UQ(tid, user_id, dedupe_key) · the inbox entry

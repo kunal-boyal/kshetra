@@ -13,10 +13,12 @@ import {
   DataTable,
   EmptyState,
   Icon,
+  SegmentedControl,
   StatusBadge,
 } from '@thelamp/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarX } from 'lucide-react';
+import { useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess } from './data';
@@ -30,22 +32,32 @@ const STATE_BADGE: Record<LeaveRequestResult['state'], BadgeVariant> = {
 };
 
 /**
- * A person's leave (M13, decision D81): each active type's balance in its quota year, and the
- * requests starting this year with their state. People ask for leave on the phone.
+ * A person's leave (M13, decision D81): each active type's balance in its quota year, credited,
+ * carried in and, for the year before, lapsed (D114), and the requests starting this year with
+ * their state. People ask for leave on the phone.
  */
 export function LeaveSection({ userId }: { userId: string }) {
   const { client } = useApp();
   const { t, locale } = useLanguage();
   const access = useAccess();
   const dates = useDates(access.timezone);
-  const year = todayIn(access.timezone).slice(0, 4);
+  const today = todayIn(access.timezone);
+  const year = today.slice(0, 4);
+  // This quota year, or the one before, read on the same day a year back (D114).
+  const [which, setWhich] = useState<'this' | 'last'>('this');
+  const on =
+    which === 'this'
+      ? today
+      : new Date(Date.UTC(Number(year) - 1, Number(today.slice(5, 7)) - 1, Number(today.slice(8))))
+          .toISOString()
+          .slice(0, 10);
   const types = useQuery({
     queryKey: ['leave-types'],
     queryFn: () => read(client, '/v1/leave-types', LeaveTypeListResult),
   });
   const balances = useQuery({
-    queryKey: ['leave-balances', userId],
-    queryFn: () => read(client, `/v1/leave-balances?userId=${userId}`, LeaveBalanceResult),
+    queryKey: ['leave-balances', userId, on],
+    queryFn: () => read(client, `/v1/leave-balances?userId=${userId}&on=${on}`, LeaveBalanceResult),
   });
   const requests = useQuery({
     queryKey: ['leave-requests', userId, year],
@@ -73,6 +85,18 @@ export function LeaveSection({ userId }: { userId: string }) {
       render: (row) => (row.quota === null ? t('leave.no_limit') : number(row.quota)),
     },
     {
+      key: 'credited',
+      header: t('leave.col_credited'),
+      align: 'end',
+      render: (row) => (row.credited === null ? '—' : number(row.credited)),
+    },
+    {
+      key: 'carried',
+      header: t('leave.col_carried'),
+      align: 'end',
+      render: (row) => (row.quota === null ? '—' : number(row.carriedIn)),
+    },
+    {
       key: 'approved',
       header: t('leave.col_approved'),
       align: 'end',
@@ -90,6 +114,17 @@ export function LeaveSection({ userId }: { userId: string }) {
       align: 'end',
       render: (row) => (row.available === null ? '—' : number(row.available)),
     },
+    // Days lapse only when a year ends, so the year before shows them.
+    ...(which === 'last'
+      ? [
+          {
+            key: 'lapsed',
+            header: t('leave.col_lapsed'),
+            align: 'end',
+            render: (row) => (row.quota === null ? '—' : number(row.lapsed)),
+          } satisfies Column<LeaveBalance>,
+        ]
+      : []),
   ];
   const requestColumns: Column<LeaveRequestResult>[] = [
     {
@@ -128,6 +163,15 @@ export function LeaveSection({ userId }: { userId: string }) {
         <p className="ks-muted">{t('common.loading')}</p>
       ) : (
         <>
+          <SegmentedControl
+            label={t('leave.balance_year')}
+            value={which}
+            onChange={setWhich}
+            choices={[
+              { value: 'this', label: t('leave.this_year') },
+              { value: 'last', label: t('leave.last_year') },
+            ]}
+          />
           <DataTable
             caption={t('leave.balances')}
             columns={balanceColumns}
