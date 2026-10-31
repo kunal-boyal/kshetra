@@ -134,7 +134,7 @@ The app collects data for the organisation the user works for; the vendor proces
 | App info and performance: crash logs, diagnostics | Yes, once error reporting is switched on, without personal details | No | App functionality |
 | Device or other IDs | Yes: a random key the app makes, binding the sign-in to the phone | No | App functionality, fraud prevention and security |
 
-Not collected: messages, contacts, calendar, audio, files and documents, web history, health and fitness, installed apps, other financial info besides claims, race, religion, political or sexual orientation.
+Not collected: messages, contacts, calendar, audio, files and documents, web history, health and fitness, installed apps, other financial info besides claims (the pay estimate, where the organisation uses payroll inputs, is shown from the organisation's records and never sent from the phone, D117), race, religion, political or sexual orientation.
 
 ## Background location
 

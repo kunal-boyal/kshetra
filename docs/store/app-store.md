@@ -48,6 +48,8 @@ Tracking: **no**: nothing is linked to data from other companies' apps or sites,
 | Identifiers: user ID, device ID (the app's own random key) | Yes | No | App functionality |
 | Diagnostics: crash data, once error reporting is on | No | No | App functionality |
 
+The pay estimate (My pay estimate, where the organisation uses payroll inputs, D117) is shown from the organisation's records and never sent from the phone, so it adds no data type.
+
 ## App Review information
 
 **Sign-in:** the review tenant's field user and manager, with their demo codes, as in [google-play.md](google-play.md#review-account).

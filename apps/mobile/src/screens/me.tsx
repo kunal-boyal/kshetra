@@ -26,6 +26,7 @@ import {
   Shield,
   Store,
   Trophy,
+  Wallet,
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -70,6 +71,7 @@ export function MeScreen() {
   const modulesOff = config.data?.bundle.settings.modulesOff ?? [];
   const leaveOn = !modulesOff.includes('leave_attendance');
   const expensesOn = !modulesOff.includes('expenses');
+  const payrollOn = !modulesOff.includes('payroll_inputs');
   const designation = config.data?.bundle.designations.find(
     (entry) => entry.key === me.data?.designation,
   );
@@ -198,6 +200,13 @@ export function MeScreen() {
             label={t('claims.title')}
             trailing={<ClaimsOpen />}
             onPress={() => router.push('/expenses')}
+          />
+        ) : null}
+        {payrollOn && permissions.has('payslip.view') ? (
+          <ListRow
+            lead={<IconChip icon={Wallet} hue="mint" />}
+            label={t('pay.title')}
+            onPress={() => router.push('/pay')}
           />
         ) : null}
         {permissions.has('leaderboard.view') ? (

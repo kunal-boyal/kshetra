@@ -2789,6 +2789,7 @@ export const en = {
   'payslip.estimate_so_far': 'Provisional pay so far: {amount}',
   'payslip.no_gross': 'No monthly gross for this month',
   'payslip.no_gross_body': 'Enter one on the Payroll page to see the estimate.',
+  'pay.title': 'My pay estimate',
   'report.filter_manager': 'Team of',
   'report.filter_territory': 'Territory',
   'report.filter_user': 'Person',
@@ -4547,6 +4548,8 @@ export const en = {
     'Photos you take in the app: of your work, receipts and odometers, and a selfie at punch-in if your organisation asks for one. Each photo is stamped with the time and place.',
   'privacy.collect_records':
     'What you record at work: visits, forms, {term.order:other:lower}, leave, expense claims and other requests.',
+  'privacy.collect_pay':
+    'Where your organisation uses payroll inputs: your monthly gross as it records it, and the pay estimate worked out from your attendance.',
   'privacy.collect_device':
     'Your phone: its model, system and app version, a key that ties your sign-in to this phone, and whether a location came from an app that fakes locations.',
   'privacy.never_title': 'What is never recorded',
