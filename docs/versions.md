@@ -26,7 +26,7 @@ Each dependency uses its current stable release on the day it is added (spec sec
 | libphonenumber-js | 1.13.14 | `packages/shared`, for E.164 phone numbers |
 | zod | 4.6.7 | Raised 2026-10-26 for GHSA-mrhx-c7xc-m3w5, with an override lifting any zod 4 others bring (decision D100). Validation: the API's config and requests, and the configuration schemas in `packages/shared`, `forms`, `metrics` and `templates` |
 | ajv | 8.20.0 | `packages/templates` tests, which check each template against the generated `schema.json` |
-| re2js | 2.8.6 | Added 2026-10-13: `packages/forms`, which matches text fields' patterns in linear time, on the server and in the apps alike (decision D45) |
+| re2js | 2.8.8 | Added 2026-10-13: `packages/forms`, which matches text fields' patterns in linear time, on the server and in the apps alike (decision D45). 2.8.8 on 2026-10-31 for GHSA-gg6h-894w-4m9c, once two weeks old; 2.9 waits for its turn |
 
 ## API (`apps/api`, added 2026-10-05)
 

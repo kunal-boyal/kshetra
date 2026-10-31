@@ -205,7 +205,10 @@ describe('bulk upserts (M20, D94)', () => {
     const token = await clientToken(org.admin, ['metrics:write']);
     // The tenant's own day, which slots and facts follow.
     const today = todayIn('Asia/Kolkata');
-    const month = today.slice(0, 7);
+    // Last month's value lands on its last day, which is never today: on a month's last day this
+    // month's would meet the day's own row, which the file may not repeat.
+    const [thisYear, thisMonth] = today.split('-').map(Number) as [number, number];
+    const month = new Date(Date.UTC(thisYear, thisMonth - 2, 1)).toISOString().slice(0, 7);
     const loaded = await call('POST', '/v1/bulk/external-metrics', token, {
       rows: [
         { metric: 'secondary_sales', employee_code: rep.code, date: today, value: '1000.5' },
@@ -232,12 +235,8 @@ describe('bulk upserts (M20, D94)', () => {
     const [year, monthNumber] = month.split('-').map(Number) as [number, number];
     const lastDay = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
     // The person's own value and the account's, both today; the month's on its last day.
-    if (lastDay === today) {
-      expect(byDate[today]).toBe('43501.000');
-    } else {
-      expect(byDate[today]).toBe('3500.500');
-      expect(byDate[lastDay]).toBe('40000.000');
-    }
+    expect(byDate[today]).toBe('3500.500');
+    expect(byDate[lastDay]).toBe('40000.000');
 
     // Loading a value again replaces it, and the day is worked out again.
     const again = await call('POST', '/v1/bulk/external-metrics', token, {
