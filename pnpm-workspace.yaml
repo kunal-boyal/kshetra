@@ -91,8 +91,15 @@ overrides:
 # (decision D100). Remove an entry as soon as its fix is old enough to take.
 auditConfig:
   ignoreGhsas:
-    # node-forge under Expo's CLI signs development builds only; no fixed release exists.
+    # node-forge under Expo's CLI signs development builds only. 1.4.1 (2026-10-27) fixes the
+    # five found on 2026-10-31 and is taken on 2026-11-10, once two weeks old; then check it closes
+    # the first too.
     - GHSA-86w9-cpqp-85rv
+    - GHSA-7wch-p9px-956x
+    - GHSA-jc66-7q78-782g
+    - GHSA-8hrf-8g6f-7xwp
+    - GHSA-hqq3-7jhf-c5jx
+    - GHSA-5x38-2vff-x55p
     # undici under jsdom and Testcontainers (tests) and Scalar's build; the fixes arrived on 2026-10-15.
     - GHSA-xjj6-f33q-929c
     - GHSA-2m5v-pch6-74hx
@@ -100,7 +107,5 @@ auditConfig:
     - GHSA-qrxm-fqhp-jwvm
     # zod 3 under Expo's CLI, which has no fixed release; every zod 4 is lifted by the override above.
     - GHSA-mrhx-c7xc-m3w5
-    # re2js in the form engine; the fix (2.8.7) arrived on 2026-10-17, so it is taken on 2026-10-31.
-    - GHSA-gg6h-894w-4m9c
     # decode-uri-component 0.2 under Expo Router's query-string 7; the only fix is 0.5.1, ESM only.
     - GHSA-qr28-fpjm-wq7f

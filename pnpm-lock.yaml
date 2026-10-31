@@ -891,8 +891,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       re2js:
-        specifier: ^2.8.6
-        version: 2.8.6
+        specifier: ^2.8.8
+        version: 2.8.8
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -8358,9 +8358,9 @@ packages:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
     engines: {node: '>= 0.6'}
 
-  re2js@2.8.6:
-    resolution: {integrity: sha512-xLgQil4kIUCrAzVk9fRSkxkFNwmygLFjVxXrLc65aE1F0+Zsb8rxumFBy4XKyvgMCTL6kilDq3EZ0piE2dP/Dg==}
-    engines: {node: '>=18.0.0'}
+  re2js@2.8.8:
+    resolution: {integrity: sha512-E2FVgqD2mzJ+ZmMSHLnkOvZ7PiZ4FgMdfVCA3YsJWs9gtyoaKmUMxyVPCXS1yK209/mz3XkdT7kr3OlMWW2Fww==}
+    engines: {node: '>=20.0.0'}
 
   react-devtools-core@6.1.5:
     resolution: {integrity: sha512-ePrwPfxAnB+7hgnEr8vpKxL9cmnp7F322t8oqcPshbIQQhDKgFDW4tjhF2wjVbdXF9O/nyuy3sQWd9JGpiLPvA==}
@@ -19102,7 +19102,7 @@ snapshots:
 
   range-parser@1.2.1: {}
 
-  re2js@2.8.6: {}
+  re2js@2.8.8: {}
 
   react-devtools-core@6.1.5:
     dependencies:
