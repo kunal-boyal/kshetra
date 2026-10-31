@@ -26,7 +26,10 @@ describe('column cipher (spec 13.2)', () => {
       /key this process doesn’t hold/,
     );
     const [version, id, iv, tag, body] = sealed.split(':');
-    const flipped = `${version}:${id}:${iv}:${tag}:${body!.slice(0, -2)}AA`;
+    // Flip a bit of the first byte, so the body always changes.
+    const bytes = Buffer.from(body!, 'base64url');
+    bytes[0] = bytes[0]! ^ 0x01;
+    const flipped = `${version}:${id}:${iv}:${tag}:${bytes.toString('base64url')}`;
     expect(() => one.open(flipped, 'platform_users.totp_secret:a')).toThrow();
     // A tag cut short is refused outright, never checked on fewer bytes.
     const short = Buffer.from(tag!, 'base64url').subarray(0, 4).toString('base64url');
