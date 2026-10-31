@@ -21,6 +21,7 @@ import {
   Target,
   Users,
   Receipt,
+  Wallet,
   UserRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -193,6 +194,12 @@ export function AppShell() {
             !access.modulesOff.includes('expenses'),
           { to: '/expenses', icon: Receipt, label: t('nav.expenses') },
         ),
+        // Payroll inputs (M14, decision D117), an add-on module.
+        ...only(access.can('payroll.manage') && !access.modulesOff.includes('payroll_inputs'), {
+          to: '/payroll',
+          icon: Wallet,
+          label: t('nav.payroll'),
+        }),
         ...only(access.can('live_map.view'), {
           to: '/live-map',
           icon: MapIcon,

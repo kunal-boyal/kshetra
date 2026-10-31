@@ -46,6 +46,8 @@ import { CalendarsPage } from './settings/calendars-page';
 import { ExpensePoliciesPage } from './settings/expense-policies-page';
 import { AttendancePage } from './attendance/attendance-page';
 import { ExpensesPage } from './expenses/expenses-page';
+import { PayrollPage } from './payroll/payroll-page';
+import { PayslipPage } from './payroll/payslip-page';
 import { LeaveTypesPage } from './settings/leave-types-page';
 import { ConfigurationPage } from './settings/configuration-page';
 import { DesignationsPage } from './settings/designations-page';
@@ -220,6 +222,19 @@ const expensesRoute = createRoute({
   getParentRoute: () => app,
   path: '/expenses',
   component: ExpensesPage,
+});
+const payrollRoute = createRoute({
+  getParentRoute: () => app,
+  path: '/payroll',
+  component: PayrollPage,
+});
+const payslip = createRoute({
+  getParentRoute: () => app,
+  path: '/payroll/$userId/$period',
+  component: function PayslipRoute() {
+    const { userId, period } = payslip.useParams();
+    return <PayslipPage key={`${userId}:${period}`} userId={userId} period={period} />;
+  },
 });
 const ordersRoute = createRoute({
   getParentRoute: () => app,
@@ -562,6 +577,8 @@ const tree = root.addChildren([
     ordersRoute,
     attendanceRoute,
     expensesRoute,
+    payrollRoute,
+    payslip,
     newOrder,
     order,
     targets,

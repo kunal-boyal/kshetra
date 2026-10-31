@@ -12,6 +12,7 @@ import { IamModule } from '../iam/iam.module';
 import { MediaModule } from '../media/media.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { MediaUrls } from '../media/media-urls';
+import { PayrollModule } from '../payroll/payroll.module';
 import { PerformanceModule } from '../performance/performance.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
@@ -19,6 +20,7 @@ import { WorkflowModule } from '../workflow/workflow.module';
 import { ActivityLogReport } from './activity-log';
 import { AttendanceRegisterReport } from './attendance-register';
 import { ExpenseRegisterReport } from './expense-register';
+import { PayrollSummaryReport } from './payroll-summary';
 import { LeaveRegisterReport } from './leave-register';
 import { VisitComplianceReport } from './visit-compliance';
 import { CoverageFrequencyReport } from './coverage-frequency';
@@ -48,6 +50,7 @@ import { TargetAchievementReport } from './target-achievement';
     OrdersModule,
     PlanningModule,
     ExpensesModule,
+    PayrollModule,
     FormsModule,
     PerformanceModule,
     TerritoriesModule,
@@ -67,6 +70,7 @@ import { TargetAchievementReport } from './target-achievement';
     TargetAchievementReport,
     LeaveRegisterReport,
     ExpenseRegisterReport,
+    PayrollSummaryReport,
     VisitComplianceReport,
     CoverageFrequencyReport,
     LocationSummaryReport,

@@ -16,6 +16,7 @@ export const IMPORT_TARGETS = [
   'ledger_entries',
   'holidays',
   'external_metrics',
+  'payroll_gross',
 ] as const;
 export const AccountsImportTarget = z.templateLiteral(['accounts:', Key]);
 export const ImportTarget = z

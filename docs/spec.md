@@ -626,10 +626,10 @@ Rules: BR-29, BR-30, BR-31.
 
 ### M14. Payroll inputs (optional module)
 
-- Monthly gross per user, entered or imported.
-- Provisional pay = gross × paid days ÷ scheduled days (BR-26), with the current month shown to date and labelled provisional.
-- A payslip preview PDF with the tenant's legal name and a statement that it is an attendance-based estimate.
-- Export of the attendance summary for payroll providers; direct integrations in version 2.
+- Monthly gross per user, entered or imported, each change in force from a month, so months already priced keep their gross (D117).
+- Provisional pay = gross × paid days ÷ scheduled days (BR-26), with the current month showing what is earned so far, labelled provisional.
+- A payslip preview, printed through the browser (D99), with the tenant's legal name and a statement that it is an attendance-based estimate.
+- The payroll summary report: each person's days by status, paid and scheduled days and provisional pay for a month, exported for payroll providers; direct integrations in version 2.
 
 ### M15. Approvals inbox
 
@@ -782,7 +782,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-23 | Day status in priority order: date after today → `future`; before the joining date or after the exit date → `not_employed`; a shift that day (or enough hours under the hours rule) or an approved present regularisation → `present` (1); an approved half-day regularisation or half-day hours → `half_day` (0.5); approved paid leave → `paid_leave` (1, or 0.5 for a half-day leave); approved unpaid leave → `unpaid_leave` (0); holiday → `holiday` (0); weekly off → `weekly_off` (0); otherwise `absent` (0). Presence wins over leave on the same day. |
 | BR-24 | Scheduled days in a period = days that are not holidays, weekly offs, future or not_employed. |
 | BR-25 | Paid days = the sum of day values. |
-| BR-26 | Provisional pay = `round(gross × min(paid, scheduled) / scheduled, 2)`, and 0 when no day is scheduled. |
+| BR-26 | Provisional pay = `round(gross × min(paid, scheduled) / scheduled, 2)`, and 0 when no day is scheduled. For pay, scheduled days are the month's working days on the person's calendar (neither holidays nor weekly offs), whether they were employed then or the day is still to come; paid days count the days so far. A part month and the current month therefore earn a part (D117). |
 | BR-27 | Leave days = working days in the range (excluding weekly offs and holidays of the user's calendar), halved for a half-day leave, and must be above zero. The quota counts pending plus approved days in the quota year of the start date. Requests overlapping a pending or approved request are refused. |
 | BR-28 | Regularisation: the date is not in the future and not before the joining date; one non-rejected, non-cancelled request per user per date; requested status `present` or `half_day`. |
 | BR-29 | Claim amount: `per_km` = `round(closing − opening, 2)` × rate, or under a policy that takes tracked distance, `round(tracked metres ÷ 1000, 2)` × rate (D115); `per_day` = days × rate; `per_visit` = completed visits that day × rate; `actual` = bill amount. The per-claim cap applies first, then per-day and per-month caps counting approved and pending claims. The result must be above zero, and closing must be at least opening. |
@@ -1065,7 +1065,7 @@ Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group c
 | `catalogue` | Categories, products, items, units, price lists | `product_categories`, `products`, `items`, `item_units`, `price_lists`, `price_list_items` |
 | `orders` | Orders and lines, decisions, fulfilment | `orders`, `order_lines` |
 | `finance` | Snapshots and statement entries | `finance_snapshots`, `ledger_entries` |
-| `hr` | Calendars, holidays, leave, regularisation, attendance days, payroll inputs | `calendars`, `holidays`, `leave_types`, `leave_requests`, `leave_year_closings`, `regularisations`, `attendance_days`, `payroll_profiles` |
+| `hr` | Calendars, holidays, leave, regularisation, attendance days, payroll inputs | `calendars`, `holidays`, `leave_types`, `leave_requests`, `leave_year_closings`, `regularisations`, `attendance_days`, `payroll_gross` |
 | `expenses` | Policies and claims | `expense_policies`, `expense_policy_versions`, `expense_claims` |
 | `workflow` | Definitions, instances, steps, SLA timers, delegations | `workflow_definitions`, `workflow_instances`, `workflow_steps`, `approval_delegations` |
 | `notifications` | Templates, preferences, delivery, in-app inbox | `notification_templates`, `notifications`, `notification_prefs` |
@@ -1305,7 +1305,7 @@ regularisations(id, tid, user_id, date, requested enum(present,half_day), reason
 attendance_days(tid, user_id, date, status, value, first_in, last_out, hours, source jsonb, computed_at)
        PK(tid, user_id, date) · PART monthly once volumes need it (D47)
 attendance_policies(tid, rule jsonb)                                         PK(tid)
-payroll_profiles(tid, user_id, monthly_gross, updated_by, updated_at)        PK(tid, user_id)
+payroll_gross(tid, user_id, from_period, monthly_gross, updated_by, updated_at) PK(tid, user_id, from_period) (D117)
 expense_policies(tid, key, current_version, active, position)                PK(tid, key) (D83)
 expense_policy_versions(tid, policy_key, version, definition jsonb, valid_from) PK(tid, policy_key, version)
 expense_claims(id, tid, user_id, policy_key, policy_version, expense_date, description, quantity,
@@ -1418,7 +1418,7 @@ This list fixes the shape of the API. The OpenAPI document generated from the co
 | Catalogue | `GET /v1/catalogue` (items and units; ETag), `PUT /v1/items/{id}`, `GET /v1/price-lists`, `GET` and `PUT /v1/price-lists/{id}`, `GET` and `PUT /v1/price-lists/{id}/items`, `GET /v1/accounts/{id}/prices` (the lists that apply and each item's price). Phones keep the price lists that can apply to their accounts through the sync (D38, D45, D77). |
 | Orders | `POST /v1/orders`, `GET /v1/orders`, `GET /v1/orders/:id`, `POST /v1/orders/:id/decision`, `POST /v1/orders/:id/line-decisions`, `POST /v1/orders/:id/fulfilment` |
 | Finance | `POST /v1/finance-snapshots`, `POST /v1/ledger-entries`, `GET /v1/accounts/:id/statement` |
-| HR | `GET /v1/attendance?userId&period`, `POST /v1/leave-requests`, `POST /v1/regularisations`, `GET /v1/calendars`, `PUT /v1/calendars`, `PUT /v1/leave-types`, `PUT /v1/payroll-profiles`, `GET /v1/payslips/:userId/:period` |
+| HR | `GET /v1/attendance?userId&period`, `POST /v1/leave-requests`, `POST /v1/regularisations`, `GET /v1/calendars`, `PUT /v1/calendars`, `PUT /v1/leave-types`, `GET /v1/payroll?period`, `GET /v1/payroll-gross/:userId`, `PUT /v1/payroll-gross/:userId`, `GET /v1/payslips/:userId/:period` |
 | Expenses | `PUT /v1/expense-policies`, `POST /v1/expense-claims`, `POST /v1/expense-claims/:id/receipts`, `POST /v1/expense-claims/:id/paid` |
 | Approvals | `GET /v1/approvals/inbox`, `GET /v1/approvals/:instanceId`, `POST /v1/approvals/:instanceId/decision`, `POST /v1/approvals/:instanceId/cancel`; the chains: `GET /v1/workflows`, `PUT /v1/workflows/:requestType` (a new version), `PUT /v1/workflows/fallback` (decision D74) |
 | Notifications | `GET /v1/notifications`, `POST /v1/notifications/read`, `GET /v1/notification-prefs`, `PUT /v1/notification-prefs`, `PUT /v1/push-tokens` |
@@ -1757,7 +1757,7 @@ Each phase ends with a working product and its exit criteria. Durations are plan
 | 1. Field core, the MVP (8–10 weeks) | M2–M9; M16 with push and SMS; M17; M18 with home dashboards, activity log, attendance register and target against achievement; M19 for users, territories, accounts and targets; mobile offline sync; location pipeline with compaction; media pipeline; form builder with the version 1 field types | One tenant runs a pilot week: punch-in, tracking, planned and ad hoc visits with photos, review, metrics and leaderboard updates, imports that reconcile with the source files; the device protocol passes on two Android brands |
 | 2. Commerce and people (6–8 weeks) | M10, M11, M12, M13; M15 with the workflow engine for every request type; WhatsApp channel; remaining standard reports and exports; M19 for catalogue, price lists, finance and HR data | Order totals reconcile with three real invoices to the paisa; leave, regularisation and claims pass through configured chains; the attendance register matches a manual check |
 | 3. SaaS readiness (6–8 weeks) | M20, M21, M22, M23; pharma and FMCG templates; SSO; TOTP for admins; partition automation and archive; read-replica routing; tenant export, import and cell-move tooling; WAF, alarms and a restore drill; penetration test; Play and App Store releases; from the review of an outside demo (D96), odometer readings at punch-in and punch-out, the GPS audit trail report and printing to PDF | A new tenant is onboarded from the console in under a day; billing charges a test tenant end to end; no high or critical penetration test findings remain open; apps are approved in both stores, or managed distribution is in place |
-| 4. Growth (ongoing) | M14 payroll inputs, a scheme and promotion engine for orders, calculated form fields, scheduled reports, custom dashboards, leave accrual, approval delegation, ERP connectors (Tally, SAP, Zoho Books), the building materials template, regional languages, travel claims from tracked distance, anomaly detection on evidence; from the review of an outside demo (D96), invoice and receipt registers with ageing worked out from open invoices (with the ERP connectors), product forecasts per account by item and month, liquidation returns by item, one workbook of every report, example files for each import, and a search across screens and records | Driven by customer demand |
+| 4. Growth (ongoing) | M14 payroll inputs, a scheme and promotion engine for orders, calculated form fields, scheduled reports, custom dashboards, leave accrual, approval delegation, ERP connectors (Tally, SAP, Zoho Books), the building materials template, travel claims from tracked distance, anomaly detection on evidence; from the review of an outside demo (D96), invoice and receipt registers with ageing worked out from open invoices (with the ERP connectors), product forecasts per account by item and month, liquidation returns by item, one workbook of every report, example files for each import, and a search across screens and records | Driven by customer demand |
 
 The MVP is phase 0 plus phase 1, for one paying pilot customer on one template, with apps distributed through internal or closed testing tracks.
 
@@ -1961,7 +1961,7 @@ Routes: Employee code*, Route name*, Recurrence* (for example `MON`, `TUE,FRI` o
 
 ### B.7 Holidays and payroll gross
 
-Holidays: Calendar*, Date*, Name*, Optional (Yes or No). Payroll gross: Employee code*, Monthly gross*.
+Holidays: Calendar*, Date*, Name*, Optional (Yes or No). Payroll gross: Employee code*, Monthly gross*, From month (this month when blank, D117).
 
 ## Appendix C. State machines
 

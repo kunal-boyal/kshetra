@@ -380,6 +380,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - `LeaveType` is `@thelamp/shared`'s; templates re-export it.
 - On the phone, `/leave` and `/leave/new` read through the kept hooks in `apps/mobile/src/leave.ts`, preview a request with `previewLeave()` and queue it with `queueLeave()` (outbox kind `leave_request.create`). Month grids use `MonthDays` (`src/screens/month-days.tsx`).
 
+## Payroll inputs (decision D117)
+
+- Payroll lives in `apps/api/src/modules/payroll` behind the `payroll_inputs` module: `PayrollService` (gross, the month, the payslip, `erasePerson()`), the `payroll_gross` import and the `payroll_summary` report. The rules are pure functions in `packages/shared/src/payroll.ts`: `grossOn()` (the gross in force for a month) and `provisionalPay()` (BR-26, with the month's calendar working days as scheduled, so a part month and the current month earn a part). Days come only from `AttendanceService.days()`, whose `working` says the calendar schedules a day.
+- Gross is personal data: `cell.payroll_gross` keeps each change from a month and refuses one earlier than the latest; audit entries never hold the figure. An estimate only, never statutory payroll (D14); show it with the 8.4 words, `copy.provisional_pay`.
+- The portal's pages are `apps/web/src/payroll/` (the month's table and the printable payslip at `/payroll/$userId/$period`).
+
 ## Expenses (decision D83)
 
 - Expenses live in `apps/api/src/modules/expenses`: `ExpensePoliciesService` (policies keyed by configuration key, each change a version from a day; `on()` finds the version in force on a day) and `ExpenseClaimsService` (claims, receipts, payment, the `expense` request type). The rules are pure functions in `packages/shared/src/expenses.ts`: `claimBase()`, `capClaim()`, `claimIssues()` (BR-29), `receiptHoldsApproval()` (BR-30), `rateFor()`, `expensePolicyIssues()`. Money goes through them, exact as paise.

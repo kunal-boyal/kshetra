@@ -25,6 +25,7 @@ export const REPORT_KEYS = [
   'orders_register',
   'account_statement',
   'audit_log',
+  'payroll_summary',
 ] as const;
 export const ReportKey = z.enum(REPORT_KEYS).meta({ id: 'ReportKey' });
 
@@ -35,6 +36,7 @@ export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], Switcha
   expense_register: 'expenses',
   orders_register: 'orders',
   account_statement: 'account_finance',
+  payroll_summary: 'payroll_inputs',
 };
 
 /** Reports that need a permission beyond `report.view`, as their records do elsewhere. */
@@ -43,6 +45,7 @@ export const REPORT_PERMISSION: Partial<Record<(typeof REPORT_KEYS)[number], Ten
   account_statement: 'finance.view',
   audit_log: 'audit.view',
   gps_audit_trail: 'trail.view',
+  payroll_summary: 'payroll.manage',
 };
 
 /**

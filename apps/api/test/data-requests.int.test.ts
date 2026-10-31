@@ -34,7 +34,7 @@ afterAll(async () => {
 const HERE = { lat: 28.6315, lng: 77.2167 };
 
 function as(token: string) {
-  const call = (method: 'GET' | 'POST' | 'PATCH', url: string, payload?: object) =>
+  const call = (method: 'GET' | 'POST' | 'PATCH' | 'PUT', url: string, payload?: object) =>
     app.inject({
       method,
       url,
@@ -46,6 +46,7 @@ function as(token: string) {
     get: (url: string) => call('GET', url),
     post: (url: string, payload?: object) => call('POST', url, payload),
     patch: (url: string, payload: object) => call('PATCH', url, payload),
+    put: (url: string, payload: object) => call('PUT', url, payload),
   };
 }
 
@@ -185,6 +186,9 @@ describe('personal data requests (M21, D95)', () => {
       ],
     });
     expect(batch.statusCode, batch.body).toBeLessThan(300);
+    // And has a monthly gross on file (M14, decision D117).
+    const gross = await t.admin.put(`/v1/payroll-gross/${t.person.id}`, { monthlyGross: '30000' });
+    expect(gross.statusCode, gross.body).toBe(200);
 
     const id = newId();
     const logged = await t.admin.post('/v1/data-requests', {
@@ -225,10 +229,14 @@ describe('personal data requests (M21, D95)', () => {
       const shifts = await tx.execute(
         sql`select count(*)::int as n from cell.shifts where tenant_id = ${t.tenantId} and user_id = ${t.person.id}`,
       );
+      const gross = await tx.execute(
+        sql`select count(*)::int as n from cell.payroll_gross where tenant_id = ${t.tenantId} and user_id = ${t.person.id}`,
+      );
       return {
         user: user.rows[0] as Record<string, string | null>,
         points: (points.rows[0] as { n: number }).n,
         shifts: (shifts.rows[0] as { n: number }).n,
+        gross: (gross.rows[0] as { n: number }).n,
       };
     });
     expect(after.user).toEqual({
@@ -239,6 +247,7 @@ describe('personal data requests (M21, D95)', () => {
     });
     expect(after.points).toBe(0);
     expect(after.shifts).toBe(1);
+    expect(after.gross).toBe(0);
     const identities = await app
       .get(DirectoryDatabase)
       .db.execute(
