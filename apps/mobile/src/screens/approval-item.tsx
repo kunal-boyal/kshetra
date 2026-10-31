@@ -8,6 +8,7 @@ import {
   ListRow,
   Notice,
   Screen,
+  StatusBadge,
   Text,
   TextField,
 } from '@thelamp/ui-mobile';
@@ -37,7 +38,8 @@ function Back() {
 
 /**
  * `/approvals/<id>`: one request waiting for the person's decision (M15): what it is, who asked
- * and when, its chain so far; approve, or reject with a reason.
+ * and when, whom the person decides for if someone handed over to them (D113), its chain so far;
+ * approve, or reject with a reason.
  */
 export function ApprovalItemScreen({ id }: { id: string }) {
   const { t } = useLanguage();
@@ -103,6 +105,15 @@ function Deciding({ item }: { item: ApprovalResult }) {
         {item.subject.title || type}
       </Text>
       <Text>{t('approvals.asked', { name: item.requester.name, when: when(item.createdAt) })}</Text>
+      {item.onBehalfOf ? (
+        // Waiting for someone who handed over to this person (decision D113).
+        <View style={styles.row}>
+          <StatusBadge
+            variant="info"
+            label={t('approvals.on_behalf', { name: item.onBehalfOf.name })}
+          />
+        </View>
+      ) : null}
 
       {item.steps.length > 0 ? (
         <ListGroup title={t('approvals.chain')}>
@@ -170,6 +181,26 @@ function Deciding({ item }: { item: ApprovalResult }) {
   );
 }
 
+/** Who decided a step, and for whom when they stood in for an approver (decision D113). */
+function decided(
+  step: ApprovalStep,
+  names: string,
+  status: 'approved' | 'rejected',
+  t: ReturnType<typeof useLanguage>['t'],
+): string {
+  const name = step.actedBy?.name ?? names;
+  if (step.onBehalfOf) {
+    return t(
+      status === 'approved' ? 'approvals.step_approved_for' : 'approvals.step_rejected_for',
+      {
+        name,
+        for: step.onBehalfOf.name,
+      },
+    );
+  }
+  return t(status === 'approved' ? 'approvals.step_approved' : 'approvals.step_rejected', { name });
+}
+
 /** One step of the chain (components/ApprovalSteps), its state in words. */
 function StepRow({ step, when }: { step: ApprovalStep; when: (iso: string) => string }) {
   const { t } = useLanguage();
@@ -182,19 +213,13 @@ function StepRow({ step, when }: { step: ApprovalStep; when: (iso: string) => st
   ].join(' · ');
   switch (step.status) {
     case 'approved':
-      return (
-        <ListRow
-          icon={Check}
-          label={t('approvals.step_approved', { name: step.actedBy?.name ?? names })}
-          detail={acted}
-        />
-      );
+      return <ListRow icon={Check} label={decided(step, names, 'approved', t)} detail={acted} />;
     case 'rejected':
       return (
         <ListRow
           icon={X}
           tone="danger"
-          label={t('approvals.step_rejected', { name: step.actedBy?.name ?? names })}
+          label={decided(step, names, 'rejected', t)}
           detail={acted}
         />
       );

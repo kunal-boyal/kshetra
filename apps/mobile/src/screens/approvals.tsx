@@ -46,7 +46,8 @@ const openRequest = (id: string) => router.push({ pathname: '/approvals/[id]', p
 /**
  * `/approvals`: what waits for the person's decision (M15, decision D76), as the prototype's
  * AppApprovals (D104): the types as chips with their counts, and a card for each request with its
- * kind, how long ago, who asked and about what, their words, where it stands in its chain, and
+ * kind (and whom the person decides for, when someone handed over to them, D113), how long ago,
+ * who asked and about what, their words, where it stands in its chain, and
  * Reject and Approve. Rejecting asks why, so it opens the request; one decided on its own page
  * offers Open instead of Approve.
  */
@@ -151,7 +152,16 @@ function RequestCard({ item }: { item: ApprovalResult }) {
   return (
     <Card style={styles.card}>
       <View style={styles.spread}>
-        <StatusBadge variant={TYPE_BADGE[item.requestType]} label={kind} />
+        <View style={styles.badges}>
+          <StatusBadge variant={TYPE_BADGE[item.requestType]} label={kind} />
+          {item.onBehalfOf ? (
+            // Waiting for someone who handed over to this person (decision D113).
+            <StatusBadge
+              variant="info"
+              label={t('approvals.on_behalf', { name: item.onBehalfOf.name })}
+            />
+          ) : null}
+        </View>
         <Text variant="caption" tone="subtle">
           {ago(item.createdAt, { t, locale, timeZone })}
         </Text>
@@ -215,6 +225,7 @@ const styles = StyleSheet.create({
   stack: { gap: spacing.space2 },
   card: { gap: spacing.space3 },
   spread: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.space2, flexShrink: 1 },
   who: { flexDirection: 'row', alignItems: 'center', gap: spacing.space3 },
   grow: { flex: 1, minWidth: 0 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.space2 },

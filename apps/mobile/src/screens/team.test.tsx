@@ -32,6 +32,8 @@ const CLEAN = '01a10000-0000-7000-8000-0000000000e1';
 const FLAGGED = '01a10000-0000-7000-8000-0000000000e2';
 const PHOTO = '01a10000-0000-7000-8000-0000000000f1';
 const REQUEST = '01a10000-0000-7000-8000-0000000000d1';
+const SUNITA = { id: '01a10000-0000-7000-8000-000000000006', code: 'SUN-006', name: 'Sunita Rao' };
+const KIRAN = { id: '01a10000-0000-7000-8000-000000000007', code: 'SUN-007', name: 'Kiran Das' };
 const LEAVE = '01a10000-0000-7000-8000-0000000000d2';
 const ORDER = '01a10000-0000-7000-8000-0000000000d3';
 const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
@@ -86,10 +88,24 @@ const APPROVAL = {
   version: 2,
   steps: [
     {
+      // Kiran decided this step while Sunita had handed over to them (D113).
       index: 0,
+      approvers: [SUNITA],
+      status: 'approved',
+      actedBy: KIRAN,
+      onBehalfOf: SUNITA,
+      actedAt: '2026-10-13T05:30:00.000Z',
+      note: null,
+      skipReason: null,
+      escalated: false,
+      fallback: false,
+    },
+    {
+      index: 1,
       approvers: [{ id: MANAGER, code: 'SUN-003', name: 'Meena Shah' }],
       status: 'skipped',
       actedBy: null,
+      onBehalfOf: null,
       actedAt: null,
       note: null,
       skipReason: 'repeated',
@@ -97,10 +113,11 @@ const APPROVAL = {
       fallback: false,
     },
     {
-      index: 1,
+      index: 2,
       approvers: [{ id: MANAGER, code: 'SUN-003', name: 'Meena Shah' }],
       status: 'pending',
       actedBy: null,
+      onBehalfOf: null,
       actedAt: null,
       note: null,
       skipReason: null,
@@ -111,6 +128,7 @@ const APPROVAL = {
   cancellable: true,
   bulk: true,
   page: null,
+  onBehalfOf: null,
   createdAt: '2026-10-13T05:00:00.000Z',
   closedAt: null,
 };
@@ -120,6 +138,7 @@ const pendingStep = (index: number, name = 'Meena Shah', status = 'pending') => 
   approvers: [{ id: MANAGER, code: 'SUN-003', name }],
   status,
   actedBy: null,
+  onBehalfOf: null,
   actedAt: null,
   note: null,
   skipReason: null,
@@ -135,7 +154,9 @@ const LEAVE_REQUEST = {
   requestId: '01a10000-0000-7000-8000-0000000000a3',
   subject: { title: '2026-11-09 – 2026-11-10', accountId: null, detail: 'Family wedding' },
   version: 1,
-  steps: [pendingStep(0), pendingStep(1, 'Vikram Singh', 'waiting')],
+  steps: [pendingStep(0, 'Sunita Rao'), pendingStep(1, 'Vikram Singh', 'waiting')],
+  // Waiting for Sunita, who handed over to the manager (D113).
+  onBehalfOf: SUNITA,
 };
 const ORDER_REQUEST = {
   ...APPROVAL,
@@ -315,13 +336,14 @@ function fakeClient(permissions: string[] = ['submission.review'], emptyInbox = 
   return { client, create: () => client as unknown as MobileClient };
 }
 
-type Page = 'team' | 'item' | 'day' | 'approval' | 'approvals';
+type Page = 'team' | 'item' | 'day' | 'approval' | 'handed' | 'approvals';
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
   if (!restored || !session) return null;
   if (page === 'day') return <PersonDayScreen userId={RAHUL} />;
   if (page === 'approval') return <ApprovalItemScreen id={REQUEST} />;
+  if (page === 'handed') return <ApprovalItemScreen id={LEAVE} />;
   if (page === 'approvals') return <ApprovalsScreen />;
   return page === 'team' ? <TeamScreen /> : <ReviewItemScreen id={CLEAN} />;
 }
@@ -446,6 +468,8 @@ describe('approvals in the Team tab (M15, D76)', () => {
     expect(screen.getByText('Family wedding')).toBeOnTheScreen();
     expect(screen.getByText('Step 1 of 2, then Vikram Singh.')).toBeOnTheScreen();
     expect(screen.getAllByText('You decide.')).toHaveLength(2);
+    // Only the leave request waits for someone who handed over (D113).
+    expect(screen.getAllByText('On behalf of Sunita Rao')).toHaveLength(1);
     // An order is decided on its own page: Open, never Approve, here.
     expect(
       screen.getByRole('button', { name: 'Open Rahul Verma · Beej Bhandar (D-81)' }),
@@ -498,6 +522,9 @@ describe('approvals in the Team tab (M15, D76)', () => {
   it('shows the chain, rejects only with a reason, and approves at the version it saw', async () => {
     const client = await renderPhone('approval', ['approval.act']);
     expect(await screen.findByText('Gupta Kirana (C-2)')).toBeOnTheScreen();
+    expect(screen.getByText('Approved by Kiran Das for Sunita Rao')).toBeOnTheScreen();
+    // The manager decides as themselves here: nobody handed this request over.
+    expect(screen.queryByText(/^On behalf of/)).toBeNull();
     expect(screen.getByText('Approved by the same person at an earlier step')).toBeOnTheScreen();
     expect(screen.getByText('Waiting for Meena Shah')).toBeOnTheScreen();
     expect(screen.getByText('Escalated')).toBeOnTheScreen();
@@ -519,6 +546,14 @@ describe('approvals in the Team tab (M15, D76)', () => {
       body: { decision: 'approve', version: 2 },
       idempotencyKey: expect.any(String),
     });
+  });
+});
+
+describe('deciding for someone away (M15, D113)', () => {
+  it('says whom the manager decides for on a request handed over to them', async () => {
+    await renderPhone('handed', ['approval.act']);
+    expect(await screen.findByText('On behalf of Sunita Rao')).toBeOnTheScreen();
+    expect(screen.getByText('Waiting for Sunita Rao')).toBeOnTheScreen();
   });
 });
 

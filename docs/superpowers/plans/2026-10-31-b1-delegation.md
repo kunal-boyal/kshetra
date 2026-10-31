@@ -76,7 +76,7 @@
 ### Task 4: the phone (pull request 2)
 
 - On behalf of … on `/approvals` cards and the request's screen.
-- [ ] Tests (Jest).
+- [x] Tests (Jest): the badge on the card and the request's screen, and the chain's wording.
 
 ### Task 5: finish
 
