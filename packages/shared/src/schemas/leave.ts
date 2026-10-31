@@ -136,6 +136,8 @@ export const LeaveBalance = z
 export const LeaveBalanceResult = z.object({
   userId: z.uuid(),
   on: CalendarDate,
+  /** When the person joined, from which a monthly type credits (D114); null when not known. */
+  joiningDate: CalendarDate.nullable(),
   items: z.array(LeaveBalance),
 });
 

@@ -64,26 +64,51 @@ const TYPES = [
 const BALANCES = {
   userId: ASHA,
   on: TODAY,
+  joiningDate: '2020-01-01',
   items: [
     {
       leaveType: 'casual',
       from: `${YEAR}-01-01`,
       to: `${YEAR}-12-31`,
       quota: 12,
+      credited: 12,
+      carriedIn: 0,
       approved: 4,
       pending: 1.5,
       available: 6.5,
+      lapsed: 0,
     },
     {
       leaveType: 'unpaid',
       from: `${YEAR}-01-01`,
       to: `${YEAR}-12-31`,
       quota: null,
+      credited: null,
+      carriedIn: 0,
       approved: 2,
       pending: 0,
       available: null,
+      lapsed: 0,
     },
   ],
+};
+/**
+ * Casual leave credited monthly to someone who joins next month, with days carried in (D114): by
+ * next month one day is credited, whatever today is.
+ */
+const MONTHLY = {
+  types: [
+    type('casual', 'Casual leave', { accrual: 'monthly', carryForwardMax: 5 }),
+    ...TYPES.slice(1),
+  ],
+  balances: {
+    ...BALANCES,
+    joiningDate: `${NEXT}-01`,
+    items: [
+      { ...BALANCES.items[0]!, credited: 7, carriedIn: 2, approved: 0, pending: 0, available: 9 },
+      BALANCES.items[1]!,
+    ],
+  },
 };
 const request = (id: string, startDate: string, endDate: string, state: string, extra = {}) => ({
   id,
@@ -128,7 +153,7 @@ const full = <T,>(rows: T[]) => ({
   removed: [],
 });
 
-function fakeClient(offline = false) {
+function fakeClient(offline = false, data: { types?: object[]; balances?: object } = {}) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -173,8 +198,8 @@ function fakeClient(offline = false) {
     request: jest.fn<(...args: unknown[]) => Promise<unknown>>(async (method, path) => {
       if (offline) throw new NetworkError('offline');
       const url = String(path);
-      if (method === 'GET' && url === '/v1/leave-types') return { items: TYPES };
-      if (method === 'GET' && url === '/v1/leave-balances') return BALANCES;
+      if (method === 'GET' && url === '/v1/leave-types') return { items: data.types ?? TYPES };
+      if (method === 'GET' && url === '/v1/leave-balances') return data.balances ?? BALANCES;
       if (method === 'GET' && url.startsWith('/v1/leave-requests?')) {
         return {
           items:
@@ -232,9 +257,13 @@ function Shown({ page }: { page: 'leave' | 'new' }) {
 
 async function renderPhone(
   page: 'leave' | 'new',
-  options: { offline?: boolean; db?: ReturnType<typeof nodeSqlite> } = {},
+  options: {
+    offline?: boolean;
+    db?: ReturnType<typeof nodeSqlite>;
+    data?: Parameters<typeof fakeClient>[1];
+  } = {},
 ) {
-  const fake = fakeClient(options.offline);
+  const fake = fakeClient(options.offline, options.data);
   const db = options.db ?? nodeSqlite();
   if (!options.db) {
     await migrate(db);
@@ -354,6 +383,21 @@ describe('leave on the phone (M13, spec 8.1)', () => {
     );
     expect(await screen.findByText(/needs a document/)).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Photograph the document' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Send the request' })).toBeDisabled();
+  });
+
+  it('shows what a monthly type has credited and carried in (D114)', async () => {
+    await renderPhone('leave', { data: MONTHLY });
+    expect(
+      await screen.findByText('9 of 12 left · 7 credited so far · 2 carried in · 0 taken'),
+    ).toBeOnTheScreen();
+    await screen.findByText('No limit · 2 taken');
+  });
+
+  it('refuses before sending what a monthly type has not credited by the start (D114)', async () => {
+    await renderPhone('new', { data: MONTHLY });
+    await pickRange(FRIDAY, MONDAY);
+    expect(await screen.findByText('This is more than the days left this year')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Send the request' })).toBeDisabled();
   });
 

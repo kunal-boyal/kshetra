@@ -4,6 +4,7 @@ import {
   CalendarListResult,
   type CreateLeaveRequestBody,
   LeaveBalanceResult,
+  leaveCredited,
   type LeaveIssue,
   leaveDays,
   leaveIssues,
@@ -124,7 +125,9 @@ export interface Asked {
 
 /**
  * The phone's preview of a request (BR-27): its working days and what the server would refuse,
- * judged against the requests the phone knows of, waiting or approved, queued ones included.
+ * judged against the requests the phone knows of, waiting or approved, queued ones included, and
+ * against what the type has credited by the start date and carried in (D114), from the balances
+ * the phone keeps.
  */
 export function previewLeave(input: {
   type: LeaveType;
@@ -135,6 +138,7 @@ export function previewLeave(input: {
   isOff: (date: string) => boolean;
   asked: readonly Asked[];
   financialYearStartMonth: number;
+  balances?: LeaveBalanceResult | undefined;
 }): { days: number; issues: LeaveIssue[] } {
   const { type, startDate, endDate, halfDay } = input;
   const days =
@@ -150,6 +154,13 @@ export function previewLeave(input: {
     )
     .reduce((sum, entry) => sum + entry.days, 0);
   const overlaps = open.some((entry) => entry.startDate <= endDate && entry.endDate >= startDate);
+  // Days carried in are known only for the year the kept balance is of; a later year's come once
+  // the server closes the year before, as it counts them.
+  const carriedIn =
+    input.balances?.items.find((item) => item.leaveType === type.key && item.from === year.from)
+      ?.carriedIn ?? 0;
+  const allowance =
+    leaveCredited(type, year, startDate, input.balances?.joiningDate ?? null) + carriedIn;
   return {
     days,
     issues: leaveIssues({
@@ -161,6 +172,7 @@ export function previewLeave(input: {
       type,
       used,
       overlaps,
+      allowance,
     }),
   };
 }

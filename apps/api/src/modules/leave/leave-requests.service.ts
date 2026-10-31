@@ -265,7 +265,7 @@ export class LeaveRequestsService implements OnModuleInit {
     tx: TenantTx,
     access: Access,
     query: { userId?: string | undefined; on?: string | undefined },
-  ): Promise<{ userId: string; on: string; items: LeaveBalance[] }> {
+  ): Promise<{ userId: string; on: string; joiningDate: string | null; items: LeaveBalance[] }> {
     const userId = await this.whose(tx, access, query.userId);
     const settings = await this.config.settings(tx, access.tenantId);
     const on = query.on ?? todayIn(settings.timezone);
@@ -302,7 +302,8 @@ export class LeaveRequestsService implements OnModuleInit {
         };
       }),
     );
-    return { userId, on, items };
+    const [person] = await this.people.employment(tx, access.tenantId, [userId]);
+    return { userId, on, joiningDate: person?.joiningDate ?? null, items };
   }
 
   /**

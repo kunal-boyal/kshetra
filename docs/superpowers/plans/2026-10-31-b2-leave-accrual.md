@@ -71,7 +71,7 @@
 
 - Leave balances show credited and carried in.
 - `previewLeave()` judges against the kept balance's allowance less the queued requests.
-- [ ] Tests (Jest).
+- [x] Tests (Jest): the balance's credited and carried-in days, and the preview refusing what isn't credited by the start. The balances now carry `joiningDate`, from which the phone works out credits as the server does.
 
 ### Task 5: finish
 
