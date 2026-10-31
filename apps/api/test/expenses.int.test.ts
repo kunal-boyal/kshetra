@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import { newId, todayIn } from '@thelamp/shared';
+import { newId, todayIn, trackedKm } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { TrailsService } from '../src/modules/field/trails.service';
 import { PhotosService } from '../src/modules/media/photos.service';
 import { type MemoryObjectStore, ObjectStore } from '../src/platform/object-store';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
@@ -508,7 +509,9 @@ describe('odometer readings at punches (decision D99)', () => {
       amount: '428.00',
       shiftId,
       odometerPhotos: [opening, closing],
-      flags: [],
+      // The phone sent no points, so nothing was tracked against 53.5 km of readings (D115).
+      trackedKm: '0.00',
+      flags: ['distance_gap'],
     });
     const changed = await claim(t.field, {
       policy: 'fuel',
@@ -517,7 +520,10 @@ describe('odometer readings at punches (decision D99)', () => {
       shiftId,
       odometerClose: '12110',
     });
-    expect(changed.json()).toMatchObject({ quantity: '65.000', flags: ['odometer_changed'] });
+    expect(changed.json()).toMatchObject({
+      quantity: '65.000',
+      flags: ['odometer_changed', 'distance_gap'],
+    });
     expect(
       (
         await claim(t.field, {
@@ -536,5 +542,177 @@ describe('odometer readings at punches (decision D99)', () => {
     expect(report.json().rows).toContainEqual(
       expect.objectContaining({ odometer_open: 12045, odometer_close: 12098.5, odometer_km: 53.5 }),
     );
+  });
+});
+
+describe('claims from tracked distance (decision D115)', () => {
+  it("pays the day's ended shifts, refuses an open one, and reopens a trail for late points", async () => {
+    const t = await tenant('Tracked Co');
+    const tracked = {
+      key: 'travel',
+      name: named('Travel'),
+      category: 'travel',
+      calculation: 'per_km',
+      kmFrom: 'tracked',
+      rate: { flat: '5' },
+    };
+    const set = await t.head.put('/v1/expense-policies', { items: [...POLICIES, tracked] });
+    expect(set.statusCode, set.body).toBe(200);
+
+    // A day without shifts has nothing to take the distance from.
+    expect(
+      (await claim(t.field, { policy: 'travel', description: 'Last month' })).json().error.details,
+    ).toEqual([
+      {
+        path: 'expenseDate',
+        issue: 'You have no ended shift on this day to take the distance from',
+      },
+    ]);
+
+    // Two shifts in the last half hour, each walking north about a kilometre a step.
+    const here = { location: { lat: 28.6315, lng: 77.2167 }, accuracy: 12, mocked: false };
+    const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+    const walk = (shiftId: string, from: number, steps: number) =>
+      t.field.post('/v1/locations/batch', {
+        points: Array.from({ length: steps }, (_, step) => ({
+          id: newId(),
+          shiftId,
+          capturedAt: minutesAgo(from - step),
+          location: { lat: 28.6315 + step * 0.01, lng: 77.2167 },
+          accuracy: 12,
+          mocked: false,
+          source: 'foreground',
+        })),
+      });
+    const shift = async (from: number, to: number, steps: number, end = true) => {
+      const id = newId();
+      const opened = await t.field.post('/v1/shifts', {
+        id,
+        startedAt: minutesAgo(from),
+        consentVersion: '2026-10',
+        ...here,
+      });
+      expect(opened.statusCode, opened.body).toBe(201);
+      const sent = await walk(id, from - 1, steps);
+      expect(sent.json().rejected).toEqual([]);
+      if (end) {
+        const ended = await t.field.post(`/v1/shifts/${id}/end`, {
+          endedAt: minutesAgo(to),
+          ...here,
+        });
+        expect(ended.statusCode, ended.body).toBe(200);
+      }
+      return id;
+    };
+    const first = await shift(24, 18, 4);
+    const day = todayIn('Asia/Kolkata', new Date(Date.now() - 24 * 60_000));
+    const second = await shift(14, 8, 3, false);
+
+    // While the second is open, its distance isn't known yet.
+    expect(
+      (await claim(t.field, { policy: 'travel', expenseDate: day, description: 'Today' })).json()
+        .error.details,
+    ).toEqual([
+      { path: 'expenseDate', issue: "End the day's shift before claiming its tracked distance" },
+    ]);
+    const ended = await t.field.post(`/v1/shifts/${second}/end`, {
+      endedAt: minutesAgo(8),
+      ...here,
+    });
+    expect(ended.statusCode, ended.body).toBe(200);
+
+    // Straight after punch-out the claim measures both shifts and pays their sum.
+    const made = await claim(t.field, { policy: 'travel', expenseDate: day, description: 'Today' });
+    expect(made.statusCode, made.body).toBe(201);
+    const shifts = (await t.field.get(`/v1/shifts?userId=${t.fieldId}`)).json().items as {
+      id: string;
+      distanceM: number | null;
+    }[];
+    const metres = shifts
+      .filter((entry) => entry.id === first || entry.id === second)
+      .reduce((total, entry) => total + (entry.distanceM ?? 0), 0);
+    expect(metres).toBeGreaterThan(5_000);
+    const km = trackedKm(metres);
+    expect(made.json()).toMatchObject({
+      trackedKm: km,
+      quantity: `${km}0`,
+      odometerOpen: null,
+      flags: [],
+    });
+    expect(Number(made.json().amount)).toBeCloseTo(Number(km) * 5, 2);
+
+    // Readings given beside it are kept, and flagged when they disagree.
+    const far = await claim(t.field, {
+      policy: 'travel',
+      expenseDate: day,
+      description: 'Today, with readings',
+      odometerOpen: '1000',
+      odometerClose: '1020',
+    });
+    expect(far.json()).toMatchObject({ trackedKm: km, flags: ['distance_gap'] });
+
+    // A point sent late for a measured shift: the claim keeps its figure, the trail is measured
+    // again that night.
+    const late = await walk(first, 20, 1);
+    expect(late.json().rejected).toEqual([]);
+    const pending = await world.database.forTenant(t.tenantId, (tx) =>
+      app.get(TrailsService).pending(tx, t.tenantId),
+    );
+    expect(pending).toContain(first);
+    expect(pending).not.toContain(second);
+    const again = (await t.field.get(`/v1/expense-claims?userId=${t.fieldId}&limit=50`))
+      .json()
+      .items.find((entry: { id: string }) => entry.id === made.json().id);
+    expect(again.trackedKm).toBe(km);
+  });
+
+  it('keeps paying readings for days before a policy moved to tracked distance', async () => {
+    const t = await tenant('Moved Co');
+    const before = await claim(t.field, {
+      policy: 'fuel',
+      description: 'Before the change',
+      odometerOpen: '100',
+      odometerClose: '142',
+      odometerPhotoIds: [
+        await upload(t.field, 'odometer', await jpeg(31)),
+        await upload(t.field, 'odometer', await jpeg(32)),
+      ],
+    });
+    expect(before.statusCode, before.body).toBe(201);
+    const fuel = async () =>
+      (await t.head.get('/v1/expense-policies'))
+        .json()
+        .items.find((policy: { key: string }) => policy.key === 'fuel');
+    const withFuel = (patch: object) =>
+      POLICIES.map((policy) => (policy.key === 'fuel' ? { ...policy, ...patch } : policy));
+
+    // Naming the odometer says what leaving it out does: no new version.
+    const named = await t.head.put('/v1/expense-policies', {
+      items: withFuel({ kmFrom: 'odometer' }),
+      from: TODAY(),
+    });
+    expect(named.statusCode, named.body).toBe(200);
+    expect(await fuel()).toMatchObject({ version: 1 });
+
+    const moved = await t.head.put('/v1/expense-policies', {
+      items: withFuel({ kmFrom: 'tracked' }),
+      from: TODAY(),
+    });
+    expect(moved.statusCode, moved.body).toBe(200);
+    expect(await fuel()).toMatchObject({ kmFrom: 'tracked', version: 2, validFrom: TODAY() });
+
+    // A day last month is still under the odometer version.
+    const still = await claim(t.field, {
+      policy: 'fuel',
+      description: 'Still on readings',
+      odometerOpen: '200',
+      odometerClose: '230',
+      odometerPhotoIds: [
+        await upload(t.field, 'odometer', await jpeg(33)),
+        await upload(t.field, 'odometer', await jpeg(34)),
+      ],
+    });
+    expect(still.statusCode, still.body).toBe(201);
+    expect(still.json()).toMatchObject({ policyVersion: 1, quantity: '30.000', trackedKm: null });
   });
 });

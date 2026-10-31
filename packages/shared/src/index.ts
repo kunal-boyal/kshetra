@@ -865,10 +865,13 @@ export {
 } from './schemas/finance';
 export { paidDays, REGULARISATION_REASON, regularisationIssue, scheduledDays } from './attendance';
 export {
+  closeLeaveYear,
   datesBetween,
   LEAVE_MAX_SPAN_DAYS,
   LEAVE_REASON_MAX,
+  type LeaveAccrual,
   leaveBalance,
+  leaveCredited,
   leaveDays,
   type LeaveIssue,
   leaveIssues,
@@ -924,6 +927,8 @@ export {
   capClaim,
   claimBase,
   claimIssues,
+  DISTANCE_GAP,
+  distanceGap,
   EXPENSE_CALCULATIONS,
   EXPENSE_CATEGORIES,
   EXPENSE_DESCRIPTION,
@@ -931,9 +936,12 @@ export {
   type ExpenseIssue,
   expensePolicyIssues,
   type ExpensePolicyRule,
+  KM_SOURCES,
+  type KmSource,
   odometerDistance,
   rateFor,
   receiptHoldsApproval,
+  trackedKm,
 } from './expenses';
 export {
   EmailDomain,

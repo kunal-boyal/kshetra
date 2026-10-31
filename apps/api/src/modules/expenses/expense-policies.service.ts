@@ -32,6 +32,7 @@ export function termsOf(policy: ExpensePolicyResult): ExpensePolicy {
     name: policy.name,
     category: policy.category,
     calculation: policy.calculation,
+    ...(policy.kmFrom ? { kmFrom: policy.kmFrom } : {}),
     ...(policy.rate ? { rate: policy.rate } : {}),
     caps: policy.caps,
     receiptRequired: policy.receiptRequired,
@@ -40,9 +41,19 @@ export function termsOf(policy: ExpensePolicyResult): ExpensePolicy {
   };
 }
 
-/** Whether two policies pay the same; switching one on or off is not a new version. */
-const same = (a: ExpensePolicy, b: ExpensePolicy) =>
-  canonical({ ...a, active: undefined }) === canonical({ ...b, active: undefined });
+/**
+ * Whether two policies pay the same; switching one on or off is not a new version, and naming the
+ * odometer as where kilometres come from says what leaving it out does (D115).
+ */
+const same = (a: ExpensePolicy, b: ExpensePolicy) => {
+  const terms = (policy: ExpensePolicy) =>
+    canonical({
+      ...policy,
+      active: undefined,
+      kmFrom: policy.kmFrom === 'odometer' ? undefined : policy.kmFrom,
+    });
+  return terms(a) === terms(b);
+};
 
 /**
  * Expense policies (M12, spec 5.10, decision D83): each tenant's policies as configuration lists

@@ -100,6 +100,7 @@ export const AUDIT_ACTIONS = [
   'leave_types.changed',
   'leave.requested',
   'leave.decided',
+  'leave.years_closed',
   'expense_policies.changed',
   'expense.claimed',
   'expense.receipts_added',

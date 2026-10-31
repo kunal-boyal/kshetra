@@ -1,6 +1,7 @@
 import { newId, todayIn } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { LeaveYears } from '../src/modules/leave/leave-years';
 import { ApprovalsService } from '../src/modules/workflow/approvals.service';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
 
@@ -211,33 +212,43 @@ describe('leave requests (BR-27)', () => {
     expect((await ask(t, 'unpaid', may, after(may, 13))).statusCode).toBe(201);
 
     const balances = (await t.field.get(`/v1/leave-balances?on=${year}-03-01`)).json();
+    expect(balances.joiningDate).toBe('2020-01-01');
     expect(balances.items).toEqual([
       {
         leaveType: 'casual',
         from: `${year}-01-01`,
         to: `${year}-12-31`,
         quota: 12,
+        credited: 12,
+        carriedIn: 0,
         approved: 0,
         pending: 2,
         available: 10,
+        lapsed: 0,
       },
       {
         leaveType: 'sick',
         from: `${year}-01-01`,
         to: `${year}-12-31`,
         quota: 12,
+        credited: 12,
+        carriedIn: 0,
         approved: 0,
         pending: 0,
         available: 12,
+        lapsed: 0,
       },
       {
         leaveType: 'unpaid',
         from: `${year}-01-01`,
         to: `${year}-12-31`,
         quota: null,
+        credited: null,
+        carriedIn: 0,
         approved: 0,
         pending: 12,
         available: null,
+        lapsed: 0,
       },
     ]);
     const listed = (
@@ -392,6 +403,86 @@ describe('leave types (spec 5.10)', () => {
     expect((await t.manager.put('/v1/leave-types', { items: types })).json().error.code).toBe(
       'FORBIDDEN',
     );
+  });
+});
+
+describe('accrual and carry-forward (spec 5.10, decision D114)', () => {
+  type Balance = { leaveType: string; [figure: string]: unknown };
+  const casualOf = async (t: Awaited<ReturnType<typeof tenant>>, on: string, userId?: string) =>
+    (
+      await (userId ? t.head : t.field).get(
+        `/v1/leave-balances?on=${on}${userId ? `&userId=${userId}` : ''}`,
+      )
+    )
+      .json()
+      .items.find((item: Balance) => item.leaveType === 'casual');
+  async function setCasual(t: Awaited<ReturnType<typeof tenant>>, patch: object) {
+    const types = (await t.head.get('/v1/leave-types')).json().items;
+    const changed = await t.head.put('/v1/leave-types', {
+      items: types.map((type: { key: string }) =>
+        type.key === 'casual' ? { ...type, ...patch } : type,
+      ),
+    });
+    expect(changed.statusCode, changed.body).toBe(200);
+  }
+
+  it('credits a monthly type a month at a time, from the joining month, and holds requests to it', async () => {
+    const t = await tenant('Accrual Co');
+    await setCasual(t, { accrual: 'monthly' });
+    const year = Number(TODAY().slice(0, 4)) + 1;
+    expect(await casualOf(t, `${year}-03-15`)).toMatchObject({
+      quota: 12,
+      credited: 3,
+      carriedIn: 0,
+      available: 3,
+    });
+    // Four days in March are more than three credited; three are not.
+    const march = next(`${year}-03-02`, 1);
+    const over = await ask(t, 'casual', march, after(march, 3));
+    expect(over.json().error).toMatchObject({ code: 'QUOTA_EXCEEDED' });
+    expect((await ask(t, 'casual', march, after(march, 2))).statusCode).toBe(201);
+    expect(await casualOf(t, `${year}-03-15`)).toMatchObject({ pending: 3, available: 0 });
+    expect(await casualOf(t, `${year}-12-15`)).toMatchObject({ credited: 12, available: 9 });
+
+    const joiner = await world.user(t.tenantId, {
+      phone: newPhone(),
+      designation: 'executive',
+      managerId: t.managerId,
+      joiningDate: `${year}-09-14`,
+    });
+    expect(await casualOf(t, `${year}-12-15`, joiner.id)).toMatchObject({ credited: 4 });
+    expect(await casualOf(t, `${year}-08-15`, joiner.id)).toMatchObject({ credited: 0 });
+  });
+
+  it('closes the year just ended once, carrying up to the cap in force then and lapsing the rest', async () => {
+    const t = await tenant('Carry Co');
+    await setCasual(t, { carryForwardMax: 5 });
+    const last = Number(TODAY().slice(0, 4)) - 1;
+    const march = next(`${last}-03-02`, 1);
+    const asked = await ask(t, 'casual', march, after(march, 3));
+    expect(asked.statusCode, asked.body).toBe(201);
+    await approve(t, asked.json().approval);
+    const late = await ask(t, 'casual', next(`${last}-06-01`, 1), next(`${last}-06-01`, 2));
+    expect(late.statusCode, late.body).toBe(201);
+
+    const years = app.get(LeaveYears);
+    expect(await years.closeEnded(t.tenantId)).toBe(3);
+    expect(await years.closeEnded(t.tenantId)).toBe(0);
+    // Twelve credited, four taken: five carried, three lapsed.
+    expect(await casualOf(t, `${last}-12-31`)).toMatchObject({ approved: 4, lapsed: 3 });
+    // This year's twelve and the five carried in, with nothing asked for yet.
+    expect(await casualOf(t, TODAY())).toMatchObject({
+      credited: 12,
+      carriedIn: 5,
+      available: 17,
+      lapsed: 0,
+    });
+
+    // A cap lowered later leaves the closed year alone; a late approval closes it again with its own cap.
+    await setCasual(t, { carryForwardMax: 2 });
+    await approve(t, late.json().approval);
+    expect(await casualOf(t, `${last}-12-31`)).toMatchObject({ approved: 6, lapsed: 1 });
+    expect(await casualOf(t, TODAY())).toMatchObject({ carriedIn: 5 });
   });
 });
 

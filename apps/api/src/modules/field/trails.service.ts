@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { compactTrail, TRAIL_ACCURACY_M, todayIn } from '@thelamp/shared';
+import { compactTrail, TRAIL_ACCURACY_M, todayIn, trackedKm } from '@thelamp/shared';
 import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { locationPoints, shiftPauses, shiftTrails, shifts } from '../../db/schema/field';
 import type { TenantTx } from '../../platform/database';
+import { onLocalDate } from '../../platform/local-day';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 
 /**
@@ -110,6 +111,51 @@ export class TrailsService {
       .from(shiftTrails)
       .where(and(eq(shiftTrails.tenantId, tenantId), inArray(shiftTrails.shiftId, [...shiftIds])));
     return new Map(rows.map((row) => [row.shiftId, row]));
+  }
+
+  /**
+   * A person's tracked kilometres on a day of the tenant's clock (decision D115): the distance of
+   * their ended shifts that started that day, measuring first any not compacted yet, so a claim
+   * made straight after punch-out needn't wait. Null without an ended shift; `open` says a shift
+   * of the day is still running.
+   */
+  async dayDistance(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    date: string,
+    timezone: string,
+  ): Promise<{ trackedKm: string | null; open: boolean }> {
+    const day = await tx
+      .select({ id: shifts.id, endedAt: shifts.endedAt, compactedAt: shifts.compactedAt })
+      .from(shifts)
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          eq(shifts.userId, userId),
+          onLocalDate(shifts.startedAt, date, timezone),
+        ),
+      );
+    const ended = day.filter((shift) => shift.endedAt !== null);
+    for (const shift of ended) {
+      if (!shift.compactedAt) await this.compact(tx, tenantId, shift.id);
+    }
+    const open = ended.length < day.length;
+    if (ended.length === 0) return { trackedKm: null, open };
+    const measured = await tx
+      .select({ distanceM: shifts.distanceM })
+      .from(shifts)
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          inArray(
+            shifts.id,
+            ended.map((shift) => shift.id),
+          ),
+        ),
+      );
+    const metres = measured.reduce((total, shift) => total + (shift.distanceM ?? 0), 0);
+    return { trackedKm: trackedKm(metres), open };
   }
 
   /** Every finished shift not compacted yet, for the nightly job. */

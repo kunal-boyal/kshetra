@@ -25,6 +25,11 @@ export const LeaveType = z
       description: 'Requests longer than this many days need an attachment',
     }),
     active: z.boolean().default(true),
+    /** How the quota is credited (D114): all on the quota year's first day, or month by month. */
+    accrual: z.enum(['yearly', 'monthly']).default('yearly'),
+    carryForwardMax: z.number().min(0).max(366).multipleOf(0.5).default(0).meta({
+      description: 'Unused days carried into the next quota year, at most; the rest lapses',
+    }),
   })
   .meta({ id: 'LeaveType' });
 
@@ -115,9 +120,15 @@ export const LeaveBalance = z
     to: CalendarDate,
     /** Null for a type without a quota. */
     quota: z.number().nullable(),
+    /** Credited by `on` (D114): the whole quota, or the months so far; null without a quota. */
+    credited: z.number().nullable(),
+    /** Carried in from the quota year before (D114). */
+    carriedIn: z.number(),
     approved: z.number(),
     pending: z.number(),
     available: z.number().nullable(),
+    /** Lapsed when the year ended (D114); 0 until then. */
+    lapsed: z.number(),
   })
   .meta({ id: 'LeaveBalance' });
 
@@ -125,6 +136,8 @@ export const LeaveBalance = z
 export const LeaveBalanceResult = z.object({
   userId: z.uuid(),
   on: CalendarDate,
+  /** When the person joined, from which a monthly type credits (D114); null when not known. */
+  joiningDate: CalendarDate.nullable(),
   items: z.array(LeaveBalance),
 });
 

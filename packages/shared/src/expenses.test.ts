@@ -3,11 +3,13 @@ import {
   capClaim,
   claimBase,
   claimIssues,
+  distanceGap,
   expensePolicyIssues,
   type ExpensePolicyRule,
   odometerDistance,
   rateFor,
   receiptHoldsApproval,
+  trackedKm,
 } from './expenses';
 
 const policy = (patch: Partial<ExpensePolicyRule> = {}): ExpensePolicyRule => ({
@@ -173,5 +175,94 @@ describe('BR-30 and policy settings', () => {
       'items[0].caps.perDay',
       'items[0].odometerPhotosRequired',
     ]);
+  });
+});
+
+describe('decision D115: claims from tracked distance', () => {
+  it('turns metres into kilometres to 2 places, half up', () => {
+    expect(trackedKm(0)).toBe('0.00');
+    expect(trackedKm(42_004)).toBe('42.00');
+    expect(trackedKm(42_005)).toBe('42.01');
+    expect(trackedKm(1_999)).toBe('2.00');
+  });
+
+  it('pays the tracked kilometres at the rate, whatever the readings say', () => {
+    expect(
+      claimBase({
+        calculation: 'per_km',
+        kmFrom: 'tracked',
+        trackedKm: '37.50',
+        rate: '8',
+        odometerOpen: '1000',
+        odometerClose: '1042',
+      }),
+    ).toEqual({ quantity: '37.50', amount: '300.00' });
+  });
+
+  it('keeps paying readings under an odometer policy, named or left out', () => {
+    const readings = { odometerOpen: '1000', odometerClose: '1042', trackedKm: '30.00' };
+    expect(claimBase({ calculation: 'per_km', rate: '8', ...readings }).quantity).toBe('42.00');
+    expect(
+      claimBase({ calculation: 'per_km', kmFrom: 'odometer', rate: '8', ...readings }).quantity,
+    ).toBe('42.00');
+  });
+
+  it('needs no readings under a tracked policy, but a day with an ended shift', () => {
+    const tracked = policy({ kmFrom: 'tracked' });
+    const base = { policy: tracked, rate: '8', expenseDate: '2026-10-30', today: '2026-10-31' };
+    expect(
+      claimIssues({ ...base, odometerPhotos: 0, trackedKm: '12.00', amount: '96.00' }),
+    ).toEqual([]);
+    expect(claimIssues({ ...base, odometerPhotos: 0, trackedKm: null, amount: '0.00' })).toEqual([
+      { path: 'expenseDate', issue: 'tracked_needed' },
+    ]);
+    expect(claimIssues({ ...base, odometerPhotos: 0, trackedKm: '0.00', amount: '0.00' })).toEqual([
+      { path: 'expenseDate', issue: 'nothing_tracked' },
+    ]);
+  });
+
+  it('still refuses readings that run backwards, and missing photos the policy asks for', () => {
+    const tracked = policy({ kmFrom: 'tracked', odometerPhotosRequired: true });
+    expect(
+      claimIssues({
+        policy: tracked,
+        rate: '8',
+        expenseDate: '2026-10-30',
+        today: '2026-10-31',
+        odometerOpen: '1042',
+        odometerClose: '1000',
+        odometerPhotos: 0,
+        trackedKm: '12.00',
+        amount: '96.00',
+      }),
+    ).toEqual([
+      { path: 'odometerClose', issue: 'closing_before_opening' },
+      { path: 'odometerPhotoIds', issue: 'odometer_photos' },
+    ]);
+  });
+
+  it('flags a gap over 10% of the larger figure and at least 2 km', () => {
+    expect(distanceGap('50.00', '44.00')).toBe(true);
+    expect(distanceGap('50.00', '45.00')).toBe(false);
+    expect(distanceGap('44.00', '50.00')).toBe(true);
+    expect(distanceGap('10.00', '8.50')).toBe(false);
+    expect(distanceGap('10.00', '8.00')).toBe(true);
+    expect(distanceGap('42.00', '0.00')).toBe(true);
+    expect(distanceGap('0.00', '0.00')).toBe(false);
+  });
+
+  it('takes where kilometres come from on per-km policies only', () => {
+    expect(
+      expensePolicyIssues(policy({ calculation: 'per_day', kmFrom: 'tracked' }), new Set(), [
+        'items',
+        0,
+      ]),
+    ).toEqual([
+      {
+        path: 'items[0].kmFrom',
+        issue: 'Where kilometres come from applies to per-km claims only',
+      },
+    ]);
+    expect(expensePolicyIssues(policy({ kmFrom: 'tracked' }), new Set(), ['items', 0])).toEqual([]);
   });
 });

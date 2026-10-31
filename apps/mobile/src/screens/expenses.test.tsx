@@ -69,6 +69,20 @@ const POLICIES = [
     version: 1,
     validFrom: '2000-01-01',
   },
+  {
+    key: 'travel',
+    name: named('Travel'),
+    category: 'travel',
+    calculation: 'per_km',
+    kmFrom: 'tracked',
+    rate: { flat: '5' },
+    caps: {},
+    receiptRequired: false,
+    odometerPhotosRequired: false,
+    active: true,
+    version: 1,
+    validFrom: '2000-01-01',
+  },
 ];
 const claim = (id: string, patch: object) => ({
   id,
@@ -82,6 +96,7 @@ const claim = (id: string, patch: object) => ({
   rate: null,
   odometerOpen: null,
   odometerClose: null,
+  trackedKm: null,
   shiftId: null,
   billAmount: '412.50',
   calculated: '412.50',
@@ -113,6 +128,12 @@ const CLAIMS = [
     state: 'pending',
   }),
 ];
+
+/** What the server says of the person's own shifts, for a claim from tracked distance (D115). */
+let shown: { claims: object[]; shifts: object[] } = { claims: CLAIMS, shifts: [] };
+/** Moments early in today, on the tenant's clock. */
+const early = (minute: number) =>
+  new Date(`${TODAY}T00:00:${String(minute).padStart(2, '0')}+05:30`).toISOString();
 
 const full = <T,>(rows: T[]) => ({
   pass: 'full' as const,
@@ -169,7 +190,10 @@ function fakeClient(offline = false) {
       const url = String(path);
       if (method === 'GET' && url === '/v1/expense-policies') return { items: POLICIES };
       if (method === 'GET' && url.startsWith('/v1/expense-claims?')) {
-        return { items: url.includes(`period=${PERIOD}`) ? CLAIMS : [], nextCursor: null };
+        return { items: url.includes(`period=${PERIOD}`) ? shown.claims : [], nextCursor: null };
+      }
+      if (method === 'GET' && url.startsWith('/v1/shifts?')) {
+        return { items: shown.shifts, nextCursor: null };
       }
       // Claims wait for a signal, as in a field with none.
       if (method === 'POST' && url === '/v1/approvals/preview') {
@@ -241,6 +265,28 @@ async function renderPhone(
     </LanguageProvider>,
   );
   return { client: fake.client, db, view };
+}
+
+async function withShifts(
+  shifts: { shiftId: string; closeUploadId: string | null }[],
+): Promise<ReturnType<typeof nodeSqlite>> {
+  const db = nodeSqlite();
+  await migrate(db);
+  await claimDevice(db, OWNER);
+  const tracking = new Tracking(db);
+  await db.transaction(async (tx) => {
+    for (const shift of shifts) {
+      await tracking.openOdometer(tx, OWNER, {
+        shiftId: shift.shiftId,
+        date: TODAY,
+        reading: null,
+      });
+      if (shift.closeUploadId) {
+        await tracking.closeOdometer(tx, OWNER, shift.shiftId, null, shift.closeUploadId);
+      }
+    }
+  });
+  return db;
 }
 
 describe('expenses on the phone (M12, spec 8.1)', () => {
@@ -345,5 +391,103 @@ describe('expenses on the phone (M12, spec 8.1)', () => {
     await renderPhone('list', { offline: true, db: list.db });
     expect(await screen.findByText('₹412.50')).toBeOnTheScreen();
     expect(screen.getByText(/^As of /)).toBeOnTheScreen();
+  });
+
+  describe('claims from tracked distance (decision D115)', () => {
+    const FIRST = '01a10000-0000-7000-8000-0000000000d1';
+    const SECOND = '01a10000-0000-7000-8000-0000000000d2';
+
+    it('previews the day’s tracked kilometres and waits for every punch-out', async () => {
+      shown = {
+        claims: CLAIMS,
+        shifts: [
+          { id: SECOND, startedAt: early(20), endedAt: early(30), distanceM: 12_345 },
+          { id: FIRST, startedAt: early(5), endedAt: early(10), distanceM: 5_000 },
+        ],
+      };
+      const db = await withShifts([
+        { shiftId: FIRST, closeUploadId: 'out-1' },
+        { shiftId: SECOND, closeUploadId: 'out-2' },
+      ]);
+      await renderPhone('new', { db });
+      await fireEvent.press(await screen.findByRole('radio', { name: /Travel/ }));
+      expect(
+        await screen.findByText('Tracked on your shifts that day: 17.35 km'),
+      ).toBeOnTheScreen();
+      // 17.35 km at 5, with no readings needed.
+      expect(await screen.findByText('Comes to ₹86.75')).toBeOnTheScreen();
+      expect(
+        screen.getAllByText('Readings are optional; they show beside the tracked distance.'),
+      ).toHaveLength(2);
+      await fireEvent.changeText(screen.getByLabelText(/^Description/), 'Route and back');
+      await fireEvent.press(screen.getByRole('button', { name: 'Send the claim · ₹86.75' }));
+      await waitFor(async () => {
+        const [item] = await new Outbox(db, {}).items(OWNER);
+        expect(item).toMatchObject({
+          kind: 'expense_claim.create',
+          payload: { policy: 'travel', expenseDate: TODAY, description: 'Route and back' },
+          dependsOn: ['out-2', 'out-1'],
+        });
+        expect(item!.payload).not.toHaveProperty('odometerOpen');
+      });
+      shown = { claims: CLAIMS, shifts: [] };
+    });
+
+    it('leaves the distance to the server until the punch-out has reached it', async () => {
+      const db = await withShifts([{ shiftId: FIRST, closeUploadId: 'out-1' }]);
+      await renderPhone('new', { db });
+      await fireEvent.press(await screen.findByRole('radio', { name: /Travel/ }));
+      expect(
+        await screen.findByText(
+          'Worked out from the distance your shifts tracked that day, when the claim is sent.',
+        ),
+      ).toBeOnTheScreen();
+      expect(screen.queryByText(/^Comes to/)).toBeNull();
+      await fireEvent.changeText(screen.getByLabelText(/^Description/), 'Route and back');
+      expect(screen.getByRole('button', { name: 'Send the claim' })).toBeEnabled();
+    });
+
+    it('holds the claim while the day’s shift is still open', async () => {
+      const db = await withShifts([{ shiftId: FIRST, closeUploadId: null }]);
+      await renderPhone('new', { db });
+      await fireEvent.press(await screen.findByRole('radio', { name: /Travel/ }));
+      expect(
+        await screen.findByText("End the day's shift first; its distance is known once it ends."),
+      ).toBeOnTheScreen();
+      await fireEvent.changeText(screen.getByLabelText(/^Description/), 'Route and back');
+      expect(screen.getByRole('button', { name: /^Send the claim/ })).toBeDisabled();
+    });
+
+    it('says when nothing ended that day, and shows tracked km on claims', async () => {
+      await renderPhone('new');
+      await fireEvent.press(await screen.findByRole('radio', { name: /Travel/ }));
+      expect(
+        await screen.findByText('You have no ended shift on this day to take the distance from'),
+      ).toBeOnTheScreen();
+      await screen.unmount();
+
+      shown = {
+        claims: [
+          claim('01a10000-0000-7000-8000-0000000000e3', {
+            policy: 'travel',
+            description: 'Route and back',
+            quantity: '30.400',
+            odometerOpen: '1000.0',
+            odometerClose: '1042.0',
+            trackedKm: '30.40',
+            billAmount: null,
+            calculated: '152.00',
+            amount: '152.00',
+            flags: ['distance_gap'],
+            state: 'pending',
+          }),
+        ],
+        shifts: [],
+      };
+      await renderPhone('list');
+      expect(await screen.findByText('30.4 km tracked')).toBeOnTheScreen();
+      expect(screen.getByText('Tracked and odometer kilometres differ')).toBeOnTheScreen();
+      shown = { claims: CLAIMS, shifts: [] };
+    });
   });
 });

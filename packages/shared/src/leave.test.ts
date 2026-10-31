@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { isoWeekday } from './planning';
-import { leaveBalance, leaveDays, leaveIssues, quotaYear } from './leave';
+import {
+  closeLeaveYear,
+  leaveBalance,
+  leaveCredited,
+  leaveDays,
+  leaveIssues,
+  quotaYear,
+} from './leave';
 
 const TYPE = { annualQuota: 12, halfDayAllowed: true, attachmentAfterDays: 2, active: true };
 const request = (patch: Partial<Parameters<typeof leaveIssues>[0]> = {}) => ({
@@ -88,17 +95,90 @@ describe('BR-27: what refuses a request', () => {
   });
 
   it('shows what is left of a quota', () => {
-    expect(leaveBalance(12, 4, 1.5)).toEqual({
+    const figures = { credited: 12, carriedIn: 0, lapsed: 0 };
+    expect(leaveBalance({ annualQuota: 12, approved: 4, pending: 1.5, ...figures })).toEqual({
       quota: 12,
+      credited: 12,
+      carriedIn: 0,
       approved: 4,
       pending: 1.5,
       available: 6.5,
+      lapsed: 0,
     });
-    expect(leaveBalance(0, 3, 0)).toEqual({
+    expect(leaveBalance({ annualQuota: 0, approved: 3, pending: 0, ...figures })).toEqual({
       quota: null,
+      credited: null,
+      carriedIn: 0,
       approved: 3,
       pending: 0,
       available: null,
+      lapsed: 0,
+    });
+  });
+
+  it('refuses more than the year allows by the start date when an allowance is given (D114)', () => {
+    expect(leaveIssues(request({ used: 2, days: 2, allowance: 3 })).map((i) => i.code)).toEqual([
+      'QUOTA_EXCEEDED',
+    ]);
+    expect(leaveIssues(request({ used: 2, days: 1, allowance: 3 }))).toEqual([]);
+    // Days carried in may take a request past the year's own quota.
+    expect(leaveIssues(request({ used: 12, days: 2, allowance: 15 }))).toEqual([]);
+  });
+});
+
+describe('D114: accrual and carry-forward', () => {
+  const calendar = { from: '2026-01-01', to: '2026-12-31' };
+  const monthly = (annualQuota: number) => ({ annualQuota, accrual: 'monthly' as const });
+  const months = (quota: number) =>
+    Array.from({ length: 12 }, (_, m) =>
+      leaveCredited(monthly(quota), calendar, `2026-${String(m + 1).padStart(2, '0')}-15`, null),
+    );
+
+  it('credits a yearly quota whole, and a type without a quota nothing', () => {
+    expect(
+      leaveCredited({ annualQuota: 12, accrual: 'yearly' }, calendar, '2026-01-01', null),
+    ).toBe(12);
+    expect(leaveCredited(monthly(0), calendar, '2026-06-01', null)).toBe(0);
+    // Nothing for a year that ended before the person joined.
+    expect(
+      leaveCredited({ annualQuota: 12, accrual: 'yearly' }, calendar, '2026-12-31', '2027-01-04'),
+    ).toBe(0);
+  });
+
+  it('credits a month at a time in whole half days, ending on the quota', () => {
+    expect(months(12)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(months(18)).toEqual([1.5, 3, 4.5, 6, 7.5, 9, 10.5, 12, 13.5, 15, 16.5, 18]);
+    expect(months(10)).toEqual([0.5, 1.5, 2.5, 3, 4, 5, 5.5, 6.5, 7.5, 8, 9, 10]);
+  });
+
+  it('credits a joiner from their joining month, and a financial year from its own first month', () => {
+    expect(leaveCredited(monthly(12), calendar, '2026-08-31', '2026-09-14')).toBe(0);
+    expect(leaveCredited(monthly(12), calendar, '2026-09-01', '2026-09-14')).toBe(1);
+    expect(leaveCredited(monthly(12), calendar, '2026-12-31', '2026-09-14')).toBe(4);
+    const financial = { from: '2026-04-01', to: '2027-03-31' };
+    expect(leaveCredited(monthly(12), financial, '2026-04-10', null)).toBe(1);
+    expect(leaveCredited(monthly(12), financial, '2027-01-10', null)).toBe(10);
+    // Someone who joined before the year gets every month of it.
+    expect(leaveCredited(monthly(12), financial, '2026-05-10', '2019-07-01')).toBe(2);
+  });
+
+  it('carries unused days up to the cap and lapses the rest', () => {
+    expect(closeLeaveYear({ credited: 12, carriedIn: 3, taken: 7, cap: 5 })).toEqual({
+      carriedOut: 5,
+      lapsed: 3,
+    });
+    expect(closeLeaveYear({ credited: 12, carriedIn: 0, taken: 9.5, cap: 5 })).toEqual({
+      carriedOut: 2.5,
+      lapsed: 0,
+    });
+    expect(closeLeaveYear({ credited: 12, carriedIn: 0, taken: 4, cap: 0 })).toEqual({
+      carriedOut: 0,
+      lapsed: 8,
+    });
+    // Taking more than was there carries and lapses nothing.
+    expect(closeLeaveYear({ credited: 6, carriedIn: 0, taken: 8, cap: 5 })).toEqual({
+      carriedOut: 0,
+      lapsed: 0,
     });
   });
 });

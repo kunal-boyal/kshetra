@@ -3048,6 +3048,22 @@
         "active": {
           "default": true,
           "type": "boolean"
+        },
+        "accrual": {
+          "default": "yearly",
+          "type": "string",
+          "enum": [
+            "yearly",
+            "monthly"
+          ]
+        },
+        "carryForwardMax": {
+          "default": 0,
+          "description": "Unused days carried into the next quota year, at most; the rest lapses",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 366,
+          "multipleOf": 0.5
         }
       },
       "required": [
@@ -3084,6 +3100,14 @@
             "per_day",
             "per_visit",
             "actual"
+          ]
+        },
+        "kmFrom": {
+          "description": "Per-km policies: `odometer` readings (when left out) or the day's `tracked` distance (decision D115).",
+          "type": "string",
+          "enum": [
+            "odometer",
+            "tracked"
           ]
         },
         "rate": {

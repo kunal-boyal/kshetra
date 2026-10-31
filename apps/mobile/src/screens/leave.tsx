@@ -104,6 +104,13 @@ export function LeaveScreen() {
                         left: number(balance.available ?? 0),
                         quota: number(balance.quota),
                       }),
+                  // A monthly type's days so far, and what came from last year (D114).
+                  ...(typeof balance.credited === 'number' && balance.credited !== balance.quota
+                    ? [t('leave.credited_so_far', { days: number(balance.credited) })]
+                    : []),
+                  ...(balance.carriedIn > 0
+                    ? [t('leave.carried_in', { days: number(balance.carriedIn) })]
+                    : []),
                   t('leave.taken', { days: number(balance.approved) }),
                   ...(balance.pending > 0
                     ? [t('leave.waiting', { days: number(balance.pending) })]

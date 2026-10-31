@@ -18,6 +18,8 @@ function toType(row: Row): LeaveType {
     halfDayAllowed: row.halfDayAllowed,
     ...(row.attachmentAfterDays !== null ? { attachmentAfterDays: row.attachmentAfterDays } : {}),
     active: row.active,
+    accrual: row.accrual as LeaveType['accrual'],
+    carryForwardMax: Number(row.carryForwardMax),
   };
 }
 
@@ -127,6 +129,8 @@ export class LeaveTypesService {
       halfDayAllowed: type.halfDayAllowed,
       attachmentAfterDays: type.attachmentAfterDays ?? null,
       active: type.active,
+      accrual: type.accrual,
+      carryForwardMax: String(type.carryForwardMax),
       position,
     };
   }

@@ -6,7 +6,7 @@ import {
   pointRejection,
   TRAIL_ACCURACY_M,
 } from '@thelamp/shared';
-import { and, asc, eq, gte, inArray, isNull, lt, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, or, type SQL, sql } from 'drizzle-orm';
 import { locationPoints, shifts, userLastPosition } from '../../db/schema/field';
 import type { Access } from '../../platform/auth';
 import { Database, type TenantTx } from '../../platform/database';
@@ -104,7 +104,7 @@ export class LocationsService {
       else accepted.push(point);
     }
     if (accepted.length > 0) {
-      await tx
+      const inserted = await tx
         .insert(locationPoints)
         .values(
           accepted.map((point) => ({
@@ -120,7 +120,22 @@ export class LocationsService {
             battery: point.battery ?? null,
           })),
         )
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ shiftId: locationPoints.shiftId });
+      // Points sent late for a shift whose trail is compacted: the nightly job measures it again.
+      const late = [...new Set(inserted.map((point) => point.shiftId))];
+      if (late.length > 0) {
+        await tx
+          .update(shifts)
+          .set({ compactedAt: null })
+          .where(
+            and(
+              eq(shifts.tenantId, tenantId),
+              inArray(shifts.id, late),
+              isNotNull(shifts.compactedAt),
+            ),
+          );
+      }
       const latest = accepted.reduce((a, b) =>
         Date.parse(b.capturedAt) > Date.parse(a.capturedAt) ? b : a,
       );

@@ -34,6 +34,7 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ApprovalsService } from '../workflow/approvals.service';
 import { RequestTypes } from '../workflow/request-types';
 import { LeaveTypesService } from './leave-types.service';
+import { LeaveYears } from './leave-years';
 
 type Row = typeof leaveRequests.$inferSelect;
 
@@ -54,14 +55,15 @@ const SAYS: Record<LeaveIssue['issue'], string> = {
 
 /**
  * Leave requests (M13, BR-27, decision D81): a person asks for leave of a type over a range of
- * days; the working days of their calendar count, within the type's quota for the start date's
- * quota year, never overlapping another waiting or approved request. It runs through the `leave`
+ * days; the working days of their calendar count, within what the type has credited by the start
+ * date and carried into its quota year (D114), never overlapping another waiting or approved request. It runs through the `leave`
  * chain; approved leave makes those working days paid or unpaid leave in attendance (BR-23).
  */
 @Injectable()
 export class LeaveRequestsService implements OnModuleInit {
   constructor(
     private readonly types: LeaveTypesService,
+    private readonly years: LeaveYears,
     private readonly approvals: ApprovalsService,
     private readonly requestTypes: RequestTypes,
     private readonly attendance: AttendanceService,
@@ -93,6 +95,15 @@ export class LeaveRequestsService implements OnModuleInit {
           target: { type: 'leave_request', id },
           after: { state: row.state },
         });
+        // A decision on a year already closed closes it, and the years after it, again (D114).
+        await this.years.reclose(
+          tx,
+          by.tenantId,
+          userActor(by),
+          row.userId,
+          row.leaveTypeKey,
+          row.startDate,
+        );
         // Days already gone follow, for reports; the rest are worked out as they come.
         const { timezone } = await this.config.settings(tx, by.tenantId);
         const today = todayIn(timezone);
@@ -136,6 +147,10 @@ export class LeaveRequestsService implements OnModuleInit {
       hasAttachment: body.attachmentId !== undefined,
       type,
       used: await this.used(tx, tenantId, userId, type.key, year),
+      // What the year allows by the start date: credited so far and carried in (D114).
+      allowance:
+        (await this.years.credited(tx, tenantId, userId, type, year, body.startDate)) +
+        (await this.years.carriedIn(tx, tenantId, userId, type, year)),
       overlaps: body.endDate >= body.startDate && (await this.overlaps(tx, tenantId, userId, body)),
     });
     if (issues.length > 0) {
@@ -242,12 +257,15 @@ export class LeaveRequestsService implements OnModuleInit {
     };
   }
 
-  /** `GET /v1/leave-balances`: each active type's balance in the quota year of a day. */
+  /**
+   * `GET /v1/leave-balances`: each active type's balance in the quota year of a day, with what was
+   * credited by that day, carried in and lapsed (D114).
+   */
   async balances(
     tx: TenantTx,
     access: Access,
     query: { userId?: string | undefined; on?: string | undefined },
-  ): Promise<{ userId: string; on: string; items: LeaveBalance[] }> {
+  ): Promise<{ userId: string; on: string; joiningDate: string | null; items: LeaveBalance[] }> {
     const userId = await this.whose(tx, access, query.userId);
     const settings = await this.config.settings(tx, access.tenantId);
     const on = query.on ?? todayIn(settings.timezone);
@@ -255,18 +273,37 @@ export class LeaveRequestsService implements OnModuleInit {
     const items = await Promise.all(
       types.map(async (type) => {
         const year = quotaYear(on, type.quotaYear, settings.financialYearStartMonth);
-        const [approved, pending] = await Promise.all([
+        const [approved, pending, credited, carriedIn] = await Promise.all([
           this.used(tx, access.tenantId, userId, type.key, year, ['approved']),
           this.used(tx, access.tenantId, userId, type.key, year, ['pending']),
+          this.years.credited(tx, access.tenantId, userId, type, year, on),
+          this.years.carriedIn(tx, access.tenantId, userId, type, year),
         ]);
+        const lapsed = await this.years.lapsed(
+          tx,
+          access.tenantId,
+          userId,
+          type,
+          year,
+          { credited, carriedIn, taken: approved },
+          todayIn(settings.timezone),
+        );
         return {
           leaveType: type.key,
           ...year,
-          ...leaveBalance(type.annualQuota, approved, pending),
+          ...leaveBalance({
+            annualQuota: type.annualQuota,
+            credited,
+            carriedIn,
+            approved,
+            pending,
+            lapsed,
+          }),
         };
       }),
     );
-    return { userId, on, items };
+    const [person] = await this.people.employment(tx, access.tenantId, [userId]);
+    return { userId, on, joiningDate: person?.joiningDate ?? null, items };
   }
 
   /**

@@ -8565,6 +8565,7 @@
                 "leave_types.changed",
                 "leave.requested",
                 "leave.decided",
+                "leave.years_closed",
                 "expense_policies.changed",
                 "expense.claimed",
                 "expense.receipts_added",
@@ -8829,6 +8830,7 @@
                               "leave_types.changed",
                               "leave.requested",
                               "leave.decided",
+                              "leave.years_closed",
                               "expense_policies.changed",
                               "expense.claimed",
                               "expense.receipts_added",
@@ -12804,6 +12806,7 @@
                           "leave_types.changed",
                           "leave.requested",
                           "leave.decided",
+                          "leave.years_closed",
                           "expense_policies.changed",
                           "expense.claimed",
                           "expense.receipts_added",
@@ -13985,6 +13988,18 @@
                       "format": "date",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
                     },
+                    "joiningDate": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "items": {
                       "type": "array",
                       "items": {
@@ -13995,6 +14010,7 @@
                   "required": [
                     "userId",
                     "on",
+                    "joiningDate",
                     "items"
                   ],
                   "additionalProperties": false
@@ -17853,6 +17869,7 @@
                 "leave_types.changed",
                 "leave.requested",
                 "leave.decided",
+                "leave.years_closed",
                 "expense_policies.changed",
                 "expense.claimed",
                 "expense.receipts_added",
@@ -23816,6 +23833,7 @@
                               "leave_types.changed",
                               "leave.requested",
                               "leave.decided",
+                              "leave.years_closed",
                               "expense_policies.changed",
                               "expense.claimed",
                               "expense.receipts_added",
@@ -31370,6 +31388,12 @@
               "null"
             ]
           },
+          "trackedKm": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "billAmount": {
             "anyOf": [
               {
@@ -31491,6 +31515,7 @@
           "rate",
           "odometerOpen",
           "odometerClose",
+          "trackedKm",
           "billAmount",
           "calculated",
           "amount",
@@ -31532,6 +31557,14 @@
               "per_day",
               "per_visit",
               "actual"
+            ]
+          },
+          "kmFrom": {
+            "description": "Per-km policies: `odometer` readings (when left out) or the day's `tracked` distance (decision D115).",
+            "type": "string",
+            "enum": [
+              "odometer",
+              "tracked"
             ]
           },
           "rate": {
@@ -31605,6 +31638,14 @@
               "actual"
             ]
           },
+          "kmFrom": {
+            "description": "Per-km policies: `odometer` readings (when left out) or the day's `tracked` distance (decision D115).",
+            "type": "string",
+            "enum": [
+              "odometer",
+              "tracked"
+            ]
+          },
           "rate": {
             "description": "Per km, day or visit. Leave out when the claim is the bill amount (actual).",
             "$ref": "#/components/schemas/ExpenseRate"
@@ -31670,6 +31711,14 @@
               "per_day",
               "per_visit",
               "actual"
+            ]
+          },
+          "kmFrom": {
+            "description": "Per-km policies: `odometer` readings (when left out) or the day's `tracked` distance (decision D115).",
+            "type": "string",
+            "enum": [
+              "odometer",
+              "tracked"
             ]
           },
           "rate": {
@@ -31906,6 +31955,7 @@
                   "leave_types.changed",
                   "leave.requested",
                   "leave.decided",
+                  "leave.years_closed",
                   "expense_policies.changed",
                   "expense.claimed",
                   "expense.receipts_added",
@@ -34375,6 +34425,15 @@
               "null"
             ]
           },
+          "credited": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "carriedIn": {
+            "type": "number"
+          },
           "approved": {
             "type": "number"
           },
@@ -34386,6 +34445,9 @@
               "number",
               "null"
             ]
+          },
+          "lapsed": {
+            "type": "number"
           }
         },
         "required": [
@@ -34393,9 +34455,12 @@
           "from",
           "to",
           "quota",
+          "credited",
+          "carriedIn",
           "approved",
           "pending",
-          "available"
+          "available",
+          "lapsed"
         ],
         "additionalProperties": false
       },
@@ -34541,6 +34606,22 @@
           "active": {
             "default": true,
             "type": "boolean"
+          },
+          "accrual": {
+            "default": "yearly",
+            "type": "string",
+            "enum": [
+              "yearly",
+              "monthly"
+            ]
+          },
+          "carryForwardMax": {
+            "default": 0,
+            "description": "Unused days carried into the next quota year, at most; the rest lapses",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 366,
+            "multipleOf": 0.5
           }
         },
         "required": [
@@ -34550,7 +34631,9 @@
           "annualQuota",
           "quotaYear",
           "halfDayAllowed",
-          "active"
+          "active",
+          "accrual",
+          "carryForwardMax"
         ],
         "additionalProperties": false
       },
@@ -34592,6 +34675,22 @@
           "active": {
             "default": true,
             "type": "boolean"
+          },
+          "accrual": {
+            "default": "yearly",
+            "type": "string",
+            "enum": [
+              "yearly",
+              "monthly"
+            ]
+          },
+          "carryForwardMax": {
+            "default": 0,
+            "description": "Unused days carried into the next quota year, at most; the rest lapses",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 366,
+            "multipleOf": 0.5
           }
         },
         "required": [
