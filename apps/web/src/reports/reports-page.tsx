@@ -1,6 +1,7 @@
 import { formatMonth, formatNumber } from '@thelamp/i18n';
 import {
   type ExportFormat,
+  type ExportReport,
   type ExportResult,
   type ExportStatus,
   REPORT_FOR_ONE_PERSON,
@@ -201,10 +202,11 @@ export function ReportsPage() {
       return next;
     });
 
-  async function exportAs(format: ExportFormat) {
+  /** One report as a file; or `workbook`, every report the person may see (decision D112). */
+  async function exportAs(format: ExportFormat, which: ExportReport = report) {
     setExportError(undefined);
     try {
-      await startExport({ report, filters, format, locale });
+      await startExport({ report: which, filters, format, locale });
       setStarted(true);
     } catch (caught) {
       setExportError(caught);
@@ -353,31 +355,40 @@ export function ReportsPage() {
                 month: formatMonth(filters.period, { locale }),
               })}
             </h2>
-            {!needsPerson ? (
-              <div className="flex flex-wrap gap-2">
-                <PrintButton printable="report" />
-                {canExport ? (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      icon={<Icon icon={FileText} />}
-                      onClick={() => void exportAs('csv')}
-                    >
-                      {t('report.export_csv')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      icon={<Icon icon={FileSpreadsheet} />}
-                      onClick={() => void exportAs('xlsx')}
-                    >
-                      {t('report.export_xlsx')}
-                    </Button>
-                  </>
-                ) : null}
-              </div>
-            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {canExport ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Icon icon={Sheet} />}
+                  title={t('report.export_workbook_help')}
+                  onClick={() => void exportAs('xlsx', 'workbook')}
+                >
+                  {t('report.export_workbook')}
+                </Button>
+              ) : null}
+              {!needsPerson ? <PrintButton printable="report" /> : null}
+              {!needsPerson && canExport ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<Icon icon={FileText} />}
+                    onClick={() => void exportAs('csv')}
+                  >
+                    {t('report.export_csv')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    icon={<Icon icon={FileSpreadsheet} />}
+                    onClick={() => void exportAs('xlsx')}
+                  >
+                    {t('report.export_xlsx')}
+                  </Button>
+                </>
+              ) : null}
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <PeriodStepper

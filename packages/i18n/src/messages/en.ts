@@ -2659,6 +2659,10 @@ export const en = {
     'Read a report for a month, narrowed to a team, a territory or one person, and download it as a file.',
   'report.choose': 'Report',
   'report.name_activity_log': '{term.activity} log',
+  'report.name_workbook': 'Every report',
+  'report.export_workbook': 'Export every report',
+  'report.export_workbook_help':
+    'One Excel file with a sheet for each report you can see, for this month and the people chosen.',
   'report.name_attendance_register': 'Attendance register',
   'report.name_target_achievement': '{term.target:other} against achievement',
   'report.name_leave_register': 'Leave register',

@@ -127,10 +127,18 @@ export const ExportFormat = z.enum(EXPORT_FORMATS);
 export const EXPORT_STATUSES = ['queued', 'running', 'ready', 'failed', 'expired'] as const;
 export const ExportStatus = z.enum(EXPORT_STATUSES);
 
+/**
+ * What an export holds: one report, or `workbook`, every report the asker may see with the
+ * filters given, a sheet each, as XLSX only (phase 4 step A3, decision D112).
+ */
+export const ExportReport = z
+  .union([ReportKey, z.literal('workbook')])
+  .meta({ id: 'ExportReport' });
+
 /** `POST /v1/exports`: which report, narrowed how, as which file, with headings in which language. */
 export const CreateExportBody = z.strictObject({
   id: z.uuid(),
-  report: ReportKey,
+  report: ExportReport,
   filters: ReportFilters,
   format: ExportFormat,
   locale: z.enum(['en', 'hi']).default('en'),
@@ -139,7 +147,7 @@ export const CreateExportBody = z.strictObject({
 export const ExportResult = z
   .object({
     id: z.uuid(),
-    report: ReportKey,
+    report: ExportReport,
     filters: ReportFilters,
     format: ExportFormat,
     status: ExportStatus,
@@ -170,6 +178,7 @@ export type ReportColumnKind = z.infer<typeof ReportColumnKind>;
 export type ReportCell = z.infer<typeof ReportCell>;
 export type ReportPage = z.infer<typeof ReportPage>;
 export type ExportFormat = z.infer<typeof ExportFormat>;
+export type ExportReport = z.output<typeof ExportReport>;
 export type ExportStatus = z.infer<typeof ExportStatus>;
 export type CreateExportBody = z.output<typeof CreateExportBody>;
 export type ExportResult = z.infer<typeof ExportResult>;

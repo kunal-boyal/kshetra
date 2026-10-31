@@ -2,7 +2,7 @@ import type { ReportColumn } from '@thelamp/shared';
 import readXlsxFile from 'read-excel-file/node';
 import { describe, expect, it } from 'vitest';
 import { fieldCell } from './activity-log';
-import { toCsv, toXlsx, wallClock } from './files';
+import { toCsv, toWorkbook, toXlsx, wallClock } from './files';
 
 const COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Name', kind: 'text' },
@@ -37,6 +37,26 @@ describe('export files (M18)', () => {
     expect(sheet!.data[0]).toEqual(['Name', 'When', 'Amount']);
     expect(sheet!.data[1]![0]).toBe(`'=cmd|"/c calc"!A1`);
     expect(sheet!.data[1]![2]).toBe(-1250.5);
+  });
+
+  it('write every report as a sheet of one workbook, each name unlike the others (D112)', async () => {
+    const long = 'Targets against achievement for the whole team';
+    const bytes = await toWorkbook(
+      [
+        { name: long, columns: COLUMNS, rows: ROWS },
+        { name: long, columns: COLUMNS, rows: [] },
+        { name: 'Leave register', columns: COLUMNS, rows: ROWS.slice(1) },
+      ],
+      'Asia/Kolkata',
+    );
+    const sheets = await readXlsxFile(Buffer.from(bytes));
+    expect(sheets.map((entry) => entry.sheet)).toEqual([
+      long.slice(0, 31),
+      `${long.slice(0, 29)} 2`,
+      'Leave register',
+    ]);
+    expect(sheets[1]!.data).toEqual([['Name', 'When', 'Amount']]);
+    expect(sheets[2]!.data[1]![0]).toBe('Sharma, Stores');
   });
 });
 

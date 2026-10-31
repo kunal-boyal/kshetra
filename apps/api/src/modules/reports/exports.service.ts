@@ -3,12 +3,12 @@ import {
   AppError,
   type CreateExportBody,
   type ExportListResult,
+  type ExportReport,
   type ExportResult,
   exportExpiry,
   EXPORT_MAX_ROWS,
   type Locale,
   type ReportFilters,
-  type ReportKey,
 } from '@thelamp/shared';
 import { and, desc, eq, lt } from 'drizzle-orm';
 import type { Config } from '../../config';
@@ -24,7 +24,7 @@ import { CONFIG } from '../../platform/tokens';
 import { notFound } from '../iam/actor';
 import { MediaService } from '../media/media.service';
 import { MediaUrls } from '../media/media-urls';
-import { toCsv, toXlsx } from './files';
+import { toCsv, toWorkbook, toXlsx } from './files';
 import { ReportsService } from './reports.service';
 
 type Job = typeof exportJobs.$inferSelect;
@@ -92,7 +92,7 @@ export class ExportsService implements OnModuleInit {
       ready && job.fileMediaId ? await this.media.objectKey(tx, tenantId, job.fileMediaId) : null;
     return {
       id: job.id,
-      report: job.report as ReportKey,
+      report: job.report as ExportReport,
       filters: job.filters,
       format: job.format as ExportResult['format'],
       // A file past its keeping time reads as expired even before the hourly sweep removes it.
@@ -124,6 +124,11 @@ export class ExportsService implements OnModuleInit {
 
   /** Records an export and queues it, after checking the filters reach only what the caller may see. */
   async create(tx: TenantTx, access: Access, body: CreateExportBody): Promise<ExportResult> {
+    if (body.report === 'workbook' && body.format !== 'xlsx') {
+      throw new AppError('VALIDATION', 'Every report comes as one Excel file.', [
+        { path: 'format', issue: 'Choose xlsx' },
+      ]);
+    }
     await this.reports.check(tx, access, body.report, body.filters);
     const [job] = await tx
       .insert(exportJobs)
@@ -250,29 +255,39 @@ export class ExportsService implements OnModuleInit {
     try {
       // The rows come from the replica, with the export's longer statement timeout (D98); the
       // file is stored and the job finished on the primary.
-      const report = job.report as ReportKey;
-      // The plan's rows an export may hold, else the default (decision D98).
+      const report = job.report as ExportReport;
+      // The plan's rows an export may hold, else the default (decision D98); a workbook's in all.
       const { limits } = await this.entitlements.forTenant(tenantId);
-      const data = await this.database.read(
-        tenantId,
-        (tx) =>
-          this.reports.everyRow(
-            tx,
-            access,
-            report,
-            job.filters as ReportFilters,
-            job.locale as Locale,
-            limits.exportRows ?? EXPORT_MAX_ROWS,
-          ),
-        { timeoutMs: this.config.EXPORT_STATEMENT_TIMEOUT_MS },
-      );
-      await this.database.forTenant(tenantId, async (tx) => {
-        const format = job.format as keyof typeof TYPES;
-        const bytes =
+      const most = limits.exportRows ?? EXPORT_MAX_ROWS;
+      const filters = job.filters as ReportFilters;
+      const locale = job.locale as Locale;
+      const format = job.format as keyof typeof TYPES;
+      const options = { timeoutMs: this.config.EXPORT_STATEMENT_TIMEOUT_MS };
+      let bytes: Uint8Array;
+      let rows: number;
+      if (report === 'workbook') {
+        // Every report the person may see, a sheet each (decision D112).
+        const data = await this.database.read(
+          tenantId,
+          (tx) => this.reports.everyReport(tx, access, filters, locale, most),
+          options,
+        );
+        bytes = await toWorkbook(data.sheets, data.timezone);
+        rows = data.sheets.reduce((sum, sheet) => sum + sheet.rows.length, 0);
+      } else {
+        const data = await this.database.read(
+          tenantId,
+          (tx) => this.reports.everyRow(tx, access, report, filters, locale, most),
+          options,
+        );
+        bytes =
           format === 'csv'
             ? toCsv(data.columns, data.rows, data.timezone)
             : await toXlsx(data.name, data.columns, data.rows, data.timezone);
-        const fileName = `${report.replace(/_/g, '-')}-${job.filters.period}.${format}`;
+        rows = data.rows.length;
+      }
+      await this.database.forTenant(tenantId, async (tx) => {
+        const fileName = `${report === 'workbook' ? 'reports' : report.replace(/_/g, '-')}-${job.filters.period}.${format}`;
         const stored = await this.media.store(tx, tenantId, {
           kind: 'export_file',
           fileName,
@@ -284,12 +299,7 @@ export class ExportsService implements OnModuleInit {
           retentionClass: 'export_file',
           download: true,
         });
-        await this.finish(tx, job, {
-          status: 'ready',
-          rows: data.rows.length,
-          mediaId: stored.id,
-          fileName,
-        });
+        await this.finish(tx, job, { status: 'ready', rows, mediaId: stored.id, fileName });
       });
     } catch (error) {
       // The work's transaction is gone; the failure is recorded in a fresh one, once.

@@ -86,13 +86,36 @@ function xlsxCell(
   }
 }
 
-/** An XLSX workbook of one sheet, written as a stream so a large report stays within memory. */
-export async function toXlsx(
-  sheetName: string,
-  columns: readonly ReportColumn[],
-  rows: readonly ReportRow[],
-  timeZone: string,
-): Promise<Uint8Array> {
+/** One sheet of a workbook: its name, columns and rows. */
+export interface Sheet {
+  name: string;
+  columns: readonly ReportColumn[];
+  rows: readonly ReportRow[];
+}
+
+/**
+ * A sheet's name as Excel takes it: at most 31 characters, none of : \\ / ? * [ ], and unlike the
+ * names taken before it.
+ */
+function sheetName(name: string, taken: Set<string>): string {
+  const clean =
+    name
+      .replace(/[:\\/?*[\]]/g, ' ')
+      .trim()
+      .slice(0, 31) || 'Sheet';
+  let candidate = clean;
+  for (let n = 2; taken.has(candidate.toLowerCase()); n += 1) {
+    candidate = `${clean.slice(0, 31 - String(n).length - 1)} ${n}`;
+  }
+  taken.add(candidate.toLowerCase());
+  return candidate;
+}
+
+/**
+ * An XLSX workbook of one sheet or more, written as a stream so a large report stays within
+ * memory: one report's export, or every report's (decision D112).
+ */
+export async function toWorkbook(sheets: readonly Sheet[], timeZone: string): Promise<Uint8Array> {
   const stream = new PassThrough();
   const chunks: Buffer[] = [];
   stream.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -105,32 +128,44 @@ export async function toXlsx(
     useStyles: true,
     useSharedStrings: false,
   });
-  // Sheet names hold at most 31 characters and none of : \ / ? * [ ].
-  const sheet = workbook.addWorksheet(sheetName.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31), {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  });
-  sheet.columns = columns.map((column) => ({
-    header: neutraliseFormula(column.label),
-    key: column.key,
-    width: Math.min(40, Math.max(10, column.label.length + 2)),
-    ...(NUMBER_FORMATS[column.kind] ? { style: { numFmt: NUMBER_FORMATS[column.kind] } } : {}),
-  }));
-  sheet.getRow(1).font = { bold: true };
-  sheet.getRow(1).commit();
-  for (const row of rows) {
-    sheet
-      .addRow(
-        Object.fromEntries(
-          columns.map((column) => [
-            column.key,
-            xlsxCell(column, row[column.key] ?? null, timeZone),
-          ]),
-        ),
-      )
-      .commit();
+  const taken = new Set<string>();
+  for (const { name, columns, rows } of sheets) {
+    const sheet = workbook.addWorksheet(sheetName(name, taken), {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+    sheet.columns = columns.map((column) => ({
+      header: neutraliseFormula(column.label),
+      key: column.key,
+      width: Math.min(40, Math.max(10, column.label.length + 2)),
+      ...(NUMBER_FORMATS[column.kind] ? { style: { numFmt: NUMBER_FORMATS[column.kind] } } : {}),
+    }));
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(1).commit();
+    for (const row of rows) {
+      sheet
+        .addRow(
+          Object.fromEntries(
+            columns.map((column) => [
+              column.key,
+              xlsxCell(column, row[column.key] ?? null, timeZone),
+            ]),
+          ),
+        )
+        .commit();
+    }
+    sheet.commit();
   }
-  sheet.commit();
   await workbook.commit();
   await done;
   return new Uint8Array(Buffer.concat(chunks));
+}
+
+/** An XLSX workbook of one report's sheet. */
+export function toXlsx(
+  sheetName: string,
+  columns: readonly ReportColumn[],
+  rows: readonly ReportRow[],
+  timeZone: string,
+): Promise<Uint8Array> {
+  return toWorkbook([{ name: sheetName, columns, rows }], timeZone);
 }

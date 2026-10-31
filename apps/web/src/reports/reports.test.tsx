@@ -218,4 +218,26 @@ describe('reports (M18)', () => {
       ],
     ]);
   });
+
+  it('asks for every report as one workbook (D112)', async () => {
+    const client = fakeClient(
+      pages,
+      {
+        'POST /v1/exports': () => ({
+          ...EXPORT,
+          report: 'workbook',
+          status: 'queued',
+          id: '01a10000-0000-7000-8000-0000000000e3',
+        }),
+      },
+      ['report.view', 'export.create'],
+    );
+    renderAt('/reports', client);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Export every report' }));
+    expect(await screen.findByText(/Your file is being prepared/)).toBeVisible();
+    expect(writesOf(client)[0]![3]).toMatchObject({
+      body: { report: 'workbook', format: 'xlsx', locale: 'en' },
+    });
+  });
 });
