@@ -4,6 +4,7 @@ import {
   signatureRequired,
   type Values,
   VISIT_ORDERED,
+  withCalculated,
 } from '@thelamp/forms';
 import { type MessageKey, translate } from '@thelamp/i18n';
 import type { Locale } from '@thelamp/shared';
@@ -137,7 +138,8 @@ function PreviewFields({
   say: Say;
   outer?: Values;
 }) {
-  const seen = { ...outer, ...values };
+  // Calculated fields are worked out as the person types, as the server will (decision D118).
+  const seen = { ...outer, ...withCalculated(fields, values, outer) };
   const set = (key: string, value: unknown) => {
     const next = { ...values };
     if (value === undefined || value === '') delete next[key];
@@ -162,9 +164,22 @@ function PreviewFields({
             </p>
           );
         }
-        const label = `${field.label[locale] || field.label.en || field.key}${field.required ? ' *' : ''}`;
+        const label = `${field.label[locale] || field.label.en || field.key}${'required' in field && field.required ? ' *' : ''}`;
         const help = field.help ? field.help[locale] || field.help.en : undefined;
         const value = values[field.key];
+        if (field.type === 'calculated') {
+          const worked = seen[field.key];
+          const unit = field.unit ? ` ${field.unit[locale] || field.unit.en}` : '';
+          return (
+            <TextField
+              key={key}
+              label={label}
+              {...(help ? { help } : {})}
+              readOnly
+              value={worked === undefined ? '' : `${String(worked)}${unit}`}
+            />
+          );
+        }
         switch (field.type) {
           case 'short_text':
           case 'number':

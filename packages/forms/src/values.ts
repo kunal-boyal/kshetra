@@ -2,6 +2,7 @@ import { type ErrorDetail, issueAt, Money, toMinorUnits } from '@thelamp/shared'
 import { RE2JS } from 're2js';
 import type { Clause, Condition } from './conditions';
 import type { CustomField, FormField, GroupItemField } from './fields';
+import { evaluateFormula, parseFormula } from './formula';
 import type { FormDefinition } from './form';
 
 /** What checking values needs to know about the moment of capture. */
@@ -367,7 +368,10 @@ function lines(
 }
 
 function checkFormField(
-  field: Exclude<FormField | GroupItemField, { type: 'section' } | { type: 'info_text' }>,
+  field: Exclude<
+    FormField | GroupItemField,
+    { type: 'section' } | { type: 'info_text' } | { type: 'calculated' }
+  >,
   raw: unknown,
   outer: Values,
   context: FormValueContext,
@@ -470,6 +474,12 @@ function checkFieldList(
     }
     if (field.type === 'info_text' || !sectionShown) continue;
     if (field.visibleWhen && !conditionHolds(field.visibleWhen, seen)) continue;
+    // Worked out from the values before it; whatever was sent for it is not taken (D118).
+    if (field.type === 'calculated') {
+      const value = calculatedValue(field, seen);
+      if (value !== null) values[field.key] = value;
+      continue;
+    }
     const raw = input[field.key];
     if (empty(raw)) {
       if (field.required) {
@@ -487,6 +497,51 @@ function checkFieldList(
     else values[field.key] = checked.value;
   }
   return { values, issues };
+}
+
+/**
+ * A calculated field's value from the values before it (decision D118): an amount as a decimal
+ * string with 2 places, a number as a number with the field's places; null while a field it reads
+ * is empty, or when it divides by zero.
+ */
+export function calculatedValue(
+  field: Extract<FormField, { type: 'calculated' }>,
+  values: Values,
+): string | number | null {
+  const parsed = parseFormula(field.formula);
+  if ('problem' in parsed) return null;
+  const currency = field.result === 'currency';
+  const result = evaluateFormula(parsed.tree, values, currency ? 2 : field.decimals);
+  if (result === null) return null;
+  return currency ? result : Number(result);
+}
+
+/**
+ * Values as the apps show them while a form is filled (decision D118): what was entered, with each
+ * shown calculated field worked out in order, so a later field's condition can read it as the
+ * server will.
+ */
+export function withCalculated(
+  fields: readonly (FormField | GroupItemField)[],
+  values: Values,
+  outer: Values = {},
+): Values {
+  const result: Values = { ...values };
+  let sectionShown = true;
+  for (const field of fields) {
+    if (field.type === 'section') {
+      sectionShown =
+        !field.visibleWhen || conditionHolds(field.visibleWhen, { ...outer, ...result });
+      continue;
+    }
+    if (field.type !== 'calculated') continue;
+    delete result[field.key];
+    const seen = { ...outer, ...result };
+    if (!sectionShown || (field.visibleWhen && !conditionHolds(field.visibleWhen, seen))) continue;
+    const value = calculatedValue(field, seen);
+    if (value !== null) result[field.key] = value;
+  }
+  return result;
 }
 
 /**

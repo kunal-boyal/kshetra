@@ -329,4 +329,84 @@ describe('forms', () => {
     const [, path] = writesOf(client)[1]!;
     expect(path).toBe(`/v1/forms/${VISIT}/versions`);
   });
+
+  it('builds a calculated field, reads its formula back as a sentence, and works it out', async () => {
+    const client = fakeClient(
+      PAGES,
+      {
+        'POST /v1/forms': ({ body }) => ({
+          ...(body as { definition: object }).definition,
+          id: SURVEY,
+          version: 1,
+          active: true,
+        }),
+      },
+      MANAGE,
+      BUNDLE,
+    );
+    renderAt('/settings/forms/new', client);
+    const user = userEvent.setup({ delay: null });
+    const basics = await screen.findByRole('region', { name: 'About the form' });
+    await user.type(within(basics).getByRole('textbox', { name: 'Key*' }), 'crop_report');
+    await user.type(
+      within(basics).getByRole('textbox', { name: 'Name in English, one*' }),
+      'Crop report',
+    );
+    await user.type(
+      within(basics).getByRole('textbox', { name: 'Name in English, several*' }),
+      'Crop reports',
+    );
+    const first = screen.getByRole('region', { name: 'Field field_1' });
+    await user.type(within(first).getByRole('textbox', { name: 'Label in English' }), 'Farmer');
+
+    await user.click(screen.getByRole('button', { name: 'Add a field: Number' }));
+    const acres = screen.getByRole('region', { name: 'Field field_2' });
+    await user.type(within(acres).getByRole('textbox', { name: 'Label in English' }), 'Acres');
+    const decimals = within(acres).getByRole('textbox', { name: 'Decimal places' });
+    await user.clear(decimals);
+    await user.type(decimals, '2');
+    await user.click(screen.getByRole('button', { name: 'Add a field: Amount' }));
+    const rate = screen.getByRole('region', { name: 'Field field_3' });
+    await user.type(
+      within(rate).getByRole('textbox', { name: 'Label in English' }),
+      'Rate per acre',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Add a field: Calculated' }));
+    const total = screen.getByRole('region', { name: 'Field field_4' });
+    await user.type(within(total).getByRole('textbox', { name: 'Label in English' }), 'Total');
+    // Only earlier figures are offered; the text field isn't.
+    expect(
+      within(total).getByText('Fields it can use: field_2 (Acres), field_3 (Rate per acre)'),
+    ).toBeVisible();
+    const formula = within(total).getByRole('textbox', { name: /^Formula/ });
+    await user.type(formula, 'field_2 *');
+    expect(within(total).getByText('Check the formula near character 10')).toBeVisible();
+    await user.type(formula, ' field_3');
+    expect(within(total).getByText('Reads as: Acres × Rate per acre')).toBeVisible();
+    await user.selectOptions(within(total).getByRole('combobox', { name: 'Holds' }), 'currency');
+    // An amount keeps 2 places: no places to choose, and no unit.
+    expect(within(total).queryByRole('textbox', { name: 'Unit in English' })).toBeNull();
+
+    // The phone preview works it out as it is typed.
+    await user.click(screen.getByRole('button', { name: 'Preview on a phone' }));
+    const phone = await screen.findByRole('region', { name: 'On the phone' });
+    await user.type(within(phone).getByRole('textbox', { name: 'Acres' }), '2.5');
+    await user.type(within(phone).getByRole('textbox', { name: 'Rate per acre' }), '412.30');
+    expect(within(phone).getByRole('textbox', { name: 'Total' })).toHaveValue('1030.75');
+
+    await user.click(screen.getByRole('button', { name: 'Publish' }));
+    await waitFor(() => expect(writesOf(client)).toHaveLength(1));
+    const [, , , options] = writesOf(client)[0]!;
+    expect(
+      (options as { body: { definition: { fields: object[] } } }).body.definition.fields[3],
+    ).toEqual({
+      key: 'field_4',
+      type: 'calculated',
+      label: { en: 'Total', hi: 'Total' },
+      formula: 'field_2 * field_3',
+      result: 'currency',
+      decimals: 2,
+    });
+  }, 20_000);
 });

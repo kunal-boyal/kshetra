@@ -21,9 +21,11 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 import { useLanguage } from '../i18n';
+import { FormulaSettings } from './formula-settings';
 import {
   type AnyFormField,
   FIELD_TYPES,
+  GROUP_ITEM_TYPES,
   type FieldType,
   keysOf,
   newField,
@@ -526,7 +528,7 @@ function FieldSettings({
           </>
         )}
       </div>
-      {'required' in field ? (
+      {'required' in field || field.type === 'calculated' ? (
         <div className="grid gap-4 @2xl:grid-cols-3">
           <TextField
             label={t('builder.help_en')}
@@ -547,14 +549,19 @@ function FieldSettings({
                 : unset('help')
             }
           />
-          <Checkbox
-            label={t(
-              field.type === 'repeating_group' ? 'builder.required_group' : 'builder.required',
-            )}
-            checked={field.required}
-            onChange={(event) => set({ required: event.target.checked })}
-          />
+          {'required' in field ? (
+            <Checkbox
+              label={t(
+                field.type === 'repeating_group' ? 'builder.required_group' : 'builder.required',
+              )}
+              checked={field.required}
+              onChange={(event) => set({ required: event.target.checked })}
+            />
+          ) : null}
         </div>
+      ) : null}
+      {field.type === 'calculated' ? (
+        <FormulaSettings field={field} earlier={earlier} set={set} unset={unset} />
       ) : null}
 
       {field.type === 'short_text' || field.type === 'long_text' ? (
@@ -708,7 +715,7 @@ function FieldSettings({
           <FieldList
             fields={field.fields}
             onChange={(fields) => set({ fields })}
-            types={FIELD_TYPES.filter((type) => type !== 'section' && type !== 'repeating_group')}
+            types={GROUP_ITEM_TYPES}
             context={{ ...context, taken: new Set([...context.taken, ...keysOf(field.fields)]) }}
             path={`${path}.fields`}
             outer={earlier}

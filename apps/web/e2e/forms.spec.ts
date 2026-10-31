@@ -63,6 +63,14 @@ const VISIT_FORM = {
       required: false,
       maxLines: 50,
     },
+    {
+      key: 'packs_seen',
+      type: 'calculated',
+      label: text('Packs seen'),
+      formula: 'round(lines * 1.5, 1)',
+      result: 'number',
+      decimals: 1,
+    },
   ],
 };
 
@@ -214,6 +222,11 @@ test("a field's settings and its condition pass axe", async ({ page }) => {
   await fields.getByRole('button', { name: /^Items seen/ }).click();
   const lines = page.getByRole('region', { name: 'Field Items seen' });
   await expect(lines.getByRole('textbox', { name: 'Most lines' })).toBeVisible();
+  // A calculated field's formula, read back as a sentence (D118).
+  await fields.getByRole('button', { name: /^Packs seen/ }).click();
+  const packs = page.getByRole('region', { name: 'Field Packs seen' });
+  await expect(packs.getByText('Reads as: Items seen × 1.5, rounded to 1 place')).toBeVisible();
+  await expectAccessible(page);
   // The phone preview beside the panes.
   await page.getByRole('button', { name: 'Preview on a phone' }).click();
   await expect(page.getByRole('region', { name: 'On the phone' })).toBeVisible();

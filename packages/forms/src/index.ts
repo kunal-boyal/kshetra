@@ -13,6 +13,8 @@ export type { Operator } from './conditions';
 export {
   AccountPickerField,
   BarcodeField,
+  CALCULATED_RESULTS,
+  CalculatedField,
   ContactPickerField,
   CurrencyField,
   CustomField,
@@ -51,12 +53,24 @@ export {
 export type { FieldContext, FormContext } from './form';
 export { UpdateUserFieldsBody, UserFieldsResult } from './user-fields';
 export {
+  COMPARISONS,
+  describeFormula,
+  evaluateFormula,
+  FORMULA_LIMITS,
+  formulaFields,
+  formulaValue,
+  parseFormula,
+} from './formula';
+export type { Comparison, FormulaNode, FormulaProblem, FormulaWords } from './formula';
+export {
+  calculatedValue,
   checkFormValues,
   checkValueChanges,
   checkValues,
   compilePattern,
   conditionHolds,
   photosIn,
+  withCalculated,
 } from './values';
 export type { FormValueContext, ProductLine, ValueContext, ValuePhoto, Values } from './values';
 export { accountSegments, checkSlots, primaryAssignee } from './accounts';

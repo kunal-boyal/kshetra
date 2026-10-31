@@ -310,6 +310,7 @@ Forms define what a field user records. Each form is versioned: publishing a cha
 | Account picker | Another account in scope, filtered by type (a retailer met during a distributor visit) |
 | Contact picker | People at the linked account |
 | Product lines | A repeating table of catalogue items with quantity and optional value columns (samples given, stock counted, competitor prices); quantities can be switched off for a plain list of items, each counting as one (products detailed, D97) |
+| Calculated | A figure worked out from earlier number, currency, quantity and calculated fields by a formula: + − × ÷, brackets, `round`, `min`, `max`, `if` and `default`, exact to the paisa and rounded half away from zero; blank while a field it reads is empty; never typed, so never required; worked out on the phone and again on the server, which keeps its own value; usable in later formulas, conditions and metrics as a number or an amount (D118) |
 | Repeating group | A repeating set of other fields |
 | Section, info text | Layout only |
 

@@ -1619,6 +1619,9 @@
         },
         {
           "$ref": "#/$defs/RepeatingGroupField"
+        },
+        {
+          "$ref": "#/$defs/CalculatedField"
         }
       ]
     },
@@ -2190,6 +2193,77 @@
         "label",
         "type",
         "fields"
+      ],
+      "additionalProperties": false
+    },
+    "CalculatedField": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Key"
+        },
+        "type": {
+          "type": "string",
+          "const": "calculated"
+        },
+        "label": {
+          "$ref": "#/$defs/LocalizedText"
+        },
+        "help": {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            },
+            "hi": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+            }
+          },
+          "required": [
+            "en",
+            "hi"
+          ],
+          "additionalProperties": false
+        },
+        "visibleWhen": {
+          "description": "Show the field only when this holds. Clauses refer to earlier fields.",
+          "$ref": "#/$defs/Condition"
+        },
+        "formula": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Such as `acres * rate`: + - * /, brackets, round(x, places), min(…), max(…), if(a > b, then, else) and default(field, value), over earlier fields"
+        },
+        "result": {
+          "default": "number",
+          "type": "string",
+          "enum": [
+            "number",
+            "currency"
+          ]
+        },
+        "decimals": {
+          "default": 2,
+          "description": "Places a number keeps, rounded half away from zero; an amount keeps 2",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "unit": {
+          "description": "Shown after the value, such as \"kg\"",
+          "$ref": "#/$defs/LocalizedText"
+        }
+      },
+      "required": [
+        "key",
+        "type",
+        "label",
+        "formula"
       ],
       "additionalProperties": false
     },
