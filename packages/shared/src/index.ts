@@ -1119,3 +1119,18 @@ export {
   RaiseDataRequestBody,
 } from './schemas/data-requests';
 export { SEARCH_LIMIT, SearchQuery, SearchResult } from './schemas/search';
+export {
+  DELEGATION_MAX_DAYS,
+  delegationActiveOn,
+  delegationIssues,
+  delegationsOverlap,
+} from './delegation';
+export type { DelegationDays } from './delegation';
+export {
+  ApprovalDelegation,
+  CreateDelegationBody,
+  DELEGATION_STATES,
+  DelegationCandidatesResult,
+  DelegationListQuery,
+  DelegationListResult,
+} from './schemas/approvals';

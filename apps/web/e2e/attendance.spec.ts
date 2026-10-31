@@ -43,12 +43,14 @@ const FIX = {
       skipReason: null,
       escalated: false,
       fallback: false,
+      onBehalfOf: null,
     },
   ],
   cancellable: true,
   bulk: true,
   page: null,
   createdAt: '2026-10-01T07:00:00.000Z',
+  onBehalfOf: null,
   closedAt: null,
 };
 

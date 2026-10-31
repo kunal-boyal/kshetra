@@ -6,6 +6,7 @@ import { FormsModule } from '../forms/forms.module';
 import { IamModule } from '../iam/iam.module';
 import { PlanningModule } from '../planning/planning.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
+import { WorkflowModule } from '../workflow/workflow.module';
 import { NotificationDelivery } from './delivery';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
@@ -23,7 +24,14 @@ import {
 
 /** Notifications (M16, spec 9.6 `notifications`, decision D58). */
 @Module({
-  imports: [IamModule, FieldModule, PlanningModule, FormsModule, TenantConfigModule],
+  imports: [
+    IamModule,
+    FieldModule,
+    PlanningModule,
+    FormsModule,
+    TenantConfigModule,
+    WorkflowModule,
+  ],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,

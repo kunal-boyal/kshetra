@@ -2,7 +2,7 @@ import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { fakeClient, renderAt, writesOf } from '../test-support';
+import { ADMIN as ME, fakeClient, renderAt, writesOf } from '../test-support';
 
 const DEPOT = '01a10000-0000-7000-8000-000000000081';
 const SHOP = '01a10000-0000-7000-8000-000000000082';
@@ -25,6 +25,7 @@ const step = (overrides: Record<string, unknown>) => ({
   skipReason: null,
   escalated: false,
   fallback: false,
+  onBehalfOf: null,
   ...overrides,
 });
 
@@ -41,6 +42,7 @@ function request(id: string, title: string, overrides: Record<string, unknown> =
     cancellable: false,
     bulk: true,
     page: null,
+    onBehalfOf: null,
     createdAt: '2026-10-12T05:00:00.000Z',
     closedAt: null,
     ...overrides,
@@ -238,5 +240,71 @@ describe('the approvals inbox', () => {
         `/v1/approvals/${MINE}/cancel`,
       ]),
     );
+  });
+
+  it('says whom a delegate decides for, and hands over while away (D113)', async () => {
+    const meena = { id: ASM, code: 'SUN-003', name: 'Meena Shah' };
+    const covered = request(FIRST, 'Beej Bhandar (D-81)', {
+      onBehalfOf: meena,
+      steps: [step({ approvers: [meena] })],
+    });
+    const decided = request(SECOND, 'Krishi Kendra (S-82)', {
+      status: 'approved',
+      steps: [
+        step({
+          status: 'approved',
+          actedBy: { id: ME, code: 'SUN-002', name: 'Anita Rao' },
+          actedAt: '2026-10-12T06:00:00.000Z',
+          onBehalfOf: meena,
+        }),
+      ],
+    });
+    const client = fakeClient(
+      {
+        '/v1/approvals/inbox': {
+          items: [covered, decided],
+          nextCursor: null,
+          counts: { new_account: 2 },
+        },
+        '/v1/approval-delegations': {
+          items: [
+            {
+              id: MOVE,
+              delegator: meena,
+              delegate: { id: ME, code: 'SUN-002', name: 'Anita Rao' },
+              startsOn: '2026-10-12',
+              endsOn: '2026-10-14',
+              note: null,
+              state: 'active',
+              endedAt: null,
+              createdAt: '2026-10-11T05:00:00.000Z',
+            },
+          ],
+        },
+        '/v1/approval-delegations/candidates': { items: [meena, suresh] },
+      },
+      {
+        'POST /v1/approval-delegations': ({ body }) => ({ ...(body as object), state: 'upcoming' }),
+      },
+      ACT,
+    );
+    renderAt('/approvals', client);
+    const card = await screen.findByRole('article', { name: 'Beej Bhandar (D-81)' });
+    expect(within(card).getByText('On behalf of Meena Shah')).toBeVisible();
+    const done = screen.getByRole('article', { name: 'Krishi Kendra (S-82)' });
+    expect(done).toHaveTextContent('Approved by Anita Rao for Meena Shah');
+
+    const away = screen.getByRole('region', { name: 'While you’re away' });
+    expect(await within(away).findByText(/You decide for Meena Shah/)).toBeVisible();
+    const user = userEvent.setup();
+    await user.selectOptions(
+      within(away).getByRole('combobox', { name: 'Who decides for you' }),
+      'Meena Shah (SUN-003)',
+    );
+    await user.click(within(away).getByRole('button', { name: 'Hand over' }));
+    expect(await within(away).findByText('Handed over.')).toBeVisible();
+    expect(writesOf(client).at(-1)![3]).toMatchObject({
+      body: { delegateId: ASM, startsOn: expect.any(String), endsOn: expect.any(String) },
+    });
   });
 });

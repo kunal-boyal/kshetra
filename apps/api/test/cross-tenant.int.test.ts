@@ -96,6 +96,7 @@ let aInvoiceId: string;
 let aItemId: string;
 let aPriceListId: string;
 let aRegularisationId: string;
+let aDelegationId: string;
 let aLeaveRequestId: string;
 let aClaimId: string;
 /** A second claim of A's, whose ID B never uses for its own. */
@@ -1342,6 +1343,46 @@ const FIXTURES: Record<string, Fixture> = {
           }),
         aAccountId,
       ),
+  },
+  'GET /v1/approval-delegations': {
+    kind: 'own tenant',
+    run: async () => {
+      holdsNothingOfA(await asB('GET', '/v1/approval-delegations'));
+      // A's people aren't B's to ask about.
+      expect((await asB('GET', `/v1/approval-delegations?userId=${a.admin.id}`)).statusCode).toBe(
+        404,
+      );
+    },
+  },
+  'GET /v1/approval-delegations/candidates': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/approval-delegations/candidates')),
+  },
+  'POST /v1/approval-delegations': {
+    kind: 'write',
+    run: async () => {
+      // B can't delegate for A's people, nor to them.
+      const forA = await asB('POST', '/v1/approval-delegations', {
+        id: newId(),
+        delegatorId: a.admin.id,
+        delegateId: a.member.id,
+        startsOn: todayIn('Asia/Kolkata'),
+        endsOn: todayIn('Asia/Kolkata'),
+      });
+      expect(forA.statusCode).toBe(404);
+      const toA = await asB('POST', '/v1/approval-delegations', {
+        id: newId(),
+        delegateId: a.admin.id,
+        startsOn: todayIn('Asia/Kolkata'),
+        endsOn: todayIn('Asia/Kolkata'),
+      });
+      expect(toA.statusCode).toBe(400);
+    },
+  },
+  'POST /v1/approval-delegations/:id/end': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => asB('POST', `/v1/approval-delegations/${id}/end`), aDelegationId),
   },
   'GET /v1/approvals/inbox': {
     kind: 'own tenant',
@@ -2826,6 +2867,14 @@ beforeAll(async () => {
   );
   expect(proposal.statusCode).toBe(201);
   aApprovalId = proposal.json().approvalId;
+  // A's admin names A's member to decide for them next week (decision D113); written as the
+  // database holds it, as A's member may not approve.
+  aDelegationId = newId();
+  await admin(
+    `insert into cell.approval_delegations (id, tenant_id, delegator_id, delegate_id, starts_on, ends_on)
+     values ($1, $2, $3, $4, current_date + 7, current_date + 9)`,
+    [aDelegationId, a.tenantId, a.admin.id, a.member.id],
+  );
   // A's member asks to count a day as present.
   aRegularisationId = newId();
   const fixed = await send(memberToken, 'POST', '/v1/regularisations', {

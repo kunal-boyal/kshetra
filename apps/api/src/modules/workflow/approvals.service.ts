@@ -19,7 +19,21 @@ import {
   routeRequest,
   type SwitchableModule,
 } from '@thelamp/shared';
-import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, notInArray, or, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { workflowInstances, workflowSteps } from '../../db/schema/workflow';
 import { type AuditActor, AuditLog, SYSTEM_ACTOR, userActor } from '../../platform/audit';
 import { type Access, moduleDisabled } from '../../platform/auth';
@@ -30,6 +44,7 @@ import { People } from '../iam/people';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { Approvers, type RequestContext } from './approvers';
 import { ChainsService } from './chains.service';
+import { DelegationsService } from './delegations.service';
 import { RequestTypes } from './request-types';
 
 type Instance = typeof workflowInstances.$inferSelect;
@@ -55,7 +70,15 @@ export class ApprovalsService {
     private readonly outbox: Outbox,
     private readonly database: Database,
     private readonly config: TenantConfigService,
+    private readonly delegations: DelegationsService,
   ) {}
+
+  /** The approvers the caller stands in for today, by their delegations (decision D113). */
+  private async standingInFor(tx: TenantTx, access: Access): Promise<string[]> {
+    if (!access.userId || access.support || access.apiClient) return [];
+    const today = await this.delegations.today(tx, access.tenantId);
+    return this.delegations.delegatorsFor(tx, access.tenantId, access.userId, today);
+  }
 
   /**
    * Starts the approval of a request, in the transaction that makes it. `context` brings the
@@ -246,11 +269,12 @@ export class ApprovalsService {
 
   /** How many requests wait for the caller, by request type. */
   async waitingByType(tx: TenantTx, access: Access): Promise<Record<string, number>> {
+    const delegators = await this.standingInFor(tx, access);
     const counts = await tx
       .select({ type: workflowInstances.requestType, count: sql<number>`count(*)::int` })
       .from(workflowInstances)
       .innerJoin(workflowSteps, this.currentStepOf())
-      .where(this.waitingFor(access))
+      .where(this.waitingFor(access, delegators))
       .groupBy(workflowInstances.requestType);
     return Object.fromEntries(counts.map((row) => [row.type, row.count]));
   }
@@ -261,13 +285,14 @@ export class ApprovalsService {
     access: Access,
     query: ApprovalInboxQuery,
   ): Promise<ApprovalInboxResult> {
+    const delegators = await this.standingInFor(tx, access);
     const found = await tx
       .select({ instance: workflowInstances })
       .from(workflowInstances)
       .innerJoin(workflowSteps, this.currentStepOf())
       .where(
         and(
-          this.waitingFor(access),
+          this.waitingFor(access, delegators),
           query.requestType ? eq(workflowInstances.requestType, query.requestType) : undefined,
           query.cursor ? gt(workflowInstances.id, query.cursor) : undefined,
         ),
@@ -276,7 +301,7 @@ export class ApprovalsService {
       .limit(query.limit + 1);
     const page = found.slice(0, query.limit).map((row) => row.instance);
     return {
-      items: await this.results(tx, access.tenantId, page),
+      items: await this.results(tx, access.tenantId, page, { access, delegators }),
       nextCursor: found.length > query.limit ? page.at(-1)!.id : null,
       counts: await this.waitingByType(tx, access),
     };
@@ -349,12 +374,25 @@ export class ApprovalsService {
     );
   }
 
-  private waitingFor(access: Access) {
+  /**
+   * Pending steps that name the caller, or an approver who delegated to them for today (D113);
+   * a delegate never sees their own request, which nobody decides.
+   */
+  private waitingFor(access: Access, delegators: readonly string[] = []) {
+    const named = sql`${access.userId}::uuid = any(${workflowSteps.approverIds})`;
     return and(
       eq(workflowInstances.tenantId, access.tenantId),
       eq(workflowInstances.status, 'pending'),
       eq(workflowSteps.status, 'pending'),
-      sql`${access.userId}::uuid = any(${workflowSteps.approverIds})`,
+      delegators.length === 0
+        ? named
+        : or(
+            named,
+            and(
+              sql`${workflowSteps.approverIds} && ${sql.param([...delegators])}::uuid[]`,
+              ne(workflowInstances.requesterId, access.userId),
+            ),
+          ),
       this.open(access.modulesOff),
     );
   }
@@ -410,11 +448,16 @@ export class ApprovalsService {
     const instance = await this.find(tx, access.tenantId, id);
     this.refuseClosed(access, instance);
     const steps = await this.steps(tx, access.tenantId, [id]);
+    const delegators = await this.standingInFor(tx, access);
     const involved =
       instance.requesterId === access.userId ||
-      steps.some((step) => step.approverIds.includes(access.userId));
+      steps.some(
+        (step) =>
+          step.approverIds.includes(access.userId) ||
+          step.approverIds.some((approver) => delegators.includes(approver)),
+      );
     if (!involved) throw outOfScope();
-    const [result] = await this.results(tx, access.tenantId, [instance]);
+    const [result] = await this.results(tx, access.tenantId, [instance], { access, delegators });
     return result!;
   }
 
@@ -443,7 +486,13 @@ export class ApprovalsService {
     }
     const steps = await this.steps(tx, tenantId, [id]);
     const step = steps.find((entry) => entry.stepIndex === instance.currentStep);
-    const approver = step?.approverIds.includes(access.userId) ?? false;
+    const named = step?.approverIds.includes(access.userId) ?? false;
+    // A delegate decides for the approver who delegated to them today (decision D113).
+    const delegators = named ? [] : await this.standingInFor(tx, access);
+    const onBehalfOf = named
+      ? null
+      : (step?.approverIds.find((approver) => delegators.includes(approver)) ?? null);
+    const approver = named || onBehalfOf !== null;
     if (instance.status !== 'pending' || instance.version !== body.version) {
       if (!approver && instance.status === 'pending') throw this.notCurrent();
       throw new AppError('CONFLICT', 'This request was decided or changed. Refresh the inbox.');
@@ -459,7 +508,13 @@ export class ApprovalsService {
     const now = new Date();
     await tx
       .update(workflowSteps)
-      .set({ status: outcome, actedBy: access.userId, actedAt: now, note: body.note ?? null })
+      .set({
+        status: outcome,
+        actedBy: access.userId,
+        actedAt: now,
+        note: body.note ?? null,
+        onBehalfOf,
+      })
       .where(this.stepKey(tenantId, id, step.stepIndex));
     const next = outcome === 'approved' ? nextStep(steps, step.stepIndex) : null;
     await this.audit.record(tx, tenantId, userActor(access), {
@@ -470,6 +525,7 @@ export class ApprovalsService {
         status: next === null ? outcome : 'pending',
         step: next ?? step.stepIndex,
         note: body.note ?? null,
+        ...(onBehalfOf ? { onBehalfOf } : {}),
       },
     });
     let saved: Instance;
@@ -657,10 +713,26 @@ export class ApprovalsService {
       .orderBy(asc(workflowSteps.stepIndex));
   }
 
+  /** Whom the reader would decide a pending request for: an approver who delegated to them. */
+  private standingFor(
+    instance: Instance,
+    steps: readonly { stepIndex: number; approverIds: string[] }[],
+    reader: { access: Access; delegators: readonly string[] } | undefined,
+    ref: (id: string) => { id: string; code: string; name: string },
+  ) {
+    if (!reader || instance.status !== 'pending') return null;
+    const current = steps.find((step) => step.stepIndex === instance.currentStep);
+    if (!current || current.approverIds.includes(reader.access.userId)) return null;
+    const delegator = current.approverIds.find((id) => reader.delegators.includes(id));
+    return delegator ? ref(delegator) : null;
+  }
+
   private async results(
     tx: TenantTx,
     tenantId: string,
     instances: readonly Instance[],
+    /** The inbox's reader and whom they stand in for, so each item names whom they decide for. */
+    reader?: { access: Access; delegators: readonly string[] },
   ): Promise<ApprovalResult[]> {
     const steps = await this.steps(
       tx,
@@ -669,7 +741,11 @@ export class ApprovalsService {
     );
     const people = await this.people.facts(tx, tenantId, [
       ...instances.map((instance) => instance.requesterId),
-      ...steps.flatMap((step) => [...step.approverIds, ...(step.actedBy ? [step.actedBy] : [])]),
+      ...steps.flatMap((step) => [
+        ...step.approverIds,
+        ...(step.actedBy ? [step.actedBy] : []),
+        ...(step.onBehalfOf ? [step.onBehalfOf] : []),
+      ]),
     ]);
     const ref = (id: string) => {
       const person = people.get(id);
@@ -709,10 +785,12 @@ export class ApprovalsService {
           skipReason: step.skipReason,
           escalated: step.escalated,
           fallback: step.fallback,
+          onBehalfOf: step.onBehalfOf ? ref(step.onBehalfOf) : null,
         })),
         cancellable: instance.status === 'pending' && own.every((step) => step.actedBy === null),
         bulk: this.types.get(instance.requestType).bulk ?? false,
         page: this.types.get(instance.requestType).ownPage?.(instance.requestId) ?? null,
+        onBehalfOf: this.standingFor(instance, own, reader, ref),
         createdAt: instance.createdAt.toISOString(),
         closedAt: instance.closedAt?.toISOString() ?? null,
       };

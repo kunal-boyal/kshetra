@@ -88,6 +88,44 @@ function account(id: string, name: string, overrides: Record<string, unknown> = 
 
 const SHOP_ACCOUNT = account(SHOP, 'Green Fields Agro');
 const ANSWERS: Record<string, unknown> = {
+  '/v1/me': {
+    userId: '01a10000-0000-7000-8000-000000000002',
+    tenantId: '01a10000-0000-7000-8000-000000000001',
+    cell: 'local',
+    code: 'SUN-002',
+    name: 'Anita Rao',
+    designation: 'head',
+    role: 'tenant_admin',
+    scope: 'tenant',
+    permissions: [],
+    deviceId: null,
+  },
+  '/v1/approval-delegations': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000f1',
+        delegator: {
+          id: '01a10000-0000-7000-8000-000000000002',
+          code: 'SUN-002',
+          name: 'Anita Rao',
+        },
+        delegate: {
+          id: '01a10000-0000-7000-8000-000000000003',
+          code: 'SUN-003',
+          name: 'Meena Shah',
+        },
+        startsOn: '2026-11-02',
+        endsOn: '2026-11-06',
+        note: null,
+        state: 'upcoming',
+        endedAt: null,
+        createdAt: '2026-10-31T05:00:00.000Z',
+      },
+    ],
+  },
+  '/v1/approval-delegations/candidates': {
+    items: [{ id: '01a10000-0000-7000-8000-000000000003', code: 'SUN-003', name: 'Meena Shah' }],
+  },
   '/v1/accounts': {
     items: [
       SHOP_ACCOUNT,
@@ -219,12 +257,14 @@ const ANSWERS: Record<string, unknown> = {
             skipReason: null,
             escalated: false,
             fallback: false,
+            onBehalfOf: null,
           },
         ],
         cancellable: false,
         bulk: true,
         page: null,
         createdAt: '2026-10-12T05:00:00.000Z',
+        onBehalfOf: null,
         closedAt: null,
       },
       {
@@ -240,6 +280,7 @@ const ANSWERS: Record<string, unknown> = {
         bulk: true,
         page: null,
         createdAt: '2026-10-12T06:00:00.000Z',
+        onBehalfOf: null,
         closedAt: null,
       },
     ],
@@ -300,12 +341,14 @@ const ANSWERS: Record<string, unknown> = {
             skipReason: null,
             escalated: false,
             fallback: false,
+            onBehalfOf: null,
           },
         ],
         cancellable: false,
         bulk: true,
         page: null,
         createdAt: '2026-10-12T05:00:00.000Z',
+        onBehalfOf: null,
         closedAt: '2026-10-12T07:00:00.000Z',
       },
     ],
@@ -379,7 +422,15 @@ async function mockSignedIn(page: Page) {
       },
     }),
   );
-  for (const prefix of ['accounts', 'account-plans', 'territories', 'approvals', 'submissions']) {
+  for (const prefix of [
+    'accounts',
+    'account-plans',
+    'territories',
+    'approvals',
+    'approval-delegations',
+    'submissions',
+    'me',
+  ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
       return answer
@@ -442,6 +493,7 @@ test('an account and the inbox pass axe in the outdoor theme', async ({ page }) 
   await expect(page.getByRole('textbox', { name: 'Visits' })).toHaveValue('4');
   await expectAccessible(page);
   await page.goto('/approvals');
+  await expect(page.getByText('Meena Shah decides for you', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Reject' }).first().click();
   await expect(page.getByRole('textbox', { name: /Why are you rejecting it/ })).toBeVisible();
   await expectAccessible(page);

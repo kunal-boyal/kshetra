@@ -29,6 +29,8 @@ export const ApprovalStep = z.object({
   escalated: z.boolean(),
   /** The tenant's fallback approvers, because no step of the chain remained. */
   fallback: z.boolean(),
+  /** The approver whose delegate decided the step, standing in for them (decision D113). */
+  onBehalfOf: Person.nullable(),
 });
 
 /** What a request is about, as the module that owns it describes it. */
@@ -60,6 +62,11 @@ export const ApprovalResult = z
     bulk: z.boolean(),
     /** Where the portal decides it, for a request decided only on its own page (decision D78). */
     page: z.string().nullable(),
+    /**
+     * In the caller's inbox, the approver they would decide for as delegate (decision D113); null
+     * when the request names the caller, and outside the inbox.
+     */
+    onBehalfOf: Person.nullable(),
     createdAt: z.iso.datetime(),
     closedAt: z.iso.datetime().nullable(),
   })
@@ -171,3 +178,50 @@ export type ApprovalPreviewResult = z.infer<typeof ApprovalPreviewResult>;
 export type BulkApprovalBody = z.output<typeof BulkApprovalBody>;
 export type BulkApprovalResult = z.infer<typeof BulkApprovalResult>;
 export type ApprovalDecisionBody = z.output<typeof ApprovalDecisionBody>;
+
+export const DELEGATION_STATES = ['upcoming', 'active', 'over', 'ended'] as const;
+
+/** An approver's delegation (M15, decision D113): who decides for them, on which days. */
+export const ApprovalDelegation = z
+  .object({
+    id: z.uuid(),
+    delegator: Person,
+    delegate: Person,
+    startsOn: z.iso.date(),
+    endsOn: z.iso.date(),
+    note: z.string().nullable(),
+    /** Coming, standing today, past its days, or ended early, on the tenant's calendar. */
+    state: z.enum(DELEGATION_STATES),
+    endedAt: z.iso.datetime().nullable(),
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: 'ApprovalDelegation' });
+
+/**
+ * `GET /v1/approval-delegations`: the caller's own, given and received; or, for `user.manage`,
+ * a person's in their scope.
+ */
+export const DelegationListQuery = z.strictObject({ userId: z.uuid().optional() });
+
+export const DelegationListResult = z.object({ items: z.array(ApprovalDelegation) });
+
+/** `POST /v1/approval-delegations`: the caller's, or another's for `user.manage`. */
+export const CreateDelegationBody = z.strictObject({
+  id: z.uuid(),
+  delegatorId: z.uuid().optional(),
+  delegateId: z.uuid(),
+  startsOn: z.iso.date(),
+  endsOn: z.iso.date(),
+  note: z.string().trim().max(200).optional(),
+});
+
+/** `GET /v1/approval-delegations/candidates`: active people who may approve, to choose from. */
+export const DelegationCandidatesResult = z.object({
+  items: z.array(Person),
+});
+
+export type ApprovalDelegation = z.output<typeof ApprovalDelegation>;
+export type DelegationListQuery = z.output<typeof DelegationListQuery>;
+export type DelegationListResult = z.output<typeof DelegationListResult>;
+export type CreateDelegationBody = z.output<typeof CreateDelegationBody>;
+export type DelegationCandidatesResult = z.output<typeof DelegationCandidatesResult>;

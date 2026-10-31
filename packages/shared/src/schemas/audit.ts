@@ -37,6 +37,8 @@ export const AUDIT_ACTIONS = [
   'approval.decided',
   'approval.cancelled',
   'approval.escalated',
+  'approval.delegated',
+  'approval.delegation_ended',
   'workflow.changed',
   'role.created',
   'role.updated',

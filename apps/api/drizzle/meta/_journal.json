@@ -575,6 +575,13 @@
       "when": 1793185362952,
       "tag": "0081_refresh_token_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1793430187310,
+      "tag": "0082_approval_delegations",
+      "breakpoints": true
     }
   ]
 }

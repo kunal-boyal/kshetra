@@ -1,12 +1,16 @@
 import {
+  ApprovalDelegation,
   ApprovalInboxResult,
   ApprovalMineResult,
   ApprovalResult,
   type ApprovalStatus,
   BulkApprovalResult,
+  type CreateDelegationBody,
+  DelegationCandidatesResult,
+  DelegationListResult,
   type RequestType,
 } from '@thelamp/shared';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read, write } from '../people/data';
 
@@ -81,6 +85,41 @@ export function useDecisions() {
     },
     async withdraw(item: ApprovalResult) {
       await write(client, 'POST', `/v1/approvals/${item.id}/cancel`, ApprovalResult);
+      await refresh();
+    },
+  };
+}
+
+/** The viewer's delegations, given and received (decision D113). */
+export function useDelegations() {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['approvals', 'delegations'],
+    queryFn: () => read(client, '/v1/approval-delegations', DelegationListResult),
+  });
+}
+
+/** The people who may approve, to hand over to. */
+export function useDelegateCandidates() {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['approvals', 'delegation-candidates'],
+    queryFn: () => read(client, '/v1/approval-delegations/candidates', DelegationCandidatesResult),
+  });
+}
+
+/** Handing over and ending a handover; the inbox reads again after either. */
+export function useDelegationChanges() {
+  const { client } = useApp();
+  const queryClient = useQueryClient();
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['approvals'] });
+  return {
+    async hand(body: CreateDelegationBody) {
+      await write(client, 'POST', '/v1/approval-delegations', ApprovalDelegation, body);
+      await refresh();
+    },
+    async end(id: string) {
+      await write(client, 'POST', `/v1/approval-delegations/${id}/end`, ApprovalDelegation);
       await refresh();
     },
   };

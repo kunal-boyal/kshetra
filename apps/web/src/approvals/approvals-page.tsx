@@ -26,6 +26,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { fieldErrors, PageHeader, useDates } from '../people/shared';
 import { useDecisions, useInbox, useMine } from './data';
+import { AwayCard } from './delegation';
 import { ApprovalSteps } from './steps';
 import { useQueryPaging } from '../paging';
 
@@ -64,6 +65,7 @@ export function ApprovalsPage({
   type?: RequestType;
 }) {
   const { t } = useLanguage();
+  const access = useAccess();
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('approvals.title')} intro={t('approvals.intro')} />
@@ -88,6 +90,7 @@ export function ApprovalsPage({
         </Link>
       </nav>
       {view === 'mine' ? <Mine /> : <Waiting {...(type ? { type } : {})} />}
+      {view === 'waiting' && access.can('approval.act') ? <AwayCard /> : null}
     </div>
   );
 }
@@ -406,6 +409,13 @@ function Heading({
             when: dates.dateTime(item.createdAt),
           })}
         </p>
+        {item.onBehalfOf ? (
+          <p>
+            <StatusBadge variant="info">
+              {t('approvals.on_behalf', { name: item.onBehalfOf.name })}
+            </StatusBadge>
+          </p>
+        ) : null}
       </div>
       {children}
     </div>

@@ -23,17 +23,27 @@ export function ApprovalSteps({ item }: { item: ApprovalResult }) {
       case 'approved':
         return {
           state: 'done',
-          title: t('approvals.step_approved', {
-            name: step.actedBy?.name ?? names(step.approvers),
-          }),
+          title: step.onBehalfOf
+            ? t('approvals.step_approved_for', {
+                name: step.actedBy?.name ?? names(step.approvers),
+                for: step.onBehalfOf.name,
+              })
+            : t('approvals.step_approved', {
+                name: step.actedBy?.name ?? names(step.approvers),
+              }),
           meta: [...note, ...when],
         };
       case 'rejected':
         return {
           state: 'rejected',
-          title: t('approvals.step_rejected', {
-            name: step.actedBy?.name ?? names(step.approvers),
-          }),
+          title: step.onBehalfOf
+            ? t('approvals.step_rejected_for', {
+                name: step.actedBy?.name ?? names(step.approvers),
+                for: step.onBehalfOf.name,
+              })
+            : t('approvals.step_rejected', {
+                name: step.actedBy?.name ?? names(step.approvers),
+              }),
           meta: [...note, ...when],
         };
       case 'skipped':
