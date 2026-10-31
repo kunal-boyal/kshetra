@@ -47,6 +47,10 @@ describe('expense policies (M12, spec 5.10)', () => {
     const rate = within(fuel).getByRole('textbox', { name: /^Rate/ });
     await user.clear(rate);
     await user.type(rate, '4');
+    // A per-km policy says where its kilometres come from (decision D115).
+    const kmFrom = within(fuel).getByRole('combobox', { name: /^Kilometres from/ });
+    expect(kmFrom).toHaveValue('odometer');
+    await user.selectOptions(kmFrom, 'tracked');
 
     await user.click(screen.getByRole('button', { name: 'Add a policy' }));
     const da = cards()[1]!;
@@ -62,6 +66,7 @@ describe('expense policies (M12, spec 5.10)', () => {
     await user.selectOptions(within(da).getByRole('combobox', { name: 'Pays' }), 'per_day');
     // Odometer photos are for per-km policies only.
     expect(within(da).queryByRole('checkbox', { name: /odometer/ })).toBeNull();
+    expect(within(da).queryByRole('combobox', { name: /^Kilometres from/ })).toBeNull();
     await user.selectOptions(within(da).getByRole('combobox', { name: 'Rate' }), 'by');
     await user.type(within(da).getByRole('textbox', { name: /^Rate for Executive/ }), '250');
     await user.type(within(da).getByRole('textbox', { name: /^Cap per claim/ }), '1200');
@@ -74,7 +79,7 @@ describe('expense policies (M12, spec 5.10)', () => {
       body: {
         from: todayIn('Asia/Kolkata'),
         items: [
-          { key: 'fuel', rate: { flat: '4' }, odometerPhotosRequired: true },
+          { key: 'fuel', kmFrom: 'tracked', rate: { flat: '4' }, odometerPhotosRequired: true },
           {
             key: 'da',
             name: { en: 'Daily allowance', hi: 'Daily allowance' },
@@ -89,5 +94,8 @@ describe('expense policies (M12, spec 5.10)', () => {
         ],
       },
     });
+    expect(
+      (writesOf(client)[0]![3] as { body: { items: object[] } }).body.items[1],
+    ).not.toHaveProperty('kmFrom');
   });
 });

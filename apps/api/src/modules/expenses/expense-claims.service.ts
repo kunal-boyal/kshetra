@@ -6,12 +6,14 @@ import {
   claimBase,
   claimIssues,
   type CreateExpenseClaimBody,
+  distanceGap,
   type ExpenseClaimListQuery,
   type ExpenseClaimListResult,
   type ExpenseClaimResult,
   type ExpenseIssue,
   issueAt,
   type MarkPaidBody,
+  odometerDistance,
   type PhotoKind,
   rateFor,
   receiptHoldsApproval,
@@ -25,6 +27,7 @@ import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { ShiftsService } from '../field/shifts.service';
+import { TrailsService } from '../field/trails.service';
 import { VisitsService } from '../field/visits.service';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
@@ -54,6 +57,8 @@ const SAYS: Record<ExpenseIssue['issue'], string> = {
   bill_needed: 'Enter the bill amount',
   no_visits: 'You completed no visits on this day',
   nothing_left: 'The caps for this day or month are used up',
+  tracked_needed: 'You have no ended shift on this day to take the distance from',
+  nothing_tracked: 'No distance was tracked on this day',
 };
 
 /** The last day of a date's month. */
@@ -80,6 +85,7 @@ export class ExpenseClaimsService implements OnModuleInit {
     private readonly requestTypes: RequestTypes,
     private readonly visits: VisitsService,
     private readonly shifts: ShiftsService,
+    private readonly trails: TrailsService,
     private readonly people: People,
     private readonly scopes: Scopes,
     private readonly photos: PhotosService,
@@ -156,8 +162,21 @@ export class ExpenseClaimsService implements OnModuleInit {
             await this.visits.ofDay(tx, tenantId, userId, body.expenseDate, settings.timezone)
           ).filter((visit) => visit.checkOutAt !== null).length
         : undefined;
+    // Per km: the day's tracked distance, which pays under a tracked policy and is shown beside
+    // the readings under an odometer one (decision D115).
+    const day =
+      policy.calculation === 'per_km'
+        ? await this.trails.dayDistance(tx, tenantId, userId, body.expenseDate, settings.timezone)
+        : null;
+    if (policy.kmFrom === 'tracked' && day?.open) {
+      throw invalid([
+        issueAt(['expenseDate'], "End the day's shift before claiming its tracked distance"),
+      ]);
+    }
     const base = claimBase({
       calculation: policy.calculation,
+      kmFrom: policy.kmFrom,
+      trackedKm: day?.trackedKm,
       rate,
       odometerOpen,
       odometerClose,
@@ -185,6 +204,7 @@ export class ExpenseClaimsService implements OnModuleInit {
       odometerOpen,
       odometerClose,
       odometerPhotos: body.odometerPhotoIds.length + (fromShift?.photos ?? 0),
+      trackedKm: day?.trackedKm,
       billAmount: body.billAmount,
       visits,
       amount: capped.amount,
@@ -215,6 +235,7 @@ export class ExpenseClaimsService implements OnModuleInit {
       odometerClose: odometerClose ?? null,
       shiftId: body.shiftId ?? null,
       odometerChanged,
+      trackedKm: day?.trackedKm ?? null,
       billAmount: body.billAmount ?? null,
       calculated: base.amount,
       amount: capped.amount,
@@ -246,6 +267,7 @@ export class ExpenseClaimsService implements OnModuleInit {
         expenseDate: body.expenseDate,
         calculated: base.amount,
         amount: capped.amount,
+        ...(day?.trackedKm != null ? { trackedKm: day.trackedKm } : {}),
       },
     });
     return this.one(tx, tenantId, body.id);
@@ -562,6 +584,12 @@ export class ExpenseClaimsService implements OnModuleInit {
           ...(policy && receiptHoldsApproval(policy, receipts.length) ? ['receipt_missing'] : []),
           ...(row.capped ? ['capped'] : []),
           ...(row.odometerChanged ? ['odometer_changed'] : []),
+          ...(row.trackedKm !== null &&
+          row.odometerOpen !== null &&
+          row.odometerClose !== null &&
+          distanceGap(odometerDistance(row.odometerOpen, row.odometerClose), row.trackedKm)
+            ? ['distance_gap']
+            : []),
         ];
         return {
           id: row.id,
@@ -579,6 +607,7 @@ export class ExpenseClaimsService implements OnModuleInit {
           rate: row.rate,
           odometerOpen: row.odometerOpen,
           odometerClose: row.odometerClose,
+          trackedKm: row.trackedKm,
           billAmount: row.billAmount,
           calculated: row.calculated,
           amount: row.amount,

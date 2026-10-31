@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { EXPENSE_CALCULATIONS, EXPENSE_CATEGORIES, EXPENSE_DESCRIPTION } from '../expenses';
+import {
+  EXPENSE_CALCULATIONS,
+  EXPENSE_CATEGORIES,
+  EXPENSE_DESCRIPTION,
+  KM_SOURCES,
+} from '../expenses';
 import { ApprovalResult } from './approvals';
 import { Key, LocalizedText, Money } from './config';
 import { OdometerReading } from './field';
@@ -23,6 +28,10 @@ export const ExpensePolicy = z
     name: LocalizedText,
     category: z.enum(EXPENSE_CATEGORIES),
     calculation: z.enum(EXPENSE_CALCULATIONS),
+    kmFrom: z.enum(KM_SOURCES).optional().meta({
+      description:
+        "Per-km policies: `odometer` readings (when left out) or the day's `tracked` distance (decision D115).",
+    }),
     rate: ExpenseRate.optional().meta({
       description: 'Per km, day or visit. Leave out when the claim is the bill amount (actual).',
     }),
@@ -78,7 +87,7 @@ export const CreateExpenseClaimBody = z
     description: z.string().trim().min(EXPENSE_DESCRIPTION.min).max(EXPENSE_DESCRIPTION.max),
     /** Per-day policies. */
     days: Days.optional(),
-    /** Per-km policies. */
+    /** Per-km policies; optional where the policy pays tracked distance (D115). */
     odometerOpen: Reading.optional(),
     odometerClose: Reading.optional(),
     /** Actual policies: the bill. */
@@ -109,6 +118,11 @@ export const ExpenseClaimResult = z
     rate: Money.nullable(),
     odometerOpen: z.string().nullable(),
     odometerClose: z.string().nullable(),
+    /**
+     * Per-km claims: the day's tracked kilometres when the claim was made, from the person's
+     * ended shifts; null without one (decision D115).
+     */
+    trackedKm: z.string().nullable(),
     billAmount: Money.nullable(),
     /** Before caps. */
     calculated: Money,
@@ -121,8 +135,9 @@ export const ExpenseClaimResult = z
     /** The shift the claim's readings began from, if any. */
     shiftId: z.uuid().nullable(),
     /**
-     * What reviewers should look at, such as `duplicate_receipt`, `receipt_missing`, or
-     * `odometer_changed` when a reading differs from its shift's (D99).
+     * What reviewers should look at, such as `duplicate_receipt`, `receipt_missing`,
+     * `odometer_changed` when a reading differs from its shift's (D99), or `distance_gap` when
+     * the odometer and tracked kilometres differ by more than the tolerance (D115).
      */
     flags: z.array(z.string()),
     state: ExpenseState,

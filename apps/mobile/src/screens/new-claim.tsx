@@ -1,5 +1,5 @@
 import { spacing } from '@thelamp/design-tokens';
-import { formatDate, formatMoney, formatMonth } from '@thelamp/i18n';
+import { formatDate, formatMoney, formatMonth, formatNumber } from '@thelamp/i18n';
 import { EXPENSE_DESCRIPTION, newId, todayIn } from '@thelamp/shared';
 import {
   ActionBar,
@@ -26,6 +26,7 @@ import {
   previewClaim,
   queueClaim,
   queuedClaim,
+  useDayDistance,
   useExpensePolicies,
   useMyClaims,
   useQueuedExpenses,
@@ -81,6 +82,9 @@ export function NewClaimScreen() {
     ),
   ];
   const perKm = policy?.calculation === 'per_km';
+  // A per-km policy may pay the day's tracked distance (decision D115).
+  const tracked = perKm && policy?.kmFrom === 'tracked';
+  const distance = useDayDistance(day, settings?.timezone ?? 'Asia/Kolkata', tracked);
   useEffect(() => {
     const owner = client.owner;
     if (!sync || !owner || !perKm) return;
@@ -112,6 +116,7 @@ export function NewClaimScreen() {
           billAmount: filled(billAmount),
           // A claim from a shift has the shift's two photos.
           odometerPhotos: odometerPhotoIds.length + (shift ? 2 : 0),
+          trackedKm: tracked ? distance.trackedKm : undefined,
           claimed,
         })
       : null;
@@ -141,7 +146,7 @@ export function NewClaimScreen() {
 
   async function send() {
     if (!sync || !client.owner || !policy || !preview) return;
-    if (preview.issues.length > 0 || shortDescription) return;
+    if (preview.issues.length > 0 || shortDescription || (tracked && distance.open)) return;
     setBusy(true);
     setFailure(undefined);
     try {
@@ -155,7 +160,8 @@ export function NewClaimScreen() {
           expenseDate: day,
           description: description.trim(),
           ...(calculation === 'per_day' ? { days: days.trim() } : {}),
-          ...(calculation === 'per_km'
+          // Readings are optional where the policy pays tracked distance.
+          ...(calculation === 'per_km' && filled(odometerOpen) && filled(odometerClose)
             ? { odometerOpen: odometerOpen.trim(), odometerClose: odometerClose.trim() }
             : {}),
           ...(calculation === 'actual' ? { billAmount: billAmount.trim() } : {}),
@@ -163,7 +169,8 @@ export function NewClaimScreen() {
           odometerPhotoIds: calculation === 'per_km' ? odometerPhotoIds : [],
           ...(shift ? { shiftId: shift.shiftId } : {}),
         },
-        shift?.closeUploadId ? [shift.closeUploadId] : [],
+        // A tracked claim waits for every punch-out of its day; one from a shift for that one.
+        tracked ? distance.uploads : shift?.closeUploadId ? [shift.closeUploadId] : [],
       );
       await sync.runner.refresh();
       // It goes now if the phone has a connection, and with the next sync if not.
@@ -192,7 +199,13 @@ export function NewClaimScreen() {
                     : t('claims.send')
                 }
                 busy={busy}
-                disabled={!preview || preview.issues.length > 0 || shortDescription || !sync}
+                disabled={
+                  !preview ||
+                  preview.issues.length > 0 ||
+                  shortDescription ||
+                  (tracked && distance.open) ||
+                  !sync
+                }
                 onPress={() => void send()}
               />
             </View>
@@ -231,7 +244,10 @@ export function NewClaimScreen() {
             choices={active.map((entry) => ({
               value: entry.key,
               label: entry.name[locale],
-              detail: t(`policies.calc_${entry.calculation}`),
+              detail:
+                entry.calculation === 'per_km' && entry.kmFrom === 'tracked'
+                  ? `${t('policies.calc_per_km')} · ${t('expenses.policy_from_tracked')}`
+                  : t(`policies.calc_${entry.calculation}`),
             }))}
           />
 
@@ -277,6 +293,18 @@ export function NewClaimScreen() {
 
           {policy?.calculation === 'per_km' ? (
             <View style={styles.stack}>
+              {/* Without an ended shift that day, the issue below says so. */}
+              {tracked && (distance.open || distance.trackedKm !== null) ? (
+                <Notice>
+                  {distance.open
+                    ? t('claims.tracked_open')
+                    : distance.trackedKm
+                      ? t('claims.tracked_day', {
+                          km: formatNumber(Number(distance.trackedKm), { locale }),
+                        })
+                      : t('claims.tracked_later')}
+                </Notice>
+              ) : null}
               {shift ? (
                 <Notice>
                   {t('claims.from_shift', {
@@ -287,7 +315,7 @@ export function NewClaimScreen() {
               ) : null}
               <TextField
                 label={t('claims.opening')}
-                help={t('claims.readings_help')}
+                help={tracked ? t('claims.readings_optional') : t('claims.readings_help')}
                 numeric
                 keyboardType="decimal-pad"
                 value={odometerOpen}
@@ -295,7 +323,7 @@ export function NewClaimScreen() {
               />
               <TextField
                 label={t('claims.closing')}
-                help={t('claims.readings_help')}
+                help={tracked ? t('claims.readings_optional') : t('claims.readings_help')}
                 numeric
                 keyboardType="decimal-pad"
                 value={odometerClose}

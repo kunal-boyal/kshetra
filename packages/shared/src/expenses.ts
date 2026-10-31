@@ -10,6 +10,10 @@ export const EXPENSE_CATEGORIES = ['travel', 'daily_allowance', 'other'] as cons
 export const EXPENSE_CALCULATIONS = ['per_km', 'per_day', 'per_visit', 'actual'] as const;
 export type ExpenseCalculation = (typeof EXPENSE_CALCULATIONS)[number];
 
+/** Where a per-km policy takes its kilometres from (decision D115). */
+export const KM_SOURCES = ['odometer', 'tracked'] as const;
+export type KmSource = (typeof KM_SOURCES)[number];
+
 /** A claim's description runs from 3 to 300 characters. */
 export const EXPENSE_DESCRIPTION = { min: 3, max: 300 } as const;
 
@@ -19,6 +23,8 @@ export type ExpenseRateRule = { flat: string } | { byDesignation: Record<string,
 /** What a policy says about claims under it (spec 5.10). */
 export interface ExpensePolicyRule {
   calculation: ExpenseCalculation;
+  /** Per-km policies: odometer readings (when left out) or the day's tracked distance. */
+  kmFrom?: KmSource | undefined;
   rate?: ExpenseRateRule | undefined;
   caps: {
     perClaim?: string | undefined;
@@ -45,6 +51,27 @@ export function odometerDistance(opening: string, closing: string): string {
   return unscaled(scaled(closing, 2) - scaled(opening, 2), 2);
 }
 
+/** Decision D115: tracked metres as kilometres to 2 places, half up, as BR-29 rounds readings. */
+export function trackedKm(distanceM: number): string {
+  const metres = BigInt(Math.max(0, Math.round(distanceM)));
+  return unscaled((metres + 5n) / 10n, 2);
+}
+
+/**
+ * Decision D115: when a claim's odometer and tracked kilometres differ by more than 10% of the
+ * larger figure and at least 2 km, which approvers are shown.
+ */
+export const DISTANCE_GAP = { share: 10, minKm: '2' } as const;
+
+/** Decision D115: whether odometer and tracked kilometres are far enough apart to flag. */
+export function distanceGap(odometerKm: string, trackedKmText: string): boolean {
+  const a = scaled(odometerKm, 2);
+  const b = scaled(trackedKmText, 2);
+  const gap = a > b ? a - b : b - a;
+  const larger = a > b ? a : b;
+  return gap * 100n > larger * BigInt(DISTANCE_GAP.share) && gap >= scaled(DISTANCE_GAP.minKm, 2);
+}
+
 /** `quantity × rate`, rounded half-up to paise. */
 function times(quantity: string, rate: string): bigint {
   const product = scaled(quantity, 3) * money(rate);
@@ -52,11 +79,14 @@ function times(quantity: string, rate: string): bigint {
 }
 
 /**
- * BR-29: what a claim comes to before caps. Per km pays the odometer distance, per day the days,
- * per visit the visits completed that day, each at the rate; actual pays the bill.
+ * BR-29: what a claim comes to before caps. Per km pays the odometer distance, or the day's
+ * tracked distance where the policy takes it from there (D115), per day the days, per visit the
+ * visits completed that day, each at the rate; actual pays the bill.
  */
 export function claimBase(input: {
   calculation: ExpenseCalculation;
+  kmFrom?: KmSource | undefined;
+  trackedKm?: string | null | undefined;
   rate: string | null;
   odometerOpen?: string | undefined;
   odometerClose?: string | undefined;
@@ -66,7 +96,10 @@ export function claimBase(input: {
 }): { quantity: string | null; amount: string } {
   switch (input.calculation) {
     case 'per_km': {
-      const quantity = odometerDistance(input.odometerOpen ?? '0', input.odometerClose ?? '0');
+      const quantity =
+        input.kmFrom === 'tracked'
+          ? (input.trackedKm ?? '0.00')
+          : odometerDistance(input.odometerOpen ?? '0', input.odometerClose ?? '0');
       const amount = input.rate && !quantity.startsWith('-') ? times(quantity, input.rate) : 0n;
       return { quantity, amount: show(amount < 0n ? 0n : amount) };
     }
@@ -121,6 +154,8 @@ export interface ExpenseIssue {
     | 'readings_needed'
     | 'closing_before_opening'
     | 'odometer_photos'
+    | 'tracked_needed'
+    | 'nothing_tracked'
     | 'bill_needed'
     | 'no_visits'
     | 'nothing_left';
@@ -139,6 +174,8 @@ export function claimIssues(input: {
   odometerOpen?: string | undefined;
   odometerClose?: string | undefined;
   odometerPhotos: number;
+  /** Tracked policies: the day's tracked kilometres, null without an ended shift that day. */
+  trackedKm?: string | null | undefined;
   billAmount?: string | undefined;
   visits?: number | undefined;
   amount: string;
@@ -152,9 +189,19 @@ export function claimIssues(input: {
   if (input.expenseDate > input.today) issues.push({ path: 'expenseDate', issue: 'future' });
   switch (policy.calculation) {
     case 'per_km':
-      if (input.odometerOpen === undefined || input.odometerClose === undefined) {
+      if (policy.kmFrom === 'tracked') {
+        if (input.trackedKm == null) issues.push({ path: 'expenseDate', issue: 'tracked_needed' });
+        else if (scaled(input.trackedKm, 2) === 0n) {
+          issues.push({ path: 'expenseDate', issue: 'nothing_tracked' });
+        }
+      } else if (input.odometerOpen === undefined || input.odometerClose === undefined) {
         issues.push({ path: 'odometerOpen', issue: 'readings_needed' });
-      } else if (scaled(input.odometerClose, 2) < scaled(input.odometerOpen, 2)) {
+      }
+      if (
+        input.odometerOpen !== undefined &&
+        input.odometerClose !== undefined &&
+        scaled(input.odometerClose, 2) < scaled(input.odometerOpen, 2)
+      ) {
         issues.push({ path: 'odometerClose', issue: 'closing_before_opening' });
       }
       if (policy.odometerPhotosRequired && input.odometerPhotos < 2) {
@@ -225,6 +272,9 @@ export function expensePolicyIssues(
   }
   if (policy.odometerPhotosRequired && policy.calculation !== 'per_km') {
     at(['odometerPhotosRequired'], 'Odometer photos apply to per-km claims only');
+  }
+  if (policy.kmFrom !== undefined && policy.calculation !== 'per_km') {
+    at(['kmFrom'], 'Where kilometres come from applies to per-km claims only');
   }
   return issues;
 }

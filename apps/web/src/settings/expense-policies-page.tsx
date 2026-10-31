@@ -4,6 +4,8 @@ import {
   type ExpenseCalculation,
   type ExpensePolicyResult,
   ExpensePolicyListResult,
+  KM_SOURCES,
+  type KmSource,
   todayIn,
 } from '@thelamp/shared';
 import { Button, Checkbox, Icon, Notice, SelectField, TextField } from '@thelamp/ui-web';
@@ -23,6 +25,7 @@ interface PolicyDraft {
   nameHi: string;
   category: Category;
   calculation: ExpenseCalculation;
+  kmFrom: KmSource;
   rateKind: 'flat' | 'by';
   flat: string;
   byDesignation: Record<string, string>;
@@ -44,6 +47,7 @@ function draftOf(policy: ExpensePolicyResult): PolicyDraft {
     nameHi: policy.name.hi,
     category: policy.category,
     calculation: policy.calculation,
+    kmFrom: policy.kmFrom ?? 'odometer',
     rateKind: rate && 'byDesignation' in rate ? 'by' : 'flat',
     flat: rate && 'flat' in rate ? rate.flat : '',
     byDesignation: rate && 'byDesignation' in rate ? { ...rate.byDesignation } : {},
@@ -62,6 +66,7 @@ const EMPTY: PolicyDraft = {
   nameHi: '',
   category: 'travel',
   calculation: 'per_km',
+  kmFrom: 'odometer',
   rateKind: 'flat',
   flat: '',
   byDesignation: {},
@@ -90,6 +95,8 @@ function bodyOf(draft: PolicyDraft) {
     name: { en: draft.nameEn.trim(), hi: draft.nameHi.trim() || draft.nameEn.trim() },
     category: draft.category,
     calculation: draft.calculation,
+    // Where kilometres come from is a per-km policy's only (decision D115).
+    ...(draft.calculation === 'per_km' ? { kmFrom: draft.kmFrom } : {}),
     ...(draft.calculation === 'actual'
       ? {}
       : draft.rateKind === 'flat'
@@ -245,6 +252,21 @@ function Editor({ policies }: { policies: readonly ExpensePolicyResult[] }) {
                       change(index, { calculation: event.target.value as ExpenseCalculation })
                     }
                   />
+                  {draft.calculation === 'per_km' ? (
+                    <SelectField
+                      label={t('policies.km_from')}
+                      help={t('policies.km_from_help')}
+                      value={draft.kmFrom}
+                      options={KM_SOURCES.map((source) => ({
+                        value: source,
+                        label: t(`policies.km_from_${source}`),
+                      }))}
+                      {...at(index, 'kmFrom')}
+                      onChange={(event) =>
+                        change(index, { kmFrom: event.target.value as KmSource })
+                      }
+                    />
+                  ) : null}
                   {draft.calculation === 'actual' ? (
                     <span />
                   ) : (

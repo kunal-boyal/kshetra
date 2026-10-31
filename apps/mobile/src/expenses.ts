@@ -12,13 +12,17 @@ import {
   newId,
   rateFor,
   scaled,
+  ShiftListResult,
+  todayIn,
+  trackedKm,
   unscaled,
 } from '@thelamp/shared';
-import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from './app-state';
 import { useKept } from './data';
 import type { Kept } from './performance';
-import { useOutboxItems } from './sync';
+import { useOutboxItems, useSync } from './sync';
 
 /**
  * Expenses on the phone (M12, decision D83): the tenant's policies and the person's claims of a
@@ -98,7 +102,8 @@ const sum = (amounts: readonly string[]) =>
 /**
  * The phone's preview of a claim (BR-29): what it comes to before and after caps, and what the
  * server would refuse. Per-visit claims are counted by the server from the day's visits, so the
- * phone leaves their amount to it.
+ * phone leaves their amount to it, as it does a tracked per-km claim whose distance it doesn't
+ * know yet (`trackedKm` undefined; null when the day has no ended shift, decision D115).
  */
 export function previewClaim(input: {
   policy: ExpensePolicyResult;
@@ -110,6 +115,7 @@ export function previewClaim(input: {
   odometerClose?: string | undefined;
   billAmount?: string | undefined;
   odometerPhotos: number;
+  trackedKm?: string | null | undefined;
   claimed: readonly Claimed[];
 }): { calculated: string | null; amount: string | null; capped: boolean; issues: ExpenseIssue[] } {
   const { policy } = input;
@@ -128,10 +134,14 @@ export function previewClaim(input: {
   const odometerClose = valid(input.odometerClose, 2);
   const billAmount = valid(input.billAmount, 2);
   const perVisit = policy.calculation === 'per_visit';
-  const base = perVisit
+  const tracked = policy.calculation === 'per_km' && policy.kmFrom === 'tracked';
+  const unknown = perVisit || (tracked && input.trackedKm === undefined);
+  const base = unknown
     ? null
     : claimBase({
         calculation: policy.calculation,
+        kmFrom: policy.kmFrom,
+        trackedKm: input.trackedKm,
         rate,
         days,
         odometerOpen,
@@ -163,6 +173,8 @@ export function previewClaim(input: {
     odometerOpen,
     odometerClose,
     odometerPhotos: input.odometerPhotos,
+    // A distance the phone doesn't know yet is the server's to judge.
+    trackedKm: input.trackedKm === undefined ? '1.00' : input.trackedKm,
     billAmount,
     // The server counts the visits; the phone assumes there were some.
     visits: perVisit ? 1 : undefined,
@@ -183,8 +195,9 @@ export function queuedClaim(
   designation: string,
 ): Claimed {
   const policy = policies.find((entry) => entry.key === claim.policy);
+  // Visits and tracked distance are the server's to count.
   const amount =
-    policy && policy.calculation !== 'per_visit'
+    policy && policy.calculation !== 'per_visit' && policy.kmFrom !== 'tracked'
       ? claimBase({
           calculation: policy.calculation,
           rate: policy.calculation === 'actual' ? null : rateFor(policy.rate, designation),
@@ -234,4 +247,60 @@ export async function queueReceipts(
       dependsOn: [...payload.mediaIds, payload.claimId],
     });
   });
+}
+
+/** What the phone knows of a day's tracked distance for a claim (decision D115). */
+export interface DayDistance {
+  /** Kilometres, null without an ended shift that day, undefined while it isn't known. */
+  trackedKm: string | null | undefined;
+  /** A shift of the day is still open on the phone. */
+  open: boolean;
+  /** The punch-out uploads a claim from the day's distance waits for. */
+  uploads: string[];
+}
+
+/**
+ * The day's tracked distance, from the person's own shifts read online, checked against the
+ * shifts punched on this phone: while a punch-out or a shift's distance hasn't reached the server,
+ * the distance isn't known and the server works it out when the claim arrives.
+ */
+export function useDayDistance(day: string, timezone: string, enabled: boolean): DayDistance {
+  const { client } = useApp();
+  const sync = useSync();
+  const owner = client.owner;
+  const [local, setLocal] = useState<{ shiftId: string; closeUploadId: string | null }[]>();
+  useEffect(() => {
+    if (!sync || !owner || !enabled) return;
+    let live = true;
+    void sync.tracking.dayShifts(owner, day).then((shifts) => {
+      if (live) setLocal(shifts);
+    });
+    return () => {
+      live = false;
+    };
+  }, [sync, owner, day, enabled]);
+  const userId = owner?.split(':')[1];
+  const shifts = useQuery({
+    queryKey: ['own-shifts', userId],
+    queryFn: async () =>
+      (await client.request('GET', `/v1/shifts?userId=${userId}&limit=30`, ShiftListResult))!.items,
+    enabled: enabled && userId !== undefined,
+  });
+  const mine = local ?? [];
+  const uploads = mine.flatMap((shift) => (shift.closeUploadId ? [shift.closeUploadId] : []));
+  const open = mine.some((shift) => shift.closeUploadId === null);
+  if (!shifts.data) return { trackedKm: undefined, open, uploads };
+  const dayOf = (shift: { startedAt: string }) => todayIn(timezone, new Date(shift.startedAt));
+  const onDay = shifts.data.filter((shift) => dayOf(shift) === day);
+  // The newest 30 shifts may not reach back to the day; then only the server can tell.
+  const oldest = shifts.data.at(-1);
+  const reaches = shifts.data.length < 30 || (oldest !== undefined && dayOf(oldest) < day);
+  const settled =
+    reaches &&
+    onDay.every((shift) => shift.endedAt !== null && shift.distanceM !== null) &&
+    mine.every((shift) => onDay.some((known) => known.id === shift.shiftId));
+  if (!settled) return { trackedKm: undefined, open, uploads };
+  if (onDay.length === 0) return { trackedKm: null, open, uploads };
+  const metres = onDay.reduce((total, shift) => total + (shift.distanceM ?? 0), 0);
+  return { trackedKm: trackedKm(metres), open, uploads };
 }

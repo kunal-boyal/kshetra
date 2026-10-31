@@ -927,6 +927,8 @@ export {
   capClaim,
   claimBase,
   claimIssues,
+  DISTANCE_GAP,
+  distanceGap,
   EXPENSE_CALCULATIONS,
   EXPENSE_CATEGORIES,
   EXPENSE_DESCRIPTION,
@@ -934,9 +936,12 @@ export {
   type ExpenseIssue,
   expensePolicyIssues,
   type ExpensePolicyRule,
+  KM_SOURCES,
+  type KmSource,
   odometerDistance,
   rateFor,
   receiptHoldsApproval,
+  trackedKm,
 } from './expenses';
 export {
   EmailDomain,

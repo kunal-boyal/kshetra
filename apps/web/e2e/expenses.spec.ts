@@ -24,6 +24,7 @@ const claim = (id: string, patch: object) => ({
   rate: null,
   odometerOpen: null,
   odometerClose: null,
+  trackedKm: null,
   shiftId: null,
   billAmount: '412.50',
   calculated: '412.50',
@@ -56,6 +57,20 @@ const ANSWERS: Record<string, unknown> = {
         version: 1,
         validFrom: '2000-01-01',
       },
+      {
+        key: 'travel',
+        name: named('Travel'),
+        category: 'travel',
+        calculation: 'per_km',
+        kmFrom: 'tracked',
+        rate: { flat: '5' },
+        caps: {},
+        receiptRequired: false,
+        odometerPhotosRequired: false,
+        active: true,
+        version: 1,
+        validFrom: '2000-01-01',
+      },
     ],
   },
   '/v1/expense-claims': {
@@ -67,6 +82,22 @@ const ANSWERS: Record<string, unknown> = {
         amount: '1200.00',
         capped: true,
         flags: ['capped'],
+        state: 'pending',
+      }),
+      // A per-km claim whose readings and tracked distance disagree (decision D115).
+      claim('01a10000-0000-7000-8000-0000000000e3', {
+        policy: 'travel',
+        description: 'Route and back',
+        quantity: '30.400',
+        rate: '5.00',
+        odometerOpen: '1000.0',
+        odometerClose: '1042.0',
+        trackedKm: '30.40',
+        billAmount: null,
+        calculated: '152.00',
+        amount: '152.00',
+        receipts: [],
+        flags: ['distance_gap'],
         state: 'pending',
       }),
     ],
@@ -155,6 +186,8 @@ for (const theme of ['light', 'outdoor']) {
     await page.goto('/expenses');
     await expect(page.getByRole('heading', { level: 1, name: /^Expenses · / })).toBeVisible();
     await expect(page.getByText('Receipt seen before')).toBeVisible();
+    await expect(page.getByText('42 km on the odometer · 30.4 km tracked')).toBeVisible();
+    await expect(page.getByText('Tracked and odometer km differ')).toBeVisible();
     await expectAccessible(page);
     await page.getByRole('button', { name: /Mark paid: Rahul Verma/ }).click();
     await expect(

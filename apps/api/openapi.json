@@ -31388,6 +31388,12 @@
               "null"
             ]
           },
+          "trackedKm": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "billAmount": {
             "anyOf": [
               {
@@ -31509,6 +31515,7 @@
           "rate",
           "odometerOpen",
           "odometerClose",
+          "trackedKm",
           "billAmount",
           "calculated",
           "amount",
@@ -31550,6 +31557,14 @@
               "per_day",
               "per_visit",
               "actual"
+            ]
+          },
+          "kmFrom": {
+            "description": "Per-km policies: `odometer` readings (when left out) or the day's `tracked` distance (decision D115).",
+            "type": "string",
+            "enum": [
+              "odometer",
+              "tracked"
             ]
           },
           "rate": {
@@ -31623,6 +31638,14 @@
               "actual"
             ]
           },
+          "kmFrom": {
+            "description": "Per-km policies: `odometer` readings (when left out) or the day's `tracked` distance (decision D115).",
+            "type": "string",
+            "enum": [
+              "odometer",
+              "tracked"
+            ]
+          },
           "rate": {
             "description": "Per km, day or visit. Leave out when the claim is the bill amount (actual).",
             "$ref": "#/components/schemas/ExpenseRate"
@@ -31688,6 +31711,14 @@
               "per_day",
               "per_visit",
               "actual"
+            ]
+          },
+          "kmFrom": {
+            "description": "Per-km policies: `odometer` readings (when left out) or the day's `tracked` distance (decision D115).",
+            "type": "string",
+            "enum": [
+              "odometer",
+              "tracked"
             ]
           },
           "rate": {

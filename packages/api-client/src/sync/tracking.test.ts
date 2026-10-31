@@ -154,6 +154,11 @@ describe('tracking on the phone (spec 12.1)', () => {
       },
     ]);
     expect(await tracking.odometersOn('tenant-a:someone-else', '2026-10-13')).toEqual([]);
+    // Every shift of the day, with or without readings, for a claim from tracked distance (D115).
+    expect(await tracking.dayShifts(ME, '2026-10-13')).toEqual([
+      { shiftId: other, closeUploadId: null },
+      { shiftId: SHIFT, closeUploadId: 'upload-1' },
+    ]);
     // Two months on, old readings are let go.
     await db.transaction((tx) =>
       tracking.openOdometer(tx, ME, { shiftId: 'later', date: '2026-12-20', reading: '13000' }),

@@ -41,6 +41,8 @@ export interface LocationProposalPayload extends CreateLocationProposalBody {
  */
 export function senders(
   client: Pick<MobileClient, 'request'>,
+  /** Uploads a person's waiting location points, which a claim's tracked distance counts. */
+  flushPoints: (owner: string) => Promise<void> = async () => {},
 ): Readonly<Record<string, OutboxSender>> {
   return {
     'media.upload': photoSender(client),
@@ -139,8 +141,11 @@ export function senders(
       },
     },
     // Expenses (M12): a claim after its photos; receipts for a sent claim after theirs.
+    // A claim's day may be paid on tracked distance (D115): its points go first, as the outbox
+    // otherwise runs before them.
     'expense_claim.create': {
-      async send(payload) {
+      async send(payload, item) {
+        await flushPoints(item.owner);
         await client.request('POST', '/v1/expense-claims', ExpenseClaimResult, {
           body: payload as CreateExpenseClaimBody,
         });

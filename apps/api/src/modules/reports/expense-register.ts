@@ -14,7 +14,8 @@ import {
 
 /**
  * The expense register (M12, M18): every claim for a day in the month by the people the report
- * covers, with its policy, amount after caps, receipts and state. Exported, it is the payroll
+ * covers, with its policy, the day's tracked kilometres for per-km claims (D115), amount after
+ * caps, receipts and state. Exported, it is the payroll
  * file of approved claims; filtering by state is the reader's.
  */
 @Injectable()
@@ -37,6 +38,7 @@ export class ExpenseRegisterReport extends ReportSource {
       { key: 'policy', label: 'report.col_policy', kind: 'text' },
       { key: 'description', label: 'report.col_description', kind: 'text' },
       { key: 'quantity', label: 'report.col_quantity', kind: 'decimal' },
+      { key: 'tracked_km', label: 'report.col_tracked_km', kind: 'decimal' },
       { key: 'rate', label: 'report.col_rate', kind: 'decimal' },
       { key: 'calculated', label: 'report.col_calculated', kind: 'decimal' },
       { key: 'amount', label: 'report.col_amount', kind: 'decimal' },
@@ -93,6 +95,7 @@ export class ExpenseRegisterReport extends ReportSource {
       policy: names.get(row.policyKey) ?? row.policyKey,
       description: row.description,
       quantity: row.quantity === null ? null : Number(row.quantity),
+      tracked_km: row.trackedKm === null ? null : Number(row.trackedKm),
       rate: row.rate === null ? null : Number(row.rate),
       calculated: Number(row.calculated),
       amount: Number(row.amount),

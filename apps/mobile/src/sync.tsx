@@ -71,8 +71,11 @@ export function SyncProvider({
     void (async () => {
       const db = await openDatabase();
       await migrate(db);
-      const outbox = new Outbox(db, senders(client));
       const tracking = new Tracking(db);
+      const outbox: Outbox = new Outbox(
+        db,
+        senders(client, (owner) => flushPoints({ db, outbox, tracking }, client, owner)),
+      );
       const runner = new SyncRunner({
         db,
         client,
