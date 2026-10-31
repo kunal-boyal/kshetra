@@ -2507,6 +2507,34 @@ const FIXTURES: Record<string, Fixture> = {
       await sameAsNowhere((id) => asB('GET', `/v1/leave-balances?userId=${id}`), a.member.id);
     },
   },
+  'GET /v1/payroll': {
+    kind: 'own tenant',
+    run: async () => {
+      const own = await asB('GET', `/v1/payroll?period=${YESTERDAY().slice(0, 7)}`);
+      expect(own.statusCode, own.body).toBe(200);
+      holdsNothingOfA(own);
+    },
+  },
+  'GET /v1/payroll-gross/:userId': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/payroll-gross/${id}`), a.member.id),
+  },
+  'PUT /v1/payroll-gross/:userId': {
+    kind: 'write',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/payroll-gross/${id}`, { monthlyGross: '1' }),
+        a.member.id,
+      ),
+  },
+  'GET /v1/payslips/:userId/:period': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('GET', `/v1/payslips/${id}/${YESTERDAY().slice(0, 7)}`),
+        a.member.id,
+      ),
+  },
   'GET /v1/whatsapp-consent': {
     kind: 'own tenant',
     run: async () => {
@@ -2881,6 +2909,12 @@ beforeAll(async () => {
        (tenant_id, user_id, leave_type_key, year_from, year_to, credited, carried_in, taken, carried_out, lapsed, cap)
      values ($1, $2, 'casual', make_date(extract(year from current_date)::int - 1, 1, 1),
        make_date(extract(year from current_date)::int - 1, 12, 31), 12, 0, 4, 5, 3, 5)`,
+    [a.tenantId, a.member.id],
+  );
+  // A's member has a monthly gross (M14, decision D117).
+  await admin(
+    `insert into cell.payroll_gross (tenant_id, user_id, from_period, monthly_gross)
+     values ($1, $2, to_char(current_date, 'YYYY-MM'), 31000)`,
     [a.tenantId, a.member.id],
   );
   // A's member asks to count a day as present.

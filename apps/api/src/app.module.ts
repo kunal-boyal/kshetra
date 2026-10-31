@@ -6,6 +6,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { LeaveModule } from './modules/leave/leave.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { FieldModule } from './modules/field/field.module';
@@ -82,6 +83,7 @@ export const FEATURE_MODULES = [
   ReportsModule,
   FieldModule,
   LeaveModule,
+  PayrollModule,
   ExpensesModule,
   ReviewModule,
   MeteringModule,

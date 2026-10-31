@@ -25,6 +25,7 @@ import { TerritoriesService } from '../territories/territories.service';
 import { ActivityLogReport } from './activity-log';
 import { AttendanceRegisterReport } from './attendance-register';
 import { ExpenseRegisterReport } from './expense-register';
+import { PayrollSummaryReport } from './payroll-summary';
 import { LeaveRegisterReport } from './leave-register';
 import { VisitComplianceReport } from './visit-compliance';
 import { CoverageFrequencyReport } from './coverage-frequency';
@@ -69,6 +70,7 @@ export class ReportsService {
     ordersRegister: OrdersRegisterReport,
     accountStatement: AccountStatementReport,
     auditLog: AuditLogReport,
+    payrollSummary: PayrollSummaryReport,
   ) {
     this.sources = new Map<ReportKey, ReportSource>(
       [
@@ -84,6 +86,7 @@ export class ReportsService {
         ordersRegister,
         accountStatement,
         auditLog,
+        payrollSummary,
       ].map((source) => [source.key, source]),
     );
   }

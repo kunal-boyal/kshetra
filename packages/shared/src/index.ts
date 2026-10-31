@@ -864,6 +864,17 @@ export {
   StatementResult,
 } from './schemas/finance';
 export { paidDays, REGULARISATION_REASON, regularisationIssue, scheduledDays } from './attendance';
+export { dayCounts, type GrossChange, grossOn, type PayDay, provisionalPay } from './payroll';
+export {
+  PayrollGrossBody,
+  PayrollGrossResult,
+  PayrollListResult,
+  PayrollMonth,
+  PayrollQuery,
+  PayrollUserParams,
+  PayslipParams,
+  PayslipResult,
+} from './schemas/payroll';
 export {
   closeLeaveYear,
   datesBetween,

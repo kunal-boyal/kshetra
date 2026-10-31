@@ -26,7 +26,8 @@ export const TARGET_PERMISSIONS: Record<
   | 'finance_snapshots'
   | 'ledger_entries'
   | 'holidays'
-  | 'external_metrics',
+  | 'external_metrics'
+  | 'payroll_gross',
   TenantPermission
 > = {
   users: 'user.manage',
@@ -39,6 +40,7 @@ export const TARGET_PERMISSIONS: Record<
   ledger_entries: 'finance.manage',
   holidays: 'calendar.manage',
   external_metrics: 'metric.record',
+  payroll_gross: 'payroll.manage',
 };
 
 export interface TargetChoice {

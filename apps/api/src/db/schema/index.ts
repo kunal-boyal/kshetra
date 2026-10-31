@@ -22,6 +22,7 @@ export * from './orders';
 export * from './finance';
 export * from './attendance';
 export * from './leave';
+export * from './payroll';
 export * from './expenses';
 export * from './webhooks';
 export * from './governance';

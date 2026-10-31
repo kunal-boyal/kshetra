@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ArchiveSigner } from '../../platform/archive-signer';
+import { PayrollModule } from '../payroll/payroll.module';
 import { FieldModule } from '../field/field.module';
 import { IamModule } from '../iam/iam.module';
 import { ImportsModule } from '../imports/imports.module';
@@ -28,6 +29,7 @@ import { TenantMoves } from './tenant-moves';
     NotificationsModule,
     TenantConfigModule,
     FieldModule,
+    PayrollModule,
   ],
   controllers: [DataExportsController, DataRequestsController],
   providers: [

@@ -61,7 +61,10 @@ export class AttendanceService {
     return row?.rule ?? DEFAULT_RULE;
   }
 
-  /** People's days from `from` to `to`, worked out from their shifts. */
+  /**
+   * People's days from `from` to `to`, worked out from their shifts, each saying whether the
+   * person's calendar schedules it.
+   */
   async days(
     tx: TenantTx,
     tenantId: string,
@@ -69,7 +72,7 @@ export class AttendanceService {
     from: string,
     to: string,
     now: Date = new Date(),
-  ): Promise<Map<string, (AttendanceDayResult & { shiftIds: string[] })[]>> {
+  ): Promise<Map<string, (AttendanceDayResult & { shiftIds: string[]; working: boolean })[]>> {
     const { timezone } = await this.config.settings(tx, tenantId);
     const rule = await this.rule(tx, tenantId);
     const today = todayIn(timezone, now);
@@ -104,7 +107,10 @@ export class AttendanceService {
     const calendars = await this.calendars.forPeople(tx, tenantId, employed, from, to);
     const leave = await this.leave.days(tx, tenantId, ids, from, to);
     const fixes = await this.regularised(tx, tenantId, ids, from, to);
-    const result = new Map<string, (AttendanceDayResult & { shiftIds: string[] })[]>();
+    const result = new Map<
+      string,
+      (AttendanceDayResult & { shiftIds: string[]; working: boolean })[]
+    >();
     for (const person of employed) {
       const mine = found.filter((shift) => shift.userId === person.id);
       result.set(
@@ -147,6 +153,8 @@ export class AttendanceService {
             shiftIds: theirs.map((shift) => shift.id),
             holiday: off.holiday,
             regularisation: fix,
+            // A working day on the person's calendar, employed or not (provisional pay, D117).
+            working: off.holiday === null && !off.weeklyOff,
           };
         }),
       );

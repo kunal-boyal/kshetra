@@ -8566,6 +8566,7 @@
                 "leave.requested",
                 "leave.decided",
                 "leave.years_closed",
+                "payroll.gross_changed",
                 "expense_policies.changed",
                 "expense.claimed",
                 "expense.receipts_added",
@@ -8831,6 +8832,7 @@
                               "leave.requested",
                               "leave.decided",
                               "leave.years_closed",
+                              "payroll.gross_changed",
                               "expense_policies.changed",
                               "expense.claimed",
                               "expense.receipts_added",
@@ -12807,6 +12809,7 @@
                           "leave.requested",
                           "leave.decided",
                           "leave.years_closed",
+                          "payroll.gross_changed",
                           "expense_policies.changed",
                           "expense.claimed",
                           "expense.receipts_added",
@@ -16602,6 +16605,255 @@
         }
       }
     },
+    "/v1/payroll": {
+      "get": {
+        "operationId": "PayrollController.list",
+        "summary": "Provisional pay for a month, for everyone the caller reaches (BR-26)",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: payroll.manage",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PayrollMonth"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/payroll-gross/{userId}": {
+      "get": {
+        "operationId": "PayrollController.gross",
+        "summary": "A person's monthly gross, each change with the month it applies from",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: payroll.manage",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollGrossResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "PayrollController.setGross",
+        "summary": "Set a person's monthly gross from a month; earlier months keep theirs",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: payroll.manage",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayrollGrossBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollGrossResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/payslips/{userId}/{period}": {
+      "get": {
+        "operationId": "PayrollController.payslip",
+        "summary": "A person's payslip preview for a month: an attendance-based estimate",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Any one of: payroll.manage, payslip.view",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payslip"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/performance": {
       "get": {
         "operationId": "PerformanceController.person",
@@ -17870,6 +18122,7 @@
                 "leave.requested",
                 "leave.decided",
                 "leave.years_closed",
+                "payroll.gross_changed",
                 "expense_policies.changed",
                 "expense.claimed",
                 "expense.receipts_added",
@@ -23834,6 +24087,7 @@
                               "leave.requested",
                               "leave.decided",
                               "leave.years_closed",
+                              "payroll.gross_changed",
                               "expense_policies.changed",
                               "expense.claimed",
                               "expense.receipts_added",
@@ -31956,6 +32210,7 @@
                   "leave.requested",
                   "leave.decided",
                   "leave.years_closed",
+                  "payroll.gross_changed",
                   "expense_policies.changed",
                   "expense.claimed",
                   "expense.receipts_added",
@@ -33539,7 +33794,8 @@
               "finance_snapshots",
               "ledger_entries",
               "holidays",
-              "external_metrics"
+              "external_metrics",
+              "payroll_gross"
             ]
           },
           {
@@ -33561,7 +33817,8 @@
               "finance_snapshots",
               "ledger_entries",
               "holidays",
-              "external_metrics"
+              "external_metrics",
+              "payroll_gross"
             ]
           },
           {
@@ -37351,6 +37608,235 @@
         ],
         "additionalProperties": false
       },
+      "PayrollGrossBody": {
+        "type": "object",
+        "properties": {
+          "monthlyGross": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "from": {
+            "$ref": "#/components/schemas/Period"
+          }
+        },
+        "required": [
+          "monthlyGross"
+        ],
+        "additionalProperties": false
+      },
+      "PayrollGrossResult": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "$ref": "#/components/schemas/Period"
+                },
+                "monthlyGross": {
+                  "$ref": "#/components/schemas/Money"
+                }
+              },
+              "required": [
+                "from",
+                "monthlyGross"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "changes"
+        ],
+        "additionalProperties": false
+      },
+      "PayrollMonth": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "designation": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "designation"
+            ],
+            "additionalProperties": false
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "monthlyGross": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scheduled": {
+            "type": "number"
+          },
+          "paid": {
+            "type": "number"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "toDate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user",
+          "period",
+          "monthlyGross",
+          "scheduled",
+          "paid",
+          "amount",
+          "toDate"
+        ],
+        "additionalProperties": false
+      },
+      "Payslip": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "designation": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "designation"
+            ],
+            "additionalProperties": false
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "monthlyGross": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scheduled": {
+            "type": "number"
+          },
+          "paid": {
+            "type": "number"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "toDate": {
+            "type": "boolean"
+          },
+          "days": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "future",
+                "not_employed",
+                "present",
+                "half_day",
+                "paid_leave",
+                "unpaid_leave",
+                "holiday",
+                "weekly_off",
+                "absent"
+              ]
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "required": [
+              "future",
+              "not_employed",
+              "present",
+              "half_day",
+              "paid_leave",
+              "unpaid_leave",
+              "holiday",
+              "weekly_off",
+              "absent"
+            ]
+          }
+        },
+        "required": [
+          "user",
+          "period",
+          "monthlyGross",
+          "scheduled",
+          "paid",
+          "amount",
+          "toDate",
+          "days"
+        ],
+        "additionalProperties": false
+      },
       "Percent": {
         "type": "string",
         "pattern": "^(?:100(?:\\.0{1,4})?|\\d{1,2}(?:\\.\\d{1,4})?)$"
@@ -39712,7 +40198,8 @@
           "gps_audit_trail",
           "orders_register",
           "account_statement",
-          "audit_log"
+          "audit_log",
+          "payroll_summary"
         ]
       },
       "ReportPage": {
