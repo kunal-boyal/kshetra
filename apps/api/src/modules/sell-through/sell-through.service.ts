@@ -36,7 +36,7 @@ type Statement = typeof sellThroughStatements.$inferSelect;
 type Line = typeof sellThroughLines.$inferSelect;
 
 /** Numbers as the database keeps them, back to plain decimal strings. */
-const plain = (value: string) => {
+export const plain = (value: string) => {
   const negative = value.startsWith('-');
   const [whole = '0', fraction = ''] = value.replace(/^-/, '').split('.');
   const text = fraction.replace(/0+$/, '') ? `${whole}.${fraction.replace(/0+$/, '')}` : whole;

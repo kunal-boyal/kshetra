@@ -90,11 +90,11 @@
 - The sync entity and its local table, the screen, and the outbox kind with its sender and label.
 - The account screen's action.
 - The agri demo records each distributor's and retailer's statement monthly, through `DemoKit`.
-- [ ] Tests:
+- [x] Tests:
   - Jest for the screen and the live sum;
   - `device.int.test.ts`: a statement saved offline syncs and counts;
   - demo content.
 
 #### Task 5: finish
 
-- [ ] Decision D124, spec BR-53, M11 and Appendix B, `CLAUDE.md`, the progress row and tracker. `pnpm verify` before each merge.
+- [x] Decision D124, spec BR-53, M11 and Appendix B, `CLAUDE.md`, the progress row and tracker. `pnpm verify` before each merge.

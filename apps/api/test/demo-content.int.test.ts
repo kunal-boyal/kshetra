@@ -147,6 +147,15 @@ describe('demo content (decision D70)', () => {
         [tenantId],
       );
       expect(analytics).toEqual({ layouts: 1, schedules: 1 });
+      // Distributors and retailers gave this month's stock statement, liquidation in agri (D124).
+      expect(counts.statements).toBeGreaterThan(0);
+      const [stock] = await sql<{ statements: number; lines: number }>(
+        `select (select count(*)::int from cell.sell_through_statements where tenant_id = $1) as statements,
+                (select count(*)::int from cell.sell_through_lines where tenant_id = $1) as lines`,
+        [tenantId],
+      );
+      expect(stock!.statements).toBe(counts.statements);
+      expect(stock!.lines).toBeGreaterThan(stock!.statements);
 
       // A tenant is filled once, and only a demo tenant.
       await expect(fill({ slug, days: 1, seed: 3, log: () => {} })).rejects.toThrow(
