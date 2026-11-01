@@ -126,6 +126,11 @@ export const SETTINGS_GROUPS = [
         label: (t) => t('prices.title'),
         shown: can('price_list.manage'),
       },
+      {
+        to: '/settings/schemes',
+        label: (t) => t('schemes.title'),
+        shown: can('scheme.manage'),
+      },
     ],
   },
   {

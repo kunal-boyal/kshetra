@@ -275,6 +275,7 @@ export function AppShell() {
       access.can('form.manage') ||
       access.can('catalogue.manage') ||
       access.can('price_list.manage') ||
+      access.can('scheme.manage') ||
       access.can('territory.manage') ||
       access.can('metric.manage'),
     { to: '/settings', icon: Settings, label: t('nav.settings') },

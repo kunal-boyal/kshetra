@@ -5,6 +5,7 @@ import {
   type SchemeRef,
   schemeApplies,
   schemeBenefit,
+  schemeCart,
   schemeRuleIssues,
 } from './schemes';
 
@@ -179,5 +180,45 @@ describe('BR-55: schemes on orders', () => {
       }).map((issue) => issue.path),
     ).toEqual(['rule.slabs.1.from', 'rule.slabs.1.percent']);
     expect(schemeRuleIssues('free_goods', { buy: '10', get: '1' })).toEqual([]);
+  });
+});
+
+describe('a cart with its schemes (BR-55)', () => {
+  it('prices each line after its scheme and lists the free goods to quote', () => {
+    const percent = scheme('five_off', { rule: { percent: '5' }, itemIds: ['neem'] });
+    const tenPlusOne = scheme('ten_plus_one', {
+      kind: 'free_goods',
+      itemIds: ['urea'],
+      rule: { buy: '10', get: '1' },
+    });
+    const cart = schemeCart(
+      [
+        { ...line('neem', '24', '8640.00'), taxRate: '18', tax: '1555.20', total: '10195.20' },
+        { ...line('urea', '36', '3248.28'), taxRate: '18', tax: '584.69', total: '3832.97' },
+        { ...line('mop', '5', '500.00'), taxRate: '5', tax: '25.00', total: '525.00' },
+      ],
+      [percent, tenPlusOne],
+      ACCOUNT,
+      DATE,
+      () => null,
+    );
+    expect(
+      cart.lines.map(({ taxable, tax, total, quoted }) => ({ taxable, tax, total, quoted })),
+    ).toEqual([
+      {
+        taxable: '8208.00',
+        tax: '1477.44',
+        total: '9685.44',
+        quoted: { key: 'five_off', discount: '432.00' },
+      },
+      {
+        taxable: '3248.28',
+        tax: '584.69',
+        total: '3832.97',
+        quoted: { key: 'ten_plus_one', discount: '0.00' },
+      },
+      { taxable: '500.00', tax: '25.00', total: '525.00', quoted: null },
+    ]);
+    expect(cart.free).toEqual([{ itemId: 'urea', baseUnits: '3.000', ofItemId: 'urea' }]);
   });
 });

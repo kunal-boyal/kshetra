@@ -345,6 +345,11 @@ describe('schemes (D127)', () => {
       territoryIds: [t.market],
       rule: { percent: '3' },
     });
+    // The order desk and the phone read the schemes that may reach the account.
+    const reaching = (await t.api.sme.get(`/v1/accounts/${t.distributor}/schemes`)).json();
+    expect(reaching.account).toMatchObject({ type: 'distributor' });
+    expect(reaching.account.territories[0]).toBe(t.market);
+    expect(reaching.schemes.map((entry: { key: string }) => entry.key)).toEqual(['this_market']);
     const placed = await t.api.sme.post(
       '/v1/orders',
       t.order([t.line(t.urea, '2', { key: 'this_market', discount: '64.97' })]),

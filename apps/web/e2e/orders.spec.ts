@@ -43,7 +43,13 @@ const LINE = {
   taxable: '8640.00',
   tax: '1555.20',
   total: '10195.20',
-  scheme: null,
+  // The line's scheme, shown under its item (D127).
+  scheme: {
+    key: 'monsoon',
+    name: { en: 'Monsoon offer', hi: 'मानसून ऑफ़र' },
+    kind: 'percentage',
+    discount: '432.00',
+  },
   freeOfLineId: null,
   decision: 'pending',
   decisionReason: null,

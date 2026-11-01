@@ -1280,6 +1280,7 @@ export {
 } from './schemas/approvals';
 export {
   afterScheme,
+  type CartLine,
   type ChosenScheme,
   chooseSchemes,
   SCHEME_KINDS,
@@ -1294,9 +1295,12 @@ export {
   type SchemeSlab,
   schemeApplies,
   schemeBenefit,
+  schemeCart,
   schemeRuleIssues,
 } from './schemes';
 export {
+  AccountSchemesQuery,
+  AccountSchemesResult,
   QuotedFree,
   QuotedScheme,
   SchemeBody,

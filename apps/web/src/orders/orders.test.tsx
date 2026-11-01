@@ -54,6 +54,8 @@ function line(id: string, itemId: string, code: string, overrides: Record<string
     taxable: '8640.00',
     tax: '1555.20',
     total: '10195.20',
+    scheme: null,
+    freeOfLineId: null,
     decision: 'pending',
     decisionReason: null,
     fulfilledUnits: null,
@@ -413,6 +415,11 @@ describe('the order desk', () => {
             { itemId: NEEM, listId: LIST, price: '400.00', discount: '10.0000', rate: '360.00' },
           ],
         },
+        [`/v1/accounts/${SHOP}/schemes`]: {
+          date: '2026-10-24',
+          account: { type: 'retailer', territories: [] },
+          schemes: [],
+        },
       },
       {
         'POST /v1/orders': () => {
@@ -477,5 +484,202 @@ describe('the order desk', () => {
         },
       },
     ]);
+  });
+});
+
+describe('schemes on orders (D127)', () => {
+  const FREE_LINE = '01a10000-0000-7000-8000-0000000000f3';
+  const scheme = (key: string, kind: string) => ({ key, name: { en: key, hi: key }, kind });
+
+  it('shows each line’s scheme and the goods given free, and decides only the paid lines', async () => {
+    const client = fakeClient(
+      {
+        [`/v1/orders/${ORDER}`]: order({
+          can: { decide: true, decideLines: true, fulfil: false },
+          lines: [
+            line(NEEM_LINE, NEEM, 'NEEM', {
+              taxable: '8160.00',
+              tax: '1468.80',
+              total: '9628.80',
+              scheme: { ...scheme('Twenty a pack', 'flat_per_unit'), discount: '480.00' },
+            }),
+            line(UREA_LINE, UREA, 'UREA', {
+              position: 2,
+              scheme: { ...scheme('Ten plus one', 'free_goods'), discount: '0.00' },
+            }),
+            line(FREE_LINE, UREA, 'UREA', {
+              position: 3,
+              unitKey: 'pack',
+              quantity: '2.000',
+              baseUnits: '2.000',
+              price: '0.00',
+              rate: '0.00',
+              taxable: '0.00',
+              tax: '0.00',
+              total: '0.00',
+              scheme: { ...scheme('Ten plus one', 'free_goods'), discount: '0.00' },
+              freeOfLineId: UREA_LINE,
+            }),
+          ],
+        }),
+      },
+      {
+        [`POST /v1/orders/${ORDER}/line-decisions`]: () => order({ status: 'accepted' }),
+      },
+      ['order.view', 'order.decide', 'order.line_decide'],
+      BUNDLE,
+    );
+    renderAt(`/orders/${ORDER}`, client);
+    const user = userEvent.setup();
+    const lines = await screen.findByRole('table', { name: /Lines/ });
+    expect(within(lines).getByText('Twenty a pack: ₹480.00 off')).toBeVisible();
+    expect(within(lines).getAllByText('Scheme: Ten plus one')).toHaveLength(1);
+    expect(within(lines).getByText('Free goods')).toBeVisible();
+    // The free line follows its line: it is not decided on its own.
+    expect(screen.getAllByRole('combobox', { name: /^Decision on/ })).toHaveLength(2);
+    await user.click(screen.getByRole('button', { name: 'Save the decisions' }));
+    await waitFor(() =>
+      expect((writesOf(client)[0]![3] as { body: { lines: unknown[] } }).body.lines).toEqual([
+        { lineId: NEEM_LINE, decision: 'accepted' },
+        { lineId: UREA_LINE, decision: 'accepted' },
+      ]),
+    );
+  });
+
+  it('applies the best scheme at the order desk and quotes it, with the free goods', async () => {
+    const item = (id: string, code: string) => ({
+      id,
+      code,
+      name: `${code} item`,
+      product: { id: '01a10000-0000-7000-8000-0000000000d0', name: 'Field care' },
+      category: null,
+      packLabel: null,
+      hsn: null,
+      taxRate: '18.0000',
+      mrp: null,
+      baseUnit: 'pack',
+      units: [
+        { key: 'pack', factor: '1.000' },
+        { key: 'case', factor: '12.000' },
+      ],
+      measureType: null,
+      measurePerBaseUnit: null,
+      custom: {},
+      active: true,
+    });
+    const defined = (id: string, key: string, kind: string, rule: object, itemIds: string[]) => ({
+      id,
+      key,
+      name: { en: key, hi: key },
+      kind,
+      rule,
+      itemIds,
+      categoryIds: [],
+      accountTypeKeys: [],
+      territoryIds: [],
+      validFrom: '2026-01-01',
+      validTo: null,
+      active: true,
+      version: 1,
+      updatedAt: '2026-10-01T00:00:00.000Z',
+    });
+    const client = fakeClient(
+      {
+        '/v1/account-types': {
+          items: [
+            {
+              id: '01a10000-0000-7000-8000-000000000070',
+              key: 'retailer',
+              name: noun('Retailer', 'Retailers'),
+              active: true,
+            },
+          ],
+        },
+        '/v1/accounts': {
+          items: [{ id: SHOP, code: 'R-1', name: 'Sharma Agro' }],
+          nextCursor: null,
+        },
+        '/v1/catalogue': {
+          version: 1,
+          units: BUNDLE.catalogue.units,
+          measureTypes: [],
+          items: [item(NEEM, 'NEEM'), item(UREA, 'UREA')],
+        },
+        [`/v1/accounts/${SHOP}/prices`]: {
+          date: '2026-10-24',
+          lists: [{ id: LIST, name: 'Standard', scope: 'default' }],
+          items: [
+            { itemId: NEEM, listId: LIST, price: '400.00', discount: '10.0000', rate: '360.00' },
+            { itemId: UREA, listId: LIST, price: '90.23', discount: '0.0000', rate: '90.23' },
+          ],
+        },
+        [`/v1/accounts/${SHOP}/schemes`]: {
+          date: '2026-10-24',
+          account: { type: 'retailer', territories: [] },
+          schemes: [
+            defined(
+              '01a10000-0000-7000-8000-0000000000e1',
+              'five_off',
+              'percentage',
+              { percent: '5' },
+              [],
+            ),
+            defined(
+              '01a10000-0000-7000-8000-0000000000e2',
+              'twenty_a_pack',
+              'flat_per_unit',
+              { amount: '20' },
+              [NEEM],
+            ),
+            defined(
+              '01a10000-0000-7000-8000-0000000000e3',
+              'ten_plus_one',
+              'free_goods',
+              { buy: '12', get: '1' },
+              [UREA],
+            ),
+          ],
+        },
+      },
+      { 'POST /v1/orders': () => order() },
+      ['order.create', 'order.view', 'account.view'],
+      BUNDLE,
+    );
+    renderAt('/orders/new', client);
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByRole('searchbox', { name: 'Find by name or code' }),
+      'sharma',
+    );
+    await user.click(await screen.findByRole('button', { name: 'Sharma Agro (R-1)' }));
+    const add = await screen.findByRole('form', { name: 'Add' });
+    for (const [id, cases] of [
+      [NEEM, '2'],
+      [UREA, '1'],
+    ] as const) {
+      await waitFor(() => expect(within(add).getAllByRole('option').length).toBeGreaterThan(2));
+      await user.selectOptions(within(add).getByRole('combobox', { name: 'Item' }), id);
+      await user.selectOptions(within(add).getByRole('combobox', { name: 'Unit' }), 'case');
+      await user.type(within(add).getByRole('textbox', { name: 'Quantity' }), cases);
+      await user.click(within(add).getByRole('button', { name: 'Add' }));
+    }
+    const lines = screen.getByRole('table', { name: 'Lines' });
+    // FX-55: 20 a pack beats 5% on neem; urea's free goods are worth more than 5% of it.
+    const neem = within(lines).getByRole('row', { name: /NEEM item/ });
+    expect(neem).toHaveTextContent('twenty_a_pack: ₹480.00 off');
+    expect(neem).toHaveTextContent('₹9,628.80');
+    expect(within(lines).getByRole('row', { name: /UREA item/ })).toHaveTextContent(
+      '1 pack of UREA item free',
+    );
+    await user.click(screen.getByRole('button', { name: 'Place the order' }));
+    await waitFor(() => expect(writesOf(client)).toHaveLength(1));
+    const body = (
+      writesOf(client)[0]![3] as { body: { lines: { quoted: object }[]; free: object[] } }
+    ).body;
+    expect(body.lines.map((entry) => (entry.quoted as { scheme: unknown }).scheme)).toEqual([
+      { key: 'twenty_a_pack', discount: '480.00' },
+      { key: 'ten_plus_one', discount: '0.00' },
+    ]);
+    expect(body.free).toEqual([{ itemId: UREA, baseUnits: '1.000', ofItemId: UREA }]);
   });
 });
