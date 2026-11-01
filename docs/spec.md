@@ -243,6 +243,7 @@ Every noun that varies by industry resolves through a terminology key, with a de
 | `term.plan_item` | Planned visit | Beat, Call plan |
 | `term.target` | Target | Goal, Budget |
 | `term.order` | Order | POB, Indent, Booking |
+| `term.sell_through` | Sell-through | Liquidation, Secondary stock statement |
 | `term.punch_in` / `term.punch_out` | Start day / End day | Punch in / Punch out |
 
 Account types, forms, metrics and designations carry their own singular and plural names in each enabled language, so they need no separate keys.
@@ -606,6 +607,7 @@ Acceptance criteria:
 - Statement entries: append-only debits and credits with date, reference and description. Corrections are reversing entries.
 - Invoice and receipt registers (D121): invoices (number, date, due date, amount) and receipts or credit notes (number, date, amount, the invoices they pay) from the customer's books, keyed by number; a document sent again changed is updated and audited, and a cancelled one leaves the ageing. Once an account has invoices, its outstanding and ageing are worked out from them (BR-51), for the account view, the order credit check and the outstanding report; accounts without keep their snapshots.
 - Loaded by import or API (usually from the customer's ERP) or entered by back office.
+- Sell-through by item (D124): accounts of a type that reports it give a monthly stock statement per item: opening (carried from last month's closing), received, returned and closing, from which sold-through follows (BR-53). It is captured on the phone at the account, or loaded by import or the bulk API. Each save is a version, and the latest counts; a month may change until the 5th of the next, after which it answers `PERIOD_CLOSED`. Lines are valued at the account's price list on the day the statement counts on, and odd figures are flagged, never refused. The `sell_through` metric source sums value or quantity, and the `sell_through` report lists each item. Templates name it, such as liquidation in agri.
 - Account view: latest snapshot, opening and closing balance for the financial year, statement with running balance (first 1,000 entries; export of the list disabled when truncated), orders and visits this year.
 
 Rules: BR-20, BR-21, BR-22.
@@ -826,6 +828,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-50 | Anomalies in evidence flag a submission for reviewers and never refuse it. A photo is far when it is more than 150 m from its record beyond both fixes' accuracies, each counting up to 100 m. Travel is too fast when the submission and another of the person's records (submission, check-in, check-out, punch-in or punch-out within 12 hours) are at least 5 km apart in a straight line and closer in time than 100 km/h allows. A burst is three or more of the person's records within 10 minutes at three or more places; records are at one place when at one account, or, where either has no account, within 300 m. Capture outside the person's shifts is flagged where the form allows it. Mock history is a photo with a mocked fix of its own, or a mocked fix the person's phone reported refusing in the 30 days before the capture. A pair or burst also flags the person's other submissions in it while they wait for review. |
 | BR-51 | Invoices and receipts (D121): an invoice without a due date is due its credit days after its date, else the tenant's default credit days (30). Receipts, oldest first, settle the invoices they name in the order named, as far as each is open, then the account's oldest open invoices by due date, date and number; what is left after every invoice is an advance. Cancelled documents take no part. On a day, an open invoice due after it is not yet due; otherwise it is overdue and aged by days past due into the tenant's buckets. Outstanding is the open invoices less any advance. |
 | BR-52 | Scheduled reports (D122): a schedule owes, at any moment, only the latest send moment on the tenant's clock that came after it started or was last resumed or retimed, so a send missed while nothing ran goes once and never once for each moment missed; each send is keyed by its local date and made once. A monthly send reports the month before; a weekly send reports the month of the day before it, so a send on the 1st reports last month complete |
+| BR-53 | Sell-through by item (D124): sold through = opening + received − returned − closing, per item and month, in the item's base unit; opening comes forward from last month's closing, and an opening typed otherwise, or a negative sold-through, is flagged, never refused. A month's statement may change while it runs and for 5 days after; each save is a new version keeping the items it doesn't change, and the latest counts. It counts for whoever saved the latest version (for an import, the account's first-slot holder that day, else the importer) on the day it was saved, or the month's last day when saved after it, valued at the account's price that day before tax |
 
 ## 8. Screens and user experience
 
@@ -1302,6 +1305,10 @@ invoices(id, tid, account_id, number, date, due_date, amount, cancelled, source,
        created_by, updated_by, row_version)                                  UQ(tid, number) · IX(tid, account_id, due_date)
 receipts(id, tid, account_id, number, date, amount, kind enum(receipt,credit_note), against text[],
        cancelled, source, import_id NULL, created_by, updated_by, row_version) UQ(tid, number)
+sell_through_statements(id, tid, account_id, period, version, recorded_by, recorded_at, credited_on,
+       value NULL, flags[], row_version)                     UQ(tid, account_id, period, version) (D124)
+sell_through_lines(tid, statement_id, item_id, opening, received, returned, closing, sold,
+       unit_price NULL, value NULL, flags[])                 PK(tid, statement_id, item_id)
 
 ── People operations ─────────────────────────────────────────────────────────────
 calendars(tid, key, name jsonb, weekly_offs int[], is_default)               PK(tid, key) · one default (D80)
@@ -1505,6 +1512,7 @@ App upgrades: local database migrations are versioned and run at app start befor
 | `MEDIA_NOT_READY` | 409 | Retry after the media item uploads |
 | `PRICE_CHANGED` | 409 | Refresh the catalogue and rebuild the cart |
 | `TARGET_LOCKED` | 409 | Refresh |
+| `PERIOD_CLOSED` | 409 | The month's stock statement can no longer change (BR-53) |
 | `NOT_CURRENT_APPROVER` | 409 | Refresh the inbox |
 | `QUOTA_EXCEEDED` | 409 | Show the leave balance or claim cap |
 | `IMPORT_ERRORS` | 400 | Show row errors |
@@ -1849,10 +1857,10 @@ Each template is a JSON file at `packages/templates/<key>/template.json`, valida
   - Farmer visit: `farmer`*, `village`*, `crop`*, `product`, `outcome`* (long text).
   - Farmer meeting: `village`*, `meeting_size`* (Small, Large, Mega), `attendees`* (number), `crop`*, `product`*, `outcome`*.
   - Product demo or trial: `farmer`*, `village`*, `crop`*, `product`*, `area`* (acres), `stage`* (Application, Follow-up, Result or field day), `observation`*.
-  - Distributor visit: Distributor account required, visit session; `purpose`* (Sales; Collection; Liquidation; Sales + Collection; Sales + Collection + Liquidation; Relationship or follow-up), `contact`*, `reference`, `outcome`*, `sales`, `collection` and `liquidation` (currency).
+  - Distributor visit: Distributor account required, visit session; `purpose`* (Sales; Collection; Liquidation; Sales + Collection; Sales + Collection + Liquidation; Relationship or follow-up), `contact`*, `reference`, `outcome`*, `sales` and `collection` (currency). Distributors and retailers give a monthly stock statement, called liquidation (D124).
   - Retailer visit: Retailer account; `market`*, `product`, `outcome`*.
   - New distributor appointment: `distributor_name`*, `market`*, `value_add`* (currency), `reference`*.
-- Metrics: demand activities (count of farmer visits, farmer meetings, product demos, distributor visits and retailer visits), sales, collection and liquidation (sums of the distributor visit fields), appointments, active days, commercially active distributors (distinct accounts in that segment), order value.
+- Metrics: demand activities (count of farmer visits, farmer meetings, product demos, distributor visits and retailer visits), sales and collection (sums of the distributor visit fields), liquidation (the value sold through by distributors' and retailers' stock statements, D124), appointments, active days, commercially active distributors (distinct accounts in that segment), order value.
 - Score: sales 25, collection 25, liquidation 25, demand activities 25; cap 1.0; ranking group SME.
 - Catalogue settings: base unit pack, alternate unit case, measure in kg or L, GST per item, per-pack rounding first.
 - Distributor master aliases: `distributorcode`, `distrinutorcode` (a common typo), `code` → code; `nameofdistributors`, `nameofdistributor`, `distributorname` → name; `asm`, `asmname` → slot `asm`; `tmso`, `tm`, `so`, `territorymanager` → slot `tm_so`; `sme`, `smename` → slot `sme`. "No TM", "No SME" and "-" mean empty.
@@ -1981,6 +1989,7 @@ Routes: Employee code*, Route name*, Recurrence* (for example `MON`, `TUE,FRI` o
 | Invoices | Invoice number* (upsert key), Account code*, Invoice date*, Amount*, Due date, Credit days, Status (open or cancelled) |
 | Receipts and credit notes | Receipt number* (upsert key), Account code*, Receipt date*, Amount*, Kind (receipt or credit note), Against invoices (numbers separated by `;`), Status |
 | External metric values | Metric key*, Date or Period*, Employee code or Account code*, Value* |
+| Sell-through by item (D124) | Account code*, Month*, Item code*, Opening (last month's closing when blank), Received*, Returned, Closing*; each account's month is one new version |
 
 ### B.7 Holidays and payroll gross
 
@@ -2172,6 +2181,9 @@ Each example becomes at least one automated test.
 | FX-46 | BR-52 | Weekly on Monday at 08:00; asked on Monday 2 November 2026 at 07:59, then at 08:00 | Latest send 26 October, then 2 November; next 2 November, then 9 November |
 | FX-47 | BR-52 | A weekly send on Monday 1 February 2027; a monthly send on 1 January 2027 | Reports January 2027; reports December 2026 |
 | FX-48 | BR-52 | Weekly on Monday at 08:00, running since 1 October; asked on 28 October at 10:00 after three weeks with nothing running. Started on Monday 2 November at 09:00 | One send, for 26 October. Nothing until 9 November |
+| FX-49 | BR-53 | Last month closed with 40; this month received 100, returned 5, closes at 60 | Sold through 75, no flags; an opening of 45 instead is flagged as changed |
+| FX-50 | BR-53 | Opening 10, nothing received, closing 14; price 99.99 | Sold through −4, flagged; value −399.96 |
+| FX-51 | BR-53 | October's statement changed on 3 November; on 6 November | Accepted, counting on 31 October; refused with `PERIOD_CLOSED` |
 
 ## Appendix E. Permission catalogue
 
@@ -2185,7 +2197,7 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | Performance | `performance.view_team`, `leaderboard.view`, `metric.record` (loading external metric values, decision D94) |
 | Maps | `live_map.view`, `trail.view` |
 | People | `user.view`, `user.manage`, `user.reset_device`, `user.sign_out_all`, `role.manage`, `designation.manage` |
-| Territories and accounts | `territory.manage`, `account.view`, `account.manage`, `account.import`, `account.approve` |
+| Territories and accounts | `territory.manage`, `account.view`, `account.manage`, `account.import`, `account.approve`, `sell_through.record` (D124) |
 | Configuration | `settings.manage`, `terminology.manage`, `form.manage`, `metric.manage`, `workflow.manage`, `policy.manage`, `notification_template.manage`, `module.manage` |
 | Catalogue and orders | `catalogue.manage`, `price_list.manage`, `order.create`, `order.create_without_shift`, `order.view`, `order.decide`, `order.line_decide`, `order.fulfil` |
 | Finance | `finance.view`, `finance.manage` |

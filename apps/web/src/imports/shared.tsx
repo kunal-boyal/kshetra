@@ -88,6 +88,15 @@ const FIELD_KEYS = {
   holidays: ['calendar', 'date', 'name', 'optional'],
   external_metrics: ['metric', 'date', 'period', 'employee_code', 'account_code', 'value'],
   payroll_gross: ['code', 'gross', 'from'],
+  sell_through: [
+    'account_code',
+    'month',
+    'item_code',
+    'opening',
+    'received',
+    'returned',
+    'closing',
+  ],
 } as const satisfies Record<string, readonly string[]>;
 
 /** A field's name in the reader's language: its own label, or the app's word for it. */

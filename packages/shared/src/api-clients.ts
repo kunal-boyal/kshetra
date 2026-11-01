@@ -29,8 +29,8 @@ export const API_SCOPES = {
   'finance:write': ['finance.view', 'finance.manage'],
   'targets:read': ['target.view'],
   'targets:write': ['target.view', 'target.edit'],
-  /** External metric values, such as secondary sales from an ERP. */
-  'metrics:write': ['metric.record'],
+  /** External metric values, such as secondary sales from an ERP, and stock statements (D124). */
+  'metrics:write': ['metric.record', 'sell_through.record'],
   'reports:read': ['report.view', 'export.create'],
   'audit:read': ['audit.view'],
 } as const satisfies Record<string, readonly TenantPermission[]>;

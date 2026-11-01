@@ -7,6 +7,7 @@ import { ImportsModule } from '../imports/imports.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { OrdersModule } from '../orders/orders.module';
 import { PlanningModule } from '../planning/planning.module';
+import { SellThroughModule } from '../sell-through/sell-through.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { DashboardLayoutsService } from './dashboard-layouts.service';
@@ -34,6 +35,7 @@ import { PerformanceUpkeep } from './performance.upkeep';
     TenantConfigModule,
     TerritoriesModule,
     ImportsModule,
+    SellThroughModule,
   ],
   controllers: [PerformanceController, MetricsAdminController],
   providers: [

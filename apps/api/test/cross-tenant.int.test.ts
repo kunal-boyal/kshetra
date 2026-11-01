@@ -400,6 +400,7 @@ const FIXTURES: Record<string, Fixture> = {
         'invoices',
         'receipts',
         'external-metrics',
+        'sell-through',
       ] as const
     ).map((target) => [
       `POST /v1/bulk/${target}`,
@@ -2740,6 +2741,42 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/receipts`), aAccountId),
   },
+  'GET /v1/accounts/:id/sell-through': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB(
+            'GET',
+            `/v1/accounts/${id}/sell-through?period=${todayIn('Asia/Kolkata').slice(0, 7)}`,
+          ),
+        aAccountId,
+      ),
+  },
+  'GET /v1/accounts/:id/sell-through/:period/versions/:version': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB(
+            'GET',
+            `/v1/accounts/${id}/sell-through/${todayIn('Asia/Kolkata').slice(0, 7)}/versions/1`,
+          ),
+        aAccountId,
+      ),
+  },
+  'PUT /v1/accounts/:id/sell-through/:period': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('PUT', `/v1/accounts/${id}/sell-through/${todayIn('Asia/Kolkata').slice(0, 7)}`, {
+            id: newId(),
+            lines: [{ itemId: newId(), received: '1', closing: '0' }],
+          }),
+        aAccountId,
+      ),
+  },
   'GET /v1/accounts/:id/prices': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/prices`), aAccountId),
@@ -3015,6 +3052,18 @@ beforeAll(async () => {
      values ($1, $2, 'casual', make_date(extract(year from current_date)::int - 1, 1, 1),
        make_date(extract(year from current_date)::int - 1, 12, 31), 12, 0, 4, 5, 3, 5)`,
     [a.tenantId, a.member.id],
+  );
+  // A's account has a stock statement this month (BR-53, decision D124).
+  const aStatementId = newId();
+  await admin(
+    `insert into cell.sell_through_statements (id, tenant_id, account_id, period, version, recorded_by, credited_on)
+     values ($1, $2, $3, to_char(current_date, 'YYYY-MM'), 1, $4, current_date)`,
+    [aStatementId, a.tenantId, aAccountId, a.member.id],
+  );
+  await admin(
+    `insert into cell.sell_through_lines (tenant_id, statement_id, item_id, opening, received, returned, closing, sold)
+     values ($1, $2, $3, 0, 10, 0, 4, 6)`,
+    [a.tenantId, aStatementId, aItemId],
   );
   // A's member's phone refused a mocked fix (BR-50, decision D119).
   await admin(

@@ -14,6 +14,7 @@ import { MetricsModule } from '../metrics/metrics.module';
 import { MediaUrls } from '../media/media-urls';
 import { PayrollModule } from '../payroll/payroll.module';
 import { PerformanceModule } from '../performance/performance.module';
+import { SellThroughModule } from '../sell-through/sell-through.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { WorkflowModule } from '../workflow/workflow.module';
@@ -29,6 +30,7 @@ import { LocationSummaryReport } from './location-summary';
 import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
 import { OutstandingReport } from './outstanding';
+import { SellThroughReport } from './sell-through';
 import { AuditLogReport } from './audit-log-report';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
@@ -61,6 +63,7 @@ import { TargetAchievementReport } from './target-achievement';
     MediaModule,
     MetricsModule,
     WorkflowModule,
+    SellThroughModule,
   ],
   controllers: [ReportsController, ReportSchedulesController],
   providers: [
@@ -82,6 +85,7 @@ import { TargetAchievementReport } from './target-achievement';
     OrdersRegisterReport,
     AccountStatementReport,
     OutstandingReport,
+    SellThroughReport,
     AuditLogReport,
   ],
   exports: [ReportSchedulesService],

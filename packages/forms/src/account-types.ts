@@ -80,6 +80,10 @@ export const AccountType = z
     contacts: z.boolean().default(false).meta({
       description: 'Whether accounts of this type hold contact people',
     }),
+    sellThrough: z.boolean().default(false).meta({
+      description:
+        'Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)',
+    }),
   })
   .meta({ id: 'AccountType' });
 

@@ -24,6 +24,7 @@ export const COMPUTED_SOURCES = [
   'order_value',
   'order_quantity',
   'order_lines',
+  'sell_through',
   'productive_visits',
   'external',
   'ratio',
@@ -123,6 +124,11 @@ export interface DayRecords {
    * D97). Absent where none were loaded.
    */
   newAccounts?: readonly { typeKey: string; status: 'pending' | 'active' | 'inactive' }[];
+  /**
+   * Stock statement lines credited to the person that day (BR-53, decision D124): what each item
+   * sold through, and its value when the item had a price. Absent where none were loaded.
+   */
+  sellThrough?: readonly { itemCode: string; sold: string; value: string | null }[];
 }
 
 /** One metric's fact for one person and day. */
@@ -339,6 +345,14 @@ export function calculateDay(
       const active = ofType.filter((account) => account.status === 'active').length;
       const pending = ofType.filter((account) => account.status === 'pending').length;
       return fact(key, count(active), { pending: count(pending) });
+    }
+    case 'sell_through': {
+      let total = 0n;
+      for (const line of day.sellThrough ?? []) {
+        if (source.items && !source.items.includes(line.itemCode)) continue;
+        total += thousandths(source.measure === 'value' ? line.value : line.sold) ?? 0n;
+      }
+      return fact(key, decimal(total));
     }
     case 'external': {
       let total = 0n;

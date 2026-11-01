@@ -108,6 +108,32 @@ describe("a person's day (spec 5.7)", () => {
     expect(facts[0]).toMatchObject({ value: '1000.300', pending: '50.000' });
   });
 
+  it('sums sell-through by value or quantity, for chosen items (BR-53, D124)', () => {
+    const facts = byKey(
+      calculateDayFacts(
+        [
+          metric('liquidation', 'currency', { type: 'sell_through', measure: 'value' }),
+          metric('units', 'quantity', { type: 'sell_through', measure: 'quantity' }),
+          metric('urea', 'quantity', {
+            type: 'sell_through',
+            measure: 'quantity',
+            items: ['UREA'],
+          }),
+        ],
+        day({
+          sellThrough: [
+            { itemCode: 'UREA', sold: '75.000', value: '9000.00' },
+            { itemCode: 'DAP', sold: '-4.000', value: null },
+            { itemCode: 'MOP', sold: '2.500', value: '310.25' },
+          ],
+        }),
+      ),
+    );
+    expect(facts.liquidation!.value).toBe('9310.250');
+    expect(facts.units!.value).toBe('73.500');
+    expect(facts.urea!.value).toBe('75.000');
+  });
+
   it('keeps the distinct accounts visited, by type and segment', () => {
     const facts = byKey(
       calculateDayFacts(

@@ -1,13 +1,17 @@
 {
   "$schema": "../schema.json",
   "key": "agri",
-  "version": 4,
+  "version": 5,
   "name": { "en": "Agri inputs", "hi": "कृषि इनपुट" },
   "description": {
     "en": "For seed, crop protection and fertiliser companies: distributors, retailers and farmers; farmer meetings, demos and distributor visits that record sales, collection and liquidation; orders by the case.",
     "hi": "बीज, फ़सल सुरक्षा और उर्वरक कंपनियों के लिए: डिस्ट्रीब्यूटर, रिटेलर और किसान; किसान मीटिंग, डेमो और डिस्ट्रीब्यूटर विज़िट, जिनमें बिक्री, वसूली और लिक्विडेशन दर्ज होते हैं; केस के हिसाब से ऑर्डर।"
   },
   "terminology": {
+    "term.sell_through": {
+      "en": { "one": "Liquidation", "other": "Liquidation" },
+      "hi": { "one": "लिक्विडेशन", "other": "लिक्विडेशन" }
+    },
     "term.field_user": {
       "en": { "one": "SME", "other": "SMEs" },
       "hi": { "one": "एसएमई", "other": "एसएमई" }
@@ -97,7 +101,8 @@
         "audit.view",
         "api_client.manage",
         "webhook.manage",
-        "billing.manage"
+        "billing.manage",
+        "sell_through.record"
       ]
     },
     {
@@ -169,7 +174,8 @@
         "export.create",
         "report.schedule",
         "import.run",
-        "audit.view"
+        "audit.view",
+        "sell_through.record"
       ]
     },
     {
@@ -211,7 +217,8 @@
         "payslip.view",
         "report.view",
         "export.create",
-        "report.schedule"
+        "report.schedule",
+        "sell_through.record"
       ]
     },
     {
@@ -234,7 +241,8 @@
         "regularisation.request",
         "expense.claim",
         "payslip.view",
-        "finance.view"
+        "finance.view",
+        "sell_through.record"
       ],
       "mobileOnly": true
     },
@@ -354,6 +362,7 @@
   "accountTypes": [
     {
       "key": "distributor",
+      "sellThrough": true,
       "name": {
         "en": { "one": "Distributor", "other": "Distributors" },
         "hi": { "one": "डिस्ट्रीब्यूटर", "other": "डिस्ट्रीब्यूटर" }
@@ -415,6 +424,7 @@
     },
     {
       "key": "retailer",
+      "sellThrough": true,
       "name": {
         "en": { "one": "Retailer", "other": "Retailers" },
         "hi": { "one": "रिटेलर", "other": "रिटेलर" }
@@ -784,20 +794,6 @@
               }
             ]
           }
-        },
-        {
-          "key": "liquidation",
-          "type": "currency",
-          "label": { "en": "Liquidation", "hi": "लिक्विडेशन" },
-          "visibleWhen": {
-            "clauses": [
-              {
-                "field": "purpose",
-                "op": "in",
-                "value": ["liquidation", "sales_collection_liquidation"]
-              }
-            ]
-          }
         }
       ]
     },
@@ -923,11 +919,7 @@
         "hi": { "one": "लिक्विडेशन", "other": "लिक्विडेशन" }
       },
       "unit": "currency",
-      "source": {
-        "type": "submission_field_sum",
-        "forms": ["distributor_visit"],
-        "field": "liquidation"
-      }
+      "source": { "type": "sell_through", "measure": "value" }
     },
     {
       "key": "appointments",

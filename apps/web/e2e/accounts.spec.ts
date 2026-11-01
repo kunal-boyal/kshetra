@@ -357,7 +357,7 @@ const ANSWERS: Record<string, unknown> = {
   },
 };
 
-async function mockSignedIn(page: Page) {
+async function mockSignedIn(page: Page, types: object[] = [DISTRIBUTOR]) {
   await page.route('**/auth/v1/token/refresh', (route) =>
     route.fulfill({
       json: {
@@ -404,7 +404,7 @@ async function mockSignedIn(page: Page) {
         },
         terminology: {},
         designations: [],
-        accountTypes: [DISTRIBUTOR],
+        accountTypes: types,
         forms: [],
         catalogue: { units: [], measureTypes: [] },
         access: {
@@ -568,5 +568,78 @@ test('an account with invoices shows what they leave open, and passes axe (D121)
   await expect(finance).toContainText('Overdue');
   await expect(page.getByRole('table', { name: 'Open invoices' })).toContainText('40 days late');
   await expect(page.getByRole('table', { name: 'Receipts' })).toContainText('INV-1');
+  await expectAccessible(page);
+});
+
+test('an account’s stock statement shows what sold through, and passes axe (D124)', async ({
+  page,
+}) => {
+  await mockSignedIn(page, [{ ...DISTRIBUTOR, sellThrough: true }]);
+  const period = new Date().toISOString().slice(0, 7);
+  const version = (n: number) => ({
+    id: `01a10000-0000-7000-8000-0000000000d${n}`,
+    version: n,
+    recordedBy: { id: '01a10000-0000-7000-8000-000000000004', code: 'SUN-004', name: 'Asha Rao' },
+    recordedAt: '2026-11-01T06:00:00.000Z',
+    creditedOn: '2026-11-01',
+    value: '27000.00',
+  });
+  await page.route(`**/v1/accounts/${SHOP}/sell-through**`, (route) =>
+    route.fulfill({
+      json: {
+        account: { id: SHOP, code: 'D-80', name: 'Green Fields Agro' },
+        period,
+        open: true,
+        statement: {
+          ...version(2),
+          flags: ['no_price'],
+          lines: [
+            {
+              item: {
+                id: '01a10000-0000-7000-8000-0000000000e1',
+                code: 'NEEM',
+                name: 'Neem oil',
+                baseUnit: 'bag',
+              },
+              opening: '40',
+              received: '100',
+              returned: '5',
+              closing: '60',
+              sold: '75',
+              carried: '40',
+              unitPrice: '360.00',
+              value: '27000.00',
+              flags: [],
+            },
+            {
+              item: {
+                id: '01a10000-0000-7000-8000-0000000000e2',
+                code: 'MOP',
+                name: 'Potash',
+                baseUnit: 'bag',
+              },
+              opening: '0',
+              received: '10',
+              returned: '0',
+              closing: '4',
+              sold: '6',
+              carried: null,
+              unitPrice: null,
+              value: null,
+              flags: ['no_price'],
+            },
+          ],
+        },
+        carried: [],
+        versions: [version(2), version(1)],
+      },
+    }),
+  );
+  await page.goto(`/accounts/${SHOP}`);
+  const section = page.getByRole('region', { name: 'Sell-through' });
+  await expect(section.getByRole('table', { name: 'Sell-through' })).toContainText('Neem oil');
+  await expect(section).toContainText('No price');
+  await section.getByText(/Versions/).click();
+  await expect(section.getByRole('button', { name: 'Show version 1' })).toBeVisible();
   await expectAccessible(page);
 });
