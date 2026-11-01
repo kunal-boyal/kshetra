@@ -350,15 +350,13 @@ describe('scores and ranks (BR-06, BR-07)', () => {
     const today = todayIn('Asia/Kolkata');
     const gone = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString();
     if (gone.slice(0, 7) !== MONTH) {
-      await app.get(Database).forTenant(t.tenantId, async (tx) =>
-        app
-          .get(PerformanceService)
-          .snapshot(
-            tx,
-            t.tenantId,
-            await app.get(TargetPeriods).current(tx, t.tenantId, today),
-          ),
-      );
+      await app
+        .get(Database)
+        .forTenant(t.tenantId, async (tx) =>
+          app
+            .get(PerformanceService)
+            .snapshot(tx, t.tenantId, await app.get(TargetPeriods).current(tx, t.tenantId, today)),
+        );
     }
     const kept = await app
       .get(Database)
