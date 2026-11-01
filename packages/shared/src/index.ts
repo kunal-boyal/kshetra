@@ -1278,3 +1278,31 @@ export {
   DelegationListQuery,
   DelegationListResult,
 } from './schemas/approvals';
+export {
+  afterScheme,
+  type ChosenScheme,
+  chooseSchemes,
+  SCHEME_KINDS,
+  SCHEME_MAX_SLABS,
+  type SchemeAccount,
+  type SchemeBenefit,
+  type SchemeItem,
+  type SchemeKind as SchemeKindValue,
+  type SchemeLine,
+  type SchemeRef,
+  type SchemeRule,
+  type SchemeSlab,
+  schemeApplies,
+  schemeBenefit,
+  schemeRuleIssues,
+} from './schemes';
+export {
+  QuotedFree,
+  QuotedScheme,
+  SchemeBody,
+  SchemeKind,
+  SchemeListResult,
+  SchemeParams,
+  SchemeResult,
+  SchemeRuleBody,
+} from './schemas/schemes';

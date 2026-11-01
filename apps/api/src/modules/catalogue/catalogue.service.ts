@@ -210,6 +210,18 @@ export class CatalogueService {
   }
 
   /** Every item, or only those with `ids`. */
+  /** Which of these category IDs the tenant has. */
+  async categoryIds(tx: TenantTx, tenantId: string, ids: readonly string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    const rows = await tx
+      .select({ id: productCategories.id })
+      .from(productCategories)
+      .where(
+        and(eq(productCategories.tenantId, tenantId), inArray(productCategories.id, [...ids])),
+      );
+    return new Set(rows.map((row) => row.id));
+  }
+
   async items(tx: TenantTx, tenantId: string, ids?: readonly string[]): Promise<ItemResult[]> {
     if (ids && ids.length === 0) return [];
     return (await this.itemRows(tx, tenantId, undefined, ids)).map(({ row }) => row);

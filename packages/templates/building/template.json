@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "building",
-  "version": 4,
+  "version": 5,
   "name": {
     "en": "Building materials and paints",
     "hi": "बिल्डिंग मटीरियल और पेंट"
@@ -102,7 +102,8 @@
         "billing.manage",
         "sell_through.record",
         "forecast.record",
-        "forecast.adjust"
+        "forecast.adjust",
+        "scheme.manage"
       ]
     },
     {
@@ -180,7 +181,8 @@
         "audit.view",
         "sell_through.record",
         "forecast.record",
-        "forecast.adjust"
+        "forecast.adjust",
+        "scheme.manage"
       ]
     },
     {

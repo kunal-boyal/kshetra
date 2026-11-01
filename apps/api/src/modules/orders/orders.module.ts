@@ -15,6 +15,8 @@ import { OrderRequests } from './order.requests';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { OrdersSync } from './orders.sync';
+import { SchemesController } from './schemes.controller';
+import { SchemesService } from './schemes.service';
 
 /** Orders (M10, spec 9.6, decision D78). */
 @Module({
@@ -30,8 +32,15 @@ import { OrdersSync } from './orders.sync';
     TerritoriesModule,
     WorkflowModule,
   ],
-  controllers: [OrdersController],
-  providers: [OrdersService, OrderRequests, OrderCredit, OrdersSync, VisitOrdersProvider],
-  exports: [OrdersService, OrderCredit],
+  controllers: [OrdersController, SchemesController],
+  providers: [
+    OrdersService,
+    OrderRequests,
+    OrderCredit,
+    OrdersSync,
+    VisitOrdersProvider,
+    SchemesService,
+  ],
+  exports: [OrdersService, OrderCredit, SchemesService],
 })
 export class OrdersModule {}

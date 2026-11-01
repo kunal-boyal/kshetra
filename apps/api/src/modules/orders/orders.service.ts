@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { DayOrder } from '@thelamp/metrics';
 import {
+  afterScheme,
   AppError,
   applicableLists,
+  chooseSchemes,
   type ApprovalSubject,
   DEFAULT_REJECTION_REASONS,
   type ErrorDetail,
@@ -11,7 +13,9 @@ import {
   issueAt,
   type LineDecision,
   type LineDecisionsBody,
+  measureOf,
   monthDates,
+  netRate,
   newId,
   type OrderDecisionBody,
   type OrderListQuery,
@@ -30,7 +34,7 @@ import {
   todayIn,
   unscaled,
 } from '@thelamp/shared';
-import { and, asc, count, desc, eq, inArray, lt, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, lt, or, type SQL, sql } from 'drizzle-orm';
 import { orderCounters, orderLines, orders } from '../../db/schema/orders';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
@@ -53,6 +57,7 @@ import { TerritoriesService } from '../territories/territories.service';
 import { ApprovalsService } from '../workflow/approvals.service';
 import { AuditService } from '../audit/audit.service';
 import { OrderCredit } from './order-credit';
+import { SchemesService } from './schemes.service';
 
 /** An order that reached the server this long after it was placed was taken offline (D104). */
 const LATE_MS = 10 * 60_000;
@@ -62,6 +67,13 @@ const invalid = (issues: ErrorDetail[]) =>
 
 type OrderRow = typeof orders.$inferSelect;
 type LineRow = typeof orderLines.$inferSelect;
+
+/** A line's scheme as it was when the order was placed (BR-55). */
+interface SchemeSnapshot {
+  key: string;
+  name: { en: string; hi: string };
+  kind: string;
+}
 
 interface LineSnapshot {
   id: string;
@@ -97,6 +109,7 @@ export class OrdersService {
     private readonly people: People,
     private readonly config: TenantConfigService,
     private readonly credit: OrderCredit,
+    private readonly schemes: SchemesService,
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
     private readonly auditTrail: AuditService,
@@ -140,13 +153,14 @@ export class OrdersService {
 
     // BR-14: price every line from the lists that apply on the day it was placed.
     const day = todayIn(settings.timezone, new Date(placedAt));
+    const territoriesUp = await this.territories.ancestors(tx, tenantId, account.territoryId);
     const lists = applicableLists(
       await this.priceLists.refs(tx, tenantId),
       {
         id: account.id,
         type: type.key,
         segments: account.segments,
-        territories: await this.territories.ancestors(tx, tenantId, account.territoryId),
+        territories: territoriesUp,
       },
       day,
     );
@@ -215,6 +229,56 @@ export class OrdersService {
       ];
     });
     if (issues.length > 0) throw invalid(issues);
+
+    // BR-55: the one scheme best for the customer on each line, as the device should have shown.
+    const schemes = await this.schemes.list(tx, tenantId);
+    const chosen = chooseSchemes(
+      schemes,
+      priced.map((line) => ({
+        itemId: line.item.id,
+        categoryId: line.item.category?.id ?? null,
+        baseUnits: line.baseUnits,
+        taxable: line.taxable,
+      })),
+      { type: type.key, territories: territoriesUp },
+      day,
+      (itemId) => {
+        const entry = priceFor(itemId, lists, (listId, id) => entries.get(listId)?.get(id));
+        return entry ? netRate(entry.price, entry.discount) : null;
+      },
+    );
+    priced.forEach((line, at) => {
+      const quoted = body.lines[line.index]!.quoted.scheme;
+      const now = chosen[at];
+      if (
+        (quoted?.key ?? null) !== (now?.scheme.key ?? null) ||
+        (now && scaled(quoted!.discount, 2) !== scaled(now.benefit.discount, 2))
+      ) {
+        changed.push(
+          issueAt(
+            ['lines', line.index, 'scheme'],
+            now ? `Now ${now.scheme.key}, ${now.benefit.discount} off` : 'Now no scheme',
+          ),
+        );
+      }
+    });
+    const freeKey = (free: { itemId: string; baseUnits: string; ofItemId: string }) =>
+      `${free.ofItemId}:${free.itemId}:${scaled(free.baseUnits, 3)}`;
+    const expectedFree = chosen.flatMap((entry, at) =>
+      entry?.benefit.free ? [{ ...entry.benefit.free, ofItemId: priced[at]!.item.id }] : [],
+    );
+    const sentFree = new Set(body.free.map(freeKey));
+    if (
+      sentFree.size !== expectedFree.length ||
+      expectedFree.some((free) => !sentFree.has(freeKey(free)))
+    ) {
+      changed.push(
+        issueAt(
+          ['free'],
+          `Now ${expectedFree.map((free) => `${free.baseUnits} of ${free.itemId}`).join(', ') || 'nothing'} free`,
+        ),
+      );
+    }
     if (changed.length > 0) {
       throw new AppError(
         'PRICE_CHANGED',
@@ -238,7 +302,65 @@ export class OrdersService {
         ),
       ]);
     }
-    const totals = orderTotals(priced);
+    // BR-55: each scheme's discount comes off its line's taxable before tax.
+    const lines = priced.map((line, at) => {
+      const scheme = chosen[at];
+      const discount = scheme?.benefit.discount ?? '0.00';
+      return {
+        ...line,
+        id: newId(),
+        ...afterScheme(line, discount, line.taxRate),
+        schemeDiscount: discount,
+        scheme: scheme
+          ? ({
+              key: scheme.scheme.key,
+              name: schemes.find((entry) => entry.id === scheme.scheme.id)!.name,
+              kind: scheme.scheme.kind,
+            } satisfies SchemeSnapshot)
+          : null,
+      };
+    });
+    // Goods given free: their own lines at no price, after the paid ones.
+    const freeItems = new Map(
+      (
+        await this.catalogue.items(
+          tx,
+          tenantId,
+          expectedFree.map((free) => free.itemId),
+        )
+      ).map((item) => [item.id, item]),
+    );
+    const freeLines = expectedFree.flatMap((free) => {
+      const item = freeItems.get(free.itemId);
+      const parent = lines.find((line) => line.item.id === free.ofItemId)!;
+      if (!item) return [];
+      const measure = item.measurePerBaseUnit
+        ? measureOf(free.baseUnits, item.measurePerBaseUnit)
+        : null;
+      return [
+        {
+          id: newId(),
+          item,
+          unitKey: item.baseUnit,
+          quantity: free.baseUnits,
+          factor: '1.000',
+          baseUnits: free.baseUnits,
+          measure,
+          listId: parent.listId,
+          price: '0.00',
+          discount: '0',
+          taxRate: item.taxRate,
+          rate: '0.00',
+          taxable: '0.00',
+          tax: '0.00',
+          total: '0.00',
+          schemeDiscount: '0.00',
+          scheme: parent.scheme,
+          freeOfLineId: parent.id,
+        },
+      ];
+    });
+    const totals = orderTotals(lines);
     const photoIds = await this.checkPhotos(tx, access, body.photos, body.id);
 
     const number = await this.nextNumber(tx, tenantId);
@@ -263,11 +385,14 @@ export class OrdersService {
       photoIds,
     });
     await tx.insert(orderLines).values(
-      priced.map((line) => ({
-        id: newId(),
+      [
+        ...lines.map((line) => ({ ...line, freeOfLineId: null as string | null })),
+        ...freeLines,
+      ].map((line, position) => ({
+        id: line.id,
         tenantId,
         orderId: body.id,
-        position: line.index + 1,
+        position: position + 1,
         itemId: line.item.id,
         snapshot: {
           id: line.item.id,
@@ -292,6 +417,9 @@ export class OrdersService {
         taxable: line.taxable,
         tax: line.tax,
         total: line.total,
+        scheme: line.scheme,
+        schemeDiscount: line.schemeDiscount,
+        freeOfLineId: line.freeOfLineId,
       })),
     );
     await this.photos.attach(tx, tenantId, photoIds, { type: 'order', id: body.id });
@@ -318,7 +446,12 @@ export class OrdersService {
       action: 'order.placed',
       target: { type: 'order', id: body.id },
       before: null,
-      after: { accountId: account.id, total: totals.total, lines: priced.length },
+      after: {
+        accountId: account.id,
+        total: totals.total,
+        lines: lines.length,
+        free: freeLines.length,
+      },
     });
     await this.outbox.publish(tx, tenantId, 'order.placed', body.id, {
       orderId: body.id,
@@ -715,10 +848,17 @@ export class OrdersService {
     if (!waiting || !waiting.lineDecisions) {
       throw new AppError('CONFLICT', 'This step decides the whole order.');
     }
+    // Goods given free follow the line they came with (BR-55), so only paid lines are decided.
     const lines = await tx
       .select({ id: orderLines.id, decision: orderLines.decision })
       .from(orderLines)
-      .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.orderId, id)));
+      .where(
+        and(
+          eq(orderLines.tenantId, tenantId),
+          eq(orderLines.orderId, id),
+          isNull(orderLines.freeOfLineId),
+        ),
+      );
     const reasons = new Set((await this.reasons(tx, tenantId)).map((reason) => reason.key));
     const decided = new Map(body.lines.map((line) => [line.lineId, line]));
     const issues: ErrorDetail[] = [];
@@ -743,6 +883,12 @@ export class OrdersService {
         })
         .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.id, line.lineId)));
     }
+    await tx.execute(sql`
+      update ${orderLines} free
+         set decision = paid.decision, decision_reason = paid.decision_reason
+        from ${orderLines} paid
+       where free.tenant_id = ${tenantId} and free.order_id = ${id}
+         and paid.tenant_id = free.tenant_id and paid.id = free.free_of_line_id`);
     const accepted = body.lines.some((line) => line.decision === 'accepted');
     await this.approvals.decide(
       tx,
@@ -784,7 +930,13 @@ export class OrdersService {
       const lines = await tx
         .select({ decision: orderLines.decision })
         .from(orderLines)
-        .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.orderId, id)));
+        .where(
+          and(
+            eq(orderLines.tenantId, tenantId),
+            eq(orderLines.orderId, id),
+            isNull(orderLines.freeOfLineId),
+          ),
+        );
       status = statusFromLines(lines.map((line) => line.decision as LineDecision));
       await tx
         .update(orderLines)
@@ -930,6 +1082,9 @@ export class OrdersService {
         total: orderLines.total,
         decision: orderLines.decision,
         decisionReason: orderLines.decisionReason,
+        scheme: orderLines.scheme,
+        schemeDiscount: orderLines.schemeDiscount,
+        freeOfLineId: orderLines.freeOfLineId,
       })
       .from(orderLines)
       .innerJoin(
@@ -946,6 +1101,38 @@ export class OrdersService {
       .orderBy(asc(orders.placedAt), asc(orders.id), asc(orderLines.position))
       .offset(offset)
       .limit(limit + 1);
+  }
+
+  /**
+   * Each scheme's month (BR-55): the orders and paid lines it reached, the discount it gave and the
+   * goods it gave free, for orders the people in `people` placed between `from` and `to`.
+   */
+  async schemeTotals(tx: TenantTx, tenantId: string, people: SQL, from: Date, to: Date) {
+    return tx
+      .select({
+        key: sql<string>`${orderLines.scheme}->>'key'`,
+        name: sql<{ en: string; hi: string }>`(array_agg(${orderLines.scheme}->'name'))[1]`,
+        kind: sql<string>`(array_agg(${orderLines.scheme}->>'kind'))[1]`,
+        orders: sql<number>`count(distinct ${orderLines.orderId})::int`,
+        lines: sql<number>`(count(*) filter (where ${orderLines.freeOfLineId} is null))::int`,
+        discount: sql<string>`coalesce(sum(${orderLines.schemeDiscount}), 0)::text`,
+        freeUnits: sql<string>`coalesce(sum(${orderLines.baseUnits}) filter (where ${orderLines.freeOfLineId} is not null), 0)::text`,
+      })
+      .from(orderLines)
+      .innerJoin(
+        orders,
+        and(eq(orders.tenantId, orderLines.tenantId), eq(orders.id, orderLines.orderId)),
+      )
+      .where(
+        and(
+          eq(orderLines.tenantId, tenantId),
+          sql`${orderLines.scheme} is not null`,
+          sql`${orders.userId} in (${people})`,
+          sql`${orders.placedAt} >= ${from.toISOString()} and ${orders.placedAt} < ${to.toISOString()}`,
+        ),
+      )
+      .groupBy(sql`${orderLines.scheme}->>'key'`)
+      .orderBy(sql`${orderLines.scheme}->>'key'`);
   }
 
   async forMetrics(
@@ -1041,6 +1228,8 @@ export class OrdersService {
             'fulfilled',
           ]),
           sql`${orderLines.decision} <> 'rejected'`,
+          // Goods given free were never ordered (BR-55).
+          isNull(orderLines.freeOfLineId),
           sql`${orders.placedAt} >= ${from} and ${orders.placedAt} < ${to}`,
         ),
       )
@@ -1098,6 +1287,10 @@ function lineResult(line: LineRow): OrderResult['lines'][number] {
     taxable: line.taxable,
     tax: line.tax,
     total: line.total,
+    scheme: line.scheme
+      ? { ...(line.scheme as SchemeSnapshot), discount: line.schemeDiscount }
+      : null,
+    freeOfLineId: line.freeOfLineId,
     decision: line.decision,
     decisionReason: line.decisionReason,
     fulfilledUnits: line.fulfilledUnits,

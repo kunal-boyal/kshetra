@@ -7,6 +7,7 @@ import { Percent, UnitFactor } from './catalogue';
 import { Key, LocalizedText, Money } from './config';
 import { CaptureFix } from './field';
 import { Period } from './planning';
+import { QuotedFree, QuotedScheme } from './schemes';
 
 /**
  * Orders (M10, spec 5.11, decision D78): a request from the field, priced by the server from the
@@ -48,11 +49,15 @@ export const PlaceOrderBody = z
             discount: Percent,
             taxRate: Percent,
             factor: UnitFactor,
+            /** The scheme the device applied to the line, if any (BR-55). */
+            scheme: QuotedScheme.nullable().default(null),
           }),
         }),
       )
       .min(1)
       .max(ORDER_MAX_LINES),
+    /** Goods the device showed free under the lines' schemes (BR-55). */
+    free: z.array(QuotedFree).max(ORDER_MAX_LINES).default([]),
     note: z.string().trim().max(1000).nullable().default(null),
     photos: z.array(z.uuid()).max(5).default([]),
     fix: CaptureFix.nullable().default(null),
@@ -88,6 +93,12 @@ export const OrderLineResult = z
     taxable: z.string(),
     tax: z.string(),
     total: z.string(),
+    /** The line's scheme as it was when the order was placed (BR-55); null for none. */
+    scheme: z
+      .object({ key: Key, name: LocalizedText, kind: z.string(), discount: z.string() })
+      .nullable(),
+    /** For goods given free: the line they came with (BR-55). */
+    freeOfLineId: z.uuid().nullable(),
     decision: LineDecision,
     decisionReason: Key.nullable(),
     /** Base units fulfilled so far; null until fulfilment starts. */

@@ -60,6 +60,7 @@ export const MODULE_PERMISSIONS: Record<SwitchableModule, readonly TenantPermiss
     'order.decide',
     'order.line_decide',
     'order.fulfil',
+    'scheme.manage',
   ],
   account_finance: ['finance.view', 'finance.manage'],
   expenses: ['expense.claim', 'expense_policy.manage', 'expense.mark_paid'],

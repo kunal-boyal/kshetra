@@ -62,6 +62,7 @@ export const PERMISSIONS_BY_AREA = {
     'order.decide',
     'order.line_decide',
     'order.fulfil',
+    'scheme.manage',
   ],
   finance: ['finance.view', 'finance.manage'],
   people_operations: [

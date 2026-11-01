@@ -473,6 +473,7 @@ describe('the order desk', () => {
           discount: '10.0000',
           taxRate: '18.0000',
           factor: '12.000',
+          scheme: null,
         },
       },
     ]);

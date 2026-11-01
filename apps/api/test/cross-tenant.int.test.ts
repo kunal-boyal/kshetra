@@ -2315,6 +2315,26 @@ const FIXTURES: Record<string, Fixture> = {
       }
     },
   },
+  'GET /v1/schemes': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/schemes')),
+  },
+  'PUT /v1/schemes/:schemeId': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('PUT', `/v1/schemes/${newId()}`, {
+            key: `b_${newId().slice(-6)}`,
+            name: { en: 'B scheme', hi: 'B scheme' },
+            kind: 'percentage',
+            rule: { percent: '5' },
+            itemIds: [id],
+            validFrom: '2026-01-01',
+          }),
+        aItemId,
+      ),
+  },
   'GET /v1/price-lists': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/price-lists')),
@@ -3086,6 +3106,12 @@ beforeAll(async () => {
     `insert into cell.sell_through_lines (tenant_id, statement_id, item_id, opening, received, returned, closing, sold)
      values ($1, $2, $3, 0, 10, 0, 4, 6)`,
     [a.tenantId, aStatementId, aItemId],
+  );
+  // A runs a scheme on its item (BR-55, decision D127).
+  await admin(
+    `insert into cell.schemes (id, tenant_id, key, name, kind, rule, item_ids, valid_from)
+     values ($1, $2, 'a_only', '{"en":"A only","hi":"A only"}', 'percentage', '{"percent":"5"}', $3, '2026-01-01')`,
+    [newId(), a.tenantId, `{${aItemId}}`],
   );
   // A's account has a forecast for next month (BR-54, decision D126).
   const aForecastId = newId();

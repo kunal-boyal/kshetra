@@ -23,6 +23,7 @@ export const REPORT_KEYS = [
   'location_summary',
   'gps_audit_trail',
   'orders_register',
+  'scheme_summary',
   'account_statement',
   'outstanding',
   'audit_log',
@@ -38,6 +39,7 @@ export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], Switcha
   leave_register: 'leave_attendance',
   expense_register: 'expenses',
   orders_register: 'orders',
+  scheme_summary: 'orders',
   account_statement: 'account_finance',
   outstanding: 'account_finance',
   payroll_summary: 'payroll_inputs',
@@ -46,6 +48,7 @@ export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], Switcha
 /** Reports that need a permission beyond `report.view`, as their records do elsewhere. */
 export const REPORT_PERMISSION: Partial<Record<(typeof REPORT_KEYS)[number], TenantPermission>> = {
   orders_register: 'order.view',
+  scheme_summary: 'order.view',
   account_statement: 'finance.view',
   outstanding: 'finance.view',
   audit_log: 'audit.view',

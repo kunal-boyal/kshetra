@@ -43,6 +43,8 @@ const LINE = {
   taxable: '8640.00',
   tax: '1555.20',
   total: '10195.20',
+  scheme: null,
+  freeOfLineId: null,
   decision: 'pending',
   decisionReason: null,
   fulfilledUnits: null,

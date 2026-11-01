@@ -92,6 +92,7 @@ function quotedLines(lines: readonly PricedCartLine[]): PlaceOrderBody['lines'] 
       discount: line.offer.discount,
       taxRate: line.offer.item.taxRate,
       factor: line.factor,
+      scheme: null,
     },
   }));
 }
@@ -108,6 +109,7 @@ export async function orderBody(
     accountId: input.accountId,
     visitId: visit && visit.accountId === input.accountId ? visit.visitId : null,
     lines: quotedLines(input.lines),
+    free: [],
     note: input.note.trim() || null,
     photos: [],
     fix: captureFix(input.fix),

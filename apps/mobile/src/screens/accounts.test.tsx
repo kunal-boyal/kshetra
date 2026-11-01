@@ -661,9 +661,17 @@ describe('orders on the phone (M10, D78)', () => {
           itemId: SPRAY,
           unitKey: 'pack',
           quantity: '1',
-          quoted: { listId: STANDARD, price: '60.00', discount: '0', taxRate: '18', factor: '1' },
+          quoted: {
+            listId: STANDARD,
+            price: '60.00',
+            discount: '0',
+            taxRate: '18',
+            factor: '1',
+            scheme: null,
+          },
         },
       ],
+      free: [],
       note: null,
       photos: [],
       fix: null,
@@ -691,6 +699,7 @@ describe('orders on the phone (M10, D78)', () => {
       discount: '0.0000',
       taxRate: '18.0000',
       factor: '1.000',
+      scheme: null,
     });
   });
 });
