@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { type DeviceInfo, newId, todayIn } from '@thelamp/shared';
+import { type DeviceInfo, newId, shiftPeriod, todayIn } from '@thelamp/shared';
 import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import ExcelJS from 'exceljs';
@@ -401,6 +401,7 @@ const FIXTURES: Record<string, Fixture> = {
         'receipts',
         'external-metrics',
         'sell-through',
+        'forecasts',
       ] as const
     ).map((target) => [
       `POST /v1/bulk/${target}`,
@@ -2777,6 +2778,27 @@ const FIXTURES: Record<string, Fixture> = {
         aAccountId,
       ),
   },
+  'GET /v1/accounts/:id/forecasts': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => {
+        const next = shiftPeriod(todayIn('Asia/Kolkata').slice(0, 7), 1);
+        return asB('GET', `/v1/accounts/${id}/forecasts?from=${next}&to=${next}`);
+      }, aAccountId),
+  },
+  'PUT /v1/accounts/:id/forecasts/:period': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB(
+            'PUT',
+            `/v1/accounts/${id}/forecasts/${shiftPeriod(todayIn('Asia/Kolkata').slice(0, 7), 1)}`,
+            { id: newId(), lines: [{ itemId: newId(), quantity: '5' }] },
+          ),
+        aAccountId,
+      ),
+  },
   'GET /v1/accounts/:id/prices': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/prices`), aAccountId),
@@ -3064,6 +3086,17 @@ beforeAll(async () => {
     `insert into cell.sell_through_lines (tenant_id, statement_id, item_id, opening, received, returned, closing, sold)
      values ($1, $2, $3, 0, 10, 0, 4, 6)`,
     [a.tenantId, aStatementId, aItemId],
+  );
+  // A's account has a forecast for next month (BR-54, decision D126).
+  const aForecastId = newId();
+  await admin(
+    `insert into cell.forecasts (id, tenant_id, account_id, period, version, recorded_by)
+     values ($1, $2, $3, to_char(current_date + interval '1 month', 'YYYY-MM'), 1, $4)`,
+    [aForecastId, a.tenantId, aAccountId, a.member.id],
+  );
+  await admin(
+    `insert into cell.forecast_lines (tenant_id, forecast_id, item_id, quantity) values ($1, $2, $3, 8)`,
+    [a.tenantId, aForecastId, aItemId],
   );
   // A's member's phone refused a mocked fix (BR-50, decision D119).
   await admin(

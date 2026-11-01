@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "fmcg",
-  "version": 3,
+  "version": 4,
   "name": {
     "en": "FMCG and consumer goods",
     "hi": "एफ़एमसीजी और उपभोक्ता सामान"
@@ -120,7 +120,9 @@
         "api_client.manage",
         "webhook.manage",
         "billing.manage",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -196,7 +198,9 @@
         "report.schedule",
         "import.run",
         "audit.view",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -242,7 +246,9 @@
         "report.view",
         "export.create",
         "report.schedule",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -269,7 +275,8 @@
         "expense.claim",
         "payslip.view",
         "finance.view",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record"
       ],
       "mobileOnly": true
     },

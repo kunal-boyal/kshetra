@@ -156,6 +156,11 @@ export const TenantSettings = z.strictObject({
   ordersAllowedOffline: z.boolean(),
   /** An invoice's credit days when it gives no due date (BR-51, decision D121). */
   defaultCreditDays: range(0, 365),
+  /**
+   * The currency metric whose account plan a forecast's value is set beside (BR-54, decision
+   * D126); null leaves the comparison out.
+   */
+  forecastPlanMetric: Key.nullable(),
   /** Days past due that account finance ages outstanding into (M11, BR-20). */
   ageingBuckets: z
     .array(
@@ -216,6 +221,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   ordersNeedOpenShift: false,
   ordersAllowedOffline: true,
   defaultCreditDays: DEFAULT_CREDIT_DAYS,
+  forecastPlanMetric: null,
   ageingBuckets: DEFAULT_AGEING_BUCKETS.map((bucket) => ({ ...bucket })),
   planNotificationTime: '08:00',
   quietHoursStart: '21:00',

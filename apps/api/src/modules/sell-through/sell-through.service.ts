@@ -330,6 +330,50 @@ export class SellThroughService {
     };
   }
 
+  /** What these accounts sold through of each item in a month, by their latest versions. */
+  async soldFor(
+    tx: TenantTx,
+    tenantId: string,
+    accountIds: readonly string[],
+    period: string,
+  ): Promise<Map<string, Map<string, string>>> {
+    const result = new Map<string, Map<string, string>>();
+    if (accountIds.length === 0) return result;
+    const rows = await tx
+      .select({
+        accountId: sellThroughStatements.accountId,
+        itemId: sellThroughLines.itemId,
+        sold: sellThroughLines.sold,
+      })
+      .from(sellThroughStatements)
+      .innerJoin(
+        sellThroughLines,
+        and(
+          eq(sellThroughLines.tenantId, sellThroughStatements.tenantId),
+          eq(sellThroughLines.statementId, sellThroughStatements.id),
+        ),
+      )
+      .where(
+        and(
+          eq(sellThroughStatements.tenantId, tenantId),
+          eq(sellThroughStatements.period, period),
+          inArray(sellThroughStatements.accountId, [...accountIds]),
+          sql`not exists (
+            select 1 from ${sellThroughStatements} later
+             where later.tenant_id = ${sellThroughStatements.tenantId}
+               and later.account_id = ${sellThroughStatements.accountId}
+               and later.period = ${sellThroughStatements.period}
+               and later.version > ${sellThroughStatements.version})`,
+        ),
+      );
+    for (const row of rows) {
+      const items = result.get(row.accountId) ?? new Map<string, string>();
+      items.set(row.itemId, plain(row.sold));
+      result.set(row.accountId, items);
+    }
+    return result;
+  }
+
   /**
    * The lines credited to a person on a day (BR-53), from the latest version of each account's
    * month, for the metric engine.

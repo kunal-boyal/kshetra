@@ -18,6 +18,7 @@ import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { fieldErrors, PageHeader, Section } from '../people/shared';
 import { useAdmin } from './data';
+import { useMetricDefinitions } from './metrics-data';
 
 /** The settings this page edits; the organisation, branding and modules have their own pages. */
 type Rules = Omit<
@@ -61,6 +62,7 @@ export function RulesPage() {
   const config = useConfig(client, queryClient);
   const admin = useAdmin();
   const settings = config.data?.bundle.settings;
+  const metrics = useMetricDefinitions();
   const [draft, setDraft] = useState<Partial<Record<keyof Rules, unknown>>>({});
   const [error, setError] = useState<unknown>();
   const [saved, setSaved] = useState(false);
@@ -252,6 +254,23 @@ export function RulesPage() {
           ))}
         </div>
       </Section>
+      {group(
+        t('forecast.title'),
+        <SelectField
+          label={t('admin.rule_forecastPlanMetric')}
+          help={t('admin.rule_forecastPlanMetric_help')}
+          value={value('forecastPlanMetric') ?? ''}
+          none={t('admin.rule_forecastPlanMetric_none')}
+          options={(metrics.data?.metrics ?? [])
+            .filter((entry) => entry.active && entry.definition.unit === 'currency')
+            .map((entry) => ({
+              value: entry.definition.key,
+              label: entry.definition.name[locale].other,
+            }))}
+          {...(errors.forecastPlanMetric ? { error: errors.forecastPlanMetric } : {})}
+          onChange={(event) => set('forecastPlanMetric', event.target.value || null)}
+        />,
+      )}
       {group(
         t('admin.rules_notifications'),
         <>

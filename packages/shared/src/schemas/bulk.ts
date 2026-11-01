@@ -34,6 +34,7 @@ export const BULK_TARGETS = [
   'receipts',
   'external-metrics',
   'sell-through',
+  'forecasts',
 ] as const;
 
 /** `GET /v1/bulk/fields`: a bulk target's fields, custom fields included. */

@@ -22,6 +22,8 @@ export const PERMISSIONS_BY_AREA = {
     'route.manage',
     'plan_item.manage',
     'account_plan.manage',
+    'forecast.record',
+    'forecast.adjust',
   ],
   performance: ['performance.view_team', 'leaderboard.view', 'metric.record'],
   maps: ['live_map.view', 'trail.view'],

@@ -416,6 +416,8 @@
         "route.manage",
         "plan_item.manage",
         "account_plan.manage",
+        "forecast.record",
+        "forecast.adjust",
         "performance.view_team",
         "leaderboard.view",
         "metric.record",
@@ -3770,6 +3772,16 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 365
+        },
+        "forecastPlanMetric": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Key"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "ageingBuckets": {
           "minItems": 1,

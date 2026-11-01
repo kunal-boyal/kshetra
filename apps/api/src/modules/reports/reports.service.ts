@@ -35,6 +35,7 @@ import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
 import { OutstandingReport } from './outstanding';
 import { SellThroughReport } from './sell-through';
+import { ForecastAccuracyReport } from './forecast-accuracy';
 import { AuditLogReport } from './audit-log-report';
 import type { ReportContext, ReportRow, ReportSource } from './sources';
 import { TargetAchievementReport } from './target-achievement';
@@ -75,6 +76,7 @@ export class ReportsService {
     auditLog: AuditLogReport,
     payrollSummary: PayrollSummaryReport,
     sellThrough: SellThroughReport,
+    forecastAccuracy: ForecastAccuracyReport,
   ) {
     this.sources = new Map<ReportKey, ReportSource>(
       [
@@ -93,6 +95,7 @@ export class ReportsService {
         auditLog,
         payrollSummary,
         sellThrough,
+        forecastAccuracy,
       ].map((source) => [source.key, source]),
     );
   }

@@ -27,3 +27,4 @@ export * from './expenses';
 export * from './webhooks';
 export * from './governance';
 export * from './sell-through';
+export * from './forecasts';

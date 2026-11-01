@@ -37,6 +37,6 @@ import { TargetsService } from './targets.service';
     TargetsImport,
     AccountPlansImport,
   ],
-  exports: [PlanningService, TargetsService],
+  exports: [PlanningService, TargetsService, AccountPlansService],
 })
 export class PlanningModule {}

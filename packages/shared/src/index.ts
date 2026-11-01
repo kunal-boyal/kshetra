@@ -844,6 +844,24 @@ export {
 } from './schemas/reports';
 export { dashboardLayoutIssues, type LayoutMetric } from './dashboards';
 export {
+  FORECAST_MONTHS,
+  forecastAccuracy,
+  forecastAfterLock,
+  forecastGap,
+  type ForecastLine,
+  forecastMonths,
+  forecastOpen,
+} from './forecasts';
+export {
+  ForecastLineBody,
+  ForecastMonth,
+  ForecastParams,
+  ForecastQuery,
+  ForecastResult,
+  ForecastVersion,
+  SaveForecastBody,
+} from './schemas/forecasts';
+export {
   creditedDate,
   lineValue,
   monthEnd,

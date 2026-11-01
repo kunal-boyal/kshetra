@@ -3,6 +3,7 @@ import { LeaveModule } from '../leave/leave.module';
 import { AccountsModule } from '../accounts/accounts.module';
 import { AuditModule } from '../audit/audit.module';
 import { FinanceModule } from '../finance/finance.module';
+import { CatalogueModule } from '../catalogue/catalogue.module';
 import { OrdersModule } from '../orders/orders.module';
 import { PlanningModule } from '../planning/planning.module';
 import { ExpensesModule } from '../expenses/expenses.module';
@@ -14,6 +15,7 @@ import { MetricsModule } from '../metrics/metrics.module';
 import { MediaUrls } from '../media/media-urls';
 import { PayrollModule } from '../payroll/payroll.module';
 import { PerformanceModule } from '../performance/performance.module';
+import { ForecastsModule } from '../forecasts/forecasts.module';
 import { SellThroughModule } from '../sell-through/sell-through.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
@@ -31,6 +33,7 @@ import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
 import { OutstandingReport } from './outstanding';
 import { SellThroughReport } from './sell-through';
+import { ForecastAccuracyReport } from './forecast-accuracy';
 import { AuditLogReport } from './audit-log-report';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
@@ -53,6 +56,7 @@ import { TargetAchievementReport } from './target-achievement';
     AuditModule,
     FinanceModule,
     OrdersModule,
+    CatalogueModule,
     PlanningModule,
     ExpensesModule,
     PayrollModule,
@@ -64,6 +68,7 @@ import { TargetAchievementReport } from './target-achievement';
     MetricsModule,
     WorkflowModule,
     SellThroughModule,
+    ForecastsModule,
   ],
   controllers: [ReportsController, ReportSchedulesController],
   providers: [
@@ -86,6 +91,7 @@ import { TargetAchievementReport } from './target-achievement';
     AccountStatementReport,
     OutstandingReport,
     SellThroughReport,
+    ForecastAccuracyReport,
     AuditLogReport,
   ],
   exports: [ReportSchedulesService],

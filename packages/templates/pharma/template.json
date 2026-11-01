@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "pharma",
-  "version": 3,
+  "version": 4,
   "name": {
     "en": "Pharma",
     "hi": "फ़ार्मा"
@@ -130,7 +130,9 @@
         "api_client.manage",
         "webhook.manage",
         "billing.manage",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -205,7 +207,9 @@
         "export.create",
         "report.schedule",
         "import.run",
-        "audit.view"
+        "audit.view",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -250,7 +254,9 @@
         "payslip.view",
         "report.view",
         "export.create",
-        "report.schedule"
+        "report.schedule",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -276,7 +282,8 @@
         "regularisation.request",
         "expense.claim",
         "payslip.view",
-        "finance.view"
+        "finance.view",
+        "forecast.record"
       ],
       "mobileOnly": true
     },

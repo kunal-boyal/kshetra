@@ -28,6 +28,7 @@ import { customValue } from '../people/custom-fields';
 import { SubmissionsSection } from '../submissions/submissions-section';
 import { AccountPlanSection } from '../targets/account-plan-section';
 import { FinanceSection } from '../finance/finance-section';
+import { ForecastSection } from '../forecasts/forecast-section';
 import { SellThroughSection } from '../sell-through/sell-through-section';
 import { useAccess, write } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section, useDates } from '../people/shared';
@@ -207,6 +208,7 @@ function Account({ overview }: { overview: AccountOverview }) {
       <SubmissionsSection accountId={account.id} />
       <AccountPlanSection accountId={account.id} />
       {type?.sellThrough ? <SellThroughSection accountId={account.id} /> : null}
+      <ForecastSection accountId={account.id} />
       {access.can('finance.view') ? (
         <FinanceSection accountId={account.id} accountName={`${account.name} (${account.code})`} />
       ) : null}
