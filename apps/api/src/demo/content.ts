@@ -234,6 +234,11 @@ export class DemoContent implements DemoKit {
         for (const manager of this.managers) await this.managerDay(manager, date, date === today);
         await this.review(team, date, today);
       }
+      // Each month's stock take on its last day, and this month's so far (decision D124).
+      if (date === today || addDays(date, 1).slice(0, 7) !== date.slice(0, 7)) {
+        travelTo(this.at(date, 18 * 60));
+        await this.commerce.stockTake(team, date);
+      }
       // The week closes on Saturday evening, holiday or not.
       if (weekday === 6 && date < today) {
         for (const person of team) await this.requests.weekEnd(person, date);

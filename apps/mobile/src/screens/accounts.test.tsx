@@ -2,7 +2,13 @@ import { describe, expect, it, jest } from '@jest/globals';
 import type { SessionState } from '@thelamp/api-client';
 import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import { migrate, Outbox, type SqlDatabase, Visits } from '@thelamp/api-client/sync';
-import { SETTING_DEFAULTS, type SwitchableModule, type SyncPullResult } from '@thelamp/shared';
+import {
+  previousPeriod,
+  SETTING_DEFAULTS,
+  type SwitchableModule,
+  type SyncPullResult,
+  todayIn,
+} from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
@@ -18,6 +24,7 @@ import { NewAccountScreen } from './new-account';
 import { repriceRefused, stepQuantity } from '../orders';
 import { OrderScreen } from './order';
 import { PricesScreen } from './prices';
+import { SellThroughScreen } from './sell-through';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
@@ -128,6 +135,7 @@ const CUSTOMER = {
   segmentRules: [],
   visitFrequencyNorms: [],
   contacts: true,
+  sellThrough: true,
 };
 
 function account(id: string, name: string, location: { lat: number; lng: number } | null) {
@@ -222,6 +230,28 @@ function pulled(): SyncPullResult {
           ageing: { d0_30: '9000.00' },
         },
       ]) as SyncPullResult['entities']['balances'],
+      // Last month's statement at Janpath Mart: 40 seed packs left (BR-53).
+      sell_through: full([
+        {
+          id: '01a10000-0000-7000-8000-0000000000f0',
+          accountId: NEAR,
+          period: previousPeriod(todayIn(SETTING_DEFAULTS.timezone).slice(0, 7)),
+          version: 1,
+          recordedAt: '2026-10-28T06:00:00.000Z',
+          value: '14400.00',
+          lines: [
+            {
+              itemId: SEED,
+              opening: '0',
+              received: '80',
+              returned: '0',
+              closing: '40',
+              sold: '40',
+              flags: [],
+            },
+          ],
+        },
+      ]),
       contacts: full([
         {
           id: '01a10000-0000-7000-8000-000000000090',
@@ -303,6 +333,7 @@ function fakeClient(modulesOff: SwitchableModule[] = []) {
             'account.propose_location',
             'order.create',
             'finance.view',
+            'sell_through.record',
           ],
         },
       },
@@ -316,7 +347,8 @@ type Page =
   | { name: 'account'; id: string }
   | { name: 'new' }
   | { name: 'prices'; id: string }
-  | { name: 'order'; id: string };
+  | { name: 'order'; id: string }
+  | { name: 'sell_through'; id: string };
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
@@ -325,6 +357,7 @@ function Shown({ page }: { page: Page }) {
   if (page.name === 'new') return <NewAccountScreen typeKey="customer" />;
   if (page.name === 'prices') return <PricesScreen accountId={page.id} />;
   if (page.name === 'order') return <OrderScreen accountId={page.id} />;
+  if (page.name === 'sell_through') return <SellThroughScreen accountId={page.id} />;
   return <AccountScreen id={page.id} />;
 }
 
@@ -663,6 +696,46 @@ describe('what an account owes on the phone (M11, D79)', () => {
     await renderPhone({ name: 'account', id: UNPLACED });
     await screen.findByText('Corner Kirana');
     expect(screen.queryByText('What it owes')).toBeNull();
+  });
+});
+
+describe('sell-through on the phone (BR-53, D124)', () => {
+  it('opens the stock statement from the account', async () => {
+    await renderPhone({ name: 'account', id: NEAR });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Record sell-through' }));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/sell-through/[accountId]',
+      params: { accountId: NEAR },
+    });
+  });
+
+  it('carries last month’s closing, works out what sold, and queues the save', async () => {
+    const db = nodeSqlite();
+    await renderPhone({ name: 'sell_through', id: NEAR }, db);
+    expect(await screen.findByText('SEED-1 · Opening 40')).toBeOnTheScreen();
+    // The item with last month's closing comes first.
+    await fireEvent.changeText(screen.getAllByLabelText('Received')[0]!, '100');
+    await fireEvent.changeText(screen.getAllByLabelText('Returned')[0]!, '5');
+    await fireEvent.changeText(screen.getAllByLabelText('Closing')[0]!, '60');
+    expect(await screen.findByText('Sold through 75')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Saved. It uploads when there is a signal.')).toBeOnTheScreen();
+    const [queued] = (await new Outbox(db, {}).items(OWNER)).filter(
+      (entry) => entry.kind === 'sell_through.save',
+    );
+    expect(queued?.payload).toMatchObject({
+      accountId: NEAR,
+      period: todayIn(SETTING_DEFAULTS.timezone).slice(0, 7),
+      body: { lines: [{ itemId: SEED, received: '100', returned: '5', closing: '60' }] },
+    });
+  });
+
+  it('flags a closing above what the stock explains, before saving', async () => {
+    await renderPhone({ name: 'sell_through', id: NEAR });
+    await screen.findByText('SEED-1 · Opening 40');
+    await fireEvent.changeText(screen.getAllByLabelText('Closing')[0]!, '55');
+    expect(await screen.findByText('Sold through -15')).toBeOnTheScreen();
+    expect(screen.getByText('Sold below zero')).toBeOnTheScreen();
   });
 });
 

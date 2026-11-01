@@ -540,6 +540,95 @@ describe("an account's page", () => {
   });
 });
 
+describe("an account's sell-through (D124)", () => {
+  const ITEM = (id: string, code: string) => ({ id, code, name: `${code} item`, baseUnit: 'bag' });
+  const line = (item: ReturnType<typeof ITEM>, patch: object) => ({
+    item,
+    opening: '40',
+    received: '100',
+    returned: '5',
+    closing: '60',
+    sold: '75',
+    carried: '40',
+    unitPrice: '360.00',
+    value: '27000.00',
+    flags: [],
+    ...patch,
+  });
+  const version = (n: number, value: string) => ({
+    id: `01a10000-0000-7000-8000-0000000000d${n}`,
+    version: n,
+    recordedBy: { id: SME, code: 'SUN-004', name: 'Asha Rao' },
+    recordedAt: '2026-11-01T06:00:00.000Z',
+    creditedOn: '2026-11-01',
+    value,
+  });
+  const result = (shown: number) => ({
+    account: { id: SHOP, code: 'D-80', name: 'Green Fields Agro' },
+    period: '2026-11',
+    open: true,
+    statement: {
+      ...version(shown, shown === 2 ? '27000.00' : '26000.00'),
+      flags: ['negative_sold'],
+      lines: [
+        line(ITEM('01a10000-0000-7000-8000-0000000000e1', 'NEEM'), {}),
+        line(ITEM('01a10000-0000-7000-8000-0000000000e2', 'MOP'), {
+          opening: '0',
+          received: '0',
+          closing: '4',
+          sold: '-4',
+          carried: null,
+          unitPrice: null,
+          value: null,
+          flags: ['negative_sold', 'no_price'],
+        }),
+      ],
+    },
+    carried: [],
+    versions: [version(2, '27000.00'), version(1, '26000.00')],
+  });
+
+  it('shows the month’s items, flags, and earlier versions', async () => {
+    const client = fakeClient(
+      {
+        [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+        [`/v1/accounts/${SHOP}/sell-through`]: result(2),
+        [`/v1/accounts/${SHOP}/sell-through/2026-11/versions/1`]: result(1),
+      },
+      {},
+      ['account.view'],
+      { accountTypes: [{ ...DISTRIBUTOR, sellThrough: true }, FARMER] },
+    );
+    renderAt(`/accounts/${SHOP}`, client);
+    const user = userEvent.setup();
+    const section = await screen.findByRole('region', { name: 'Sell-through' });
+    const table = await within(section).findByRole('table', { name: 'Sell-through' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('NEEM');
+    expect(rows[0]).toHaveTextContent('75');
+    expect(rows[1]).toHaveTextContent('Sold below zero');
+    expect(rows[1]).toHaveTextContent('No price');
+    expect(within(section).getByText(/Sold through ₹27,000\.00 in all/)).toBeVisible();
+    await user.click(within(section).getByText(/Versions/));
+    await user.click(within(section).getByRole('button', { name: 'Show version 1' }));
+    expect(await within(section).findByText('Showing version 1 of 2.')).toBeVisible();
+    expect(client.request).toHaveBeenCalledWith(
+      'GET',
+      `/v1/accounts/${SHOP}/sell-through/2026-11/versions/1`,
+      expect.anything(),
+    );
+  });
+
+  it('shows no section for a type that gives no statement', async () => {
+    renderAt(
+      `/accounts/${SHOP}`,
+      fakeClient({ [`/v1/accounts/${SHOP}/overview`]: OVERVIEW }, {}, ['account.view'], BUNDLE),
+    );
+    expect(await screen.findByRole('heading', { name: 'Green Fields Agro' })).toBeVisible();
+    expect(screen.queryByRole('region', { name: 'Sell-through' })).toBeNull();
+  });
+});
+
 describe('the account plan (M8)', () => {
   const metric = (key: string, one: string, other: string, unit: string) => ({
     key,

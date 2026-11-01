@@ -25,6 +25,7 @@ import {
   RotateCw,
   ShoppingCart,
   Store,
+  PackageCheck,
   Tag,
   UserRound,
   Wallet,
@@ -169,6 +170,8 @@ export function AccountScreen({ id }: { id: string }) {
     if (!form || !sync || !client.owner) return;
     startEntry(sync, client.owner, form, account.id).catch(() => setError(t('entry.not_saved')));
   };
+  // Accounts that give a stock statement, to those who record them (BR-53, decision D124).
+  const mayRecordStock = Boolean(type?.sellThrough) && permissions.has('sell_through.record');
   const mayOrder =
     ordersOn &&
     (priceLists?.length ?? 0) > 0 &&
@@ -257,7 +260,11 @@ export function AccountScreen({ id }: { id: string }) {
       {account.location ? <VisitMap account={account} type={type} /> : null}
       <VisitCard account={account} type={type} />
 
-      {visitForms.length > 0 || linkedForms.length > 0 || mayOrder || showPrices ? (
+      {visitForms.length > 0 ||
+      linkedForms.length > 0 ||
+      mayOrder ||
+      showPrices ||
+      mayRecordStock ? (
         <ListGroup title={t(here ? 'visit.on_this_visit' : 'account.to_do_here')}>
           {visitForms.map((form) => (
             <ListRow
@@ -284,6 +291,18 @@ export function AccountScreen({ id }: { id: string }) {
               label={t('orders.take')}
               onPress={() =>
                 router.push({ pathname: '/order/[accountId]', params: { accountId: account.id } })
+              }
+            />
+          ) : null}
+          {mayRecordStock ? (
+            <ListRow
+              lead={<IconChip icon={PackageCheck} hue="mint" />}
+              label={t('sell_through.record')}
+              onPress={() =>
+                router.push({
+                  pathname: '/sell-through/[accountId]',
+                  params: { accountId: account.id },
+                })
               }
             />
           ) : null}

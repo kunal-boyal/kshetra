@@ -39,6 +39,7 @@ export const PERMISSIONS_BY_AREA = {
     'account.manage',
     'account.import',
     'account.approve',
+    'sell_through.record',
   ],
   configuration: [
     'settings.manage',

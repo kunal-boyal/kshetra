@@ -369,7 +369,9 @@ export {
   SyncAccount,
   SyncAccountsPage,
   SyncBalance,
+  SyncSellThrough,
   SyncBalancesPage,
+  SyncSellThroughPage,
   SyncContact,
   SyncContactsPage,
   SyncEntity,
@@ -841,6 +843,29 @@ export {
   type ReportTone,
 } from './schemas/reports';
 export { dashboardLayoutIssues, type LayoutMetric } from './dashboards';
+export {
+  creditedDate,
+  lineValue,
+  monthEnd,
+  SELL_THROUGH_FLAGS,
+  SELL_THROUGH_GRACE_DAYS,
+  type SellThroughFlag,
+  soldThrough,
+  statementLineFlags,
+  statementOpen,
+  type StockLine,
+} from './sell-through';
+export {
+  SaveSellThroughBody,
+  SellThroughLine,
+  SellThroughLineBody,
+  SellThroughParams,
+  SellThroughQuery,
+  SellThroughResult,
+  SellThroughVersion,
+  SellThroughVersionParams,
+  StockQuantity,
+} from './schemas/sell-through';
 export {
   BREAKDOWN_BY,
   DASHBOARD_CARD_KINDS,

@@ -33,6 +33,7 @@ export const BULK_TARGETS = [
   'invoices',
   'receipts',
   'external-metrics',
+  'sell-through',
 ] as const;
 
 /** `GET /v1/bulk/fields`: a bulk target's fields, custom fields included. */

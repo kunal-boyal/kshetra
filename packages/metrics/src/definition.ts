@@ -70,6 +70,18 @@ export const MetricSource = z
     }),
     z.strictObject({ type: z.literal('productive_visits'), accountTypes }),
     z.strictObject({ type: z.literal('order_lines'), statuses }),
+    z
+      .strictObject({
+        type: z.literal('sell_through'),
+        measure: z.enum(['value', 'quantity']),
+        items: z.array(z.string().min(1).max(40)).min(1).max(50).optional().meta({
+          description: 'Count only these item codes',
+        }),
+      })
+      .meta({
+        description:
+          'What accounts sold through, from their monthly stock statements, credited to whoever saved the latest (decision D124)',
+      }),
     z.strictObject({ type: z.literal('active_days'), forms }),
     z.strictObject({ type: z.literal('new_accounts'), accountType: Key }),
     z.strictObject({ type: z.literal('external') }).meta({

@@ -3,6 +3,7 @@ import type {
   SyncPlanItem,
   SyncAccount,
   SyncBalance,
+  SyncSellThrough,
   SyncContact,
   SyncEntity,
   SyncItem,
@@ -244,6 +245,19 @@ const MIGRATIONS: readonly string[] = [
    ALTER TABLE shift_state ADD COLUMN distance_m REAL NOT NULL DEFAULT 0;
    ALTER TABLE shift_state ADD COLUMN last_lat REAL;
    ALTER TABLE shift_state ADD COLUMN last_lng REAL;`,
+  // Sell-through by item (BR-53, decision D124): the latest version of each account's statement
+  // for this month and last, keyed by the version; a month's highest version is its statement.
+  `CREATE TABLE ref_sell_through (
+     id TEXT PRIMARY KEY NOT NULL,
+     account_id TEXT NOT NULL,
+     period TEXT NOT NULL,
+     version INTEGER NOT NULL,
+     recorded_at TEXT NOT NULL,
+     value TEXT,
+     lines TEXT NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_sell_through_account ON ref_sell_through (account_id, period, version);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -538,6 +552,27 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       ageing: JSON.parse(String(record.ageing)) as Record<string, string>,
     }),
   },
+  sell_through: {
+    table: 'ref_sell_through',
+    columns: (statement) => ({
+      id: statement.id,
+      account_id: statement.accountId,
+      period: statement.period,
+      version: statement.version,
+      recorded_at: statement.recordedAt,
+      value: statement.value,
+      lines: JSON.stringify(statement.lines),
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      accountId: String(record.account_id),
+      period: String(record.period),
+      version: Number(record.version),
+      recordedAt: String(record.recorded_at),
+      value: record.value === null ? null : String(record.value),
+      lines: JSON.parse(String(record.lines)) as SyncSellThrough['lines'],
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -551,6 +586,7 @@ export type RowOf<Name extends SyncEntity> = {
   prices: SyncPrice;
   orders: SyncOrder;
   balances: SyncBalance;
+  sell_through: SyncSellThrough;
 }[Name];
 
 /** Every row the phone holds of one entity. */

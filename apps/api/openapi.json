@@ -7024,6 +7024,268 @@
         }
       }
     },
+    "/v1/accounts/{id}/sell-through": {
+      "get": {
+        "operationId": "SellThroughController.get",
+        "summary": "An account's stock statement for a month, item by item, with every version",
+        "tags": [
+          "Accounts"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:read",
+              "accounts:write",
+              "submissions:read",
+              "metrics:write"
+            ]
+          }
+        ],
+        "x-access": "Any one of: sell_through.record, account.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SellThroughResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/{id}/sell-through/{period}": {
+      "put": {
+        "operationId": "SellThroughController.save",
+        "summary": "Save a new version of an account’s stock statement for a month (BR-53)",
+        "tags": [
+          "Accounts"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "metrics:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: sell_through.record",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "lines": {
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "itemId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "opening": {
+                          "type": "string",
+                          "pattern": "^\\d{1,12}(?:\\.\\d{1,3})?$"
+                        },
+                        "received": {
+                          "type": "string",
+                          "pattern": "^\\d{1,12}(?:\\.\\d{1,3})?$"
+                        },
+                        "returned": {
+                          "default": "0",
+                          "type": "string",
+                          "pattern": "^\\d{1,12}(?:\\.\\d{1,3})?$"
+                        },
+                        "closing": {
+                          "type": "string",
+                          "pattern": "^\\d{1,12}(?:\\.\\d{1,3})?$"
+                        }
+                      },
+                      "required": [
+                        "itemId",
+                        "received",
+                        "closing"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "lines"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SellThroughResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/{id}/sell-through/{period}/versions/{version}": {
+      "get": {
+        "operationId": "SellThroughController.version",
+        "summary": "An earlier version of an account’s stock statement for a month",
+        "tags": [
+          "Accounts"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "accounts:read",
+              "accounts:write",
+              "submissions:read",
+              "metrics:write"
+            ]
+          }
+        ],
+        "x-access": "Any one of: sell_through.record, account.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SellThroughResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/accounts/{id}/statement": {
       "get": {
         "operationId": "FinanceController.statement",
@@ -8891,6 +9153,7 @@
                 "report_schedule.ended",
                 "report_schedule.left",
                 "dashboard_layout.changed",
+                "sell_through.recorded",
                 "organisation.renamed",
                 "organisation.logo_changed",
                 "account_type.created",
@@ -9170,6 +9433,7 @@
                               "report_schedule.ended",
                               "report_schedule.left",
                               "dashboard_layout.changed",
+                              "sell_through.recorded",
                               "organisation.renamed",
                               "organisation.logo_changed",
                               "account_type.created",
@@ -9830,7 +10094,8 @@
                 "ledger-entries",
                 "invoices",
                 "receipts",
-                "external-metrics"
+                "external-metrics",
+                "sell-through"
               ]
             }
           },
@@ -10080,6 +10345,71 @@
           }
         ],
         "x-access": "Every one of: finance.manage",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bulk/sell-through": {
+      "post": {
+        "operationId": "BulkController.sellThrough",
+        "summary": "Record accounts' monthly stock statements by item, a version per account's month (BR-53)",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "metrics:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: sell_through.record",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -10853,6 +11183,7 @@
                             "term.plan_item",
                             "term.target",
                             "term.order",
+                            "term.sell_through",
                             "term.punch_in",
                             "term.punch_out"
                           ]
@@ -10892,6 +11223,7 @@
                           "term.plan_item",
                           "term.target",
                           "term.order",
+                          "term.sell_through",
                           "term.punch_in",
                           "term.punch_out"
                         ]
@@ -13502,6 +13834,7 @@
                           "report_schedule.ended",
                           "report_schedule.left",
                           "dashboard_layout.changed",
+                          "sell_through.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
                           "account_type.created",
@@ -18974,6 +19307,7 @@
                           "report_schedule.ended",
                           "report_schedule.left",
                           "dashboard_layout.changed",
+                          "sell_through.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
                           "account_type.created",
@@ -19316,6 +19650,7 @@
                           "report_schedule.ended",
                           "report_schedule.left",
                           "dashboard_layout.changed",
+                          "sell_through.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
                           "account_type.created",
@@ -19756,6 +20091,7 @@
                 "report_schedule.ended",
                 "report_schedule.left",
                 "dashboard_layout.changed",
+                "sell_through.recorded",
                 "organisation.renamed",
                 "organisation.logo_changed",
                 "account_type.created",
@@ -23324,6 +23660,46 @@
                             "removed"
                           ],
                           "additionalProperties": false
+                        },
+                        "sell_through": {
+                          "type": "object",
+                          "properties": {
+                            "pass": {
+                              "type": "string",
+                              "enum": [
+                                "full",
+                                "changes"
+                              ]
+                            },
+                            "first": {
+                              "type": "boolean"
+                            },
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "rows": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/SyncSellThrough"
+                              }
+                            },
+                            "removed": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              }
+                            }
+                          },
+                          "required": [
+                            "pass",
+                            "first",
+                            "done",
+                            "rows",
+                            "removed"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "additionalProperties": false
@@ -25777,6 +26153,7 @@
                               "report_schedule.ended",
                               "report_schedule.left",
                               "dashboard_layout.changed",
+                              "sell_through.recorded",
                               "organisation.renamed",
                               "organisation.logo_changed",
                               "account_type.created",
@@ -28178,6 +28555,11 @@
             "default": false,
             "description": "Whether accounts of this type hold contact people",
             "type": "boolean"
+          },
+          "sellThrough": {
+            "default": false,
+            "description": "Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)",
+            "type": "boolean"
           }
         },
         "required": [
@@ -28193,7 +28575,8 @@
           "slots",
           "segmentRules",
           "visitFrequencyNorms",
-          "contacts"
+          "contacts",
+          "sellThrough"
         ],
         "additionalProperties": false
       },
@@ -28351,6 +28734,11 @@
           "contacts": {
             "default": false,
             "description": "Whether accounts of this type hold contact people",
+            "type": "boolean"
+          },
+          "sellThrough": {
+            "default": false,
+            "description": "Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)",
             "type": "boolean"
           }
         },
@@ -28525,6 +28913,11 @@
             "description": "Whether accounts of this type hold contact people",
             "type": "boolean"
           },
+          "sellThrough": {
+            "default": false,
+            "description": "Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)",
+            "type": "boolean"
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -28550,6 +28943,7 @@
           "segmentRules",
           "visitFrequencyNorms",
           "contacts",
+          "sellThrough",
           "id",
           "version"
         ],
@@ -33717,6 +34111,7 @@
                   "MEDIA_NOT_READY",
                   "PRICE_CHANGED",
                   "TARGET_LOCKED",
+                  "PERIOD_CLOSED",
                   "NOT_CURRENT_APPROVER",
                   "QUOTA_EXCEEDED",
                   "IMPORT_ERRORS",
@@ -34404,6 +34799,7 @@
                   "report_schedule.ended",
                   "report_schedule.left",
                   "dashboard_layout.changed",
+                  "sell_through.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
                   "account_type.created",
@@ -36156,7 +36552,8 @@
               "receipts",
               "holidays",
               "external_metrics",
-              "payroll_gross"
+              "payroll_gross",
+              "sell_through"
             ]
           },
           {
@@ -36181,7 +36578,8 @@
               "receipts",
               "holidays",
               "external_metrics",
-              "payroll_gross"
+              "payroll_gross",
+              "sell_through"
             ]
           },
           {
@@ -38628,6 +39026,39 @@
             "properties": {
               "type": {
                 "type": "string",
+                "const": "sell_through"
+              },
+              "measure": {
+                "type": "string",
+                "enum": [
+                  "value",
+                  "quantity"
+                ]
+              },
+              "items": {
+                "description": "Count only these item codes",
+                "minItems": 1,
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                }
+              }
+            },
+            "required": [
+              "type",
+              "measure"
+            ],
+            "additionalProperties": false,
+            "description": "What accounts sold through, from their monthly stock statements, credited to whoever saved the latest (decision D124)"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
                 "const": "active_days"
               },
               "forms": {
@@ -40304,6 +40735,7 @@
           "account.manage",
           "account.import",
           "account.approve",
+          "sell_through.record",
           "settings.manage",
           "terminology.manage",
           "form.manage",
@@ -42661,7 +43093,8 @@
           "account_statement",
           "outstanding",
           "audit_log",
-          "payroll_summary"
+          "payroll_summary",
+          "sell_through"
         ]
       },
       "ReportPage": {
@@ -42885,6 +43318,7 @@
                   "report_schedule.ended",
                   "report_schedule.left",
                   "dashboard_layout.changed",
+                  "sell_through.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
                   "account_type.created",
@@ -43325,6 +43759,7 @@
                   "report_schedule.ended",
                   "report_schedule.left",
                   "dashboard_layout.changed",
+                  "sell_through.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
                   "account_type.created",
@@ -44569,6 +45004,307 @@
           "segment",
           "name",
           "when"
+        ],
+        "additionalProperties": false
+      },
+      "SellThroughResult": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "statement": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "recordedBy": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "code",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "recordedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "creditedOn": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "value": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "flags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "negative_sold",
+                        "opening_changed",
+                        "no_price"
+                      ]
+                    }
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "item": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "baseUnit": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "code",
+                            "name",
+                            "baseUnit"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "opening": {
+                          "type": "string"
+                        },
+                        "received": {
+                          "type": "string"
+                        },
+                        "returned": {
+                          "type": "string"
+                        },
+                        "closing": {
+                          "type": "string"
+                        },
+                        "sold": {
+                          "type": "string"
+                        },
+                        "carried": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "unitPrice": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "flags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "negative_sold",
+                              "opening_changed",
+                              "no_price"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "item",
+                        "opening",
+                        "received",
+                        "returned",
+                        "closing",
+                        "sold",
+                        "carried",
+                        "unitPrice",
+                        "value",
+                        "flags"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "version",
+                  "recordedBy",
+                  "recordedAt",
+                  "creditedOn",
+                  "value",
+                  "flags",
+                  "lines"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "carried": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "closing": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "itemId",
+                "closing"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "recordedBy": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "recordedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "creditedOn": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "version",
+                "recordedBy",
+                "recordedAt",
+                "creditedOn",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "account",
+          "period",
+          "open",
+          "statement",
+          "carried",
+          "versions"
         ],
         "additionalProperties": false
       },
@@ -46494,6 +47230,99 @@
         ],
         "additionalProperties": false
       },
+      "SyncSellThrough": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "period": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "opening": {
+                  "type": "string"
+                },
+                "received": {
+                  "type": "string"
+                },
+                "returned": {
+                  "type": "string"
+                },
+                "closing": {
+                  "type": "string"
+                },
+                "sold": {
+                  "type": "string"
+                },
+                "flags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "negative_sold",
+                      "opening_changed",
+                      "no_price"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "itemId",
+                "opening",
+                "received",
+                "returned",
+                "closing",
+                "sold",
+                "flags"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "period",
+          "version",
+          "recordedAt",
+          "value",
+          "lines"
+        ],
+        "additionalProperties": false
+      },
       "SyncUser": {
         "type": "object",
         "properties": {
@@ -47192,6 +48021,9 @@
             "$ref": "#/components/schemas/LocalizedNoun"
           },
           "term.order": {
+            "$ref": "#/components/schemas/LocalizedNoun"
+          },
+          "term.sell_through": {
             "$ref": "#/components/schemas/LocalizedNoun"
           },
           "term.punch_in": {
@@ -48832,7 +49664,7 @@
               "finance:write": "finance.view, finance.manage",
               "targets:read": "target.view",
               "targets:write": "target.view, target.edit",
-              "metrics:write": "metric.record",
+              "metrics:write": "metric.record, sell_through.record",
               "reports:read": "report.view, export.create",
               "audit:read": "audit.view"
             }

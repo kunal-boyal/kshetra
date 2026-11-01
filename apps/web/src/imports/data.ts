@@ -29,7 +29,8 @@ export const TARGET_PERMISSIONS: Record<
   | 'receipts'
   | 'holidays'
   | 'external_metrics'
-  | 'payroll_gross',
+  | 'payroll_gross'
+  | 'sell_through',
   TenantPermission
 > = {
   users: 'user.manage',
@@ -45,6 +46,7 @@ export const TARGET_PERMISSIONS: Record<
   holidays: 'calendar.manage',
   external_metrics: 'metric.record',
   payroll_gross: 'payroll.manage',
+  sell_through: 'sell_through.record',
 };
 
 export interface TargetChoice {

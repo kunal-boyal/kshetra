@@ -76,7 +76,7 @@ describe('the organisation (M2)', () => {
     const client = fakeClient({ '/v1/organisation': ORGANISATION }, {}, ADMIN);
     renderAt('/settings/organisation', client);
     const words = await screen.findByRole('table');
-    expect(within(words).getAllByRole('row')).toHaveLength(10);
+    expect(within(words).getAllByRole('row')).toHaveLength(11);
     expect(screen.getByRole('link', { name: 'Change words' })).toHaveAttribute(
       'href',
       '/settings/terminology',

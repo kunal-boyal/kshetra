@@ -24,6 +24,7 @@ const TARGET_OF: Record<BulkTarget, string> = {
   invoices: 'invoices',
   receipts: 'receipts',
   'external-metrics': 'external_metrics',
+  'sell-through': 'sell_through',
 };
 
 /**
@@ -179,6 +180,25 @@ export class BulkController {
     @Headers('idempotency-key') key?: string,
   ) {
     return this.load(access, 'receipts', BulkBody.parse(body).rows, key);
+  }
+
+  @Post('sell-through')
+  @HttpCode(200)
+  @Requires('sell_through.record')
+  @Contract({
+    tag: 'Integrations',
+    summary:
+      "Record accounts' monthly stock statements by item, a version per account's month (BR-53)",
+    body: BulkBody,
+    response: BulkResult,
+    idempotencyKey: true,
+  })
+  sellThrough(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key?: string,
+  ) {
+    return this.load(access, 'sell_through', BulkBody.parse(body).rows, key);
   }
 
   @Post('external-metrics')

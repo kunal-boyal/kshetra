@@ -136,6 +136,9 @@ function checkMetric(
         units = fieldTypes.has('currency') ? ['currency'] : ['count', 'quantity'];
       break;
     }
+    case 'sell_through':
+      units = source.measure === 'value' ? ['currency'] : ['quantity', 'count'];
+      break;
     case 'product_line_sum':
       for (const form of forms) {
         const field = fieldsOf(form).get(source.field);
