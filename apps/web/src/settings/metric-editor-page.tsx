@@ -130,6 +130,9 @@ function draftOf(entry: MetricEntry | undefined, today: string): MetricDraft {
   };
 }
 
+/** Sources whose condition, set by a template, the editor keeps as it was. */
+const KEEPS_WHERE = new Set<MetricSourceType>(['submission_count', 'distinct_accounts_visited']);
+
 /** The source as the API checks it: only what its type asks for, empty lists left out. */
 function sourceOf(draft: SourceDraft): MetricSource {
   const source: Record<string, unknown> = { type: draft.type };
@@ -137,7 +140,7 @@ function sourceOf(draft: SourceDraft): MetricSource {
     const value = draft[param];
     if (Array.isArray(value) ? value.length > 0 : value !== '') source[param] = value;
   }
-  if (draft.type === 'submission_count' && draft.where !== undefined) source.where = draft.where;
+  if (KEEPS_WHERE.has(draft.type) && draft.where !== undefined) source.where = draft.where;
   return source as MetricSource;
 }
 
@@ -459,7 +462,7 @@ function Editor({
         />
         <p className="ks-muted text-sm">{t(`metrics.about_${draft.source.type}`)}</p>
         {params.map((param) => controls[param]())}
-        {draft.source.type === 'submission_count' && draft.source.where !== undefined ? (
+        {KEEPS_WHERE.has(draft.source.type) && draft.source.where !== undefined ? (
           <p className="ks-muted text-sm">{t('metrics.where_kept')}</p>
         ) : null}
       </Section>

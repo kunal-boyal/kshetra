@@ -153,6 +153,11 @@ describe('metric definitions', () => {
           forms: ['call_report', 'meeting'],
           where: { clauses: [{ field: 'kind', op: 'eq', value: 'new' }] },
         }),
+        metric('f', 'count', {
+          type: 'distinct_accounts_visited',
+          forms: ['call_report'],
+          where: { clauses: [{ field: 'ordered', op: 'eq', value: true }] },
+        }),
       ),
     ).toEqual([
       '[0].source.forms[0]: There is no form `survey`',
@@ -161,6 +166,7 @@ describe('metric definitions', () => {
       '[2].source.field: `amount` is a number in one form and currency in another',
       '[3].source.column: `items` in form `call_report` has no value column',
       '[4].source.where.clauses[0].field: Form `meeting` has no field `kind`',
+      '[5].source.where.clauses[0].field: Form `call_report` has no field `ordered`',
     ]);
   });
 

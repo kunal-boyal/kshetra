@@ -1889,6 +1889,7 @@ Each template is a JSON file at `packages/templates/<key>/template.json`, valida
 - Forms: Dealer visit (with sales and collection amounts), Site visit (stage, requirement, competitor brand, photo), Influencer meet (no account; attendees, enrolments), Product demonstration.
 - Metrics: dealer sales, collection, site visits, sites converted, influencer enrolments, active days.
 - Score: dealer sales 40, collection 20, site visits 20, enrolments 20.
+- Choices where the above is silent (D120): designations Business Head (1), RSM (2), ASM (3) and TSM (4, ranked), with the field user called "TSM"; geography Zone → Region → Area → Territory. Contractors and painters belong to a dealer, their usual supplier, and are segmented by trade; field users propose them and sites for the ASM's approval, while the office adds dealers. Sites converted counts each site once a month whose approved site visit answered "Ordered from our dealer?" with yes (`distinct_accounts_visited` with a condition). The catalogue is paints and allied products (paints, primer, putty, waterproofing) in litres and kilograms, by the pack and carton. Every order is accepted line by line by the ASM above whoever placed it, and approved by the RSM as well when it is over the account's credit; leave, regularisation and expenses go to the ASM, then the RSM.
 
 ## Appendix B. Import formats
 

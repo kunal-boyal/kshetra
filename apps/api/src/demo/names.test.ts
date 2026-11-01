@@ -12,6 +12,7 @@ describe('sceneFor', () => {
     expect(sceneFor(flavourOf('agri'), 'Crop health check', 'form', dice())).toBe('field');
     expect(sceneFor(flavourOf('fmcg'), 'Planogram check', 'form', dice())).toBe('shelf');
     expect(sceneFor(flavourOf('pharma'), 'Chemist stock', 'form', dice())).toBe('shelf');
+    expect(sceneFor(flavourOf('building'), 'Site visit', 'form', dice())).toBe('field');
   });
 
   it('never asks a template without fields for one', () => {
