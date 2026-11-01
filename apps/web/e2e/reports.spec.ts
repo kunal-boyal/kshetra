@@ -58,7 +58,28 @@ const ANSWERS: Record<string, unknown> = {
   '/v1/territories': { items: [] },
 };
 
-async function mockSignedIn(page: Page) {
+const ASHA_ID = '01a10000-0000-7000-8000-000000000004';
+
+/** A weekly schedule of the attendance register (decision D122). */
+const SCHEDULE = {
+  id: '01a10000-0000-7000-8000-0000000000f1',
+  owner: { id: '01a10000-0000-7000-8000-000000000002', code: 'SUN-001', name: 'Anita Rao' },
+  report: 'attendance_register',
+  filters: {},
+  format: 'xlsx',
+  locale: 'en',
+  frequency: 'weekly',
+  weekday: 1,
+  at: '08:00',
+  status: 'active',
+  pausedReason: null,
+  recipients: [{ id: '01a10000-0000-7000-8000-000000000002', code: 'SUN-001', name: 'Anita Rao' }],
+  nextSend: '2026-11-09',
+  createdAt: '2026-11-01T06:00:00.000Z',
+  endedAt: null,
+};
+
+async function mockSignedIn(page: Page, permissions = ['report.view', 'export.create']) {
   await page.route('**/auth/v1/token/refresh', (route) =>
     route.fulfill({
       json: {
@@ -111,8 +132,18 @@ async function mockSignedIn(page: Page) {
         access: {
           role: 'tenant_admin',
           scope: 'tenant',
-          permissions: ['report.view', 'export.create'],
+          permissions,
         },
+      },
+    }),
+  );
+  await page.route('**/v1/report-schedules**', (route) =>
+    route.fulfill({
+      json: {
+        items:
+          new URL(route.request().url()).searchParams.get('for') === 'me'
+            ? [{ ...SCHEDULE, owner: { id: ASHA_ID, code: 'SUN-004', name: 'Asha Rao' } }]
+            : [SCHEDULE],
       },
     }),
   );
@@ -196,4 +227,17 @@ test('/reports prints the report alone, headed, in the Light theme (D99)', async
   });
   await expect(page.locator('.ks-print-sheet')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
+test('/reports?view=scheduled lists schedules and passes axe (D122)', async ({ page }) => {
+  await mockSignedIn(page, ['report.view', 'export.create', 'report.schedule', 'user.view']);
+  await page.goto('/reports?view=scheduled');
+  await expect(page.getByRole('tab', { name: 'Scheduled', selected: true })).toBeVisible();
+  await expect(page.getByText('Every Monday at 08:00 · To Anita Rao')).toBeVisible();
+  await expect(page.getByText(/From Asha Rao/)).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('tab', { name: 'Reports' }).click();
+  await page.getByRole('button', { name: 'Schedule this report' }).click();
+  await expect(page.getByRole('heading', { name: 'Schedule Activity log' })).toBeVisible();
+  await expectAccessible(page);
 });

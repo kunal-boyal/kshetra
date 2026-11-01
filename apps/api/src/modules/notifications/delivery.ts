@@ -223,7 +223,14 @@ export class NotificationDelivery {
               Object.entries(notification.values).map(([name, value]) => [name, String(value)]),
             ),
           })
-        : await this.email.send({ to: address, subject: text.title, text: text.body });
+        : await this.email.send({
+            to: address,
+            subject: text.title,
+            // The email carries where to go in the portal, never the data (decision D122).
+            text: notification.link
+              ? `${text.body}\n\n${new URL(notification.link, this.cell.WEB_URL).toString()}`
+              : text.body,
+          });
     if (!result.ok && !result.permanent) return { transient: result.error ?? 'Delivery failed' };
     return {
       status: result.ok ? 'sent' : 'failed',

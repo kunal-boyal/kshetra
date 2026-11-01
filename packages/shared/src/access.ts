@@ -73,7 +73,14 @@ export const PERMISSIONS_BY_AREA = {
     'payroll.manage',
     'payslip.view',
   ],
-  data: ['report.view', 'export.create', 'import.run', 'audit.view'],
+  data: [
+    'report.view',
+    'export.create',
+    'report.schedule',
+    'dashboard.manage',
+    'import.run',
+    'audit.view',
+  ],
   integrations_and_billing: ['api_client.manage', 'webhook.manage', 'billing.manage'],
 } as const;
 

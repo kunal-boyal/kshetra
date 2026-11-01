@@ -217,6 +217,7 @@ export class ExportsService implements OnModuleInit {
       period: job.filters.period,
       status: outcome.status,
       rows: outcome.status === 'ready' ? outcome.rows : null,
+      scheduleId: job.scheduleId,
     });
   }
 

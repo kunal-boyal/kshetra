@@ -28,8 +28,10 @@ import {
   PeriodStepper,
   SelectField,
   StatusBadge,
+  Tabs,
+  tabPanelProps,
 } from '@thelamp/ui-web';
-import { Download, FileSpreadsheet, FileText, Sheet } from 'lucide-react';
+import { CalendarClock, Download, FileSpreadsheet, FileText, Sheet } from 'lucide-react';
 import { type CSSProperties, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
@@ -37,7 +39,8 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useAccess, useTerritories, useUsers } from '../people/data';
 import { Printable, PrintButton } from '../print';
 import { PageHeader, useDates } from '../people/shared';
-import { download, useExports, useReport, useStartExport } from './data';
+import { download, useExport, useExports, useReport, useStartExport } from './data';
+import { ScheduleForm, SchedulesPanel } from './schedules';
 
 type Row = Record<string, ReportCell>;
 
@@ -110,6 +113,43 @@ function ExportLine({ item, onError }: { item: ExportResult; onError: (error: un
   );
 }
 
+/** The export a scheduled report's email links to (`?export=`), with its download. */
+function OpenedExport({ id }: { id: string }) {
+  const { t } = useLanguage();
+  const opened = useExport(id);
+  const [error, setError] = useState<unknown>();
+  if (opened.isError || error !== undefined) {
+    return (
+      <p className="ks-help error" role="alert">
+        {errorMessage(opened.error ?? error, t)}
+      </p>
+    );
+  }
+  if (!opened.data) return null;
+  return (
+    <div className="ks-notice" role="status">
+      <span className="flex flex-wrap items-center gap-2">
+        <strong>{t('schedule.opened')}</strong>
+        <ExportLine item={opened.data} onError={setError} />
+      </span>
+    </div>
+  );
+}
+
+type ReportsView = 'reports' | 'scheduled';
+
+/** The page's address: which view, and an export to open (decision D122). */
+export function reportsSearch(search: Record<string, unknown>): {
+  view?: ReportsView;
+  export?: string;
+} {
+  const id = typeof search.export === 'string' && /^[0-9a-f-]{36}$/.test(search.export);
+  return {
+    ...(search.view === 'scheduled' ? { view: 'scheduled' as const } : {}),
+    ...(id ? { export: search.export as string } : {}),
+  };
+}
+
 /** The person's latest file as one line, the earlier ones of the last 7 days under it. */
 function Downloads() {
   const { t } = useLanguage();
@@ -159,7 +199,13 @@ function Downloads() {
  * Reports (M18): a report for a month, narrowed to a team, a territory or one person within the
  * reader's scope, read a page at a time and downloaded as a file made in the background.
  */
-export function ReportsPage() {
+export function ReportsPage({
+  view: asked,
+  exportId,
+}: {
+  view?: ReportsView;
+  exportId?: string;
+} = {}) {
   const { client, queryClient } = useApp();
   const { t, locale } = useLanguage();
   const access = useAccess();
@@ -170,6 +216,14 @@ export function ReportsPage() {
     period: todayIn(access.timezone).slice(0, 7),
   }));
   const [started, setStarted] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduled, setScheduled] = useState(false);
+  // Scheduled reports belong to the advanced analytics module (spec 5.13, decision D122).
+  const analytics = !access.modulesOff.includes('advanced_analytics');
+  const canSchedule = analytics && access.can('report.schedule');
+  const [chosen, setView] = useState<ReportsView>(asked ?? 'reports');
+  // Settings arrive after the first paint, so a switched-off module turns the view back.
+  const view = analytics ? chosen : 'reports';
   const [exportError, setExportError] = useState<unknown>();
   const people = useUsers({ status: 'active' }, 200);
   const territories = useTerritories();
@@ -327,149 +381,196 @@ export function ReportsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('report.title')} intro={t('report.intro')} />
-      <div className="flex flex-wrap items-start gap-4">
-        <nav className="min-w-0 flex-[1_1_16rem]" aria-label={t('report.choose')}>
-          <List label={t('report.choose')}>
-            {offered.map((key) => (
-              <ListItem
-                key={key}
-                title={t(`report.name_${key}`)}
-                meta={t(`report.about_${key}`)}
-                selected={key === report}
-                onClick={() => {
-                  setReport(key);
-                  set({ form: undefined, accountType: undefined });
+      {exportId && canExport ? <OpenedExport id={exportId} /> : null}
+      {analytics ? (
+        <Tabs
+          label={t('schedule.views')}
+          idPrefix="reports"
+          value={view}
+          onChange={setView}
+          choices={[
+            { value: 'reports', label: t('report.title') },
+            { value: 'scheduled', label: t('schedule.tab') },
+          ]}
+        />
+      ) : null}
+      {view === 'scheduled' ? (
+        <div {...tabPanelProps('reports', 'scheduled')}>
+          <SchedulesPanel canSchedule={canSchedule} />
+        </div>
+      ) : (
+        <div
+          className="flex flex-wrap items-start gap-4"
+          {...(analytics ? tabPanelProps('reports', 'reports') : {})}
+        >
+          <nav className="min-w-0 flex-[1_1_16rem]" aria-label={t('report.choose')}>
+            <List label={t('report.choose')}>
+              {offered.map((key) => (
+                <ListItem
+                  key={key}
+                  title={t(`report.name_${key}`)}
+                  meta={t(`report.about_${key}`)}
+                  selected={key === report}
+                  onClick={() => {
+                    setReport(key);
+                    set({ form: undefined, accountType: undefined });
+                  }}
+                />
+              ))}
+            </List>
+          </nav>
+          <section
+            className="flex min-w-0 flex-[3_1_35rem] flex-col gap-4"
+            aria-label={t(`report.name_${report}`)}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="heading-lg">
+                {t('report.heading', {
+                  report: t(`report.name_${report}`),
+                  month: formatMonth(filters.period, { locale }),
+                })}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {canSchedule && !needsPerson ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Icon icon={CalendarClock} />}
+                    onClick={() => {
+                      setScheduled(false);
+                      setScheduling(true);
+                    }}
+                  >
+                    {t('schedule.this_report')}
+                  </Button>
+                ) : null}
+                {canExport ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Icon icon={Sheet} />}
+                    title={t('report.export_workbook_help')}
+                    onClick={() => void exportAs('xlsx', 'workbook')}
+                  >
+                    {t('report.export_workbook')}
+                  </Button>
+                ) : null}
+                {!needsPerson ? <PrintButton printable="report" /> : null}
+                {!needsPerson && canExport ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={<Icon icon={FileText} />}
+                      onClick={() => void exportAs('csv')}
+                    >
+                      {t('report.export_csv')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      icon={<Icon icon={FileSpreadsheet} />}
+                      onClick={() => void exportAs('xlsx')}
+                    >
+                      {t('report.export_xlsx')}
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <PeriodStepper
+                value={filters.period}
+                onChange={(period) => set({ period })}
+                format={(value) => formatMonth(value, { locale })}
+                label={t('plan.month')}
+                previousLabel={t('targets.previous_month')}
+                nextLabel={t('targets.next_month')}
+              />
+              <ChipList
+                label={t('report.filters_set')}
+                items={chips.map((chip) => chip.text)}
+                removeLabel={(text) => t('report.filter_clear', { filter: text })}
+                onRemove={(text) => {
+                  const chip = chips.find((entry) => entry.text === text);
+                  if (chip) set({ [chip.key]: undefined });
                 }}
               />
-            ))}
-          </List>
-        </nav>
-        <section
-          className="flex min-w-0 flex-[3_1_35rem] flex-col gap-4"
-          aria-label={t(`report.name_${report}`)}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="heading-lg">
-              {t('report.heading', {
-                report: t(`report.name_${report}`),
-                month: formatMonth(filters.period, { locale }),
-              })}
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {canExport ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  icon={<Icon icon={Sheet} />}
-                  title={t('report.export_workbook_help')}
-                  onClick={() => void exportAs('xlsx', 'workbook')}
-                >
-                  {t('report.export_workbook')}
-                </Button>
-              ) : null}
-              {!needsPerson ? <PrintButton printable="report" /> : null}
-              {!needsPerson && canExport ? (
-                <>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    icon={<Icon icon={FileText} />}
-                    onClick={() => void exportAs('csv')}
-                  >
-                    {t('report.export_csv')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    icon={<Icon icon={FileSpreadsheet} />}
-                    onClick={() => void exportAs('xlsx')}
-                  >
-                    {t('report.export_xlsx')}
-                  </Button>
-                </>
-              ) : null}
             </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <PeriodStepper
-              value={filters.period}
-              onChange={(period) => set({ period })}
-              format={(value) => formatMonth(value, { locale })}
-              label={t('plan.month')}
-              previousLabel={t('targets.previous_month')}
-              nextLabel={t('targets.next_month')}
-            />
-            <ChipList
-              label={t('report.filters_set')}
-              items={chips.map((chip) => chip.text)}
-              removeLabel={(text) => t('report.filter_clear', { filter: text })}
-              onRemove={(text) => {
-                const chip = chips.find((entry) => entry.text === text);
-                if (chip) set({ [chip.key]: undefined });
-              }}
-            />
-          </div>
-          <details className="ks-card">
-            <summary className="cursor-pointer font-semibold">{t('report.filters')}</summary>
-            <div className="mt-4">{filterFields}</div>
-          </details>
-          {report === 'gps_audit_trail' && bundle ? (
-            <Notice>
-              {t('report.points_kept', { days: bundle.settings.rawLocationRetentionDays })}
-            </Notice>
-          ) : null}
-          {started ? <Notice>{t('report.export_started')}</Notice> : null}
-          {exportError !== undefined ? (
-            <p className="ks-help error" role="alert">
-              {errorMessage(exportError, t)}
-            </p>
-          ) : null}
-          {needsPerson ? (
-            <EmptyState icon={<Icon icon={Sheet} />} title={t('report.needs_person_title')}>
-              {t('report.needs_person')}
-            </EmptyState>
-          ) : page.isError ? (
-            <p className="ks-help error" role="alert">
-              {errorMessage(page.error, t)}
-            </p>
-          ) : page.isPending ? (
-            <p className="ks-muted">{t('common.loading')}</p>
-          ) : (
-            <div
-              className="min-w-0 [&_table]:min-w-[var(--report-width)]!"
-              // Room for every column (8rem each) before the table scrolls in its box, so a
-              // report of many columns doesn't squeeze its rows tall beside the list.
-              style={{ '--report-width': `${columns.length * 8}rem` } as CSSProperties}
-            >
-              <Printable id="report" title={t(`report.name_${report}`)} details={printDetails}>
-                <DataTable
-                  caption={t('report.caption', {
-                    report: t(`report.name_${report}`),
-                    month: filters.period,
-                  })}
-                  columns={tableColumns}
-                  rows={rows}
-                  rowKey={(row) => JSON.stringify(row)}
-                  empty={
-                    <EmptyState icon={<Icon icon={Sheet} />} title={t('report.empty_title')}>
-                      {t('report.empty_body')}
-                    </EmptyState>
-                  }
-                  {...(page.hasNextPage
-                    ? {
-                        more: {
-                          onClick: () => void page.fetchNextPage(),
-                          busy: page.isFetchingNextPage,
-                        },
-                      }
-                    : {})}
-                />
-              </Printable>
-            </div>
-          )}
-          {canExport ? <Downloads /> : null}
-        </section>
-      </div>
+            <details className="ks-card">
+              <summary className="cursor-pointer font-semibold">{t('report.filters')}</summary>
+              <div className="mt-4">{filterFields}</div>
+            </details>
+            {report === 'gps_audit_trail' && bundle ? (
+              <Notice>
+                {t('report.points_kept', { days: bundle.settings.rawLocationRetentionDays })}
+              </Notice>
+            ) : null}
+            {scheduling ? (
+              <ScheduleForm
+                report={report}
+                filters={filters}
+                onDone={() => setScheduling(false)}
+                onSaved={() => {
+                  setScheduling(false);
+                  setScheduled(true);
+                }}
+              />
+            ) : null}
+            {scheduled ? <Notice>{t('schedule.saved')}</Notice> : null}
+            {started ? <Notice>{t('report.export_started')}</Notice> : null}
+            {exportError !== undefined ? (
+              <p className="ks-help error" role="alert">
+                {errorMessage(exportError, t)}
+              </p>
+            ) : null}
+            {needsPerson ? (
+              <EmptyState icon={<Icon icon={Sheet} />} title={t('report.needs_person_title')}>
+                {t('report.needs_person')}
+              </EmptyState>
+            ) : page.isError ? (
+              <p className="ks-help error" role="alert">
+                {errorMessage(page.error, t)}
+              </p>
+            ) : page.isPending ? (
+              <p className="ks-muted">{t('common.loading')}</p>
+            ) : (
+              <div
+                className="min-w-0 [&_table]:min-w-[var(--report-width)]!"
+                // Room for every column (8rem each) before the table scrolls in its box, so a
+                // report of many columns doesn't squeeze its rows tall beside the list.
+                style={{ '--report-width': `${columns.length * 8}rem` } as CSSProperties}
+              >
+                <Printable id="report" title={t(`report.name_${report}`)} details={printDetails}>
+                  <DataTable
+                    caption={t('report.caption', {
+                      report: t(`report.name_${report}`),
+                      month: filters.period,
+                    })}
+                    columns={tableColumns}
+                    rows={rows}
+                    rowKey={(row) => JSON.stringify(row)}
+                    empty={
+                      <EmptyState icon={<Icon icon={Sheet} />} title={t('report.empty_title')}>
+                        {t('report.empty_body')}
+                      </EmptyState>
+                    }
+                    {...(page.hasNextPage
+                      ? {
+                          more: {
+                            onClick: () => void page.fetchNextPage(),
+                            busy: page.isFetchingNextPage,
+                          },
+                        }
+                      : {})}
+                  />
+                </Printable>
+              </div>
+            )}
+            {canExport ? <Downloads /> : null}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

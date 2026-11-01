@@ -32,6 +32,8 @@ import { OutstandingReport } from './outstanding';
 import { AuditLogReport } from './audit-log-report';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
+import { ReportSchedulesController } from './report-schedules.controller';
+import { ReportSchedulesService } from './report-schedules.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
 import { TargetAchievementReport } from './target-achievement';
@@ -60,10 +62,11 @@ import { TargetAchievementReport } from './target-achievement';
     MetricsModule,
     WorkflowModule,
   ],
-  controllers: [ReportsController],
+  controllers: [ReportsController, ReportSchedulesController],
   providers: [
     ReportsService,
     ExportsService,
+    ReportSchedulesService,
     DashboardService,
     MediaUrls,
     ActivityLogReport,
@@ -81,5 +84,6 @@ import { TargetAchievementReport } from './target-achievement';
     OutstandingReport,
     AuditLogReport,
   ],
+  exports: [ReportSchedulesService],
 })
 export class ReportsModule {}

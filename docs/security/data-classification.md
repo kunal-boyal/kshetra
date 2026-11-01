@@ -25,7 +25,7 @@ The classes of data the product holds and what each class requires (ASVS 5.0 V14
 | Tenant isolation | Row-level security and `tenant_id` on every row | Same | Same | Same | Directory plane, staff only | None |
 | In logs | Never; `maskToken()` where a token must be named | Never | Masked (`maskPhone()`, `maskEmail()`) or by ID | By ID | Yes | Yes |
 | In error reports | Never; `scrub()` removes it | Never | Removed by `scrub()` | IDs only | Yes | Yes |
-| Leaving the cell | Never | Only to the customer: exports, data-request archives, its own API clients and webhooks by ID | Push, SMS, WhatsApp and email providers, as message text, and SSO providers by email | The customer's exports, API and webhooks (IDs) | Sentry, CloudWatch | Anyone |
+| Leaving the cell | Never | Only to the customer: exports (a scheduled report's email carries only a link to sign in, D122), data-request archives, its own API clients and webhooks by ID | Push, SMS, WhatsApp and email providers, as message text, and SSO providers by email | The customer's exports, API and webhooks (IDs) | Sentry, CloudWatch | Anyone |
 | Caching | `no-store` | `no-store` on the API; media at CloudFront at most five minutes | `no-store` | `no-store`, except the config bundle (`private`, revalidated) | | Cacheable |
 | On the phone | Secure store only | The app's database, in the OS sandbox | Same | Same | | |
 | Retention | Until replaced or the session ends | Tenant settings: raw location 7 to 90 days, trails up to three years, evidence photos 3 to 60 months (spec 5.1, D69); erased on a person's request (M21) | Until the person is erased or the tenant leaves | Until the tenant leaves; export and deletion at contract end (D95) | 180 days in logs | |

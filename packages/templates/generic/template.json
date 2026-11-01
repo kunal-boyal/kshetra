@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "generic",
-  "version": 3,
+  "version": 4,
   "name": { "en": "Generic", "hi": "सामान्य" },
   "description": {
     "en": "A starting point for any field team: customers, visit and meeting forms, and metrics for visits, coverage and order value.",
@@ -76,6 +76,8 @@
         "payslip.view",
         "report.view",
         "export.create",
+        "report.schedule",
+        "dashboard.manage",
         "import.run",
         "audit.view",
         "api_client.manage",
@@ -150,6 +152,7 @@
         "payslip.view",
         "report.view",
         "export.create",
+        "report.schedule",
         "import.run",
         "audit.view"
       ]
@@ -192,7 +195,8 @@
         "approval.act",
         "payslip.view",
         "report.view",
-        "export.create"
+        "export.create",
+        "report.schedule"
       ]
     },
     {

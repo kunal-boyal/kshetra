@@ -97,6 +97,7 @@ let aItemId: string;
 let aPriceListId: string;
 let aRegularisationId: string;
 let aDelegationId: string;
+let aScheduleId: string;
 let aLeaveRequestId: string;
 let aClaimId: string;
 /** A second claim of A's, whose ID B never uses for its own. */
@@ -1947,6 +1948,50 @@ const FIXTURES: Record<string, Fixture> = {
       }
     },
   },
+  'GET /v1/report-schedules': {
+    kind: 'own tenant',
+    run: async () => {
+      holdsNothingOfA(await asB('GET', '/v1/report-schedules'));
+      holdsNothingOfA(await asB('GET', '/v1/report-schedules?for=me'));
+    },
+  },
+  'POST /v1/report-schedules': {
+    kind: 'write',
+    run: async () => {
+      // B can't send to A's people.
+      const toA = await asB('POST', '/v1/report-schedules', {
+        id: newId(),
+        report: 'attendance_register',
+        filters: {},
+        format: 'xlsx',
+        frequency: 'monthly',
+        weekday: null,
+        at: '07:00',
+        recipients: [a.member.id],
+      });
+      expect(toA.statusCode).toBe(400);
+    },
+  },
+  'GET /v1/report-schedules/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/report-schedules/${id}`), aScheduleId),
+  },
+  'PUT /v1/report-schedules/:id': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/report-schedules/${id}`, { status: 'paused' }),
+        aScheduleId,
+      ),
+  },
+  'POST /v1/report-schedules/:id/end': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/report-schedules/${id}/end`), aScheduleId),
+  },
+  'POST /v1/report-schedules/:id/leave': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/report-schedules/${id}/leave`), aScheduleId),
+  },
   'POST /v1/exports': {
     kind: 'by ID',
     run: () =>
@@ -2964,6 +3009,22 @@ beforeAll(async () => {
     `insert into cell.mock_location_reports (tenant_id, id, user_id, seen_at, source, count)
      values ($1, $2, $3, now() - interval '1 day', 'tracking', 3)`,
     [a.tenantId, newId(), a.member.id],
+  );
+  // A's admin sends A's member a monthly report (decision D122), which has sent once.
+  aScheduleId = newId();
+  await admin(
+    `insert into cell.report_schedules (id, tenant_id, owner_id, report, filters, format, locale, frequency, at, active_from)
+     values ($1, $2, $3, 'attendance_register', '{}', 'xlsx', 'en', 'monthly', '07:00', now() - interval '40 days')`,
+    [aScheduleId, a.tenantId, a.admin.id],
+  );
+  await admin(
+    `insert into cell.report_schedule_recipients (tenant_id, schedule_id, user_id) values ($1, $2, $3)`,
+    [a.tenantId, aScheduleId, a.member.id],
+  );
+  await admin(
+    `insert into cell.report_schedule_runs (id, tenant_id, schedule_id, send_date, period)
+     values ($1, $2, $3, date_trunc('month', current_date)::date, to_char(current_date - interval '1 month', 'YYYY-MM'))`,
+    [newId(), a.tenantId, aScheduleId],
   );
   // A's member has a monthly gross (M14, decision D117).
   await admin(

@@ -162,6 +162,8 @@ export const ExportFinishedPayload = z.object({
   period: z.string(),
   status: z.enum(['ready', 'failed']),
   rows: z.int().min(0).nullable(),
+  /** The schedule that made it (decision D122), so its recipient hears once, by email. */
+  scheduleId: z.uuid().nullable().optional(),
 });
 
 /** An account made or changed (spec 12.4, decision D94): webhooks tell the tenant's systems. */

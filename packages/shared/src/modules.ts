@@ -32,6 +32,7 @@ export const AVAILABLE_MODULES: readonly ModuleKey[] = [
   'orders',
   'account_finance',
   'expenses',
+  'advanced_analytics',
 ];
 
 /**
@@ -59,7 +60,7 @@ export const MODULE_PERMISSIONS: Record<SwitchableModule, readonly TenantPermiss
   payroll_inputs: ['payroll.manage', 'payslip.view'],
   integrations: ['api_client.manage', 'webhook.manage'],
   sso: [],
-  advanced_analytics: [],
+  advanced_analytics: ['report.schedule', 'dashboard.manage'],
 };
 
 /** The module a permission belongs to. */
