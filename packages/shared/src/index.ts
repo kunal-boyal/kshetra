@@ -374,6 +374,8 @@ export {
   SyncSellThroughPage,
   SyncForecast,
   SyncForecastsPage,
+  SyncScheme,
+  SyncSchemesPage,
   SyncContact,
   SyncContactsPage,
   SyncEntity,

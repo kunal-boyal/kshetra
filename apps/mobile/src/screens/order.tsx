@@ -45,7 +45,15 @@ import { overCredit, useBalance } from '../finance';
 import { errorMessage, useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { useFix } from '../location';
-import { type CartLine, orderBody, priceCart, queueOrder, stepQuantity } from '../orders';
+import {
+  type CartLine,
+  orderBody,
+  priceCart,
+  queueOrder,
+  stepQuantity,
+  useSchemeContext,
+  withSchemes,
+} from '../orders';
 import { type ItemPrice, useAccountPrices } from '../prices';
 import { useSync } from '../sync';
 import { HUES } from './account';
@@ -71,6 +79,8 @@ export function OrderScreen({ accountId }: { accountId: string }) {
   const accounts = useLocalRows('accounts');
   const account = accounts?.find((entry) => entry.id === accountId);
   const offers = useAccountPrices(account);
+  const schemes = useSchemeContext(account);
+  const items = useLocalRows('items');
   const fix = useFix();
   const balance = useBalance(accountId);
   const bundle = config.data?.bundle;
@@ -103,7 +113,9 @@ export function OrderScreen({ accountId }: { accountId: string }) {
     return () => listener.remove();
   }, [step]);
 
-  const priced = priceCart(lines, offers ?? [], rounding);
+  // BR-55: each line's scheme as the server will choose it, and the goods it gives free.
+  const cart = withSchemes(priceCart(lines, offers ?? [], rounding), offers ?? [], schemes);
+  const priced = cart.lines;
   const totals = orderTotals(priced.map((line) => line.values));
   const halves = gstHalves(totals.tax);
   const tooLarge =
@@ -173,6 +185,7 @@ export function OrderScreen({ accountId }: { accountId: string }) {
       const body = await orderBody(sync, client.owner, {
         accountId: account.id,
         lines: priced,
+        free: cart.free,
         note,
         fix: fix.fix,
       });
@@ -241,15 +254,35 @@ export function OrderScreen({ accountId }: { accountId: string }) {
               <ListRow
                 key={line.itemId}
                 label={line.offer.item.name}
-                detail={
+                detail={[
                   line.unitKey === line.offer.item.baseUnit
                     ? t('orders.review_line', values)
                     : t('orders.review_line_units', {
                         ...values,
                         base: number(line.values.baseUnits),
                         baseUnit: unitName(line.offer.item.baseUnit),
-                      })
-                }
+                      }),
+                  ...(line.scheme
+                    ? [
+                        scaled(line.scheme.discount, 2) > 0n
+                          ? t('orders.scheme_off', {
+                              name: line.scheme.name[locale],
+                              discount: money(line.scheme.discount),
+                            })
+                          : t('orders.scheme_named', { name: line.scheme.name[locale] }),
+                      ]
+                    : []),
+                  ...cart.free
+                    .filter((free) => free.ofItemId === line.itemId)
+                    .map((free) => {
+                      const freeItem = items?.find((entry) => entry.id === free.itemId);
+                      return t('orders.free_line', {
+                        count: number(free.baseUnits),
+                        unit: unitName(freeItem?.baseUnit ?? line.offer.item.baseUnit),
+                        item: freeItem?.name ?? '',
+                      });
+                    }),
+                ].join('\n')}
                 trailing={
                   <Text weight={600} style={styles.figure}>
                     {money(line.values.taxable)}
