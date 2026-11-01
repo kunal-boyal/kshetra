@@ -1838,6 +1838,7 @@ export const hi: Record<MessageKey, Message> = {
   'receivables.invoice': 'इनवॉइस',
   'receivables.receipt': 'रसीद',
   'receivables.due': 'देय',
+  'receivables.due_on': '{date} को देय',
   'receivables.status': 'स्थिति',
   'receivables.days_late': { one: '{count} दिन देर', other: '{count} दिन देर' },
   'receivables.open': 'बकाया',

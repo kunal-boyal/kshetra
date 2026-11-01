@@ -1,4 +1,6 @@
-import { type SyncBalance, scaled, unscaled } from '@thelamp/shared';
+import { AccountInvoiceListResult, type SyncBalance, scaled, unscaled } from '@thelamp/shared';
+import { useQuery } from '@tanstack/react-query';
+import { useApp } from './app-state';
 import { useLocalRows } from './local-data';
 
 /**
@@ -25,4 +27,22 @@ export function creditLeft(balance: SyncBalance): string | null {
 export function overCredit(balance: SyncBalance | null | undefined, total: string): boolean {
   if (!balance || balance.creditLimit === null) return false;
   return scaled(balance.outstanding, 2) + scaled(total, 2) > scaled(balance.creditLimit, 2);
+}
+
+/**
+ * An account's open invoices (BR-51, decision D121), read online, so a field user knows which
+ * bills to collect; the phone keeps only the account's balance.
+ */
+export function useOpenInvoices(accountId: string, enabled: boolean) {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['open-invoices', accountId],
+    queryFn: async () =>
+      (await client.request(
+        'GET',
+        `/v1/accounts/${accountId}/invoices?status=open&limit=20`,
+        AccountInvoiceListResult,
+      ))!,
+    enabled,
+  });
 }

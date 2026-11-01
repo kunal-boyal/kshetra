@@ -275,7 +275,7 @@ describe('account finance (M11)', () => {
       entities: {
         balances: {
           pass: string;
-          rows: { accountId: string; asOf: string; outstanding: string }[];
+          rows: { accountId: string; asOf: string; outstanding: string; creditLimit: string }[];
         };
       };
       cursor: string;
@@ -304,6 +304,34 @@ describe('account finance (M11)', () => {
         asOf: '2026-10-20',
         outstanding: '6500.00',
       }),
+    ]);
+
+    // Once the account has invoices, the balance follows them, and moves with each receipt (D121).
+    const invoiced = await t.run(
+      'invoices',
+      ['Invoice number,Account code,Invoice date,Amount', `INV-1,${t.code},${TODAY()},12000`].join(
+        '\n',
+      ),
+    );
+    expect(invoiced.status, JSON.stringify(invoiced)).toBe('committed');
+    const third = await pull(second.cursor);
+    expect(third.entities.balances.rows).toEqual([
+      expect.objectContaining({
+        accountId: t.accountId,
+        asOf: TODAY(),
+        outstanding: '12000.00',
+        creditLimit: '20000.00',
+      }),
+    ]);
+    await t.run(
+      'receipts',
+      ['Receipt number,Account code,Receipt date,Amount', `R-1,${t.code},${TODAY()},2000`].join(
+        '\n',
+      ),
+    );
+    const fourth = await pull(third.cursor);
+    expect(fourth.entities.balances.rows).toEqual([
+      expect.objectContaining({ accountId: t.accountId, outstanding: '10000.00' }),
     ]);
   });
 });

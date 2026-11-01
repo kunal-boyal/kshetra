@@ -247,6 +247,30 @@ export class FinanceService implements OnModuleInit {
     };
   }
 
+  /** The latest snapshot of each of some accounts, by account. */
+  async latestOf(
+    tx: TenantTx,
+    tenantId: string,
+    accountIds: readonly string[],
+  ): Promise<Map<string, FinanceSnapshot>> {
+    if (accountIds.length === 0) return new Map();
+    const rows = await tx
+      .selectDistinctOn([financeSnapshots.accountId])
+      .from(financeSnapshots)
+      .where(
+        and(
+          eq(financeSnapshots.tenantId, tenantId),
+          inArray(financeSnapshots.accountId, [...new Set(accountIds)]),
+        ),
+      )
+      .orderBy(
+        financeSnapshots.accountId,
+        desc(financeSnapshots.asOf),
+        desc(financeSnapshots.createdAt),
+      );
+    return new Map(rows.map((row) => [row.accountId, snapshotResult(row)]));
+  }
+
   /** `GET /v1/accounts/{id}/finance`: the latest snapshot and the twelve before it. */
   async forAccount(tx: TenantTx, access: Access, accountId: string): Promise<AccountFinanceResult> {
     await this.accounts.find(tx, access, accountId);
