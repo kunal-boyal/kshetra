@@ -7,7 +7,8 @@ import { newAddress, newPhone, staffToken, startApp, World } from './support';
  * API clients (module M20, decision D94): a tenant admin makes a client with scopes; its ID and
  * secret buy an hour's token at the OAuth 2.0 token endpoint; the token reaches what its scopes
  * stand for, and nothing that is a person's own; rotating or revoking ends it; each client stays
- * within its plan's requests a minute; and the API documents itself at /v1/docs.
+ * within its plan's requests a minute; while the integrations module is off, clients are kept but
+ * get no tokens and answer nothing (D125); and the API documents itself at /v1/docs.
  */
 
 let app: NestFastifyApplication;
@@ -23,7 +24,7 @@ afterAll(async () => {
   await app.close();
 });
 
-function call(method: 'GET' | 'POST' | 'PUT', url: string, token: string, body?: object) {
+function call(method: 'GET' | 'POST' | 'PUT' | 'PATCH', url: string, token: string, body?: object) {
   return app.inject({
     method,
     url,
@@ -176,6 +177,34 @@ describe('API clients (M20, D94)', () => {
     expect((await call('GET', '/v1/users', fresh.json().access_token)).json().error.code).toBe(
       'SESSION_REVOKED',
     );
+  });
+
+  it('keeps clients while integrations are off, giving them no tokens and no answers (D125)', async () => {
+    const org = await organisation('Paused Org');
+    const { client, clientSecret } = await makeClient(org.admin, ['people:read']);
+    const credentials = { id: client.clientId, secret: clientSecret };
+    const bearer = (await token({ grant_type: 'client_credentials' }, credentials)).json()
+      .access_token as string;
+    expect((await call('GET', '/v1/users', bearer)).statusCode).toBe(200);
+
+    const off = await call('PATCH', '/v1/settings', org.admin, { modulesOff: ['integrations'] });
+    expect(off.statusCode, off.body).toBe(200);
+    const refused = await call('GET', '/v1/users', bearer);
+    expect(refused.statusCode).toBe(403);
+    expect(refused.json().error.code).toBe('MODULE_DISABLED');
+    const asked = await token({ grant_type: 'client_credentials' }, credentials);
+    expect(asked.statusCode).toBe(400);
+    expect(asked.json()).toMatchObject({ error: 'unauthorized_client' });
+    expect((await call('GET', '/v1/api-clients', org.admin)).json().error.code).toBe(
+      'MODULE_DISABLED',
+    );
+    // People carry on.
+    expect((await call('GET', '/v1/users', org.admin)).statusCode).toBe(200);
+
+    // On again, the same client and its token work as before.
+    await call('PATCH', '/v1/settings', org.admin, { modulesOff: [] });
+    expect((await call('GET', '/v1/users', bearer)).statusCode).toBe(200);
+    expect((await token({ grant_type: 'client_credentials' }, credentials)).statusCode).toBe(200);
   });
 
   it('holds each client to its plan’s requests a minute', async () => {

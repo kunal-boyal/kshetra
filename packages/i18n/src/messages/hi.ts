@@ -3310,6 +3310,10 @@ export const hi: Record<MessageKey, Message> = {
   'admin.module_integrations_about': 'सार्वजनिक API और वेबहुक।',
   'admin.module_sso': 'सिंगल साइन-ऑन',
   'admin.module_sso_about': 'अपने पहचान प्रदाता से वेब पर साइन इन, OIDC या SAML द्वारा।',
+  'admin.module_integrations_off':
+    'बंद रहने पर API क्लाइंट को टोकन नहीं मिलते और वेबहुक कुछ नहीं भेजते। दोबारा चालू करने पर दोनों वैसे ही काम करते हैं।',
+  'admin.module_sso_off':
+    'बंद रहने पर कोई भी आपके पहचान प्रदाता से साइन इन नहीं करता, और सभी वेब पर एक बार के कोड से साइन इन करते हैं। दोबारा चालू करने पर कनेक्शन वैसा ही रहता है।',
   'admin.module_advanced_analytics': 'उन्नत विश्लेषण',
   'admin.module_advanced_analytics_about': 'अपने डैशबोर्ड और तय समय पर रिपोर्ट।',
   'maps.legend': 'मैप की कुंजी',

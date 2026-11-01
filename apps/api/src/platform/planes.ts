@@ -7,6 +7,7 @@ import type {
   ModuleKey,
   PlanLimitValues,
   SupportScopeKey,
+  SwitchableModule,
   TenantStatus,
   UsageMetric,
 } from '@thelamp/shared';
@@ -128,6 +129,15 @@ export interface Entitled {
  */
 export abstract class Entitlements {
   abstract forTenant(tenantId: string): Promise<Entitled>;
+}
+
+/**
+ * The modules closed for a tenant (spec 5.13, decision D125): those its admin switched off and
+ * those its plan leaves out, as the cell reads its settings. The directory's sign-in and token
+ * routes ask, so single sign-on and API clients close with their modules.
+ */
+export abstract class TenantModules {
+  abstract off(tenantId: string): Promise<readonly SwitchableModule[]>;
 }
 
 /** Where a cell sends what it metered for a tenant's month; the directory adds what it knows. */

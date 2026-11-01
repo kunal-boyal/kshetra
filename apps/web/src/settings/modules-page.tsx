@@ -1,4 +1,10 @@
-import { AVAILABLE_MODULES, MODULE_KEYS, type SwitchableModule } from '@thelamp/shared';
+import {
+  AVAILABLE_MODULES,
+  MODULE_KEYS,
+  type ModuleKey,
+  type SwitchableModule,
+} from '@thelamp/shared';
+import type { MessageKey } from '@thelamp/i18n';
 import { Button, Checkbox, Icon, StatusBadge } from '@thelamp/ui-web';
 import { Save } from 'lucide-react';
 import { useState } from 'react';
@@ -8,6 +14,12 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { PageHeader } from '../people/shared';
 import { useAdmin } from './data';
+
+/** What stops while a module is off, where it isn't plain from its screens (decision D125). */
+export const MODULE_OFF_NOTES: Partial<Record<ModuleKey, MessageKey>> = {
+  integrations: 'admin.module_integrations_off',
+  sso: 'admin.module_sso_off',
+};
 
 /**
  * Modules (M2, spec 5.13): what the organisation uses. Switching one off hides its screens, takes
@@ -74,6 +86,9 @@ export function ModulesPage() {
                 )}
               </div>
               <p className="ks-muted text-sm">{t(`admin.module_${key}_about`)}</p>
+              {key !== 'core' && current.includes(key) && MODULE_OFF_NOTES[key] ? (
+                <p className="ks-muted text-sm">{t(MODULE_OFF_NOTES[key])}</p>
+              ) : null}
             </li>
           );
         })}

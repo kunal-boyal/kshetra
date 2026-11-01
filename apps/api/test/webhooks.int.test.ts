@@ -13,7 +13,7 @@ import { newAddress, newDevice, newPhone, startApp, World } from './support';
 /**
  * Webhooks (spec 12.4, module M20, decision D94): subscriptions to domain events, messages signed
  * as Standard Webhooks sign them, tried again with backoff for a day, a log of every try, tests,
- * sending again and new secrets. Tests run no workers, so they try messages as the worker would.
+ * sending again and new secrets, and nothing while the integrations module is off (D125). Tests run no workers, so they try messages as the worker would.
  */
 
 interface Received {
@@ -310,6 +310,35 @@ describe('webhooks (M20, D94)', () => {
     });
     const listed = (await call('GET', '/v1/webhooks', org.admin)).json();
     expect(listed.items[0].lastDelivery).toMatchObject({ status: 'failed', responseCode: 503 });
+  });
+
+  it('sends nothing while the integrations module is off, and makes nothing to send later (D125)', async () => {
+    const org = await organisation('Hooks Module Off');
+    const { webhook } = await subscribe(org.admin, ['user.created']);
+    await world.user(org.tenantId, { name: 'Before', designation: 'executive' });
+    const [waiting] = await messages(org.tenantId, webhook.id);
+
+    const off = await call('PATCH', '/v1/settings', org.admin, { modulesOff: ['integrations'] });
+    expect(off.statusCode, off.body).toBe(200);
+    await world.user(org.tenantId, { name: 'While off', designation: 'executive' });
+    expect(await messages(org.tenantId, webhook.id)).toHaveLength(1);
+    await app.get(WebhooksService).deliver(org.tenantId, waiting!.id);
+    expect(received).toHaveLength(0);
+    expect((await call('GET', '/v1/webhooks', org.admin)).json().error.code).toBe(
+      'MODULE_DISABLED',
+    );
+
+    // On again, the subscription is as it was and new events are sent.
+    await call('PATCH', '/v1/settings', org.admin, { modulesOff: [] });
+    const listed = (await call('GET', '/v1/webhooks', org.admin)).json();
+    expect(listed.items).toEqual([expect.objectContaining({ id: webhook.id, status: 'active' })]);
+    await world.user(org.tenantId, { name: 'After', designation: 'executive' });
+    const fresh = (await messages(org.tenantId, webhook.id)).filter(
+      (message) => message.id !== waiting!.id,
+    );
+    expect(fresh).toHaveLength(1);
+    await app.get(WebhooksService).deliver(org.tenantId, fresh[0]!.id);
+    expect(received).toHaveLength(1);
   });
 
   it('is for holders of webhook.manage, never for API clients or other roles', async () => {

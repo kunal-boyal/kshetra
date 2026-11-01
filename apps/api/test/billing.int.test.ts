@@ -1,5 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { billableSeats, newId, todayIn } from '@thelamp/shared';
+import { billableSeats, MODULE_KEYS, newId, todayIn } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StaffService } from '../src/modules/console/staff.service';
 import { totpAt, totpStep } from '../src/platform/totp';
@@ -150,8 +150,10 @@ describe('plans in the console (M23)', () => {
 describe('entitlements (spec 5.13)', () => {
   it('closes the modules a plan leaves out, which the tenant cannot switch on', async () => {
     const t = await tenant('Entitled Co');
-    // Without a plan, every module is open.
+    // Without a plan, every module is open, as the console shows it (decision D125).
     expect((await send('GET', '/v1/orders', t.admin)).statusCode).toBe(200);
+    const open = await send('GET', `/platform/v1/tenants/${t.tenantId}/entitlements`, staff);
+    expect(open.json()).toMatchObject({ plan: null, modules: [...MODULE_KEYS] });
 
     const basic = await addPlan(`basic${newId().slice(-6)}`);
     const set = await send('PUT', `/platform/v1/tenants/${t.tenantId}/plan`, staff, {
