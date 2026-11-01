@@ -132,6 +132,9 @@ const ANSWERS: Record<string, unknown> = {
     ],
     onLeaveToday: 1,
     waiting: { reviews: 6, approvals: 2, plans: 0, leave: 1, expenses: 1 },
+    layout: null,
+    metrics: [],
+    breakdowns: [],
   },
 };
 
@@ -360,4 +363,50 @@ test('searches from the bar, grouped, and passes axe with the matches open (D110
     await page.screenshot({ path: `test-results/search-${theme}.png` });
     await expectAccessible(page);
   }
+});
+
+test('/ follows the layout set for the role, and passes axe (D122)', async ({ page }) => {
+  await mockSignedIn(page);
+  const base = ANSWERS['/v1/dashboard'] as Record<string, unknown> & {
+    tiles: { metric: { key: string } }[];
+  };
+  const key = base.tiles[0]!.metric.key;
+  await page.route('**/v1/dashboard?**', (route) =>
+    route.fulfill({
+      json: {
+        ...base,
+        layout: [
+          { kind: 'breakdown', metric: key, by: 'person' },
+          { kind: 'tiles', metrics: [key] },
+          { kind: 'waiting' },
+        ],
+        breakdowns: [
+          {
+            metric: key,
+            by: 'person',
+            level: null,
+            rows: [
+              {
+                id: '01a10000-0000-7000-8000-000000000004',
+                label: 'Rahul Verma',
+                value: 31,
+                target: 40,
+              },
+              {
+                id: '01a10000-0000-7000-8000-000000000005',
+                label: 'Pooja Rathore',
+                value: 18,
+                target: null,
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto('/');
+  await expect(page.getByRole('img', { name: /by person/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Forms this period' })).toHaveCount(0);
+  await expectAccessible(page);
 });

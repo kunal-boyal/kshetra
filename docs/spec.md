@@ -669,7 +669,7 @@ Every delivery attempt is logged with channel, status, provider message ID, erro
 
 ### M18. Dashboards, reports and exports
 
-Role-based home dashboards are built from metrics: KPI tiles against target, daily trend, mix by form, leaderboard, pending approvals and on-duty count.
+Role-based home dashboards are built from metrics: KPI tiles against target, daily trend, mix by form, leaderboard, pending approvals and on-duty count. With the advanced analytics module, an admin with `dashboard.manage` lays out each role's Home from cards (D122): metric tiles, a day-by-day trend, one metric by person or by territory at a geography level, form mix, leaderboard, who is on duty and what waits. Each card follows the viewer's own scope and permissions; a role without a layout, or any role while the module is off, keeps the standard Home.
 
 Standard reports, each filterable by period, team, territory, user and account type, viewable on screen and exportable:
 
@@ -1079,7 +1079,7 @@ Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group c
 | `expenses` | Policies and claims | `expense_policies`, `expense_policy_versions`, `expense_claims` |
 | `workflow` | Definitions, instances, steps, SLA timers, delegations | `workflow_definitions`, `workflow_instances`, `workflow_steps`, `approval_delegations` |
 | `notifications` | Templates, preferences, delivery, in-app inbox | `notification_templates`, `notifications`, `notification_prefs` |
-| `imports`, `exports` | File-based jobs, and scheduled reports (D122) | `import_jobs`, `import_mappings`, `export_jobs`, `report_schedules`, `report_schedule_recipients`, `report_schedule_runs` |
+| `imports`, `exports` | File-based jobs, and scheduled reports (D122) | `import_jobs`, `import_mappings`, `export_jobs`, `report_schedules`, `report_schedule_recipients`, `report_schedule_runs`, `dashboard_layouts` |
 | `integrations` | API clients, webhooks, deliveries | `api_clients`, `webhook_subscriptions`, `webhook_deliveries` |
 | `sync` | Mobile pull protocol and change cursors | `sync_tombstones` |
 | `audit` | Writing and viewing the audit log | `audit_log` |
@@ -1358,6 +1358,7 @@ report_schedules(id, tid, owner_id, report, filters jsonb, format, locale, frequ
                  paused_reason NULL, active_from, ended_at NULL)
 report_schedule_recipients(tid, schedule_id, user_id, added_at, left_at NULL)  PK(tid, schedule_id, user_id)
 report_schedule_runs(id, tid, schedule_id, send_date, period)  UQ(tid, schedule_id, send_date)
+dashboard_layouts(tid, role_id, cards jsonb NULL)  PK(tid, role_id)
 api_clients(id, tid, name, client_id UQ(tid, client_id), secret_hash, scopes text[], status, auth_revision,
             last_used_at, revoked_at)
 external_metric_values(tid, id, metric_key, user_id NULL, account_id NULL, date, month bool, value,

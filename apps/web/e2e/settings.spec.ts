@@ -65,6 +65,25 @@ const SUPPORT_BASE = {
 };
 
 const ANSWERS: Record<string, unknown> = {
+  '/v1/dashboard-layouts': {
+    items: [
+      {
+        role: {
+          id: '01a10000-0000-7000-8000-0000000000c1',
+          key: 'manager',
+          name: { en: 'Manager', hi: 'मैनेजर' },
+        },
+        cards: [
+          { kind: 'tiles', metrics: ['visits'] },
+          { kind: 'breakdown', metric: 'visits', by: 'territory', level: 'region' },
+          { kind: 'waiting' },
+        ],
+        updatedAt: '2026-11-01T06:00:00.000Z',
+      },
+    ],
+    metrics: [{ key: 'visits', name: noun('Visit', 'Visits'), additive: true }],
+    levels: [{ key: 'region', name: noun('Region', 'Regions') }],
+  },
   '/v1/support-grants': {
     items: [
       {
@@ -684,6 +703,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'api_client.manage',
             'webhook.manage',
             'audit.view',
+            'dashboard.manage',
           ],
         },
       },
@@ -714,6 +734,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'webhooks',
     'data-exports',
     'data-requests',
+    'dashboard-layouts',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -772,6 +793,7 @@ for (const path of [
   'data-requests',
   'data-requests/01a10000-0000-7000-8000-0000000000a1',
   'audit-log',
+  'dashboards',
 ]) {
   for (const theme of ['light', 'outdoor']) {
     test(`/settings/${path} passes axe in the ${theme} theme`, async ({ page }) => {

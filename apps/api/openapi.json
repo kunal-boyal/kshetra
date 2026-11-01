@@ -8890,6 +8890,7 @@
                 "report_schedule.resumed",
                 "report_schedule.ended",
                 "report_schedule.left",
+                "dashboard_layout.changed",
                 "organisation.renamed",
                 "organisation.logo_changed",
                 "account_type.created",
@@ -9168,6 +9169,7 @@
                               "report_schedule.resumed",
                               "report_schedule.ended",
                               "report_schedule.left",
+                              "dashboard_layout.changed",
                               "organisation.renamed",
                               "organisation.logo_changed",
                               "account_type.created",
@@ -11523,6 +11525,181 @@
         }
       }
     },
+    "/v1/dashboard-layouts": {
+      "get": {
+        "operationId": "ReportsController.layoutList",
+        "summary": "Each role's Home layout; a role without one keeps the standard Home",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: dashboard.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardLayoutListResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/dashboard-layouts/{roleId}": {
+      "put": {
+        "operationId": "ReportsController.setLayout",
+        "summary": "Set a role's Home as cards in order, or give it back the standard Home",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: dashboard.manage",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cards": {
+                    "anyOf": [
+                      {
+                        "minItems": 1,
+                        "maxItems": 12,
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/DashboardCard"
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "cards"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "key": {
+                          "$ref": "#/components/schemas/Key"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/LocalizedText"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "key",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "cards": {
+                      "anyOf": [
+                        {
+                          "minItems": 1,
+                          "maxItems": 12,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/DashboardCard"
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "updatedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "cards",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/dashboard/waiting": {
       "get": {
         "operationId": "ReportsController.waiting",
@@ -13309,6 +13486,7 @@
                           "report_schedule.resumed",
                           "report_schedule.ended",
                           "report_schedule.left",
+                          "dashboard_layout.changed",
                           "organisation.renamed",
                           "organisation.logo_changed",
                           "account_type.created",
@@ -18780,6 +18958,7 @@
                           "report_schedule.resumed",
                           "report_schedule.ended",
                           "report_schedule.left",
+                          "dashboard_layout.changed",
                           "organisation.renamed",
                           "organisation.logo_changed",
                           "account_type.created",
@@ -19121,6 +19300,7 @@
                           "report_schedule.resumed",
                           "report_schedule.ended",
                           "report_schedule.left",
+                          "dashboard_layout.changed",
                           "organisation.renamed",
                           "organisation.logo_changed",
                           "account_type.created",
@@ -19560,6 +19740,7 @@
                 "report_schedule.resumed",
                 "report_schedule.ended",
                 "report_schedule.left",
+                "dashboard_layout.changed",
                 "organisation.renamed",
                 "organisation.logo_changed",
                 "account_type.created",
@@ -25580,6 +25761,7 @@
                               "report_schedule.resumed",
                               "report_schedule.ended",
                               "report_schedule.left",
+                              "dashboard_layout.changed",
                               "organisation.renamed",
                               "organisation.logo_changed",
                               "account_type.created",
@@ -31780,6 +31962,250 @@
           }
         ]
       },
+      "DashboardCard": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "tiles"
+              },
+              "metrics": {
+                "minItems": 1,
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "metrics"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "trend"
+              },
+              "metrics": {
+                "minItems": 1,
+                "maxItems": 4,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Key"
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "metrics"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "breakdown"
+              },
+              "metric": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "by": {
+                "type": "string",
+                "enum": [
+                  "person",
+                  "territory"
+                ]
+              },
+              "level": {
+                "$ref": "#/components/schemas/Key"
+              }
+            },
+            "required": [
+              "kind",
+              "metric",
+              "by"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "mix"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "leaderboard"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "on_duty"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "waiting"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "DashboardLayoutListResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "key": {
+                      "$ref": "#/components/schemas/Key"
+                    },
+                    "name": {
+                      "$ref": "#/components/schemas/LocalizedText"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "key",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "cards": {
+                  "anyOf": [
+                    {
+                      "minItems": 1,
+                      "maxItems": 12,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DashboardCard"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "updatedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "role",
+                "cards",
+                "updatedAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/LocalizedNoun"
+                },
+                "additive": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "key",
+                "name",
+                "additive"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/LocalizedNoun"
+                }
+              },
+              "required": [
+                "key",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items",
+          "metrics",
+          "levels"
+        ],
+        "additionalProperties": false
+      },
       "DashboardResult": {
         "type": "object",
         "properties": {
@@ -32157,6 +32583,105 @@
           },
           "waiting": {
             "$ref": "#/components/schemas/DashboardWaiting"
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DashboardCard"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerformanceMetric"
+            }
+          },
+          "breakdowns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "by": {
+                  "type": "string",
+                  "enum": [
+                    "person",
+                    "territory"
+                  ]
+                },
+                "level": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Key"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "label": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "value": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "target": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "label",
+                      "value",
+                      "target"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "metric",
+                "by",
+                "level",
+                "rows"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
@@ -32170,7 +32695,10 @@
           "onDuty",
           "onDutyPeople",
           "onLeaveToday",
-          "waiting"
+          "waiting",
+          "layout",
+          "metrics",
+          "breakdowns"
         ],
         "additionalProperties": false
       },
@@ -33859,6 +34387,7 @@
                   "report_schedule.resumed",
                   "report_schedule.ended",
                   "report_schedule.left",
+                  "dashboard_layout.changed",
                   "organisation.renamed",
                   "organisation.logo_changed",
                   "account_type.created",
@@ -42326,6 +42855,7 @@
                   "report_schedule.resumed",
                   "report_schedule.ended",
                   "report_schedule.left",
+                  "dashboard_layout.changed",
                   "organisation.renamed",
                   "organisation.logo_changed",
                   "account_type.created",
@@ -42765,6 +43295,7 @@
                   "report_schedule.resumed",
                   "report_schedule.ended",
                   "report_schedule.left",
+                  "dashboard_layout.changed",
                   "organisation.renamed",
                   "organisation.logo_changed",
                   "account_type.created",

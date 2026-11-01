@@ -455,6 +455,54 @@ export class TerritoriesService {
     return found;
   }
 
+  /**
+   * The territory at a level above (or at) the first one each user holds on `day`, by code: where
+   * a Home breakdown by territory counts them (decision D122). Users whose territory sits above
+   * that level, or who hold none, are left out.
+   */
+  async atLevel(
+    tx: TenantTx,
+    tenantId: string,
+    userIds: readonly string[],
+    day: string,
+    level: number,
+  ): Promise<Map<string, { id: string; code: string; name: string }>> {
+    const attached = await this.attachmentsOf(tx, tenantId, userIds, day);
+    const firsts = new Map(
+      [...attached].flatMap(([userId, [first]]) => (first ? [[userId, first.id] as const] : [])),
+    );
+    if (firsts.size === 0) return new Map();
+    const rows = await tx
+      .select({
+        descendantId: territoryClosure.descendantId,
+        id: territories.id,
+        code: territories.code,
+        name: territories.name,
+      })
+      .from(territoryClosure)
+      .innerJoin(
+        territories,
+        and(
+          eq(territories.tenantId, territoryClosure.tenantId),
+          eq(territories.id, territoryClosure.ancestorId),
+        ),
+      )
+      .where(
+        and(
+          eq(territoryClosure.tenantId, tenantId),
+          inArray(territoryClosure.descendantId, [...new Set(firsts.values())]),
+          eq(territories.level, level),
+        ),
+      );
+    const byTerritory = new Map(rows.map(({ descendantId, ...row }) => [descendantId, row]));
+    return new Map(
+      [...firsts].flatMap(([userId, territoryId]) => {
+        const found = byTerritory.get(territoryId);
+        return found ? [[userId, found] as const] : [];
+      }),
+    );
+  }
+
   /** The first territory each user holds on `day`, by code; users holding none are left out. */
   async primaryOf(
     tx: TenantTx,

@@ -1923,6 +1923,18 @@ const FIXTURES: Record<string, Fixture> = {
         await asB('GET', `/v1/dashboard?period=${new Date().toISOString().slice(0, 7)}`),
       ),
   },
+  'GET /v1/dashboard-layouts': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/dashboard-layouts')),
+  },
+  'PUT /v1/dashboard-layouts/:roleId': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/dashboard-layouts/${id}`, { cards: [{ kind: 'waiting' }] }),
+        a.roleId,
+      ),
+  },
   'GET /v1/dashboard/waiting': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/dashboard/waiting')),

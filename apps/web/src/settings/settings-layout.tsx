@@ -90,6 +90,12 @@ export const SETTINGS_GROUPS = [
         shown: can('territory.manage'),
       },
       { to: '/settings/metrics', label: (t) => t('metrics.title'), shown: can('metric.manage') },
+      // Each role's Home (decision D122); the permission goes with the module.
+      {
+        to: '/settings/dashboards',
+        label: (t) => t('dashboards.title'),
+        shown: can('dashboard.manage'),
+      },
       {
         to: '/settings/calendars',
         label: (t) => t('calendars.title'),

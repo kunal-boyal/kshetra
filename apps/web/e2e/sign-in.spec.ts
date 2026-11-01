@@ -56,6 +56,9 @@ async function mockApi(page: Page) {
         onDutyPeople: null,
         onLeaveToday: null,
         waiting: { reviews: null, approvals: null, plans: null, leave: null, expenses: null },
+        layout: null,
+        metrics: [],
+        breakdowns: [],
       },
     }),
   );

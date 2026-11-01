@@ -4,7 +4,10 @@ import {
   AppError,
   attainment,
   DASHBOARD_TILES,
+  type DashboardBreakdown,
+  type DashboardCard,
   type DashboardResult,
+  type LayoutMetric,
   type Leaderboard,
   type MetricFigures,
   type PerformanceMetric,
@@ -73,6 +76,12 @@ function additive(definition: MetricDefinition): boolean {
     (source.type === 'visit_duration' && source.aggregate === 'average')
   );
 }
+
+/** The most rows a Home breakdown shows (decision D122). */
+const BREAKDOWN_ROWS = 10;
+
+const numberOf = (value: string | null | undefined) =>
+  value === null || value === undefined ? null : Number(value);
 
 function text(value: number | null): string | null {
   return value === null ? null : String(Math.round(value * 1000) / 1000);
@@ -635,12 +644,30 @@ export class PerformanceService {
    * their own; the tiles are the metrics with a target, or the first ones; each additive tile has a
    * daily trend of approved and pending; and the top of the caller's leaderboard.
    */
+  /** The tenant's metrics as a Home layout's checks need them (decision D122). */
+  async layoutMetrics(
+    tx: TenantTx,
+    tenantId: string,
+  ): Promise<(LayoutMetric & { name: PerformanceMetric['name'] })[]> {
+    const setup = await this.setup(tx, tenantId);
+    return setup.metrics.map((metric) => ({
+      key: metric.key,
+      name: metric.name,
+      available: metric.available,
+      additive: additive(setup.byKey.get(metric.key)!),
+    }));
+  }
+
   async dashboard(
     tx: TenantTx,
     access: Access,
     period: string,
+    layout: readonly DashboardCard[] | null = null,
   ): Promise<
-    Pick<DashboardResult, 'view' | 'people' | 'tiles' | 'trend' | 'leaderboard'> & { ids: string[] }
+    Pick<
+      DashboardResult,
+      'view' | 'people' | 'tiles' | 'trend' | 'leaderboard' | 'layout' | 'metrics' | 'breakdowns'
+    > & { ids: string[] }
   > {
     const tenantId = access.tenantId;
     const setup = await this.setup(tx, tenantId);
@@ -653,9 +680,17 @@ export class PerformanceService {
     const view = team.length > 0 ? 'team' : 'self';
     let figures: Record<string, MetricFigures>;
     let ids: string[];
+    // Each person's figures, for a breakdown by person or territory (decision D122).
+    let each: { id: string; name: string; figures: Record<string, MetricFigures> }[];
     if (view === 'team') {
-      figures = (await this.figuresFor(tx, tenantId, team, period)).totals;
+      const read = await this.figuresFor(tx, tenantId, team, period);
+      figures = read.totals;
       ids = team.map((person) => person.id);
+      each = read.rows.map((row) => ({
+        id: row.user.id,
+        name: row.user.name,
+        figures: row.figures,
+      }));
     } else {
       const values = (await this.values(tx, tenantId, setup, [access.userId], period)).get(
         access.userId,
@@ -665,18 +700,41 @@ export class PerformanceService {
       );
       figures = this.figures(setup, values, set?.values ?? {});
       ids = [access.userId];
+      const me = (await this.people.facts(tx, tenantId, [access.userId])).get(access.userId);
+      each = [{ id: access.userId, name: me?.name ?? '', figures }];
     }
     const available = setup.metrics.filter((metric) => metric.available);
+    const usable = (key: string) => available.find((metric) => metric.key === key);
+    const adds = (key: string) => usable(key) !== undefined && additive(setup.byKey.get(key)!);
+    const levels = layout?.some((card) => card.kind === 'breakdown' && card.by === 'territory')
+      ? await this.territories.levels(tx, tenantId)
+      : [];
+    // A layout's cards, without what names a metric or level that is gone since it was set.
+    const cards = layout?.flatMap((card): DashboardCard[] => {
+      if (card.kind === 'tiles') {
+        const metrics = card.metrics.filter((key) => usable(key));
+        return metrics.length ? [{ ...card, metrics }] : [];
+      }
+      if (card.kind === 'trend') {
+        const metrics = card.metrics.filter(adds);
+        return metrics.length ? [{ ...card, metrics }] : [];
+      }
+      if (card.kind === 'breakdown') {
+        if (card.by === 'person') return usable(card.metric) ? [card] : [];
+        return adds(card.metric) && levels.some((level) => level.key === card.level) ? [card] : [];
+      }
+      return [card];
+    });
     const targeted = available.filter((metric) => figures[metric.key]?.target != null);
-    const tiles = (targeted.length > 0 ? targeted : available)
-      .slice(0, DASHBOARD_TILES)
-      .map((metric) => ({ metric, figures: figures[metric.key]! }));
-    const trendKeys = tiles
-      .map((tile) => tile.metric.key)
-      .filter((key) => {
-        const definition = setup.byKey.get(key);
-        return definition !== undefined && additive(definition);
-      });
+    const tileMetrics = cards
+      ? [...new Set(cards.flatMap((card) => (card.kind === 'tiles' ? card.metrics : [])))].map(
+          (key) => usable(key)!,
+        )
+      : (targeted.length > 0 ? targeted : available).slice(0, DASHBOARD_TILES);
+    const tiles = tileMetrics.map((metric) => ({ metric, figures: figures[metric.key]! }));
+    const trendKeys = cards
+      ? [...new Set(cards.flatMap((card) => (card.kind === 'trend' ? card.metrics : [])))]
+      : tiles.map((tile) => tile.metric.key).filter(adds);
     const { from, to } = periodDates(period, setup.startMonth);
     const days =
       trendKeys.length && ids.length
@@ -709,8 +767,35 @@ export class PerformanceService {
           pending: row.pending === null ? null : Number(row.pending),
         })),
     }));
+    const breakdowns: DashboardBreakdown[] = [];
+    for (const card of cards ?? []) {
+      if (card.kind !== 'breakdown') continue;
+      const level = levels.find((entry) => entry.key === card.level);
+      breakdowns.push({
+        metric: card.metric,
+        by: card.by,
+        level: level?.key ?? null,
+        rows: level
+          ? await this.byTerritory(tx, tenantId, setup.today, level.level, card.metric, each)
+          : each
+              .map((person) => ({
+                id: person.id,
+                label: person.name,
+                value: numberOf(person.figures[card.metric]?.actual),
+                target: numberOf(person.figures[card.metric]?.target),
+              }))
+              .sort((a, b) => (b.value ?? -Infinity) - (a.value ?? -Infinity))
+              .slice(0, BREAKDOWN_ROWS),
+      });
+    }
+    const named = new Set(
+      (cards ?? []).flatMap((card) =>
+        card.kind === 'trend' ? card.metrics : card.kind === 'breakdown' ? [card.metric] : [],
+      ),
+    );
     let leaderboard: DashboardResult['leaderboard'] = null;
-    if (access.permissions.has('leaderboard.view')) {
+    const wantsBoard = !cards || cards.some((card) => card.kind === 'leaderboard');
+    if (wantsBoard && access.permissions.has('leaderboard.view')) {
       const board = await this.leaderboard(tx, access, period);
       const group = board.groups.find((entry) => entry.key === board.group);
       if (group) {
@@ -728,7 +813,57 @@ export class PerformanceService {
         };
       }
     }
-    return { view, people: view === 'team' ? team.length : 1, tiles, trend, leaderboard, ids };
+    return {
+      view,
+      people: view === 'team' ? team.length : 1,
+      tiles,
+      trend,
+      leaderboard,
+      ids,
+      layout: cards ?? null,
+      metrics: available.filter((metric) => named.has(metric.key)),
+      breakdowns,
+    };
+  }
+
+  /**
+   * A metric summed by the territory each person sits under at a level, the largest first; people
+   * under none at that level are one row without a territory (decision D122).
+   */
+  private async byTerritory(
+    tx: TenantTx,
+    tenantId: string,
+    today: string,
+    level: number,
+    metric: string,
+    each: readonly { id: string; figures: Record<string, MetricFigures> }[],
+  ): Promise<DashboardBreakdown['rows']> {
+    const places = await this.territories.atLevel(
+      tx,
+      tenantId,
+      each.map((person) => person.id),
+      today,
+      level,
+    );
+    const sums = new Map<string, DashboardBreakdown['rows'][number]>();
+    for (const person of each) {
+      const place = places.get(person.id) ?? null;
+      const key = place?.id ?? '';
+      const row = sums.get(key) ?? {
+        id: place?.id ?? null,
+        label: place ? `${place.name} (${place.code})` : null,
+        value: null,
+        target: null,
+      };
+      const value = numberOf(person.figures[metric]?.actual);
+      const target = numberOf(person.figures[metric]?.target);
+      if (value !== null) row.value = (row.value ?? 0) + value;
+      if (target !== null) row.target = (row.target ?? 0) + target;
+      sums.set(key, row);
+    }
+    return [...sums.values()]
+      .sort((a, b) => (b.value ?? -Infinity) - (a.value ?? -Infinity))
+      .slice(0, BREAKDOWN_ROWS);
   }
 
   /** A ranking group's leaderboard for a period: the caller's own group unless one is named. */

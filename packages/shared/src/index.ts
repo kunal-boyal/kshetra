@@ -840,7 +840,21 @@ export {
   ReportQuery,
   type ReportTone,
 } from './schemas/reports';
+export { dashboardLayoutIssues, type LayoutMetric } from './dashboards';
 export {
+  BREAKDOWN_BY,
+  DASHBOARD_CARD_KINDS,
+  DashboardBreakdown,
+  DashboardCard,
+  type DashboardCardKind,
+  DashboardLayoutCards,
+  DashboardLayoutListResult,
+  DashboardLayoutParam,
+  DashboardLayoutRow,
+  LAYOUT_CARDS_MOST,
+  TILE_METRICS_MOST,
+  TREND_METRICS_MOST,
+  UpdateDashboardLayoutBody,
   DASHBOARD_TILES,
   DashboardQuery,
   DashboardResult,

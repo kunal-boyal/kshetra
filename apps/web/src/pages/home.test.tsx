@@ -92,6 +92,9 @@ const DASHBOARD = {
   ],
   onLeaveToday: 1,
   waiting: { reviews: 2, approvals: 3, plans: 0, leave: 1, expenses: 1 },
+  layout: null,
+  metrics: [],
+  breakdowns: [],
 };
 
 const SELF = {
@@ -239,5 +242,55 @@ describe('the home dashboard (M18, decision D104)', () => {
     );
     expect(await screen.findByText('No figures yet')).toBeVisible();
     expect(screen.getByText('No forms filled this period.')).toBeVisible();
+  });
+
+  it('follows the layout an admin set for the viewer’s role, in its order (D122)', async () => {
+    const laid = {
+      ...DASHBOARD,
+      layout: [
+        { kind: 'breakdown', metric: 'visits', by: 'territory', level: 'area' },
+        { kind: 'tiles', metrics: ['order_value'] },
+        { kind: 'waiting' },
+      ],
+      breakdowns: [
+        {
+          metric: 'visits',
+          by: 'territory',
+          level: 'area',
+          rows: [
+            {
+              id: '01a10000-0000-7000-8000-0000000000a1',
+              label: 'Indore West (IND-W)',
+              value: 30,
+              target: 40,
+            },
+            { id: null, label: null, value: 12, target: null },
+          ],
+        },
+      ],
+    };
+    renderAt('/', fakeClient({ '/v1/dashboard': laid }, {}, ['live_map.view']));
+    const split = await screen.findByRole('table', { name: 'Visits by territory' });
+    expect(
+      within(split)
+        .getAllByRole('row')
+        .map((row) => row.textContent),
+    ).toEqual([
+      'TerritoryVisitsTarget',
+      'Indore West (IND-W)3040',
+      'No territory at this level12—',
+    ]);
+    const figures = screen.getByRole('region', { name: 'Your team of 4 this period' });
+    expect(
+      within(figures)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([expect.stringContaining('Order value')]);
+    expect(screen.getByRole('region', { name: 'Waiting for you' })).toBeVisible();
+    // What the layout leaves out isn't there.
+    expect(screen.queryByRole('table', { name: /On duty now/ })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Forms this period' })).toBeNull();
+    // The breakdown comes before the tiles, as laid out.
+    expect(split.compareDocumentPosition(figures) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

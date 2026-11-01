@@ -1,6 +1,9 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
 import {
   CreateExportBody,
+  DashboardLayoutListResult,
+  DashboardLayoutParam,
+  DashboardLayoutRow,
   DashboardQuery,
   DashboardResult,
   DashboardWaiting,
@@ -11,12 +14,14 @@ import {
   ReportKeyParam,
   ReportPage,
   ReportQuery,
+  UpdateDashboardLayoutBody,
 } from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires, SignedIn, WhileReadOnly } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { notFound, pathId } from '../iam/actor';
+import { DashboardLayoutsService } from './dashboard-layouts.service';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
 import { ReportsService } from './reports.service';
@@ -33,6 +38,7 @@ export class ReportsController {
     private readonly reports: ReportsService,
     private readonly exports: ExportsService,
     private readonly dashboard: DashboardService,
+    private readonly layouts: DashboardLayoutsService,
   ) {}
 
   @Get('dashboard')
@@ -60,6 +66,38 @@ export class ReportsController {
   @SignedIn()
   waiting(@CurrentAccess() access: Access) {
     return this.database.read(access.tenantId, (tx) => this.dashboard.waiting(tx, access));
+  }
+
+  @Get('dashboard-layouts')
+  @Contract({
+    tag: 'Reports',
+    summary: "Each role's Home layout; a role without one keeps the standard Home",
+    response: DashboardLayoutListResult,
+  })
+  @Requires('dashboard.manage')
+  layoutList(@CurrentAccess() access: Access) {
+    return this.database.forTenant(access.tenantId, (tx) => this.layouts.list(tx, access.tenantId));
+  }
+
+  @Put('dashboard-layouts/:roleId')
+  @Contract({
+    tag: 'Reports',
+    summary: "Set a role's Home as cards in order, or give it back the standard Home",
+    params: DashboardLayoutParam,
+    body: UpdateDashboardLayoutBody,
+    response: DashboardLayoutRow,
+  })
+  @Requires('dashboard.manage')
+  setLayout(
+    @CurrentAccess() access: Access,
+    @Param('roleId') roleId: string,
+    @Body() body: unknown,
+  ) {
+    const id = pathId(roleId);
+    const input = UpdateDashboardLayoutBody.parse(body);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.layouts.set(tx, access, id, input.cards),
+    );
   }
 
   @Get('reports/:key')
