@@ -6257,11 +6257,201 @@
                       "items": {
                         "$ref": "#/components/schemas/FinanceSnapshot"
                       }
+                    },
+                    "receivables": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Receivables"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "latest",
-                    "history"
+                    "history",
+                    "receivables"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/{id}/invoices": {
+      "get": {
+        "operationId": "FinanceController.invoices",
+        "summary": "An account's invoices from its books, with what each still has open (BR-51)",
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:read",
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: finance.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "type": "string",
+              "enum": [
+                "open",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "dueDate": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "open": {
+                            "type": "string"
+                          },
+                          "daysPastDue": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "cancelled": {
+                            "type": "boolean"
+                          },
+                          "settledBy": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "receipt": {
+                                  "type": "string"
+                                },
+                                "amount": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "receipt",
+                                "amount"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "date",
+                          "dueDate",
+                          "amount",
+                          "open",
+                          "daysPastDue",
+                          "cancelled",
+                          "settledBy"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
                   ],
                   "additionalProperties": false
                 }
@@ -6657,6 +6847,164 @@
                     "date",
                     "lists",
                     "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/{id}/receipts": {
+      "get": {
+        "operationId": "FinanceController.receipts",
+        "summary": "An account's receipts and credit notes, with the invoices each settled (BR-51)",
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:read",
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: finance.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "receipt",
+                              "credit_note"
+                            ]
+                          },
+                          "against": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "cancelled": {
+                            "type": "boolean"
+                          },
+                          "settled": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "invoice": {
+                                  "type": "string"
+                                },
+                                "amount": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "invoice",
+                                "amount"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "date",
+                          "amount",
+                          "kind",
+                          "against",
+                          "cancelled",
+                          "settled"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
                   ],
                   "additionalProperties": false
                 }
@@ -8559,6 +8907,12 @@
                 "order.cancelled",
                 "finance.snapshots_added",
                 "finance.entries_added",
+                "finance.invoices_recorded",
+                "finance.invoice_changed",
+                "finance.invoice_cancelled",
+                "finance.receipts_recorded",
+                "finance.receipt_changed",
+                "finance.receipt_cancelled",
                 "holidays.changed",
                 "regularisation.requested",
                 "regularisation.decided",
@@ -8825,6 +9179,12 @@
                               "order.cancelled",
                               "finance.snapshots_added",
                               "finance.entries_added",
+                              "finance.invoices_recorded",
+                              "finance.invoice_changed",
+                              "finance.invoice_cancelled",
+                              "finance.receipts_recorded",
+                              "finance.receipt_changed",
+                              "finance.receipt_cancelled",
                               "holidays.changed",
                               "regularisation.requested",
                               "regularisation.decided",
@@ -9454,6 +9814,8 @@
                 "accounts",
                 "items",
                 "ledger-entries",
+                "invoices",
+                "receipts",
                 "external-metrics"
               ]
             }
@@ -9474,6 +9836,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BulkFields"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bulk/invoices": {
+      "post": {
+        "operationId": "BulkController.invoices",
+        "summary": "Record or correct invoices from the customer's books, keyed by number (BR-51)",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: finance.manage",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResult"
                 }
               }
             }
@@ -9560,6 +9987,71 @@
       "post": {
         "operationId": "BulkController.ledger",
         "summary": "Add statement entries, keyed by their reference, as the import does",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: finance.manage",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bulk/receipts": {
+      "post": {
+        "operationId": "BulkController.receipts",
+        "summary": "Record or correct receipts and credit notes, keyed by number (BR-51)",
         "tags": [
           "Integrations"
         ],
@@ -10233,6 +10725,11 @@
                         "ordersAllowedOffline": {
                           "type": "boolean"
                         },
+                        "defaultCreditDays": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 365
+                        },
                         "ageingBuckets": {
                           "minItems": 1,
                           "maxItems": 8,
@@ -10313,6 +10810,7 @@
                         "targetUnlockByAdmin",
                         "ordersNeedOpenShift",
                         "ordersAllowedOffline",
+                        "defaultCreditDays",
                         "ageingBuckets",
                         "planNotificationTime",
                         "quietHoursStart",
@@ -12816,6 +13314,12 @@
                           "order.cancelled",
                           "finance.snapshots_added",
                           "finance.entries_added",
+                          "finance.invoices_recorded",
+                          "finance.invoice_changed",
+                          "finance.invoice_cancelled",
+                          "finance.receipts_recorded",
+                          "finance.receipt_changed",
+                          "finance.receipt_cancelled",
                           "holidays.changed",
                           "regularisation.requested",
                           "regularisation.decided",
@@ -18245,6 +18749,12 @@
                 "order.cancelled",
                 "finance.snapshots_added",
                 "finance.entries_added",
+                "finance.invoices_recorded",
+                "finance.invoice_changed",
+                "finance.invoice_cancelled",
+                "finance.receipts_recorded",
+                "finance.receipt_changed",
+                "finance.receipt_cancelled",
                 "holidays.changed",
                 "regularisation.requested",
                 "regularisation.decided",
@@ -19703,6 +20213,11 @@
                   "ordersAllowedOffline": {
                     "type": "boolean"
                   },
+                  "defaultCreditDays": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 365
+                  },
                   "ageingBuckets": {
                     "minItems": 1,
                     "maxItems": 8,
@@ -19983,6 +20498,11 @@
                     "ordersAllowedOffline": {
                       "type": "boolean"
                     },
+                    "defaultCreditDays": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 365
+                    },
                     "ageingBuckets": {
                       "minItems": 1,
                       "maxItems": 8,
@@ -20063,6 +20583,7 @@
                     "targetUnlockByAdmin",
                     "ordersNeedOpenShift",
                     "ordersAllowedOffline",
+                    "defaultCreditDays",
                     "ageingBuckets",
                     "planNotificationTime",
                     "quietHoursStart",
@@ -24242,6 +24763,12 @@
                               "order.cancelled",
                               "finance.snapshots_added",
                               "finance.entries_added",
+                              "finance.invoices_recorded",
+                              "finance.invoice_changed",
+                              "finance.invoice_cancelled",
+                              "finance.receipts_recorded",
+                              "finance.receipt_changed",
+                              "finance.receipt_cancelled",
                               "holidays.changed",
                               "regularisation.requested",
                               "regularisation.decided",
@@ -32509,6 +33036,12 @@
                   "order.cancelled",
                   "finance.snapshots_added",
                   "finance.entries_added",
+                  "finance.invoices_recorded",
+                  "finance.invoice_changed",
+                  "finance.invoice_cancelled",
+                  "finance.receipts_recorded",
+                  "finance.receipt_changed",
+                  "finance.receipt_cancelled",
                   "holidays.changed",
                   "regularisation.requested",
                   "regularisation.decided",
@@ -34228,6 +34761,8 @@
               "account_plans",
               "finance_snapshots",
               "ledger_entries",
+              "invoices",
+              "receipts",
               "holidays",
               "external_metrics",
               "payroll_gross"
@@ -34251,6 +34786,8 @@
               "account_plans",
               "finance_snapshots",
               "ledger_entries",
+              "invoices",
+              "receipts",
               "holidays",
               "external_metrics",
               "payroll_gross"
@@ -39530,6 +40067,11 @@
           "ordersAllowedOffline": {
             "type": "boolean"
           },
+          "defaultCreditDays": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 365
+          },
           "ageingBuckets": {
             "minItems": 1,
             "maxItems": 8,
@@ -40294,6 +40836,66 @@
         ],
         "additionalProperties": false
       },
+      "Receivables": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "outstanding": {
+            "type": "string"
+          },
+          "notDue": {
+            "type": "string"
+          },
+          "overdue": {
+            "type": "string"
+          },
+          "ageing": {
+            "type": "object",
+            "propertyNames": {
+              "$ref": "#/components/schemas/Key"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "oldestDue": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "advance": {
+            "type": "string"
+          },
+          "creditLimit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "asOf",
+          "outstanding",
+          "notDue",
+          "overdue",
+          "ageing",
+          "oldestDue",
+          "advance",
+          "creditLimit"
+        ],
+        "additionalProperties": false
+      },
       "RecordPaymentBody": {
         "type": "object",
         "properties": {
@@ -40650,6 +41252,7 @@
           "gps_audit_trail",
           "orders_register",
           "account_statement",
+          "outstanding",
           "audit_log",
           "payroll_summary"
         ]

@@ -377,31 +377,46 @@ const FIXTURES: Record<string, Fixture> = {
   'GET /v1/bulk/fields': {
     kind: 'own tenant',
     run: async () => {
-      for (const target of ['users', 'items', 'ledger-entries', 'external-metrics']) {
+      for (const target of [
+        'users',
+        'items',
+        'ledger-entries',
+        'invoices',
+        'receipts',
+        'external-metrics',
+      ]) {
         holdsNothingOfA(await asB('GET', `/v1/bulk/fields?target=${target}`));
       }
     },
   },
   ...Object.fromEntries(
-    (['users', 'accounts', 'items', 'ledger-entries', 'external-metrics'] as const).map(
-      (target) => [
-        `POST /v1/bulk/${target}`,
-        {
-          kind: 'write',
-          run: async () => {
-            // B's rows reach only B: a code of A's is a code nobody has, and nothing of A's comes back.
-            const reply = await asB('POST', `/v1/bulk/${target}`, {
-              ...(target === 'accounts' ? { accountType: 'customer' } : {}),
-              rows: [
-                { code: 'A-ONLY', account_code: 'A-ONLY', employee_code: 'A-ONLY', name: 'B row' },
-              ],
-            });
-            expect([200, 400]).toContain(reply.statusCode);
-            holdsNothingOfA(reply);
-          },
-        } satisfies Fixture,
-      ],
-    ),
+    (
+      [
+        'users',
+        'accounts',
+        'items',
+        'ledger-entries',
+        'invoices',
+        'receipts',
+        'external-metrics',
+      ] as const
+    ).map((target) => [
+      `POST /v1/bulk/${target}`,
+      {
+        kind: 'write',
+        run: async () => {
+          // B's rows reach only B: a code of A's is a code nobody has, and nothing of A's comes back.
+          const reply = await asB('POST', `/v1/bulk/${target}`, {
+            ...(target === 'accounts' ? { accountType: 'customer' } : {}),
+            rows: [
+              { code: 'A-ONLY', account_code: 'A-ONLY', employee_code: 'A-ONLY', name: 'B row' },
+            ],
+          });
+          expect([200, 400]).toContain(reply.statusCode);
+          holdsNothingOfA(reply);
+        },
+      } satisfies Fixture,
+    ]),
   ),
   'GET /v1/api-clients': {
     kind: 'own tenant',
@@ -2660,6 +2675,14 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/statement`), aAccountId),
   },
+  'GET /v1/accounts/:id/invoices': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/invoices`), aAccountId),
+  },
+  'GET /v1/accounts/:id/receipts': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/receipts`), aAccountId),
+  },
   'GET /v1/accounts/:id/prices': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/prices`), aAccountId),
@@ -2883,6 +2906,17 @@ beforeAll(async () => {
     ],
   });
   expect(posted.statusCode, posted.body).toBe(200);
+  // A's books: an invoice and a receipt against it (D121).
+  await admin(
+    `insert into cell.invoices (tenant_id, id, account_id, number, date, due_date, amount, source)
+     values ($1, $2, $3, 'A-BILL-1', current_date - 40, current_date - 10, 2500, 'import')`,
+    [a.tenantId, newId(), aAccountId],
+  );
+  await admin(
+    `insert into cell.receipts (tenant_id, id, account_id, number, date, amount, against, source)
+     values ($1, $2, $3, 'A-RCPT-1', current_date - 5, 1000, '{A-BILL-1}', 'import')`,
+    [a.tenantId, newId(), aAccountId],
+  );
   const holiday = await send(aToken, 'PUT', `/v1/calendars/standard/holidays/${YESTERDAY()}`, {
     name: `${a.word} festival`,
   });

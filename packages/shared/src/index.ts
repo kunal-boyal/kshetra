@@ -878,8 +878,24 @@ export {
   STATEMENT_LIMIT,
 } from './finance';
 export type { AgeingBucket, LedgerEntry } from './finance';
+export { DEFAULT_CREDIT_DAYS, invoiceAgeing, invoiceDueDate, settleInvoices } from './receivables';
+export type {
+  Receivables as ReceivablesFigures,
+  RegisterInvoice,
+  RegisterReceipt,
+  Settled,
+  Settlement,
+} from './receivables';
 export {
   AccountFinanceResult,
+  AccountInvoiceListResult,
+  AccountInvoiceQuery,
+  AccountInvoiceRow,
+  AccountReceiptListResult,
+  AccountReceiptQuery,
+  AccountReceiptRow,
+  RECEIPT_KINDS,
+  Receivables,
   FinanceSnapshot,
   FinanceSnapshotBody,
   LedgerEntriesBody,
@@ -887,6 +903,7 @@ export {
   StatementQuery,
   StatementResult,
 } from './schemas/finance';
+export type { ReceivablesResult } from './schemas/finance';
 export { paidDays, REGULARISATION_REASON, regularisationIssue, scheduledDays } from './attendance';
 export { dayCounts, type GrossChange, grossOn, type PayDay, provisionalPay } from './payroll';
 export {

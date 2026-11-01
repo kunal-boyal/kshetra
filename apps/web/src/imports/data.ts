@@ -25,6 +25,8 @@ export const TARGET_PERMISSIONS: Record<
   | 'account_plans'
   | 'finance_snapshots'
   | 'ledger_entries'
+  | 'invoices'
+  | 'receipts'
   | 'holidays'
   | 'external_metrics'
   | 'payroll_gross',
@@ -38,6 +40,8 @@ export const TARGET_PERMISSIONS: Record<
   account_plans: 'account_plan.manage',
   finance_snapshots: 'finance.manage',
   ledger_entries: 'finance.manage',
+  invoices: 'finance.manage',
+  receipts: 'finance.manage',
   holidays: 'calendar.manage',
   external_metrics: 'metric.record',
   payroll_gross: 'payroll.manage',

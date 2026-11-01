@@ -4,6 +4,7 @@ import { DataScope, Permission } from './common';
 import { contrastRatio, HEX_COLOUR } from '../colour';
 import { TARGET_PERIOD_KINDS } from '../periods';
 import { bucketsIssue, DEFAULT_AGEING_BUCKETS } from '../finance';
+import { DEFAULT_CREDIT_DAYS } from '../receivables';
 import { SWITCHABLE_MODULES } from '../modules';
 import { ANOMALY_FLAGS } from '../anomalies';
 import { RAW_LOCATION_RETENTION_DAYS_MAX, SYNC_WINDOW_HOURS_MAX } from '../retention';
@@ -153,6 +154,8 @@ export const TenantSettings = z.strictObject({
   targetUnlockByAdmin: z.boolean(),
   ordersNeedOpenShift: z.boolean(),
   ordersAllowedOffline: z.boolean(),
+  /** An invoice's credit days when it gives no due date (BR-51, decision D121). */
+  defaultCreditDays: range(0, 365),
   /** Days past due that account finance ages outstanding into (M11, BR-20). */
   ageingBuckets: z
     .array(
@@ -212,6 +215,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   targetUnlockByAdmin: false,
   ordersNeedOpenShift: false,
   ordersAllowedOffline: true,
+  defaultCreditDays: DEFAULT_CREDIT_DAYS,
   ageingBuckets: DEFAULT_AGEING_BUCKETS.map((bucket) => ({ ...bucket })),
   planNotificationTime: '08:00',
   quietHoursStart: '21:00',

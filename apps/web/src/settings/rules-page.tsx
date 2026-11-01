@@ -229,6 +229,7 @@ export function RulesPage() {
         <>
           {flag('journeyPlanApproval')}
           {flag('targetUnlockByAdmin')}
+          {number('defaultCreditDays', 0, 365, t('admin.unit_days'))}
         </>,
       )}
       <Section title={t('admin.rules_evidence')}>

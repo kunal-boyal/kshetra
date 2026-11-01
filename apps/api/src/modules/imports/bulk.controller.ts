@@ -21,6 +21,8 @@ const TARGET_OF: Record<BulkTarget, string> = {
   accounts: 'accounts',
   items: 'items',
   'ledger-entries': 'ledger_entries',
+  invoices: 'invoices',
+  receipts: 'receipts',
   'external-metrics': 'external_metrics',
 };
 
@@ -141,6 +143,42 @@ export class BulkController {
     @Headers('idempotency-key') key?: string,
   ) {
     return this.load(access, 'ledger_entries', BulkBody.parse(body).rows, key);
+  }
+
+  @Post('invoices')
+  @HttpCode(200)
+  @Requires('finance.manage')
+  @Contract({
+    tag: 'Integrations',
+    summary: "Record or correct invoices from the customer's books, keyed by number (BR-51)",
+    body: BulkBody,
+    response: BulkResult,
+    idempotencyKey: true,
+  })
+  invoices(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key?: string,
+  ) {
+    return this.load(access, 'invoices', BulkBody.parse(body).rows, key);
+  }
+
+  @Post('receipts')
+  @HttpCode(200)
+  @Requires('finance.manage')
+  @Contract({
+    tag: 'Integrations',
+    summary: 'Record or correct receipts and credit notes, keyed by number (BR-51)',
+    body: BulkBody,
+    response: BulkResult,
+    idempotencyKey: true,
+  })
+  receipts(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key?: string,
+  ) {
+    return this.load(access, 'receipts', BulkBody.parse(body).rows, key);
   }
 
   @Post('external-metrics')

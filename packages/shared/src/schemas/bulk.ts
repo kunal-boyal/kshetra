@@ -30,6 +30,8 @@ export const BULK_TARGETS = [
   'accounts',
   'items',
   'ledger-entries',
+  'invoices',
+  'receipts',
   'external-metrics',
 ] as const;
 

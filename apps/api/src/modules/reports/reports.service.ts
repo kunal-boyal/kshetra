@@ -33,6 +33,7 @@ import { GpsAuditTrailReport } from './gps-audit-trail';
 import { LocationSummaryReport } from './location-summary';
 import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
+import { OutstandingReport } from './outstanding';
 import { AuditLogReport } from './audit-log-report';
 import type { ReportContext, ReportRow, ReportSource } from './sources';
 import { TargetAchievementReport } from './target-achievement';
@@ -69,6 +70,7 @@ export class ReportsService {
     gpsAuditTrail: GpsAuditTrailReport,
     ordersRegister: OrdersRegisterReport,
     accountStatement: AccountStatementReport,
+    outstanding: OutstandingReport,
     auditLog: AuditLogReport,
     payrollSummary: PayrollSummaryReport,
   ) {
@@ -85,6 +87,7 @@ export class ReportsService {
         gpsAuditTrail,
         ordersRegister,
         accountStatement,
+        outstanding,
         auditLog,
         payrollSummary,
       ].map((source) => [source.key, source]),

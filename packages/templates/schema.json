@@ -3579,6 +3579,11 @@
         "ordersAllowedOffline": {
           "type": "boolean"
         },
+        "defaultCreditDays": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 365
+        },
         "ageingBuckets": {
           "minItems": 1,
           "maxItems": 8,

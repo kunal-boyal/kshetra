@@ -265,6 +265,88 @@ describe("an account's finance (M11, D79)", () => {
     expect(finance.querySelector('.ks-stat.danger')).not.toBeNull();
   });
 
+  it('shows what invoices leave open once the account has any, with their registers (D121)', async () => {
+    const client = fakeClient(
+      {
+        [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+        [`/v1/accounts/${SHOP}/finance`]: {
+          latest: null,
+          history: [],
+          receivables: {
+            asOf: '2026-11-01',
+            outstanding: '13500.00',
+            notDue: '0.00',
+            overdue: '13500.00',
+            ageing: { d31_60: '5000.00', d61_90: '8500.00' },
+            oldestDue: '2026-08-23',
+            advance: '0.00',
+            creditLimit: '20000.00',
+          },
+        },
+        [`/v1/accounts/${SHOP}/invoices`]: {
+          items: [
+            {
+              id: '01a10000-0000-7000-8000-0000000000c1',
+              number: 'INV-2',
+              date: '2026-09-12',
+              dueDate: '2026-09-22',
+              amount: '5000.00',
+              open: '5000.00',
+              daysPastDue: 40,
+              cancelled: false,
+              settledBy: [],
+            },
+          ],
+          nextCursor: null,
+        },
+        [`/v1/accounts/${SHOP}/receipts`]: {
+          items: [
+            {
+              id: '01a10000-0000-7000-8000-0000000000c2',
+              number: 'CN-1',
+              date: '2026-10-28',
+              amount: '500.00',
+              kind: 'credit_note',
+              against: [],
+              cancelled: false,
+              settled: [{ invoice: 'INV-1', amount: '500.00' }],
+            },
+          ],
+          nextCursor: null,
+        },
+        [`/v1/accounts/${SHOP}/statement`]: {
+          from: '2026-04-01',
+          to: '2027-03-31',
+          opening: '0.00',
+          closing: '0.00',
+          entries: [],
+          truncated: false,
+          count: 0,
+        },
+      },
+      {},
+      ['account.view', 'finance.view'],
+      BUNDLE,
+    );
+    renderAt(`/accounts/${SHOP}`, client);
+    const finance = await screen.findByRole('region', { name: 'Finance' });
+    await waitFor(() => expect(finance).toHaveTextContent('Outstanding₹13,500.00'));
+    expect(finance).toHaveTextContent('From the invoices and receipts in your books');
+    expect(finance).toHaveTextContent('Overdue₹13,500.00');
+    expect(finance).toHaveTextContent('68% of the limit used');
+    const ageing = within(finance).getByRole('img', { name: 'Ageing' });
+    expect(ageing.parentElement).toHaveTextContent('61–90 days: ₹8,500.00');
+    const open = await within(finance).findByRole('table', { name: 'Open invoices' });
+    expect(within(open).getByRole('row', { name: /INV-2/ })).toHaveTextContent('40 days late');
+    const receipts = await within(finance).findByRole('table', { name: 'Receipts' });
+    expect(within(receipts).getByRole('row', { name: /CN-1/ })).toHaveTextContent('Credit note');
+    expect(within(receipts).getByRole('row', { name: /CN-1/ })).toHaveTextContent(
+      'INV-1 (₹500.00)',
+    );
+    // No snapshot block once invoices speak for the account.
+    expect(finance).not.toHaveTextContent('Ledger from');
+  });
+
   it('shows the latest balance with its ageing, and the statement with running balances', async () => {
     const year = new Date().getFullYear() - (new Date().getMonth() < 3 ? 1 : 0);
     const client = fakeClient(

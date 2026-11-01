@@ -499,3 +499,74 @@ test('an account and the inbox pass axe in the outdoor theme', async ({ page }) 
   await expect(page.getByRole('textbox', { name: /Why are you rejecting it/ })).toBeVisible();
   await expectAccessible(page);
 });
+
+test('an account with invoices shows what they leave open, and passes axe (D121)', async ({
+  page,
+}) => {
+  await mockSignedIn(page);
+  const answers: Record<string, unknown> = {
+    [`/v1/accounts/${SHOP}/finance`]: {
+      latest: null,
+      history: [],
+      receivables: {
+        asOf: '2026-11-01',
+        outstanding: '13500.00',
+        notDue: '0.00',
+        overdue: '13500.00',
+        ageing: {
+          d0_30: '0.00',
+          d31_60: '5000.00',
+          d61_90: '8500.00',
+          d91_180: '0.00',
+          d181: '0.00',
+        },
+        oldestDue: '2026-08-23',
+        advance: '0.00',
+        creditLimit: '20000.00',
+      },
+    },
+    [`/v1/accounts/${SHOP}/invoices`]: {
+      items: [
+        {
+          id: '01a10000-0000-7000-8000-0000000000c1',
+          number: 'INV-2',
+          date: '2026-09-12',
+          dueDate: '2026-09-22',
+          amount: '5000.00',
+          open: '5000.00',
+          daysPastDue: 40,
+          cancelled: false,
+          settledBy: [],
+        },
+      ],
+      nextCursor: null,
+    },
+    [`/v1/accounts/${SHOP}/receipts`]: {
+      items: [
+        {
+          id: '01a10000-0000-7000-8000-0000000000c2',
+          number: 'R-1',
+          date: '2026-10-28',
+          amount: '9000.00',
+          kind: 'receipt',
+          against: ['INV-3'],
+          cancelled: false,
+          settled: [
+            { invoice: 'INV-3', amount: '8000.00' },
+            { invoice: 'INV-1', amount: '1000.00' },
+          ],
+        },
+      ],
+      nextCursor: null,
+    },
+  };
+  await page.route(`**/v1/accounts/${SHOP}/{finance,invoices,receipts}**`, (route) =>
+    route.fulfill({ json: answers[new URL(route.request().url()).pathname] }),
+  );
+  await page.goto(`/accounts/${SHOP}`);
+  const finance = page.getByRole('region', { name: 'Finance' });
+  await expect(finance).toContainText('Overdue');
+  await expect(page.getByRole('table', { name: 'Open invoices' })).toContainText('40 days late');
+  await expect(page.getByRole('table', { name: 'Receipts' })).toContainText('INV-1');
+  await expectAccessible(page);
+});

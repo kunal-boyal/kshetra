@@ -610,6 +610,20 @@
       "when": 1793514858444,
       "tag": "0086_evidence_anomalies",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1793521339615,
+      "tag": "0087_invoice_receipt_registers",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1793521341715,
+      "tag": "0088_invoice_receipt_row_versions",
+      "breakpoints": true
     }
   ]
 }

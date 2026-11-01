@@ -14,6 +14,8 @@ export const IMPORT_TARGETS = [
   'account_plans',
   'finance_snapshots',
   'ledger_entries',
+  'invoices',
+  'receipts',
   'holidays',
   'external_metrics',
   'payroll_gross',
