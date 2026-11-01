@@ -258,6 +258,9 @@
         "term.order": {
           "$ref": "#/$defs/LocalizedNoun"
         },
+        "term.sell_through": {
+          "$ref": "#/$defs/LocalizedNoun"
+        },
         "term.punch_in": {
           "type": "object",
           "properties": {
@@ -429,6 +432,7 @@
         "account.manage",
         "account.import",
         "account.approve",
+        "sell_through.record",
         "settings.manage",
         "terminology.manage",
         "form.manage",
@@ -1303,6 +1307,11 @@
         "contacts": {
           "default": false,
           "description": "Whether accounts of this type hold contact people",
+          "type": "boolean"
+        },
+        "sellThrough": {
+          "default": false,
+          "description": "Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)",
           "type": "boolean"
         }
       },
@@ -2710,6 +2719,39 @@
             "statuses"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "sell_through"
+            },
+            "measure": {
+              "type": "string",
+              "enum": [
+                "value",
+                "quantity"
+              ]
+            },
+            "items": {
+              "description": "Count only these item codes",
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
+          },
+          "required": [
+            "type",
+            "measure"
+          ],
+          "additionalProperties": false,
+          "description": "What accounts sold through, from their monthly stock statements, credited to whoever saved the latest (decision D124)"
         },
         {
           "type": "object",

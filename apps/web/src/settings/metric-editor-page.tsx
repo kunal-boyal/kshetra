@@ -28,6 +28,8 @@ type Param =
   | 'statuses'
   | 'amount'
   | 'measure'
+  | 'stock'
+  | 'items'
   | 'accountType'
   | 'numerator'
   | 'denominator';
@@ -46,6 +48,7 @@ const PARAMS: Record<MetricSourceType, readonly Param[]> = {
   order_quantity: ['statuses', 'measure'],
   productive_visits: ['accountTypes'],
   order_lines: ['statuses'],
+  sell_through: ['stock', 'items'],
   active_days: ['forms'],
   new_accounts: ['accountType'],
   external: [],
@@ -57,6 +60,7 @@ const CHOICES = {
   aggregate: ['sum', 'average'],
   amount: ['before_tax', 'after_tax'],
   measure: ['base_units', 'kg', 'L'],
+  stock: ['value', 'quantity'],
 } as const;
 
 interface SourceDraft {
@@ -70,6 +74,10 @@ interface SourceDraft {
   statuses: string[];
   amount: string;
   measure: string;
+  /** A sell-through source's measure (decision D124). */
+  stock: string;
+  /** Item codes, separated by commas. */
+  items: string;
   accountType: string;
   numerator: string;
   denominator: string;
@@ -122,6 +130,8 @@ function draftOf(entry: MetricEntry | undefined, today: string): MetricDraft {
         keys(source.statuses).length > 0 ? keys(source.statuses) : ['accepted', 'fulfilled'],
       amount: text(source.amount, 'before_tax'),
       measure: text(source.measure, 'base_units'),
+      stock: text(source.type === 'sell_through' ? source.measure : undefined, 'value'),
+      items: keys(source.items).join(', '),
       accountType: text(source.accountType, ''),
       numerator: text(source.numerator, ''),
       denominator: text(source.denominator, ''),
@@ -137,6 +147,18 @@ const KEEPS_WHERE = new Set<MetricSourceType>(['submission_count', 'distinct_acc
 function sourceOf(draft: SourceDraft): MetricSource {
   const source: Record<string, unknown> = { type: draft.type };
   for (const param of PARAMS[draft.type]) {
+    if (param === 'stock') {
+      source.measure = draft.stock;
+      continue;
+    }
+    if (param === 'items') {
+      const codes = draft.items
+        .split(',')
+        .map((code) => code.trim())
+        .filter(Boolean);
+      if (codes.length > 0) source.items = codes;
+      continue;
+    }
     const value = draft[param];
     if (Array.isArray(value) ? value.length > 0 : value !== '') source[param] = value;
   }
@@ -346,6 +368,22 @@ function Editor({
         t('metrics.measure'),
         CHOICES.measure.map((value) => ({ value, label: t(`metrics.measure_${value}`) })),
       ),
+    stock: () =>
+      one(
+        'stock',
+        t('metrics.measure'),
+        CHOICES.stock.map((value) => ({ value, label: t(`metrics.measure_${value}`) })),
+      ),
+    items: () => (
+      <TextField
+        key="items"
+        label={t('metrics.items')}
+        help={t('metrics.items_help')}
+        value={draft.source.items}
+        {...at('definition.source.items')}
+        onChange={(event) => setSource({ items: event.target.value })}
+      />
+    ),
     accountType: () =>
       one('accountType', t('metrics.account_type'), typeOptions, t('score.choose')),
     numerator: () => one('numerator', t('metrics.numerator'), metricOptions, t('score.choose')),

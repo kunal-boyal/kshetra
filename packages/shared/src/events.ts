@@ -166,6 +166,20 @@ export const ExportFinishedPayload = z.object({
   scheduleId: z.uuid().nullable().optional(),
 });
 
+/**
+ * A month's stock statement saved (BR-53, decision D124): the metric days of whoever saved the
+ * version before and of whoever saved this one, so both recompute.
+ */
+export const SellThroughRecordedPayload = z.object({
+  statementId: z.uuid(),
+  accountId: z.uuid(),
+  period: z.string(),
+  version: z.int().min(1),
+  userId: z.uuid(),
+  creditedOn: z.string(),
+  previous: z.object({ userId: z.uuid(), creditedOn: z.string() }).nullable(),
+});
+
 /** An account made or changed (spec 12.4, decision D94): webhooks tell the tenant's systems. */
 export const AccountEventPayload = z.object({
   accountId: z.uuid(),
@@ -236,6 +250,7 @@ export const EVENT_PAYLOADS = {
   'metrics.changed': MetricsChangedPayload,
   'support.requested': SupportRequestedPayload,
   'support.emergency': SupportEmergencyPayload,
+  'sell_through.recorded': SellThroughRecordedPayload,
   'account.created': AccountEventPayload,
   'account.updated': AccountEventPayload,
   'account.assignment_changed': AccountAssignmentPayload,

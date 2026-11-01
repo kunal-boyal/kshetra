@@ -116,6 +116,22 @@ export class PerformanceUpkeep implements OnModuleInit {
       const payload = event.payload as EventPayload<'visit.ended'>;
       await this.at(tx, event.tenantId, payload.userId, payload.checkInAt);
     });
+    // A stock statement counts on one day for one person; a new version may move it (BR-53).
+    this.outbox.consume(
+      ['sell_through.recorded'],
+      'performance.sell_through',
+      async (event, tx) => {
+        const payload = event.payload as EventPayload<'sell_through.recorded'>;
+        await this.engine.recompute(tx, event.tenantId, payload.userId, payload.creditedOn);
+        const before = payload.previous;
+        if (
+          before &&
+          (before.userId !== payload.userId || before.creditedOn !== payload.creditedOn)
+        ) {
+          await this.engine.recompute(tx, event.tenantId, before.userId, before.creditedOn);
+        }
+      },
+    );
     this.outbox.consume(['plan_item.status_changed'], 'performance.plan', async (event, tx) => {
       const payload = event.payload as EventPayload<'plan_item.status_changed'>;
       await this.engine.recompute(tx, event.tenantId, payload.userId, payload.date);

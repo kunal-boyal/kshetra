@@ -11,6 +11,7 @@ export const TERMINOLOGY_KEYS = {
   'term.plan_item': 'noun',
   'term.target': 'noun',
   'term.order': 'noun',
+  'term.sell_through': 'noun',
   'term.punch_in': 'label',
   'term.punch_out': 'label',
 } as const satisfies Record<string, 'noun' | 'label'>;
