@@ -9,7 +9,9 @@ import {
   type CreatePlanItemBody,
   type CreateRegularisationBody,
   type CreateSubmissionBody,
+  type MockLocationReportBody,
   type CreateLocationProposalBody,
+  MockLocationReportResult,
   OrderResult,
   type PlaceOrderBody,
   type EndShiftBody,
@@ -171,6 +173,14 @@ export function senders(
         );
       },
     },
+    // Mocked fixes the phone refused (BR-50, decision D119).
+    'mock_location.report': {
+      async send(payload) {
+        await client.request('POST', '/v1/locations/mocked', MockLocationReportResult, {
+          body: payload as MockLocationReportBody,
+        });
+      },
+    },
   };
 }
 
@@ -191,6 +201,7 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'leave_request.create': 'uploads.kind_leave',
   'expense_claim.create': 'uploads.kind_expense_claim',
   'expense_claim.receipts': 'uploads.kind_expense_receipts',
+  'mock_location.report': 'uploads.kind_mock_report',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;

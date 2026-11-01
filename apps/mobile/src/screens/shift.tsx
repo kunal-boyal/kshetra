@@ -12,6 +12,7 @@ import { useConfig } from '../data';
 import { useLanguage } from '../i18n';
 import { currentFix } from '../location';
 import { useSync, useSyncStatus } from '../sync';
+import { useReportMocked } from '../use-report-mocked';
 import { pauseShift, punchOut, resumeShift, startTracking, trackingRuns } from '../tracking';
 import { useTodayPlan } from './today-plan';
 
@@ -62,6 +63,7 @@ export function ShiftSection() {
   const { client } = useApp();
   const { t, locale } = useLanguage();
   const sync = useSync();
+  const reportMocked = useReportMocked();
   const status = useSyncStatus();
   const config = useConfig();
   const shift = useShift();
@@ -104,6 +106,7 @@ export function ShiftSection() {
     }
     const issue = punchFixIssue(fix.fix);
     if (issue) {
+      if (issue === 'GPS_MOCKED') reportMocked('punch');
       setError(t(issue === 'GPS_MOCKED' ? 'shift.fix_mocked' : 'shift.fix_vague'));
       return;
     }

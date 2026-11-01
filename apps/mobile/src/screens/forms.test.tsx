@@ -535,7 +535,12 @@ describe('forms on the phone', () => {
         params: { id: SHOP },
       }),
     );
-    const [upload] = await new Outbox(db, {}).items(OWNER);
+    // The refused try was reported first, without a place (BR-50); then the form.
+    const [report, upload] = await new Outbox(db, {}).items(OWNER);
+    expect(report).toMatchObject({
+      kind: 'mock_location.report',
+      payload: { source: 'form', count: 1 },
+    });
     expect(upload).toMatchObject({
       id: ENTRY,
       dependsOn: [visit],

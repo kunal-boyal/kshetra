@@ -23,6 +23,7 @@ import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
 import { useSync, useSyncStatus } from '../sync';
+import { useReportMocked } from '../use-report-mocked';
 import { checkIn, checkOut, geofenceAt, planVisit } from '../visits';
 import { useTodayPlan } from './today-plan';
 import { useShift } from './shift';
@@ -78,6 +79,7 @@ export function VisitCard({
   const { client } = useApp();
   const { t, locale } = useLanguage();
   const sync = useSync();
+  const reportMocked = useReportMocked();
   const config = useConfig();
   const shift = useShift();
   const { visit, refresh } = useVisit();
@@ -112,6 +114,7 @@ export function VisitCard({
     }
     const issue = punchFixIssue(found.fix);
     if (issue) {
+      if (issue === 'GPS_MOCKED') reportMocked('visit');
       setSaid({
         kind: 'error',
         text: t(issue === 'GPS_MOCKED' ? 'shift.fix_mocked' : 'shift.fix_vague'),

@@ -12,6 +12,7 @@ import { useConfig } from '../data';
 import { useLanguage } from '../i18n';
 import { currentFix, type Fix } from '../location';
 import { useSync } from '../sync';
+import { useReportMocked } from '../use-report-mocked';
 import { punchIn, startTracking } from '../tracking';
 import { OdometerStep } from './odometer-step';
 
@@ -43,6 +44,7 @@ export function PunchInScreen() {
   const { client } = useApp();
   const { t } = useLanguage();
   const sync = useSync();
+  const reportMocked = useReportMocked();
   const config = useConfig();
   const settings = config.data?.bundle.settings;
   const [step, setStep] = useState<Step>({ name: 'consent' });
@@ -62,6 +64,7 @@ export function PunchInScreen() {
     }
     const issue = punchFixIssue(state.fix);
     if (issue) {
+      if (issue === 'GPS_MOCKED') reportMocked('punch');
       setProblem(t(issue === 'GPS_MOCKED' ? 'shift.fix_mocked' : 'shift.fix_vague'));
       setStep({ name: 'consent' });
       return;

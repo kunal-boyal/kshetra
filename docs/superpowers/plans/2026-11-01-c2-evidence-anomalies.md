@@ -96,13 +96,13 @@
 
 ### Task 4: the phone (pull request 2)
 
-- `reportMocked(source)` in `apps/mobile/src/mocked.ts` enqueues the outbox kind `mock_location.report`, at most once an hour for each source, counting what it holds back. It is called:
-  - by `Tracking.record()`'s `MOCKED` drops;
-  - by the punch, check-in and form refusals of a mocked fix;
-  - by the camera, for a mocked photo fix.
+- `reportMocked(sync, owner, source)` in `apps/mobile/src/mocked.ts` enqueues the outbox kind `mock_location.report`, at most once an hour for each source, counting what it holds back into the next report (the hour is kept in `sync_state`). It is called:
+  - by the background task, for `Tracking.record()`'s `MOCKED` drops;
+  - by the punch-in, punch-out, check-in and form refusals of a mocked fix, through `useReportMocked()`.
+- The camera needs no report: a photo keeps its own fix, mocked or not, and the server flags it directly.
 - The sender and its label in `outbox-kinds.ts`.
-- [ ] Tests (Jest), and `device.int.test.ts` sending a report as a simulated phone.
+- [x] Tests (Jest), and `device.int.test.ts` sending a report as a simulated phone.
 
 ### Task 5: finish
 
-- [ ] Decision D119, spec M7 and BR-50, `CLAUDE.md`, the progress row and tracker; `pnpm verify` before each merge.
+- [x] Decision D119, spec M7 and BR-50, `CLAUDE.md`, the progress row and tracker; `pnpm verify` before each merge.

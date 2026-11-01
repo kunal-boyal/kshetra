@@ -22,6 +22,7 @@ import { Platform } from 'react-native';
 import type { MobileClient } from './client';
 import { sendHeartbeat } from './heartbeat';
 import type { Fix } from './location';
+import { reportMocked } from './mocked';
 
 /**
  * Tracking during a shift (M5, spec 12.1). Location updates run in a background task with a
@@ -157,7 +158,7 @@ export function registerTrackingTask(context: TaskContext): void {
         return;
       }
       const level = await battery();
-      await sync.tracking.record(
+      const kept = await sync.tracking.record(
         state.owner,
         (data?.locations ?? []).map((location) => ({
           id: newId(),
@@ -174,6 +175,12 @@ export function registerTrackingTask(context: TaskContext): void {
           source: 'background',
         })),
       );
+      // Mocked fixes are dropped here, so the server hears of them only from a report (BR-50).
+      if (kept.dropped.MOCKED) {
+        await reportMocked(sync, state.owner, 'tracking', kept.dropped.MOCKED).catch(
+          () => undefined,
+        );
+      }
       const waiting = await sync.tracking.waiting(state.owner);
       if (waiting < FLUSH_AT_POINTS && Date.now() - lastFlush < FLUSH_EVERY_MS) return;
       const client = await context.client();

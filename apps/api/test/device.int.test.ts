@@ -17,6 +17,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import {
   type DeviceInfo,
   LocationBatchResult,
+  MockLocationReportResult,
   newId,
   ShiftResult,
   SubmissionResult,
@@ -396,6 +397,7 @@ describe('a simulated phone', () => {
     senders['shift.start'] = send('/v1/shifts', ShiftResult);
     senders['visit.check_in'] = send('/v1/visits', VisitResult);
     senders['submission.create'] = send('/v1/submissions', SubmissionResult);
+    senders['mock_location.report'] = send('/v1/locations/mocked', MockLocationReportResult);
     await phone.signIn(person.phone!);
     const owner = phone.client.owner!;
     const fix = (at: number) => ({
@@ -440,6 +442,19 @@ describe('a simulated phone', () => {
         dependsOn: [shiftId],
       });
     });
+    // A first try at the form was refused on the phone for a mocked fix, and reported (BR-50).
+    const reportId = newId();
+    await phone.outbox.enqueue(phone.db, {
+      id: reportId,
+      owner,
+      kind: 'mock_location.report',
+      payload: {
+        id: reportId,
+        seenAt: new Date(checkedInAt + 5 * 60_000).toISOString(),
+        source: 'form',
+        count: 1,
+      },
+    });
     const entries = new FormEntries(phone.db, () => phone.now);
     const entryId = newId();
     const capturedAt = checkedInAt + 10 * 60_000;
@@ -469,6 +484,7 @@ describe('a simulated phone', () => {
     expect((await phone.outbox.items(owner)).map((item) => item.kind)).toEqual([
       'shift.start',
       'visit.check_in',
+      'mock_location.report',
       'submission.create',
     ]);
 
@@ -480,12 +496,19 @@ describe('a simulated phone', () => {
     const [stored] = await app
       .get(Database)
       .forTenant(tenantId, (tx) =>
-        tx.execute<{ visit_id: string; shift_id: string; captured_at: Date; geofence: string }>(
-          `select visit_id, shift_id, captured_at, geofence from cell.submissions where id = '${entryId}'`,
+        tx.execute<{
+          visit_id: string;
+          shift_id: string;
+          captured_at: Date;
+          geofence: string;
+          flags: string;
+        }>(
+          `select visit_id, shift_id, captured_at, geofence, flags::text from cell.submissions where id = '${entryId}'`,
         ),
       )
       .then((result) => result.rows);
     expect(stored).toMatchObject({ visit_id: visitId, shift_id: shiftId, geofence: 'inside' });
+    expect(stored!.flags).toContain('mock_history');
     expect(new Date(stored!.captured_at).getTime()).toBe(capturedAt);
   });
 });
