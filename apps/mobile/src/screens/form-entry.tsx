@@ -29,6 +29,7 @@ import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix } from '../location';
 import { useOutboxItems, useSync } from '../sync';
+import { useReportMocked } from '../use-report-mocked';
 import { geofenceAt, submitEntry, visitOrders } from '../visits';
 
 /** Changes are kept on the phone this long after the last keystroke. */
@@ -97,6 +98,7 @@ function Filling({ entry }: { entry: FormEntry }) {
   const { client } = useApp();
   const { t, locale } = useLanguage();
   const sync = useSync();
+  const reportMocked = useReportMocked();
   const config = useConfig();
   const accounts = useLocalRows('accounts') ?? [];
   const contacts = useLocalRows('contacts') ?? [];
@@ -265,6 +267,7 @@ function Filling({ entry }: { entry: FormEntry }) {
       }
       const issue = punchFixIssue(found.fix);
       if (issue) {
+        if (issue === 'GPS_MOCKED') reportMocked('form');
         fail(t(issue === 'GPS_MOCKED' ? 'shift.fix_mocked' : 'shift.fix_vague'));
         return;
       }

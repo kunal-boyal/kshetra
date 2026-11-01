@@ -2336,6 +2336,7 @@ export const hi: Record<MessageKey, Message> = {
   'uploads.kind_visit_check_out': 'चेक-आउट',
   'uploads.kind_plan_item': '{term.plan_item}',
   'uploads.kind_submission': 'फ़ॉर्म',
+  'uploads.kind_mock_report': 'लोकेशन जाँच',
   'visit.title': 'विज़िट',
   'visit.on_visit_for': {
     one: 'इस विज़िट पर {count} मिनट से',

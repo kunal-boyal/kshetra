@@ -2345,6 +2345,7 @@ export const en = {
   'uploads.kind_visit_check_out': 'Check-out',
   'uploads.kind_plan_item': '{term.plan_item}',
   'uploads.kind_submission': 'Form',
+  'uploads.kind_mock_report': 'Location check',
   'visit.title': 'Visit',
   'visit.on_visit_for': {
     one: 'On this visit for {count} min',

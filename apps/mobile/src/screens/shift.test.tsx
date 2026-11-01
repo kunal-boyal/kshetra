@@ -209,6 +209,12 @@ describe('the shift on the phone (M5)', () => {
     expect(
       await screen.findByText('This location is mocked. Turn off any app that fakes it.'),
     ).toBeOnTheScreen();
+    // The refusal is reported, without a place, so reviewers see the history (BR-50).
+    await waitFor(async () =>
+      expect(
+        (await new Outbox(db, {}).items(OWNER)).map((item) => [item.kind, item.payload]),
+      ).toEqual([['mock_location.report', expect.objectContaining({ source: 'punch', count: 1 })]]),
+    );
     mockFix.mocked = false;
     mockFix.accuracy = 400;
     await fireEvent.press(screen.getByRole('button', { name: 'I agree, find my location' }));
