@@ -136,6 +136,18 @@ describe('demo content (decision D70)', () => {
       expect(phase2!.approved_claims).toBeGreaterThan(0);
       expect(phase2!.approved).toBeGreaterThan(0);
 
+      // Advanced analytics (decision D122): the managers' Home is laid out and the admin gets the
+      // monthly workbook.
+      const [analytics] = await sql<{ layouts: number; schedules: number }>(
+        `select (select count(*)::int from cell.dashboard_layouts l join cell.roles r
+                   on r.tenant_id = l.tenant_id and r.id = l.role_id
+                  where l.tenant_id = $1 and r.key = 'manager' and l.cards is not null) as layouts,
+                (select count(*)::int from cell.report_schedules
+                  where tenant_id = $1 and report = 'workbook' and frequency = 'monthly') as schedules`,
+        [tenantId],
+      );
+      expect(analytics).toEqual({ layouts: 1, schedules: 1 });
+
       // A tenant is filled once, and only a demo tenant.
       await expect(fill({ slug, days: 1, seed: 3, log: () => {} })).rejects.toThrow(
         /has content already/,

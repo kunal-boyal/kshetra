@@ -407,7 +407,7 @@ The plan decides which modules a tenant may use; within those, the tenant admin 
 
 ### 5.14 Industry templates
 
-A template is a versioned JSON bundle in `packages/templates` containing terminology, designations, default roles, geography levels, account types, forms, metrics, the score definition, workflows, people policies, notification template choices, import column aliases and report presets. It is applied once when a tenant is created. Later template versions can be offered to existing tenants as additions (new forms or metrics), never by overwriting what the tenant changed.
+A template is a versioned JSON bundle in `packages/templates` containing terminology, designations, default roles, geography levels, account types, forms, metrics, the score definition, workflows, people policies, notification template choices, import column aliases, report presets and Home layouts by role (D122). It is applied once when a tenant is created. Later template versions can be offered to existing tenants as additions (new forms or metrics), never by overwriting what the tenant changed.
 
 | Template | Highlights (detail in Appendix A) |
 |---|---|

@@ -29,6 +29,22 @@ export const COMPUTED_SOURCES = [
   'ratio',
 ] as const satisfies readonly MetricSourceType[];
 
+/**
+ * Whether a metric's days add up to its period and its people to their team: counts and sums, not
+ * distinct counts, ratios or averages. A Home trend or territory breakdown needs one (D122).
+ */
+export function additive(metric: MetricDefinition): boolean {
+  const source = metric.source;
+  return !(
+    source.type === 'distinct_accounts_visited' ||
+    source.type === 'coverage_percent' ||
+    source.type === 'frequency_compliance_percent' ||
+    source.type === 'ratio' ||
+    source.type === 'plan_compliance_percent' ||
+    (source.type === 'visit_duration' && source.aggregate === 'average')
+  );
+}
+
 /** Whether the engine computes a metric: its source, and for a ratio both of its parts. */
 export function computed(
   metric: MetricDefinition,

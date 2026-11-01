@@ -3650,6 +3650,7 @@ export const hi: Record<MessageKey, Message> = {
   'config_file.section_expensePolicies': 'ख़र्च नीतियाँ',
   'config_file.section_imports': 'इम्पोर्ट कॉलम के नाम',
   'config_file.section_workflows': 'स्वीकृति की श्रृंखलाएँ',
+  'config_file.section_dashboards': 'होम की सजावट',
   'config_file.section_people': 'लोगों की नीतियाँ',
   'chains.title': 'स्वीकृति की श्रृंखलाएँ',
   'chains.intro':

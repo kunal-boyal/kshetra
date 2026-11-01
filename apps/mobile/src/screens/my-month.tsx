@@ -31,10 +31,17 @@ function pairs<T>(items: readonly T[]): T[][] {
 
 type Month = NonNullable<ReturnType<typeof useMyMonth>['data']>['data'];
 
-/** Targeted metrics lead; what isn't counted yet goes last. */
-function inOrder(data: Month): PerformanceMetric[] {
-  const rank = (metric: PerformanceMetric) =>
-    !metric.available ? 2 : data.figures[metric.key]?.target != null ? 0 : 1;
+/**
+ * The tiles of the person's role's Home lead, in its order (decision D122); then targeted metrics,
+ * and what isn't counted yet goes last.
+ */
+export function inOrder(data: Month): PerformanceMetric[] {
+  const laid = data.tileKeys ?? [];
+  const rank = (metric: PerformanceMetric) => {
+    const place = laid.indexOf(metric.key);
+    if (place >= 0 && metric.available) return place - laid.length;
+    return !metric.available ? 2 : data.figures[metric.key]?.target != null ? 0 : 1;
+  };
   return [...data.metrics].sort((a, b) => rank(a) - rank(b));
 }
 

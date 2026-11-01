@@ -9,6 +9,7 @@ import { FormsModule } from '../forms/forms.module';
 import { DirectoryModule } from '../directory/directory.module';
 import { IamModule } from '../iam/iam.module';
 import { ImportsModule } from '../imports/imports.module';
+import { PerformanceModule } from '../performance/performance.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
@@ -34,6 +35,7 @@ import { TenantProvisioner } from './provisioner';
     FormsModule,
     FieldModule,
     MetricsModule,
+    PerformanceModule,
     ConfigurationModule,
     WorkflowModule,
   ],

@@ -26,6 +26,7 @@ A template is a tenant's starting configuration (spec 5.14 and Appendix A). The 
 | `people` | Holiday calendars, the attendance rule, leave types, expense policies | 5.10 |
 | `catalogue` | Units, measures, rounding, item fields, rejection reasons (optional) | 5.11 |
 | `imports` | Other names for import columns, so customers' own files map at once | M19, Appendix B |
+| `dashboards` | Home layouts by role key, each role's cards in order (optional; a role left out keeps the standard Home) | M18, D122 |
 | `settings` | Working rules, such as the geofence radius or the GPS interval (optional). Never the tenant's names, address, GSTIN, logo, brand colour or Maps key | 5.1, D66 |
 
 Everything refers to everything else by key, never by ID, so a template holds no tenant data and names no users. That's why a workflow step can't use the `specific_user` resolver here; tenants set it themselves.

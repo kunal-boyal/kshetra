@@ -31,6 +31,7 @@ import { UserFieldsService } from '../iam/user-fields.service';
 import { ImportsService } from '../imports/imports.service';
 import { templateImports } from '../imports/template-imports';
 import { MetricsService } from '../metrics/metrics.service';
+import { DashboardLayoutsService } from '../performance/dashboard-layouts.service';
 import { MetricsAdmin } from '../performance/metrics-admin';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
@@ -102,6 +103,7 @@ export class ConfigurationService {
     private readonly imports: ImportsService,
     private readonly held: HeldConfiguration,
     private readonly chains: ChainsService,
+    private readonly layouts: DashboardLayoutsService,
     private readonly audit: AuditLog,
   ) {}
 
@@ -177,6 +179,7 @@ export class ConfigurationService {
       metrics: entries.filter((entry) => entry.active).map((entry) => entry.definition),
       score: await this.metrics.score(tx, tenantId),
       workflows: await this.chains.export(tx, tenantId),
+      ...(await this.dashboardsSection(tx, tenantId)),
       people: held
         ? {
             ...held.people,
@@ -425,6 +428,19 @@ export class ConfigurationService {
       );
     }
 
+    // Home layouts by role (decision D122): those in the file are set; other roles keep theirs.
+    const byKey = new Map((await this.roles.list(tx, tenantId)).map((role) => [role.key, role]));
+    const laid = await this.layouts.byRoleKey(tx, tenantId);
+    for (const [key, cards] of Object.entries(file.dashboards ?? {})) {
+      await step('dashboards', key, `dashboards.${key}`, '', async () => {
+        if (same(laid[key], cards)) return 'same';
+        const role = byKey.get(key);
+        if (!role) throw new AppError('VALIDATION', `There is no role ${key}`);
+        await this.layouts.set(tx, access, role.id, cards);
+        return laid[key] ? 'update' : 'add';
+      });
+    }
+
     const chains = await this.chains.import(tx, access, file.workflows);
     changes.push(...chains.changes);
     issues.push(...chains.issues);
@@ -452,6 +468,12 @@ export class ConfigurationService {
       });
     }
     return { changes, issues };
+  }
+
+  /** The roles' Home layouts, when any role has one (decision D122). */
+  private async dashboardsSection(tx: TenantTx, tenantId: string) {
+    const dashboards = await this.layouts.byRoleKey(tx, tenantId);
+    return Object.keys(dashboards).length > 0 ? { dashboards } : {};
   }
 
   /** Levels by place: renamed where the file renames them, added below; none taken away. */

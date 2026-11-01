@@ -1,6 +1,6 @@
 import { checkFields, checkForm, type FormContext } from '@thelamp/forms';
-import { checkMetrics, checkScore } from '@thelamp/metrics';
-import { type ErrorDetail, issueAt } from '@thelamp/shared';
+import { additive, checkMetrics, checkScore, computed } from '@thelamp/metrics';
+import { dashboardLayoutIssues, type ErrorDetail, issueAt } from '@thelamp/shared';
 import { checkAccountTypes } from './schema/account-types';
 import { checkCatalogue } from './schema/catalogue';
 import { checkImports } from './schema/imports';
@@ -16,6 +16,26 @@ export type ValidationResult =
  * Checks a parsed template beyond its shape: unique keys, every reference resolves, and settings
  * agree with each other and with the business rules.
  */
+/** Home layouts (D122): each for a role the template has, naming its metrics and levels. */
+function checkDashboards(template: Template): ErrorDetail[] {
+  const roles = new Set(template.roles.map((role) => role.key));
+  const byKey = new Map(template.metrics.map((metric) => [metric.key, metric]));
+  const metrics = template.metrics.map((metric) => ({
+    key: metric.key,
+    available: computed(metric, byKey),
+    additive: additive(metric),
+  }));
+  const levels = template.geographyLevels.map((level) => level.key);
+  return Object.entries(template.dashboards ?? {}).flatMap(([role, cards]) =>
+    roles.has(role)
+      ? dashboardLayoutIssues(cards, metrics, levels).map((found) => ({
+          ...found,
+          path: `dashboards.${role}${found.path.slice('cards'.length)}`,
+        }))
+      : [issueAt(['dashboards', role], `There is no role ${role}`)],
+  );
+}
+
 export function checkTemplate(template: Template): ErrorDetail[] {
   const roles = new Set(template.roles.map((role) => role.key));
   const designations = new Set(template.designations.map((designation) => designation.key));
@@ -62,6 +82,7 @@ export function checkTemplate(template: Template): ErrorDetail[] {
       ['workflows'],
     ),
     ...checkPeople(template.people, designations, ['people']),
+    ...checkDashboards(template),
     ...(template.catalogue ? checkCatalogue(template.catalogue, ['catalogue']) : []),
     ...checkImports(
       template.imports,

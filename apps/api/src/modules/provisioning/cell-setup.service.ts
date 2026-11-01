@@ -18,6 +18,7 @@ import { IamSetup } from '../iam/setup.service';
 import { ImportsService } from '../imports/imports.service';
 import { templateImports } from '../imports/template-imports';
 import { MetricsService } from '../metrics/metrics.service';
+import { DashboardLayoutsService } from '../performance/dashboard-layouts.service';
 import { UsersService } from '../iam/users.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
@@ -49,6 +50,7 @@ export class CellSetup {
     private readonly held: HeldConfiguration,
     private readonly chains: ChainsService,
     private readonly outbox: Outbox,
+    private readonly layouts: DashboardLayoutsService,
   ) {}
 
   /** Applies a template to a tenant that has none yet. */
@@ -70,6 +72,7 @@ export class CellSetup {
     await this.expensePolicies.applyTemplate(tx, tenantId, template.people?.expensePolicies);
     await this.imports.applyTemplate(tx, tenantId, templateImports(template));
     await this.chains.applyTemplate(tx, tenantId, template.workflows);
+    await this.layouts.applyTemplate(tx, tenantId, template.dashboards);
     await this.held.save(tx, tenantId, { people: template.people }, null);
     if (template.settings && Object.keys(template.settings).length > 0) {
       await this.config.updateSettings(tx, tenantId, SYSTEM_ACTOR, template.settings);

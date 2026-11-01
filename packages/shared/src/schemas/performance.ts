@@ -60,6 +60,11 @@ export const PersonPerformance = z
     group: RankingGroup.extend({ size: z.int() }).nullable(),
     /** Each day's approved values, by metric, for the trend. */
     days: z.array(z.object({ date: z.iso.date(), values: z.record(Key, z.string()) })),
+    /**
+     * The metrics the caller's role's Home shows first, from its layout's first tiles card
+     * (decision D122); null without a layout, or for someone else's month.
+     */
+    tileKeys: z.array(Key).nullable().optional(),
   })
   .meta({ id: 'PersonPerformance' });
 

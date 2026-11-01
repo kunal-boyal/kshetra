@@ -12,7 +12,7 @@ import { TargetPeriods } from '../metrics/target-periods';
 import { PerformanceService } from '../performance/performance.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ApprovalsService } from '../workflow/approvals.service';
-import { DashboardLayoutsService } from './dashboard-layouts.service';
+import { DashboardLayoutsService } from '../performance/dashboard-layouts.service';
 
 /** The most people the home's on-duty card lists. */
 const ON_DUTY_SHOWN = 8;

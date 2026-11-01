@@ -21,7 +21,7 @@ import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { notFound, pathId } from '../iam/actor';
-import { DashboardLayoutsService } from './dashboard-layouts.service';
+import { DashboardLayoutsService } from '../performance/dashboard-layouts.service';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
 import { ReportsService } from './reports.service';

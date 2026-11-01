@@ -1,5 +1,4 @@
 import {
-  type DashboardCard,
   EXPORT_STATUSES,
   type ReportFilters,
   SCHEDULE_FREQUENCIES,
@@ -22,7 +21,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { cell, changeColumns, isolation } from './common';
-import { roles, users } from './iam';
+import { users } from './iam';
 import { media } from './media';
 
 export const exportStatus = cell.enum('export_status', EXPORT_STATUSES);
@@ -176,31 +175,6 @@ export const exportJobs = cell
         foreignColumns: [reportScheduleRuns.tenantId, reportScheduleRuns.id],
       }),
       index('export_jobs_tenant_run').on(table.tenantId, table.runId),
-      isolation(),
-    ],
-  )
-  .enableRLS();
-
-/**
- * A role's Home layout (M18, decision D122): its cards in order. Null cards bring back the
- * standard Home, as nothing is hard deleted.
- */
-export const dashboardLayouts = cell
-  .table(
-    'dashboard_layouts',
-    {
-      tenantId: uuid('tenant_id').notNull(),
-      roleId: uuid('role_id').notNull(),
-      cards: jsonb('cards').$type<DashboardCard[]>(),
-      ...changeColumns(),
-    },
-    (table) => [
-      primaryKey({ columns: [table.tenantId, table.roleId] }),
-      foreignKey({
-        name: 'dashboard_layouts_role_fk',
-        columns: [table.tenantId, table.roleId],
-        foreignColumns: [roles.tenantId, roles.id],
-      }),
       isolation(),
     ],
   )
