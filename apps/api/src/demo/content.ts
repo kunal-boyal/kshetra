@@ -239,6 +239,11 @@ export class DemoContent implements DemoKit {
         travelTo(this.at(date, 18 * 60));
         await this.commerce.stockTake(team, date);
       }
+      // Forecasts for the coming months on each month's 20th, and on the last day (decision D126).
+      if (date === today || date.slice(8) === '20') {
+        travelTo(this.at(date, 18 * 60 + 30));
+        await this.commerce.forecast(team, date);
+      }
       // The week closes on Saturday evening, holiday or not.
       if (weekday === 6 && date < today) {
         for (const person of team) await this.requests.weekEnd(person, date);

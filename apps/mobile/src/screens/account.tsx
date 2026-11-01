@@ -26,6 +26,7 @@ import {
   ShoppingCart,
   Store,
   PackageCheck,
+  ChartLine,
   Tag,
   UserRound,
   Wallet,
@@ -172,6 +173,8 @@ export function AccountScreen({ id }: { id: string }) {
   };
   // Accounts that give a stock statement, to those who record them (BR-53, decision D124).
   const mayRecordStock = Boolean(type?.sellThrough) && permissions.has('sell_through.record');
+  // Forecasts by item, to those who record them (BR-54, decision D126).
+  const mayForecast = permissions.has('forecast.record');
   const mayOrder =
     ordersOn &&
     (priceLists?.length ?? 0) > 0 &&
@@ -264,7 +267,8 @@ export function AccountScreen({ id }: { id: string }) {
       linkedForms.length > 0 ||
       mayOrder ||
       showPrices ||
-      mayRecordStock ? (
+      mayRecordStock ||
+      mayForecast ? (
         <ListGroup title={t(here ? 'visit.on_this_visit' : 'account.to_do_here')}>
           {visitForms.map((form) => (
             <ListRow
@@ -301,6 +305,18 @@ export function AccountScreen({ id }: { id: string }) {
               onPress={() =>
                 router.push({
                   pathname: '/sell-through/[accountId]',
+                  params: { accountId: account.id },
+                })
+              }
+            />
+          ) : null}
+          {mayForecast ? (
+            <ListRow
+              lead={<IconChip icon={ChartLine} hue="sky" />}
+              label={t('forecast.record')}
+              onPress={() =>
+                router.push({
+                  pathname: '/forecast/[accountId]',
                   params: { accountId: account.id },
                 })
               }

@@ -3230,6 +3230,19 @@ export const en = {
   'admin.rule_forecastPlanMetric_help':
     'A money metric whose {term.account:lower} plan the forecast’s value is compared with in the forecast accuracy report.',
   'admin.rule_forecastPlanMetric_none': 'None',
+  'forecast.record': 'Forecast by item',
+  'forecast.at': 'Forecast for {name}',
+  'forecast.locked_phone':
+    'This month is locked. A manager can change it on the portal, giving a reason.',
+  'forecast.search': 'Find an item',
+  'forecast.no_items': 'No items to forecast.',
+  'forecast.nothing_changed': 'Type a quantity for at least one item.',
+  'forecast.saved_phone': 'Saved. It uploads when there is a signal.',
+  'forecast.waiting': {
+    one: '{count} save waiting to upload.',
+    other: '{count} saves waiting to upload.',
+  },
+  'uploads.kind_forecast': 'Forecast',
   'forecast.title': 'Forecast',
   'forecast.month_open': 'Open until the month begins',
   'forecast.month_locked': 'Locked',

@@ -18,10 +18,12 @@ import {
   type DeviceInfo,
   LocationBatchResult,
   MockLocationReportResult,
+  ForecastResult,
   newId,
   ShiftResult,
   SellThroughResult,
   SubmissionResult,
+  shiftPeriod,
   type SyncEntity,
   todayIn,
   VisitResult,
@@ -621,5 +623,120 @@ describe('a simulated phone', () => {
       version: 1,
       lines: [expect.objectContaining({ itemId: item, sold: '70', flags: ['no_price'] })],
     });
+  });
+  it('saves a forecast offline, two saves as two versions, which come back synced (D126)', async () => {
+    const tenantId = await world.tenant('Simulated Forecasts', 'active', 'agri');
+    const head = await world.user(tenantId, {
+      designation: 'business_head',
+      role: 'tenant_admin',
+    });
+    const asm = await world.user(tenantId, {
+      designation: 'asm',
+      role: 'manager',
+      managerId: head.id,
+    });
+    const sme = await world.user(tenantId, { designation: 'sme', managerId: asm.id });
+    const admin = (await world.signIn(head.phone!)).accessToken;
+    const call = (method: 'POST' | 'PUT', url: string, payload: object) =>
+      app.inject({
+        method,
+        url,
+        headers: { authorization: `Bearer ${admin}`, 'idempotency-key': newId() },
+        payload,
+      });
+    const market = await world.territory(tenantId, `M-${newId().slice(-6)}`);
+    const distributor = newId();
+    const made = await call('POST', '/v1/accounts', {
+      id: distributor,
+      type: 'distributor',
+      code: `D-${newId().slice(-6)}`,
+      name: 'Kisan Traders',
+      territoryId: market,
+      slots: { sme: sme.id, asm: asm.id },
+    });
+    expect(made.statusCode, made.body).toBe(201);
+    const item = async (code: string) => {
+      const id = newId();
+      const saved = await call('PUT', `/v1/items/${id}`, {
+        code: `${code}${newId().slice(-4)}`,
+        name: `${code} item`,
+        productName: code,
+        categoryName: null,
+        packLabel: '500 ML',
+        hsn: '3808',
+        taxRate: '18',
+        mrp: '450',
+        baseUnit: 'pack',
+        units: [{ key: 'case', factor: '12' }],
+        measureType: 'L',
+        measurePerBaseUnit: '0.5',
+      });
+      expect(saved.statusCode, saved.body).toBe(201);
+      return id;
+    };
+    const neem = await item('NEEM');
+    const urea = await item('UREA');
+
+    const phone: SimulatedPhone = await new SimulatedPhone(
+      newDevice(),
+      {
+        'forecast.save': {
+          async send(payload) {
+            const { accountId, period, body } = payload as {
+              accountId: string;
+              period: string;
+              body: object;
+            };
+            await phone.client.request(
+              'PUT',
+              `/v1/accounts/${accountId}/forecasts/${period}`,
+              ForecastResult,
+              { body },
+            );
+          },
+        },
+      },
+      undefined,
+      ['forecasts'],
+    ).start();
+    await phone.signIn(sme.phone!);
+    const owner = phone.client.owner!;
+    const period = shiftPeriod(todayIn('Asia/Kolkata').slice(0, 7), 1);
+    const save = (lines: object[]) => {
+      const id = newId();
+      return phone.outbox
+        .enqueue(phone.db, {
+          id,
+          owner,
+          kind: 'forecast.save',
+          payload: { accountId: distributor, period, body: { id, lines } },
+        })
+        .then(() => id);
+    };
+    phone.online = false;
+    await save([
+      { itemId: neem, quantity: '120' },
+      { itemId: urea, quantity: '30' },
+    ]);
+    const second = await save([{ itemId: urea, quantity: '0' }]);
+    await phone.sync();
+    expect(await phone.outbox.items(owner)).toHaveLength(2);
+
+    phone.online = true;
+    phone.now += 5_000;
+    await phone.sync();
+    expect(await phone.outbox.items(owner)).toEqual([]);
+    await phone.sync();
+    // Both saves were kept as versions; the phone holds the latest, with urea taken out.
+    const kept = await localRows(phone.db, 'forecasts');
+    expect(kept).toEqual([
+      expect.objectContaining({
+        id: second,
+        accountId: distributor,
+        period,
+        version: 2,
+        lines: [{ itemId: neem, quantity: '120' }],
+      }),
+    ]);
   });
 });

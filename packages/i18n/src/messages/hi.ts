@@ -3221,6 +3221,18 @@ export const hi: Record<MessageKey, Message> = {
   'admin.rule_forecastPlanMetric_help':
     'पैसे वाला मेट्रिक, जिसकी {term.account} योजना से पूर्वानुमान का मूल्य सटीकता रिपोर्ट में मिलाया जाता है।',
   'admin.rule_forecastPlanMetric_none': 'कोई नहीं',
+  'forecast.record': 'आइटम के अनुसार पूर्वानुमान',
+  'forecast.at': '{name} का पूर्वानुमान',
+  'forecast.locked_phone': 'यह महीना लॉक है। मैनेजर पोर्टल पर कारण बताकर इसे बदल सकते हैं।',
+  'forecast.search': 'आइटम खोजें',
+  'forecast.no_items': 'पूर्वानुमान के लिए कोई आइटम नहीं।',
+  'forecast.nothing_changed': 'कम से कम एक आइटम की मात्रा लिखें।',
+  'forecast.saved_phone': 'सहेजा गया। सिग्नल मिलने पर अपलोड होगा।',
+  'forecast.waiting': {
+    one: '{count} सहेजा गया बदलाव अपलोड होने की प्रतीक्षा में।',
+    other: '{count} सहेजे गए बदलाव अपलोड होने की प्रतीक्षा में।',
+  },
+  'uploads.kind_forecast': 'पूर्वानुमान',
   'forecast.title': 'पूर्वानुमान',
   'forecast.month_open': 'महीना शुरू होने तक खुला',
   'forecast.month_locked': 'लॉक',

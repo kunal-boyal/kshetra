@@ -4,6 +4,7 @@ import {
   type GeoPoint,
   type ItemResult,
   LedgerEntriesBody,
+  forecastMonths,
   newId,
   PlaceOrderBody,
   PriceListBody,
@@ -14,6 +15,7 @@ import { AccountTypesService } from '../modules/accounts/account-types.service';
 import { CatalogueService } from '../modules/catalogue/catalogue.service';
 import { PriceListsService } from '../modules/catalogue/price-lists.service';
 import { FinanceService } from '../modules/finance/finance.service';
+import { ForecastsService } from '../modules/forecasts/forecasts.service';
 import { OrdersService } from '../modules/orders/orders.service';
 import { SellThroughService } from '../modules/sell-through/sell-through.service';
 import { TenantConfigService } from '../modules/tenant-config/tenant-config.service';
@@ -50,7 +52,7 @@ export class DemoCommerce {
   private stockTypes = new Set<string>();
   /** Each account's last closing by item, so the next month's stock follows on. */
   private readonly stock = new Map<string, bigint>();
-  private counts = { orders: 0, deliveries: 0, statements: 0 };
+  private counts = { orders: 0, deliveries: 0, statements: 0, forecasts: 0 };
 
   constructor(private readonly kit: DemoKit) {}
 
@@ -306,6 +308,42 @@ export class DemoCommerce {
           this.counts.statements++;
         } catch (error) {
           kit.once('stock statement', error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Forecasts for the coming months (BR-54, decision D126): each field person forecasts a few
+   * items for the accounts they hold that take orders, for each month still open, so the account
+   * page, the phone and the accuracy report have something to show once a month has run.
+   */
+  async forecast(team: readonly FieldPerson[], date: string): Promise<void> {
+    if (this.orderTypes.size === 0 || this.items.length === 0) return;
+    const { kit } = this;
+    const service = kit.get(ForecastsService);
+    for (const person of team) {
+      if (!person.access.permissions.has('forecast.record')) continue;
+      for (const place of person.places) {
+        if (!place.held || !this.orderTypes.has(place.type)) continue;
+        for (const period of forecastMonths(date)) {
+          const lines = kit.dice
+            .shuffle(this.items)
+            .slice(0, kit.dice.int(2, 4))
+            .map((item) => ({ itemId: item.id, quantity: String(kit.dice.int(2, 30) * 6) }));
+          try {
+            await kit.tx((tx) =>
+              service.record(tx, person.access, {
+                id: newId(),
+                accountId: place.id,
+                period,
+                lines,
+              }),
+            );
+            this.counts.forecasts++;
+          } catch (error) {
+            kit.once('forecast', error);
+          }
         }
       }
     }

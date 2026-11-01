@@ -21,6 +21,7 @@ import {
   PlanItemResult,
   RegularisationResult,
   SellThroughResult,
+  ForecastResult,
   type PauseShiftBody,
   type ResumeShiftBody,
   ShiftResult,
@@ -32,6 +33,7 @@ import {
 import type { MobileClient } from './client';
 import type { ReceiptsPayload } from './expenses';
 import { photoSender } from './photos';
+import { FORECAST_KIND, type QueuedForecast } from './forecasts';
 import { type QueuedStatement, SELL_THROUGH_KIND } from './sell-through';
 
 /** A proposed location, with the account it is for. */
@@ -148,6 +150,18 @@ export function senders(
         );
       },
     },
+    // Forecasts (BR-54, D126): a new version of an account's month, by its own ID.
+    [FORECAST_KIND]: {
+      async send(payload) {
+        const { accountId, period, body } = payload as QueuedForecast;
+        await client.request(
+          'PUT',
+          `/v1/accounts/${accountId}/forecasts/${period}`,
+          ForecastResult,
+          { body },
+        );
+      },
+    },
     // Leave (M13): after its document photo, if any.
     'leave_request.create': {
       async send(payload) {
@@ -217,6 +231,7 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'expense_claim.receipts': 'uploads.kind_expense_receipts',
   'mock_location.report': 'uploads.kind_mock_report',
   [SELL_THROUGH_KIND]: 'uploads.kind_sell_through',
+  [FORECAST_KIND]: 'uploads.kind_forecast',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;
