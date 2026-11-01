@@ -83,8 +83,8 @@
 
 - The `balances` sync entity carries the invoice-based outstanding and ageing. Its rows move whenever an account's invoices or receipts change (the latest `row_version` of the three tables), and its version is raised.
 - The account screen lists open invoices, read online.
-- [ ] Tests (Jest), and `device.int.test.ts` keeping a balance that an invoice changed.
+- [x] Tests (Jest), and the balances sync test in `finance.int.test.ts` keeping a balance that an invoice, then a receipt, changed.
 
 ### Task 5: finish
 
-- [ ] Decision D121, spec M11 and BR-51, `CLAUDE.md`, the progress row and tracker; `pnpm verify` before each merge.
+- [x] Decision D121, spec M11 and BR-51, `CLAUDE.md`, the progress row and tracker; `pnpm verify` before each merge.

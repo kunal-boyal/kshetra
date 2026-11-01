@@ -38,7 +38,7 @@ import { standalone, startEntry } from '../forms/start';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
-import { creditLeft, useBalance } from '../finance';
+import { creditLeft, useBalance, useOpenInvoices } from '../finance';
 import { useOutboxItems, useSync, useSyncStatus } from '../sync';
 import { useTodayPlan } from './today-plan';
 import { CheckOutBar, useVisit, VisitCard } from './visit';
@@ -87,6 +87,8 @@ export function AccountScreen({ id }: { id: string }) {
   const modulesOff = bundle?.settings.modulesOff ?? [];
   const ordersOn = !modulesOff.includes('orders');
   const financeOn = !modulesOff.includes('account_finance');
+  const openInvoices =
+    useOpenInvoices(id, financeOn && permissions.has('finance.view')).data?.items ?? [];
 
   if (accounts === undefined) {
     return (
@@ -353,6 +355,24 @@ export function AccountScreen({ id }: { id: string }) {
                 ]
               : [],
           )}
+        </ListGroup>
+      ) : null}
+      {financeOn && openInvoices.length > 0 ? (
+        <ListGroup title={t('receivables.open_invoices')}>
+          {openInvoices.map((invoice) => (
+            <ListRow
+              key={invoice.id}
+              label={`${invoice.number} · ${money(invoice.open)}`}
+              detail={
+                invoice.daysPastDue === null
+                  ? t('receivables.due_on', { date: formatDate(invoice.dueDate, { locale }) })
+                  : t('receivables.days_late', { count: invoice.daysPastDue })
+              }
+              {...(invoice.daysPastDue !== null && invoice.daysPastDue > 90
+                ? { tone: 'danger' as const }
+                : {})}
+            />
+          ))}
         </ListGroup>
       ) : null}
       {ordersOn && (ordersHere.length > 0 || queuedHere.length > 0) ? (

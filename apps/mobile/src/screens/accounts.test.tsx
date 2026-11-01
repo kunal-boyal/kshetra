@@ -252,7 +252,27 @@ function fakeClient(modulesOff: SwitchableModule[] = []) {
     signOut: jest.fn(async () => undefined),
     syncPull: jest.fn(async () => pulled()),
     heartbeat: jest.fn(async () => undefined),
-    request: jest.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({})),
+    // An account's open invoices are read online (D121); everything else answers empty.
+    request: jest.fn<(...args: unknown[]) => Promise<unknown>>(async (...args: unknown[]) =>
+      String(args[1]).startsWith(`/v1/accounts/${NEAR}/invoices`)
+        ? {
+            items: [
+              {
+                id: '01a10000-0000-7000-8000-0000000000c1',
+                number: 'INV-2041',
+                date: '2026-09-01',
+                dueDate: '2026-10-01',
+                amount: '5000.00',
+                open: '3000.00',
+                daysPastDue: 31,
+                cancelled: false,
+                settledBy: [],
+              },
+            ],
+            nextCursor: null,
+          }
+        : {},
+    ),
     me: jest.fn(async () => ({
       userId: USER,
       tenantId: TENANT.id,
@@ -633,6 +653,10 @@ describe('what an account owes on the phone (M11, D79)', () => {
     expect(screen.getByText('Outstanding as of 15 Oct 2026')).toBeOnTheScreen();
     expect(screen.getByText('₹1,000.00 of credit left')).toBeOnTheScreen();
     expect(screen.getByText('Over 180 days')).toBeOnTheScreen();
+    // The open invoices, read online, to collect against (D121).
+    expect(await screen.findByText('Open invoices')).toBeOnTheScreen();
+    expect(screen.getByText('INV-2041 · ₹3,000.00')).toBeOnTheScreen();
+    expect(screen.getByText('31 days late')).toBeOnTheScreen();
   });
 
   it('shows nothing owed for an account without a balance', async () => {

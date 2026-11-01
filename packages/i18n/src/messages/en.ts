@@ -1844,6 +1844,7 @@ export const en = {
   'receivables.invoice': 'Invoice',
   'receivables.receipt': 'Receipt',
   'receivables.due': 'Due',
+  'receivables.due_on': 'Due {date}',
   'receivables.status': 'Status',
   'receivables.days_late': { one: '{count} day late', other: '{count} days late' },
   'receivables.open': 'Open',
