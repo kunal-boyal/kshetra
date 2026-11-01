@@ -1,5 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { newId, todayIn } from '@thelamp/shared';
+import { newId, timeIn, todayIn } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
@@ -25,7 +25,7 @@ afterAll(async () => {
 
 const MINUTE = 60_000;
 const HERE = { lat: 20.0059, lng: 73.791 };
-const MONTH = todayIn('Asia/Kolkata').slice(0, 7);
+const ZONE = 'Asia/Kolkata';
 
 function as(token: string) {
   const call = (method: 'GET' | 'POST', url: string, payload?: object) =>
@@ -103,9 +103,17 @@ describe('the FMCG template (spec A.4, decision D97)', () => {
     const kirana = await outlet('More Kirana Stores');
     const general = await outlet('Nashik General Stores');
 
+    // Productive calls match orders to visits within one day on the tenant's clock (BR-03), so the
+    // shift and every visit, order and submission fall on one day: they end now, or, while today
+    // is under three hours old, just before midnight, and their calls count in that day's month.
+    const [hours, minutes] = timeIn(ZONE).split(':').map(Number) as [number, number];
+    const end = hours < 3 ? Date.now() - (hours * 60 + minutes + 1) * MINUTE : Date.now();
+    const workMonth = todayIn(ZONE, new Date(end)).slice(0, 7);
+    const month = todayIn(ZONE).slice(0, 7);
+
     const opened = await api.dsr.post('/v1/shifts', {
       id: newId(),
-      startedAt: new Date(Date.now() - 3 * 60 * MINUTE).toISOString(),
+      startedAt: new Date(end - 3 * 60 * MINUTE).toISOString(),
       location: HERE,
       accuracy: 12,
       mocked: false,
@@ -114,14 +122,14 @@ describe('the FMCG template (spec A.4, decision D97)', () => {
     expect(opened.statusCode, opened.body).toBe(201);
     const shiftId = opened.json().id as string;
 
-    /** An outlet visit `minutesAgo` before now; an order goes in first when `ordered`. */
+    /** An outlet visit `minutesBefore` the end; an order goes in first when `ordered`. */
     const visit = async (
       accountId: string,
-      minutesAgo: number,
+      minutesBefore: number,
       values: object,
       ordered = false,
     ) => {
-      const start = Date.now() - minutesAgo * MINUTE;
+      const start = end - minutesBefore * MINUTE;
       const visitId = newId();
       const checkedIn = await api.dsr.post('/v1/visits', {
         id: visitId,
@@ -179,8 +187,9 @@ describe('the FMCG template (spec A.4, decision D97)', () => {
     });
     expect(proposal.statusCode, proposal.body).toBe(201);
     expect(proposal.json().status).toBe('pending');
-    const before = (await api.dsr.get(`/v1/performance?period=${MONTH}`)).json();
-    expect(before.figures.new_outlets).toMatchObject({ actual: '0', pending: '1' });
+    const performance = async (period: string) =>
+      (await api.dsr.get(`/v1/performance?period=${period}`)).json().figures;
+    expect((await performance(month)).new_outlets).toMatchObject({ actual: '0', pending: '1' });
 
     const inbox = (await api.so.get('/v1/approvals/inbox')).json();
     const request = inbox.items.find(
@@ -201,12 +210,11 @@ describe('the FMCG template (spec A.4, decision D97)', () => {
       });
       expect(reviewed.statusCode, reviewed.body).toBe(200);
     }
-    const after = (await api.dsr.get(`/v1/performance?period=${MONTH}`)).json();
-    expect(after.figures).toMatchObject({
+    expect(await performance(workMonth)).toMatchObject({
       total_calls: { actual: '2' },
       productive_calls: { actual: '1' },
       productivity: { actual: '50' },
-      new_outlets: { actual: '1' },
     });
+    expect((await performance(month)).new_outlets).toMatchObject({ actual: '1' });
   });
 });
