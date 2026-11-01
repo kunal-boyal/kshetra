@@ -226,8 +226,10 @@ function Cart({
             discount: price.discount,
             taxRate: item.taxRate,
             factor: unit.factor,
+            scheme: null,
           },
         })),
+        free: [],
         note: note.trim() || null,
         placedAt: new Date().toISOString(),
       });

@@ -369,7 +369,12 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - The web's orders are `apps/web/src/orders/`: the register, an order's page and the order desk.
 - On the phone, the cart is `/order/<accountId>` (`src/screens/order.tsx`) with `priceCart()`, `orderBody()`, `queueOrder()` and `repriceRefused()` in `apps/mobile/src/orders.ts`; orders upload as `order.place`, after their visit's check-in. A parked upload's payload changes only through `Outbox.replace()`. Phones keep their person's orders as the `orders` sync entity.
 
-## Account finance (decision D79)
+## Schemes (decision D127)
+
+- Schemes and promotions on orders are `SchemesService` in `apps/api/src/modules/orders/schemes.service.ts` (`cell.schemes`, `GET`/`PUT /v1/schemes`, `scheme.manage`): kind (`percentage`, `flat_per_unit`, `slabs`, `free_goods`), rule, and the items, categories, account types and territories they reach between two dates. A scheme's key never changes; switch it off rather than remove it. The rules are pure functions in `packages/shared/src/schemes.ts` (BR-55): `schemeApplies()`, `schemeBenefit()`, `chooseSchemes()` (one scheme a line, the best for the customer, slabs counted across the order) and `afterScheme()` (the discount off the taxable before tax).
+- `OrdersService.place()` chooses every line's scheme on the order's day, refuses with `PRICE_CHANGED` a line's `quoted.scheme` or the body's `free` that differ, and keeps the scheme on the line (`scheme`, `scheme_discount`). Free goods are their own lines at price 0 with `free_of_line_id`; line decisions name only paid lines and free lines follow theirs; ordered quantities (`orderedFor()`) leave them out. The orders register shows each line's scheme and the `scheme_summary` report what each scheme gave.
+
+
 
 - Finance lives in `apps/api/src/modules/finance` (`FinanceService`). The rules are pure functions in `packages/shared/src/finance.ts`: `ageingIssue()` and `bucketsIssue()` (BR-20, buckets from the `ageingBuckets` setting), `entryIssue()`, `openingBalance()` and `runningBalances()` (BR-21), `financialYear()`.
 - Snapshots are all kept; read the latest with `FinanceService.latest()`. Statement entries are only ever added, keyed by reference: `planEntries()` tells new, unchanged and refused apart for the API and the import alike. Never update or delete a ledger entry; a correction is a reversing entry.

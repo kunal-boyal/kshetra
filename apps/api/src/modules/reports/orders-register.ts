@@ -15,7 +15,8 @@ import {
 
 /**
  * The orders register (M18): one row per line of every order placed in the month, with the item
- * as it was ordered, its full pricing (BR-10 to BR-12), the line's decision and the order's status.
+ * as it was ordered, its full pricing (BR-10 to BR-12) and scheme (BR-55), the line's decision and
+ * the order's status.
  */
 @Injectable()
 export class OrdersRegisterReport extends ReportSource {
@@ -45,6 +46,9 @@ export class OrdersRegisterReport extends ReportSource {
       { key: 'price', label: 'report.col_price', kind: 'decimal' },
       { key: 'discount', label: 'report.col_discount', kind: 'decimal' },
       { key: 'rate', label: 'report.col_rate', kind: 'decimal' },
+      { key: 'scheme', label: 'report.col_scheme', kind: 'text' },
+      { key: 'scheme_discount', label: 'report.col_scheme_discount', kind: 'decimal' },
+      { key: 'free', label: 'report.col_free', kind: 'text' },
       { key: 'tax_rate', label: 'report.col_tax_rate', kind: 'decimal' },
       { key: 'taxable', label: 'report.col_taxable', kind: 'decimal' },
       { key: 'tax', label: 'report.col_tax', kind: 'decimal' },
@@ -117,6 +121,11 @@ export class OrdersRegisterReport extends ReportSource {
           price: Number(row.price),
           discount: Number(row.discount),
           rate: Number(row.rate),
+          scheme: row.scheme
+            ? (row.scheme as { name: Record<string, string> }).name[context.locale]!
+            : null,
+          scheme_discount: Number(row.schemeDiscount),
+          free: row.freeOfLineId ? context.text('common.yes') : null,
           tax_rate: Number(row.taxRate),
           taxable: Number(row.taxable),
           tax: Number(row.tax),

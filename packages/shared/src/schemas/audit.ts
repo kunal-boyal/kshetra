@@ -95,6 +95,8 @@ export const AUDIT_ACTIONS = [
   'item.updated',
   'price_list.created',
   'price_list.updated',
+  'scheme.created',
+  'scheme.updated',
   'price_list.prices_changed',
   'order.placed',
   'order.decided',

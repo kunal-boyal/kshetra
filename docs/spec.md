@@ -591,8 +591,10 @@ Order capture (mobile, and web for order-desk staff):
 2. Add items in any sellable unit (cases or packs). The cart shows base units, physical measure totals per type, net rate, taxable value, tax and total, calculated with the shared pricing functions.
 3. Add a note and optional attachments (a photo of the customer's written order).
 4. Place the order. The app attaches a fresh fix, the price list it used and the prices it showed.
-5. The server recalculates everything (BR-10 to BR-15). If any price, discount, tax rate or unit factor changed since the device showed it, the order is refused with `PRICE_CHANGED` and the app refreshes the catalogue.
+5. The server recalculates everything (BR-10 to BR-15, BR-55). If any price, discount, tax rate, unit factor, scheme or free goods changed since the device showed it, the order is refused with `PRICE_CHANGED` and the app refreshes the catalogue.
 6. Tenant settings decide whether field users need an open shift to order and whether orders can be placed offline.
+
+Schemes and promotions (D127): those with `scheme.manage` keep schemes of four kinds (a percentage off, an amount off each unit, quantity slabs, and free goods), each for chosen items or categories, account types, territories and dates. Every order line takes the one scheme best for the customer, worked out the same way on the phone, at the order desk and on the server (BR-55); its discount lowers the line's taxable value before tax, and free goods are their own lines at no price. The `scheme_summary` report shows what each scheme gave in the month.
 
 Review follows the `order` workflow. An approver accepts the whole order, rejects it with a configured reason or, with permission `order.line_decide`, decides line by line; the order status follows from the lines (BR-19). Back office or an integration records fulfilment.
 
@@ -684,7 +686,8 @@ Standard reports, each filterable by period, team, territory, user and account t
 | Visit compliance | Planned against completed and missed, by user and account |
 | Coverage and frequency | Accounts visited against assigned, by type and segment |
 | Target against achievement | Every metric per user with attainment and score |
-| Orders register | One row per order line with full pricing and decisions |
+| Orders register | One row per order line with full pricing, scheme and decisions |
+| Scheme summary | Per scheme for the month: the orders and lines it reached, the discount it gave and the goods it gave free (D127) |
 | Expense register | Claims with policy, amounts, approvals and payout status |
 | Leave register | Requests, days and balances |
 | Location summary | Per shift: distance, points, gaps and pauses, and the opening and closing odometer readings where recorded (D96) |
@@ -833,6 +836,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-52 | Scheduled reports (D122): a schedule owes, at any moment, only the latest send moment on the tenant's clock that came after it started or was last resumed or retimed, so a send missed while nothing ran goes once and never once for each moment missed; each send is keyed by its local date and made once. A monthly send reports the month before; a weekly send reports the month of the day before it, so a send on the 1st reports last month complete |
 | BR-53 | Sell-through by item (D124): sold through = opening + received − returned − closing, per item and month, in the item's base unit; opening comes forward from last month's closing, and an opening typed otherwise, or a negative sold-through, is flagged, never refused. A month's statement may change while it runs and for 5 days after; each save is a new version keeping the items it doesn't change, and the latest counts. It counts for whoever saved the latest version (for an import, the account's first-slot holder that day, else the importer) on the day it was saved, or the month's last day when saved after it, valued at the account's price that day before tax |
 | BR-54 | Product forecasts (D126): a forecast covers the three months after today's on the tenant's clock, per account and item in the item's base unit. A month is open until its 1st; after that it changes only with `forecast.adjust` and a reason, marked as after the lock, and a past month never changes. Each save is a new version keeping the items it doesn't name, 0 taking one out; the latest counts. Accuracy for an account's month is 1 − Σ|actual − forecast| ÷ Σforecast over its items, never below 0, and blank when nothing was forecast; actual is the base units ordered on accepted orders while the orders module is on, else sold through (BR-53) |
+| BR-55 | Schemes (D127): a scheme reaches a line when it is active, the order's date on the tenant's clock is within its dates, and the item (or its category), the account's type and the account's territory (or one above it) are among those it names, an empty list meaning any. A percentage takes `round(taxable × % / 100, 2)` off the line's taxable after the price list's discount; an amount per unit takes `round(amount × base units, 2)`, at most the taxable; slabs take the percentage of the highest slab reached by the base units of every line in the order the scheme reaches; free goods give `floor(base units ÷ buy) × get` base units of the free item at price 0. Each line takes the scheme worth most (discount plus free goods at the free item's net rate for the account), ties going to the earlier start date, then the lower key. Tax and total follow the lower taxable (BR-12) |
 
 ## 8. Screens and user experience
 
@@ -1300,7 +1304,10 @@ orders(id, tid, account_id, supplier_kind enum(company,account), supplier_accoun
        request_hash, row_version)                                            IX(tid, placed_at) · IX(tid, account_id, placed_at)
 order_lines(id, tid, order_id, position, item_id, snapshot jsonb, unit_key, quantity, factor,
        base_units, measure_type, measure_total, rate, taxable, tax, total,
-       decision enum(pending,accepted,rejected), decision_reason, fulfilled_units NULL)
+       decision enum(pending,accepted,rejected), decision_reason, fulfilled_units NULL,
+       scheme jsonb NULL, scheme_discount, free_of_line_id NULL)          (D127)
+schemes(id, tid, key, name jsonb, kind, rule jsonb, item_ids[], category_ids[], account_type_keys[],
+       territory_ids[], valid_from, valid_to NULL, active, version, row_version) UQ(tid, key) (D127)
 finance_snapshots(id, tid, account_id, as_of, outstanding, credit_limit, inventory_value, ageing jsonb,
        source, created_by, created_at)                                       IX(tid, account_id, as_of DESC)
 ledger_entries(id, tid, account_id, date, reference, description, debit, credit, source,
@@ -2195,6 +2202,10 @@ Each example becomes at least one automated test.
 | FX-52 | BR-54 | Today 14 December 2026; today 1 November 2026 | January to March 2027; December 2026 to February 2027 |
 | FX-53 | BR-54 | December's forecast changed on 30 November; on 1 December, without and with `forecast.adjust` | Open; locked, then open with a reason and marked after the lock |
 | FX-54 | BR-54 | Forecast 100 and 50, actual 90 and 70; forecast 100 and nothing, actual 100 and 25; forecast 0, actual 5 | Accuracy 80%; 75%; blank |
+| FX-55 | BR-55 | 24 packs at 360 (8,640.00), 18% tax; 5% off and 20 a pack both apply | 20 a pack: 480.00 off; taxable 8,160.00, tax 1,468.80, total 9,628.80 |
+| FX-56 | BR-55 | Slabs 2%, 4% and 6% from 100, 250 and 500 packs of a category; 156 packs (56,160.00) and 120 packs (6,000.00) of it | 4% on both: 2,246.40 and 240.00 |
+| FX-57 | BR-55 | Buy 10 get 1; lines of 25 and 9 packs | 2 packs free; none |
+| FX-58 | BR-55 | A scheme ended the day before, for another territory, or for another account type | Not applied |
 
 ## Appendix E. Permission catalogue
 
@@ -2210,7 +2221,7 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | People | `user.view`, `user.manage`, `user.reset_device`, `user.sign_out_all`, `role.manage`, `designation.manage` |
 | Territories and accounts | `territory.manage`, `account.view`, `account.manage`, `account.import`, `account.approve`, `sell_through.record` (D124) |
 | Configuration | `settings.manage`, `terminology.manage`, `form.manage`, `metric.manage`, `workflow.manage`, `policy.manage`, `notification_template.manage`, `module.manage` |
-| Catalogue and orders | `catalogue.manage`, `price_list.manage`, `order.create`, `order.create_without_shift`, `order.view`, `order.decide`, `order.line_decide`, `order.fulfil` |
+| Catalogue and orders | `catalogue.manage`, `price_list.manage`, `order.create`, `order.create_without_shift`, `order.view`, `order.decide`, `order.line_decide`, `order.fulfil`, `scheme.manage` (D127) |
 | Finance | `finance.view`, `finance.manage` |
 | People operations | `leave.request`, `regularisation.request`, `expense.claim`, `approval.act`, `calendar.manage`, `leave_type.manage`, `expense_policy.manage`, `expense.mark_paid`, `payroll.manage`, `payslip.view` |
 | Data | `report.view`, `export.create`, `report.schedule`, `dashboard.manage`, `import.run`, `audit.view` (`report.schedule` and `dashboard.manage` belong to the advanced analytics module, D122) |

@@ -136,6 +136,14 @@ export const orderLines = cell
       decision: lineDecision('decision').notNull().default('pending'),
       decisionReason: text('decision_reason'),
       fulfilledUnits: numeric('fulfilled_units', { precision: 18, scale: 3 }),
+      /** The line's scheme when placed (BR-55): its key, name and kind; null for none. */
+      scheme: jsonb('scheme'),
+      /** What the scheme took off the taxable, before tax (BR-55). */
+      schemeDiscount: numeric('scheme_discount', { precision: 18, scale: 2 })
+        .notNull()
+        .default('0'),
+      /** For goods given free: the line they came with (BR-55). */
+      freeOfLineId: uuid('free_of_line_id'),
     },
     (table) => [
       primaryKey({ columns: [table.tenantId, table.id] }),

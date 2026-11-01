@@ -35,7 +35,7 @@ export function unscaled(value: bigint, places: number): string {
 }
 
 /** `numerator / denominator`, rounded half-up; both non-negative. */
-function divide(numerator: bigint, denominator: bigint): bigint {
+export function divide(numerator: bigint, denominator: bigint): bigint {
   return (numerator * 2n + denominator) / (denominator * 2n);
 }
 
