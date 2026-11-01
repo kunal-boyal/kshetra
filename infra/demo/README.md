@@ -29,7 +29,7 @@ From the repository root, with Docker running:
    infra/scripts/demo.sh provision --name "Demo Agro" --slug demo-agro --template agri --status active --admin-name "Demo Admin" --admin-phone +919800000001
    ```
 
-   For a pharma or FMCG prospect, use `--template pharma` or `--template fmcg` (for example `--name "Demo Pharma" --slug demo-pharma`); each demo tenant gets its own content in its industry's words (decision D97). A number belongs to one organisation (decision D103), so each demo tenant needs its own admin number, and the content puts demo numbers only in the first demo tenant to take them; a later one gets fictional people in their slots.
+   For a pharma, FMCG or paints prospect, use `--template pharma`, `--template fmcg` or `--template building` (for example `--name "Demo Pharma" --slug demo-pharma`); each demo tenant gets its own content in its industry's words (decision D97). A number belongs to one organisation (decision D103), so each demo tenant needs its own admin number, and the content puts demo numbers only in the first demo tenant to take them; a later one gets fictional people in their slots.
 
    A prospect's own branding goes in at the same time: `--logo <file on this machine>` (PNG, JPEG or WebP) and `--brand-colour '#486A38'`, checked as Settings checks them.
 
@@ -53,7 +53,7 @@ From the repository root, with Docker running:
 `pnpm --filter @thelamp/api demo:content --tenant <slug>` (locally) or `demo.sh content` (on the instance) fills a demo tenant that has only its admin. It reads the tenant's own configuration, so it works for any template, and makes:
 
 - territories down to markets around Nashik (real towns), and a team: a manager at each manager level above the lowest, one under the other, two group managers of the lowest and eight field people, the demo numbers among them (the second number a group manager, the third one of his field people); the rest are fictional and never sign in;
-- the accounts of each market, with codes, locations, slots and the fields their types require: suppliers, the businesses they supply and people such as farmers or doctors, named in the words of the tenant's industry (agri, pharma or FMCG, decision D97); a few fictional products when a form offers the catalogue or lists items;
+- the accounts of each market, with codes, locations, slots and the fields their types require: suppliers, the businesses they supply and people such as farmers or doctors, named in the words of the tenant's industry (agri, pharma, FMCG or building materials, decisions D97 and D120); a few fictional products when a form offers the catalogue or lists items;
 - each month's targets, set and locked by the managers;
 - every working day (Sundays off, a few absences): the managers' plans, punch-in, a trail of points, planned visits to the accounts each person holds with an order now and then and a form with photos (item lines, dates within the field's limits, and a signature where the form needs one), activities without an account such as farmer meetings or CMEs, now and then a new account proposed for the manager to decide, punch-out, and the managers' reviews, except the last two days', which wait; today stops at the present, so people are on duty;
 - what the nightly jobs would do: missed plans and everyone's attendance.

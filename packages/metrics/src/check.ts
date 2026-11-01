@@ -156,6 +156,18 @@ function checkMetric(
     case 'distinct_accounts_visited':
     case 'coverage_percent':
     case 'frequency_compliance_percent':
+      if ('where' in source && source.where) {
+        for (const form of forms) {
+          issues.push(
+            ...checkCondition(
+              source.where,
+              fieldsOf(form),
+              [...path, 'source', 'where'],
+              (key) => `Form \`${form.key}\` has no field \`${key}\``,
+            ),
+          );
+        }
+      }
       for (const form of forms) {
         if (form.accountLink.mode === 'none') {
           at(

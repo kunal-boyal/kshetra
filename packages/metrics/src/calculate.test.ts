@@ -135,6 +135,26 @@ describe("a person's day (spec 5.7)", () => {
     expect(facts.coverage).toMatchObject({ accounts: ['a1', 'a2'] });
   });
 
+  it('keeps only accounts whose approved submissions match a condition, once each', () => {
+    const converted = metric('converted', 'count', {
+      type: 'distinct_accounts_visited',
+      forms: ['visit'],
+      where: { clauses: [{ field: 'ordered', op: 'eq', value: true }] },
+    });
+    const [fact] = calculateDayFacts(
+      [converted],
+      day({
+        submissions: [
+          submission('approved', { ordered: true }),
+          submission('approved', { ordered: true }),
+          submission('approved', { ordered: false }, DEPOT),
+          submission('pending', { ordered: true }, { ...SHOP, id: 'a3' }),
+        ],
+      }),
+    );
+    expect(fact).toMatchObject({ value: '1.000', accounts: ['a1'] });
+  });
+
   it('BR-05: an active day needs an approved submission of a counted form', () => {
     const active = metric('active_days', 'count', { type: 'active_days', forms: ['visit'] });
     expect(

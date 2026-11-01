@@ -217,9 +217,11 @@ export function calculateDay(
     case 'frequency_compliance_percent': {
       const visited = new Set<string>();
       const segment = 'segment' in source ? source.segment : undefined;
+      const where = 'where' in source ? source.where : undefined;
       for (const submission of ofForms(source.forms)) {
         if (
           submission.status === 'approved' &&
+          (!where || conditionHolds(where, submission.data)) &&
           accountMatches(submission.account, source.accountTypes, segment)
         ) {
           visited.add(submission.account.id);

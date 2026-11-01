@@ -1031,7 +1031,7 @@ export class DemoContent implements DemoKit {
     travelTo(at);
     const values = this.values(
       form.fields,
-      { place: place.name, market: person.market.name },
+      { place: place.name, market: person.market.name, accounts: person.places },
       false,
     );
     try {
@@ -1163,7 +1163,7 @@ export class DemoContent implements DemoKit {
   /** Plausible values for a form's fields; complex fields are left out unless required. */
   private values(
     fields: readonly Field[],
-    context: { place: string; market: string },
+    context: { place: string; market: string; accounts?: readonly Place[] },
     onlyRequired: boolean,
   ) {
     const values: Record<string, unknown> = {};
@@ -1237,6 +1237,14 @@ export class DemoContent implements DemoKit {
             todayIn(this.timezone),
             this.dice.int(earliest, Math.min(latest, earliest + 30)),
           );
+          break;
+        }
+        case 'account_picker': {
+          // One of the listed types that the person calls on, such as the dealer a site ordered from.
+          const choices = (context.accounts ?? []).filter(
+            (account) => account.held && field.accountTypes.includes(account.type),
+          );
+          if (choices.length > 0) values[key] = this.dice.pick(choices).id;
           break;
         }
         case 'product_lines': {

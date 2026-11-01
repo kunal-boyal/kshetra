@@ -111,8 +111,8 @@ describe('provisioning a tenant (spec 5.14)', () => {
  */
 describe('the seed and the phase 0 exit check (spec 15)', () => {
   it('validates every template', () => {
-    // Phase 0's two, and the industry templates of phase 3 (decision D97).
-    expect(TEMPLATE_KEYS).toEqual(['agri', 'fmcg', 'generic', 'pharma']);
+    // Phase 0's two, the industry templates of phase 3 (decision D97) and building (D120).
+    expect(TEMPLATE_KEYS).toEqual(['agri', 'building', 'fmcg', 'generic', 'pharma']);
     for (const key of TEMPLATE_KEYS) expect(() => loadTemplate(key)).not.toThrow();
   });
 

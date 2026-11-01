@@ -243,4 +243,53 @@ describe('demo content (decision D70)', () => {
     },
     DEMO_TIMEOUT_MS,
   );
+
+  it(
+    'fills a building materials demo tenant in its own words, without a refusal (decision D120)',
+    async () => {
+      const slug = `demo-building-${Date.now().toString(36)}`;
+      const { tenantId } = await provision(slug, true, 'building');
+      const lines: string[] = [];
+      const counts = await fill({
+        slug,
+        days: 10,
+        seed: 13,
+        log: (line) => lines.push(line),
+      });
+      expect(lines.filter((line) => line.startsWith('Skipping'))).toEqual([]);
+      expect(counts.entries).toBeGreaterThan(0);
+      expect(counts.orders).toBeGreaterThan(0);
+
+      const [made] = await sql<Record<string, number>>(
+        `with visits as (
+         select s.data, s.status from cell.submissions s
+           join cell.forms f on f.tenant_id = s.tenant_id and f.id = s.form_id
+          where s.tenant_id = $1 and f.key = 'site_visit')
+       select (select count(*)::int from visits) as site_visits,
+              (select count(*)::int from visits where (data->>'ordered_from_dealer')::boolean
+                 and not (data ? 'dealer')) as undealt,
+              (select count(*)::int from visits where not (data->>'ordered_from_dealer')::boolean
+                 and data ? 'dealer') as stray_dealer,
+              (select count(*)::int from cell.accounts a join cell.account_types t
+                 on t.tenant_id = a.tenant_id and t.id = a.type_id
+                where a.tenant_id = $1 and t.key = 'dealer' and a.name ~ '(Paint|Colour)') as dealers,
+              (select count(*)::int from cell.accounts
+                where tenant_id = $1 and name ~* '(krishi|agro|kirana|seeds)') as other_words,
+              (select count(*)::int from cell.metric_facts_daily
+                where tenant_id = $1 and metric_key = 'dealer_sales' and value > 0) as sales,
+              (select count(*)::int from cell.metric_facts_daily
+                where tenant_id = $1 and metric_key = 'sites_converted' and value > 0) as converted`,
+        [tenantId],
+      );
+      expect(made!.site_visits).toBeGreaterThan(0);
+      // The dealer is named exactly when the site ordered from one.
+      expect(made!.undealt).toBe(0);
+      expect(made!.stray_dealer).toBe(0);
+      expect(made!.dealers).toBeGreaterThan(0);
+      expect(made!.other_words).toBe(0);
+      expect(made!.sales).toBeGreaterThan(0);
+      expect(made!.converted).toBeGreaterThan(0);
+    },
+    DEMO_TIMEOUT_MS,
+  );
 });

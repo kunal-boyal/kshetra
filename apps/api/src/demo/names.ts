@@ -380,9 +380,104 @@ const FMCG: Flavour = {
   scenes: [{ match: /stock|display|shelf|merchand|product|audit|planogram/, scene: 'shelf' }],
 };
 
+const BUILDING: Flavour = {
+  suppliers: [
+    (parts) => `${parts.surname} Paints and Hardware, ${parts.town}`,
+    (parts) => `Shree ${parts.surname} Paint House`,
+    (parts) => `${parts.town} Colour Centre`,
+  ],
+  shops: [
+    (parts) => `${parts.surname} Hardware and Sanitary, ${parts.town}`,
+    (parts) => `${parts.town} Building Materials`,
+    (parts) => `New ${parts.surname} Paint Mart`,
+  ],
+  byTypeName: [
+    {
+      match: /contractor|painter/i,
+      names: [
+        (parts) => `${parts.first} ${parts.surname}, painter`,
+        (parts) => `${parts.surname} Painting Works`,
+        (parts) => `${parts.first} ${parts.surname} Contractors, ${parts.town}`,
+      ],
+    },
+    {
+      match: /site/i,
+      names: [
+        (parts) => `Shree Ganesh Residency, ${parts.town}`,
+        (parts) => `${parts.surname} Bungalow, ${parts.town}`,
+        (parts) => `Sai Heights, Phase 2, ${parts.town}`,
+        (parts) => `${parts.town} Commercial Complex`,
+      ],
+    },
+  ],
+  products: [
+    {
+      code: 'EML-4L',
+      product: 'Sundar interior emulsion',
+      pack: '4 L',
+      mrp: '1450',
+      taxRate: '18',
+    },
+    {
+      code: 'EML-20L',
+      product: 'Sundar interior emulsion',
+      pack: '20 L',
+      mrp: '6600',
+      taxRate: '18',
+    },
+    {
+      code: 'EXT-10L',
+      product: 'Mausam exterior emulsion',
+      pack: '10 L',
+      mrp: '4300',
+      taxRate: '18',
+    },
+    { code: 'PRM-10L', product: 'Pakka wall primer', pack: '10 L', mrp: '1850', taxRate: '18' },
+    { code: 'PUT-40KG', product: 'Chikna wall putty', pack: '40 kg', mrp: '1150', taxRate: '18' },
+    {
+      code: 'WPF-20L',
+      product: 'Barsaat-Rok waterproofing',
+      pack: '20 L',
+      mrp: '5200',
+      taxRate: '18',
+    },
+  ],
+  outcomes: [
+    'Dealer took 20 L packs of Sundar for the season; tinting machine checked.',
+    'Collected the cheque for last month; dispatch of putty promised for Friday.',
+    'Site has moved to plastering; the contractor will buy primer next week.',
+    'Painter wants a demo of Barsaat-Rok on a terrace before recommending it.',
+    'Builder compares our exterior emulsion with a competitor’s on price.',
+    'Dealer short of white base; order placed for two cartons.',
+    'Enrolled the painter team in the loyalty programme.',
+  ],
+  observations: [
+    'Competitor gives painters a higher reward per litre this month.',
+    'Dealer’s counter shows our shade cards; competitor’s display is bigger.',
+    'Putty bags are stacked outside and getting damp.',
+  ],
+  rejections: [
+    'The photo doesn’t show the site. Please take one with the work in view.',
+    'The sales amount looks wrong for this dealer. Please check the bill.',
+    'Please choose the dealer the site ordered from.',
+  ],
+  gatherings: [
+    'Community Hall, Satpur',
+    'Hotel Panchavati, Nashik Road',
+    'Painters’ Association Hall, Malegaon',
+    'Gurudwara Hall, Deolali',
+  ],
+  topics: ['Painters’ meet', 'New shade launch', 'Waterproofing training'],
+  activityChance: 0.1,
+  scenes: [{ match: /site|demonstration|demo|meet/, scene: 'field' }],
+};
+
 /** The flavour of a tenant's industry template; any other template takes agri's. */
 export function flavourOf(templateKey: string): Flavour {
-  return templateKey === 'pharma' ? PHARMA : templateKey === 'fmcg' ? FMCG : AGRI;
+  if (templateKey === 'pharma') return PHARMA;
+  if (templateKey === 'fmcg') return FMCG;
+  if (templateKey === 'building') return BUILDING;
+  return AGRI;
 }
 
 function parts(dice: Dice, town: string): Parts {

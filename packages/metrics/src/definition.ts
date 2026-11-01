@@ -40,7 +40,16 @@ export const MetricSource = z
       field: Key,
       column: z.enum(['quantity', 'value']),
     }),
-    z.strictObject({ type: z.literal('distinct_accounts_visited'), forms, accountTypes, segment }),
+    z.strictObject({
+      type: z.literal('distinct_accounts_visited'),
+      forms,
+      accountTypes,
+      segment,
+      where: Condition.optional().meta({
+        description:
+          'Count only accounts whose submissions match this, such as a site that ordered',
+      }),
+    }),
     z.strictObject({ type: z.literal('coverage_percent'), forms, accountTypes, segment }),
     z.strictObject({ type: z.literal('frequency_compliance_percent'), forms, accountTypes }),
     z.strictObject({ type: z.literal('plan_compliance_percent') }),

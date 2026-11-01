@@ -36440,6 +36440,10 @@
               "segment": {
                 "description": "Count only accounts in this segment",
                 "$ref": "#/components/schemas/Key"
+              },
+              "where": {
+                "description": "Count only accounts whose submissions match this, such as a site that ordered",
+                "$ref": "#/components/schemas/ConditionInput"
               }
             },
             "required": [
