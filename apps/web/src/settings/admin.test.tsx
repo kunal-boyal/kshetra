@@ -72,7 +72,7 @@ describe('the organisation (M2)', () => {
     );
   });
 
-  it('shows the words, the field rules and the modules that cannot be switched', async () => {
+  it('shows the words, the field rules, and every built module as a switch', async () => {
     const client = fakeClient({ '/v1/organisation': ORGANISATION }, {}, ADMIN);
     renderAt('/settings/organisation', client);
     const words = await screen.findByRole('table');
@@ -84,7 +84,9 @@ describe('the organisation (M2)', () => {
     const rules = screen.getByRole('region', { name: 'Field rules' });
     expect(within(rules).getByText('Within 300 m')).toBeVisible();
     expect(screen.getByText('Always on')).toBeVisible();
-    expect(screen.getAllByText('Arrives later')).toHaveLength(3);
+    expect(screen.queryAllByText('Arrives later')).toHaveLength(0);
+    const modules = screen.getByRole('region', { name: 'Modules' });
+    expect(within(modules).getAllByRole('switch')).toHaveLength(8);
   });
 
   it('says when a logo is too big, before sending it', async () => {
@@ -270,14 +272,14 @@ describe('terminology (M2, spec 5.2)', () => {
 });
 
 describe('modules (M2, spec 5.13)', () => {
-  it('switches a module off; Core always stays, and later ones show as coming', async () => {
+  it('switches a module off; Core always stays on', async () => {
     const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN);
     renderAt('/settings/modules', client);
     const user = userEvent.setup();
     const list = await screen.findByRole('list', { name: 'Modules' });
     expect(within(list).getByText('Always on')).toBeVisible();
-    expect(within(list).getAllByText('Arrives later')).toHaveLength(3);
-    expect(within(list).getAllByRole('checkbox', { name: 'On' })).toHaveLength(5);
+    expect(within(list).queryAllByText('Arrives later')).toHaveLength(0);
+    expect(within(list).getAllByRole('checkbox', { name: 'On' })).toHaveLength(8);
     const module = (name: string) => within(within(list).getByText(name).closest('li')!);
     await user.click(module('Leave and attendance').getByRole('checkbox', { name: 'On' }));
     await user.click(module('Orders').getByRole('checkbox', { name: 'On' }));
@@ -286,6 +288,26 @@ describe('modules (M2, spec 5.13)', () => {
     await waitFor(() =>
       expect(writesOf(client)[0]![3]).toMatchObject({
         body: { modulesOff: ['leave_attendance', 'orders', 'account_finance'] },
+      }),
+    );
+  });
+
+  it('says what stops while integrations or single sign-on are off (D125)', async () => {
+    const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN);
+    renderAt('/settings/modules', client);
+    const user = userEvent.setup();
+    const list = await screen.findByRole('list', { name: 'Modules' });
+    const module = (name: string) => within(within(list).getByText(name).closest('li')!);
+    expect(within(list).queryByText(/API clients get no tokens/)).toBeNull();
+    await user.click(module('Integrations').getByRole('checkbox', { name: 'On' }));
+    await user.click(module('Single sign-on').getByRole('checkbox', { name: 'On' }));
+    await user.click(module('Payroll inputs').getByRole('checkbox', { name: 'On' }));
+    expect(module('Integrations').getByText(/API clients get no tokens/)).toBeVisible();
+    expect(module('Single sign-on').getByText(/with a one-time code/)).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(writesOf(client)[0]![3]).toMatchObject({
+        body: { modulesOff: ['integrations', 'sso', 'payroll_inputs'] },
       }),
     );
   });

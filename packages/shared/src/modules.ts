@@ -25,13 +25,19 @@ export const SWITCHABLE_MODULES = MODULE_KEYS.filter(
 );
 export type SwitchableModule = (typeof SWITCHABLE_MODULES)[number];
 
-/** Modules with something to switch in this release; the rest arrive in later phases (spec 15). */
+/**
+ * Modules with something to switch in this release (decision D125); a module still to be built
+ * shows as arriving later (spec 15).
+ */
 export const AVAILABLE_MODULES: readonly ModuleKey[] = [
   'core',
   'leave_attendance',
   'orders',
   'account_finance',
   'expenses',
+  'payroll_inputs',
+  'integrations',
+  'sso',
   'advanced_analytics',
 ];
 

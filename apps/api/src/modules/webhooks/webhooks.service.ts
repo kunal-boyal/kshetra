@@ -18,6 +18,7 @@ import type { Access } from '../../platform/auth';
 import { ColumnCipher } from '../../platform/column-cipher';
 import { Database, type TenantTx } from '../../platform/database';
 import { Queues } from '../../platform/queues';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { newWebhookSecret, WebhookSender } from './webhook-sender';
 
 type Subscription = typeof webhookSubscriptions.$inferSelect;
@@ -46,6 +47,7 @@ export class WebhooksService {
     private readonly cipher: ColumnCipher,
     private readonly sender: WebhookSender,
     private readonly queues: Queues,
+    private readonly config: TenantConfigService,
   ) {}
 
   async list(tx: TenantTx, tenantId: string): Promise<WebhookResult[]> {
@@ -188,9 +190,15 @@ export class WebhooksService {
     return { webhook: await this.result(tx, row!), secret };
   }
 
+  /** Whether the integrations module is closed for the tenant, by its admin or its plan. */
+  private async closed(tx: TenantTx, tenantId: string): Promise<boolean> {
+    return (await this.config.settings(tx, tenantId)).modulesOff.includes('integrations');
+  }
+
   /**
    * An event, as the outbox delivers it, becomes a message for each active subscription to it,
-   * once each: the outbox may deliver an event again.
+   * once each: the outbox may deliver an event again. While the integrations module is closed,
+   * events make no messages, so nothing that happened meanwhile is sent later (decision D125).
    */
   async fanOut(
     tx: TenantTx,
@@ -198,6 +206,7 @@ export class WebhooksService {
     event: { id: string; type: WebhookEventKey; createdAt: Date },
     data: Record<string, unknown>,
   ): Promise<void> {
+    if (await this.closed(tx, tenantId)) return;
     const subscriptions = await tx
       .select({ id: webhookSubscriptions.id })
       .from(webhookSubscriptions)
@@ -321,8 +330,10 @@ export class WebhooksService {
             eq(webhookSubscriptions.id, message.subscriptionId),
           ),
         );
-      // A paused subscription's messages wait; resuming doesn't send what came while paused.
+      // A paused subscription's messages wait; resuming doesn't send what came while paused. So do
+      // every subscription's while the integrations module is closed (decision D125).
       if (!subscription || subscription.status !== 'active') return null;
+      if (await this.closed(tx, tenantId)) return null;
       return { message, subscription };
     });
     if (!ready) return;

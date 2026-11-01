@@ -12,7 +12,7 @@ import { eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { cells, tenants } from '../../db/schema/directory';
 import { Public } from '../../platform/auth';
-import { ApiClientCredentials } from '../../platform/planes';
+import { ApiClientCredentials, TenantModules } from '../../platform/planes';
 import { RateLimiter } from '../../platform/rate-limit';
 import { Contract } from '../../platform/routes';
 import { DirectoryDatabase } from './directory.database';
@@ -46,6 +46,7 @@ function basic(request: FastifyRequest): { id: string; secret: string } | null {
 export class OAuthController {
   constructor(
     private readonly credentials: ApiClientCredentials,
+    private readonly modules: TenantModules,
     private readonly database: DirectoryDatabase,
     private readonly keys: SigningKey,
     private readonly limiter: RateLimiter,
@@ -108,6 +109,14 @@ export class OAuthController {
       .where(eq(tenants.id, client.tenantId));
     if (!tenant || !isOpenTenant(tenant.status)) {
       return fail(401, 'invalid_client', 'This organisation is not open.');
+    }
+    // The client is kept while the integrations module is closed, and works again once it opens.
+    if ((await this.modules.off(client.tenantId)).includes('integrations')) {
+      return fail(
+        400,
+        'unauthorized_client',
+        'Integrations are switched off for this organisation.',
+      );
     }
     const access = await this.keys.sign({
       userId: client.apiClientId,

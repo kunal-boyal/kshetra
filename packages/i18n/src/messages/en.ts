@@ -3436,6 +3436,10 @@ export const en = {
   'admin.module_sso': 'Single sign-on',
   'admin.module_sso_about':
     'Signing in to the web with your own identity provider, through OIDC or SAML.',
+  'admin.module_integrations_off':
+    'While it is off, API clients get no tokens and webhooks send nothing. Both are kept for when it is on again.',
+  'admin.module_sso_off':
+    'While it is off, nobody signs in through your identity provider, and everyone signs in to the web with a one-time code. The connection is kept for when it is on again.',
   'admin.module_advanced_analytics': 'Advanced analytics',
   'admin.module_advanced_analytics_about': 'Custom dashboards and scheduled reports.',
   'maps.legend': 'Key to the map',

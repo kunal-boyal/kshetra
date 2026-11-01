@@ -23,7 +23,7 @@ import {
 } from '../../db/schema/directory';
 import { ColumnCipher } from '../../platform/column-cipher';
 import { DomainRecords } from '../../platform/domain-records';
-import { Entitlements, PeopleEmails } from '../../platform/planes';
+import { PeopleEmails, TenantModules } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
 import { publicFetch, publicUrlIssue } from '../../platform/outbound';
 import { CONFIG } from '../../platform/tokens';
@@ -112,7 +112,7 @@ export class SsoService {
     private readonly cipher: ColumnCipher,
     private readonly client: RedisClient,
     private readonly emails: PeopleEmails,
-    private readonly entitlements: Entitlements,
+    private readonly modules: TenantModules,
     private readonly records: DomainRecords,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
@@ -341,7 +341,7 @@ export class SsoService {
     const domain = email.split('@')[1]?.toLowerCase();
     if (!domain) return null;
     const [row] = await this.database.db
-      .select({ slug: tenants.slug })
+      .select({ slug: tenants.slug, tenantId: tenants.id })
       .from(ssoDomains)
       .innerJoin(ssoConnections, eq(ssoConnections.tenantId, ssoDomains.tenantId))
       .innerJoin(tenants, eq(tenants.id, ssoDomains.tenantId))
@@ -352,7 +352,8 @@ export class SsoService {
           isNotNull(ssoDomains.verifiedAt),
         ),
       );
-    return row ? `/auth/v1/sso/${row.slug}/start` : null;
+    if (!row || (await this.modules.off(row.tenantId)).includes('sso')) return null;
+    return `/auth/v1/sso/${row.slug}/start`;
   }
 
   /**
@@ -586,7 +587,10 @@ export class SsoService {
     return pending;
   }
 
-  /** A tenant's connection when it is on and the tenant's plan includes SSO. */
+  /**
+   * A tenant's connection when it is on and the SSO module is open: in the plan, and not switched
+   * off by the tenant's admin (decision D125).
+   */
   private async usable(slug: string) {
     const [row] = await this.database.db
       .select({ tenantId: tenants.id, connection: ssoConnections })
@@ -594,8 +598,7 @@ export class SsoService {
       .innerJoin(ssoConnections, eq(ssoConnections.tenantId, tenants.id))
       .where(eq(tenants.slug, slug));
     if (!row || !row.connection.enabled) throw new SsoRefused('unavailable');
-    const { modules } = await this.entitlements.forTenant(row.tenantId);
-    if (modules && !modules.includes('sso')) throw new SsoRefused('unavailable');
+    if ((await this.modules.off(row.tenantId)).includes('sso')) throw new SsoRefused('unavailable');
     const settings = this.open(row.connection);
     if (!settings) throw new SsoRefused('unavailable');
     // Only domains the organisation has proved are its own sign anyone in (decision D101).
