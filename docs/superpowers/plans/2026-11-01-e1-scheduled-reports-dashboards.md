@@ -121,11 +121,11 @@
 
 - The `dashboard_layouts` migration.
 - `DashboardLayoutsService` in the reports module:
-  - `GET /v1/dashboard-layouts` and `PUT /v1/dashboard-layouts/{roleId}` (`dashboard.manage`, audited as `dashboard_layout.changed`, calling `TenantConfigService.touch()`).
+  - `GET /v1/dashboard-layouts` (with the metrics and levels a card may name) and `PUT /v1/dashboard-layouts/{roleId}` (`dashboard.manage`, audited as `dashboard_layout.changed`). The config bundle doesn't carry layouts, so its version doesn't move.
   - `GET /v1/dashboard` gains `layout` (the caller's role's cards, or null when there is none or the module is off) and `breakdowns`.
   - With a layout, `tiles` and `trend` hold the metrics its cards name, in their order.
 - `PerformanceService.breakdown(tx, access, period, metric, by, level?)`: the top 10 people in scope by the metric, with target attainment; or the territories at the level that the scope reaches, summed from daily facts.
-- [ ] Tests (integration):
+- [x] Tests (integration):
   - a layout per role;
   - each kind of card;
   - a breakdown within scope;
@@ -137,7 +137,7 @@
 
 - Settings › Dashboards (`apps/web/src/settings/dashboards-page.tsx`): pick a role, then add, move up and down, edit and remove cards, with no dragging so it works from the keyboard. "Use the standard Home" sets the layout to null. Field errors come from the API by path.
 - Home renders the layout's cards in order: the existing card components, and a new `Breakdown` bar chart through `Chart`, with its table of the numbers.
-- [ ] Tests (Vitest and Playwright with axe).
+- [x] Tests (Vitest and Playwright with axe).
 
 ### Pull request 3: the phone, configuration and the demo
 

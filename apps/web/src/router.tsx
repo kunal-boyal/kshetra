@@ -48,6 +48,7 @@ import { AttendancePage } from './attendance/attendance-page';
 import { ExpensesPage } from './expenses/expenses-page';
 import { PayrollPage } from './payroll/payroll-page';
 import { PayslipPage } from './payroll/payslip-page';
+import { DashboardsPage } from './settings/dashboards-page';
 import { LeaveTypesPage } from './settings/leave-types-page';
 import { ConfigurationPage } from './settings/configuration-page';
 import { DesignationsPage } from './settings/designations-page';
@@ -383,6 +384,11 @@ const leaveTypes = createRoute({
   path: '/leave-types',
   component: LeaveTypesPage,
 });
+const dashboards = createRoute({
+  getParentRoute: () => settings,
+  path: '/dashboards',
+  component: DashboardsPage,
+});
 const terminology = createRoute({
   getParentRoute: () => settings,
   path: '/terminology',
@@ -609,6 +615,7 @@ const tree = root.addChildren([
       approvalChains,
       calendars,
       leaveTypes,
+      dashboards,
       expensePolicies,
       terminology,
       modules,

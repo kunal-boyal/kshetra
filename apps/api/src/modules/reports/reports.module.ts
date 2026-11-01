@@ -30,6 +30,7 @@ import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
 import { OutstandingReport } from './outstanding';
 import { AuditLogReport } from './audit-log-report';
+import { DashboardLayoutsService } from './dashboard-layouts.service';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
 import { ReportSchedulesController } from './report-schedules.controller';
@@ -68,6 +69,7 @@ import { TargetAchievementReport } from './target-achievement';
     ExportsService,
     ReportSchedulesService,
     DashboardService,
+    DashboardLayoutsService,
     MediaUrls,
     ActivityLogReport,
     AttendanceRegisterReport,

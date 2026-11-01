@@ -12,6 +12,7 @@ import { TargetPeriods } from '../metrics/target-periods';
 import { PerformanceService } from '../performance/performance.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ApprovalsService } from '../workflow/approvals.service';
+import { DashboardLayoutsService } from './dashboard-layouts.service';
 
 /** The most people the home's on-duty card lists. */
 const ON_DUTY_SHOWN = 8;
@@ -35,10 +36,13 @@ export class DashboardService {
     private readonly people: People,
     private readonly config: TenantConfigService,
     private readonly periods: TargetPeriods,
+    private readonly layouts: DashboardLayoutsService,
   ) {}
 
   async read(tx: TenantTx, access: Access, period: string): Promise<DashboardResult> {
-    const { ids, ...figures } = await this.performance.dashboard(tx, access, period);
+    // The caller's role's layout, if an admin set one (decision D122).
+    const layout = await this.layouts.forCaller(tx, access);
+    const { ids, ...figures } = await this.performance.dashboard(tx, access, period, layout);
     const can = (permission: Parameters<typeof access.permissions.has>[0]) =>
       access.permissions.has(permission);
     const duty = can('live_map.view') ? await this.duty(tx, access) : null;

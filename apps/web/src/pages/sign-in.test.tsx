@@ -73,6 +73,9 @@ function fakeClient(verify: () => Promise<unknown>) {
           onDutyPeople: null,
           onLeaveToday: null,
           waiting: { reviews: null, approvals: null, plans: null, leave: null, expenses: null },
+          layout: null,
+          metrics: [],
+          breakdowns: [],
         };
       }
       throw new Error(`Nothing at ${path}`);

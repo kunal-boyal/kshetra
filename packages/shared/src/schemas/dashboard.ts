@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Key, LocalizedNoun } from './config';
+import { Key, LocalizedNoun, LocalizedText } from './config';
 import { MetricFigures, PerformanceMetric, PersonTerritory } from './performance';
 import { TargetPeriod } from './planning';
 
@@ -26,6 +26,97 @@ export const DashboardWaiting = z
     expenses: z.int().nullable(),
   })
   .meta({ id: 'DashboardWaiting' });
+
+/** The most cards a Home layout holds, and the most metrics a tiles or trend card names. */
+export const LAYOUT_CARDS_MOST = 12;
+export const TILE_METRICS_MOST = 8;
+export const TREND_METRICS_MOST = 4;
+
+/** The cards an admin builds a role's Home from (decision D122). */
+export const DASHBOARD_CARD_KINDS = [
+  'tiles',
+  'trend',
+  'breakdown',
+  'mix',
+  'leaderboard',
+  'on_duty',
+  'waiting',
+] as const;
+export type DashboardCardKind = (typeof DASHBOARD_CARD_KINDS)[number];
+
+/** How a breakdown card splits a metric: by person in the viewer's scope, or by territory. */
+export const BREAKDOWN_BY = ['person', 'territory'] as const;
+
+/**
+ * One card of a Home layout. Metric tiles and a trend name their metrics; a breakdown shows one
+ * metric by person, or by territory at a geography level; the rest are the standard Home's cards.
+ * Each card follows the viewer's own scope and permissions when it is read.
+ */
+export const DashboardCard = z
+  .discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('tiles'),
+      metrics: z.array(Key).min(1).max(TILE_METRICS_MOST),
+    }),
+    z.strictObject({
+      kind: z.literal('trend'),
+      metrics: z.array(Key).min(1).max(TREND_METRICS_MOST),
+    }),
+    z.strictObject({
+      kind: z.literal('breakdown'),
+      metric: Key,
+      by: z.enum(BREAKDOWN_BY),
+      /** The geography level a territory breakdown sums to. */
+      level: Key.optional(),
+    }),
+    z.strictObject({ kind: z.literal('mix') }),
+    z.strictObject({ kind: z.literal('leaderboard') }),
+    z.strictObject({ kind: z.literal('on_duty') }),
+    z.strictObject({ kind: z.literal('waiting') }),
+  ])
+  .meta({ id: 'DashboardCard' });
+
+export const DashboardLayoutCards = z.array(DashboardCard).min(1).max(LAYOUT_CARDS_MOST);
+
+/** A role and its Home layout; null cards keep the standard Home. */
+export const DashboardLayoutRow = z.object({
+  role: z.object({ id: z.uuid(), key: Key, name: LocalizedText }),
+  cards: DashboardLayoutCards.nullable(),
+  updatedAt: z.iso.datetime().nullable(),
+});
+
+export const DashboardLayoutListResult = z
+  .object({
+    items: z.array(DashboardLayoutRow),
+    /** The metrics a card may name: those worked out, and whether their days and people add up. */
+    metrics: z.array(z.object({ key: Key, name: LocalizedNoun, additive: z.boolean() })),
+    /** The geography levels a territory breakdown may sum to, highest first. */
+    levels: z.array(z.object({ key: Key, name: LocalizedNoun })),
+  })
+  .meta({ id: 'DashboardLayoutListResult' });
+
+export const DashboardLayoutParam = z.strictObject({ roleId: z.uuid() });
+
+/** `PUT /v1/dashboard-layouts/{roleId}`: the role's cards in order, or null for the standard Home. */
+export const UpdateDashboardLayoutBody = z.strictObject({
+  cards: DashboardLayoutCards.nullable(),
+});
+
+/** One metric split by person or by territory, the largest first. */
+export const DashboardBreakdown = z.object({
+  metric: Key,
+  by: z.enum(BREAKDOWN_BY),
+  level: Key.nullable(),
+  rows: z.array(
+    z.object({
+      id: z.uuid().nullable(),
+      /** A person's name, or a territory's; null for people under none at that level. */
+      label: z.string().nullable(),
+      value: z.number().nullable(),
+      target: z.number().nullable(),
+    }),
+  ),
+});
 
 export const DashboardResult = z
   .object({
@@ -92,9 +183,23 @@ export const DashboardResult = z
     onLeaveToday: z.int().nullable(),
     /** What waits for the viewer; null for what they can't act on. */
     waiting: DashboardWaiting,
+    /**
+     * The viewer's role's Home layout (decision D122), its cards in order, without those naming
+     * a metric or level that is gone; null for the standard Home.
+     */
+    layout: z.array(DashboardCard).nullable(),
+    /** The metrics the layout's trend and breakdown cards name, for their names and units. */
+    metrics: z.array(PerformanceMetric),
+    /** Each breakdown card's rows, in the layout's order. */
+    breakdowns: z.array(DashboardBreakdown),
   })
   .meta({ id: 'DashboardResult' });
 
 export type DashboardQuery = z.output<typeof DashboardQuery>;
 export type DashboardResult = z.infer<typeof DashboardResult>;
 export type DashboardWaiting = z.infer<typeof DashboardWaiting>;
+export type DashboardCard = z.infer<typeof DashboardCard>;
+export type DashboardBreakdown = z.infer<typeof DashboardBreakdown>;
+export type DashboardLayoutRow = z.infer<typeof DashboardLayoutRow>;
+export type DashboardLayoutListResult = z.infer<typeof DashboardLayoutListResult>;
+export type UpdateDashboardLayoutBody = z.output<typeof UpdateDashboardLayoutBody>;

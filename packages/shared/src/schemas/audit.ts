@@ -77,6 +77,7 @@ export const AUDIT_ACTIONS = [
   'report_schedule.resumed',
   'report_schedule.ended',
   'report_schedule.left',
+  'dashboard_layout.changed',
   'organisation.renamed',
   'organisation.logo_changed',
   'account_type.created',

@@ -1,5 +1,11 @@
 import { formatNumber, localeTag } from '@thelamp/i18n';
-import { type DashboardResult, timeIn, todayIn } from '@thelamp/shared';
+import {
+  type DashboardBreakdown,
+  type DashboardCard,
+  type DashboardResult,
+  timeIn,
+  todayIn,
+} from '@thelamp/shared';
 import {
   Avatar,
   type BadgeVariant,
@@ -51,14 +57,24 @@ const hatch = (colour: string) => ({
 /** Bars end in a small radius on their far side (marks: 4 px data ends). */
 const END = 4;
 
+/** A metric the dashboard names, from its tiles or the layout's other cards (D122). */
+function metricOf(data: DashboardResult, key: string | undefined) {
+  return (
+    data.tiles.find((tile) => tile.metric.key === key)?.metric ??
+    data.metrics.find((metric) => metric.key === key)
+  );
+}
+
 /** One metric day by day: approved, and pending stacked above it, hatched. */
-function Trend({ data }: { data: DashboardResult }) {
+function Trend({ data, keys }: { data: DashboardResult; keys?: readonly string[] }) {
   const { t, locale } = useLanguage();
   const figure = useFigure();
-  const lines = data.trend.filter((line) => line.days.length > 0);
+  const lines = data.trend.filter(
+    (line) => line.days.length > 0 && (!keys || keys.includes(line.key)),
+  );
   const [chosen, setChosen] = useState<string>();
   const line = lines.find((entry) => entry.key === chosen) ?? lines[0];
-  const metric = data.tiles.find((tile) => tile.metric.key === line?.key)?.metric;
+  const metric = metricOf(data, line?.key);
   const name = metric?.name[locale].other ?? '';
   const option = (token: (name: string) => string): ChartOption => {
     const days = line?.days ?? [];
@@ -121,9 +137,7 @@ function Trend({ data }: { data: DashboardResult }) {
         value={line.key}
         options={lines.map((entry) => ({
           value: entry.key,
-          label:
-            data.tiles.find((tile) => tile.metric.key === entry.key)?.metric.name[locale].other ??
-            entry.key,
+          label: metricOf(data, entry.key)?.name[locale].other ?? entry.key,
         }))}
         onChange={(event) => setChosen(event.target.value)}
       />
@@ -173,6 +187,95 @@ function Trend({ data }: { data: DashboardResult }) {
                     <td className="r">
                       {figure(metric, day.pending === null ? null : String(day.pending))}
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          }
+        />
+      )}
+    </section>
+  );
+}
+
+/**
+ * One metric split by person or by territory, the largest first (decision D122), as bars beside
+ * their table, with the target where one is set.
+ */
+function Breakdown({ data, breakdown }: { data: DashboardResult; breakdown: DashboardBreakdown }) {
+  const { t, locale } = useLanguage();
+  const figure = useFigure();
+  const metric = metricOf(data, breakdown.metric);
+  const name = metric?.name[locale].other ?? breakdown.metric;
+  const title = t(breakdown.by === 'person' ? 'home.by_person' : 'home.by_territory', {
+    metric: name,
+  });
+  const label = (row: DashboardBreakdown['rows'][number]) => row.label ?? t('home.no_territory');
+  const shown = (value: number | null) =>
+    metric ? figure(metric, value === null ? null : String(value)) : String(value ?? '—');
+  const rows = [...breakdown.rows].reverse();
+  const option = (token: (name: string) => string): ChartOption => ({
+    grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      valueFormatter: (value: unknown) => shown(value === null ? null : Number(value)),
+    },
+    xAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: token('--chart-grid') } },
+      axisLabel: { color: token('--text-muted') },
+    },
+    yAxis: {
+      type: 'category',
+      data: rows.map(label),
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: token('--chart-grid') } },
+      axisLabel: { color: token('--text-muted') },
+    },
+    series: [
+      {
+        name,
+        type: 'bar',
+        barMaxWidth: 16,
+        itemStyle: { color: token('--accent'), borderRadius: [0, END, END, 0] },
+        data: rows.map((row) => row.value),
+      },
+    ],
+  });
+  return (
+    <section className="ks-card flex min-w-0 flex-col gap-4" aria-label={title}>
+      <h2 className="heading-md">{title}</h2>
+      {breakdown.rows.length === 0 ? (
+        <p className="ks-muted">{t('performance.trend_empty')}</p>
+      ) : (
+        <Chart
+          label={title}
+          option={option}
+          height={Math.max(160, breakdown.rows.length * 32)}
+          tableLabel={t('home.show_numbers')}
+          table={
+            <table className="ks-table">
+              <caption className="sr-only">{title}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">
+                    {t(breakdown.by === 'person' ? 'home.col_person' : 'home.col_territory')}
+                  </th>
+                  <th scope="col" className="r">
+                    {name}
+                  </th>
+                  <th scope="col" className="r">
+                    {t('home.target')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {breakdown.rows.map((row) => (
+                  <tr key={row.id ?? 'none'}>
+                    <th scope="row">{label(row)}</th>
+                    <td className="r">{shown(row.value)}</td>
+                    <td className="r">{row.target === null ? '—' : shown(row.target)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -527,6 +630,99 @@ function Waiting({ waiting }: { waiting: DashboardResult['waiting'] }) {
 }
 
 /** The greeting for the hour on the tenant's clock. */
+/** The month's forms, as a card of its own. */
+function MixCard({ data }: { data: DashboardResult }) {
+  const { t } = useLanguage();
+  return (
+    <section className="ks-card flex flex-col gap-3" aria-labelledby="home-mix">
+      <h2 id="home-mix" className="heading-md">
+        {t('home.mix')}
+      </h2>
+      <Suspense fallback={<p className="ks-muted">{t('common.loading')}</p>}>
+        <Mix data={data} />
+      </Suspense>
+    </section>
+  );
+}
+
+/**
+ * A Home laid out for the viewer's role (decision D122): its cards in order, each within the
+ * viewer's own scope; a card the viewer may not see shows nothing.
+ */
+function LaidOut({
+  data,
+  cards,
+  readAt,
+}: {
+  data: DashboardResult;
+  cards: readonly DashboardCard[];
+  readAt: number;
+}) {
+  const { t } = useLanguage();
+  const team = data.view === 'team';
+  let breakdown = 0;
+  const loading = <p className="ks-muted">{t('common.loading')}</p>;
+  return (
+    <>
+      {cards.map((card, index) => {
+        switch (card.kind) {
+          case 'tiles':
+            return (
+              <section
+                key={index}
+                className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+                aria-label={
+                  team ? t('home.figures_team', { count: data.people }) : t('home.figures_self')
+                }
+              >
+                {card.metrics.flatMap((key) => {
+                  const tile = data.tiles.find((entry) => entry.metric.key === key);
+                  return tile
+                    ? [
+                        <MetricTile
+                          key={key}
+                          metric={tile.metric}
+                          figures={tile.figures}
+                          draft={false}
+                          as={rowLink('/performance')}
+                        />,
+                      ]
+                    : [];
+                })}
+              </section>
+            );
+          case 'trend':
+            return (
+              <Suspense key={index} fallback={loading}>
+                <Trend data={data} keys={card.metrics} />
+              </Suspense>
+            );
+          case 'breakdown': {
+            const found = data.breakdowns[breakdown++];
+            return found ? (
+              <Suspense key={index} fallback={loading}>
+                <Breakdown data={data} breakdown={found} />
+              </Suspense>
+            ) : null;
+          }
+          case 'mix':
+            return <MixCard key={index} data={data} />;
+          case 'leaderboard':
+            return data.leaderboard ? <Board key={index} board={data.leaderboard} /> : null;
+          case 'on_duty':
+            return team && data.onDutyPeople !== null ? (
+              <OnDuty key={index} data={data} readAt={readAt} />
+            ) : null;
+          case 'waiting':
+            return data.waiting.reviews !== null || data.waiting.approvals !== null ? (
+              <Waiting key={index} waiting={data.waiting} />
+            ) : null;
+        }
+      })}
+    </>
+  );
+}
+
 function greetingKey(timeZone: string) {
   const hour = Number(timeIn(timeZone).slice(0, 2));
   if (hour < 12) return 'home.greeting_morning' as const;
@@ -604,6 +800,8 @@ export function HomePage() {
         </p>
       ) : !data ? (
         <p className="ks-muted">{t('common.loading')}</p>
+      ) : data.layout ? (
+        <LaidOut data={data} cards={data.layout} readAt={dashboard.dataUpdatedAt} />
       ) : (
         <>
           <section
@@ -680,14 +878,7 @@ export function HomePage() {
               ) : null}
             </div>
           ) : null}
-          <section className="ks-card flex flex-col gap-3" aria-labelledby="home-mix">
-            <h2 id="home-mix" className="heading-md">
-              {t('home.mix')}
-            </h2>
-            <Suspense fallback={<p className="ks-muted">{t('common.loading')}</p>}>
-              <Mix data={data} />
-            </Suspense>
-          </section>
+          <MixCard data={data} />
         </>
       )}
     </div>
