@@ -1598,6 +1598,20 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(theirs);
     },
   },
+  'POST /v1/locations/mocked': {
+    kind: 'write',
+    run: async () => {
+      // B's report lands in B alone: A's report and A's waiting submissions stay as they were.
+      const sent = await asBPhone('POST', '/v1/locations/mocked', {
+        id: newId(),
+        seenAt: new Date(Date.now() - 60_000).toISOString(),
+        source: 'form',
+        count: 2,
+      });
+      expect(sent.statusCode, sent.body).toBe(201);
+      holdsNothingOfA(sent);
+    },
+  },
   'GET /v1/attendance': {
     kind: 'by ID',
     run: () =>
@@ -2910,6 +2924,12 @@ beforeAll(async () => {
      values ($1, $2, 'casual', make_date(extract(year from current_date)::int - 1, 1, 1),
        make_date(extract(year from current_date)::int - 1, 12, 31), 12, 0, 4, 5, 3, 5)`,
     [a.tenantId, a.member.id],
+  );
+  // A's member's phone refused a mocked fix (BR-50, decision D119).
+  await admin(
+    `insert into cell.mock_location_reports (tenant_id, id, user_id, seen_at, source, count)
+     values ($1, $2, $3, now() - interval '1 day', 'tracking', 3)`,
+    [a.tenantId, newId(), a.member.id],
   );
   // A's member has a monthly gross (M14, decision D117).
   await admin(

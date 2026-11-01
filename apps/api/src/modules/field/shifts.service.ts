@@ -10,6 +10,7 @@ import {
   type OdometerSetting,
   onDutyMs,
   type PauseShiftBody,
+  type PlacedRecord,
   POINT_EARLY_MS,
   punchFixIssue,
   type ResumeShiftBody,
@@ -22,6 +23,7 @@ import {
 import { and, asc, desc, eq, inArray, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm';
 import {
   locationPoints,
+  mockLocationReports,
   shiftPauses,
   shifts,
   shiftTrails,
@@ -813,9 +815,64 @@ export class ShiftsService {
   }
 
   /**
-   * An erased person's whereabouts (decision D95): every location point, route and last known
-   * position goes; their shifts, with punch times, stay as the attendance record. Points already
-   * archived to files go with those files' own retention.
+   * A person's punch-ins and punch-outs between two moments, as places and times, for the
+   * anomaly checks on their submissions (BR-50).
+   */
+  async placedNear(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<PlacedRecord[]> {
+    const rows = await tx
+      .select({
+        id: shifts.id,
+        startedAt: shifts.startedAt,
+        startPoint: pointOf(shifts.startPoint),
+        endedAt: shifts.endedAt,
+        endPoint: pointOf(shifts.endPoint),
+      })
+      .from(shifts)
+      .where(
+        and(
+          eq(shifts.tenantId, tenantId),
+          eq(shifts.userId, userId),
+          lt(shifts.startedAt, to),
+          sql`coalesce(${shifts.endedAt}, ${shifts.startedAt}) >= ${from}`,
+        ),
+      );
+    const inRange = (at: Date) => at >= from && at <= to;
+    return rows.flatMap((row) => [
+      ...(row.startPoint && inRange(row.startedAt)
+        ? [
+            {
+              kind: 'punch_in' as const,
+              id: row.id,
+              at: row.startedAt.getTime(),
+              point: row.startPoint,
+              accountId: null,
+            },
+          ]
+        : []),
+      ...(row.endedAt && row.endPoint && inRange(row.endedAt)
+        ? [
+            {
+              kind: 'punch_out' as const,
+              id: row.id,
+              at: row.endedAt.getTime(),
+              point: row.endPoint,
+              accountId: null,
+            },
+          ]
+        : []),
+    ]);
+  }
+
+  /**
+   * An erased person's whereabouts (decision D95): every location point, route, last known
+   * position and report of a mocked fix goes; their shifts, with punch times, stay as the
+   * attendance record. Points already archived to files go with those files' own retention.
    */
   async erasePerson(tx: TenantTx, tenantId: string, userId: string): Promise<number> {
     const points = await tx
@@ -828,6 +885,11 @@ export class ShiftsService {
     await tx
       .delete(userLastPosition)
       .where(and(eq(userLastPosition.tenantId, tenantId), eq(userLastPosition.userId, userId)));
+    await tx
+      .delete(mockLocationReports)
+      .where(
+        and(eq(mockLocationReports.tenantId, tenantId), eq(mockLocationReports.userId, userId)),
+      );
     return points.length;
   }
 }

@@ -10,6 +10,7 @@ import { ImportsModule } from '../imports/imports.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { WorkflowModule } from '../workflow/workflow.module';
+import { Anomalies } from './anomalies';
 import { AttendanceLeave } from './attendance-leave';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
@@ -58,6 +59,7 @@ import { VisitsService } from './visits.service';
     AttendanceService,
     VisitsService,
     SubmissionsService,
+    Anomalies,
     FieldUpkeep,
     LocationArchive,
   ],

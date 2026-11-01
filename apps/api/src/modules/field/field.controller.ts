@@ -8,6 +8,8 @@ import {
   IdParams,
   LocationBatchBody,
   LocationBatchResult,
+  MockLocationReportBody,
+  MockLocationReportResult,
   PauseParams,
   PauseShiftBody,
   ResumeShiftBody,
@@ -19,13 +21,14 @@ import {
   scheduledDays,
   HEALTH_LIMITS,
 } from '@thelamp/shared';
-import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
+import { type Access, CurrentAccess, Requires, RequiresAny, SignedIn } from '../../platform/auth';
 import { HealthCounters } from '../../platform/health-counters';
 import { Database } from '../../platform/database';
 import { idempotent } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { outOfScope, pathId } from '../iam/actor';
 import { Scopes } from '../iam/scopes';
+import { Anomalies } from './anomalies';
 import { AttendanceService } from './attendance.service';
 import { LocationsService } from './locations.service';
 import { ShiftsService } from './shifts.service';
@@ -51,6 +54,7 @@ export class FieldController {
     private readonly attendance: AttendanceService,
     private readonly scopes: Scopes,
     private readonly health: HealthCounters,
+    private readonly anomalies: Anomalies,
   ) {}
 
   @Post('shifts')
@@ -201,6 +205,30 @@ export class FieldController {
     ).length;
     this.health.points(accepted.size, late);
     return result;
+  }
+
+  @Post('locations/mocked')
+  @HttpCode(201)
+  @Contract({
+    tag: 'Field',
+    summary: "Report mocked fixes the phone refused, which flag the caller's records (BR-50)",
+    body: MockLocationReportBody,
+    response: MockLocationReportResult,
+  })
+  @SignedIn()
+  async mocked(@CurrentAccess() access: Access, @Body() body: unknown) {
+    if (!access.deviceId) throw new AppError('USE_MOBILE_APP', 'Reports come from the mobile app.');
+    const input = MockLocationReportBody.parse(body);
+    const result = await this.database.forTenant(access.tenantId, (tx) =>
+      idempotent(
+        tx,
+        access.tenantId,
+        `mock_report:${input.id}`,
+        { route: 'POST /v1/locations/mocked', by: access.userId, input },
+        async () => ({ status: 201, body: await this.anomalies.report(tx, access, input) }),
+      ),
+    );
+    return result.body;
   }
 
   @FromReplica()

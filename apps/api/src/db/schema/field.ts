@@ -1,7 +1,8 @@
-import type { AttendanceRule, Signature } from '@thelamp/shared';
+import type { AttendanceRule, FlagNotes, Signature } from '@thelamp/shared';
 import {
   GEOFENCE_RESULTS,
   LOCATION_SOURCES,
+  MOCK_SOURCES,
   PHASE1_DAY_STATUSES,
   SHIFT_END_REASONS,
   SUBMISSION_FLAGS,
@@ -11,6 +12,7 @@ import {
 import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   date,
   foreignKey,
   index,
@@ -45,6 +47,7 @@ export const geofenceResult = cell.enum('geofence_result', GEOFENCE_RESULTS);
 export const visitEndReason = cell.enum('visit_end_reason', VISIT_END_REASONS);
 export const submissionStatus = cell.enum('submission_status', SUBMISSION_STATUSES);
 export const submissionFlag = cell.enum('submission_flag', SUBMISSION_FLAGS);
+export const mockSource = cell.enum('mock_source', MOCK_SOURCES);
 
 const at = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -396,6 +399,8 @@ export const submissions = cell
         .array()
         .notNull()
         .default(sql`'{}'`),
+      /** What each anomaly flag saw, for the reviewer's words (BR-50); never a place. */
+      flagNotes: jsonb('flag_notes').$type<FlagNotes>().notNull().default({}),
       status: submissionStatus('status').notNull(),
       autoApproved: boolean('auto_approved').notNull().default(false),
       /** When auto-approval may approve it (M7); null when it never will. */
@@ -456,6 +461,46 @@ export const submissions = cell
         columns: [table.tenantId, table.deviceId],
         foreignColumns: [devices.tenantId, devices.id],
       }),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * Mocked fixes the person's phone refused (BR-50, decision D119): when, where in the app and how
+ * many, never a place. They flag the person's submissions for 30 days after and are kept 90.
+ */
+export const mockLocationReports = cell
+  .table(
+    'mock_location_reports',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      id: uuid('id').notNull(),
+      userId: uuid('user_id').notNull(),
+      deviceId: uuid('device_id'),
+      seenAt: at('seen_at').notNull(),
+      source: mockSource('source').notNull(),
+      count: integer('count').notNull(),
+      receivedAt: at('received_at').notNull().defaultNow(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      index('mock_location_reports_tenant_user_seen').on(
+        table.tenantId,
+        table.userId,
+        table.seenAt,
+      ),
+      foreignKey({
+        name: 'mock_location_reports_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      foreignKey({
+        name: 'mock_location_reports_device_fk',
+        columns: [table.tenantId, table.deviceId],
+        foreignColumns: [devices.tenantId, devices.id],
+      }),
+      check('mock_location_reports_count', sql`${table.count} between 1 and 10000`),
       isolation(),
     ],
   )

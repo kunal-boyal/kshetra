@@ -5,6 +5,7 @@ import { contrastRatio, HEX_COLOUR } from '../colour';
 import { TARGET_PERIOD_KINDS } from '../periods';
 import { bucketsIssue, DEFAULT_AGEING_BUCKETS } from '../finance';
 import { SWITCHABLE_MODULES } from '../modules';
+import { ANOMALY_FLAGS } from '../anomalies';
 import { RAW_LOCATION_RETENTION_DAYS_MAX, SYNC_WINDOW_HOURS_MAX } from '../retention';
 import { TERMINOLOGY_KEYS, type TerminologyKey } from '../terminology';
 import { Key, LOCALES, LocalizedNoun, localizedText, NounForms } from './config';
@@ -143,6 +144,10 @@ export const TenantSettings = z.strictObject({
   /** How long the audit log is kept (D9). */
   auditRetentionYears: range(1, 7),
   reviewAutoApproval: z.boolean(),
+  /** Evidence checks the tenant switched off (BR-50, decision D119); a flag given stays. */
+  anomalyFlagsOff: z
+    .array(z.enum(ANOMALY_FLAGS))
+    .refine((list) => new Set(list).size === list.length, 'List each check once'),
   /** A person's month of plan items waits for their manager's approval before it counts (M8). */
   journeyPlanApproval: z.boolean(),
   targetUnlockByAdmin: z.boolean(),
@@ -202,6 +207,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   importFileRetentionDays: 30,
   auditRetentionYears: 3,
   reviewAutoApproval: false,
+  anomalyFlagsOff: [],
   journeyPlanApproval: false,
   targetUnlockByAdmin: false,
   ordersNeedOpenShift: false,

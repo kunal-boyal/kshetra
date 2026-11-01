@@ -398,6 +398,7 @@ describe("an account's page", () => {
               photos: [],
               signatureMediaId: null,
               flags: [],
+              flagNotes: {},
               status: 'pending',
               autoApproved: false,
             },

@@ -3550,6 +3550,19 @@
         "reviewAutoApproval": {
           "type": "boolean"
         },
+        "anomalyFlagsOff": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "photo_far",
+              "fast_travel",
+              "burst",
+              "off_shift",
+              "mock_history"
+            ]
+          }
+        },
         "journeyPlanApproval": {
           "type": "boolean"
         },

@@ -1,5 +1,16 @@
-import { LOCALES, type TenantSettings, type UpdateSettingsBody } from '@thelamp/shared';
+import {
+  ANOMALY_FLAGS,
+  BURST_COUNT,
+  BURST_WINDOW_MS,
+  FAST_TRAVEL_KMH,
+  LOCALES,
+  MOCK_HISTORY_DAYS,
+  PHOTO_FAR_M,
+  type TenantSettings,
+  type UpdateSettingsBody,
+} from '@thelamp/shared';
 import { Button, Checkbox, Icon, SelectField, TextField } from '@thelamp/ui-web';
+import { formatNumber } from '@thelamp/i18n';
 import { Save } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { useApp } from '../context';
@@ -120,6 +131,15 @@ export function RulesPage() {
   }
 
   const languages = value('languages');
+  const checksOff = value('anomalyFlagsOff');
+  // What each evidence check's label names: its fixed threshold (BR-50).
+  const thresholds = {
+    distance: formatNumber(PHOTO_FAR_M, { locale }),
+    speed: formatNumber(FAST_TRAVEL_KMH, { locale }),
+    count: formatNumber(BURST_COUNT, { locale }),
+    minutes: formatNumber(BURST_WINDOW_MS / 60_000, { locale }),
+    days: formatNumber(MOCK_HISTORY_DAYS, { locale }),
+  };
   return (
     <form className="flex flex-col gap-6" onSubmit={save} aria-label={t('admin.rules')}>
       <PageHeader title={t('admin.rules')} intro={t('admin.rules_intro')} />
@@ -211,6 +231,26 @@ export function RulesPage() {
           {flag('targetUnlockByAdmin')}
         </>,
       )}
+      <Section title={t('admin.rules_evidence')}>
+        <p className="ks-help">{t('admin.rules_evidence_help')}</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          {ANOMALY_FLAGS.map((check) => (
+            <Checkbox
+              key={check}
+              label={t(`admin.anomaly_${check}`, thresholds)}
+              checked={!checksOff.includes(check)}
+              onChange={(event) =>
+                set(
+                  'anomalyFlagsOff',
+                  event.target.checked
+                    ? checksOff.filter((entry) => entry !== check)
+                    : [...checksOff, check],
+                )
+              }
+            />
+          ))}
+        </div>
+      </Section>
       {group(
         t('admin.rules_notifications'),
         <>

@@ -573,6 +573,8 @@ export {
   LocationBatchBody,
   LocationBatchResult,
   LocationPointBody,
+  MockLocationReportBody,
+  MockLocationReportResult,
   PauseParams,
   PauseShiftBody,
   PointRejection,
@@ -615,6 +617,28 @@ export {
   photoIssues,
 } from './evidence';
 export type { AttachedPhoto, EvidenceIssue, GeofenceResult } from './evidence';
+export {
+  ANOMALY_FLAGS,
+  ANOMALY_LOOK_HOURS,
+  anomalyFlags,
+  BURST_APART_M,
+  BURST_COUNT,
+  BURST_WINDOW_MS,
+  burst,
+  FAST_TRAVEL_KMH,
+  FAST_TRAVEL_MIN_M,
+  FlagNotes,
+  fastTravel,
+  MOCK_HISTORY_DAYS,
+  MOCK_REPORT_KEEP_DAYS,
+  MOCK_SOURCES,
+  mockHistory,
+  PHOTO_FAR_ACCURACY_CAP_M,
+  PHOTO_FAR_M,
+  PLACED_KINDS,
+  photoFar,
+} from './anomalies';
+export type { AnomalyFlag, AnomalyInput, MockSource, PlacedKind, PlacedRecord } from './anomalies';
 export {
   AUTO_APPROVAL_DELAY_HOURS,
   autoApprovable,

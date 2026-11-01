@@ -542,7 +542,8 @@ describe('submissions (M6, BR-32)', () => {
     expect(sent.json()).toMatchObject({
       shiftId: null,
       status: 'approved',
-      flags: ['gallery_photo'],
+      // Off shift on a form that allows it is accepted, and flagged for reviewers (BR-50).
+      flags: ['gallery_photo', 'off_shift'],
       signatureMediaId: null,
     });
 

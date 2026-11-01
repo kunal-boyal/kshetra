@@ -40,6 +40,7 @@ import { notFound, outOfScope } from '../iam/actor';
 import { Scopes } from '../iam/scopes';
 import { PhotosService } from '../media/photos.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { Anomalies, type NewSubmission } from './anomalies';
 import { refuseEvidence, refuseOutsideGeofence } from './evidence';
 import { ShiftsService } from './shifts.service';
 import { VisitOrders } from './visit-orders';
@@ -82,6 +83,7 @@ export class SubmissionsService {
     private readonly shifts: ShiftsService,
     private readonly visits: VisitsService,
     private readonly visitOrders: VisitOrders,
+    private readonly anomalies: Anomalies,
   ) {}
 
   private select(tx: TenantTx) {
@@ -109,6 +111,7 @@ export class SubmissionsService {
         photoIds: submissions.photoIds,
         signatureMediaId: submissions.signatureMediaId,
         flags: submissions.flags,
+        flagNotes: submissions.flagNotes,
         status: submissions.status,
         autoApproved: submissions.autoApproved,
         autoApproveAt: submissions.autoApproveAt,
@@ -158,6 +161,7 @@ export class SubmissionsService {
       photos: row.photoIds,
       signatureMediaId: row.signatureMediaId,
       flags: row.flags,
+      flagNotes: row.flagNotes,
       status: row.status,
       autoApproved: row.autoApproved,
     } satisfies SubmissionResult;
@@ -273,7 +277,14 @@ export class SubmissionsService {
     );
 
     // Photos (BR-32, spec 12.2 step 5) and the signature.
-    const photoIds = await this.checkPhotos(tx, access, definition, body, values, flags);
+    const { ids: photoIds, photos } = await this.checkPhotos(
+      tx,
+      access,
+      definition,
+      body,
+      values,
+      flags,
+    );
     if (signatureRequired(definition, values, { visitOrdered }) && !body.signature) {
       throw invalid([issueAt(['signature'], 'Ask for a signature')]);
     }
@@ -281,6 +292,18 @@ export class SubmissionsService {
       throw invalid([issueAt(['signature'], 'This form takes no signature')]);
     }
     if (clockSkewed(clockSkewSeconds(deviceTime, new Date(now)))) flags.add('clock_skew');
+    // BR-50: what makes a reviewer look twice, never a refusal.
+    const anomalies = await this.anomalies.judge(tx, tenantId, {
+      id: body.id,
+      userId: access.userId,
+      capturedAt,
+      point: body.fix.location,
+      accuracy: body.fix.accuracy,
+      accountId: account?.id ?? null,
+      onShift,
+      photos,
+    });
+    for (const flag of anomalies.flags) flags.add(flag);
 
     const status = definition.review === 'none' ? 'approved' : 'pending';
     // M7: a form reviewed automatically waits the tenant's delay, if nothing needs a person now.
@@ -313,6 +336,7 @@ export class SubmissionsService {
       distanceM: account?.distanceM == null ? null : Math.round(account.distanceM),
       geofence,
       flags: [...flags],
+      flagNotes: anomalies.notes,
       status,
       autoApproveAt,
     });
@@ -383,7 +407,8 @@ export class SubmissionsService {
   /**
    * The form's photos and its photo fields' (BR-32): as many as the form asks, each the caller's
    * own evidence photo, uploaded, held by no other record, taken within 5 minutes and 500 m, and
-   * from the gallery only where allowed. Flags gallery and duplicate photos; returns every ID.
+   * from the gallery only where allowed. Flags gallery and duplicate photos; returns every ID, and
+   * where and how each was taken for the anomaly checks (BR-50).
    */
   private async checkPhotos(
     tx: TenantTx,
@@ -392,7 +417,7 @@ export class SubmissionsService {
     body: CreateSubmissionBody,
     values: Record<string, unknown>,
     flags: Set<SubmissionFlag>,
-  ): Promise<string[]> {
+  ): Promise<{ ids: string[]; photos: NewSubmission['photos'] }> {
     const policy = definition.photos;
     const count = body.photos.length;
     if (!policy && count > 0) throw invalid([issueAt(['photos'], 'This form takes no photos')]);
@@ -459,7 +484,11 @@ export class SubmissionsService {
       if (row.duplicateOfId) flags.add('duplicate_photo');
     }
     if (issues.length > 0) throw invalid(issues);
-    return ids;
+    const photos = ids.flatMap((id) => {
+      const row = rows.get(id);
+      return row ? [{ id, point: row.point, accuracy: row.accuracy, mocked: row.mocked }] : [];
+    });
+    return { ids, photos };
   }
 
   /** A person's or an account's submissions, newest first, for those whose scope reaches them. */

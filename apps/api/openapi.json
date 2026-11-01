@@ -10208,6 +10208,19 @@
                         "reviewAutoApproval": {
                           "type": "boolean"
                         },
+                        "anomalyFlagsOff": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "photo_far",
+                              "fast_travel",
+                              "burst",
+                              "off_shift",
+                              "mock_history"
+                            ]
+                          }
+                        },
                         "journeyPlanApproval": {
                           "type": "boolean"
                         },
@@ -10295,6 +10308,7 @@
                         "importFileRetentionDays",
                         "auditRetentionYears",
                         "reviewAutoApproval",
+                        "anomalyFlagsOff",
                         "journeyPlanApproval",
                         "targetUnlockByAdmin",
                         "ordersNeedOpenShift",
@@ -14613,6 +14627,122 @@
         }
       }
     },
+    "/v1/locations/mocked": {
+      "post": {
+        "operationId": "FieldController.mocked",
+        "summary": "Report mocked fixes the phone refused, which flag the caller's records (BR-50)",
+        "tags": [
+          "Field"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "seenAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "tracking",
+                      "punch",
+                      "visit",
+                      "form",
+                      "photo"
+                    ]
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  }
+                },
+                "required": [
+                  "id",
+                  "seenAt",
+                  "source",
+                  "count"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "seenAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "tracking",
+                        "punch",
+                        "visit",
+                        "form",
+                        "photo"
+                      ]
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "seenAt",
+                    "source",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/me": {
       "get": {
         "operationId": "MeController.me",
@@ -18533,7 +18663,12 @@
                 "outside_geofence",
                 "gallery_photo",
                 "duplicate_photo",
-                "clock_skew"
+                "clock_skew",
+                "photo_far",
+                "fast_travel",
+                "burst",
+                "off_shift",
+                "mock_history"
               ]
             }
           },
@@ -19543,6 +19678,19 @@
                   "reviewAutoApproval": {
                     "type": "boolean"
                   },
+                  "anomalyFlagsOff": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "photo_far",
+                        "fast_travel",
+                        "burst",
+                        "off_shift",
+                        "mock_history"
+                      ]
+                    }
+                  },
                   "journeyPlanApproval": {
                     "type": "boolean"
                   },
@@ -19810,6 +19958,19 @@
                     "reviewAutoApproval": {
                       "type": "boolean"
                     },
+                    "anomalyFlagsOff": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "photo_far",
+                          "fast_travel",
+                          "burst",
+                          "off_shift",
+                          "mock_history"
+                        ]
+                      }
+                    },
                     "journeyPlanApproval": {
                       "type": "boolean"
                     },
@@ -19897,6 +20058,7 @@
                     "importFileRetentionDays",
                     "auditRetentionYears",
                     "reviewAutoApproval",
+                    "anomalyFlagsOff",
                     "journeyPlanApproval",
                     "targetUnlockByAdmin",
                     "ordersNeedOpenShift",
@@ -32638,6 +32800,132 @@
         ],
         "additionalProperties": false
       },
+      "FlagNotes": {
+        "type": "object",
+        "properties": {
+          "photo_far": {
+            "type": "object",
+            "properties": {
+              "photoId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "distanceM": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "photoId",
+              "distanceM"
+            ],
+            "additionalProperties": false
+          },
+          "fast_travel": {
+            "type": "object",
+            "properties": {
+              "otherKind": {
+                "type": "string",
+                "enum": [
+                  "submission",
+                  "check_in",
+                  "check_out",
+                  "punch_in",
+                  "punch_out"
+                ]
+              },
+              "otherId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "otherAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "distanceM": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "seconds": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "otherKind",
+              "otherId",
+              "otherAt",
+              "distanceM",
+              "seconds"
+            ],
+            "additionalProperties": false
+          },
+          "burst": {
+            "type": "object",
+            "properties": {
+              "places": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "seconds": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "places",
+              "seconds"
+            ],
+            "additionalProperties": false
+          },
+          "off_shift": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          "mock_history": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "tracking",
+                  "punch",
+                  "visit",
+                  "form",
+                  "photo"
+                ]
+              },
+              "lastSeenAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "source",
+              "lastSeenAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
       "FormDefinition": {
         "type": "object",
         "properties": {
@@ -39213,6 +39501,19 @@
           "reviewAutoApproval": {
             "type": "boolean"
           },
+          "anomalyFlagsOff": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "photo_far",
+                "fast_travel",
+                "burst",
+                "off_shift",
+                "mock_history"
+              ]
+            }
+          },
           "journeyPlanApproval": {
             "type": "boolean"
           },
@@ -40624,9 +40925,17 @@
                 "outside_geofence",
                 "gallery_photo",
                 "duplicate_photo",
-                "clock_skew"
+                "clock_skew",
+                "photo_far",
+                "fast_travel",
+                "burst",
+                "off_shift",
+                "mock_history"
               ]
             }
+          },
+          "flagNotes": {
+            "$ref": "#/components/schemas/FlagNotes"
           },
           "status": {
             "type": "string",
@@ -40822,6 +41131,7 @@
           "photos",
           "signatureMediaId",
           "flags",
+          "flagNotes",
           "status",
           "autoApproved",
           "photoDetails",
@@ -42488,9 +42798,17 @@
                 "outside_geofence",
                 "gallery_photo",
                 "duplicate_photo",
-                "clock_skew"
+                "clock_skew",
+                "photo_far",
+                "fast_travel",
+                "burst",
+                "off_shift",
+                "mock_history"
               ]
             }
+          },
+          "flagNotes": {
+            "$ref": "#/components/schemas/FlagNotes"
           },
           "status": {
             "type": "string",
@@ -42521,6 +42839,7 @@
           "photos",
           "signatureMediaId",
           "flags",
+          "flagNotes",
           "status",
           "autoApproved"
         ],

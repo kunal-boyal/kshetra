@@ -223,6 +223,7 @@ This section defines what a tenant can configure. Modules in section 6 read thei
 | Trail retention | 365 days | 90–1,095 days |
 | Evidence photo retention | 12 months | 3–60 months |
 | Review auto-approval | Off | Rules in module M7 |
+| Evidence checks | All on | Each anomaly flag of BR-50 can be switched off; its threshold is fixed |
 | Target unlock by admin | Off | When on, an admin may unlock a locked target with a reason (audited) |
 | Orders need an open shift | On | Applies to field users |
 | Orders allowed offline | On | Price-checked on sync (BR-14) |
@@ -543,6 +544,7 @@ Acceptance criteria:
 - Decisions: approve, or reject with a note of at least 3 characters. A reviewer may change a decision later with a note; every change is audited and metrics are recomputed.
 - Bulk approval for submissions without flags.
 - Auto-approval (tenant opt-in): a submission without flags, inside the geofence where one applies, from a device without integrity warnings, is approved automatically after a configurable delay (default 24 hours) unless a reviewer acts first. Auto-approved records are marked as such.
+- Anomaly flags (BR-50, D119): a photo far from its record, travel faster than the road allows, a burst of records at different places, capture off shift, and a person's mock-location history. Each is explained in words on the card, is a queue filter, and has a tenant switch (on by default). The phone reports the mocked fixes it refuses, without a location, so the server knows a person's history.
 
 Acceptance criteria:
 - [ ] Nobody can review their own submission, through the UI or the API.
@@ -817,6 +819,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-47 | The vendor's invoices: a monthly subscription is invoiced in arrears, from the 4th of the next month, for its BR-45 seats at the plan's monthly price; an annual subscription is invoiced upfront for its committed seats at the annual price, and after each quarter the seats above the commitment (distinct users active in the quarter) are invoiced from the quarter's start to the term's end and join the commitment. GST is CGST and SGST at half the rate each when the place of supply is the seller's state, otherwise IGST, each rounded half-up to the paisa. Numbers run without gaps in one series per financial year (April to March), at most 16 characters. |
 | BR-48 | Dunning: a tenant is overdue from the day a mandate charge is refused, or the day after an invoice falls due unpaid. It is in grace for 7 days, then read only for 14, then suspended (both periods are settings). Paying everything overdue returns a tenant in grace or read only to active; a suspended tenant opens only when the vendor reactivates it. Read only refuses every write but exports and paying. Emails go at once, on days 3 and 6 of grace, when read only begins, 3 days before suspension and on suspension, each once. |
 | BR-49 | Licence mode: a dedicated install accepts a licence only with a valid Ed25519 signature from the vendor's key. It is valid to its expiry date and for 30 days of grace after, then the install is read only until a new licence is in place. Its modules and user cap replace the plan's. |
+| BR-50 | Anomalies in evidence flag a submission for reviewers and never refuse it. A photo is far when it is more than 150 m from its record beyond both fixes' accuracies, each counting up to 100 m. Travel is too fast when the submission and another of the person's records (submission, check-in, check-out, punch-in or punch-out within 12 hours) are at least 5 km apart in a straight line and closer in time than 100 km/h allows. A burst is three or more of the person's records within 10 minutes at three or more places; records are at one place when at one account, or, where either has no account, within 300 m. Capture outside the person's shifts is flagged where the form allows it. Mock history is a photo with a mocked fix of its own, or a mocked fix the person's phone reported refusing in the 30 days before the capture. A pair or burst also flags the person's other submissions in it while they wait for review. |
 
 ## 8. Screens and user experience
 
