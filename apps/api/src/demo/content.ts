@@ -12,6 +12,8 @@ import {
   type ItemResult,
   newId,
   ReviewQueueQuery,
+  SalaryStructureBody,
+  StatutoryProfileBody,
   todayIn,
 } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
@@ -38,6 +40,7 @@ import { SYSTEM } from '../modules/iam/actor';
 import { DesignationsService } from '../modules/iam/designations.service';
 import { UsersService } from '../modules/iam/users.service';
 import { PhotosService } from '../modules/media/photos.service';
+import { StatutoryPayrollService } from '../modules/payroll/statutory-payroll.service';
 import { MetricsService } from '../modules/metrics/metrics.service';
 import { DashboardLayoutsService } from '../modules/performance/dashboard-layouts.service';
 import { PlanningService } from '../modules/planning/planning.service';
@@ -46,7 +49,7 @@ import { ReportSchedulesService } from '../modules/reports/report-schedules.serv
 import { ReviewService } from '../modules/review/review.service';
 import { TenantConfigService } from '../modules/tenant-config/tenant-config.service';
 import { TerritoriesService } from '../modules/territories/territories.service';
-import { SYSTEM_ACTOR } from '../platform/audit';
+import { SYSTEM_ACTOR, userActor } from '../platform/audit';
 import { type Access, AccessResolver } from '../platform/auth';
 import { Database, type TenantTx } from '../platform/database';
 import { startOfLocalDate } from '../platform/local-day';
@@ -90,6 +93,11 @@ export interface DemoOptions {
    * and `odometer` subfolders of JPEGs. Without it, pictures are shapes in the place's colours.
    */
   photos?: string;
+  /**
+   * Switches statutory payroll on, with everyone's salary and an approved last month (decision
+   * D128). Run with 45 days or more, so last month is a month of work.
+   */
+  statutory?: boolean;
 }
 
 type Field = FormView['fields'][number];
@@ -203,7 +211,10 @@ export class DemoContent implements DemoKit {
     if (growth) {
       await this.get(EntitlementsService).set(null, this.tenantId, {
         planId: growth,
-        extraModules: ['advanced_analytics'],
+        extraModules: [
+          'advanced_analytics',
+          ...(this.options.statutory ? (['statutory_payroll'] as const) : []),
+        ],
         limits: {},
       });
     }
@@ -257,6 +268,10 @@ export class DemoContent implements DemoKit {
     }
     travelTo(realNow());
     await this.analytics(admin);
+    if (this.options.statutory) {
+      log('Statutory payroll');
+      await this.payroll(admin, team, today);
+    }
     await this.releasePhones(admin);
     return { ...this.counts, ...this.commerce.made, ...this.requests.made };
   }
@@ -310,6 +325,66 @@ export class DemoContent implements DemoKit {
         at: '07:00',
         recipients: [admin.id],
       });
+    });
+  }
+
+  /**
+   * Statutory payroll (decision D128): switched on, a salary structure from last month and
+   * Maharashtra's details for everyone in the team, and last month's pay run approved. Someone's
+   * PAN isn't on file, so a payslip shows what the accountant must handle.
+   */
+  private async payroll(admin: Person, team: FieldPerson[], today: string): Promise<void> {
+    const [year, month] = today.split('-').map(Number) as [number, number];
+    const lastMonth = new Date(Date.UTC(year, month - 2, 1)).toISOString().slice(0, 7);
+    await this.tx((tx) =>
+      this.get(TenantConfigService).updateSettings(tx, this.tenantId, userActor(admin.access), {
+        modulesOn: ['statutory_payroll'],
+      }),
+    );
+    // The admin's access again, now holding payroll's permissions.
+    const payer = await this.person(admin.id, admin.name);
+    const payroll = this.get(StatutoryPayrollService);
+    const digits = (count: number) =>
+      Array.from({ length: count }, () => this.dice.int(0, 9)).join('');
+    const paid = [
+      ...this.managers.map((manager) => ({ person: manager.person, senior: true })),
+      ...team.map((person) => ({ person: person as Person, senior: false })),
+    ].filter(
+      (each, index, all) => all.findIndex((other) => other.person.id === each.person.id) === index,
+    );
+    await this.tx(async (tx) => {
+      for (const [index, { person, senior }] of paid.entries()) {
+        const basic = senior
+          ? 30_000 + this.dice.int(0, 10) * 1_000
+          : 10_000 + this.dice.int(0, 8) * 500;
+        const hra = Math.round(basic * 0.4);
+        const special = senior ? 8_000 : this.dice.int(1, 4) * 1_000;
+        await payroll.setStructure(
+          tx,
+          payer.access,
+          person.id,
+          SalaryStructureBody.parse({
+            from: lastMonth,
+            basic: String(basic),
+            hra: String(hra),
+            special: String(special),
+          }),
+        );
+        const covered = basic + hra + special <= 21_000;
+        await payroll.setProfile(
+          tx,
+          payer.access,
+          person.id,
+          StatutoryProfileBody.parse({
+            workState: 'MH',
+            uan: `10${digits(10)}`,
+            esiNumber: covered ? `31${digits(8)}` : null,
+            panOnFile: index !== paid.length - 1,
+          }),
+        );
+      }
+      const run = await payroll.createRun(tx, payer.access, lastMonth);
+      await payroll.approve(tx, payer.access, lastMonth, run.version);
     });
   }
 

@@ -3394,6 +3394,11 @@ export const en = {
     'No work state is set, so no professional tax or welfare fund was taken.',
   'payrun.flag_no_structure': 'No structure',
   'payrun.flag_no_structure_note': 'There is no salary structure for this month.',
+  'pay.statutory_title': 'My payslips',
+  'pay.statutory_none': 'No approved payslip for {month} yet',
+  'pay.previous_month': 'Previous month',
+  'pay.next_month': 'Next month',
+  'payslip.statutory_title': 'Payslip · {month}',
   'payslip.draft': 'Draft: not yet approved',
   'payslip.uan': 'UAN',
   'payslip.esi_number': 'ESI number',
@@ -5114,7 +5119,7 @@ export const en = {
   'privacy.collect_records':
     'What you record at work: visits, forms, {term.order:other:lower}, leave, expense claims and other requests.',
   'privacy.collect_pay':
-    'Where your organisation uses payroll inputs: your monthly gross as it records it, and the pay estimate worked out from your attendance.',
+    'Where your organisation uses payroll inputs: your monthly gross as it records it, and the pay estimate worked out from your attendance. Where it runs statutory payroll: your salary structure, your work state, your UAN and ESI numbers, whether your PAN is on file (never the PAN itself), and your payslips with their deductions.',
   'privacy.collect_device':
     'Your phone: its model, system and app version, a key that ties your sign-in to this phone, and whether a location came from an app that fakes locations.',
   'privacy.never_title': 'What is never recorded',

@@ -155,6 +155,6 @@ English and Hindi. Net pay in words through `@thelamp/i18n` in both languages, i
 
 ### Pull request 3: the phone and the demo
 
-- [ ] My pay with frozen payslips. The demo switches the module on for one demo tenant, with structures and an approved last month.
-- [ ] Tests: Jest, demo content.
-- [ ] Decision D128, spec M14 and BR-56 to BR-58, `CLAUDE.md`, `docs/security/data-classification.md` (UAN, ESI number, pay), the store answers (payslips on the phone), the privacy notice, progress and tracker. `pnpm verify` before each merge, with the local services stopped.
+- [x] My pay with frozen payslips. The demo switches the module on for one demo tenant, with structures and an approved last month.
+- [x] Tests: Jest, demo content.
+- [x] Decision D128, spec M14 and BR-56 to BR-58, `CLAUDE.md`, `docs/security/data-classification.md` (UAN, ESI number, pay), the store answers (payslips on the phone), the privacy notice, progress and tracker. `pnpm verify` before each merge, with the local services stopped.

@@ -921,8 +921,10 @@ export {
   closedByModules,
   effectivePermissions,
   MODULE_KEYS,
+  ALSO_IN_MODULES,
   MODULE_PERMISSIONS,
   moduleOf,
+  permissionClosed,
   OPT_IN_MODULES,
   SWITCHABLE_MODULES,
 } from './modules';

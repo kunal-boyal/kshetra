@@ -30,7 +30,7 @@ export const PRIVACY_NOTICE: readonly { title: MessageKey; paragraphs: readonly 
 ];
 
 /** When the notice last changed; raise it with any change to its text. */
-export const PRIVACY_NOTICE_DATE = '2026-10-31';
+export const PRIVACY_NOTICE_DATE = '2026-11-02';
 
 /** The contact paragraph: the provider's privacy email where one is set, else its store page. */
 export function privacyParagraph(key: MessageKey, email: string | undefined): MessageKey {

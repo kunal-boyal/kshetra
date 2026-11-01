@@ -645,6 +645,7 @@ Statutory payroll (D128), an opt-in module, off until an admin switches it on an
 - Each person's salary structure from a month and a statutory profile: work state, PF membership and option, UAN, ESI number, and whether the PAN is on file (the PAN itself is never kept).
 - A month's pay run: earnings for the days paid, PF, ESI, professional tax, the labour welfare fund and TDS under the new regime (BR-56 to BR-58), on the vendor's rate set in force; approving it freezes every payslip, and corrections are adjustments in a later month.
 - The pay register report and the payslip printed through the browser (D99). Filing (ECR, ESI returns, Form 16) stays with the employer's accountant.
+- On the phone, My payslips shows the person's approved payslips a month at a time, read online, in place of the estimate. `payslip.view` belongs to both payroll modules, so it stays while either is on.
 
 ### M15. Approvals inbox
 
