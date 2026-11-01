@@ -3,19 +3,28 @@ import { AccountsModule } from '../accounts/accounts.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { IamModule } from '../iam/iam.module';
 import { ImportsModule } from '../imports/imports.module';
+import { SyncModule } from '../sync/sync.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { SellThroughController } from './sell-through.controller';
 import { SellThroughImport } from './sell-through.import';
 import { SellThroughService } from './sell-through.service';
+import { SellThroughSync } from './sell-through.sync';
 
 /**
  * Sell-through by item (BR-53, decision D124): accounts' monthly stock statements, from the
  * phone, the import and the bulk API. Templates give it its word, such as liquidation.
  */
 @Module({
-  imports: [AccountsModule, CatalogueModule, IamModule, ImportsModule, TenantConfigModule],
+  imports: [
+    AccountsModule,
+    CatalogueModule,
+    IamModule,
+    ImportsModule,
+    SyncModule,
+    TenantConfigModule,
+  ],
   controllers: [SellThroughController],
-  providers: [SellThroughService, SellThroughImport],
+  providers: [SellThroughService, SellThroughImport, SellThroughSync],
   exports: [SellThroughService],
 })
 export class SellThroughModule {}

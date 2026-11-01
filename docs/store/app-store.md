@@ -43,7 +43,7 @@ Tracking: **no**: nothing is linked to data from other companies' apps or sites,
 | Contact info: name, email address, phone number | Yes | No | App functionality |
 | Location: precise and coarse | Yes | No | App functionality |
 | User content: photos | Yes | No | App functionality |
-| User content: other user content (visits, forms, orders, requests) | Yes | No | App functionality |
+| User content: other user content (visits, forms, orders, accounts' stock statements, requests) | Yes | No | App functionality |
 | Financial info: other financial info (expense claims) | Yes | No | App functionality |
 | Identifiers: user ID, device ID (the app's own random key) | Yes | No | App functionality |
 | Diagnostics: crash data, once error reporting is on | No | No | App functionality |

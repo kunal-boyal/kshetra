@@ -10,10 +10,12 @@ import {
   scaled,
   unscaled,
 } from '@thelamp/shared';
+import { AccountTypesService } from '../modules/accounts/account-types.service';
 import { CatalogueService } from '../modules/catalogue/catalogue.service';
 import { PriceListsService } from '../modules/catalogue/price-lists.service';
 import { FinanceService } from '../modules/finance/finance.service';
 import { OrdersService } from '../modules/orders/orders.service';
+import { SellThroughService } from '../modules/sell-through/sell-through.service';
 import { TenantConfigService } from '../modules/tenant-config/tenant-config.service';
 import { ApprovalsService } from '../modules/workflow/approvals.service';
 import { userActor } from '../platform/audit';
@@ -44,7 +46,11 @@ export class DemoCommerce {
   /** What each supplied account owes, in paise. */
   private readonly owed = new Map<string, bigint>();
   private readonly limits = new Map<string, string>();
-  private counts = { orders: 0, deliveries: 0 };
+  /** Account types whose accounts give a monthly stock statement (decision D124). */
+  private stockTypes = new Set<string>();
+  /** Each account's last closing by item, so the next month's stock follows on. */
+  private readonly stock = new Map<string, bigint>();
+  private counts = { orders: 0, deliveries: 0, statements: 0 };
 
   constructor(private readonly kit: DemoKit) {}
 
@@ -59,6 +65,11 @@ export class DemoCommerce {
       (item) => item.active,
     );
     if (this.items.length === 0) return;
+    this.stockTypes = new Set(
+      (await kit.tx((tx) => kit.get(AccountTypesService).list(tx, kit.tenantId)))
+        .filter((type) => type.definition.sellThrough)
+        .map((type) => type.key),
+    );
     // People, such as doctors at a hospital, belong to their parent but buy nothing from it.
     const places = team.flatMap((person) => person.places);
     const buyers = places.filter((place) => place.parentId && !personType(place.type));
@@ -250,6 +261,53 @@ export class DemoCommerce {
       }
     } catch (error) {
       kit.once('order decision', error);
+    }
+  }
+
+  /**
+   * The month's stock take (BR-53, decision D124): each field person records the stock of the
+   * accounts they hold that give a statement, a few items each, following on from last month's
+   * closing, so the statement shows sell-through and the template's liquidation counts it.
+   */
+  async stockTake(team: readonly FieldPerson[], date: string): Promise<void> {
+    if (this.stockTypes.size === 0 || this.items.length === 0) return;
+    const { kit } = this;
+    const service = kit.get(SellThroughService);
+    for (const person of team) {
+      for (const place of person.places) {
+        if (!place.held || !this.stockTypes.has(place.type)) continue;
+        const lines = kit.dice
+          .shuffle(this.items)
+          .slice(0, kit.dice.int(2, 4))
+          .map((item) => {
+            const key = `${place.id}:${item.id}`;
+            const opening = this.stock.get(key) ?? BigInt(kit.dice.int(10, 40));
+            const received = BigInt(kit.dice.int(20, 120));
+            const returned = BigInt(kit.dice.int(0, 3));
+            const closing = ((opening + received - returned) * BigInt(kit.dice.int(15, 45))) / 100n;
+            this.stock.set(key, closing);
+            return {
+              itemId: item.id,
+              opening: String(opening),
+              received: String(received),
+              returned: String(returned),
+              closing: String(closing),
+            };
+          });
+        try {
+          await kit.tx((tx) =>
+            service.record(tx, person.access, {
+              id: newId(),
+              accountId: place.id,
+              period: date.slice(0, 7),
+              lines,
+            }),
+          );
+          this.counts.statements++;
+        } catch (error) {
+          kit.once('stock statement', error);
+        }
+      }
     }
   }
 

@@ -20,7 +20,10 @@ import {
   MockLocationReportResult,
   newId,
   ShiftResult,
+  SellThroughResult,
   SubmissionResult,
+  type SyncEntity,
+  todayIn,
   VisitResult,
 } from '@thelamp/shared';
 import { eq } from 'drizzle-orm';
@@ -64,6 +67,7 @@ class SimulatedPhone {
     readonly device: DeviceInfo,
     senders: Record<string, OutboxSender> = {},
     afterPush?: (owner: string) => Promise<void>,
+    entities: SyncEntity[] = ['users', 'territories'],
   ) {
     this.client = createClient({
       directoryUrl: BASE,
@@ -79,7 +83,7 @@ class SimulatedPhone {
       db: this.db,
       client: this.client,
       outbox: this.outbox,
-      entities: ['users', 'territories'],
+      entities,
       owner: () => this.client.owner,
       clock: () => this.now,
       ...(afterPush ? { afterPush } : {}),
@@ -510,5 +514,112 @@ describe('a simulated phone', () => {
     expect(stored).toMatchObject({ visit_id: visitId, shift_id: shiftId, geofence: 'inside' });
     expect(stored!.flags).toContain('mock_history');
     expect(new Date(stored!.captured_at).getTime()).toBe(capturedAt);
+  });
+
+  it('saves a stock statement offline, which uploads and comes back synced (D124)', async () => {
+    const tenantId = await world.tenant('Simulated Seeds', 'active', 'agri');
+    const head = await world.user(tenantId, {
+      designation: 'business_head',
+      role: 'tenant_admin',
+    });
+    const asm = await world.user(tenantId, {
+      designation: 'asm',
+      role: 'manager',
+      managerId: head.id,
+    });
+    const sme = await world.user(tenantId, {
+      name: 'Sita SME',
+      designation: 'sme',
+      managerId: asm.id,
+    });
+    const admin = (await world.signIn(head.phone!)).accessToken;
+    const call = (method: 'POST' | 'PUT', url: string, payload: object) =>
+      app.inject({
+        method,
+        url,
+        headers: { authorization: `Bearer ${admin}`, 'idempotency-key': newId() },
+        payload,
+      });
+    const market = await world.territory(tenantId, `M-${newId().slice(-6)}`);
+    const distributor = newId();
+    const made = await call('POST', '/v1/accounts', {
+      id: distributor,
+      type: 'distributor',
+      code: `D-${newId().slice(-6)}`,
+      name: 'Kisan Traders',
+      territoryId: market,
+      slots: { sme: sme.id, asm: asm.id },
+    });
+    expect(made.statusCode, made.body).toBe(201);
+    const item = newId();
+    const saved = await call('PUT', `/v1/items/${item}`, {
+      code: `NEEM${newId().slice(-4)}`,
+      name: 'Neem oil',
+      productName: 'Neem',
+      categoryName: null,
+      packLabel: '500 ML',
+      hsn: '3808',
+      taxRate: '18',
+      mrp: '450',
+      baseUnit: 'pack',
+      units: [{ key: 'case', factor: '12' }],
+      measureType: 'L',
+      measurePerBaseUnit: '0.5',
+    });
+    expect(saved.statusCode, saved.body).toBe(201);
+
+    const phone: SimulatedPhone = await new SimulatedPhone(
+      newDevice(),
+      {
+        'sell_through.save': {
+          async send(payload) {
+            const { accountId, period, body } = payload as {
+              accountId: string;
+              period: string;
+              body: object;
+            };
+            await phone.client.request(
+              'PUT',
+              `/v1/accounts/${accountId}/sell-through/${period}`,
+              SellThroughResult,
+              { body },
+            );
+          },
+        },
+      },
+      undefined,
+      ['sell_through'],
+    ).start();
+    await phone.signIn(sme.phone!);
+    const owner = phone.client.owner!;
+    const period = todayIn('Asia/Kolkata').slice(0, 7);
+    const id = newId();
+    phone.online = false;
+    await phone.outbox.enqueue(phone.db, {
+      id,
+      owner,
+      kind: 'sell_through.save',
+      payload: {
+        accountId: distributor,
+        period,
+        body: { id, lines: [{ itemId: item, received: '100', returned: '5', closing: '25' }] },
+      },
+    });
+    await phone.sync();
+    expect(await phone.outbox.items(owner)).toHaveLength(1);
+
+    phone.online = true;
+    phone.now += 5_000;
+    await phone.sync();
+    expect(await phone.outbox.items(owner)).toEqual([]);
+    await phone.sync();
+    const [kept] = await localRows(phone.db, 'sell_through');
+    expect(kept).toMatchObject({
+      id,
+      accountId: distributor,
+      period,
+      version: 1,
+      lines: [expect.objectContaining({ itemId: item, sold: '70', flags: ['no_price'] })],
+    });
   });
 });
