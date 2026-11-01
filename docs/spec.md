@@ -401,7 +401,7 @@ Each notification event (M16) has a default template per language and channel. T
 | Payroll inputs | Monthly attendance summary, provisional pay preview | Add-on |
 | Integrations | Public API and webhooks | Enterprise or add-on |
 | SSO | OIDC and SAML sign-in for web users | Enterprise |
-| Advanced analytics | Custom dashboards, scheduled reports | Version 2 |
+| Advanced analytics | Custom dashboards, scheduled reports (D122) | Built in phase 4; which plans include it is a pricing decision |
 
 The plan decides which modules a tenant may use; within those, the tenant admin may switch modules off.
 
@@ -656,6 +656,7 @@ Rules: BR-31.
 | Target locked | The user | In-app |
 | Tracking stopped unexpectedly (no points for 20 minutes during a shift) | The user, then the manager after a further 20 minutes | Push |
 | Import or export finished | The requester | In-app and email |
+| A scheduled report is ready, or could not be made | Each recipient | In-app and email, with a link to the export in the portal (D122) |
 
 Every delivery attempt is logged with channel, status, provider message ID, error and cost units. Users can mute non-essential categories; approval and tracking alerts cannot be muted. Quiet hours apply to non-urgent messages.
 
@@ -687,7 +688,9 @@ Standard reports, each filterable by period, team, territory, user and account t
 | Account statement | Statement with running balance |
 | Audit log | Filtered audit entries |
 
-Exports run as background jobs, produce XLSX or CSV, neutralise spreadsheet formula injection, and are downloaded from links that expire after 7 days. Every export is limited to the requester's scope and recorded in the audit log. Scheduled email reports arrive in version 2.
+Exports run as background jobs, produce XLSX or CSV, neutralise spreadsheet formula injection, and are downloaded from links that expire after 7 days. Every export is limited to the requester's scope and recorded in the audit log.
+
+Scheduled reports (advanced analytics module, D122): a person with `report.schedule` sends a report, or every report, weekly on a chosen day (the month so far) or monthly on the 1st (last month complete), at a chosen time on the tenant's clock, to up to 20 people they can see who may export. Each send makes an export for each recipient, read as that recipient may see it at the time, and emails them a link to it in the portal; no figures travel in the email. A recipient may stop receiving it; a schedule whose owner may no longer schedule pauses itself (BR-52).
 
 Printing (D96, D99): the report on screen, an order and an account statement can be printed or saved as a PDF through the browser's print dialog, with the tenant's legal name (section 5.1), the period and filters, the scope it was read in and the time it was printed, in a print layout without the portal's frame or controls. A printed report holds what the screen shows; the whole report is the export.
 
@@ -822,6 +825,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-49 | Licence mode: a dedicated install accepts a licence only with a valid Ed25519 signature from the vendor's key. It is valid to its expiry date and for 30 days of grace after, then the install is read only until a new licence is in place. Its modules and user cap replace the plan's. |
 | BR-50 | Anomalies in evidence flag a submission for reviewers and never refuse it. A photo is far when it is more than 150 m from its record beyond both fixes' accuracies, each counting up to 100 m. Travel is too fast when the submission and another of the person's records (submission, check-in, check-out, punch-in or punch-out within 12 hours) are at least 5 km apart in a straight line and closer in time than 100 km/h allows. A burst is three or more of the person's records within 10 minutes at three or more places; records are at one place when at one account, or, where either has no account, within 300 m. Capture outside the person's shifts is flagged where the form allows it. Mock history is a photo with a mocked fix of its own, or a mocked fix the person's phone reported refusing in the 30 days before the capture. A pair or burst also flags the person's other submissions in it while they wait for review. |
 | BR-51 | Invoices and receipts (D121): an invoice without a due date is due its credit days after its date, else the tenant's default credit days (30). Receipts, oldest first, settle the invoices they name in the order named, as far as each is open, then the account's oldest open invoices by due date, date and number; what is left after every invoice is an advance. Cancelled documents take no part. On a day, an open invoice due after it is not yet due; otherwise it is overdue and aged by days past due into the tenant's buckets. Outstanding is the open invoices less any advance. |
+| BR-52 | Scheduled reports (D122): a schedule owes, at any moment, only the latest send moment on the tenant's clock that came after it started or was last resumed or retimed, so a send missed while nothing ran goes once and never once for each moment missed; each send is keyed by its local date and made once. A monthly send reports the month before; a weekly send reports the month of the day before it, so a send on the 1st reports last month complete |
 
 ## 8. Screens and user experience
 
@@ -1075,7 +1079,7 @@ Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group c
 | `expenses` | Policies and claims | `expense_policies`, `expense_policy_versions`, `expense_claims` |
 | `workflow` | Definitions, instances, steps, SLA timers, delegations | `workflow_definitions`, `workflow_instances`, `workflow_steps`, `approval_delegations` |
 | `notifications` | Templates, preferences, delivery, in-app inbox | `notification_templates`, `notifications`, `notification_prefs` |
-| `imports`, `exports` | File-based jobs | `import_jobs`, `import_mappings`, `export_jobs` |
+| `imports`, `exports` | File-based jobs, and scheduled reports (D122) | `import_jobs`, `import_mappings`, `export_jobs`, `report_schedules`, `report_schedule_recipients`, `report_schedule_runs` |
 | `integrations` | API clients, webhooks, deliveries | `api_clients`, `webhook_subscriptions`, `webhook_deliveries` |
 | `sync` | Mobile pull protocol and change cursors | `sync_tombstones` |
 | `audit` | Writing and viewing the audit log | `audit_log` |
@@ -1348,7 +1352,12 @@ import_jobs(id, tid, target, file_media_id, file_name, sheets jsonb, sheet, head
 import_mappings(id, tid, target, name, mapping jsonb, empty_values jsonb, fractions jsonb, created_by,
          updated_at)
        UQ(tid, target, name)
-export_jobs(id, tid, kind, params jsonb, status, file_media_id NULL, error, requested_by, created_at, finished_at)
+export_jobs(id, tid, kind, params jsonb, status, file_media_id NULL, error, requested_by, created_at, finished_at,
+            schedule_id NULL, run_id NULL)
+report_schedules(id, tid, owner_id, report, filters jsonb, format, locale, frequency, weekday NULL, at, status,
+                 paused_reason NULL, active_from, ended_at NULL)
+report_schedule_recipients(tid, schedule_id, user_id, added_at, left_at NULL)  PK(tid, schedule_id, user_id)
+report_schedule_runs(id, tid, schedule_id, send_date, period)  UQ(tid, schedule_id, send_date)
 api_clients(id, tid, name, client_id UQ(tid, client_id), secret_hash, scopes text[], status, auth_revision,
             last_used_at, revoked_at)
 external_metric_values(tid, id, metric_key, user_id NULL, account_id NULL, date, month bool, value,
@@ -1767,7 +1776,7 @@ Each phase ends with a working product and its exit criteria. Durations are plan
 | 1. Field core, the MVP (8–10 weeks) | M2–M9; M16 with push and SMS; M17; M18 with home dashboards, activity log, attendance register and target against achievement; M19 for users, territories, accounts and targets; mobile offline sync; location pipeline with compaction; media pipeline; form builder with the version 1 field types | One tenant runs a pilot week: punch-in, tracking, planned and ad hoc visits with photos, review, metrics and leaderboard updates, imports that reconcile with the source files; the device protocol passes on two Android brands |
 | 2. Commerce and people (6–8 weeks) | M10, M11, M12, M13; M15 with the workflow engine for every request type; WhatsApp channel; remaining standard reports and exports; M19 for catalogue, price lists, finance and HR data | Order totals reconcile with three real invoices to the paisa; leave, regularisation and claims pass through configured chains; the attendance register matches a manual check |
 | 3. SaaS readiness (6–8 weeks) | M20, M21, M22, M23; pharma and FMCG templates; SSO; TOTP for admins; partition automation and archive; read-replica routing; tenant export, import and cell-move tooling; WAF, alarms and a restore drill; penetration test; Play and App Store releases; from the review of an outside demo (D96), odometer readings at punch-in and punch-out, the GPS audit trail report and printing to PDF | A new tenant is onboarded from the console in under a day; billing charges a test tenant end to end; no high or critical penetration test findings remain open; apps are approved in both stores, or managed distribution is in place |
-| 4. Growth (ongoing) | M14 payroll inputs, a scheme and promotion engine for orders, calculated form fields, scheduled reports, custom dashboards, leave accrual, approval delegation, ERP connectors (Tally, SAP, Zoho Books), the building materials template, travel claims from tracked distance, anomaly detection on evidence; from the review of an outside demo (D96), invoice and receipt registers with ageing worked out from open invoices (with the ERP connectors), product forecasts per account by item and month, liquidation returns by item, one workbook of every report, example files for each import, and a search across screens and records | Driven by customer demand |
+| 4. Growth (ongoing) | M14 payroll inputs and statutory payslips (D123), a scheme and promotion engine for orders, calculated form fields, scheduled reports, custom dashboards, leave accrual, approval delegation, ERP connectors (Tally, SAP, Zoho Books), the building materials template, travel claims from tracked distance, anomaly detection on evidence; from the review of an outside demo (D96), invoice and receipt registers with ageing worked out from open invoices (with the ERP connectors), product forecasts per account by item and month, liquidation returns by item, one workbook of every report, example files for each import, and a search across screens and records | Driven by customer demand |
 
 The MVP is phase 0 plus phase 1, for one paying pilot customer on one template, with apps distributed through internal or closed testing tracks.
 
@@ -1803,7 +1812,7 @@ The owner accepted every recommendation below on 5 October 2026. `docs/decisions
 | D11 | Users without a phone number in imports | Phone required for anyone who signs in; phone-less records only for users who never sign in |
 | D12 | WhatsApp access | Start with a Business Solution Provider; move to the Cloud API once volumes justify it |
 | D13 | Map provider | Google Maps with per-tenant quotas; evaluate MapLibre with a commercial tile provider if map costs grow |
-| D14 | Payroll scope | Inputs and provisional preview only; statutory payroll through integrations |
+| D14 | Payroll scope | Inputs and provisional preview only; statutory payroll through integrations (narrowed by D123: statutory payslips join phase 4 as step B5; filing stays outside the product) |
 | D15 | Device binding for managers | On for mobile; web unbound |
 | D16 | Attendance selfie and face match | Selfie capture as a tenant option in version 1; face match deferred pending a privacy review |
 
@@ -2159,6 +2168,9 @@ Each example becomes at least one automated test.
 | FX-43 | BR-51 | INV-1 ₹10,000 due 15 August and INV-2 ₹5,000 due later; receipts ₹0.50 then ₹12,000.50, naming none | INV-1 settled; INV-2 has ₹2,999.00 open |
 | FX-44 | BR-51 | INV-1 ₹1,000; a receipt of ₹1,500 against INV-1 and an unknown number | Advance ₹500; outstanding −₹500 |
 | FX-45 | BR-51 | INV-1 ₹4,000 and INV-2 ₹6,000 cancelled; a receipt of ₹3,000 against INV-2 | ₹3,000 settles INV-1, leaving ₹1,000 open |
+| FX-46 | BR-52 | Weekly on Monday at 08:00; asked on Monday 2 November 2026 at 07:59, then at 08:00 | Latest send 26 October, then 2 November; next 2 November, then 9 November |
+| FX-47 | BR-52 | A weekly send on Monday 1 February 2027; a monthly send on 1 January 2027 | Reports January 2027; reports December 2026 |
+| FX-48 | BR-52 | Weekly on Monday at 08:00, running since 1 October; asked on 28 October at 10:00 after three weeks with nothing running. Started on Monday 2 November at 09:00 | One send, for 26 October. Nothing until 9 November |
 
 ## Appendix E. Permission catalogue
 
@@ -2177,7 +2189,7 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | Catalogue and orders | `catalogue.manage`, `price_list.manage`, `order.create`, `order.create_without_shift`, `order.view`, `order.decide`, `order.line_decide`, `order.fulfil` |
 | Finance | `finance.view`, `finance.manage` |
 | People operations | `leave.request`, `regularisation.request`, `expense.claim`, `approval.act`, `calendar.manage`, `leave_type.manage`, `expense_policy.manage`, `expense.mark_paid`, `payroll.manage`, `payslip.view` |
-| Data | `report.view`, `export.create`, `import.run`, `audit.view` |
+| Data | `report.view`, `export.create`, `report.schedule`, `dashboard.manage`, `import.run`, `audit.view` (`report.schedule` and `dashboard.manage` belong to the advanced analytics module, D122) |
 | Integrations and billing | `api_client.manage`, `webhook.manage`, `billing.manage` |
 | Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.flags.manage`, `platform.billing.manage`, `platform.staff.manage` (inviting and disabling vendor staff, decision D88) |
 

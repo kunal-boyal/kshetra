@@ -64,7 +64,7 @@ import { SsoPage } from './settings/sso-page';
 import { SupportPage } from './settings/support-page';
 import { ModulesPage } from './settings/modules-page';
 import { OrganisationPage } from './settings/organisation-page';
-import { ReportsPage } from './reports/reports-page';
+import { ReportsPage, reportsSearch } from './reports/reports-page';
 import { ApprovalChainsPage } from './settings/approvals-page';
 import { RolesPage } from './settings/roles-page';
 import { RulesPage } from './settings/rules-page';
@@ -288,7 +288,17 @@ const liveMap = createRoute({
 const reports = createRoute({
   getParentRoute: () => app,
   path: '/reports',
-  component: ReportsPage,
+  validateSearch: reportsSearch,
+  component: function ReportsRoute() {
+    const search = reports.useSearch();
+    return (
+      <ReportsPage
+        key={search.export ?? 'reports'}
+        {...(search.view ? { view: search.view } : {})}
+        {...(search.export ? { exportId: search.export } : {})}
+      />
+    );
+  },
 });
 const density = createRoute({
   getParentRoute: () => app,

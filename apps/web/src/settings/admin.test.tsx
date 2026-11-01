@@ -84,7 +84,7 @@ describe('the organisation (M2)', () => {
     const rules = screen.getByRole('region', { name: 'Field rules' });
     expect(within(rules).getByText('Within 300 m')).toBeVisible();
     expect(screen.getByText('Always on')).toBeVisible();
-    expect(screen.getAllByText('Arrives later')).toHaveLength(4);
+    expect(screen.getAllByText('Arrives later')).toHaveLength(3);
   });
 
   it('says when a logo is too big, before sending it', async () => {
@@ -236,8 +236,8 @@ describe('modules (M2, spec 5.13)', () => {
     const user = userEvent.setup();
     const list = await screen.findByRole('list', { name: 'Modules' });
     expect(within(list).getByText('Always on')).toBeVisible();
-    expect(within(list).getAllByText('Arrives later')).toHaveLength(4);
-    expect(within(list).getAllByRole('checkbox', { name: 'On' })).toHaveLength(4);
+    expect(within(list).getAllByText('Arrives later')).toHaveLength(3);
+    expect(within(list).getAllByRole('checkbox', { name: 'On' })).toHaveLength(5);
     const module = (name: string) => within(within(list).getByText(name).closest('li')!);
     await user.click(module('Leave and attendance').getByRole('checkbox', { name: 'On' }));
     await user.click(module('Orders').getByRole('checkbox', { name: 'On' }));

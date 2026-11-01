@@ -8884,6 +8884,12 @@
                 "session.device_refused",
                 "export.created",
                 "export.downloaded",
+                "report_schedule.created",
+                "report_schedule.changed",
+                "report_schedule.paused",
+                "report_schedule.resumed",
+                "report_schedule.ended",
+                "report_schedule.left",
                 "organisation.renamed",
                 "organisation.logo_changed",
                 "account_type.created",
@@ -9156,6 +9162,12 @@
                               "session.device_refused",
                               "export.created",
                               "export.downloaded",
+                              "report_schedule.created",
+                              "report_schedule.changed",
+                              "report_schedule.paused",
+                              "report_schedule.resumed",
+                              "report_schedule.ended",
+                              "report_schedule.left",
                               "organisation.renamed",
                               "organisation.logo_changed",
                               "account_type.created",
@@ -13291,6 +13303,12 @@
                           "session.device_refused",
                           "export.created",
                           "export.downloaded",
+                          "report_schedule.created",
+                          "report_schedule.changed",
+                          "report_schedule.paused",
+                          "report_schedule.resumed",
+                          "report_schedule.ended",
+                          "report_schedule.left",
                           "organisation.renamed",
                           "organisation.logo_changed",
                           "account_type.created",
@@ -18576,6 +18594,816 @@
         }
       }
     },
+    "/v1/report-schedules": {
+      "get": {
+        "operationId": "ReportSchedulesController.list",
+        "summary": "The caller's scheduled reports, or those sent to them",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [
+          {
+            "name": "for",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "owner",
+              "type": "string",
+              "enum": [
+                "owner",
+                "me"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReportScheduleResult"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "ReportSchedulesController.create",
+        "summary": "Send a report, or every report, weekly or monthly to chosen people",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: report.schedule",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "report": {
+                    "$ref": "#/components/schemas/ExportReport"
+                  },
+                  "filters": {
+                    "type": "object",
+                    "properties": {
+                      "managerId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "territoryId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "userId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "accountType": {
+                        "$ref": "#/components/schemas/Key"
+                      },
+                      "form": {
+                        "$ref": "#/components/schemas/Key"
+                      },
+                      "auditAction": {
+                        "type": "string",
+                        "enum": [
+                          "user.created",
+                          "user.updated",
+                          "user.device_reset",
+                          "user.signed_out_everywhere",
+                          "user.signed_out_everyone",
+                          "user_fields.replaced",
+                          "transfer.scheduled",
+                          "transfer.applied",
+                          "transfer.cancelled",
+                          "transfer.failed",
+                          "territory.created",
+                          "territory.updated",
+                          "import.uploaded",
+                          "import.committed",
+                          "account_type.published",
+                          "form.published",
+                          "form.updated",
+                          "account.created",
+                          "account.proposed",
+                          "account.updated",
+                          "account.slots_changed",
+                          "account.location_proposed",
+                          "contact.created",
+                          "contact.updated",
+                          "approval.requested",
+                          "approval.decided",
+                          "approval.cancelled",
+                          "approval.escalated",
+                          "approval.delegated",
+                          "approval.delegation_ended",
+                          "workflow.changed",
+                          "role.created",
+                          "role.updated",
+                          "designation.created",
+                          "designation.updated",
+                          "settings.updated",
+                          "terminology.replaced",
+                          "shift.started",
+                          "shift.ended",
+                          "shift.paused",
+                          "shift.resumed",
+                          "visit.checked_in",
+                          "visit.checked_out",
+                          "submission.created",
+                          "submission.reviewed",
+                          "review_rules.updated",
+                          "route.created",
+                          "route.updated",
+                          "plan.generated",
+                          "plan.submitted",
+                          "plan.decided",
+                          "plan_item.created",
+                          "plan_item.cancelled",
+                          "plan_item.status_changed",
+                          "target.updated",
+                          "target.locked",
+                          "target.unlocked",
+                          "account_plan.updated",
+                          "session.signed_in",
+                          "session.device_refused",
+                          "export.created",
+                          "export.downloaded",
+                          "report_schedule.created",
+                          "report_schedule.changed",
+                          "report_schedule.paused",
+                          "report_schedule.resumed",
+                          "report_schedule.ended",
+                          "report_schedule.left",
+                          "organisation.renamed",
+                          "organisation.logo_changed",
+                          "account_type.created",
+                          "territory_levels.updated",
+                          "metric.created",
+                          "metric.updated",
+                          "score.updated",
+                          "configuration.exported",
+                          "configuration.imported",
+                          "locations.archived",
+                          "retention.applied",
+                          "item.created",
+                          "item.updated",
+                          "price_list.created",
+                          "price_list.updated",
+                          "price_list.prices_changed",
+                          "order.placed",
+                          "order.decided",
+                          "order.lines_decided",
+                          "order.fulfilled",
+                          "order.cancelled",
+                          "finance.snapshots_added",
+                          "finance.entries_added",
+                          "finance.invoices_recorded",
+                          "finance.invoice_changed",
+                          "finance.invoice_cancelled",
+                          "finance.receipts_recorded",
+                          "finance.receipt_changed",
+                          "finance.receipt_cancelled",
+                          "holidays.changed",
+                          "regularisation.requested",
+                          "regularisation.decided",
+                          "leave_types.changed",
+                          "leave.requested",
+                          "leave.decided",
+                          "leave.years_closed",
+                          "payroll.gross_changed",
+                          "expense_policies.changed",
+                          "expense.claimed",
+                          "expense.receipts_added",
+                          "expense.decided",
+                          "expense.paid",
+                          "whatsapp.consent_changed",
+                          "billing.account_changed",
+                          "billing.mandate_started",
+                          "user.second_factor_reset",
+                          "sso.changed",
+                          "sso.domain_verified",
+                          "support.requested",
+                          "support.approved",
+                          "support.declined",
+                          "support.ended",
+                          "api_client.created",
+                          "api_client.revoked",
+                          "api_client.secret_rotated",
+                          "webhook.created",
+                          "webhook.updated",
+                          "webhook.secret_rotated",
+                          "webhook.replayed",
+                          "data_export.created",
+                          "data_export.downloaded",
+                          "data_request.raised",
+                          "data_request.archived",
+                          "data_request.downloaded",
+                          "data_request.closed",
+                          "user.erased"
+                        ]
+                      },
+                      "auditActorKind": {
+                        "type": "string",
+                        "enum": [
+                          "user",
+                          "platform",
+                          "system",
+                          "api_client"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "xlsx",
+                      "csv"
+                    ]
+                  },
+                  "locale": {
+                    "default": "en",
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "hi"
+                    ]
+                  },
+                  "frequency": {
+                    "type": "string",
+                    "enum": [
+                      "weekly",
+                      "monthly"
+                    ]
+                  },
+                  "weekday": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 7
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "at": {
+                    "$ref": "#/components/schemas/TimeOfDay"
+                  },
+                  "recipients": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "report",
+                  "filters",
+                  "format",
+                  "frequency",
+                  "weekday",
+                  "at",
+                  "recipients"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportScheduleResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/report-schedules/{id}": {
+      "get": {
+        "operationId": "ReportSchedulesController.get",
+        "summary": "One of the caller's schedules, with its latest sends",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: report.schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportScheduleDetail"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "ReportSchedulesController.update",
+        "summary": "Change a schedule, or pause or resume it",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: report.schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filters": {
+                    "type": "object",
+                    "properties": {
+                      "managerId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "territoryId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "userId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "accountType": {
+                        "$ref": "#/components/schemas/Key"
+                      },
+                      "form": {
+                        "$ref": "#/components/schemas/Key"
+                      },
+                      "auditAction": {
+                        "type": "string",
+                        "enum": [
+                          "user.created",
+                          "user.updated",
+                          "user.device_reset",
+                          "user.signed_out_everywhere",
+                          "user.signed_out_everyone",
+                          "user_fields.replaced",
+                          "transfer.scheduled",
+                          "transfer.applied",
+                          "transfer.cancelled",
+                          "transfer.failed",
+                          "territory.created",
+                          "territory.updated",
+                          "import.uploaded",
+                          "import.committed",
+                          "account_type.published",
+                          "form.published",
+                          "form.updated",
+                          "account.created",
+                          "account.proposed",
+                          "account.updated",
+                          "account.slots_changed",
+                          "account.location_proposed",
+                          "contact.created",
+                          "contact.updated",
+                          "approval.requested",
+                          "approval.decided",
+                          "approval.cancelled",
+                          "approval.escalated",
+                          "approval.delegated",
+                          "approval.delegation_ended",
+                          "workflow.changed",
+                          "role.created",
+                          "role.updated",
+                          "designation.created",
+                          "designation.updated",
+                          "settings.updated",
+                          "terminology.replaced",
+                          "shift.started",
+                          "shift.ended",
+                          "shift.paused",
+                          "shift.resumed",
+                          "visit.checked_in",
+                          "visit.checked_out",
+                          "submission.created",
+                          "submission.reviewed",
+                          "review_rules.updated",
+                          "route.created",
+                          "route.updated",
+                          "plan.generated",
+                          "plan.submitted",
+                          "plan.decided",
+                          "plan_item.created",
+                          "plan_item.cancelled",
+                          "plan_item.status_changed",
+                          "target.updated",
+                          "target.locked",
+                          "target.unlocked",
+                          "account_plan.updated",
+                          "session.signed_in",
+                          "session.device_refused",
+                          "export.created",
+                          "export.downloaded",
+                          "report_schedule.created",
+                          "report_schedule.changed",
+                          "report_schedule.paused",
+                          "report_schedule.resumed",
+                          "report_schedule.ended",
+                          "report_schedule.left",
+                          "organisation.renamed",
+                          "organisation.logo_changed",
+                          "account_type.created",
+                          "territory_levels.updated",
+                          "metric.created",
+                          "metric.updated",
+                          "score.updated",
+                          "configuration.exported",
+                          "configuration.imported",
+                          "locations.archived",
+                          "retention.applied",
+                          "item.created",
+                          "item.updated",
+                          "price_list.created",
+                          "price_list.updated",
+                          "price_list.prices_changed",
+                          "order.placed",
+                          "order.decided",
+                          "order.lines_decided",
+                          "order.fulfilled",
+                          "order.cancelled",
+                          "finance.snapshots_added",
+                          "finance.entries_added",
+                          "finance.invoices_recorded",
+                          "finance.invoice_changed",
+                          "finance.invoice_cancelled",
+                          "finance.receipts_recorded",
+                          "finance.receipt_changed",
+                          "finance.receipt_cancelled",
+                          "holidays.changed",
+                          "regularisation.requested",
+                          "regularisation.decided",
+                          "leave_types.changed",
+                          "leave.requested",
+                          "leave.decided",
+                          "leave.years_closed",
+                          "payroll.gross_changed",
+                          "expense_policies.changed",
+                          "expense.claimed",
+                          "expense.receipts_added",
+                          "expense.decided",
+                          "expense.paid",
+                          "whatsapp.consent_changed",
+                          "billing.account_changed",
+                          "billing.mandate_started",
+                          "user.second_factor_reset",
+                          "sso.changed",
+                          "sso.domain_verified",
+                          "support.requested",
+                          "support.approved",
+                          "support.declined",
+                          "support.ended",
+                          "api_client.created",
+                          "api_client.revoked",
+                          "api_client.secret_rotated",
+                          "webhook.created",
+                          "webhook.updated",
+                          "webhook.secret_rotated",
+                          "webhook.replayed",
+                          "data_export.created",
+                          "data_export.downloaded",
+                          "data_request.raised",
+                          "data_request.archived",
+                          "data_request.downloaded",
+                          "data_request.closed",
+                          "user.erased"
+                        ]
+                      },
+                      "auditActorKind": {
+                        "type": "string",
+                        "enum": [
+                          "user",
+                          "platform",
+                          "system",
+                          "api_client"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "xlsx",
+                      "csv"
+                    ]
+                  },
+                  "locale": {
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "hi"
+                    ]
+                  },
+                  "frequency": {
+                    "type": "string",
+                    "enum": [
+                      "weekly",
+                      "monthly"
+                    ]
+                  },
+                  "weekday": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 7
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "at": {
+                    "$ref": "#/components/schemas/TimeOfDay"
+                  },
+                  "recipients": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "paused"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportScheduleResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/report-schedules/{id}/end": {
+      "post": {
+        "operationId": "ReportSchedulesController.end",
+        "summary": "End a schedule for good",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: report.schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportScheduleResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/report-schedules/{id}/leave": {
+      "post": {
+        "operationId": "ReportSchedulesController.leave",
+        "summary": "Stop receiving a schedule someone sends you",
+        "tags": [
+          "Reports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Anyone signed in to the tenant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportScheduleResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/reports/{key}": {
       "get": {
         "operationId": "ReportsController.page",
@@ -18726,6 +19554,12 @@
                 "session.device_refused",
                 "export.created",
                 "export.downloaded",
+                "report_schedule.created",
+                "report_schedule.changed",
+                "report_schedule.paused",
+                "report_schedule.resumed",
+                "report_schedule.ended",
+                "report_schedule.left",
                 "organisation.renamed",
                 "organisation.logo_changed",
                 "account_type.created",
@@ -24740,6 +25574,12 @@
                               "session.device_refused",
                               "export.created",
                               "export.downloaded",
+                              "report_schedule.created",
+                              "report_schedule.changed",
+                              "report_schedule.paused",
+                              "report_schedule.resumed",
+                              "report_schedule.ended",
+                              "report_schedule.left",
                               "organisation.renamed",
                               "organisation.logo_changed",
                               "account_type.created",
@@ -33013,6 +33853,12 @@
                   "session.device_refused",
                   "export.created",
                   "export.downloaded",
+                  "report_schedule.created",
+                  "report_schedule.changed",
+                  "report_schedule.paused",
+                  "report_schedule.resumed",
+                  "report_schedule.ended",
+                  "report_schedule.left",
                   "organisation.renamed",
                   "organisation.logo_changed",
                   "account_type.created",
@@ -37567,6 +38413,7 @@
               "tracking.stopped_report",
               "import.finished",
               "export.finished",
+              "report.scheduled",
               "support.requested",
               "support.emergency",
               "data_request.received",
@@ -38942,6 +39789,8 @@
           "payslip.view",
           "report.view",
           "export.create",
+          "report.schedule",
+          "dashboard.manage",
           "import.run",
           "audit.view",
           "api_client.manage",
@@ -41346,6 +42195,784 @@
           "columns",
           "rows",
           "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "ReportScheduleDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "owner": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "report": {
+            "$ref": "#/components/schemas/ExportReport"
+          },
+          "filters": {
+            "type": "object",
+            "properties": {
+              "managerId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "territoryId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "userId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "accountType": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "form": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "auditAction": {
+                "type": "string",
+                "enum": [
+                  "user.created",
+                  "user.updated",
+                  "user.device_reset",
+                  "user.signed_out_everywhere",
+                  "user.signed_out_everyone",
+                  "user_fields.replaced",
+                  "transfer.scheduled",
+                  "transfer.applied",
+                  "transfer.cancelled",
+                  "transfer.failed",
+                  "territory.created",
+                  "territory.updated",
+                  "import.uploaded",
+                  "import.committed",
+                  "account_type.published",
+                  "form.published",
+                  "form.updated",
+                  "account.created",
+                  "account.proposed",
+                  "account.updated",
+                  "account.slots_changed",
+                  "account.location_proposed",
+                  "contact.created",
+                  "contact.updated",
+                  "approval.requested",
+                  "approval.decided",
+                  "approval.cancelled",
+                  "approval.escalated",
+                  "approval.delegated",
+                  "approval.delegation_ended",
+                  "workflow.changed",
+                  "role.created",
+                  "role.updated",
+                  "designation.created",
+                  "designation.updated",
+                  "settings.updated",
+                  "terminology.replaced",
+                  "shift.started",
+                  "shift.ended",
+                  "shift.paused",
+                  "shift.resumed",
+                  "visit.checked_in",
+                  "visit.checked_out",
+                  "submission.created",
+                  "submission.reviewed",
+                  "review_rules.updated",
+                  "route.created",
+                  "route.updated",
+                  "plan.generated",
+                  "plan.submitted",
+                  "plan.decided",
+                  "plan_item.created",
+                  "plan_item.cancelled",
+                  "plan_item.status_changed",
+                  "target.updated",
+                  "target.locked",
+                  "target.unlocked",
+                  "account_plan.updated",
+                  "session.signed_in",
+                  "session.device_refused",
+                  "export.created",
+                  "export.downloaded",
+                  "report_schedule.created",
+                  "report_schedule.changed",
+                  "report_schedule.paused",
+                  "report_schedule.resumed",
+                  "report_schedule.ended",
+                  "report_schedule.left",
+                  "organisation.renamed",
+                  "organisation.logo_changed",
+                  "account_type.created",
+                  "territory_levels.updated",
+                  "metric.created",
+                  "metric.updated",
+                  "score.updated",
+                  "configuration.exported",
+                  "configuration.imported",
+                  "locations.archived",
+                  "retention.applied",
+                  "item.created",
+                  "item.updated",
+                  "price_list.created",
+                  "price_list.updated",
+                  "price_list.prices_changed",
+                  "order.placed",
+                  "order.decided",
+                  "order.lines_decided",
+                  "order.fulfilled",
+                  "order.cancelled",
+                  "finance.snapshots_added",
+                  "finance.entries_added",
+                  "finance.invoices_recorded",
+                  "finance.invoice_changed",
+                  "finance.invoice_cancelled",
+                  "finance.receipts_recorded",
+                  "finance.receipt_changed",
+                  "finance.receipt_cancelled",
+                  "holidays.changed",
+                  "regularisation.requested",
+                  "regularisation.decided",
+                  "leave_types.changed",
+                  "leave.requested",
+                  "leave.decided",
+                  "leave.years_closed",
+                  "payroll.gross_changed",
+                  "expense_policies.changed",
+                  "expense.claimed",
+                  "expense.receipts_added",
+                  "expense.decided",
+                  "expense.paid",
+                  "whatsapp.consent_changed",
+                  "billing.account_changed",
+                  "billing.mandate_started",
+                  "user.second_factor_reset",
+                  "sso.changed",
+                  "sso.domain_verified",
+                  "support.requested",
+                  "support.approved",
+                  "support.declined",
+                  "support.ended",
+                  "api_client.created",
+                  "api_client.revoked",
+                  "api_client.secret_rotated",
+                  "webhook.created",
+                  "webhook.updated",
+                  "webhook.secret_rotated",
+                  "webhook.replayed",
+                  "data_export.created",
+                  "data_export.downloaded",
+                  "data_request.raised",
+                  "data_request.archived",
+                  "data_request.downloaded",
+                  "data_request.closed",
+                  "user.erased"
+                ]
+              },
+              "auditActorKind": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "platform",
+                  "system",
+                  "api_client"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "xlsx",
+              "csv"
+            ]
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "en",
+              "hi"
+            ]
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "weekly",
+              "monthly"
+            ]
+          },
+          "weekday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused"
+            ]
+          },
+          "pausedReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "by_owner",
+                  "owner_access"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextSend": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "sendDate": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "period": {
+                  "$ref": "#/components/schemas/Period"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "exports": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "user": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "ready",
+                          "failed",
+                          "expired"
+                        ]
+                      },
+                      "rows": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "user",
+                      "status",
+                      "rows",
+                      "error"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "sendDate",
+                "period",
+                "createdAt",
+                "exports"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "owner",
+          "report",
+          "filters",
+          "format",
+          "locale",
+          "frequency",
+          "weekday",
+          "at",
+          "status",
+          "pausedReason",
+          "recipients",
+          "nextSend",
+          "createdAt",
+          "endedAt",
+          "runs"
+        ],
+        "additionalProperties": false
+      },
+      "ReportScheduleResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "owner": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "report": {
+            "$ref": "#/components/schemas/ExportReport"
+          },
+          "filters": {
+            "type": "object",
+            "properties": {
+              "managerId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "territoryId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "userId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "accountType": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "form": {
+                "$ref": "#/components/schemas/Key"
+              },
+              "auditAction": {
+                "type": "string",
+                "enum": [
+                  "user.created",
+                  "user.updated",
+                  "user.device_reset",
+                  "user.signed_out_everywhere",
+                  "user.signed_out_everyone",
+                  "user_fields.replaced",
+                  "transfer.scheduled",
+                  "transfer.applied",
+                  "transfer.cancelled",
+                  "transfer.failed",
+                  "territory.created",
+                  "territory.updated",
+                  "import.uploaded",
+                  "import.committed",
+                  "account_type.published",
+                  "form.published",
+                  "form.updated",
+                  "account.created",
+                  "account.proposed",
+                  "account.updated",
+                  "account.slots_changed",
+                  "account.location_proposed",
+                  "contact.created",
+                  "contact.updated",
+                  "approval.requested",
+                  "approval.decided",
+                  "approval.cancelled",
+                  "approval.escalated",
+                  "approval.delegated",
+                  "approval.delegation_ended",
+                  "workflow.changed",
+                  "role.created",
+                  "role.updated",
+                  "designation.created",
+                  "designation.updated",
+                  "settings.updated",
+                  "terminology.replaced",
+                  "shift.started",
+                  "shift.ended",
+                  "shift.paused",
+                  "shift.resumed",
+                  "visit.checked_in",
+                  "visit.checked_out",
+                  "submission.created",
+                  "submission.reviewed",
+                  "review_rules.updated",
+                  "route.created",
+                  "route.updated",
+                  "plan.generated",
+                  "plan.submitted",
+                  "plan.decided",
+                  "plan_item.created",
+                  "plan_item.cancelled",
+                  "plan_item.status_changed",
+                  "target.updated",
+                  "target.locked",
+                  "target.unlocked",
+                  "account_plan.updated",
+                  "session.signed_in",
+                  "session.device_refused",
+                  "export.created",
+                  "export.downloaded",
+                  "report_schedule.created",
+                  "report_schedule.changed",
+                  "report_schedule.paused",
+                  "report_schedule.resumed",
+                  "report_schedule.ended",
+                  "report_schedule.left",
+                  "organisation.renamed",
+                  "organisation.logo_changed",
+                  "account_type.created",
+                  "territory_levels.updated",
+                  "metric.created",
+                  "metric.updated",
+                  "score.updated",
+                  "configuration.exported",
+                  "configuration.imported",
+                  "locations.archived",
+                  "retention.applied",
+                  "item.created",
+                  "item.updated",
+                  "price_list.created",
+                  "price_list.updated",
+                  "price_list.prices_changed",
+                  "order.placed",
+                  "order.decided",
+                  "order.lines_decided",
+                  "order.fulfilled",
+                  "order.cancelled",
+                  "finance.snapshots_added",
+                  "finance.entries_added",
+                  "finance.invoices_recorded",
+                  "finance.invoice_changed",
+                  "finance.invoice_cancelled",
+                  "finance.receipts_recorded",
+                  "finance.receipt_changed",
+                  "finance.receipt_cancelled",
+                  "holidays.changed",
+                  "regularisation.requested",
+                  "regularisation.decided",
+                  "leave_types.changed",
+                  "leave.requested",
+                  "leave.decided",
+                  "leave.years_closed",
+                  "payroll.gross_changed",
+                  "expense_policies.changed",
+                  "expense.claimed",
+                  "expense.receipts_added",
+                  "expense.decided",
+                  "expense.paid",
+                  "whatsapp.consent_changed",
+                  "billing.account_changed",
+                  "billing.mandate_started",
+                  "user.second_factor_reset",
+                  "sso.changed",
+                  "sso.domain_verified",
+                  "support.requested",
+                  "support.approved",
+                  "support.declined",
+                  "support.ended",
+                  "api_client.created",
+                  "api_client.revoked",
+                  "api_client.secret_rotated",
+                  "webhook.created",
+                  "webhook.updated",
+                  "webhook.secret_rotated",
+                  "webhook.replayed",
+                  "data_export.created",
+                  "data_export.downloaded",
+                  "data_request.raised",
+                  "data_request.archived",
+                  "data_request.downloaded",
+                  "data_request.closed",
+                  "user.erased"
+                ]
+              },
+              "auditActorKind": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "platform",
+                  "system",
+                  "api_client"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "xlsx",
+              "csv"
+            ]
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "en",
+              "hi"
+            ]
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "weekly",
+              "monthly"
+            ]
+          },
+          "weekday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused"
+            ]
+          },
+          "pausedReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "by_owner",
+                  "owner_access"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextSend": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "owner",
+          "report",
+          "filters",
+          "format",
+          "locale",
+          "frequency",
+          "weekday",
+          "at",
+          "status",
+          "pausedReason",
+          "recipients",
+          "nextSend",
+          "createdAt",
+          "endedAt"
         ],
         "additionalProperties": false
       },

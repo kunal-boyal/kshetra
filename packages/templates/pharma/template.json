@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "pharma",
-  "version": 1,
+  "version": 2,
   "name": {
     "en": "Pharma",
     "hi": "फ़ार्मा"
@@ -123,6 +123,8 @@
         "payslip.view",
         "report.view",
         "export.create",
+        "report.schedule",
+        "dashboard.manage",
         "import.run",
         "audit.view",
         "api_client.manage",
@@ -200,6 +202,7 @@
         "payslip.view",
         "report.view",
         "export.create",
+        "report.schedule",
         "import.run",
         "audit.view"
       ]
@@ -245,7 +248,8 @@
         "approval.act",
         "payslip.view",
         "report.view",
-        "export.create"
+        "export.create",
+        "report.schedule"
       ]
     },
     {

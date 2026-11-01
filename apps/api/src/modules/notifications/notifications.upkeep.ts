@@ -276,16 +276,19 @@ export class NotificationsUpkeep implements OnModuleInit {
           locale,
           terms: resolveTerminology(terms, locale),
         });
+      // A scheduled report's recipient hears once, by email too, with a link to their export
+      // (decision D122); anyone else, in the app.
+      const scheduled = Boolean(finished.scheduleId);
       await this.notifications.notify(tx, event.tenantId, {
         userId: finished.userId,
-        event: 'export.finished',
+        event: scheduled ? 'report.scheduled' : 'export.finished',
         values: {
           status: finished.status,
           report_en: name('en'),
           report_hi: name('hi'),
           month: finished.period,
         },
-        link: '/reports',
+        link: scheduled ? `/reports?export=${finished.exportId}` : '/reports',
         dedupeKey: `export:${finished.exportId}`,
       });
     });

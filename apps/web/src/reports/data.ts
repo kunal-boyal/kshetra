@@ -1,4 +1,5 @@
 import {
+  type CreateReportScheduleBody,
   type CreateExportBody,
   type ExportResult as ExportView,
   ExportListResult,
@@ -8,11 +9,15 @@ import {
   type ReportFilters,
   type ReportKey,
   ReportPage,
+  ReportScheduleDetail,
+  ReportScheduleListResult,
+  ReportScheduleResult,
+  type UpdateReportScheduleBody,
 } from '@thelamp/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { WebClient } from '../client';
 import { useApp } from '../context';
-import { read } from '../people/data';
+import { read, write } from '../people/data';
 
 /** While a file is being made, the list asks again this often. */
 const BUSY_POLL_MS = 2000;
@@ -75,4 +80,62 @@ export function useStartExport() {
 export async function download(client: WebClient, id: string): Promise<void> {
   const fresh = await read(client, `/v1/exports/${id}`, ExportResult);
   if (fresh.download) window.location.assign(fresh.download.url);
+}
+
+/** One export of the person's, such as the one a scheduled report's email links to (D122). */
+export function useExport(id: string | undefined) {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['export', id],
+    queryFn: () => read(client, `/v1/exports/${id}`, ExportResult),
+    enabled: id !== undefined,
+  });
+}
+
+/** Scheduled reports (decision D122): the person's own, or those sent to them. */
+export function useSchedules(whose: 'owner' | 'me', enabled: boolean) {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['report-schedules', whose],
+    queryFn: async () =>
+      (await read(client, `/v1/report-schedules?for=${whose}`, ReportScheduleListResult)).items,
+    enabled,
+  });
+}
+
+/** One of the person's schedules, with its latest sends. */
+export function useSchedule(id: string | undefined) {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['report-schedule', id],
+    queryFn: () => read(client, `/v1/report-schedules/${id}`, ReportScheduleDetail),
+    enabled: id !== undefined,
+  });
+}
+
+/** Making, changing, ending and leaving schedules; each refreshes the lists. */
+export function useScheduleChanges() {
+  const { client } = useApp();
+  const queryClient = useQueryClient();
+  const settle = async <T>(work: Promise<T>) => {
+    const result = await work;
+    await queryClient.invalidateQueries({ queryKey: ['report-schedules'] });
+    await queryClient.invalidateQueries({ queryKey: ['report-schedule'] });
+    return result;
+  };
+  return {
+    create: (body: Omit<CreateReportScheduleBody, 'id'>) =>
+      settle(
+        write(client, 'POST', '/v1/report-schedules', ReportScheduleResult, {
+          id: newId(),
+          ...body,
+        }),
+      ),
+    update: (id: string, body: UpdateReportScheduleBody) =>
+      settle(write(client, 'PUT', `/v1/report-schedules/${id}`, ReportScheduleResult, body)),
+    end: (id: string) =>
+      settle(write(client, 'POST', `/v1/report-schedules/${id}/end`, ReportScheduleResult)),
+    leave: (id: string) =>
+      settle(write(client, 'POST', `/v1/report-schedules/${id}/leave`, ReportScheduleResult)),
+  };
 }

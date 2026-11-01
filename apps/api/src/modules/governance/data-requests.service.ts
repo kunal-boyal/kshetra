@@ -31,6 +31,7 @@ import { MediaService } from '../media/media.service';
 import { MediaUrls } from '../media/media-urls';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PayrollService } from '../payroll/payroll.service';
+import { ReportSchedulesService } from '../reports/report-schedules.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TenantArchive } from './tenant-archive';
 
@@ -63,6 +64,7 @@ export class DataRequestsService implements OnModuleInit {
     private readonly shifts: ShiftsService,
     private readonly notifications: NotificationsService,
     private readonly payroll: PayrollService,
+    private readonly reportSchedules: ReportSchedulesService,
     private readonly config: TenantConfigService,
     private readonly outbox: Outbox,
     private readonly audit: AuditLog,
@@ -316,6 +318,7 @@ export class DataRequestsService implements OnModuleInit {
     const selfies = await this.media.eraseSelfies(tx, tenantId, userId);
     await this.notifications.erasePerson(tx, tenantId, userId);
     await this.payroll.erasePerson(tx, tenantId, userId);
+    await this.reportSchedules.erasePerson(tx, tenantId, userId);
     await this.outbox.publish(tx, tenantId, 'user.erased', userId, { userId });
     await this.audit.record(tx, tenantId, userActor(access), {
       action: 'user.erased',

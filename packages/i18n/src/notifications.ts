@@ -40,6 +40,14 @@ export function notificationMessage(
       return values.status === 'ready'
         ? { title: 'notify.export_ready_title', body: 'notify.export_ready_body', params }
         : { title: 'notify.export_failed_title', body: 'notify.export_failed_body', params };
+    case 'report.scheduled':
+      return values.status === 'ready'
+        ? { title: 'notify.report_scheduled_title', body: 'notify.report_scheduled_body', params }
+        : {
+            title: 'notify.report_scheduled_failed_title',
+            body: 'notify.report_scheduled_failed_body',
+            params,
+          };
     case 'support.requested':
       return {
         title: 'notify.support_requested_title',

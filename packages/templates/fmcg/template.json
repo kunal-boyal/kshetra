@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "fmcg",
-  "version": 1,
+  "version": 2,
   "name": {
     "en": "FMCG and consumer goods",
     "hi": "एफ़एमसीजी और उपभोक्ता सामान"
@@ -113,6 +113,8 @@
         "payslip.view",
         "report.view",
         "export.create",
+        "report.schedule",
+        "dashboard.manage",
         "import.run",
         "audit.view",
         "api_client.manage",
@@ -190,6 +192,7 @@
         "payslip.view",
         "report.view",
         "export.create",
+        "report.schedule",
         "import.run",
         "audit.view"
       ]
@@ -235,7 +238,8 @@
         "approval.act",
         "payslip.view",
         "report.view",
-        "export.create"
+        "export.create",
+        "report.schedule"
       ]
     },
     {

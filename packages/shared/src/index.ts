@@ -879,6 +879,31 @@ export {
 } from './finance';
 export type { AgeingBucket, LedgerEntry } from './finance';
 export { DEFAULT_CREDIT_DAYS, invoiceAgeing, invoiceDueDate, settleInvoices } from './receivables';
+export {
+  latestSendDate,
+  type LocalMoment,
+  nextSendDate,
+  SCHEDULE_FREQUENCIES,
+  SCHEDULE_RECIPIENTS_MOST,
+  SCHEDULES_PER_TENANT_MOST,
+  type ScheduleFrequency,
+  type ScheduleTiming,
+  scheduledPeriod,
+  sendDue,
+} from './report-schedules';
+export {
+  CreateReportScheduleBody,
+  ReportScheduleDetail,
+  ReportScheduleIdParam,
+  ReportScheduleListQuery,
+  ReportScheduleListResult,
+  ReportScheduleResult,
+  ReportScheduleRun,
+  SCHEDULE_PAUSE_REASONS,
+  SCHEDULE_STATUSES,
+  ScheduleFilters,
+  UpdateReportScheduleBody,
+} from './schemas/report-schedules';
 export type {
   Receivables as ReceivablesFigures,
   RegisterInvoice,

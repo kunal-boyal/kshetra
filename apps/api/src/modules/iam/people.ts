@@ -280,6 +280,32 @@ export class People {
   }
 
   /**
+   * Which of these people are active and hold a permission through their role, such as those who
+   * may still receive a scheduled report (decision D122).
+   */
+  async holdingAmong(
+    tx: TenantTx,
+    tenantId: string,
+    permission: TenantPermission,
+    ids: readonly string[],
+  ): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    const rows = await tx
+      .select({ id: users.id })
+      .from(users)
+      .innerJoin(roles, and(eq(roles.tenantId, users.tenantId), eq(roles.id, users.roleId)))
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          inArray(users.id, [...new Set(ids)]),
+          eq(users.status, 'active'),
+          sql`${permission} = any(${roles.permissions})`,
+        ),
+      );
+    return new Set(rows.map((row) => row.id));
+  }
+
+  /**
    * Anonymises a deactivated person (decision D95): their name gives way to "Former employee"
    * and their code, their phone number, email and custom fields go, and their phones forget their
    * push tokens. Everything they did keeps pointing at this row, so the records stay whole.

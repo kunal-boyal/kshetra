@@ -74,6 +74,8 @@ export const NOTIFICATION_KINDS = {
   'import.finished': { category: 'imports', external: ['email'], urgent: false, inbox: true },
   /** An export the person asked for is ready, or failed. */
   'export.finished': { category: 'imports', external: [], urgent: false, inbox: true },
+  /** A scheduled report is ready for the person, or failed (decision D122): by email too. */
+  'report.scheduled': { category: 'imports', external: ['email'], urgent: false, inbox: true },
   /** Vendor support asks to enter the organisation; its admins decide (M22, decision D93). */
   'support.requested': { category: 'support', external: ['email'], urgent: false, inbox: true },
   /** Vendor support entered in an emergency, approved by a second vendor admin. */
