@@ -604,6 +604,7 @@ Acceptance criteria:
 
 - Finance snapshots per account: as-of date (not in the future), source reference, outstanding, credit limit, inventory value, and tenant-defined ageing buckets (default 0–30, 31–60, 61–90, 91–180 and over 180 days past due). Every snapshot is kept; the latest is shown with its date.
 - Statement entries: append-only debits and credits with date, reference and description. Corrections are reversing entries.
+- Invoice and receipt registers (D121): invoices (number, date, due date, amount) and receipts or credit notes (number, date, amount, the invoices they pay) from the customer's books, keyed by number; a document sent again changed is updated and audited, and a cancelled one leaves the ageing. Once an account has invoices, its outstanding and ageing are worked out from them (BR-51), for the account view, the order credit check and the outstanding report; accounts without keep their snapshots.
 - Loaded by import or API (usually from the customer's ERP) or entered by back office.
 - Account view: latest snapshot, opening and closing balance for the financial year, statement with running balance (first 1,000 entries; export of the list disabled when truncated), orders and visits this year.
 
@@ -701,7 +702,7 @@ One framework handles every bulk load:
 5. Commit is all-or-nothing by default, in one transaction. Large imports run in the background with progress.
 6. The import, its file, mapping, counts and user are recorded and audited.
 
-Targets in version 1: users, territories, accounts (per type), contacts, items, price lists, targets, routes and plan items, account plans, finance snapshots, statement entries, holidays, payroll gross and external metric values.
+Targets in version 1: users, territories, accounts (per type), contacts, items, price lists, targets, routes and plan items, account plans, finance snapshots, statement entries, invoices, receipts and credit notes, holidays, payroll gross and external metric values.
 
 Rules: BR-42, BR-43.
 
@@ -820,6 +821,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-48 | Dunning: a tenant is overdue from the day a mandate charge is refused, or the day after an invoice falls due unpaid. It is in grace for 7 days, then read only for 14, then suspended (both periods are settings). Paying everything overdue returns a tenant in grace or read only to active; a suspended tenant opens only when the vendor reactivates it. Read only refuses every write but exports and paying. Emails go at once, on days 3 and 6 of grace, when read only begins, 3 days before suspension and on suspension, each once. |
 | BR-49 | Licence mode: a dedicated install accepts a licence only with a valid Ed25519 signature from the vendor's key. It is valid to its expiry date and for 30 days of grace after, then the install is read only until a new licence is in place. Its modules and user cap replace the plan's. |
 | BR-50 | Anomalies in evidence flag a submission for reviewers and never refuse it. A photo is far when it is more than 150 m from its record beyond both fixes' accuracies, each counting up to 100 m. Travel is too fast when the submission and another of the person's records (submission, check-in, check-out, punch-in or punch-out within 12 hours) are at least 5 km apart in a straight line and closer in time than 100 km/h allows. A burst is three or more of the person's records within 10 minutes at three or more places; records are at one place when at one account, or, where either has no account, within 300 m. Capture outside the person's shifts is flagged where the form allows it. Mock history is a photo with a mocked fix of its own, or a mocked fix the person's phone reported refusing in the 30 days before the capture. A pair or burst also flags the person's other submissions in it while they wait for review. |
+| BR-51 | Invoices and receipts (D121): an invoice without a due date is due its credit days after its date, else the tenant's default credit days (30). Receipts, oldest first, settle the invoices they name in the order named, as far as each is open, then the account's oldest open invoices by due date, date and number; what is left after every invoice is an advance. Cancelled documents take no part. On a day, an open invoice due after it is not yet due; otherwise it is overdue and aged by days past due into the tenant's buckets. Outstanding is the open invoices less any advance. |
 
 ## 8. Screens and user experience
 
@@ -1068,7 +1070,7 @@ Noisy-neighbour controls: per-tenant API rate limits by plan; per-tenant group c
 | `metrics` | Metric definitions, fact computation, scores, ranks | `metric_definitions`, `score_definitions`, `metric_facts_daily`, `metric_fact_accounts`, `external_metric_values`, `score_snapshots` |
 | `catalogue` | Categories, products, items, units, price lists | `product_categories`, `products`, `items`, `item_units`, `price_lists`, `price_list_items` |
 | `orders` | Orders and lines, decisions, fulfilment | `orders`, `order_lines` |
-| `finance` | Snapshots and statement entries | `finance_snapshots`, `ledger_entries` |
+| `finance` | Snapshots, statement entries, invoices and receipts | `finance_snapshots`, `ledger_entries`, `invoices`, `receipts` |
 | `hr` | Calendars, holidays, leave, regularisation, attendance days, payroll inputs | `calendars`, `holidays`, `leave_types`, `leave_requests`, `leave_year_closings`, `regularisations`, `attendance_days`, `payroll_gross` |
 | `expenses` | Policies and claims | `expense_policies`, `expense_policy_versions`, `expense_claims` |
 | `workflow` | Definitions, instances, steps, SLA timers, delegations | `workflow_definitions`, `workflow_instances`, `workflow_steps`, `approval_delegations` |
@@ -1292,6 +1294,10 @@ finance_snapshots(id, tid, account_id, as_of, outstanding, credit_limit, invento
        source, created_by, created_at)                                       IX(tid, account_id, as_of DESC)
 ledger_entries(id, tid, account_id, date, reference, description, debit, credit, source,
        import_id NULL, created_by, created_at)                               UQ(tid, reference) · IX(tid, account_id, date)
+invoices(id, tid, account_id, number, date, due_date, amount, cancelled, source, import_id NULL,
+       created_by, updated_by, row_version)                                  UQ(tid, number) · IX(tid, account_id, due_date)
+receipts(id, tid, account_id, number, date, amount, kind enum(receipt,credit_note), against text[],
+       cancelled, source, import_id NULL, created_by, updated_by, row_version) UQ(tid, number)
 
 ── People operations ─────────────────────────────────────────────────────────────
 calendars(tid, key, name jsonb, weekly_offs int[], is_default)               PK(tid, key) · one default (D80)
@@ -1962,6 +1968,8 @@ Routes: Employee code*, Route name*, Recurrence* (for example `MON`, `TUE,FRI` o
 | Account plans | Account code*, Period*, one column per account-plan metric |
 | Finance snapshots | Account code*, As-of date*, Outstanding*, Credit limit, Inventory value, one column per ageing bucket, Source* |
 | Statement entries | Entry reference* (upsert key), Account code*, Date*, Description, Debit, Credit (exactly one above zero) |
+| Invoices | Invoice number* (upsert key), Account code*, Invoice date*, Amount*, Due date, Credit days, Status (open or cancelled) |
+| Receipts and credit notes | Receipt number* (upsert key), Account code*, Receipt date*, Amount*, Kind (receipt or credit note), Against invoices (numbers separated by `;`), Status |
 | External metric values | Metric key*, Date or Period*, Employee code or Account code*, Value* |
 
 ### B.7 Holidays and payroll gross
@@ -2147,6 +2155,10 @@ Each example becomes at least one automated test.
 | FX-39 | BR-47 | Annual, 10 seats committed at ₹12,000 a year; 13 people active in quarter 2 | 3 seats for 9 months at ₹9,000 each: ₹27,000; the commitment becomes 13 |
 | FX-40 | BR-48 | Overdue since 4 November; 7 days' grace, 14 read only | Grace to 10 November, read only from 11 November, suspended from 25 November |
 | FX-41 | BR-49 | A licence expiring on 31 March 2027 | Valid on 31 March; in grace from 1 to 30 April; read only from 1 May |
+| FX-42 | BR-51 | Invoices INV-1 ₹10,000, INV-2 ₹5,000, INV-3 ₹8,000 (oldest first); receipt ₹9,000 against INV-3 | INV-3 settled; ₹1,000 to INV-1, leaving ₹9,000 open; INV-2 untouched |
+| FX-43 | BR-51 | INV-1 ₹10,000 due 15 August and INV-2 ₹5,000 due later; receipts ₹0.50 then ₹12,000.50, naming none | INV-1 settled; INV-2 has ₹2,999.00 open |
+| FX-44 | BR-51 | INV-1 ₹1,000; a receipt of ₹1,500 against INV-1 and an unknown number | Advance ₹500; outstanding −₹500 |
+| FX-45 | BR-51 | INV-1 ₹4,000 and INV-2 ₹6,000 cancelled; a receipt of ₹3,000 against INV-2 | ₹3,000 settles INV-1, leaving ₹1,000 open |
 
 ## Appendix E. Permission catalogue
 

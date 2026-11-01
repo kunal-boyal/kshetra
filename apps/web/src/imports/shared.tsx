@@ -83,6 +83,8 @@ const FIELD_KEYS = {
     'source',
   ],
   ledger_entries: ['reference', 'account_code', 'date', 'description', 'debit', 'credit'],
+  invoices: ['number', 'account_code', 'date', 'amount', 'due_date', 'credit_days', 'status'],
+  receipts: ['number', 'account_code', 'date', 'amount', 'kind', 'against', 'status'],
   holidays: ['calendar', 'date', 'name', 'optional'],
   external_metrics: ['metric', 'date', 'period', 'employee_code', 'account_code', 'value'],
   payroll_gross: ['code', 'gross', 'from'],

@@ -1,5 +1,7 @@
+import { RECEIPT_KINDS } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   date,
   foreignKey,
@@ -17,7 +19,8 @@ import { cell, isolation, rowVersionColumn } from './common';
 
 /**
  * Account finance (M11, spec 10.3, decision D79), owned by the finance module: balance snapshots
- * with their ageing, every one kept, and statement entries, which are only ever added (BR-21).
+ * with their ageing, every one kept, and statement entries, which are only ever added (BR-21);
+ * and the customer's invoices and receipts (D121).
  */
 
 export const financeSnapshots = cell
@@ -92,6 +95,93 @@ export const ledgerEntries = cell
         'ledger_entries_one_side',
         sql`${table.debit} >= 0 and ${table.credit} >= 0 and (${table.debit} > 0) <> (${table.credit} > 0)`,
       ),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+export const receiptKind = cell.enum('receipt_kind', RECEIPT_KINDS);
+
+/**
+ * Invoices from the customer's books (M11, BR-51, decision D121), keyed by their number. A
+ * document sent again changed is updated, audited; a cancelled one stays, out of the ageing.
+ */
+export const accountInvoices = cell
+  .table(
+    'invoices',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      accountId: uuid('account_id').notNull(),
+      number: text('number').notNull(),
+      date: date('date').notNull(),
+      dueDate: date('due_date').notNull(),
+      amount: numeric('amount', { precision: 18, scale: 2 }).notNull(),
+      cancelled: boolean('cancelled').notNull().default(false),
+      source: text('source').notNull(),
+      importId: uuid('import_id'),
+      createdBy: uuid('created_by'),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedBy: uuid('updated_by'),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      rowVersion: rowVersionColumn(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('invoices_tenant_number').on(table.tenantId, table.number),
+      index('invoices_tenant_account_due').on(table.tenantId, table.accountId, table.dueDate),
+      index('invoices_tenant_row_version').on(table.tenantId, table.rowVersion, table.id),
+      foreignKey({
+        name: 'invoices_account_fk',
+        columns: [table.tenantId, table.accountId],
+        foreignColumns: [accounts.tenantId, accounts.id],
+      }),
+      check('invoices_amount', sql`${table.amount} > 0`),
+      check('invoices_due', sql`${table.dueDate} >= ${table.date}`),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * Receipts and credit notes from the customer's books (BR-51, D121), keyed by their number,
+ * with the invoice numbers each pays; what they don't name settles the oldest open invoices.
+ */
+export const accountReceipts = cell
+  .table(
+    'receipts',
+    {
+      id: uuid('id').notNull(),
+      tenantId: uuid('tenant_id').notNull(),
+      accountId: uuid('account_id').notNull(),
+      number: text('number').notNull(),
+      date: date('date').notNull(),
+      amount: numeric('amount', { precision: 18, scale: 2 }).notNull(),
+      kind: receiptKind('kind').notNull().default('receipt'),
+      against: text('against')
+        .array()
+        .notNull()
+        .default(sql`'{}'::text[]`),
+      cancelled: boolean('cancelled').notNull().default(false),
+      source: text('source').notNull(),
+      importId: uuid('import_id'),
+      createdBy: uuid('created_by'),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedBy: uuid('updated_by'),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      rowVersion: rowVersionColumn(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('receipts_tenant_number').on(table.tenantId, table.number),
+      index('receipts_tenant_account_date').on(table.tenantId, table.accountId, table.date),
+      index('receipts_tenant_row_version').on(table.tenantId, table.rowVersion, table.id),
+      foreignKey({
+        name: 'receipts_account_fk',
+        columns: [table.tenantId, table.accountId],
+        foreignColumns: [accounts.tenantId, accounts.id],
+      }),
+      check('receipts_amount', sql`${table.amount} > 0`),
       isolation(),
     ],
   )

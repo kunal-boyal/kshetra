@@ -364,6 +364,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Snapshots are all kept; read the latest with `FinanceService.latest()`. Statement entries are only ever added, keyed by reference: `planEntries()` tells new, unchanged and refused apart for the API and the import alike. Never update or delete a ledger entry; a correction is a reversing entry.
 - The finance module provides `OrderCredit`, which decides an order's `over_credit` fact.
 - Phones keep each account's latest balance as the `balances` sync entity, keyed by the account; read it with `useBalance()` in `apps/mobile/src/finance.ts`, and judge an order with `overCredit()`.
+- Invoices and receipts (decision D121) are `ReceivablesService` (`receivables.service.ts`), keyed by number, from the `invoices` and `receipts` imports and the bulk API; corrections update and audit, a document never moves account. Settling and ageing are `settleInvoices()` and `invoiceAgeing()` in `packages/shared/src/receivables.ts` (BR-51), worked out on read, never stored. Once an account has invoices, `ReceivablesService.receivables()` says what it owes, for the account view, `OrderCredit`, `AccountBalances` and the `outstanding` report (`FinanceService.outstandingRows()`); otherwise the latest snapshot does.
 
 ## Attendance and calendars (decision D80)
 

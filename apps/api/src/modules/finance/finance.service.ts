@@ -20,7 +20,7 @@ import {
   todayIn,
 } from '@thelamp/shared';
 import { and, asc, desc, eq, inArray, lt, type SQL, sql } from 'drizzle-orm';
-import { financeSnapshots, ledgerEntries } from '../../db/schema/finance';
+import { accountInvoices, financeSnapshots, ledgerEntries } from '../../db/schema/finance';
 import { type AuditActor, AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
@@ -28,6 +28,7 @@ import { AccountsService } from '../accounts/accounts.service';
 import { AccountBalances } from '../accounts/account-balances';
 import { OrderCredit } from '../orders/order-credit';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { ReceivablesService } from './receivables.service';
 
 const invalid = (issues: ErrorDetail[]) =>
   new AppError('VALIDATION', 'Check the highlighted fields.', issues);
@@ -44,7 +45,8 @@ const sameAmount = (a: string | null, b: string | null) =>
  * kept and the latest shown with its date, and statement entries, only ever added, with opening,
  * running and closing balances (BR-21). They come from the customer's accounts software through
  * imports or the API, or from back office. The latest snapshot's credit limit decides whether an
- * order goes over it, for the order chain (D73).
+ * order goes over it, for the order chain (D73), against what the account's invoices leave open
+ * once it has any (D121).
  */
 @Injectable()
 export class FinanceService implements OnModuleInit {
@@ -54,6 +56,7 @@ export class FinanceService implements OnModuleInit {
     private readonly credit: OrderCredit,
     private readonly audit: AuditLog,
     private readonly balances: AccountBalances,
+    private readonly receivables: ReceivablesService,
   ) {}
 
   onModuleInit(): void {
@@ -78,14 +81,22 @@ export class FinanceService implements OnModuleInit {
             desc(financeSnapshots.asOf),
             desc(financeSnapshots.createdAt),
           );
-        return new Map(rows.map((row) => [row.accountId, row.outstanding]));
+        const balances = new Map(rows.map((row) => [row.accountId, row.outstanding]));
+        // An account with invoices owes what they leave open (D121).
+        for (const [id, figures] of await this.receivables.receivables(tx, tenantId, accountIds)) {
+          balances.set(id, figures.outstanding);
+        }
+        return balances;
       },
     });
     this.credit.provide({
       over: async (tx, tenantId, accountId, total) => {
         const latest = await this.latest(tx, tenantId, accountId);
         if (!latest || latest.creditLimit === null) return false;
-        return scaled(latest.outstanding, 2) + scaled(total, 2) > scaled(latest.creditLimit, 2);
+        const owed =
+          (await this.receivables.receivables(tx, tenantId, [accountId])).get(accountId)
+            ?.outstanding ?? latest.outstanding;
+        return scaled(owed, 2) + scaled(total, 2) > scaled(latest.creditLimit, 2);
       },
     });
   }
@@ -178,6 +189,64 @@ export class FinanceService implements OnModuleInit {
     return row ? snapshotResult(row) : null;
   }
 
+  /**
+   * The outstanding report (M11, D121): a page of the accounts `accountIds` selects that have
+   * invoices or snapshots, in a steady order, with each one's latest snapshot on or before
+   * `asOf` and its receivables from invoices that day, if it has any.
+   */
+  async outstandingRows(
+    tx: TenantTx,
+    tenantId: string,
+    accountIds: SQL,
+    asOf: string,
+    offset: number,
+    limit: number,
+  ) {
+    const page = await tx.execute<{ account_id: string }>(sql`
+      select account_id from (
+        select account_id from ${accountInvoices}
+         where tenant_id = ${tenantId} and date <= ${asOf}
+        union
+        select account_id from ${financeSnapshots}
+         where tenant_id = ${tenantId} and as_of <= ${asOf}
+      ) found
+      where account_id::text in (${accountIds})
+      order by account_id
+      offset ${offset} limit ${limit + 1}`);
+    const ids = page.rows.map((row) => row.account_id);
+    const shown = ids.slice(0, limit);
+    const snapshots =
+      shown.length === 0
+        ? []
+        : await tx
+            .selectDistinctOn([financeSnapshots.accountId])
+            .from(financeSnapshots)
+            .where(
+              and(
+                eq(financeSnapshots.tenantId, tenantId),
+                inArray(financeSnapshots.accountId, shown),
+                sql`${financeSnapshots.asOf} <= ${asOf}`,
+              ),
+            )
+            .orderBy(
+              financeSnapshots.accountId,
+              desc(financeSnapshots.asOf),
+              desc(financeSnapshots.createdAt),
+            );
+    const latest = new Map(snapshots.map((row) => [row.accountId, snapshotResult(row)]));
+    const figures = await this.receivables.receivables(tx, tenantId, shown, asOf);
+    const receipts = await this.receivables.lastReceipts(tx, tenantId, shown, asOf);
+    return {
+      rows: shown.map((accountId) => ({
+        accountId,
+        snapshot: latest.get(accountId) ?? null,
+        receivables: figures.get(accountId) ?? null,
+        lastReceipt: receipts.get(accountId) ?? null,
+      })),
+      more: ids.length > limit,
+    };
+  }
+
   /** `GET /v1/accounts/{id}/finance`: the latest snapshot and the twelve before it. */
   async forAccount(tx: TenantTx, access: Access, accountId: string): Promise<AccountFinanceResult> {
     await this.accounts.find(tx, access, accountId);
@@ -193,7 +262,15 @@ export class FinanceService implements OnModuleInit {
       .orderBy(desc(financeSnapshots.asOf), desc(financeSnapshots.createdAt))
       .limit(13);
     const [latest, ...history] = rows.map(snapshotResult);
-    return { latest: latest ?? null, history };
+    // Once the account has invoices, they say what it owes (BR-51, D121).
+    const figures = (await this.receivables.receivables(tx, access.tenantId, [accountId])).get(
+      accountId,
+    );
+    return {
+      latest: latest ?? null,
+      history,
+      receivables: figures ? { ...figures, creditLimit: latest?.creditLimit ?? null } : null,
+    };
   }
 
   /**

@@ -32,6 +32,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
 import { Facts, fieldErrors, Section } from '../people/shared';
 import { Printable, PrintButton } from '../print';
+import { ReceivablesPanel } from './receivables';
 
 type Translate = ReturnType<typeof useLanguage>['t'];
 
@@ -55,8 +56,9 @@ export function ageingTone(index: number, count: number): BadgeVariant {
 
 /**
  * An account's finance (M11, decision D79): the latest balance with its date, credit limit and
- * ageing, and a financial year's statement with its opening, running and closing balances
- * (BR-21). Back office records a balance or a statement entry here.
+ * ageing, or, once the account has invoices, what they leave open (D121); and a financial year's
+ * statement with its opening, running and closing balances (BR-21). Back office records a balance
+ * or a statement entry here.
  */
 export function FinanceSection({
   accountId,
@@ -87,6 +89,7 @@ export function FinanceSection({
   const date = (value: string) => formatDate(value, { locale });
   const buckets = settings?.ageingBuckets ?? [];
   const latest = finance.data?.latest;
+  const receivables = finance.data?.receivables;
 
   const columns: Column<StatementResult['entries'][number]>[] = [
     { key: 'date', header: t('finance.date'), render: (entry) => date(entry.date) },
@@ -126,6 +129,9 @@ export function FinanceSection({
         <p className="ks-help error" role="alert">
           {errorMessage(finance.error, t)}
         </p>
+      ) : receivables ? (
+        // Once the account has invoices, they say what it owes (D121).
+        <ReceivablesPanel accountId={accountId} figures={receivables} buckets={buckets} />
       ) : latest ? (
         <div className="flex flex-col gap-4">
           <p className="ks-meta">

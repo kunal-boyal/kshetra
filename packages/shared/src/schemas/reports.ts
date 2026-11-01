@@ -24,6 +24,7 @@ export const REPORT_KEYS = [
   'gps_audit_trail',
   'orders_register',
   'account_statement',
+  'outstanding',
   'audit_log',
   'payroll_summary',
 ] as const;
@@ -36,6 +37,7 @@ export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], Switcha
   expense_register: 'expenses',
   orders_register: 'orders',
   account_statement: 'account_finance',
+  outstanding: 'account_finance',
   payroll_summary: 'payroll_inputs',
 };
 
@@ -43,6 +45,7 @@ export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], Switcha
 export const REPORT_PERMISSION: Partial<Record<(typeof REPORT_KEYS)[number], TenantPermission>> = {
   orders_register: 'order.view',
   account_statement: 'finance.view',
+  outstanding: 'finance.view',
   audit_log: 'audit.view',
   gps_audit_trail: 'trail.view',
   payroll_summary: 'payroll.manage',

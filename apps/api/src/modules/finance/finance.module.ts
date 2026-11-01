@@ -8,12 +8,25 @@ import { FinanceController } from './finance.controller';
 import { FinanceSnapshotsImport, LedgerEntriesImport } from './finance.import';
 import { FinanceService } from './finance.service';
 import { BalancesSync } from './finance.sync';
+import { InvoicesImport, ReceiptsImport } from './receivables.import';
+import { ReceivablesService } from './receivables.service';
 
-/** Account finance: balances, ageing and statements (M11, spec 9.6, decision D79). */
+/**
+ * Account finance: balances, ageing and statements (M11, spec 9.6, decision D79), and the
+ * customer's invoices and receipts (D121).
+ */
 @Module({
   imports: [AccountsModule, ImportsModule, OrdersModule, SyncModule, TenantConfigModule],
   controllers: [FinanceController],
-  providers: [FinanceService, FinanceSnapshotsImport, LedgerEntriesImport, BalancesSync],
-  exports: [FinanceService],
+  providers: [
+    FinanceService,
+    ReceivablesService,
+    FinanceSnapshotsImport,
+    LedgerEntriesImport,
+    InvoicesImport,
+    ReceiptsImport,
+    BalancesSync,
+  ],
+  exports: [FinanceService, ReceivablesService],
 })
 export class FinanceModule {}

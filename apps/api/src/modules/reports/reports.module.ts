@@ -28,6 +28,7 @@ import { GpsAuditTrailReport } from './gps-audit-trail';
 import { LocationSummaryReport } from './location-summary';
 import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
+import { OutstandingReport } from './outstanding';
 import { AuditLogReport } from './audit-log-report';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
@@ -77,6 +78,7 @@ import { TargetAchievementReport } from './target-achievement';
     GpsAuditTrailReport,
     OrdersRegisterReport,
     AccountStatementReport,
+    OutstandingReport,
     AuditLogReport,
   ],
 })

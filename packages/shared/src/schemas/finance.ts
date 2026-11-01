@@ -70,9 +70,79 @@ export const LedgerEntriesResult = z.object({
 });
 
 /** `GET /v1/accounts/{id}/finance`: the latest snapshot and the ones before it. */
+/** An account's receivables from its invoices on a day (BR-51, decision D121). */
+export const Receivables = z
+  .object({
+    asOf: CalendarDate,
+    /** Open invoices less any advance; negative when the advance is larger. */
+    outstanding: z.string(),
+    notDue: z.string(),
+    overdue: z.string(),
+    ageing: z.record(Key, z.string()),
+    oldestDue: CalendarDate.nullable(),
+    advance: z.string(),
+    /** The credit limit of the latest snapshot, if any. */
+    creditLimit: z.string().nullable(),
+  })
+  .meta({ id: 'Receivables' });
+
 export const AccountFinanceResult = z.object({
   latest: FinanceSnapshot.nullable(),
   history: z.array(FinanceSnapshot),
+  /** Worked out from the account's invoices once it has any (D121); null otherwise. */
+  receivables: Receivables.nullable(),
+});
+
+/** `GET /v1/accounts/{id}/invoices`: open ones, or every one, newest due date first. */
+export const AccountInvoiceQuery = z.strictObject({
+  status: z.enum(['open', 'all']).default('open'),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  cursor: z.string().max(200).optional(),
+});
+
+export const AccountInvoiceRow = z.object({
+  id: z.uuid(),
+  number: z.string(),
+  date: CalendarDate,
+  dueDate: CalendarDate,
+  amount: z.string(),
+  /** What is still to be paid (BR-51); 0.00 when settled or cancelled. */
+  open: z.string(),
+  /** Days past due today, or null while not due or once settled. */
+  daysPastDue: z.int().nullable(),
+  cancelled: z.boolean(),
+  /** The receipts that settled it, with how much each. */
+  settledBy: z.array(z.object({ receipt: z.string(), amount: z.string() })),
+});
+
+export const AccountInvoiceListResult = z.object({
+  items: z.array(AccountInvoiceRow),
+  nextCursor: z.string().nullable(),
+});
+
+/** `GET /v1/accounts/{id}/receipts`: newest first. */
+export const AccountReceiptQuery = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  cursor: z.string().max(200).optional(),
+});
+
+export const RECEIPT_KINDS = ['receipt', 'credit_note'] as const;
+
+export const AccountReceiptRow = z.object({
+  id: z.uuid(),
+  number: z.string(),
+  date: CalendarDate,
+  amount: z.string(),
+  kind: z.enum(RECEIPT_KINDS),
+  against: z.array(z.string()),
+  cancelled: z.boolean(),
+  /** The invoices it settled, with how much each. */
+  settled: z.array(z.object({ invoice: z.string(), amount: z.string() })),
+});
+
+export const AccountReceiptListResult = z.object({
+  items: z.array(AccountReceiptRow),
+  nextCursor: z.string().nullable(),
 });
 
 export const StatementQuery = z.strictObject({
@@ -108,5 +178,12 @@ export type FinanceSnapshot = z.infer<typeof FinanceSnapshot>;
 export type LedgerEntriesBody = z.output<typeof LedgerEntriesBody>;
 export type LedgerEntriesResult = z.infer<typeof LedgerEntriesResult>;
 export type AccountFinanceResult = z.infer<typeof AccountFinanceResult>;
+export type ReceivablesResult = z.infer<typeof Receivables>;
+export type AccountInvoiceQuery = z.output<typeof AccountInvoiceQuery>;
+export type AccountInvoiceRow = z.infer<typeof AccountInvoiceRow>;
+export type AccountInvoiceListResult = z.infer<typeof AccountInvoiceListResult>;
+export type AccountReceiptQuery = z.output<typeof AccountReceiptQuery>;
+export type AccountReceiptRow = z.infer<typeof AccountReceiptRow>;
+export type AccountReceiptListResult = z.infer<typeof AccountReceiptListResult>;
 export type StatementQuery = z.output<typeof StatementQuery>;
 export type StatementResult = z.infer<typeof StatementResult>;

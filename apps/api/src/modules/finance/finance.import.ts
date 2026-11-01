@@ -24,7 +24,7 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { FinanceService } from './finance.service';
 
 /** An amount cell as a `Money` string: ₹, commas and spaces allowed (Appendix B). */
-function amountOf(text: string): string | null {
+export function amountOf(text: string): string | null {
   const cleaned = text.replace(/[₹,\s]/g, '');
   return Money.safeParse(cleaned).success ? cleaned : null;
 }

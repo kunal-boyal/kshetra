@@ -1,6 +1,10 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query } from '@nestjs/common';
 import {
   AccountFinanceResult,
+  AccountInvoiceListResult,
+  AccountInvoiceQuery,
+  AccountReceiptListResult,
+  AccountReceiptQuery,
   FinanceSnapshot,
   FinanceSnapshotBody,
   IdParams,
@@ -15,6 +19,7 @@ import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { pathId } from '../iam/actor';
 import { FinanceService } from './finance.service';
+import { ReceivablesService } from './receivables.service';
 
 /** Account finance (M11, spec 11.2, decision D79). */
 @Controller('v1')
@@ -22,6 +27,7 @@ export class FinanceController {
   constructor(
     private readonly database: Database,
     private readonly finance: FinanceService,
+    private readonly receivables: ReceivablesService,
   ) {}
 
   @Post('finance-snapshots')
@@ -97,6 +103,40 @@ export class FinanceController {
     const input = StatementQuery.parse(query);
     return this.database.forTenant(access.tenantId, (tx) =>
       this.finance.statement(tx, access, accountId, input.year),
+    );
+  }
+
+  @Get('accounts/:id/invoices')
+  @Contract({
+    tag: 'Finance',
+    summary: "An account's invoices from its books, with what each still has open (BR-51)",
+    params: IdParams,
+    query: AccountInvoiceQuery,
+    response: AccountInvoiceListResult,
+  })
+  @Requires('finance.view')
+  invoices(@CurrentAccess() access: Access, @Param('id') id: string, @Query() query: unknown) {
+    const accountId = pathId(id);
+    const input = AccountInvoiceQuery.parse(query);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.receivables.invoiceList(tx, access, accountId, input),
+    );
+  }
+
+  @Get('accounts/:id/receipts')
+  @Contract({
+    tag: 'Finance',
+    summary: "An account's receipts and credit notes, with the invoices each settled (BR-51)",
+    params: IdParams,
+    query: AccountReceiptQuery,
+    response: AccountReceiptListResult,
+  })
+  @Requires('finance.view')
+  receipts(@CurrentAccess() access: Access, @Param('id') id: string, @Query() query: unknown) {
+    const accountId = pathId(id);
+    const input = AccountReceiptQuery.parse(query);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.receivables.receiptList(tx, access, accountId, input),
     );
   }
 }
