@@ -2324,6 +2324,7 @@
                         "account_finance",
                         "expenses",
                         "payroll_inputs",
+                        "statutory_payroll",
                         "integrations",
                         "sso",
                         "advanced_analytics"
@@ -4306,6 +4307,7 @@
                         "account_finance",
                         "expenses",
                         "payroll_inputs",
+                        "statutory_payroll",
                         "integrations",
                         "sso",
                         "advanced_analytics"
@@ -9485,6 +9487,12 @@
                 "leave.decided",
                 "leave.years_closed",
                 "payroll.gross_changed",
+                "salary.structure_changed",
+                "statutory.profile_changed",
+                "pay_run.created",
+                "pay_run.recomputed",
+                "pay_run.approved",
+                "pay_adjustment.added",
                 "expense_policies.changed",
                 "expense.claimed",
                 "expense.receipts_added",
@@ -9768,6 +9776,12 @@
                               "leave.decided",
                               "leave.years_closed",
                               "payroll.gross_changed",
+                              "salary.structure_changed",
+                              "statutory.profile_changed",
+                              "pay_run.created",
+                              "pay_run.recomputed",
+                              "pay_run.approved",
+                              "pay_adjustment.added",
                               "expense_policies.changed",
                               "expense.claimed",
                               "expense.receipts_added",
@@ -11291,6 +11305,24 @@
                               "account_finance",
                               "expenses",
                               "payroll_inputs",
+                              "statutory_payroll",
+                              "integrations",
+                              "sso",
+                              "advanced_analytics"
+                            ]
+                          }
+                        },
+                        "modulesOn": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "leave_attendance",
+                              "orders",
+                              "account_finance",
+                              "expenses",
+                              "payroll_inputs",
+                              "statutory_payroll",
                               "integrations",
                               "sso",
                               "advanced_analytics"
@@ -11501,6 +11533,7 @@
                         "mapsWebKey",
                         "privacyPolicyUrl",
                         "modulesOff",
+                        "modulesOn",
                         "timezone",
                         "currency",
                         "defaultCountry",
@@ -14249,6 +14282,12 @@
                           "leave.decided",
                           "leave.years_closed",
                           "payroll.gross_changed",
+                          "salary.structure_changed",
+                          "statutory.profile_changed",
+                          "pay_run.created",
+                          "pay_run.recomputed",
+                          "pay_run.approved",
+                          "pay_adjustment.added",
                           "expense_policies.changed",
                           "expense.claimed",
                           "expense.receipts_added",
@@ -18160,6 +18199,258 @@
         }
       }
     },
+    "/v1/pay-adjustments": {
+      "post": {
+        "operationId": "StatutoryPayrollController.adjust",
+        "summary": "Add an earning or deduction to a person’s month, with your own ID",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: payroll.run",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayAdjustmentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success, with no body"
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pay-runs": {
+      "post": {
+        "operationId": "StatutoryPayrollController.create",
+        "summary": "Start a month's pay run as a draft, worked out now; an existing run is answered as it is",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: payroll.run",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayRunBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayRunResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pay-runs/{period}": {
+      "get": {
+        "operationId": "StatutoryPayrollController.run",
+        "summary": "A month's pay run and each person's totals",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: payroll.run",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayRunResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pay-runs/{period}/approve": {
+      "post": {
+        "operationId": "StatutoryPayrollController.approve",
+        "summary": "Approve a draft pay run at the version you saw, freezing its payslips",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: payroll.run",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayRunApproveBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayRunResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pay-runs/{period}/recompute": {
+      "post": {
+        "operationId": "StatutoryPayrollController.recompute",
+        "summary": "Work a draft pay run out again from today’s structures, days and adjustments",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: payroll.run",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayRunResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/payroll": {
       "get": {
         "operationId": "PayrollController.list",
@@ -19725,6 +20016,12 @@
                           "leave.decided",
                           "leave.years_closed",
                           "payroll.gross_changed",
+                          "salary.structure_changed",
+                          "statutory.profile_changed",
+                          "pay_run.created",
+                          "pay_run.recomputed",
+                          "pay_run.approved",
+                          "pay_adjustment.added",
                           "expense_policies.changed",
                           "expense.claimed",
                           "expense.receipts_added",
@@ -20071,6 +20368,12 @@
                           "leave.decided",
                           "leave.years_closed",
                           "payroll.gross_changed",
+                          "salary.structure_changed",
+                          "statutory.profile_changed",
+                          "pay_run.created",
+                          "pay_run.recomputed",
+                          "pay_run.approved",
+                          "pay_adjustment.added",
                           "expense_policies.changed",
                           "expense.claimed",
                           "expense.receipts_added",
@@ -20515,6 +20818,12 @@
                 "leave.decided",
                 "leave.years_closed",
                 "payroll.gross_changed",
+                "salary.structure_changed",
+                "statutory.profile_changed",
+                "pay_run.created",
+                "pay_run.recomputed",
+                "pay_run.approved",
+                "pay_adjustment.added",
                 "expense_policies.changed",
                 "expense.claimed",
                 "expense.receipts_added",
@@ -21624,6 +21933,112 @@
         }
       }
     },
+    "/v1/salary-structures/{userId}": {
+      "get": {
+        "operationId": "StatutoryPayrollController.structures",
+        "summary": "A person's salary structure, each change with the month it applies from",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: salary.manage",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalaryStructureResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "StatutoryPayrollController.setStructure",
+        "summary": "Set a person's salary structure from a month; months already paid keep theirs",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: salary.manage",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalaryStructureBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalaryStructureResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/schemes": {
       "get": {
         "operationId": "SchemesController.list",
@@ -21942,6 +22357,24 @@
                         "account_finance",
                         "expenses",
                         "payroll_inputs",
+                        "statutory_payroll",
+                        "integrations",
+                        "sso",
+                        "advanced_analytics"
+                      ]
+                    }
+                  },
+                  "modulesOn": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "leave_attendance",
+                        "orders",
+                        "account_finance",
+                        "expenses",
+                        "payroll_inputs",
+                        "statutory_payroll",
                         "integrations",
                         "sso",
                         "advanced_analytics"
@@ -22242,6 +22675,24 @@
                           "account_finance",
                           "expenses",
                           "payroll_inputs",
+                          "statutory_payroll",
+                          "integrations",
+                          "sso",
+                          "advanced_analytics"
+                        ]
+                      }
+                    },
+                    "modulesOn": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "leave_attendance",
+                          "orders",
+                          "account_finance",
+                          "expenses",
+                          "payroll_inputs",
+                          "statutory_payroll",
                           "integrations",
                           "sso",
                           "advanced_analytics"
@@ -22452,6 +22903,7 @@
                     "mapsWebKey",
                     "privacyPolicyUrl",
                     "modulesOff",
+                    "modulesOn",
                     "timezone",
                     "currency",
                     "defaultCountry",
@@ -23180,6 +23632,169 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SsoConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/statutory-payslips/{userId}/{period}": {
+      "get": {
+        "operationId": "StatutoryPayrollController.payslip",
+        "summary": "A person's statutory payslip for a month: their own once approved, or anyone's for payroll",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Any one of: payroll.run, payslip.view",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatutoryPayslip"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/statutory-profiles/{userId}": {
+      "get": {
+        "operationId": "StatutoryPayrollController.profile",
+        "summary": "A person's work state, PF and ESI details for payslips",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: salary.manage",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatutoryProfileResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "StatutoryPayrollController.setProfile",
+        "summary": "Set a person's work state, PF and ESI details",
+        "tags": [
+          "Payroll"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: salary.manage",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatutoryProfileBodyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatutoryProfileResult"
                 }
               }
             }
@@ -26804,6 +27419,12 @@
                               "leave.decided",
                               "leave.years_closed",
                               "payroll.gross_changed",
+                              "salary.structure_changed",
+                              "statutory.profile_changed",
+                              "pay_run.created",
+                              "pay_run.recomputed",
+                              "pay_run.approved",
+                              "pay_adjustment.added",
                               "expense_policies.changed",
                               "expense.claimed",
                               "expense.receipts_added",
@@ -35453,6 +36074,12 @@
                   "leave.decided",
                   "leave.years_closed",
                   "payroll.gross_changed",
+                  "salary.structure_changed",
+                  "statutory.profile_changed",
+                  "pay_run.created",
+                  "pay_run.recomputed",
+                  "pay_run.approved",
+                  "pay_adjustment.added",
                   "expense_policies.changed",
                   "expense.claimed",
                   "expense.receipts_added",
@@ -37327,6 +37954,7 @@
               "holidays",
               "external_metrics",
               "payroll_gross",
+              "salary_structures",
               "sell_through",
               "forecasts"
             ]
@@ -37354,6 +37982,7 @@
               "holidays",
               "external_metrics",
               "payroll_gross",
+              "salary_structures",
               "sell_through",
               "forecasts"
             ]
@@ -41228,6 +41857,53 @@
         ],
         "additionalProperties": false
       },
+      "PayAdjustmentBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "earning",
+              "deduction"
+            ]
+          },
+          "key": {
+            "$ref": "#/components/schemas/Key"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^\\d{1,12}(?:\\.\\d{1,2})?$"
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "period",
+          "kind",
+          "key",
+          "amount",
+          "note"
+        ],
+        "additionalProperties": false
+      },
       "PayrollGrossBody": {
         "type": "object",
         "properties": {
@@ -41347,6 +42023,209 @@
           "paid",
           "amount",
           "toDate"
+        ],
+        "additionalProperties": false
+      },
+      "PayRunApproveBody": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "PayRunBody": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          }
+        },
+        "required": [
+          "period"
+        ],
+        "additionalProperties": false
+      },
+      "PayRunResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "approved"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "rateSet": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              }
+            },
+            "required": [
+              "id",
+              "from"
+            ],
+            "additionalProperties": false
+          },
+          "reviewed": {
+            "type": "boolean"
+          },
+          "approvedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "approvedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "code",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "gross": {
+                "type": "string"
+              },
+              "deductions": {
+                "type": "string"
+              },
+              "net": {
+                "type": "string"
+              },
+              "employer": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "gross",
+              "deductions",
+              "net",
+              "employer"
+            ],
+            "additionalProperties": false
+          },
+          "payslips": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "user": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "gross": {
+                  "type": "string"
+                },
+                "totalDeductions": {
+                  "type": "string"
+                },
+                "net": {
+                  "type": "string"
+                },
+                "flags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "user",
+                "gross",
+                "totalDeductions",
+                "net",
+                "flags"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "period",
+          "status",
+          "version",
+          "rateSet",
+          "reviewed",
+          "approvedAt",
+          "approvedBy",
+          "totals",
+          "payslips"
         ],
         "additionalProperties": false
       },
@@ -41588,6 +42467,8 @@
           "expense.mark_paid",
           "payroll.manage",
           "payslip.view",
+          "payroll.run",
+          "salary.manage",
           "report.view",
           "export.create",
           "report.schedule",
@@ -42185,6 +43066,7 @@
                 "account_finance",
                 "expenses",
                 "payroll_inputs",
+                "statutory_payroll",
                 "integrations",
                 "sso",
                 "advanced_analytics"
@@ -42368,6 +43250,7 @@
                 "account_finance",
                 "expenses",
                 "payroll_inputs",
+                "statutory_payroll",
                 "integrations",
                 "sso",
                 "advanced_analytics"
@@ -42652,6 +43535,24 @@
                 "account_finance",
                 "expenses",
                 "payroll_inputs",
+                "statutory_payroll",
+                "integrations",
+                "sso",
+                "advanced_analytics"
+              ]
+            }
+          },
+          "modulesOn": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "leave_attendance",
+                "orders",
+                "account_finance",
+                "expenses",
+                "payroll_inputs",
+                "statutory_payroll",
                 "integrations",
                 "sso",
                 "advanced_analytics"
@@ -42921,6 +43822,7 @@
                 "account_finance",
                 "expenses",
                 "payroll_inputs",
+                "statutory_payroll",
                 "integrations",
                 "sso",
                 "advanced_analytics"
@@ -43983,6 +44885,7 @@
           "outstanding",
           "audit_log",
           "payroll_summary",
+          "pay_register",
           "sell_through",
           "forecast_accuracy"
         ]
@@ -44249,6 +45152,12 @@
                   "leave.decided",
                   "leave.years_closed",
                   "payroll.gross_changed",
+                  "salary.structure_changed",
+                  "statutory.profile_changed",
+                  "pay_run.created",
+                  "pay_run.recomputed",
+                  "pay_run.approved",
+                  "pay_adjustment.added",
                   "expense_policies.changed",
                   "expense.claimed",
                   "expense.receipts_added",
@@ -44693,6 +45602,12 @@
                   "leave.decided",
                   "leave.years_closed",
                   "payroll.gross_changed",
+                  "salary.structure_changed",
+                  "statutory.profile_changed",
+                  "pay_run.created",
+                  "pay_run.recomputed",
+                  "pay_run.approved",
+                  "pay_adjustment.added",
                   "expense_policies.changed",
                   "expense.claimed",
                   "expense.receipts_added",
@@ -45495,6 +46410,150 @@
           "recurrence",
           "accounts",
           "active"
+        ],
+        "additionalProperties": false
+      },
+      "SalaryStructureBody": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "basic": {
+            "type": "string",
+            "pattern": "^\\d{1,12}(?:\\.\\d{1,2})?$"
+          },
+          "da": {
+            "default": "0",
+            "type": "string",
+            "pattern": "^\\d{1,12}(?:\\.\\d{1,2})?$"
+          },
+          "hra": {
+            "default": "0",
+            "type": "string",
+            "pattern": "^\\d{1,12}(?:\\.\\d{1,2})?$"
+          },
+          "conveyance": {
+            "default": "0",
+            "type": "string",
+            "pattern": "^\\d{1,12}(?:\\.\\d{1,2})?$"
+          },
+          "special": {
+            "default": "0",
+            "type": "string",
+            "pattern": "^\\d{1,12}(?:\\.\\d{1,2})?$"
+          },
+          "others": {
+            "default": [],
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/Key"
+                },
+                "amount": {
+                  "type": "string",
+                  "pattern": "^\\d{1,12}(?:\\.\\d{1,2})?$"
+                },
+                "excluded": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "key",
+                "amount",
+                "excluded"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "basic"
+        ],
+        "additionalProperties": false
+      },
+      "SalaryStructureResult": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "basic": {
+                  "type": "string"
+                },
+                "da": {
+                  "type": "string"
+                },
+                "hra": {
+                  "type": "string"
+                },
+                "conveyance": {
+                  "type": "string"
+                },
+                "special": {
+                  "type": "string"
+                },
+                "others": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "string"
+                      },
+                      "excluded": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "amount",
+                      "excluded"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "from": {
+                  "$ref": "#/components/schemas/Period"
+                },
+                "wages": {
+                  "type": "string"
+                },
+                "gross": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "basic",
+                "da",
+                "hra",
+                "conveyance",
+                "special",
+                "others",
+                "from",
+                "wages",
+                "gross"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "changes"
         ],
         "additionalProperties": false
       },
@@ -47292,6 +48351,427 @@
         ],
         "additionalProperties": false
       },
+      "StatutoryPayslip": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "approved"
+            ]
+          },
+          "profile": {
+            "$ref": "#/components/schemas/StatutoryProfileBody"
+          },
+          "structure": {
+            "type": "object",
+            "properties": {
+              "basic": {
+                "type": "string"
+              },
+              "da": {
+                "type": "string"
+              },
+              "hra": {
+                "type": "string"
+              },
+              "conveyance": {
+                "type": "string"
+              },
+              "special": {
+                "type": "string"
+              },
+              "others": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "excluded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "amount",
+                    "excluded"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "basic",
+              "da",
+              "hra",
+              "conveyance",
+              "special",
+              "others"
+            ],
+            "additionalProperties": false
+          },
+          "scheduled": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "paid": {
+            "type": "number"
+          },
+          "esiCovered": {
+            "type": "boolean"
+          },
+          "wages": {
+            "type": "string"
+          },
+          "earnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "amount"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "deductions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "amount"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "employer": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "amount"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "gross": {
+            "type": "string"
+          },
+          "totalDeductions": {
+            "type": "string"
+          },
+          "net": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rateSetId": {
+            "type": "string"
+          },
+          "reviewed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user",
+          "period",
+          "status",
+          "profile",
+          "structure",
+          "scheduled",
+          "paid",
+          "esiCovered",
+          "wages",
+          "earnings",
+          "deductions",
+          "employer",
+          "gross",
+          "totalDeductions",
+          "net",
+          "flags",
+          "rateSetId",
+          "reviewed"
+        ],
+        "additionalProperties": false
+      },
+      "StatutoryProfileBody": {
+        "type": "object",
+        "properties": {
+          "workState": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "MH",
+                  "KA",
+                  "MP",
+                  "GJ",
+                  "TS"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ptWomen": {
+            "default": false,
+            "type": "boolean"
+          },
+          "pfMember": {
+            "default": true,
+            "type": "boolean"
+          },
+          "pfFullWage": {
+            "default": false,
+            "type": "boolean"
+          },
+          "uan": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "esiNumber": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{10}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "panOnFile": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "workState",
+          "ptWomen",
+          "pfMember",
+          "pfFullWage",
+          "uan",
+          "esiNumber",
+          "panOnFile"
+        ],
+        "additionalProperties": false
+      },
+      "StatutoryProfileBodyInput": {
+        "type": "object",
+        "properties": {
+          "workState": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "MH",
+                  "KA",
+                  "MP",
+                  "GJ",
+                  "TS"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ptWomen": {
+            "default": false,
+            "type": "boolean"
+          },
+          "pfMember": {
+            "default": true,
+            "type": "boolean"
+          },
+          "pfFullWage": {
+            "default": false,
+            "type": "boolean"
+          },
+          "uan": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "esiNumber": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{10}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "panOnFile": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "workState"
+        ],
+        "additionalProperties": false
+      },
+      "StatutoryProfileResult": {
+        "type": "object",
+        "properties": {
+          "workState": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "MH",
+                  "KA",
+                  "MP",
+                  "GJ",
+                  "TS"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ptWomen": {
+            "default": false,
+            "type": "boolean"
+          },
+          "pfMember": {
+            "default": true,
+            "type": "boolean"
+          },
+          "pfFullWage": {
+            "default": false,
+            "type": "boolean"
+          },
+          "uan": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "esiNumber": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{10}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "panOnFile": {
+            "default": false,
+            "type": "boolean"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "workState",
+          "ptWomen",
+          "pfMember",
+          "pfFullWage",
+          "uan",
+          "esiNumber",
+          "panOnFile",
+          "userId"
+        ],
+        "additionalProperties": false
+      },
       "SubmissionResult": {
         "type": "object",
         "properties": {
@@ -49075,6 +50555,7 @@
                 "account_finance",
                 "expenses",
                 "payroll_inputs",
+                "statutory_payroll",
                 "integrations",
                 "sso",
                 "advanced_analytics"
@@ -49092,6 +50573,7 @@
                 "account_finance",
                 "expenses",
                 "payroll_inputs",
+                "statutory_payroll",
                 "integrations",
                 "sso",
                 "advanced_analytics"

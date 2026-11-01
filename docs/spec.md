@@ -641,6 +641,11 @@ Rules: BR-29, BR-30, BR-31.
 - A payslip preview, printed through the browser (D99), with the tenant's legal name and a statement that it is an attendance-based estimate.
 - The payroll summary report: each person's days by status, paid and scheduled days and provisional pay for a month, exported for payroll providers; direct integrations in version 2.
 
+Statutory payroll (D128), an opt-in module, off until an admin switches it on and labelled as awaiting a chartered accountant's review until the vendor records one:
+- Each person's salary structure from a month and a statutory profile: work state, PF membership and option, UAN, ESI number, and whether the PAN is on file (the PAN itself is never kept).
+- A month's pay run: earnings for the days paid, PF, ESI, professional tax, the labour welfare fund and TDS under the new regime (BR-56 to BR-58), on the vendor's rate set in force; approving it freezes every payslip, and corrections are adjustments in a later month.
+- The pay register report and the payslip printed through the browser (D99). Filing (ECR, ESI returns, Form 16) stays with the employer's accountant.
+
 ### M15. Approvals inbox
 
 - One inbox on web and mobile for every request waiting for the signed-in user, grouped by type, with counts, filters and bulk approval where the request type allows it.
@@ -837,6 +842,9 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-53 | Sell-through by item (D124): sold through = opening + received − returned − closing, per item and month, in the item's base unit; opening comes forward from last month's closing, and an opening typed otherwise, or a negative sold-through, is flagged, never refused. A month's statement may change while it runs and for 5 days after; each save is a new version keeping the items it doesn't change, and the latest counts. It counts for whoever saved the latest version (for an import, the account's first-slot holder that day, else the importer) on the day it was saved, or the month's last day when saved after it, valued at the account's price that day before tax |
 | BR-54 | Product forecasts (D126): a forecast covers the three months after today's on the tenant's clock, per account and item in the item's base unit. A month is open until its 1st; after that it changes only with `forecast.adjust` and a reason, marked as after the lock, and a past month never changes. Each save is a new version keeping the items it doesn't name, 0 taking one out; the latest counts. Accuracy for an account's month is 1 − Σ|actual − forecast| ÷ Σforecast over its items, never below 0, and blank when nothing was forecast; actual is the base units ordered on accepted orders while the orders module is on, else sold through (BR-53) |
 | BR-55 | Schemes (D127): a scheme reaches a line when it is active, the order's date on the tenant's clock is within its dates, and the item (or its category), the account's type and the account's territory (or one above it) are among those it names, an empty list meaning any. A percentage takes `round(taxable × % / 100, 2)` off the line's taxable after the price list's discount; an amount per unit takes `round(amount × base units, 2)`, at most the taxable; slabs take the percentage of the highest slab reached by the base units of every line in the order the scheme reaches; free goods give `floor(base units ÷ buy) × get` base units of the free item at price 0. Each line takes the scheme worth most (discount plus free goods at the free item's net rate for the account), ties going to the earlier start date, then the lower key. Tax and total follow the lower taxable (BR-12) |
+| BR-56 | Statutory wages and earnings (D128): wages are basic, DA, special allowance and allowances not excluded; when the excluded allowances exceed half the remuneration, the excess counts as wages. Each component is earned as BR-26 prorates gross, `round(amount × min(paid, scheduled) ÷ scheduled, 2)` |
+| BR-57 | Statutory deductions (D128): PF 12% of earned wages on the ceiling unless opted for the full wage, the employer's 12% split into EPS (8.33% on the ceiling) and EPF, each to the rupee; ESI 0.75% and 3.25% of earned wages, up to the rupee, for those whose wages at the contribution period's start were within the limit, nothing from the employee under the daily floor; professional tax by the work state's slabs (monthly or on the year's gross, with February's or March's amount); the labour welfare fund in its months. Rates come from the set in force on the month's last day |
+| BR-58 | TDS on salary, new regime (D128): the year's income is what earlier months of the financial year paid, this month's gross and the structure's gross for each month left, less the standard deduction; tax by the slabs, the rebate up to its limit with marginal relief, then cess, to the rupee; this month's TDS is what is not yet deducted over the months left, this one included. Surcharge, no PAN on file and other income are flagged, not worked out |
 
 ## 8. Screens and user experience
 
@@ -1341,6 +1349,11 @@ attendance_days(tid, user_id, date, status, value, first_in, last_out, hours, so
        PK(tid, user_id, date) · PART monthly once volumes need it (D47)
 attendance_policies(tid, rule jsonb)                                         PK(tid)
 payroll_gross(tid, user_id, from_period, monthly_gross, updated_by, updated_at) PK(tid, user_id, from_period) (D117)
+salary_structures(tid, user_id, from_period, basic, da, hra, conveyance, special, others jsonb) PK(tid, user_id, from_period) (D128)
+statutory_profiles(tid, user_id, work_state, pt_women, pf_member, pf_full_wage, uan, esi_number, pan_on_file) PK(tid, user_id)
+pay_runs(tid, id, period, status draft|approved, rate_set_id, rules_version, version, approved_by, approved_at) UQ(tid, period)
+payslips(tid, pay_run_id, user_id, period, included, structure jsonb, profile jsonb, paid_halves, scheduled, esi_covered, figures jsonb, gross, tds, net) PK(tid, pay_run_id, user_id)
+pay_adjustments(tid, id, user_id, period, kind earning|deduction, key, amount, note)
 expense_policies(tid, key, current_version, active, position)                PK(tid, key) (D83)
 expense_policy_versions(tid, policy_key, version, definition jsonb, valid_from) PK(tid, policy_key, version)
 expense_claims(id, tid, user_id, policy_key, policy_version, expense_date, description, quantity,
@@ -2008,7 +2021,7 @@ Routes: Employee code*, Route name*, Recurrence* (for example `MON`, `TUE,FRI` o
 
 ### B.7 Holidays and payroll gross
 
-Holidays: Calendar*, Date*, Name*, Optional (Yes or No). Payroll gross: Employee code*, Monthly gross*, From month (this month when blank, D117).
+Holidays: Calendar*, Date*, Name*, Optional (Yes or No). Payroll gross: Employee code*, Monthly gross*, From month (this month when blank, D117). Salary structures: Employee code*, From month (this month when blank), Basic*, DA, HRA, Conveyance, Special allowance (D128).
 
 ## Appendix C. State machines
 
@@ -2206,6 +2219,17 @@ Each example becomes at least one automated test.
 | FX-56 | BR-55 | Slabs 2%, 4% and 6% from 100, 250 and 500 packs of a category; 156 packs (56,160.00) and 120 packs (6,000.00) of it | 4% on both: 2,246.40 and 240.00 |
 | FX-57 | BR-55 | Buy 10 get 1; lines of 25 and 9 packs | 2 packs free; none |
 | FX-58 | BR-55 | A scheme ended the day before, for another territory, or for another account type | Not applied |
+| FX-59 | BR-57 | PF on 12,000; on 15,000; on 20,000 without and with the full-wage option; on 20,000 from 17 September 2026 | 1,440 (EPS 1,000); 1,800 (EPS 1,250); 1,800, then 2,400; 2,400 (EPS 1,666) |
+| FX-60 | BR-57 | ESI wages 21,000 and 21,001 at the period's start | Covered; not covered |
+| FX-61 | BR-57 | ESI on 18,000, 15,500 and 4,500 | 135 and 585; 117 and 504; nil and 147 |
+| FX-62 | BR-57 | Months November 2026, February 2027 and May 2026 | Contribution periods from October, October and April |
+| FX-63 | BR-56 | 25,000 with 12,000 excluded; 25,000 with 17,000 excluded | Wages 13,000; 12,500 |
+| FX-64 | BR-57 | Maharashtra: 7,500, 9,000, 15,000 in November and February; women 20,000 and 30,000 in February | Nil, 175, 200, 300; nil, 300 |
+| FX-65 | BR-57 | Karnataka 24,999 and 25,000 (and February); Gujarat 11,999 and 12,000; Telangana 18,000 and 25,000 | Nil, 200, 300; nil, 200; 150, 200 |
+| FX-66 | BR-57 | Madhya Pradesh yearly 2,16,000, 2,40,000, 3,60,000 (and March), 4,80,000 in March; Maharashtra fund in June and July | Nil, 125, 166, 174, 212; 25 and 75, then nil |
+| FX-67 | BR-58 | 1,50,000 a month from April; 1,00,000 from October | 12,567 a month; nil |
+| FX-68 | BR-58 | Nine months at 1,50,000 with 1,13,103 deducted, then 2,00,000 from January | 22,966 a month for the rest of the year |
+| FX-69 | BR-58 | Income 12,00,000; 12,10,000; 13,00,000 | Nil; 10,400 (marginal relief); 78,000 |
 
 ## Appendix E. Permission catalogue
 
@@ -2223,7 +2247,7 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | Configuration | `settings.manage`, `terminology.manage`, `form.manage`, `metric.manage`, `workflow.manage`, `policy.manage`, `notification_template.manage`, `module.manage` |
 | Catalogue and orders | `catalogue.manage`, `price_list.manage`, `order.create`, `order.create_without_shift`, `order.view`, `order.decide`, `order.line_decide`, `order.fulfil`, `scheme.manage` (D127) |
 | Finance | `finance.view`, `finance.manage` |
-| People operations | `leave.request`, `regularisation.request`, `expense.claim`, `approval.act`, `calendar.manage`, `leave_type.manage`, `expense_policy.manage`, `expense.mark_paid`, `payroll.manage`, `payslip.view` |
+| People operations | `leave.request`, `regularisation.request`, `expense.claim`, `approval.act`, `calendar.manage`, `leave_type.manage`, `expense_policy.manage`, `expense.mark_paid`, `payroll.manage`, `payslip.view`, `payroll.run`, `salary.manage` (D128) |
 | Data | `report.view`, `export.create`, `report.schedule`, `dashboard.manage`, `import.run`, `audit.view` (`report.schedule` and `dashboard.manage` belong to the advanced analytics module, D122) |
 | Integrations and billing | `api_client.manage`, `webhook.manage`, `billing.manage` |
 | Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.flags.manage`, `platform.billing.manage`, `platform.staff.manage` (inviting and disabling vendor staff, decision D88) |

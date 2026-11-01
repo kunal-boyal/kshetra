@@ -2,6 +2,7 @@ import {
   AVAILABLE_MODULES,
   MODULE_KEYS,
   type ModuleKey,
+  OPT_IN_MODULES,
   type SwitchableModule,
 } from '@thelamp/shared';
 import type { MessageKey } from '@thelamp/i18n';
@@ -45,7 +46,11 @@ export function ModulesPage() {
     setBusy(true);
     setError(undefined);
     try {
-      await admin.saveSettings({ modulesOff: current });
+      // Opt-in modules switch on only when named on (decision D128).
+      await admin.saveSettings({
+        modulesOff: current,
+        modulesOn: OPT_IN_MODULES.filter((module) => !current.includes(module)),
+      });
       setOff(undefined);
       setDone(true);
     } catch (caught) {

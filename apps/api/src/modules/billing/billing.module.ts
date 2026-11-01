@@ -7,6 +7,7 @@ import { BillingController } from './billing.controller';
 import { BillingCycle } from './billing-cycle';
 import { BillingNotices } from './billing-notices';
 import { BillingSettings } from './billing-settings.service';
+import { StatutoryRatesService } from './statutory-rates.service';
 import { DunningService } from './dunning.service';
 import { EntitlementsService } from './entitlements.service';
 import { ExamplePlans } from './example-plans';
@@ -33,6 +34,7 @@ import { UsageService } from './usage.service';
     UsageService,
     ExamplePlans,
     BillingSettings,
+    StatutoryRatesService,
     BillingNotices,
     DunningService,
     InvoicesService,
@@ -45,6 +47,7 @@ import { UsageService } from './usage.service';
     UsageService,
     ExamplePlans,
     BillingSettings,
+    StatutoryRatesService,
     TenantBillingService,
     InvoicesService,
     BillingCycle,

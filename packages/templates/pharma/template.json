@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "pharma",
-  "version": 5,
+  "version": 6,
   "name": {
     "en": "Pharma",
     "hi": "फ़ार्मा"
@@ -133,7 +133,9 @@
         "sell_through.record",
         "forecast.record",
         "forecast.adjust",
-        "scheme.manage"
+        "scheme.manage",
+        "payroll.run",
+        "salary.manage"
       ]
     },
     {

@@ -6,6 +6,7 @@ import type {
   DeviceInfo,
   ModuleKey,
   PlanLimitValues,
+  StatutoryRateSet,
   SupportScopeKey,
   SwitchableModule,
   TenantStatus,
@@ -274,4 +275,21 @@ export abstract class TenantArchives {
   /** One export, with a day's link while it is kept; reading the link is audited. */
   abstract read(tenantId: string, id: string, by: StaffActor): Promise<DataExportResult>;
   abstract erase(tenantId: string): Promise<{ rows: number; files: number }>;
+}
+
+/** The statutory rate set in force for a month, and whether a chartered accountant reviewed it. */
+export interface StatutoryStanding {
+  set: StatutoryRateSet | null;
+  reviewed: boolean;
+}
+
+/**
+ * The vendor's statutory rates as dated configuration (decision D128), kept by the directory and
+ * read by cells for pay runs: the set in force on a month's last day, and a set by its ID for a
+ * frozen payslip.
+ */
+export abstract class StatutoryRates {
+  abstract forMonth(period: string): Promise<StatutoryStanding>;
+  abstract byId(id: string): Promise<StatutoryRateSet | null>;
+  abstract reviewed(rateSetId: string): Promise<boolean>;
 }

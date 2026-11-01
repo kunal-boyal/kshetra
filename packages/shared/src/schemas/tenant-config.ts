@@ -110,6 +110,10 @@ export const TenantSettings = z.strictObject({
   modulesOff: z
     .array(z.enum(SWITCHABLE_MODULES))
     .refine((list) => new Set(list).size === list.length, 'List each module once'),
+  /** Opt-in modules the tenant switched on (decision D128); every other opt-in module is off. */
+  modulesOn: z
+    .array(z.enum(SWITCHABLE_MODULES))
+    .refine((list) => new Set(list).size === list.length, 'List each module once'),
   timezone: TimeZone,
   currency: Currency,
   defaultCountry: Country.meta({
@@ -194,6 +198,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   mapsWebKey: null,
   privacyPolicyUrl: null,
   modulesOff: [],
+  modulesOn: [],
   timezone: 'Asia/Kolkata',
   currency: 'INR',
   defaultCountry: 'IN',

@@ -13,6 +13,7 @@ export const MODULE_KEYS = [
   'account_finance',
   'expenses',
   'payroll_inputs',
+  'statutory_payroll',
   'integrations',
   'sso',
   'advanced_analytics',
@@ -36,10 +37,17 @@ export const AVAILABLE_MODULES: readonly ModuleKey[] = [
   'account_finance',
   'expenses',
   'payroll_inputs',
+  'statutory_payroll',
   'integrations',
   'sso',
   'advanced_analytics',
 ];
+
+/**
+ * Modules that stay off until a tenant's admin switches them on (decision D128): statutory payroll
+ * ships off, as an add-on awaiting a chartered accountant's review.
+ */
+export const OPT_IN_MODULES: readonly SwitchableModule[] = ['statutory_payroll'];
 
 /**
  * The permissions each module brings. Anything not listed is Core's: the catalogue stays there, as
@@ -65,6 +73,7 @@ export const MODULE_PERMISSIONS: Record<SwitchableModule, readonly TenantPermiss
   account_finance: ['finance.view', 'finance.manage'],
   expenses: ['expense.claim', 'expense_policy.manage', 'expense.mark_paid'],
   payroll_inputs: ['payroll.manage', 'payslip.view'],
+  statutory_payroll: ['payroll.run', 'salary.manage'],
   integrations: ['api_client.manage', 'webhook.manage'],
   sso: [],
   advanced_analytics: ['report.schedule', 'dashboard.manage'],

@@ -22,6 +22,7 @@ import { notFound, outOfScope } from '../iam/actor';
 import { People, type PersonFacts } from '../iam/people';
 import { Scopes } from '../iam/scopes';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { StatutoryPayrollService } from './statutory-payroll.service';
 
 type DaysByPerson = Awaited<ReturnType<AttendanceService['days']>>;
 
@@ -47,6 +48,7 @@ export class PayrollService {
     private readonly scopes: Scopes,
     private readonly config: TenantConfigService,
     private readonly audit: AuditLog,
+    private readonly statutory: StatutoryPayrollService,
   ) {}
 
   /** `PUT /v1/payroll-gross/{userId}`: a person's gross from a month, this month when left out. */
@@ -240,11 +242,15 @@ export class PayrollService {
     return this.attendance.days(tx, tenantId, ids, range.from, range.to);
   }
 
-  /** Erasure (decision D95): a person's gross goes with them. */
+  /**
+   * Erasure (decision D95): a person's gross, salary structures and statutory profile go with them
+   * (D128); payslips of approved runs stay, as payroll records the employer must keep.
+   */
   async erasePerson(tx: TenantTx, tenantId: string, userId: string): Promise<void> {
     await tx
       .delete(payrollGross)
       .where(and(eq(payrollGross.tenantId, tenantId), eq(payrollGross.userId, userId)));
+    await this.statutory.erasePerson(tx, tenantId, userId);
   }
 
   private async changes(
