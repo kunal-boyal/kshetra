@@ -20,6 +20,8 @@ import {
   MockLocationReportResult,
   ForecastResult,
   newId,
+  OrderResult,
+  type SyncScheme,
   ShiftResult,
   SellThroughResult,
   SubmissionResult,
@@ -738,5 +740,160 @@ describe('a simulated phone', () => {
         lines: [{ itemId: neem, quantity: '120' }],
       }),
     ]);
+  });
+  it('keeps schemes, places an order quoting one, and is refused once it ends (D127)', async () => {
+    const tenantId = await world.tenant('Simulated Schemes', 'active', 'agri');
+    const head = await world.user(tenantId, {
+      designation: 'business_head',
+      role: 'tenant_admin',
+    });
+    const asm = await world.user(tenantId, {
+      designation: 'asm',
+      role: 'manager',
+      managerId: head.id,
+    });
+    const sme = await world.user(tenantId, { designation: 'sme', managerId: asm.id });
+    const admin = (await world.signIn(head.phone!)).accessToken;
+    const call = (method: 'POST' | 'PUT', url: string, payload: object) =>
+      app.inject({
+        method,
+        url,
+        headers: { authorization: `Bearer ${admin}`, 'idempotency-key': newId() },
+        payload,
+      });
+    const market = await world.territory(tenantId, `M-${newId().slice(-6)}`);
+    const distributor = newId();
+    const made = await call('POST', '/v1/accounts', {
+      id: distributor,
+      type: 'distributor',
+      code: `D-${newId().slice(-6)}`,
+      name: 'Kisan Traders',
+      territoryId: market,
+      slots: { sme: sme.id, asm: asm.id },
+    });
+    expect(made.statusCode, made.body).toBe(201);
+    const neem = newId();
+    const saved = await call('PUT', `/v1/items/${neem}`, {
+      code: `NEEM${newId().slice(-4)}`,
+      name: 'Neem oil',
+      productName: 'Neem',
+      categoryName: null,
+      packLabel: '500 ML',
+      hsn: '3808',
+      taxRate: '18',
+      mrp: '450',
+      baseUnit: 'pack',
+      units: [{ key: 'case', factor: '12' }],
+      measureType: 'L',
+      measurePerBaseUnit: '0.5',
+    });
+    expect(saved.statusCode, saved.body).toBe(201);
+    const list = newId();
+    await call('PUT', `/v1/price-lists/${list}`, {
+      name: 'Standard',
+      scope: 'default',
+      validFrom: '2026-01-01',
+    });
+    await call('PUT', `/v1/price-lists/${list}/items`, {
+      set: [{ itemId: neem, price: '400', discount: '10' }],
+      version: 1,
+    });
+    const schemeId = newId();
+    const scheme = {
+      key: 'twenty_a_pack',
+      name: { en: 'Twenty a pack', hi: 'Twenty a pack' },
+      kind: 'flat_per_unit',
+      rule: { amount: '20' },
+      validFrom: '2026-01-01',
+    };
+    expect((await call('PUT', `/v1/schemes/${schemeId}`, scheme)).statusCode).toBe(201);
+
+    const phone: SimulatedPhone = await new SimulatedPhone(
+      newDevice(),
+      {
+        'order.place': {
+          async send(payload) {
+            await phone.client.request('POST', '/v1/orders', OrderResult, { body: payload });
+          },
+        },
+      },
+      undefined,
+      ['schemes'],
+    ).start();
+    await phone.signIn(sme.phone!);
+    const owner = phone.client.owner!;
+    await phone.sync();
+    const [kept] = await localRows(phone.db, 'schemes');
+    expect(kept).toMatchObject({ id: schemeId, key: 'twenty_a_pack', active: true });
+
+    // 2 cases, 24 packs at 360: 480.00 off, as the phone works it out.
+    const order = (quoted: object | null) => {
+      const id = newId();
+      return {
+        id,
+        accountId: distributor,
+        visitId: null,
+        lines: [
+          {
+            itemId: neem,
+            unitKey: 'case',
+            quantity: '2',
+            quoted: {
+              listId: list,
+              price: '400',
+              discount: '10',
+              taxRate: '18',
+              factor: '12',
+              scheme: quoted,
+            },
+          },
+        ],
+        free: [],
+        note: null,
+        photos: [],
+        fix: {
+          location: { lat: 28.6315, lng: 77.2167 },
+          accuracy: 12,
+          mocked: false,
+          capturedAt: new Date(phone.now).toISOString(),
+        },
+        placedAt: new Date(phone.now).toISOString(),
+      };
+    };
+    const first = order({ key: 'twenty_a_pack', discount: '480.00' });
+    await phone.outbox.enqueue(phone.db, {
+      id: first.id,
+      owner,
+      kind: 'order.place',
+      payload: first,
+    });
+    phone.now += 5_000;
+    await phone.sync();
+    expect(await phone.outbox.items(owner)).toEqual([]);
+
+    // The scheme is switched off; the phone hears of it, and an order still quoting it is refused.
+    const off = await call('PUT', `/v1/schemes/${schemeId}`, {
+      ...scheme,
+      active: false,
+      version: 1,
+    });
+    expect(off.statusCode, off.body).toBe(200);
+    phone.online = false;
+    const stale = order({ key: 'twenty_a_pack', discount: '480.00' });
+    await phone.outbox.enqueue(phone.db, {
+      id: stale.id,
+      owner,
+      kind: 'order.place',
+      payload: stale,
+    });
+    phone.online = true;
+    phone.now += 5_000;
+    await phone.sync();
+    expect(await phone.outbox.items(owner)).toEqual([
+      expect.objectContaining({ id: stale.id, state: 'parked', lastErrorCode: 'PRICE_CHANGED' }),
+    ]);
+    await phone.sync();
+    const [now] = (await localRows(phone.db, 'schemes')) as SyncScheme[];
+    expect(now).toMatchObject({ id: schemeId, active: false });
   });
 });

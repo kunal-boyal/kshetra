@@ -17,6 +17,7 @@ import { OrdersService } from './orders.service';
 import { OrdersSync } from './orders.sync';
 import { AccountSchemesController, SchemesController } from './schemes.controller';
 import { SchemesService } from './schemes.service';
+import { SchemesSync } from './schemes.sync';
 
 /** Orders (M10, spec 9.6, decision D78). */
 @Module({
@@ -40,6 +41,7 @@ import { SchemesService } from './schemes.service';
     OrdersSync,
     VisitOrdersProvider,
     SchemesService,
+    SchemesSync,
   ],
   exports: [OrdersService, OrderCredit, SchemesService],
 })

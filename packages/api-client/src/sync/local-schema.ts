@@ -5,6 +5,7 @@ import type {
   SyncBalance,
   SyncSellThrough,
   SyncForecast,
+  SyncScheme,
   SyncContact,
   SyncEntity,
   SyncItem,
@@ -271,6 +272,12 @@ const MIGRATIONS: readonly string[] = [
      sync_gen INTEGER NOT NULL
    );
    CREATE INDEX ref_forecasts_account ON ref_forecasts (account_id, period, version);`,
+  // Schemes and promotions on orders (BR-55, decision D127): every scheme, as the server keeps it.
+  `CREATE TABLE ref_schemes (
+     id TEXT PRIMARY KEY NOT NULL,
+     scheme TEXT NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -605,6 +612,11 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       lines: JSON.parse(String(record.lines)) as SyncForecast['lines'],
     }),
   },
+  schemes: {
+    table: 'ref_schemes',
+    columns: (scheme) => ({ id: scheme.id, scheme: JSON.stringify(scheme) }),
+    read: (record) => JSON.parse(String(record.scheme)) as SyncScheme,
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -620,6 +632,7 @@ export type RowOf<Name extends SyncEntity> = {
   balances: SyncBalance;
   sell_through: SyncSellThrough;
   forecasts: SyncForecast;
+  schemes: SyncScheme;
 }[Name];
 
 /** Every row the phone holds of one entity. */

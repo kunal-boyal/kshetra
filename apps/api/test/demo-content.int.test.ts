@@ -165,6 +165,13 @@ describe('demo content (decision D70)', () => {
       );
       expect(forecast!.forecasts).toBe(counts.forecasts);
       expect(forecast!.lines).toBeGreaterThanOrEqual(forecast!.forecasts * 2);
+      // The tenant runs three schemes, and some of its orders carry them (D127).
+      expect(counts.schemes).toBe(3);
+      const [schemed] = await sql<{ lines: number }>(
+        `select count(*)::int as lines from cell.order_lines where tenant_id = $1 and scheme is not null`,
+        [tenantId],
+      );
+      expect(schemed!.lines).toBeGreaterThan(0);
 
       // A tenant is filled once, and only a demo tenant.
       await expect(fill({ slug, days: 1, seed: 3, log: () => {} })).rejects.toThrow(

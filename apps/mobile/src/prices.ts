@@ -31,19 +31,27 @@ export interface PriceData {
   territories: readonly SyncTerritory[];
 }
 
+/** An account's territory, then each one above it, from the phone's copy of the territories. */
+export function territoriesAbove(
+  territoryId: string | null | undefined,
+  territories: readonly SyncTerritory[],
+): string[] {
+  const parents = new Map(territories.map((node) => [node.id, node.parentId]));
+  const above: string[] = [];
+  for (let at: string | null | undefined = territoryId; at; at = parents.get(at)) {
+    if (above.includes(at)) break;
+    above.push(at);
+  }
+  return above;
+}
+
 /**
  * What each active item costs at an account on a day (spec 5.11, decision D77), from the phone's
  * own copy of the price lists, worked out with the server's functions: the most specific list
  * that applies first, and each item from the first list that prices it.
  */
 export function pricesAt(account: SyncAccount, data: PriceData, day: string): ItemPrice[] {
-  // The account's territory, then each one above it.
-  const parents = new Map(data.territories.map((node) => [node.id, node.parentId]));
-  const above: string[] = [];
-  for (let at: string | null | undefined = account.territoryId; at; at = parents.get(at)) {
-    if (above.includes(at)) break;
-    above.push(at);
-  }
+  const above = territoriesAbove(account.territoryId, data.territories);
   const applying = applicableLists(
     data.lists,
     { id: account.id, type: account.type, segments: account.segments, territories: above },

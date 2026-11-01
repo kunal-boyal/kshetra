@@ -255,6 +255,37 @@ function pulled(): SyncPullResult {
           ],
         },
       ]),
+      // One spray free for every ten; a percentage off that has ended (BR-55).
+      schemes: full([
+        {
+          id: '01a10000-0000-7000-8000-0000000000d8',
+          key: 'ten_plus_one',
+          name: { en: 'Ten plus one', hi: 'दस पर एक' },
+          kind: 'free_goods',
+          rule: { buy: '10', get: '1' },
+          itemIds: [SPRAY],
+          categoryIds: [],
+          accountTypeKeys: [],
+          territoryIds: [],
+          validFrom: '2026-01-01',
+          validTo: null,
+          active: true,
+        },
+        {
+          id: '01a10000-0000-7000-8000-0000000000d9',
+          key: 'ended',
+          name: { en: 'Ended', hi: 'Ended' },
+          kind: 'percentage',
+          rule: { percent: '50' },
+          itemIds: [],
+          categoryIds: [],
+          accountTypeKeys: [],
+          territoryIds: [],
+          validFrom: '2026-01-01',
+          validTo: '2026-01-31',
+          active: true,
+        },
+      ]),
       // Next month's forecast at Janpath Mart: 120 seed packs (BR-54).
       forecasts: full([
         {
@@ -850,5 +881,30 @@ describe('forecasts on the phone (BR-54, D126)', () => {
     expect(await screen.findByText('Locked')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Save the forecast' })).toBeNull();
     expect(screen.queryAllByLabelText(/^Quantity of /)).toEqual([]);
+  });
+});
+
+describe('schemes on the phone (BR-55, D127)', () => {
+  it('applies the scheme offline, shows the goods given free, and sends what it showed', async () => {
+    const client = await renderPhone({ name: 'order', id: NEAR });
+    await fireEvent.press(await screen.findByRole('button', { name: 'More Neem spray' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Quantity of Neem spray, 1 pack/ }));
+    await fireEvent.changeText(screen.getByLabelText('Quantity'), '20');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    await fireEvent.press(await screen.findByRole('button', { name: /^Review: 1 item/ }));
+    // 20 sprays: 2 free; the ended 50% never applies.
+    expect(screen.getByText(/Scheme: Ten plus one/)).toBeOnTheScreen();
+    expect(screen.getByText(/2 .* of Neem spray free/)).toBeOnTheScreen();
+    const place = screen.getByRole('button', { name: /^Place the order/ });
+    await waitFor(() => expect(place).toBeEnabled());
+    await fireEvent.press(place);
+    await waitFor(() =>
+      expect(client.request.mock.calls.some(([, path]) => path === '/v1/orders')).toBe(true),
+    );
+    const [, , , options] = client.request.mock.calls.find(([, path]) => path === '/v1/orders')!;
+    expect((options as { body: unknown }).body).toMatchObject({
+      lines: [{ itemId: SPRAY, quoted: { scheme: { key: 'ten_plus_one', discount: '0.00' } } }],
+      free: [{ itemId: SPRAY, baseUnits: '2.000', ofItemId: SPRAY }],
+    });
   });
 });

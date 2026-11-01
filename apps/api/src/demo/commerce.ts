@@ -8,6 +8,9 @@ import {
   newId,
   PlaceOrderBody,
   PriceListBody,
+  priceLine,
+  SchemeBody,
+  schemeCart,
   scaled,
   unscaled,
 } from '@thelamp/shared';
@@ -17,6 +20,7 @@ import { PriceListsService } from '../modules/catalogue/price-lists.service';
 import { FinanceService } from '../modules/finance/finance.service';
 import { ForecastsService } from '../modules/forecasts/forecasts.service';
 import { OrdersService } from '../modules/orders/orders.service';
+import { SchemesService } from '../modules/orders/schemes.service';
 import { SellThroughService } from '../modules/sell-through/sell-through.service';
 import { TenantConfigService } from '../modules/tenant-config/tenant-config.service';
 import { ApprovalsService } from '../modules/workflow/approvals.service';
@@ -52,7 +56,7 @@ export class DemoCommerce {
   private stockTypes = new Set<string>();
   /** Each account's last closing by item, so the next month's stock follows on. */
   private readonly stock = new Map<string, bigint>();
-  private counts = { orders: 0, deliveries: 0, statements: 0, forecasts: 0 };
+  private counts = { orders: 0, deliveries: 0, statements: 0, forecasts: 0, schemes: 0 };
 
   constructor(private readonly kit: DemoKit) {}
 
@@ -129,6 +133,8 @@ export class DemoCommerce {
       );
     }
 
+    await this.schemes(admin, first);
+
     // What each account the company supplies brought forward, and its credit limit.
     const opening = addDays(first, -1);
     for (const place of this.suppliers) {
@@ -144,6 +150,73 @@ export class DemoCommerce {
         },
       ]);
       await this.snapshot(admin, place.id, opening);
+    }
+  }
+
+  /**
+   * Three schemes from the tenant's own catalogue (BR-55, decision D127): a percentage off one
+   * category, quantity slabs on one item, and one free for every ten of another, so the orders the
+   * demo takes carry them.
+   */
+  private async schemes(admin: Person, first: string): Promise<void> {
+    const { kit } = this;
+    const service = kit.get(SchemesService);
+    const [slabbed, freeGoods] = kit.dice.shuffle(this.items);
+    const category = this.items.find((item) => item.category)?.category ?? null;
+    const add = async (body: Omit<SchemeBody, 'validFrom' | 'validTo' | 'active'>) => {
+      try {
+        await kit.tx((tx) =>
+          service.put(
+            tx,
+            kit.tenantId,
+            userActor(admin.access),
+            newId(),
+            SchemeBody.parse({ ...body, validFrom: addDays(first, -30) }),
+          ),
+        );
+        this.counts.schemes++;
+      } catch (error) {
+        kit.once(`scheme ${body.key}`, error);
+      }
+    };
+    await add({
+      key: 'season_offer',
+      name: { en: 'Season offer', hi: 'सीज़न ऑफ़र' },
+      kind: 'percentage',
+      rule: { percent: '3' },
+      itemIds: [],
+      categoryIds: category ? [category.id] : [],
+      accountTypeKeys: [],
+      territoryIds: [],
+    });
+    if (slabbed) {
+      await add({
+        key: 'volume_slabs',
+        name: { en: 'Volume slabs', hi: 'मात्रा स्लैब' },
+        kind: 'slabs',
+        rule: {
+          slabs: [
+            { from: '20', percent: '2' },
+            { from: '60', percent: '4' },
+          ],
+        },
+        itemIds: [slabbed.id],
+        categoryIds: [],
+        accountTypeKeys: [],
+        territoryIds: [],
+      });
+    }
+    if (freeGoods) {
+      await add({
+        key: 'ten_plus_one',
+        name: { en: 'Ten plus one', hi: 'दस पर एक' },
+        kind: 'free_goods',
+        rule: { buy: '10', get: '1' },
+        itemIds: [freeGoods.id],
+        categoryIds: [],
+        accountTypeKeys: [],
+        territoryIds: [],
+      });
     }
   }
 
@@ -189,6 +262,40 @@ export class DemoCommerce {
         ];
       });
       if (lines.length === 0) return false;
+      // The schemes the phone would apply, and the goods they give free (BR-55).
+      const { rounding } = await kit.tx((tx) =>
+        kit.get(CatalogueService).settings(tx, kit.tenantId),
+      );
+      const reaching = await kit.tx((tx) =>
+        kit.get(SchemesService).forAccount(tx, person.access, place.id, date),
+      );
+      const rates = new Map(offers.items.map((offer) => [offer.itemId, offer.rate]));
+      const cart = schemeCart(
+        lines.map((line) => {
+          const item = this.items.find((entry) => entry.id === line.itemId)!;
+          const values = priceLine(
+            {
+              price: line.quoted.price,
+              discount: line.quoted.discount,
+              taxRate: item.taxRate,
+              quantity: line.quantity,
+              factor: line.quoted.factor,
+            },
+            rounding,
+          );
+          return {
+            ...values,
+            line,
+            itemId: item.id,
+            categoryId: item.category?.id ?? null,
+            taxRate: item.taxRate,
+          };
+        }),
+        reaching.schemes,
+        reaching.account,
+        reaching.date,
+        (itemId) => rates.get(itemId) ?? null,
+      );
       const placed = await kit.tx((tx) =>
         kit.get(OrdersService).place(
           tx,
@@ -197,7 +304,11 @@ export class DemoCommerce {
             id: newId(),
             accountId: place.id,
             visitId,
-            lines,
+            lines: cart.lines.map((entry) => ({
+              ...entry.line,
+              quoted: { ...entry.line.quoted, scheme: entry.quoted },
+            })),
+            free: cart.free,
             fix,
             placedAt: new Date(at).toISOString(),
           }),
@@ -237,11 +348,14 @@ export class DemoCommerce {
         const turnedDown = kit.dice.chance(0.15) && order.lines.length > 1;
         await kit.tx((tx) =>
           orders.decideLines(tx, approver.access, approval.requestId, {
-            lines: order.lines.map((line, index) =>
-              turnedDown && index === 0
-                ? { lineId: line.id, decision: 'rejected', reason: reason('no_stock') }
-                : { lineId: line.id, decision: 'accepted' },
-            ),
+            // Goods given free follow their line (BR-55).
+            lines: order.lines
+              .filter((line) => line.freeOfLineId === null)
+              .map((line, index) =>
+                turnedDown && index === 0
+                  ? { lineId: line.id, decision: 'rejected', reason: reason('no_stock') }
+                  : { lineId: line.id, decision: 'accepted' },
+              ),
             version: waiting.version,
           }),
         );
