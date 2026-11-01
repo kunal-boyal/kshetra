@@ -23,7 +23,7 @@ import {
   totpSecrets,
 } from '../../db/schema/directory';
 import { EndedSessions } from '../../platform/ended-sessions';
-import { CellAdmission, PeopleEmails } from '../../platform/planes';
+import { CellAdmission, PeopleEmails, TenantModules } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
 import { currentRequest } from '../../platform/request-context';
 import { SecurityLog } from '../../platform/security-log';
@@ -78,6 +78,7 @@ export class SessionsService {
     private readonly client: RedisClient,
     private readonly cell: CellAdmission,
     private readonly emails: PeopleEmails,
+    private readonly modules: TenantModules,
     private readonly security: SecurityLog,
     private readonly ended: EndedSessions,
   ) {}
@@ -371,7 +372,9 @@ export class SessionsService {
 
   /**
    * A tenant that requires single sign-on refuses web OTP to its people in the connection's
-   * domains (decision D91); phones, and people outside those domains, carry on.
+   * domains (decision D91); phones, and people outside those domains, carry on. While the SSO
+   * module is closed, by the plan or the tenant's admin, nobody can sign in through it, so nobody
+   * is refused for it (decision D125).
    */
   private async refuseWhereSsoRequired(row: MembershipRow): Promise<void> {
     const [connection] = await this.database.db
@@ -379,6 +382,7 @@ export class SessionsService {
       .from(ssoConnections)
       .where(and(eq(ssoConnections.tenantId, row.tenantId), eq(ssoConnections.enabled, true)));
     if (!connection?.enforced) return;
+    if ((await this.modules.off(row.tenantId)).includes('sso')) return;
     const email = await this.emails.emailOf(row.tenantId, row.userId);
     const domain = email?.split('@')[1]?.toLowerCase();
     if (domain && connection.domains.includes(domain)) {

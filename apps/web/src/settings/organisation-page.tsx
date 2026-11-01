@@ -36,6 +36,7 @@ import { useAccess } from '../people/data';
 import { fieldErrors, PageHeader, Section } from '../people/shared';
 import { useAdmin, useOrganisation } from './data';
 import { timeZones } from './rules-page';
+import { MODULE_OFF_NOTES } from './modules-page';
 
 /** What a change came to: saved, refused by the API, or stopped here with our own words. */
 type Said =
@@ -225,7 +226,11 @@ export function OrganisationPage() {
                   <SwitchRow
                     key={key}
                     label={t(`admin.module_${key}`)}
-                    description={t(`admin.module_${key}_about`)}
+                    description={
+                      value.modulesOff.includes(key) && MODULE_OFF_NOTES[key]
+                        ? `${t(`admin.module_${key}_about`)} ${t(MODULE_OFF_NOTES[key])}`
+                        : t(`admin.module_${key}_about`)
+                    }
                     checked={!value.modulesOff.includes(key)}
                     disabled={!access.can('module.manage')}
                     onChange={(on) =>
