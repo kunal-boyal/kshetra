@@ -1,8 +1,23 @@
-import { Body, Controller, Get, Headers, Param, Put, Res } from '@nestjs/common';
-import { SchemeBody, SchemeListResult, SchemeParams, SchemeResult } from '@thelamp/shared';
+import { Body, Controller, Get, Headers, Param, Put, Query, Res } from '@nestjs/common';
+import {
+  AccountSchemesQuery,
+  AccountSchemesResult,
+  IdParams,
+  SchemeBody,
+  SchemeListResult,
+  SchemeParams,
+  SchemeResult,
+} from '@thelamp/shared';
 import type { FastifyReply } from 'fastify';
 import { userActor } from '../../platform/audit';
-import { type Access, CurrentAccess, Requires } from '../../platform/auth';
+import {
+  type Access,
+  CurrentAccess,
+  ForApiClients,
+  InModule,
+  Requires,
+  SignedIn,
+} from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -66,5 +81,33 @@ export class SchemesController {
     );
     void reply.status(result.status);
     return result.body;
+  }
+}
+
+/** The schemes that may reach an account's orders (BR-55), for anyone who sees the account. */
+@Controller('v1/accounts')
+export class AccountSchemesController {
+  constructor(
+    private readonly database: Database,
+    private readonly schemes: SchemesService,
+  ) {}
+
+  @Get(':id/schemes')
+  @Contract({
+    tag: 'Orders',
+    summary: "The schemes in use on a date for an account's type and territories",
+    params: IdParams,
+    query: AccountSchemesQuery,
+    response: AccountSchemesResult,
+  })
+  @SignedIn()
+  @ForApiClients('catalogue:read', 'catalogue:write')
+  @InModule('orders')
+  forAccount(@CurrentAccess() access: Access, @Param('id') id: string, @Query() query: unknown) {
+    const accountId = pathId(id);
+    const input = AccountSchemesQuery.parse(query);
+    return this.database.forTenant(access.tenantId, (tx) =>
+      this.schemes.forAccount(tx, access, accountId, input.date),
+    );
   }
 }

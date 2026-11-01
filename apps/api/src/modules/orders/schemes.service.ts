@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  type AccountSchemesResult,
   AppError,
   type ErrorDetail,
   type SchemeBody,
@@ -7,13 +8,17 @@ import {
   type SchemeRef,
   type SchemeResult,
   schemeRuleIssues,
+  todayIn,
 } from '@thelamp/shared';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { schemes } from '../../db/schema/schemes';
 import { type AuditActor, AuditLog } from '../../platform/audit';
+import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { AccountTypesService } from '../accounts/account-types.service';
+import { AccountsService } from '../accounts/accounts.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 
 const invalid = (issues: ErrorDetail[]) =>
@@ -49,6 +54,8 @@ export class SchemesService {
     private readonly catalogue: CatalogueService,
     private readonly accountTypes: AccountTypesService,
     private readonly territories: TerritoriesService,
+    private readonly accounts: AccountsService,
+    private readonly config: TenantConfigService,
     private readonly audit: AuditLog,
   ) {}
 
@@ -68,6 +75,39 @@ export class SchemesService {
       .where(and(eq(schemes.tenantId, tenantId), eq(schemes.id, id)));
     if (!row) throw new AppError('NOT_FOUND', 'There is no scheme with this ID.');
     return resultOf(row);
+  }
+
+  /**
+   * The schemes that may reach an account's orders on a date (today on the tenant's clock when
+   * left out): in use then, for its type and territories. Which items each reaches is judged by
+   * line, as `chooseSchemes()` does. For anyone who sees the account.
+   */
+  async forAccount(
+    tx: TenantTx,
+    access: Access,
+    accountId: string,
+    date?: string,
+  ): Promise<AccountSchemesResult> {
+    const account = await this.accounts.find(tx, access, accountId);
+    const type = (await this.accountTypes.list(tx, access.tenantId)).find(
+      (entry) => entry.id === account.typeId,
+    )!;
+    const territories = await this.territories.ancestors(tx, access.tenantId, account.territoryId);
+    const day = date ?? todayIn((await this.config.settings(tx, access.tenantId)).timezone);
+    const reached = { type: type.key, territories };
+    return {
+      date: day,
+      account: reached,
+      schemes: (await this.list(tx, access.tenantId)).filter(
+        (scheme) =>
+          scheme.active &&
+          scheme.validFrom <= day &&
+          (!scheme.validTo || day <= scheme.validTo) &&
+          (scheme.accountTypeKeys.length === 0 || scheme.accountTypeKeys.includes(type.key)) &&
+          (scheme.territoryIds.length === 0 ||
+            territories.some((territory) => scheme.territoryIds.includes(territory))),
+      ),
+    };
   }
 
   /** Every scheme as the pricing rules read it; `schemeApplies()` judges dates and switches. */

@@ -1,5 +1,10 @@
 import { formatMoney, formatNumber } from '@thelamp/i18n';
-import { DEFAULT_REJECTION_REASONS, type OrderLineResult, type OrderResult } from '@thelamp/shared';
+import {
+  DEFAULT_REJECTION_REASONS,
+  type OrderLineResult,
+  type OrderResult,
+  scaled,
+} from '@thelamp/shared';
 import {
   Button,
   type Column,
@@ -69,9 +74,22 @@ function Showing({ order }: { order: OrderResult }) {
       key: 'item',
       header: t('orders.item'),
       render: (line) => (
-        <span className="flex flex-col">
+        <span className="flex flex-col gap-1">
           <span className="font-semibold">{line.item.name}</span>
           <code>{line.item.code}</code>
+          {line.freeOfLineId ? (
+            <StatusBadge variant="info">{t('orders.free_goods')}</StatusBadge>
+          ) : null}
+          {line.scheme && !line.freeOfLineId ? (
+            <span className="ks-meta">
+              {scaled(line.scheme.discount, 2) > 0n
+                ? t('orders.scheme_off', {
+                    name: line.scheme.name[locale],
+                    discount: money(line.scheme.discount),
+                  })
+                : t('orders.scheme_named', { name: line.scheme.name[locale] })}
+            </span>
+          ) : null}
         </span>
       ),
     },
@@ -322,7 +340,10 @@ function LineDecisions({
 }) {
   const { t } = useLanguage();
   const writes = useOrderWrites();
-  const open = order.lines.filter((line) => line.decision !== 'rejected');
+  // Goods given free follow the line they came with (BR-55).
+  const open = order.lines.filter(
+    (line) => line.decision !== 'rejected' && line.freeOfLineId === null,
+  );
   const [choices, setChoices] = useState<Record<string, { decision: string; reason: string }>>(() =>
     Object.fromEntries(open.map((line) => [line.id, { decision: 'accepted', reason: '' }])),
   );

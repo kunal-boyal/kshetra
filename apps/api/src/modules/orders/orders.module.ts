@@ -15,7 +15,7 @@ import { OrderRequests } from './order.requests';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { OrdersSync } from './orders.sync';
-import { SchemesController } from './schemes.controller';
+import { AccountSchemesController, SchemesController } from './schemes.controller';
 import { SchemesService } from './schemes.service';
 
 /** Orders (M10, spec 9.6, decision D78). */
@@ -32,7 +32,7 @@ import { SchemesService } from './schemes.service';
     TerritoriesModule,
     WorkflowModule,
   ],
-  controllers: [OrdersController, SchemesController],
+  controllers: [OrdersController, SchemesController, AccountSchemesController],
   providers: [
     OrdersService,
     OrderRequests,

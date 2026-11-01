@@ -69,6 +69,17 @@ export const SchemeResult = z
 export const SchemeListResult = z.object({ items: z.array(SchemeResult) });
 export const SchemeParams = z.strictObject({ schemeId: z.uuid() });
 
+/** `GET /v1/accounts/{id}/schemes`: the schemes that may reach an account's orders on a date. */
+export const AccountSchemesQuery = z.strictObject({ date: CalendarDate.optional() });
+
+export const AccountSchemesResult = z.object({
+  date: CalendarDate,
+  /** The account as schemes judge it: its type, and its territory then each above it. */
+  account: z.object({ type: Key, territories: z.array(z.uuid()) }),
+  /** In use on the date, for the account's type and territories; items are judged by line. */
+  schemes: z.array(SchemeResult),
+});
+
 /** What a device showed for a line's scheme: which one, and what it took off (BR-14, BR-55). */
 export const QuotedScheme = z.strictObject({ key: Key, discount: Money });
 
@@ -84,4 +95,5 @@ export type SchemeBody = z.output<typeof SchemeBody>;
 export type SchemeResult = z.infer<typeof SchemeResult>;
 export type SchemeListResult = z.infer<typeof SchemeListResult>;
 export type QuotedScheme = z.infer<typeof QuotedScheme>;
+export type AccountSchemesResult = z.infer<typeof AccountSchemesResult>;
 export type QuotedFree = z.infer<typeof QuotedFree>;

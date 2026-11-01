@@ -2315,6 +2315,10 @@ const FIXTURES: Record<string, Fixture> = {
       }
     },
   },
+  'GET /v1/accounts/:id/schemes': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/schemes`), aAccountId),
+  },
   'GET /v1/schemes': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/schemes')),

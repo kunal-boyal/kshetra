@@ -16,6 +16,7 @@ const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, o
 const TYPE_ID = '01a10000-0000-7000-8000-000000000301';
 const ITEM_ID = '01a10000-0000-7000-8000-0000000000b0';
 const LIST_ID = '01a10000-0000-7000-8000-0000000000c0';
+const SCHEME_ID = '01a10000-0000-7000-8000-0000000000e9';
 const unitName = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
 const UNITS = [
   { key: 'pack', name: unitName('Pack', 'Packs'), base: true },
@@ -428,6 +429,31 @@ const ANSWERS: Record<string, unknown> = {
     nextCursor: null,
   },
   '/v1/catalogue': { version: 2, units: UNITS, measureTypes: ['kg', 'L'], items: [ITEM] },
+  '/v1/schemes': {
+    items: [
+      {
+        id: SCHEME_ID,
+        key: 'volume',
+        name: { en: 'Monsoon volume', hi: 'मानसून मात्रा' },
+        kind: 'slabs',
+        rule: {
+          slabs: [
+            { from: '100', percent: '2' },
+            { from: '250', percent: '4' },
+          ],
+        },
+        itemIds: [ITEM_ID],
+        categoryIds: [],
+        accountTypeKeys: [],
+        territoryIds: [],
+        validFrom: '2026-06-01',
+        validTo: null,
+        active: true,
+        version: 1,
+        updatedAt: '2026-06-01T00:00:00.000Z',
+      },
+    ],
+  },
   '/v1/price-lists': { items: [LIST] },
   [`/v1/price-lists/${LIST_ID}`]: LIST,
   [`/v1/price-lists/${LIST_ID}/items`]: {
@@ -695,6 +721,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'form.manage',
             'catalogue.manage',
             'price_list.manage',
+            'scheme.manage',
             'workflow.manage',
             'calendar.manage',
             'leave_type.manage',
@@ -722,6 +749,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'users',
     'catalogue',
     'price-lists',
+    'schemes',
     'calendars',
     'leave-types',
     'expense-policies',
@@ -784,6 +812,9 @@ for (const path of [
   'price-lists',
   'price-lists/new',
   `price-lists/${LIST_ID}`,
+  'schemes',
+  'schemes/new',
+  `schemes/${SCHEME_ID}`,
   'billing',
   'sso',
   'support',

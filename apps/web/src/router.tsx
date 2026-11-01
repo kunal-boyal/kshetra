@@ -28,6 +28,8 @@ import { OrderPage } from './orders/order-page';
 import { OrdersPage } from './orders/orders-page';
 import { PriceListPage } from './catalogue/price-list-page';
 import { PriceListsPage } from './catalogue/price-lists-page';
+import { SchemePage } from './schemes/scheme-page';
+import { SchemesPage } from './schemes/schemes-page';
 import { EditFormPage, NewFormPage } from './forms/form-builder-page';
 import { FormsPage } from './forms/forms-page';
 import { ImportPage } from './imports/import-page';
@@ -523,6 +525,24 @@ const priceList = createRoute({
     return <PriceListPage key={priceListId} priceListId={priceListId} />;
   },
 });
+const schemesRoute = createRoute({
+  getParentRoute: () => settings,
+  path: '/schemes',
+  component: SchemesPage,
+});
+const newScheme = createRoute({
+  getParentRoute: () => settings,
+  path: '/schemes/new',
+  component: () => <SchemePage />,
+});
+const scheme = createRoute({
+  getParentRoute: () => settings,
+  path: '/schemes/$schemeId',
+  component: function SchemeRoute() {
+    const { schemeId } = scheme.useParams();
+    return <SchemePage key={schemeId} schemeId={schemeId} />;
+  },
+});
 const accountTypes = createRoute({
   getParentRoute: () => settings,
   path: '/account-types',
@@ -643,6 +663,9 @@ const tree = root.addChildren([
       priceLists,
       newPriceList,
       priceList,
+      schemesRoute,
+      newScheme,
+      scheme,
       accountTypes,
       newAccountType,
       editAccountType,

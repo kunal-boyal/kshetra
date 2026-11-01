@@ -261,3 +261,48 @@ export function schemeRuleIssues(
   }
   return issues;
 }
+
+/** A priced line for `schemeCart()`: what BR-10 to BR-12 gave, before any scheme. */
+export interface CartLine extends SchemeLine {
+  taxRate: string;
+  tax: string;
+  total: string;
+}
+
+/**
+ * BR-55 for the apps: a cart's lines with each one's scheme, its discount, and the taxable, tax
+ * and total after it, plus the goods given free, as the server will work them out and as the
+ * order should quote them (`quoted.scheme`, `free`).
+ */
+export function schemeCart<L extends CartLine>(
+  lines: readonly L[],
+  schemes: readonly SchemeRef[],
+  account: SchemeAccount,
+  date: string,
+  freeRate: (itemId: string) => string | null,
+): {
+  lines: (L & {
+    chosen: ChosenScheme | null;
+    schemeDiscount: string;
+    quoted: { key: string; discount: string } | null;
+  })[];
+  free: { itemId: string; baseUnits: string; ofItemId: string }[];
+} {
+  const chosen = chooseSchemes(schemes, lines, account, date, freeRate);
+  return {
+    lines: lines.map((line, at) => {
+      const scheme = chosen[at] ?? null;
+      const discount = scheme?.benefit.discount ?? '0.00';
+      return {
+        ...line,
+        ...(scheme ? afterScheme(line, discount, line.taxRate) : {}),
+        chosen: scheme,
+        schemeDiscount: discount,
+        quoted: scheme ? { key: scheme.scheme.key, discount } : null,
+      };
+    }),
+    free: chosen.flatMap((scheme, at) =>
+      scheme?.benefit.free ? [{ ...scheme.benefit.free, ofItemId: lines[at]!.itemId }] : [],
+    ),
+  };
+}

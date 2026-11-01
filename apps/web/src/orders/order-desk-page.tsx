@@ -6,7 +6,8 @@ import {
   orderSizeIssue,
   orderTotals,
   priceLine,
-  type PricedLine,
+  scaled,
+  schemeCart,
 } from '@thelamp/shared';
 import {
   Button,
@@ -14,6 +15,7 @@ import {
   DataTable,
   Icon,
   SelectField,
+  StatusBadge,
   TextAreaField,
   TextField,
 } from '@thelamp/ui-web';
@@ -28,6 +30,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { Facts, PageHeader, Section } from '../people/shared';
 import { useTypeList } from '../settings/types-data';
+import { useAccountSchemes } from '../schemes/data';
 import { useAccountPrices, useOrderWrites } from './data';
 
 interface DraftLine {
@@ -129,6 +132,7 @@ function Cart({
   const writes = useOrderWrites();
   const catalogue = useCatalogue();
   const prices = useAccountPrices(account.id);
+  const schemes = useAccountSchemes(account.id);
   const rounding = config.data?.bundle.catalogue.rounding ?? 'per_unit_first';
   const [id] = useState(() => newId());
   const [lines, setLines] = useState<DraftLine[]>([]);
@@ -175,12 +179,28 @@ function Cart({
       },
     ];
   });
-  const totals = orderTotals(priced.map((entry) => entry.priced));
+  // BR-55: each line's scheme, as the server will choose it, and the goods given free.
+  const cart = schemeCart(
+    priced.map((entry) => ({
+      ...entry,
+      itemId: entry.item.id,
+      categoryId: entry.item.category?.id ?? null,
+      baseUnits: entry.priced.baseUnits,
+      taxable: entry.priced.taxable,
+      taxRate: entry.item.taxRate,
+      tax: entry.priced.tax,
+      total: entry.priced.total,
+    })),
+    schemes.data?.schemes ?? [],
+    schemes.data?.account ?? { type: '', territories: [] },
+    schemes.data?.date ?? '',
+    (freeItemId) => priceOf.get(freeItemId)?.rate ?? null,
+  );
+  const totals = orderTotals(cart.lines);
   const halves = gstHalves(totals.tax);
   const tooLarge =
-    orderSizeIssue(
-      priced.map((entry) => ({ itemId: entry.item.id, total: entry.priced.total })),
-    ) === 'too_large';
+    orderSizeIssue(cart.lines.map((entry) => ({ itemId: entry.itemId, total: entry.total }))) ===
+    'too_large';
 
   function add(event: FormEvent) {
     event.preventDefault();
@@ -216,7 +236,7 @@ function Cart({
       await writes.place({
         id,
         accountId: account.id,
-        lines: priced.map(({ line, item, price, unit }) => ({
+        lines: cart.lines.map(({ line, item, price, unit, quoted }) => ({
           itemId: item.id,
           unitKey: line.unitKey,
           quantity: line.quantity,
@@ -226,10 +246,10 @@ function Cart({
             discount: price.discount,
             taxRate: item.taxRate,
             factor: unit.factor,
-            scheme: null,
+            scheme: quoted,
           },
         })),
-        free: [],
+        free: cart.free,
         note: note.trim() || null,
         placedAt: new Date().toISOString(),
       });
@@ -238,18 +258,49 @@ function Cart({
       setFailure(caught);
       setBusy(false);
       // Prices changed since they were shown: read them again, and show the lines anew.
-      if (caught instanceof ApiError && caught.code === 'PRICE_CHANGED') void prices.refetch();
+      if (caught instanceof ApiError && caught.code === 'PRICE_CHANGED') {
+        void prices.refetch();
+        void schemes.refetch();
+      }
     }
   }
 
-  const columns: Column<(typeof priced)[number]>[] = [
+  const freeOf = (itemId: string) => cart.free.filter((free) => free.ofItemId === itemId);
+  const columns: Column<(typeof cart.lines)[number]>[] = [
     {
       key: 'item',
       header: t('orders.item'),
-      render: ({ item }) => (
-        <span className="flex flex-col">
+      render: ({ item, chosen: scheme, schemeDiscount }) => (
+        <span className="flex flex-col gap-1">
           <span className="font-semibold">{item.name}</span>
           <code>{item.code}</code>
+          {scheme ? (
+            <span className="ks-meta">
+              {scaled(schemeDiscount, 2) > 0n
+                ? t('orders.scheme_off', {
+                    name:
+                      schemes.data?.schemes.find((entry) => entry.id === scheme.scheme.id)?.name[
+                        locale
+                      ] ?? scheme.scheme.key,
+                    discount: money(schemeDiscount),
+                  })
+                : t('orders.scheme_named', {
+                    name:
+                      schemes.data?.schemes.find((entry) => entry.id === scheme.scheme.id)?.name[
+                        locale
+                      ] ?? scheme.scheme.key,
+                  })}
+            </span>
+          ) : null}
+          {freeOf(item.id).map((free) => (
+            <StatusBadge key={free.itemId} variant="info">
+              {t('orders.free_line', {
+                count: formatNumber(free.baseUnits as `${number}`, { locale }),
+                item: items.get(free.itemId)?.name ?? '',
+                unit: items.get(free.itemId)?.baseUnit ?? '',
+              })}
+            </StatusBadge>
+          ))}
         </span>
       ),
     },
@@ -279,14 +330,14 @@ function Cart({
       key: 'taxable',
       header: t('orders.taxable'),
       align: 'end',
-      render: ({ priced: v }) => money(v.taxable),
+      render: (entry) => money(entry.taxable),
     },
-    { key: 'tax', header: t('orders.tax'), align: 'end', render: ({ priced: v }) => money(v.tax) },
+    { key: 'tax', header: t('orders.tax'), align: 'end', render: (entry) => money(entry.tax) },
     {
       key: 'total',
       header: t('orders.total'),
       align: 'end',
-      render: ({ priced: v }: { priced: PricedLine }) => money(v.total),
+      render: (entry) => money(entry.total),
     },
     {
       key: 'remove',
@@ -370,7 +421,7 @@ function Cart({
       <DataTable
         caption={t('orders.lines_caption')}
         columns={columns}
-        rows={priced}
+        rows={cart.lines}
         rowKey={(entry) => entry.item.id}
         empty={<p className="ks-muted">{t('orders.no_lines')}</p>}
       />
@@ -406,7 +457,7 @@ function Cart({
         <Button
           variant="primary"
           busy={busy}
-          disabled={priced.length === 0 || tooLarge}
+          disabled={priced.length === 0 || tooLarge || !schemes.data}
           icon={<Icon icon={Send} />}
           onClick={() => void place()}
         >
