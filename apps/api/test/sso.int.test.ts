@@ -10,12 +10,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SignedXml } from 'xml-crypto';
 import { DomainRecords, type MemoryDomainRecords } from '../src/platform/domain-records';
 import { totpAt, totpStep } from '../src/platform/totp';
-import { newDevice, newPhone, startApp, testConfig, World } from './support';
+import { newDevice, newPhone, staffToken, startApp, testConfig, World } from './support';
 
 /**
  * Single sign-on for web users (spec M1, D5, decision D91): a tenant's connection to its own
  * identity provider, through OIDC against a mock provider and SAML with signed assertions; the
- * person matched by email, never created; and SSO required for web users of its domains.
+ * person matched by email, never created; and SSO required for web users of its domains, but
+ * only while the SSO module is open (D125).
  */
 
 const WEB_URL = 'http://127.0.0.1:5173';
@@ -54,7 +55,12 @@ afterAll(async () => {
 const address = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.7`;
 const WEB = { 'x-client': 'web' };
 
-function asUser(method: 'GET' | 'PUT' | 'POST', url: string, token: string, body?: object) {
+function asUser(
+  method: 'GET' | 'PUT' | 'POST' | 'PATCH',
+  url: string,
+  token: string,
+  body?: object,
+) {
   return app.inject({
     method,
     url,
@@ -252,6 +258,80 @@ describe('an OIDC connection (D91)', () => {
     expect((await world.verify(o.personPhone, newDevice())).json().status).toBe('signed_in');
     // The admin, without an email in the domain, still signs in with OTP and the authenticator.
     expect((await world.verify(o.adminPhone)).json().status).toBe('second_factor');
+  });
+});
+
+describe('the SSO module switched off (D125)', () => {
+  it('signs nobody in through the provider, and lets everyone use OTP again', async () => {
+    const o = await organisation('switched.example');
+    const discover = (email: string) =>
+      app.inject({ method: 'POST', url: '/auth/v1/sso/discover', payload: { email } });
+    await connect(o, {
+      settings: oidcSettings(),
+      domains: ['switched.example'],
+      enabled: true,
+      enforced: true,
+    });
+    expect((await world.verify(o.personPhone)).json().error.code).toBe('SSO_REQUIRED');
+
+    const off = await asUser('PATCH', '/v1/settings', o.admin, { modulesOff: ['sso'] });
+    expect(off.statusCode, off.body).toBe(200);
+    expect((await asUser('GET', '/v1/sso', o.admin)).json().error.code).toBe('MODULE_DISABLED');
+    expect((await discover('anita@switched.example')).json()).toEqual({ url: null });
+    const started = await app.inject({ method: 'GET', url: `/auth/v1/sso/${o.slug}/start` });
+    expect(started.headers.location).toBe(`${WEB_URL}/sign-in?sso=unavailable`);
+    // Nobody is left without a way in: the person signs in to the web with a one-time code.
+    expect((await world.verify(o.personPhone)).json().status).toBe('signed_in');
+
+    // On again, the connection is as it was and is required again.
+    await asUser('PATCH', '/v1/settings', o.admin, { modulesOff: [] });
+    expect((await discover('anita@switched.example')).json()).toEqual({
+      url: `/auth/v1/sso/${o.slug}/start`,
+    });
+    expect((await world.verify(o.personPhone)).json().error.code).toBe('SSO_REQUIRED');
+    expect((await oidcSignIn(o.slug, 'anita@switched.example')).reply.headers.location).toBe(
+      `${WEB_URL}/`,
+    );
+  });
+
+  it('closes the same way for a tenant whose plan leaves SSO out', async () => {
+    const o = await organisation('unplanned.example');
+    await connect(o, {
+      settings: oidcSettings(),
+      domains: ['unplanned.example'],
+      enabled: true,
+      enforced: true,
+    });
+    const staff = await staffToken(app, 'platform_admin');
+    const plan = await app.inject({
+      method: 'POST',
+      url: '/platform/v1/plans',
+      remoteAddress: address(),
+      headers: { authorization: `Bearer ${staff}`, 'idempotency-key': newId() },
+      payload: {
+        id: newId(),
+        key: `nosso${newId().slice(-6)}`,
+        name: { en: 'Without SSO', hi: 'SSO के बिना' },
+        priceMonth: '100',
+        priceYear: '1000',
+        modules: ['core'],
+        limits: { users: null, storageGb: null },
+        addons: [],
+        active: true,
+      },
+    });
+    expect(plan.statusCode, plan.body).toBe(201);
+    const moved = await app.inject({
+      method: 'PUT',
+      url: `/platform/v1/tenants/${o.tenantId}/plan`,
+      remoteAddress: address(),
+      headers: { authorization: `Bearer ${staff}`, 'idempotency-key': newId() },
+      payload: { planId: plan.json().id },
+    });
+    expect(moved.statusCode, moved.body).toBe(200);
+    const started = await app.inject({ method: 'GET', url: `/auth/v1/sso/${o.slug}/start` });
+    expect(started.headers.location).toBe(`${WEB_URL}/sign-in?sso=unavailable`);
+    expect((await world.verify(o.personPhone)).json().status).toBe('signed_in');
   });
 });
 

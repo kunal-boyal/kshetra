@@ -12,7 +12,7 @@ import {
 } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
-import { type Access, AccessResolver, type AuthContext } from '../../platform/auth';
+import { type Access, AccessResolver, type AuthContext, moduleDisabled } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import type { Config } from '../../config';
 import {
@@ -151,6 +151,9 @@ export class IamAccess extends AccessResolver {
     }));
     const { client, settings } = found;
     if (!client || client.authRevision !== auth.revision) throw revoked();
+    // Clients are the integrations module's: while it is closed they are kept but answer
+    // nothing (decision D125).
+    if (settings.modulesOff.includes('integrations')) throw moduleDisabled();
     const scopes = client.scopes.filter((scope) => tokenScopes.includes(scope));
     return {
       ...auth,

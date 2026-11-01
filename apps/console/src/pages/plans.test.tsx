@@ -81,6 +81,9 @@ describe('plans in the console (M23)', () => {
     expect(screen.getByRole('checkbox', { name: /Core/ })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: /Core/ })).toBeDisabled();
     await user.click(screen.getByRole('checkbox', { name: 'Expenses' }));
+    // Every built module may go in a plan; none is marked as arriving later (decision D125).
+    expect(screen.queryByText('Arrives later')).toBeNull();
+    await user.click(screen.getByRole('checkbox', { name: 'Single sign-on' }));
     await user.type(screen.getByLabelText(/^People active at once/), '40');
     // The whole organisation's requests and its heavy jobs at once (decision D98).
     await user.type(screen.getByLabelText(/^Requests a minute for the whole/), '2000');
@@ -103,7 +106,7 @@ describe('plans in the console (M23)', () => {
       name: { en: 'Team', hi: 'टीम' },
       priceMonth: '350',
       priceYear: '3500',
-      modules: ['core', 'expenses'],
+      modules: ['core', 'expenses', 'sso'],
       limits: {
         users: 40,
         storageGb: null,
