@@ -128,6 +128,7 @@ const ANSWERS: Record<string, unknown> = {
         photos: ['01a10000-0000-7000-8000-0000000000f1'],
         signatureMediaId: null,
         flags: ['outside_geofence', 'clock_skew'],
+        flagNotes: {},
         status: 'pending',
         autoApproved: false,
       },

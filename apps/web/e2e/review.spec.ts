@@ -38,6 +38,7 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
     photos: [PHOTO],
     signatureMediaId: null,
     flags: [],
+    flagNotes: {},
     status: 'pending',
     autoApproved: false,
     photoDetails: [
@@ -71,7 +72,17 @@ const ANSWERS: Record<string, unknown> = {
       item('01a10000-0000-7000-8000-0000000000e2', {
         geofence: 'outside',
         distanceM: 640,
-        flags: ['outside_geofence', 'gallery_photo'],
+        flags: ['outside_geofence', 'gallery_photo', 'fast_travel', 'off_shift'],
+        flagNotes: {
+          fast_travel: {
+            otherKind: 'check_in',
+            otherId: '01a10000-0000-7000-8000-0000000000e1',
+            otherAt: '2026-10-13T05:54:00.000Z',
+            distanceM: 18_400,
+            seconds: 360,
+          },
+          off_shift: {},
+        },
         integrityWarning: true,
         autoApproveAt: null,
         reviews: [
@@ -200,6 +211,21 @@ test('/review shows the queue with its evidence and rules, and passes axe', asyn
   await expect(page.getByRole('img', { name: /^Photo 1/ }).first()).toBeVisible();
   await expect(page.getByRole('img', { name: /^Map: filled in/ })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Automatic approval' })).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('/review explains the anomaly flags of the chosen submission, and passes axe', async ({
+  page,
+}) => {
+  await mockSignedIn(page);
+  await page.goto('/review');
+  await page
+    .getByRole('button', { name: /Rahul Verma/ })
+    .nth(1)
+    .click();
+  const why = page.getByRole('region', { name: 'Why it was flagged' });
+  await expect(why).toContainText('Travelled too fast: 18.4 km from the check-in');
+  await expect(why).toContainText('Off shift: Recorded outside a shift.');
   await expectAccessible(page);
 });
 

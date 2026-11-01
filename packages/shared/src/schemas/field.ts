@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { GeoPoint } from '../geo';
 import { LocalizedNoun } from './config';
 import { DAY_STATUSES, POINT_REJECTIONS } from '../tracking';
+import { ANOMALY_FLAGS, FlagNotes, MOCK_SOURCES } from '../anomalies';
 
 /**
  * Shifts and location tracking (M5, spec 11.2, 12.1). Records made on the phone carry their own
@@ -150,6 +151,25 @@ export const LocationBatchResult = z.object({
   rejected: z.array(z.object({ id: z.uuid(), reason: PointRejection })),
 });
 
+/**
+ * `POST /v1/locations/mocked`: a mocked fix the phone refused, or several in an hour (BR-50,
+ * decision D119): when the first was seen, where in the app and how many. Never a place.
+ */
+export const MockLocationReportBody = z.strictObject({
+  id: z.uuid(),
+  seenAt: When,
+  source: z.enum(MOCK_SOURCES),
+  count: z.int().min(1).max(10_000),
+});
+export const MockLocationReportResult = z.object({
+  id: z.uuid(),
+  seenAt: z.iso.datetime({ offset: true }),
+  source: z.enum(MOCK_SOURCES),
+  count: z.int(),
+});
+export type MockLocationReportBody = z.output<typeof MockLocationReportBody>;
+export type MockLocationReportResult = z.output<typeof MockLocationReportResult>;
+
 export const DayStatus = z.enum(DAY_STATUSES);
 
 /** One day of a person's attendance (BR-23, decisions D47 and D80). */
@@ -283,6 +303,8 @@ export const SUBMISSION_FLAGS = [
   'gallery_photo',
   'duplicate_photo',
   'clock_skew',
+  // BR-50 (decision D119).
+  ...ANOMALY_FLAGS,
 ] as const;
 export const SubmissionFlag = z.enum(SUBMISSION_FLAGS);
 
@@ -341,6 +363,8 @@ export const SubmissionResult = z
     /** The rendered signature, once the media worker has made it. */
     signatureMediaId: z.uuid().nullable(),
     flags: z.array(SubmissionFlag),
+    /** What each anomaly flag saw (BR-50); empty for the other flags. */
+    flagNotes: FlagNotes,
     status: SubmissionStatus,
     /** Approved by the tenant's auto-approval, not a person (M7). */
     autoApproved: z.boolean(),

@@ -6,6 +6,7 @@ import {
   clockSkewed,
   evidenceIssues,
   geofenceResult,
+  type PlacedRecord,
   type StartVisitBody,
   type VisitResult,
 } from '@thelamp/shared';
@@ -381,6 +382,62 @@ export class VisitsService {
       .orderBy(asc(visits.checkInAt));
     // Rows come oldest first, so each person's last row is their latest visit.
     return new Map(rows.map((row) => [row.userId, { visits: row.visits, last: row.name }]));
+  }
+
+  /**
+   * A person's check-ins and check-outs between two moments, as places and times, for the
+   * anomaly checks on their submissions (BR-50).
+   */
+  async placedNear(
+    tx: TenantTx,
+    tenantId: string,
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<PlacedRecord[]> {
+    const rows = await tx
+      .select({
+        id: visits.id,
+        accountId: visits.accountId,
+        checkInAt: visits.checkInAt,
+        checkInPoint: pointOf(visits.checkInPoint),
+        checkOutAt: visits.checkOutAt,
+        checkOutPoint: pointOf(visits.checkOutPoint),
+      })
+      .from(visits)
+      .where(
+        and(
+          eq(visits.tenantId, tenantId),
+          eq(visits.userId, userId),
+          lt(visits.checkInAt, to),
+          sql`coalesce(${visits.checkOutAt}, ${visits.checkInAt}) >= ${from}`,
+        ),
+      );
+    const inRange = (at: Date) => at >= from && at <= to;
+    return rows.flatMap((row) => [
+      ...(row.checkInPoint && inRange(row.checkInAt)
+        ? [
+            {
+              kind: 'check_in' as const,
+              id: row.id,
+              at: row.checkInAt.getTime(),
+              point: row.checkInPoint,
+              accountId: row.accountId,
+            },
+          ]
+        : []),
+      ...(row.checkOutAt && row.checkOutPoint && inRange(row.checkOutAt)
+        ? [
+            {
+              kind: 'check_out' as const,
+              id: row.id,
+              at: row.checkOutAt.getTime(),
+              point: row.checkOutPoint,
+              accountId: row.accountId,
+            },
+          ]
+        : []),
+    ]);
   }
 
   /** A person's visits checked in on a date on the tenant's clock, for the day replay (M17). */

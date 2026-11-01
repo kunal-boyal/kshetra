@@ -6,6 +6,7 @@ import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { Anomalies } from './anomalies';
 import { AttendanceService } from './attendance.service';
 import { LocationArchive } from './location-archive';
 import { ShiftsService } from './shifts.service';
@@ -21,7 +22,8 @@ const DAY_MS = 24 * 3_600_000;
  *   compacted, both from the outbox, so they follow the commit and retry on failure;
  * - nightly on each tenant's clock, shifts left open past the longest a shift may last are
  *   closed, trails not yet compacted are, everyone's day just gone is kept, and raw points and
- *   trails follow the tenant's retention (BR-41, `LocationArchive`);
+ *   trails follow the tenant's retention (BR-41, `LocationArchive`), and reports of mocked fixes
+ *   older than 90 days go (BR-50);
  * - four times a day across the cell, the coming days' location partitions are made and old
  *   ones dropped once empty;
  * - punching out checks out of the open visit, and every 15 minutes visits idle for 4 hours
@@ -45,6 +47,7 @@ export class FieldUpkeep implements OnModuleInit {
     private readonly visits: VisitsService,
     private readonly submissions: SubmissionsService,
     private readonly archive: LocationArchive,
+    private readonly anomalies: Anomalies,
   ) {}
 
   onModuleInit(): void {
@@ -127,6 +130,10 @@ export class FieldUpkeep implements OnModuleInit {
         `Tenant ${tenantId}: ${closed} shifts closed, ${pending.length} trails compacted, ${days} days kept.`,
       );
     }
+    const reports = await this.database.forTenant(tenantId, (tx) =>
+      this.anomalies.purge(tx, tenantId),
+    );
+    if (reports > 0) this.logger.log(`Tenant ${tenantId}: ${reports} mocked-fix reports removed.`);
     const kept = await this.archive.run(tenantId, date);
     if (kept.archived + kept.purged + kept.trails + kept.expired > 0) {
       this.logger.log(

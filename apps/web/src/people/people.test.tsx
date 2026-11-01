@@ -93,6 +93,7 @@ function submission(overrides: Record<string, unknown> = {}) {
     photos: [],
     signatureMediaId: null,
     flags: [],
+    flagNotes: {},
     status: 'pending',
     autoApproved: false,
     ...overrides,

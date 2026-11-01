@@ -359,6 +359,8 @@ export class PhotosService implements OnModuleInit {
         ownerId: media.ownerId,
         capturedAt: media.capturedAt,
         point: pointOf(media.point),
+        accuracy: media.accuracy,
+        mocked: media.mocked,
         source: media.source,
         duplicateOfId: media.duplicateOfId,
       })

@@ -171,6 +171,27 @@ describe('rules (M2, spec 5.1)', () => {
     });
     expect(Object.keys((writesOf(client)[0]![3] as { body: object }).body)).toHaveLength(3);
   });
+
+  it('switches evidence checks off one at a time, each naming its threshold (BR-50)', async () => {
+    const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN);
+    renderAt('/settings/rules', client);
+    const user = userEvent.setup();
+    const checks = await screen.findByRole('region', { name: 'Evidence checks' });
+    expect(within(checks).getAllByRole('checkbox')).toHaveLength(5);
+    for (const box of within(checks).getAllByRole('checkbox')) expect(box).toBeChecked();
+    const speed = within(checks).getByRole('checkbox', {
+      name: 'Flag travel between records faster than 100 km/h',
+    });
+    await user.click(speed);
+    await user.click(
+      within(checks).getByRole('checkbox', { name: 'Flag forms filled outside a shift' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Saved.')).toBeVisible();
+    expect((writesOf(client)[0]![3] as { body: object }).body).toEqual({
+      anomalyFlagsOff: ['fast_travel', 'off_shift'],
+    });
+  });
 });
 
 describe('terminology (M2, spec 5.2)', () => {

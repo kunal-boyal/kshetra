@@ -35,6 +35,7 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
     photos: [PHOTO],
     signatureMediaId: null,
     flags: [],
+    flagNotes: {},
     status: 'pending',
     autoApproved: false,
     photoDetails: [
@@ -62,10 +63,14 @@ const SUMMARY = {
 
 type Answer = (body: unknown) => unknown;
 
-function fakeClient(writes: Record<string, Answer> = {}, permissions: string[] = []) {
+function fakeClient(
+  writes: Record<string, Answer> = {},
+  permissions: string[] = [],
+  queue?: ReturnType<typeof item>[],
+) {
   const pages: Record<string, unknown> = {
     '/v1/reviews/queue': {
-      items: [
+      items: queue ?? [
         item(CLEAN),
         item(FLAGGED, {
           geofence: 'outside',
@@ -220,6 +225,47 @@ describe('the review queue (M7, decision D104)', () => {
       'danger',
     );
     expect(within(detail).queryByRole('img', { name: /^Map:/ })).toBeNull();
+  });
+
+  it('explains each anomaly flag in words, without a place (BR-50)', async () => {
+    renderAt(
+      '/review',
+      fakeClient(
+        {},
+        [],
+        [
+          item(FLAGGED, {
+            flags: ['photo_far', 'fast_travel', 'burst', 'off_shift', 'mock_history'],
+            flagNotes: {
+              photo_far: { photoId: PHOTO, distanceM: 320 },
+              fast_travel: {
+                otherKind: 'check_in',
+                otherId: CLEAN,
+                otherAt: '2026-10-13T05:54:00.000Z',
+                distanceM: 18_400,
+                seconds: 360,
+              },
+              burst: { places: 3, seconds: 40 },
+              off_shift: {},
+              mock_history: { source: 'tracking', lastSeenAt: '2026-10-12T04:30:00.000Z' },
+            },
+          }),
+        ],
+      ),
+    );
+    const why = await screen.findByRole('region', { name: 'Why it was flagged' });
+    expect(why).toHaveTextContent(
+      'Photo taken far away: A photo was taken 320 m from where this was recorded.',
+    );
+    expect(why).toHaveTextContent(
+      'Travelled too fast: 18.4 km from the check-in at 11:24 am, only 6 minutes apart: faster than 100 km/h.',
+    );
+    expect(why).toHaveTextContent('Many places in minutes: 3 places within under a minute.');
+    expect(why).toHaveTextContent('Off shift: Recorded outside a shift.');
+    expect(why).toHaveTextContent(
+      /Fake location used: The phone refused a fake location on .*, in location tracking\./,
+    );
+    expect(why.textContent).not.toContain('28.6');
   });
 
   it('shows where a form was filled on the full map when asked', async () => {

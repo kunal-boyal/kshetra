@@ -1,6 +1,13 @@
 import type { FormView } from '@thelamp/forms';
 import { formatNumber } from '@thelamp/i18n';
-import { REVIEW_NOTE_MIN, ReviewItem, type ReviewPhoto } from '@thelamp/shared';
+import {
+  type AnomalyFlag,
+  FAST_TRAVEL_KMH,
+  type FlagNotes,
+  REVIEW_NOTE_MIN,
+  ReviewItem,
+  type ReviewPhoto,
+} from '@thelamp/shared';
 import { Button, DescriptionList, Icon, StatusBadge, TextAreaField } from '@thelamp/ui-web';
 import { Link } from '@tanstack/react-router';
 import { Check, MapPin, X } from 'lucide-react';
@@ -21,7 +28,82 @@ export const STATUS_VARIANT = {
 } as const;
 
 /** Flags that point at evidence that can't be trusted, drawn in danger rather than amber. */
-export const DANGER_FLAGS = new Set<string>(['duplicate_photo']);
+export const DANGER_FLAGS = new Set<string>(['duplicate_photo', 'fast_travel', 'mock_history']);
+
+/** A stretch of time in words: under a minute, or whole minutes. */
+function duration(seconds: number, t: Translate): string {
+  return seconds < 60
+    ? t('review.duration_seconds')
+    : t('review.duration_minutes', { count: Math.round(seconds / 60) });
+}
+
+/**
+ * Why each anomaly flag was given (BR-50, decision D119), in the reviewer's words: what the
+ * check saw, with distances, times and the other record's kind, never a place.
+ */
+export function AnomalyNotes({ notes, timeZone }: { notes: FlagNotes; timeZone: string }) {
+  const { t, locale } = useLanguage();
+  const dates = useDates(timeZone);
+  const number = (value: number, digits = 0) =>
+    formatNumber(value, { locale }, { maximumFractionDigits: digits });
+  const lines: [AnomalyFlag, string][] = [];
+  if (notes.photo_far) {
+    lines.push([
+      'photo_far',
+      t('review.anomaly_photo_far', { distance: number(notes.photo_far.distanceM) }),
+    ]);
+  }
+  if (notes.fast_travel) {
+    const note = notes.fast_travel;
+    lines.push([
+      'fast_travel',
+      t('review.anomaly_fast_travel', {
+        distance: number(note.distanceM / 1000, 1),
+        kind: t(`review.kind_${note.otherKind}`),
+        time: dates.time(note.otherAt),
+        duration: duration(note.seconds, t),
+        speed: number(FAST_TRAVEL_KMH),
+      }),
+    ]);
+  }
+  if (notes.burst) {
+    lines.push([
+      'burst',
+      t('review.anomaly_burst', {
+        places: number(notes.burst.places),
+        duration: duration(notes.burst.seconds, t),
+      }),
+    ]);
+  }
+  if (notes.off_shift) lines.push(['off_shift', t('review.anomaly_off_shift')]);
+  if (notes.mock_history) {
+    const note = notes.mock_history;
+    lines.push([
+      'mock_history',
+      note.lastSeenAt === null
+        ? t('review.anomaly_mock_photo')
+        : t('review.anomaly_mock_history', {
+            time: dates.dateTime(note.lastSeenAt),
+            source: t(`review.mock_${note.source}`),
+          }),
+    ]);
+  }
+  if (lines.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-1" aria-label={t('review.anomalies')}>
+      <h3 className="ks-label">{t('review.anomalies')}</h3>
+      <ul className="flex flex-col gap-1">
+        {lines.map(([flag, text]) => (
+          <li key={flag} className="ks-meta">
+            <strong>{t(`submissions.flag_${flag}`)}</strong>
+            {': '}
+            {text}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 /** A filled-in value as a reviewer reads it. */
 function valueText(value: unknown, t: Translate): string {
@@ -138,6 +220,7 @@ export function ReviewDetail({
           <StatusBadge variant="info">{t('review.auto_approved')}</StatusBadge>
         ) : null}
       </div>
+      <AnomalyNotes notes={item.flagNotes} timeZone={access.timezone} />
       {item.autoApproveAt ? (
         <p className="ks-meta">
           {t('review.auto_at', { when: dates.dateTime(item.autoApproveAt) })}
