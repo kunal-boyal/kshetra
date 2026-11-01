@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "building",
-  "version": 3,
+  "version": 4,
   "name": {
     "en": "Building materials and paints",
     "hi": "बिल्डिंग मटीरियल और पेंट"
@@ -100,7 +100,9 @@
         "api_client.manage",
         "webhook.manage",
         "billing.manage",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -176,7 +178,9 @@
         "report.schedule",
         "import.run",
         "audit.view",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -222,7 +226,9 @@
         "report.view",
         "export.create",
         "report.schedule",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -249,7 +255,8 @@
         "expense.claim",
         "payslip.view",
         "finance.view",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record"
       ],
       "mobileOnly": true
     },

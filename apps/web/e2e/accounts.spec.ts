@@ -88,6 +88,36 @@ function account(id: string, name: string, overrides: Record<string, unknown> = 
 
 const SHOP_ACCOUNT = account(SHOP, 'Green Fields Agro');
 const ANSWERS: Record<string, unknown> = {
+  [`/v1/accounts/${SHOP}/forecasts`]: {
+    account: { id: SHOP, code: 'D-80', name: 'Green Fields Agro' },
+    months: [
+      {
+        period: '2026-12',
+        open: true,
+        lines: [
+          {
+            item: {
+              id: '01a10000-0000-7000-8000-0000000000e1',
+              code: 'NEEM',
+              name: 'Neem oil',
+              baseUnit: 'pack',
+            },
+            quantity: '120',
+          },
+        ],
+        versions: [
+          {
+            id: '01a10000-0000-7000-8000-0000000000f2',
+            version: 2,
+            recordedBy: { id: SME, code: 'SUN-004', name: 'Asha Rao' },
+            recordedAt: '2026-11-01T06:00:00.000Z',
+            reason: 'Rains came early',
+            afterLock: true,
+          },
+        ],
+      },
+    ],
+  },
   '/v1/me': {
     userId: '01a10000-0000-7000-8000-000000000002',
     tenantId: '01a10000-0000-7000-8000-000000000001',
@@ -418,6 +448,7 @@ async function mockSignedIn(page: Page, types: object[] = [DISTRIBUTOR]) {
             'account_plan.manage',
             'finance.view',
             'finance.manage',
+            'forecast.record',
           ],
         },
       },
@@ -641,5 +672,37 @@ test('an account’s stock statement shows what sold through, and passes axe (D1
   await expect(section).toContainText('No price');
   await section.getByText(/Versions/).click();
   await expect(section.getByRole('button', { name: 'Show version 1' })).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('an account’s forecast shows its items and versions, edits, and passes axe (D126)', async ({
+  page,
+}) => {
+  await mockSignedIn(page);
+  await page.route('**/v1/catalogue', (route) =>
+    route.fulfill({
+      json: {
+        version: 1,
+        units: [],
+        measureTypes: [],
+        items: [
+          {
+            id: '01a10000-0000-7000-8000-0000000000e2',
+            code: 'MOP',
+            name: 'Potash',
+            baseUnit: 'bag',
+            active: true,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto(`/accounts/${SHOP}`);
+  const section = page.getByRole('region', { name: 'Forecast' });
+  await expect(section.getByRole('table', { name: 'Forecast' })).toContainText('120 pack');
+  await section.getByText(/Versions/).click();
+  await expect(section).toContainText('After the lock: Rains came early');
+  await section.getByRole('button', { name: 'Change' }).click();
+  await expect(section.getByRole('textbox', { name: 'Quantity of Neem oil' })).toBeVisible();
   await expectAccessible(page);
 });

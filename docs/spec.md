@@ -565,7 +565,9 @@ Journey plans:
 
 Account plans: planned values per account per metric for a month (for example a distributor's sales and collection plan), entered or imported by managers. They are a reference for the team and never change users' locked targets.
 
-Rules: BR-08, BR-35.
+Product forecasts (D126): each account's expected quantity per item for the next three months, entered by the field person who holds it, on the phone (offline) or the portal, or loaded by import or the bulk API. Each save is a version keeping the items it doesn't name; the latest counts. A month locks on its 1st, after which only someone with `forecast.adjust` changes it, giving a reason (BR-54). The `forecast_accuracy` report sets each account's forecast against what it ordered and sold through, and, where the tenant names a plan metric (`forecastPlanMetric`), its value against the account plan.
+
+Rules: BR-08, BR-35, BR-54.
 
 Acceptance criteria:
 - [ ] Generating next month's plan from routes is idempotent: running it twice creates no duplicates.
@@ -688,6 +690,7 @@ Standard reports, each filterable by period, team, territory, user and account t
 | Location summary | Per shift: distance, points, gaps and pauses, and the opening and closing odometer readings where recorded (D96) |
 | GPS audit trail | Every point one person sent in the month: capture and receive times, the shift, coordinates, accuracy, speed, battery, source, and the gaps over 10 minutes; one person at a time, for those who may view trails, and only for days whose raw points are still kept (BR-41, D96, D99) |
 | Account statement | Statement with running balance |
+| Forecast accuracy | Per account and item for a month: forecast, ordered, sold through, the gap and its share, and the account's accuracy (BR-54); with a plan metric named, the forecast's value beside the account plan (D126) |
 | Audit log | Filtered audit entries |
 
 Exports run as background jobs, produce XLSX or CSV, neutralise spreadsheet formula injection, and are downloaded from links that expire after 7 days. Every export is limited to the requester's scope and recorded in the audit log.
@@ -829,6 +832,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-51 | Invoices and receipts (D121): an invoice without a due date is due its credit days after its date, else the tenant's default credit days (30). Receipts, oldest first, settle the invoices they name in the order named, as far as each is open, then the account's oldest open invoices by due date, date and number; what is left after every invoice is an advance. Cancelled documents take no part. On a day, an open invoice due after it is not yet due; otherwise it is overdue and aged by days past due into the tenant's buckets. Outstanding is the open invoices less any advance. |
 | BR-52 | Scheduled reports (D122): a schedule owes, at any moment, only the latest send moment on the tenant's clock that came after it started or was last resumed or retimed, so a send missed while nothing ran goes once and never once for each moment missed; each send is keyed by its local date and made once. A monthly send reports the month before; a weekly send reports the month of the day before it, so a send on the 1st reports last month complete |
 | BR-53 | Sell-through by item (D124): sold through = opening + received − returned − closing, per item and month, in the item's base unit; opening comes forward from last month's closing, and an opening typed otherwise, or a negative sold-through, is flagged, never refused. A month's statement may change while it runs and for 5 days after; each save is a new version keeping the items it doesn't change, and the latest counts. It counts for whoever saved the latest version (for an import, the account's first-slot holder that day, else the importer) on the day it was saved, or the month's last day when saved after it, valued at the account's price that day before tax |
+| BR-54 | Product forecasts (D126): a forecast covers the three months after today's on the tenant's clock, per account and item in the item's base unit. A month is open until its 1st; after that it changes only with `forecast.adjust` and a reason, marked as after the lock, and a past month never changes. Each save is a new version keeping the items it doesn't name, 0 taking one out; the latest counts. Accuracy for an account's month is 1 − Σ|actual − forecast| ÷ Σforecast over its items, never below 0, and blank when nothing was forecast; actual is the base units ordered on accepted orders while the orders module is on, else sold through (BR-53) |
 
 ## 8. Screens and user experience
 
@@ -1309,6 +1313,9 @@ sell_through_statements(id, tid, account_id, period, version, recorded_by, recor
        value NULL, flags[], row_version)                     UQ(tid, account_id, period, version) (D124)
 sell_through_lines(tid, statement_id, item_id, opening, received, returned, closing, sold,
        unit_price NULL, value NULL, flags[])                 PK(tid, statement_id, item_id)
+forecasts(id, tid, account_id, period, version, recorded_by, recorded_at, reason NULL, after_lock,
+       row_version)                                          UQ(tid, account_id, period, version) (D126)
+forecast_lines(tid, forecast_id, item_id, quantity)          PK(tid, forecast_id, item_id)
 
 ── People operations ─────────────────────────────────────────────────────────────
 calendars(tid, key, name jsonb, weekly_offs int[], is_default)               PK(tid, key) · one default (D80)
@@ -1512,7 +1519,7 @@ App upgrades: local database migrations are versioned and run at app start befor
 | `MEDIA_NOT_READY` | 409 | Retry after the media item uploads |
 | `PRICE_CHANGED` | 409 | Refresh the catalogue and rebuild the cart |
 | `TARGET_LOCKED` | 409 | Refresh |
-| `PERIOD_CLOSED` | 409 | The month's stock statement can no longer change (BR-53) |
+| `PERIOD_CLOSED` | 409 | The month's stock statement or forecast can no longer change (BR-53, BR-54) |
 | `NOT_CURRENT_APPROVER` | 409 | Refresh the inbox |
 | `QUOTA_EXCEEDED` | 409 | Show the leave balance or claim cap |
 | `IMPORT_ERRORS` | 400 | Show row errors |
@@ -1990,6 +1997,7 @@ Routes: Employee code*, Route name*, Recurrence* (for example `MON`, `TUE,FRI` o
 | Receipts and credit notes | Receipt number* (upsert key), Account code*, Receipt date*, Amount*, Kind (receipt or credit note), Against invoices (numbers separated by `;`), Status |
 | External metric values | Metric key*, Date or Period*, Employee code or Account code*, Value* |
 | Sell-through by item (D124) | Account code*, Month*, Item code*, Opening (last month's closing when blank), Received*, Returned, Closing*; each account's month is one new version |
+| Forecasts (D126) | Account code*, Month* (one still open), Item code*, Quantity* (0 takes the item out); each account's month is one new version, for the account's first-slot holder |
 
 ### B.7 Holidays and payroll gross
 
@@ -2184,6 +2192,9 @@ Each example becomes at least one automated test.
 | FX-49 | BR-53 | Last month closed with 40; this month received 100, returned 5, closes at 60 | Sold through 75, no flags; an opening of 45 instead is flagged as changed |
 | FX-50 | BR-53 | Opening 10, nothing received, closing 14; price 99.99 | Sold through −4, flagged; value −399.96 |
 | FX-51 | BR-53 | October's statement changed on 3 November; on 6 November | Accepted, counting on 31 October; refused with `PERIOD_CLOSED` |
+| FX-52 | BR-54 | Today 14 December 2026; today 1 November 2026 | January to March 2027; December 2026 to February 2027 |
+| FX-53 | BR-54 | December's forecast changed on 30 November; on 1 December, without and with `forecast.adjust` | Open; locked, then open with a reason and marked after the lock |
+| FX-54 | BR-54 | Forecast 100 and 50, actual 90 and 70; forecast 100 and nothing, actual 100 and 25; forecast 0, actual 5 | Accuracy 80%; 75%; blank |
 
 ## Appendix E. Permission catalogue
 
@@ -2193,7 +2204,7 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 |---|---|
 | Field | `shift.use`, `tracking.pause`, `visit.use`, `submission.create`, `account.propose`, `account.propose_location` |
 | Review | `submission.review`, `submission.review_bulk`, `review_rules.manage` |
-| Planning | `target.view`, `target.edit`, `target.lock`, `target.unlock`, `route.manage`, `plan_item.manage`, `account_plan.manage` |
+| Planning | `target.view`, `target.edit`, `target.lock`, `target.unlock`, `route.manage`, `plan_item.manage`, `account_plan.manage`, `forecast.record`, `forecast.adjust` (D126) |
 | Performance | `performance.view_team`, `leaderboard.view`, `metric.record` (loading external metric values, decision D94) |
 | Maps | `live_map.view`, `trail.view` |
 | People | `user.view`, `user.manage`, `user.reset_device`, `user.sign_out_all`, `role.manage`, `designation.manage` |

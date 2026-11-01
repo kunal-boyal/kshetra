@@ -300,6 +300,13 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Phones keep their own plan items through the `plan_items` sync entity (`plan-items.sync.ts`, decision D54); Home's Today's plan and the visit card read them with `useTodayPlan()` in `apps/mobile/src/screens/today-plan.tsx`.
 - Targets and account plans (decision D55) live in the same module: `TargetsService` and `AccountPlansService`. They refer to metrics by key; the tenant's metric definitions are stored from its template by `MetricsService.applyTemplate()` and read with `targetable()`. Judge a value with `targetValueIssue()` and an unlock with `unlockRefusal()` from `@thelamp/shared`. Nobody sets their own targets; a locked set changes only after an unlock, which publishes `target.unlocked` as a lock publishes `target.locked`.
 
+## Forecasts (decision D126)
+
+- Forecasts live in `apps/api/src/modules/forecasts`: `ForecastsService` keeps `cell.forecasts` (a version per save of an account's month) and `cell.forecast_lines` (quantity per item in its base unit). Each save merges over the latest version, 0 taking an item out; the latest counts. The rules are pure functions in `packages/shared/src/forecasts.ts` (BR-54): `forecastMonths()` (the three months after today's), `forecastOpen()` and `forecastAfterLock()` (a month locks on its 1st; after it only `forecast.adjust`, with a reason), `forecastAccuracy()` and `forecastGap()`.
+- Writes are `PUT /v1/accounts/{id}/forecasts/{period}` (`forecast.record`, idempotent by the version's ID), the `forecasts` import and `/v1/bulk/forecasts`, which record for the account's first-slot holder. Reads are `GET /v1/accounts/{id}/forecasts?from=&to=` (a year at most).
+- The `forecast_accuracy` report (`apps/api/src/modules/reports/forecast-accuracy.ts`) sets each account's items against `OrdersService.orderedFor()` while the orders module is on, else `SellThroughService.soldFor()`; with the `forecastPlanMetric` setting it adds the forecast's value at the account's prices beside `AccountPlansService.valuesOf()`. A forecast feeds no metric.
+- The portal's section is `ForecastSection` on the account page (`apps/web/src/forecasts/forecast-section.tsx`); the setting is on Settings › Rules.
+
 ## Metrics and performance (decisions D56 and D57)
 
 - The metric engine lives in `apps/api/src/modules/performance`; definitions stay in `modules/metrics` (`MetricsService.definitions()`, `score()`). `MetricsEngine.recompute(tx, tenantId, userId, date)` rebuilds one person's day from the records the owning modules' `forMetrics()` methods return, through `calculateDayFacts()` in `@thelamp/metrics`. Recomputing is idempotent.

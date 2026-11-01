@@ -36,7 +36,7 @@ import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { pointSql } from '../../platform/geo';
-import { onLocalDate } from '../../platform/local-day';
+import { localMonth, onLocalDate } from '../../platform/local-day';
 import { Outbox } from '../../platform/outbox';
 import { AccountTypesService } from '../accounts/account-types.service';
 import { AccountsService } from '../accounts/accounts.service';
@@ -1003,6 +1003,54 @@ export class OrdersService {
           measure: line.measureTotal,
         })),
     }));
+  }
+
+  /**
+   * What these accounts ordered of each item in a month on the tenant's clock, in base units:
+   * orders that stand, less lines turned down (BR-19). For forecast accuracy (BR-54, D126).
+   */
+  async orderedFor(
+    tx: TenantTx,
+    tenantId: string,
+    accountIds: readonly string[],
+    period: string,
+    timezone: string,
+  ): Promise<Map<string, Map<string, string>>> {
+    const result = new Map<string, Map<string, string>>();
+    if (accountIds.length === 0) return result;
+    const { from, to } = localMonth(period, timezone);
+    const rows = await tx
+      .select({
+        accountId: orders.accountId,
+        itemId: orderLines.itemId,
+        units: sql<string>`sum(${orderLines.baseUnits})::text`,
+      })
+      .from(orderLines)
+      .innerJoin(
+        orders,
+        and(eq(orders.tenantId, orderLines.tenantId), eq(orders.id, orderLines.orderId)),
+      )
+      .where(
+        and(
+          eq(orderLines.tenantId, tenantId),
+          inArray(orders.accountId, [...accountIds]),
+          inArray(orders.status, [
+            'accepted',
+            'partially_accepted',
+            'partially_fulfilled',
+            'fulfilled',
+          ]),
+          sql`${orderLines.decision} <> 'rejected'`,
+          sql`${orders.placedAt} >= ${from} and ${orders.placedAt} < ${to}`,
+        ),
+      )
+      .groupBy(orders.accountId, orderLines.itemId);
+    for (const row of rows) {
+      const items = result.get(row.accountId) ?? new Map<string, string>();
+      items.set(row.itemId, row.units);
+      result.set(row.accountId, items);
+    }
+    return result;
   }
 
   /** What each order is about, for the approvals inbox. */

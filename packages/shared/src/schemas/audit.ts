@@ -79,6 +79,7 @@ export const AUDIT_ACTIONS = [
   'report_schedule.left',
   'dashboard_layout.changed',
   'sell_through.recorded',
+  'forecast.recorded',
   'organisation.renamed',
   'organisation.logo_changed',
   'account_type.created',

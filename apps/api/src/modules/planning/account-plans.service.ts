@@ -5,7 +5,7 @@ import {
   type PutAccountPlanBody,
   type TargetValues,
 } from '@thelamp/shared';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { accountPlans } from '../../db/schema/planning';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
@@ -40,6 +40,29 @@ export class AccountPlansService {
   ): Promise<AccountPlanResult> {
     await this.accounts.find(tx, access, accountId);
     return this.result(tx, access.tenantId, accountId, period);
+  }
+
+  /** These accounts' planned values of one metric for a month, by account (D126). */
+  async valuesOf(
+    tx: TenantTx,
+    tenantId: string,
+    accountIds: readonly string[],
+    period: string,
+    metricKey: string,
+  ): Promise<Map<string, string>> {
+    if (accountIds.length === 0) return new Map();
+    const rows = await tx
+      .select({ accountId: accountPlans.accountId, value: accountPlans.value })
+      .from(accountPlans)
+      .where(
+        and(
+          eq(accountPlans.tenantId, tenantId),
+          inArray(accountPlans.accountId, [...accountIds]),
+          eq(accountPlans.period, period),
+          eq(accountPlans.metricKey, metricKey),
+        ),
+      );
+    return new Map(rows.map((row) => [row.accountId, tidy(row.value)]));
   }
 
   private async result(

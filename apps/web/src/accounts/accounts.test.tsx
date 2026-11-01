@@ -1,7 +1,8 @@
 import { ApiError } from '@thelamp/api-client';
-import { screen, waitFor, within } from '@testing-library/react';
+import { SETTING_DEFAULTS, shiftPeriod, todayIn } from '@thelamp/shared';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fakeClient, noun, printedText, renderAt, writesOf } from '../test-support';
 
 const SHOP = '01a10000-0000-7000-8000-000000000080';
@@ -626,6 +627,137 @@ describe("an account's sell-through (D124)", () => {
     );
     expect(await screen.findByRole('heading', { name: 'Green Fields Agro' })).toBeVisible();
     expect(screen.queryByRole('region', { name: 'Sell-through' })).toBeNull();
+  });
+});
+
+describe("an account's forecast (D126)", () => {
+  const NEXT = shiftPeriod(todayIn(SETTING_DEFAULTS.timezone).slice(0, 7), 1);
+  const NEEM = {
+    id: '01a10000-0000-7000-8000-0000000000e1',
+    code: 'NEEM',
+    name: 'Neem oil',
+    baseUnit: 'pack',
+  };
+  const MOP = {
+    id: '01a10000-0000-7000-8000-0000000000e2',
+    code: 'MOP',
+    name: 'Potash',
+    baseUnit: 'bag',
+  };
+  const version = (n: number, patch: object = {}) => ({
+    id: `01a10000-0000-7000-8000-0000000000f${n}`,
+    version: n,
+    recordedBy: { id: SME, code: 'SUN-004', name: 'Asha Rao' },
+    recordedAt: '2026-11-01T06:00:00.000Z',
+    reason: null,
+    afterLock: false,
+    ...patch,
+  });
+  const result = (open: boolean, lines: object[], versions: object[]) => ({
+    account: { id: SHOP, code: 'D-80', name: 'Green Fields Agro' },
+    months: [{ period: '2026-12', open, lines, versions }],
+  });
+
+  it('shows the month’s items and versions, and saves a change as a new version', async () => {
+    const saved = vi.fn(() =>
+      result(
+        true,
+        [
+          { item: NEEM, quantity: '150' },
+          { item: MOP, quantity: '20' },
+        ],
+        [version(3), version(2), version(1)],
+      ),
+    );
+    const client = fakeClient(
+      {
+        [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+        [`/v1/accounts/${SHOP}/forecasts`]: result(
+          true,
+          [{ item: NEEM, quantity: '120' }],
+          [version(2, { reason: 'Rains came early', afterLock: true }), version(1)],
+        ),
+        '/v1/catalogue': {
+          version: 1,
+          units: [],
+          measureTypes: [],
+          items: [
+            { ...NEEM, active: true },
+            { ...MOP, active: true },
+          ],
+        },
+      },
+      { [`PUT /v1/accounts/${SHOP}/forecasts/${NEXT}`]: saved },
+      ['account.view', 'forecast.record'],
+      BUNDLE,
+    );
+    renderAt(`/accounts/${SHOP}`, client);
+    const user = userEvent.setup();
+    const section = await screen.findByRole('region', { name: 'Forecast' });
+    const table = await within(section).findByRole('table', { name: 'Forecast' });
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent('Neem oil');
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent('120 pack');
+    expect(within(section).getByText('Open until the month begins')).toBeVisible();
+    await user.click(within(section).getByText(/Versions/));
+    expect(within(section).getByText('After the lock: Rains came early')).toBeVisible();
+
+    await user.click(within(section).getByRole('button', { name: 'Change' }));
+    await user.type(within(section).getByRole('textbox', { name: 'Quantity of Neem oil' }), '150');
+    await user.selectOptions(
+      within(section).getByRole('combobox', { name: 'Add an item' }),
+      'Potash (MOP)',
+    );
+    await user.type(within(section).getByRole('textbox', { name: 'Quantity of Potash' }), '20');
+    await user.click(within(section).getByRole('button', { name: 'Save the forecast' }));
+    expect(await within(section).findByText('Saved as version 3.')).toBeVisible();
+    const [, path, , options] = writesOf(client)[0]!;
+    expect(path).toBe(`/v1/accounts/${SHOP}/forecasts/${NEXT}`);
+    expect(options).toMatchObject({
+      body: {
+        id: expect.any(String),
+        lines: [
+          { itemId: NEEM.id, quantity: '150' },
+          { itemId: MOP.id, quantity: '20' },
+        ],
+      },
+    });
+  });
+
+  it('asks why a locked month changes, and offers no change to those who may not', async () => {
+    const pages = {
+      [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+      [`/v1/accounts/${SHOP}/forecasts`]: result(
+        false,
+        [{ item: NEEM, quantity: '120' }],
+        [version(1)],
+      ),
+      '/v1/catalogue': { version: 1, units: [], measureTypes: [], items: [] },
+    };
+    const field = fakeClient(pages, {}, ['account.view', 'forecast.record'], BUNDLE);
+    renderAt(`/accounts/${SHOP}`, field);
+    const theirs = await screen.findByRole('region', { name: 'Forecast' });
+    expect(await within(theirs).findByText('Locked')).toBeVisible();
+    expect(within(theirs).queryByRole('button', { name: 'Change' })).toBeNull();
+    cleanup();
+
+    const manager = fakeClient(
+      pages,
+      {},
+      ['account.view', 'forecast.record', 'forecast.adjust'],
+      BUNDLE,
+    );
+    renderAt(`/accounts/${SHOP}`, manager);
+    const user = userEvent.setup();
+    const section = await screen.findByRole('region', { name: 'Forecast' });
+    await user.click(await within(section).findByRole('button', { name: 'Change' }));
+    await user.type(within(section).getByRole('textbox', { name: 'Quantity of Neem oil' }), '90');
+    const save = within(section).getByRole('button', { name: 'Save the forecast' });
+    expect(save).toBeDisabled();
+    await user.type(
+      within(section).getByRole('textbox', { name: /Why the locked month changes/ }),
+      'Stock-out',
+    );
+    expect(save).toBeEnabled();
   });
 });
 

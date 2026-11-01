@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "agri",
-  "version": 5,
+  "version": 6,
   "name": { "en": "Agri inputs", "hi": "कृषि इनपुट" },
   "description": {
     "en": "For seed, crop protection and fertiliser companies: distributors, retailers and farmers; farmer meetings, demos and distributor visits that record sales, collection and liquidation; orders by the case.",
@@ -102,7 +102,9 @@
         "api_client.manage",
         "webhook.manage",
         "billing.manage",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -175,7 +177,9 @@
         "report.schedule",
         "import.run",
         "audit.view",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -218,7 +222,9 @@
         "report.view",
         "export.create",
         "report.schedule",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -242,7 +248,8 @@
         "expense.claim",
         "payslip.view",
         "finance.view",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record"
       ],
       "mobileOnly": true
     },

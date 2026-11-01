@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "generic",
-  "version": 5,
+  "version": 6,
   "name": { "en": "Generic", "hi": "सामान्य" },
   "description": {
     "en": "A starting point for any field team: customers, visit and meeting forms, and metrics for visits, coverage and order value.",
@@ -83,7 +83,9 @@
         "api_client.manage",
         "webhook.manage",
         "billing.manage",
-        "sell_through.record"
+        "sell_through.record",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -155,7 +157,9 @@
         "export.create",
         "report.schedule",
         "import.run",
-        "audit.view"
+        "audit.view",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -197,7 +201,9 @@
         "payslip.view",
         "report.view",
         "export.create",
-        "report.schedule"
+        "report.schedule",
+        "forecast.record",
+        "forecast.adjust"
       ]
     },
     {
@@ -220,7 +226,8 @@
         "regularisation.request",
         "expense.claim",
         "payslip.view",
-        "finance.view"
+        "finance.view",
+        "forecast.record"
       ],
       "mobileOnly": true
     },

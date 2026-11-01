@@ -97,6 +97,7 @@ const FIELD_KEYS = {
     'returned',
     'closing',
   ],
+  forecasts: ['account_code', 'month', 'item_code', 'quantity'],
 } as const satisfies Record<string, readonly string[]>;
 
 /** A field's name in the reader's language: its own label, or the app's word for it. */

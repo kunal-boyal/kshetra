@@ -28,6 +28,7 @@ export const REPORT_KEYS = [
   'audit_log',
   'payroll_summary',
   'sell_through',
+  'forecast_accuracy',
 ] as const;
 export const ReportKey = z.enum(REPORT_KEYS).meta({ id: 'ReportKey' });
 

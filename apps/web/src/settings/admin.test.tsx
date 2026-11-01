@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { accentCss } from '../brand';
-import { fakeClient, renderAt, writesOf } from '../test-support';
+import { fakeClient, noun, renderAt, writesOf } from '../test-support';
 
 const ADMIN = ['settings.manage', 'terminology.manage', 'module.manage'] as const;
 const ORGANISATION = { name: 'Sunrise Traders', logo: null };
@@ -190,6 +190,46 @@ describe('rules (M2, spec 5.1)', () => {
     expect(await screen.findByText('Saved.')).toBeVisible();
     expect((writesOf(client)[0]![3] as { body: object }).body).toEqual({
       anomalyFlagsOff: ['fast_travel', 'off_shift'],
+    });
+  });
+});
+
+describe('the forecast plan metric (D126)', () => {
+  it('offers the money metrics in use, and none', async () => {
+    const entry = (key: string, unit: string, active = true) => ({
+      definition: { key, name: noun(key, `${key} figures`), unit },
+      active,
+      version: 1,
+    });
+    const client = fakeClient(
+      {
+        '/v1/metric-definitions': {
+          metrics: [
+            entry('order_value', 'currency'),
+            entry('visits', 'count'),
+            entry('old_sales', 'currency', false),
+          ],
+          score: null,
+        },
+      },
+      { 'PATCH /v1/settings': ({ body }) => saved(body) },
+      ADMIN,
+    );
+    renderAt('/settings/rules', client);
+    const user = userEvent.setup();
+    const choice = await screen.findByRole('combobox', { name: /Metric to set forecasts beside/ });
+    await waitFor(() =>
+      expect(
+        within(choice)
+          .getAllByRole('option')
+          .map((option) => option.textContent),
+      ).toEqual(['None', 'order_value figures']),
+    );
+    await user.selectOptions(choice, 'order_value figures');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Saved.')).toBeVisible();
+    expect((writesOf(client)[0]![3] as { body: object }).body).toEqual({
+      forecastPlanMetric: 'order_value',
     });
   });
 });
