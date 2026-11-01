@@ -150,8 +150,8 @@ English and Hindi. Net pay in words through `@thelamp/i18n` in both languages, i
 
 ### Pull request 2: the portal and the console
 
-- [ ] The Payroll page with the run and register, the statutory payslip for print, structures and profiles on a person's page, and the console's Payroll rates and review.
-- [ ] Vitest and Playwright with axe.
+- [x] The Payroll page with the run and register, the statutory payslip for print, structures and profiles on a person's page, and the console's Payroll rates and review.
+- [x] Vitest and Playwright with axe.
 
 ### Pull request 3: the phone and the demo
 

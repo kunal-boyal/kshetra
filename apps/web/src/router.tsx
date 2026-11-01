@@ -49,7 +49,9 @@ import { ExpensePoliciesPage } from './settings/expense-policies-page';
 import { AttendancePage } from './attendance/attendance-page';
 import { ExpensesPage } from './expenses/expenses-page';
 import { PayrollPage } from './payroll/payroll-page';
+import { PayRunPage } from './payroll/pay-run-page';
 import { PayslipPage } from './payroll/payslip-page';
+import { StatutoryPayslipPage } from './payroll/statutory-payslip-page';
 import { DashboardsPage } from './settings/dashboards-page';
 import { LeaveTypesPage } from './settings/leave-types-page';
 import { ConfigurationPage } from './settings/configuration-page';
@@ -237,6 +239,19 @@ const payslip = createRoute({
   component: function PayslipRoute() {
     const { userId, period } = payslip.useParams();
     return <PayslipPage key={`${userId}:${period}`} userId={userId} period={period} />;
+  },
+});
+const payRunRoute = createRoute({
+  getParentRoute: () => app,
+  path: '/pay-run',
+  component: PayRunPage,
+});
+const statutoryPayslip = createRoute({
+  getParentRoute: () => app,
+  path: '/pay-run/$userId/$period',
+  component: function StatutoryPayslipRoute() {
+    const { userId, period } = statutoryPayslip.useParams();
+    return <StatutoryPayslipPage key={`${userId}:${period}`} userId={userId} period={period} />;
   },
 });
 const ordersRoute = createRoute({
@@ -614,6 +629,8 @@ const tree = root.addChildren([
     attendanceRoute,
     expensesRoute,
     payrollRoute,
+    payRunRoute,
+    statutoryPayslip,
     payslip,
     newOrder,
     order,

@@ -676,6 +676,17 @@ const FIXTURES: Record<string, Fixture> = {
     '/platform/v1/tenants/:id/second-factor-resets',
     { phone: '9000000001', reason: 'Checking' },
   ),
+  'GET /platform/v1/statutory-rates': consoleShutsB('GET', '/platform/v1/statutory-rates'),
+  'POST /platform/v1/statutory-rates': consoleShutsB('POST', '/platform/v1/statutory-rates', {
+    id: 'b-set',
+    from: '2099-04-01',
+    rates: {},
+  }),
+  'POST /platform/v1/statutory-rates/reviews': consoleShutsB(
+    'POST',
+    '/platform/v1/statutory-rates/reviews',
+    { rateSetId: 'reference-2026-04', reviewer: 'B', reviewedOn: '2026-11-02' },
+  ),
   'GET /platform/v1/billing/settings': consoleShutsB('GET', '/platform/v1/billing/settings'),
   'PUT /platform/v1/billing/settings': consoleShutsB('PUT', '/platform/v1/billing/settings', {
     seller: {

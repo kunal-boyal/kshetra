@@ -240,3 +240,34 @@ export type StatutoryProfileResult = z.infer<typeof StatutoryProfileResult>;
 export type PayAdjustmentBody = z.output<typeof PayAdjustmentBody>;
 export type StatutoryPayslip = z.infer<typeof StatutoryPayslip>;
 export type PayRunResult = z.infer<typeof PayRunResult>;
+
+// The console's rate sets and reviews (D128).
+
+/** `POST /platform/v1/statutory-rates/reviews`: a chartered accountant's review of a set. */
+export const StatutoryReviewBody = z
+  .strictObject({
+    rateSetId: z.string().min(1).max(40),
+    reviewer: z.string().trim().min(1).max(120),
+    reviewedOn: z.iso.date(),
+    note: z.string().trim().max(1000).default(''),
+  })
+  .meta({ id: 'StatutoryReviewBody' });
+
+export const StatutoryRatesResult = z
+  .object({
+    /** The rules' version a review must name to count. */
+    rulesVersion: z.int(),
+    /** True until the vendor saves a set of its own. */
+    reference: z.boolean(),
+    sets: z.array(
+      StatutoryRateSet.extend({
+        reviews: z.array(StatutoryReviewBody.extend({ rulesVersion: z.int() })),
+        /** A review covers this set under the rules' current version. */
+        reviewed: z.boolean(),
+      }),
+    ),
+  })
+  .meta({ id: 'StatutoryRatesResult' });
+
+export type StatutoryReviewBody = z.output<typeof StatutoryReviewBody>;
+export type StatutoryRatesResult = z.infer<typeof StatutoryRatesResult>;

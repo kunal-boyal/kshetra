@@ -3,7 +3,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StatutoryRatesService } from '../src/modules/billing/statutory-rates.service';
-import { newDevice, newPhone, startApp, testConfig, World } from './support';
+import { newDevice, newPhone, staffToken, startApp, testConfig, World } from './support';
 
 /** Statutory payroll (M14, BR-56 to BR-58, decision D128). */
 
@@ -272,5 +272,63 @@ describe('statutory payroll (D128)', () => {
       note: 'Test review',
     });
     expect((await t.admin.get(`/v1/pay-runs/${period}`)).json().reviewed).toBe(true);
+  });
+
+  it('keeps the rate sets and reviews in the console, for staff who manage billing', async () => {
+    const staff = (token: string) => ({
+      get: (url: string) =>
+        app.inject({ method: 'GET', url, headers: { authorization: `Bearer ${token}` } }),
+      post: (url: string, payload: object) =>
+        app.inject({ method: 'POST', url, payload, headers: { authorization: `Bearer ${token}` } }),
+    });
+    const support = staff(await staffToken(app, 'support'));
+    const admin = staff(await staffToken(app, 'platform_admin'));
+
+    const read = await support.get('/platform/v1/statutory-rates');
+    expect(read.statusCode, read.body).toBe(200);
+    expect(read.json().sets.map((set: { id: string }) => set.id)).toEqual(
+      expect.arrayContaining(REFERENCE_RATE_SETS.map((set) => set.id)),
+    );
+    // A set far ahead, so the months the other tests pay keep the reference sets.
+    const later = { ...REFERENCE_RATE_SETS[1]!, id: 'test-2099-04', from: '2099-04-01' };
+    expect(code(await support.post('/platform/v1/statutory-rates', later))).toBe('FORBIDDEN');
+
+    const added = await admin.post('/platform/v1/statutory-rates', later);
+    expect(added.statusCode, added.body).toBe(201);
+    expect(added.json()).toMatchObject({ reference: false });
+    // The reference sets stay in force before it; sets are only ever added.
+    expect(added.json().sets.map((set: { id: string }) => set.id)).toEqual([
+      ...REFERENCE_RATE_SETS.map((set) => set.id),
+      'test-2099-04',
+    ]);
+    expect(code(await admin.post('/platform/v1/statutory-rates', later))).toBe('CONFLICT');
+    expect(
+      code(
+        await admin.post('/platform/v1/statutory-rates', { ...later, id: 'test-bad', rates: {} }),
+      ),
+    ).toBe('VALIDATION');
+
+    const review = {
+      rateSetId: 'test-2099-04',
+      reviewer: 'A. Example, Chartered Accountant (fictional)',
+      reviewedOn: '2026-11-02',
+      note: '',
+    };
+    expect(
+      code(
+        await admin.post('/platform/v1/statutory-rates/reviews', {
+          ...review,
+          rateSetId: 'nowhere',
+        }),
+      ),
+    ).toBe('NOT_FOUND');
+    const reviewed = await admin.post('/platform/v1/statutory-rates/reviews', review);
+    expect(reviewed.statusCode, reviewed.body).toBe(201);
+    expect(
+      reviewed.json().sets.find((set: { id: string }) => set.id === 'test-2099-04'),
+    ).toMatchObject({
+      reviewed: true,
+      reviews: [expect.objectContaining({ reviewer: review.reviewer })],
+    });
   });
 });

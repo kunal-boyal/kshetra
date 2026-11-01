@@ -7,6 +7,7 @@ import { BillingController } from './billing.controller';
 import { BillingCycle } from './billing-cycle';
 import { BillingNotices } from './billing-notices';
 import { BillingSettings } from './billing-settings.service';
+import { StatutoryRatesController } from './statutory-rates.controller';
 import { StatutoryRatesService } from './statutory-rates.service';
 import { DunningService } from './dunning.service';
 import { EntitlementsService } from './entitlements.service';
@@ -27,7 +28,12 @@ import { UsageService } from './usage.service';
  */
 @Module({
   imports: [DirectoryModule, NotificationsModule],
-  controllers: [BillingController, InvoicingController, PortalBillingController],
+  controllers: [
+    BillingController,
+    InvoicingController,
+    PortalBillingController,
+    StatutoryRatesController,
+  ],
   providers: [
     PlansService,
     EntitlementsService,

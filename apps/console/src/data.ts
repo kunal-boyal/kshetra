@@ -7,6 +7,9 @@ import {
   CellHealthList,
   type BillingSettingsBody,
   BillingSettingsResult,
+  StatutoryRateSet,
+  StatutoryRatesResult,
+  StatutoryReviewBody,
   CellListResult,
   ConsoleTenant,
   ConsoleTenantActivity,
@@ -153,6 +156,15 @@ export function useBillingSettings() {
   return useQuery({
     queryKey: ['billing-settings'],
     queryFn: () => client.request('GET', '/platform/v1/billing/settings', BillingSettingsResult),
+  });
+}
+
+/** Statutory payroll's rate sets and reviews (decision D128). */
+export function useStatutoryRates() {
+  const { client } = useConsole();
+  return useQuery({
+    queryKey: ['statutory-rates'],
+    queryFn: () => client.request('GET', '/platform/v1/statutory-rates', StatutoryRatesResult),
   });
 }
 
@@ -308,6 +320,16 @@ export function useConsoleMutations() {
       mutationFn: (body: z.input<typeof BillingSettingsBody>) =>
         client.request('PUT', '/platform/v1/billing/settings', BillingSettingsResult, body),
       onSuccess: () => refresh(['billing-settings']),
+    }),
+    addStatutoryRateSet: useMutation({
+      mutationFn: (body: z.input<typeof StatutoryRateSet>) =>
+        client.request('POST', '/platform/v1/statutory-rates', StatutoryRatesResult, body),
+      onSuccess: () => refresh(['statutory-rates']),
+    }),
+    recordStatutoryReview: useMutation({
+      mutationFn: (body: z.input<typeof StatutoryReviewBody>) =>
+        client.request('POST', '/platform/v1/statutory-rates/reviews', StatutoryRatesResult, body),
+      onSuccess: () => refresh(['statutory-rates']),
     }),
     saveBillingAccount: useMutation({
       mutationFn: ({

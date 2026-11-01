@@ -21,6 +21,10 @@ export function BillingPage() {
           <Settings size={16} aria-hidden="true" />
           {t('console.billing_settings')}
         </Link>
+        <Link to="/billing/payroll-rates" className="ks-btn secondary">
+          <Settings size={16} aria-hidden="true" />
+          {t('console.statutory_rates')}
+        </Link>
       </div>
       {settings.data && !settings.data.ready ? (
         <Notice>{t('console.settings_not_ready')}</Notice>

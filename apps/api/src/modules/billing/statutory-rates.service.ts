@@ -4,6 +4,7 @@ import {
   REFERENCE_RATE_SETS,
   STATUTORY_RULES_VERSION,
   StatutoryRateSet,
+  type StatutoryRatesResult,
 } from '@thelamp/shared';
 import { eq } from 'drizzle-orm';
 import { platformSettings } from '../../db/schema/directory';
@@ -82,6 +83,23 @@ export class StatutoryRatesService extends StatutoryRates {
     return reviews.some(
       (review) => review.rateSetId === rateSetId && review.rulesVersion === STATUTORY_RULES_VERSION,
     );
+  }
+
+  /** The console's view: every set in force over time, with its reviews. */
+  async result(): Promise<StatutoryRatesResult> {
+    const stored = await this.read();
+    return {
+      rulesVersion: STATUTORY_RULES_VERSION,
+      reference: stored.sets.length === 0,
+      sets: (await this.sets()).map((set) => {
+        const reviews = stored.reviews.filter((review) => review.rateSetId === set.id);
+        return {
+          ...set,
+          reviews,
+          reviewed: reviews.some((review) => review.rulesVersion === STATUTORY_RULES_VERSION),
+        };
+      }),
+    };
   }
 
   /** Adds a rate set from a date; sets already used keep their figures, as sets never change. */

@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import { REFERENCE_RATE_SETS, STATUTORY_RULES_VERSION } from '@thelamp/shared';
 
 const later = () => new Date(Date.now() + 15 * 60_000).toISOString();
 
@@ -217,6 +218,15 @@ async function mockApi(page: Page, { signedIn }: { signedIn: boolean }) {
     }),
   );
   await page.route('**/platform/v1/plans', (route) => route.fulfill({ json: { items: [PLAN] } }));
+  await page.route('**/platform/v1/statutory-rates', (route) =>
+    route.fulfill({
+      json: {
+        rulesVersion: STATUTORY_RULES_VERSION,
+        reference: true,
+        sets: REFERENCE_RATE_SETS.map((set) => ({ ...set, reviews: [], reviewed: false })),
+      },
+    }),
+  );
   await page.route('**/platform/v1/billing/settings', (route) =>
     route.fulfill({
       json: {
@@ -472,6 +482,7 @@ for (const [path, heading] of [
   [`/plans/${PLAN.id}`, 'Growth'],
   ['/billing', 'Billing'],
   ['/billing/settings', 'Billing settings'],
+  ['/billing/payroll-rates', 'Payroll rates'],
   [`/invoices/${INVOICE.id}`, 'Invoice TL/26-27/00042'],
   ['/staff', 'Staff'],
   ['/account', 'Your account'],
