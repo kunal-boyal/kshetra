@@ -84,7 +84,7 @@ function server(...answers: (SyncPullResult | Error)[]) {
 describe('the local database', () => {
   it('migrates once, to the latest version', async () => {
     await migrate(db);
-    expect(await db.get('PRAGMA user_version')).toEqual({ user_version: 12 });
+    expect(await db.get('PRAGMA user_version')).toEqual({ user_version: 13 });
     const tables = await db.all<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     );
@@ -95,6 +95,7 @@ describe('the local database', () => {
       'ref_accounts',
       'ref_balances',
       'ref_contacts',
+      'ref_forecasts',
       'ref_items',
       'ref_orders',
       'ref_plan_items',

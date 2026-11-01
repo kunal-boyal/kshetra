@@ -306,6 +306,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 - Writes are `PUT /v1/accounts/{id}/forecasts/{period}` (`forecast.record`, idempotent by the version's ID), the `forecasts` import and `/v1/bulk/forecasts`, which record for the account's first-slot holder. Reads are `GET /v1/accounts/{id}/forecasts?from=&to=` (a year at most).
 - The `forecast_accuracy` report (`apps/api/src/modules/reports/forecast-accuracy.ts`) sets each account's items against `OrdersService.orderedFor()` while the orders module is on, else `SellThroughService.soldFor()`; with the `forecastPlanMetric` setting it adds the forecast's value at the account's prices beside `AccountPlansService.valuesOf()`. A forecast feeds no metric.
 - The portal's section is `ForecastSection` on the account page (`apps/web/src/forecasts/forecast-section.tsx`); the setting is on Settings › Rules.
+- On the phone, the `forecasts` sync entity (`ForecastsSync`, scope by reach and month) keeps the latest version of this month's and the next three months' forecasts, keyed by version. `/forecast/<accountId>` (`src/screens/forecast.tsx`, opened from the account screen) shows them with queued saves laid over what was synced (`forecastOf()` in `apps/mobile/src/forecasts.ts`) and queues `forecast.save`; a locked month is read only there, changed on the portal. The demo's `DemoCommerce.forecast()` forecasts each month's 20th.
 
 ## Metrics and performance (decisions D56 and D57)
 

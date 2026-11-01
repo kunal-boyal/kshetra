@@ -156,6 +156,15 @@ describe('demo content (decision D70)', () => {
       );
       expect(stock!.statements).toBe(counts.statements);
       expect(stock!.lines).toBeGreaterThan(stock!.statements);
+      // Field people forecast the accounts they hold for the months still open (D126).
+      expect(counts.forecasts).toBeGreaterThan(0);
+      const [forecast] = await sql<{ forecasts: number; lines: number }>(
+        `select (select count(*)::int from cell.forecasts where tenant_id = $1) as forecasts,
+                (select count(*)::int from cell.forecast_lines where tenant_id = $1) as lines`,
+        [tenantId],
+      );
+      expect(forecast!.forecasts).toBe(counts.forecasts);
+      expect(forecast!.lines).toBeGreaterThanOrEqual(forecast!.forecasts * 2);
 
       // A tenant is filled once, and only a demo tenant.
       await expect(fill({ slug, days: 1, seed: 3, log: () => {} })).rejects.toThrow(

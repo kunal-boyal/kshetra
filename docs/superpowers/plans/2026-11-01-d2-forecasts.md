@@ -61,6 +61,6 @@
 
 ### Pull request 2: the phone and the demo
 
-- [ ] The sync entity and local table, the screen, the outbox kind, the account screen's row, and the demo.
-- [ ] Tests: Jest, the `device.int.test.ts` round trip, and demo content.
-- [ ] Decision D126, spec BR-54, M8 and Appendix B, `CLAUDE.md`, the store answers, progress and tracker. `pnpm verify` before each merge, with the local services stopped.
+- [x] The sync entity and local table, the screen, the outbox kind, the account screen's row, and the demo.
+- [x] Tests: Jest, the `device.int.test.ts` round trip, and demo content.
+- [x] Decision D126, spec BR-54, M8 and Appendix B, `CLAUDE.md`, the store answers, progress and tracker. `pnpm verify` before each merge, with the local services stopped.

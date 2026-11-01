@@ -130,7 +130,7 @@ The app collects data for the organisation the user works for; the vendor proces
 | Personal info: phone number | Yes: the sign-in number | No | App functionality, account management |
 | Financial info: other financial info | Yes: expense claims' amounts | Yes | App functionality |
 | Photos | Yes: photos taken in the app, and a punch-in selfie where the organisation asks | No where a form or the organisation requires them | App functionality |
-| App activity: other user-generated content | Yes: visits, forms, orders, accounts' stock statements, leave and requests | No | App functionality |
+| App activity: other user-generated content | Yes: visits, forms, orders, accounts' stock statements and forecasts, leave and requests | No | App functionality |
 | App info and performance: crash logs, diagnostics | Yes, once error reporting is switched on, without personal details | No | App functionality |
 | Device or other IDs | Yes: a random key the app makes, binding the sign-in to the phone | No | App functionality, fraud prevention and security |
 

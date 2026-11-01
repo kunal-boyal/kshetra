@@ -27,6 +27,7 @@ export const SYNC_ENTITIES = [
   'orders',
   'balances',
   'sell_through',
+  'forecasts',
 ] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
@@ -215,6 +216,22 @@ export const SyncSellThrough = z
   .meta({ id: 'SyncSellThrough' });
 
 /**
+ * The latest version of an account's forecast for this month or one of the next three (BR-54,
+ * decision D126), so the phone shows and changes them offline. Only for people who record them;
+ * keyed by the version, so the phone reads each account's month's highest.
+ */
+export const SyncForecast = z
+  .object({
+    id: z.uuid(),
+    accountId: z.uuid(),
+    period: z.string(),
+    version: z.int(),
+    recordedAt: z.iso.datetime(),
+    lines: z.array(z.object({ itemId: z.uuid(), quantity: z.string() })),
+  })
+  .meta({ id: 'SyncForecast' });
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -242,6 +259,7 @@ export const SyncPricesPage = page(SyncPrice);
 export const SyncOrdersPage = page(SyncOrder);
 export const SyncBalancesPage = page(SyncBalance);
 export const SyncSellThroughPage = page(SyncSellThrough);
+export const SyncForecastsPage = page(SyncForecast);
 
 export const SyncPullResult = z.object({
   entities: z.object({
@@ -256,6 +274,7 @@ export const SyncPullResult = z.object({
     orders: SyncOrdersPage.optional(),
     balances: SyncBalancesPage.optional(),
     sell_through: SyncSellThroughPage.optional(),
+    forecasts: SyncForecastsPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -276,4 +295,5 @@ export type SyncPrice = z.infer<typeof SyncPrice>;
 export type SyncOrder = z.infer<typeof SyncOrder>;
 export type SyncBalance = z.infer<typeof SyncBalance>;
 export type SyncSellThrough = z.infer<typeof SyncSellThrough>;
+export type SyncForecast = z.infer<typeof SyncForecast>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

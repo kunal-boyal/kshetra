@@ -5,6 +5,7 @@ import { migrate, Outbox, type SqlDatabase, Visits } from '@thelamp/api-client/s
 import {
   previousPeriod,
   SETTING_DEFAULTS,
+  shiftPeriod,
   type SwitchableModule,
   type SyncPullResult,
   todayIn,
@@ -24,6 +25,8 @@ import { NewAccountScreen } from './new-account';
 import { repriceRefused, stepQuantity } from '../orders';
 import { OrderScreen } from './order';
 import { PricesScreen } from './prices';
+import { forecastOf } from '../forecasts';
+import { ForecastScreen } from './forecast';
 import { SellThroughScreen } from './sell-through';
 
 jest.mock('expo-router', () => ({
@@ -252,6 +255,17 @@ function pulled(): SyncPullResult {
           ],
         },
       ]),
+      // Next month's forecast at Janpath Mart: 120 seed packs (BR-54).
+      forecasts: full([
+        {
+          id: '01a10000-0000-7000-8000-0000000000f8',
+          accountId: NEAR,
+          period: shiftPeriod(todayIn(SETTING_DEFAULTS.timezone).slice(0, 7), 1),
+          version: 1,
+          recordedAt: '2026-11-01T06:00:00.000Z',
+          lines: [{ itemId: SEED, quantity: '120' }],
+        },
+      ]),
       contacts: full([
         {
           id: '01a10000-0000-7000-8000-000000000090',
@@ -334,6 +348,7 @@ function fakeClient(modulesOff: SwitchableModule[] = []) {
             'order.create',
             'finance.view',
             'sell_through.record',
+            'forecast.record',
           ],
         },
       },
@@ -348,7 +363,8 @@ type Page =
   | { name: 'new' }
   | { name: 'prices'; id: string }
   | { name: 'order'; id: string }
-  | { name: 'sell_through'; id: string };
+  | { name: 'sell_through'; id: string }
+  | { name: 'forecast'; id: string };
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
@@ -358,6 +374,7 @@ function Shown({ page }: { page: Page }) {
   if (page.name === 'prices') return <PricesScreen accountId={page.id} />;
   if (page.name === 'order') return <OrderScreen accountId={page.id} />;
   if (page.name === 'sell_through') return <SellThroughScreen accountId={page.id} />;
+  if (page.name === 'forecast') return <ForecastScreen accountId={page.id} />;
   return <AccountScreen id={page.id} />;
 }
 
@@ -752,5 +769,77 @@ describe('modules switched off on the phone (M2, spec 5.13, D64)', () => {
     await renderPhone({ name: 'account', id: NEAR }, nodeSqlite(), ['account_finance']);
     expect(await screen.findByRole('button', { name: 'New order' })).toBeOnTheScreen();
     expect(screen.queryByText('What it owes')).toBeNull();
+  });
+});
+
+describe('forecasts on the phone (BR-54, D126)', () => {
+  const NEXT = shiftPeriod(todayIn(SETTING_DEFAULTS.timezone).slice(0, 7), 1);
+
+  it('opens the forecast from the account', async () => {
+    await renderPhone({ name: 'account', id: NEAR });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Forecast by item' }));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/forecast/[accountId]',
+      params: { accountId: NEAR },
+    });
+  });
+
+  it('shows next month’s forecast, and queues a change as a new version', async () => {
+    const db = nodeSqlite();
+    await renderPhone({ name: 'forecast', id: NEAR }, db);
+    expect(await screen.findByText(/SEED-1 · 120/)).toBeOnTheScreen();
+    expect(screen.getByText('Open until the month begins')).toBeOnTheScreen();
+    const [field] = await screen.findAllByLabelText(/^Quantity of /);
+    await fireEvent.changeText(field!, '150');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save the forecast' }));
+    expect(await screen.findByText('Saved. It uploads when there is a signal.')).toBeOnTheScreen();
+    const [queued] = (await new Outbox(db, {}).items(OWNER)).filter(
+      (entry) => entry.kind === 'forecast.save',
+    );
+    expect(queued?.payload).toMatchObject({
+      accountId: NEAR,
+      period: NEXT,
+      body: { id: queued?.id, lines: [{ itemId: SEED, quantity: '150' }] },
+    });
+  });
+
+  it('lays saves still queued over what was synced, 0 taking an item out', () => {
+    const synced = [
+      {
+        id: '01a10000-0000-7000-8000-0000000000f8',
+        accountId: NEAR,
+        period: NEXT,
+        version: 1,
+        recordedAt: '2026-11-01T06:00:00.000Z',
+        lines: [
+          { itemId: SEED, quantity: '120' },
+          { itemId: 'other', quantity: '10' },
+        ],
+      },
+    ];
+    const queued = [
+      {
+        accountId: NEAR,
+        period: NEXT,
+        body: { id: 'a', lines: [{ itemId: SEED, quantity: '150' }] },
+      },
+      {
+        accountId: NEAR,
+        period: NEXT,
+        body: { id: 'b', lines: [{ itemId: 'other', quantity: '0' }] },
+      },
+    ];
+    const forecast = forecastOf(synced, queued, NEAR, NEXT);
+    expect([...forecast.quantities]).toEqual([[SEED, '150']]);
+    expect(forecast.waiting).toBe(2);
+  });
+
+  it('shows this month locked, read only', async () => {
+    await renderPhone({ name: 'forecast', id: NEAR });
+    const months = await screen.findAllByRole('radio');
+    await fireEvent.press(months[0]!);
+    expect(await screen.findByText('Locked')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Save the forecast' })).toBeNull();
+    expect(screen.queryAllByLabelText(/^Quantity of /)).toEqual([]);
   });
 });

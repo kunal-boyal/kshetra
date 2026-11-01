@@ -4,6 +4,7 @@ import type {
   SyncAccount,
   SyncBalance,
   SyncSellThrough,
+  SyncForecast,
   SyncContact,
   SyncEntity,
   SyncItem,
@@ -258,6 +259,18 @@ const MIGRATIONS: readonly string[] = [
      sync_gen INTEGER NOT NULL
    );
    CREATE INDEX ref_sell_through_account ON ref_sell_through (account_id, period, version);`,
+  // Product forecasts (BR-54, decision D126): the latest version of each account's forecast for
+  // this month and the next three, keyed by the version; a month's highest version is its forecast.
+  `CREATE TABLE ref_forecasts (
+     id TEXT PRIMARY KEY NOT NULL,
+     account_id TEXT NOT NULL,
+     period TEXT NOT NULL,
+     version INTEGER NOT NULL,
+     recorded_at TEXT NOT NULL,
+     lines TEXT NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_forecasts_account ON ref_forecasts (account_id, period, version);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -573,6 +586,25 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       lines: JSON.parse(String(record.lines)) as SyncSellThrough['lines'],
     }),
   },
+  forecasts: {
+    table: 'ref_forecasts',
+    columns: (forecast) => ({
+      id: forecast.id,
+      account_id: forecast.accountId,
+      period: forecast.period,
+      version: forecast.version,
+      recorded_at: forecast.recordedAt,
+      lines: JSON.stringify(forecast.lines),
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      accountId: String(record.account_id),
+      period: String(record.period),
+      version: Number(record.version),
+      recordedAt: String(record.recorded_at),
+      lines: JSON.parse(String(record.lines)) as SyncForecast['lines'],
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -587,6 +619,7 @@ export type RowOf<Name extends SyncEntity> = {
   orders: SyncOrder;
   balances: SyncBalance;
   sell_through: SyncSellThrough;
+  forecasts: SyncForecast;
 }[Name];
 
 /** Every row the phone holds of one entity. */
