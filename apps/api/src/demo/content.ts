@@ -7,6 +7,7 @@ import {
   AppError,
   CreateAccountBody,
   CreateUserBody,
+  type DashboardCard,
   type GeoPoint,
   type ItemResult,
   newId,
@@ -38,8 +39,10 @@ import { DesignationsService } from '../modules/iam/designations.service';
 import { UsersService } from '../modules/iam/users.service';
 import { PhotosService } from '../modules/media/photos.service';
 import { MetricsService } from '../modules/metrics/metrics.service';
+import { DashboardLayoutsService } from '../modules/performance/dashboard-layouts.service';
 import { PlanningService } from '../modules/planning/planning.service';
 import { TargetsService } from '../modules/planning/targets.service';
+import { ReportSchedulesService } from '../modules/reports/report-schedules.service';
 import { ReviewService } from '../modules/review/review.service';
 import { TenantConfigService } from '../modules/tenant-config/tenant-config.service';
 import { TerritoriesService } from '../modules/territories/territories.service';
@@ -193,13 +196,14 @@ export class DemoContent implements DemoKit {
     for (const person of team) person.places = await this.placesFor(admin, person);
     log('Targets');
     await this.targets(team, first, today);
-    // The demo tenant shows a plan in the console: the example Growth plan opens every module.
+    // The demo tenant shows a plan in the console: the example Growth plan, with advanced
+    // analytics added so its Home layout and scheduled report show (decision D122).
     const examples = await this.get(ExamplePlans).ensure();
     const growth = examples.get('growth');
     if (growth) {
       await this.get(EntitlementsService).set(null, this.tenantId, {
         planId: growth,
-        extraModules: [],
+        extraModules: ['advanced_analytics'],
         limits: {},
       });
     }
@@ -242,8 +246,61 @@ export class DemoContent implements DemoKit {
       log(`${date}: ${this.counts.visits} visits, ${this.counts.entries} entries so far`);
     }
     travelTo(realNow());
+    await this.analytics(admin);
     await this.releasePhones(admin);
     return { ...this.counts, ...this.commerce.made, ...this.requests.made };
+  }
+
+  /**
+   * Advanced analytics (decision D122): the managers' Home laid out from the tenant's own metrics
+   * and levels, and the admin's monthly workbook by email.
+   */
+  private async analytics(admin: Person): Promise<void> {
+    await this.tx(async (tx) => {
+      const layouts = this.get(DashboardLayoutsService);
+      const choices = await layouts.list(tx, this.tenantId);
+      const metrics = choices.metrics;
+      const adds = metrics.find((metric) => metric.additive);
+      const level = choices.levels[1] ?? choices.levels[0];
+      const manager = choices.items.find((row) => row.role.key === 'manager');
+      if (manager && metrics.length > 0) {
+        const cards: DashboardCard[] = [
+          { kind: 'tiles', metrics: metrics.slice(0, 4).map((metric) => metric.key) },
+          ...(adds
+            ? [
+                { kind: 'trend' as const, metrics: [adds.key] },
+                { kind: 'breakdown' as const, metric: adds.key, by: 'person' as const },
+                ...(level
+                  ? [
+                      {
+                        kind: 'breakdown' as const,
+                        metric: adds.key,
+                        by: 'territory' as const,
+                        level: level.key,
+                      },
+                    ]
+                  : []),
+              ]
+            : []),
+          { kind: 'on_duty' },
+          { kind: 'waiting' },
+          { kind: 'leaderboard' },
+          { kind: 'mix' },
+        ];
+        await layouts.set(tx, admin.access, manager.role.id, cards);
+      }
+      await this.get(ReportSchedulesService).create(tx, admin.access, {
+        id: newId(),
+        report: 'workbook',
+        filters: {},
+        format: 'xlsx',
+        locale: 'en',
+        frequency: 'monthly',
+        weekday: null,
+        at: '07:00',
+        recipients: [admin.id],
+      });
+    });
   }
 
   /** The evening's decisions along the chains, except the last two days', which wait. */

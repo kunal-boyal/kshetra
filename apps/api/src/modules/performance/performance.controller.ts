@@ -10,6 +10,7 @@ import {
 import { type Access, CurrentAccess, Requires, SignedIn } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { Contract } from '../../platform/routes';
+import { DashboardLayoutsService } from './dashboard-layouts.service';
 import { PerformanceService } from './performance.service';
 
 /** Performance (M9): a person's month, the team's, and the leaderboards. */
@@ -18,6 +19,7 @@ export class PerformanceController {
   constructor(
     private readonly database: Database,
     private readonly performance: PerformanceService,
+    private readonly layouts: DashboardLayoutsService,
   ) {}
 
   @Get('performance')
@@ -30,9 +32,14 @@ export class PerformanceController {
   @SignedIn()
   person(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = PerformanceQuery.parse(query);
-    return this.database.forTenant(access.tenantId, (tx) =>
-      this.performance.person(tx, access, input.period, input.userId),
-    );
+    return this.database.forTenant(access.tenantId, async (tx) => {
+      const month = await this.performance.person(tx, access, input.period, input.userId);
+      // The caller's own month leads with their role's Home tiles, as the phone shows it (D122).
+      const own = !input.userId || input.userId === access.userId;
+      const layout = own ? await this.layouts.forCaller(tx, access) : null;
+      const tiles = layout?.find((card) => card.kind === 'tiles');
+      return { ...month, tileKeys: tiles?.kind === 'tiles' ? tiles.metrics : null };
+    });
   }
 
   @Get('performance/team')

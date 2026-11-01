@@ -26,6 +26,7 @@ export const CONFIGURATION_SECTIONS = [
   'imports',
   'workflows',
   'people',
+  'dashboards',
 ] as const;
 
 /**

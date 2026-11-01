@@ -9,6 +9,7 @@ import { OrdersModule } from '../orders/orders.module';
 import { PlanningModule } from '../planning/planning.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
+import { DashboardLayoutsService } from './dashboard-layouts.service';
 import { MetricsAdmin } from './metrics-admin';
 import { MetricsAdminController } from './metrics-admin.controller';
 import { ExternalMetricsImport } from './external-values';
@@ -38,10 +39,11 @@ import { PerformanceUpkeep } from './performance.upkeep';
   providers: [
     MetricsEngine,
     PerformanceService,
+    DashboardLayoutsService,
     PerformanceUpkeep,
     MetricsAdmin,
     ExternalMetricsImport,
   ],
-  exports: [MetricsAdmin, MetricsEngine, PerformanceService],
+  exports: [MetricsAdmin, MetricsEngine, PerformanceService, DashboardLayoutsService],
 })
 export class PerformanceModule {}

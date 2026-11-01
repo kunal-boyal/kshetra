@@ -6,6 +6,7 @@ export {
   calculateDay,
   calculateDayFacts,
   COMPUTED_SOURCES,
+  additive,
   computed,
   decimal,
   thousandths,

@@ -69,6 +69,7 @@ let month: Omit<typeof MONTH, 'score' | 'rank' | 'previousRank'> & {
   score: number | null;
   rank: number | null;
   previousRank: number | null;
+  tileKeys?: string[] | null;
 } = MONTH;
 
 const BOARD = (group: string) => ({
@@ -292,6 +293,17 @@ describe('Home at a glance (M2, decision D104)', () => {
     expect(screen.queryByText('Coverages')).toBeNull();
     await fireEvent.press(screen.getByRole('link', { name: 'Rank #2 of 7' }));
     expect(router.push).toHaveBeenCalledWith('/month');
+  });
+
+  it('leads with the tiles of the role’s Home, in its order (D122)', async () => {
+    // The admin laid this role's Home out with coverage first, then calls; a metric not counted
+    // yet stays out of the lead.
+    month = { ...MONTH, tileKeys: ['order_value', 'reach', 'calls'] };
+    await renderPhone('glance');
+    expect(await screen.findByText('Coverages')).toBeOnTheScreen();
+    expect(screen.getByText('Calls')).toBeOnTheScreen();
+    expect(screen.queryByText('Sales')).toBeNull();
+    month = MONTH;
   });
 
   it('reads the quarter where the tenant counts by it (D108)', async () => {

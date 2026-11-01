@@ -1,6 +1,7 @@
 import { CustomField, FormDefinition } from '@thelamp/forms';
 import { MetricDefinition, ScoreDefinition } from '@thelamp/metrics';
 import {
+  DashboardLayoutCards,
   Key,
   LocalizedText,
   localizedText,
@@ -47,6 +48,10 @@ export const TemplateSchema = z
     people: People,
     catalogue: Catalogue.optional(),
     imports: Imports.default({}),
+    dashboards: z.record(Key, DashboardLayoutCards).optional().meta({
+      description:
+        "Home layouts by role key (decision D122): each role's cards in order. A role left out keeps the standard Home.",
+    }),
     settings: PortableSettings.optional().meta({
       description:
         "Working rules to set, as in spec 5.1. A configuration export carries them; the tenant's names, address, GSTIN, logo, brand colour and Maps key never travel (decision D66).",

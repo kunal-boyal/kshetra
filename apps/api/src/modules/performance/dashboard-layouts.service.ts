@@ -7,13 +7,13 @@ import {
   type DashboardLayoutRow,
 } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
-import { dashboardLayouts } from '../../db/schema/reports';
+import { dashboardLayouts } from '../../db/schema/metrics';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { notFound } from '../iam/actor';
 import { RolesService } from '../iam/roles.service';
-import { PerformanceService } from '../performance/performance.service';
+import { PerformanceService } from './performance.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { TerritoriesService } from '../territories/territories.service';
 
@@ -99,6 +99,34 @@ export class DashboardLayoutsService {
       cards: row!.cards ?? null,
       updatedAt: row!.updatedAt.toISOString(),
     };
+  }
+
+  /** The roles with a layout, by role key: what a configuration export carries (D66). */
+  async byRoleKey(tx: TenantTx, tenantId: string): Promise<Record<string, DashboardCard[]>> {
+    const rows = await tx
+      .select()
+      .from(dashboardLayouts)
+      .where(eq(dashboardLayouts.tenantId, tenantId));
+    const keys = new Map((await this.roles.list(tx, tenantId)).map((role) => [role.id, role.key]));
+    return Object.fromEntries(
+      rows.flatMap((row) =>
+        row.cards && keys.has(row.roleId) ? [[keys.get(row.roleId)!, row.cards]] : [],
+      ),
+    );
+  }
+
+  /** A template's layouts at provisioning, by role key, already checked with the template. */
+  async applyTemplate(
+    tx: TenantTx,
+    tenantId: string,
+    dashboards: Readonly<Record<string, DashboardCard[]>> | undefined,
+  ): Promise<void> {
+    if (!dashboards) return;
+    const ids = new Map((await this.roles.list(tx, tenantId)).map((role) => [role.key, role.id]));
+    for (const [key, cards] of Object.entries(dashboards)) {
+      const roleId = ids.get(key);
+      if (roleId) await tx.insert(dashboardLayouts).values({ tenantId, roleId, cards });
+    }
   }
 
   /** A role's cards, or null for the standard Home. */

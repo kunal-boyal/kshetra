@@ -145,10 +145,11 @@
 
 - `GET /v1/performance` gains `tileKeys`, the caller's layout's first tiles card. My month on the phone shows those metrics first and the rest after.
 - A `dashboards` section in the template schema, by role key, optional. It joins the configuration export and its import, which adds and updates but never removes (D66), and `CONFIGURATION_SECTIONS`.
-- The demo content gives each demo tenant's manager role a layout and the admin a monthly workbook schedule.
-- [ ] Tests (Jest, configuration integration, demo-content integration).
+- The demo content gives each demo tenant's manager role a layout and the admin a monthly workbook schedule, adding the module to its example Growth plan as an extra.
+- (While building: the layouts service and table moved to the performance module, since reports already depends on it and the person's month needs the layout.)
+- [x] Tests (Jest, configuration integration, demo-content integration).
 
 #### Task 7: finish
 
-- [ ] Decision D122, spec 5.13, M16, M18 and BR-52, `CLAUDE.md`, the progress rows and tracker; `pnpm verify` before each merge.
+- [x] Decision D122, spec 5.13, M16, M18 and BR-52, `CLAUDE.md`, the progress rows and tracker; `pnpm verify` before each merge.
 - [ ] Production email waits on SES leaving its sandbox, already an open item.

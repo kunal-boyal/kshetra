@@ -186,6 +186,30 @@ describe('validateTemplate', () => {
     ]);
   });
 
+  it('takes Home layouts for its roles, naming its metrics and levels (D122)', () => {
+    expect(
+      issuesAfter((template) => {
+        template.dashboards = {
+          manager: [
+            { kind: 'tiles', metrics: ['visits'] },
+            { kind: 'breakdown', metric: 'visits', by: 'territory', level: 'area' },
+          ],
+        };
+      }),
+    ).toEqual([]);
+    expect(
+      issuesAfter((template) => {
+        template.dashboards = {
+          manager: [{ kind: 'trend', metrics: ['calls'] }],
+          director: [{ kind: 'waiting' }],
+        };
+      }),
+    ).toEqual([
+      'dashboards.manager[0].metrics[0]: There is no metric calls',
+      'dashboards.director: There is no role director',
+    ]);
+  });
+
   it('keeps vendor permissions out of tenant roles', () => {
     const issues = issuesAfter((template) => {
       template.roles[1]!.permissions = ['platform.tenant.manage' as never];

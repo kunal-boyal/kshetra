@@ -3663,6 +3663,7 @@ export const en = {
   'config_file.section_expensePolicies': 'Expense policies',
   'config_file.section_imports': 'Import column names',
   'config_file.section_workflows': 'Approval chains',
+  'config_file.section_dashboards': 'Home layouts',
   'config_file.section_people': 'People policies',
   'chains.title': 'Approval chains',
   'chains.intro':

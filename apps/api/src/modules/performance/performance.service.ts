@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { computed, type MetricDefinition, type ScoreDefinition } from '@thelamp/metrics';
+import { additive, computed, type MetricDefinition, type ScoreDefinition } from '@thelamp/metrics';
 import {
   AppError,
   attainment,
@@ -65,17 +65,6 @@ const DISTINCT = new Set([
 ]);
 /** Sources judged against the accounts people held over the period. */
 const HELD = new Set(['coverage_percent', 'frequency_compliance_percent']);
-
-/** Whether a metric's days add up to its month and its people to their team: counts and sums. */
-function additive(definition: MetricDefinition): boolean {
-  const source = definition.source;
-  return !(
-    DISTINCT.has(source.type) ||
-    source.type === 'ratio' ||
-    source.type === 'plan_compliance_percent' ||
-    (source.type === 'visit_duration' && source.aggregate === 'average')
-  );
-}
 
 /** The most rows a Home breakdown shows (decision D122). */
 const BREAKDOWN_ROWS = 10;

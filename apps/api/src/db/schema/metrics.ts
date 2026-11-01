@@ -1,4 +1,5 @@
 import type { MetricDefinition, ScoreDefinition } from '@thelamp/metrics';
+import type { DashboardCard } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -16,8 +17,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { accounts } from './accounts';
-import { cell, isolation } from './common';
-import { users } from './iam';
+import { cell, changeColumns, isolation } from './common';
+import { roles, users } from './iam';
 
 /**
  * The tenant's metric definitions (spec 5.7, 10.3), owned by the metrics module: each metric's
@@ -194,6 +195,31 @@ export const externalMetricValues = cell
         'external_metric_values_one_subject',
         sql`(${table.userId} is null) <> (${table.accountId} is null)`,
       ),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/**
+ * A role's Home layout (M18, decision D122): its cards in order. Null cards bring back the
+ * standard Home, as nothing is hard deleted.
+ */
+export const dashboardLayouts = cell
+  .table(
+    'dashboard_layouts',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      roleId: uuid('role_id').notNull(),
+      cards: jsonb('cards').$type<DashboardCard[]>(),
+      ...changeColumns(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.roleId] }),
+      foreignKey({
+        name: 'dashboard_layouts_role_fk',
+        columns: [table.tenantId, table.roleId],
+        foreignColumns: [roles.tenantId, roles.id],
+      }),
       isolation(),
     ],
   )

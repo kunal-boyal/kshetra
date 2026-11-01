@@ -117,9 +117,20 @@ describe('Home layouts (D122)', () => {
       ]),
     );
 
+    // The manager's own month on the phone leads with the layout's tiles; someone else's doesn't.
+    expect((await t.api.manager.get(`/v1/performance?period=${MONTH()}`)).json().tileKeys).toEqual([
+      'visits',
+      'customers_covered',
+    ]);
+    expect(
+      (await t.api.manager.get(`/v1/performance?period=${MONTH()}&userId=${t.asha.id}`)).json()
+        .tileKeys,
+    ).toBeNull();
+
     // A role without a layout keeps the standard Home.
     const own = (await t.api.asha.get(`/v1/dashboard?period=${MONTH()}`)).json();
     expect(own).toMatchObject({ layout: null, breakdowns: [] });
+    expect((await t.api.asha.get(`/v1/performance?period=${MONTH()}`)).json().tileKeys).toBeNull();
   });
 
   it('refuses a layout naming what is not there, and anyone without the permission', async () => {

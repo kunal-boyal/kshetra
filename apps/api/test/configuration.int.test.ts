@@ -244,4 +244,52 @@ describe('configuration import (M2)', () => {
     expect(copy.workflows).toEqual(file.workflows);
     expect(tenantId).toBeDefined();
   });
+
+  it('carries Home layouts by role: exported, imported and provisioned (D122)', async () => {
+    const source = await tenant('Layout Source Co');
+    const roles = (await source.admin('GET', '/v1/dashboard-layouts')).json().items as {
+      role: { id: string; key: string };
+    }[];
+    const manager = roles.find((row) => row.role.key === 'manager')!.role.id;
+    const cards = [
+      { kind: 'tiles', metrics: ['visits'] },
+      { kind: 'breakdown', metric: 'visits', by: 'territory', level: 'region' },
+      { kind: 'waiting' },
+    ];
+    expect(
+      (await source.admin('PUT', `/v1/dashboard-layouts/${manager}`, { cards })).statusCode,
+    ).toBe(200);
+    const file = (await source.admin('GET', '/v1/configuration/export')).json();
+    expect(file.dashboards).toEqual({ manager: cards });
+
+    const target = await tenant('Layout Target Co');
+    const plan = (
+      await target.admin('POST', '/v1/configuration/import/preview', { template: file })
+    ).json();
+    expect(changed(plan)).toEqual(
+      expect.arrayContaining([{ section: 'dashboards', key: 'manager', change: 'add' }]),
+    );
+    expect(
+      (await target.admin('POST', '/v1/configuration/import', { template: file })).statusCode,
+    ).toBe(200);
+    expect((await target.admin('GET', '/v1/configuration/export')).json().dashboards).toEqual({
+      manager: cards,
+    });
+
+    const phone = newPhone();
+    await app.get(TenantProvisioner).provision(
+      {
+        name: 'Layout File Co',
+        slug: `layout-file-${newId().slice(-8)}`,
+        template: file.key,
+        status: 'active',
+        admin: { code: 'ADMIN-1', name: 'Zoya Khan', phone },
+      },
+      file,
+    );
+    const admin = as((await world.signIn(phone)).accessToken);
+    expect((await admin('GET', '/v1/configuration/export')).json().dashboards).toEqual({
+      manager: cards,
+    });
+  });
 });
