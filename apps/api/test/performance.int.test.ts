@@ -5,7 +5,9 @@ import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { metricFactsDaily, scoreDefinitions, scoreSnapshots } from '../src/db/schema';
 import { MetricsService } from '../src/modules/metrics/metrics.service';
+import { TargetPeriods } from '../src/modules/metrics/target-periods';
 import { MetricsEngine } from '../src/modules/performance/metrics-engine';
+import { PerformanceService } from '../src/modules/performance/performance.service';
 import { PerformanceUpkeep } from '../src/modules/performance/performance.upkeep';
 import { Database } from '../src/platform/database';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
@@ -342,8 +344,22 @@ describe('scores and ranks (BR-06, BR-07)', () => {
       per_call: { actual: '183.5' },
     });
 
-    // Snapshots keep the month's standing.
+    // Snapshots keep the month's standing. The nightly keeps the month of the day just gone, so
+    // on a month's first day, when that is last month, this month's is kept directly.
     await app.get(PerformanceUpkeep).nightly(t.tenantId);
+    const today = todayIn('Asia/Kolkata');
+    const gone = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString();
+    if (gone.slice(0, 7) !== MONTH) {
+      await app.get(Database).forTenant(t.tenantId, async (tx) =>
+        app
+          .get(PerformanceService)
+          .snapshot(
+            tx,
+            t.tenantId,
+            await app.get(TargetPeriods).current(tx, t.tenantId, today),
+          ),
+      );
+    }
     const kept = await app
       .get(Database)
       .forTenant(t.tenantId, (tx) =>
