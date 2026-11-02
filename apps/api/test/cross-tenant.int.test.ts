@@ -2627,6 +2627,86 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(own);
     },
   },
+  'GET /v1/salary-structures/:userId': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/salary-structures/${id}`), a.member.id),
+  },
+  'PUT /v1/salary-structures/:userId': {
+    kind: 'write',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/salary-structures/${id}`, { basic: '1000' }),
+        a.member.id,
+      ),
+  },
+  'GET /v1/statutory-profiles/:userId': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/statutory-profiles/${id}`), a.member.id),
+  },
+  'PUT /v1/statutory-profiles/:userId': {
+    kind: 'write',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/statutory-profiles/${id}`, { workState: 'MH' }),
+        a.member.id,
+      ),
+  },
+  'POST /v1/pay-runs': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asB('POST', '/v1/pay-runs', {
+        period: todayIn('Asia/Kolkata').slice(0, 7),
+      });
+      expect([200, 201]).toContain(reply.statusCode);
+      holdsNothingOfA(reply);
+    },
+  },
+  'GET /v1/pay-runs/:period': {
+    kind: 'own tenant',
+    run: async () =>
+      holdsNothingOfA(await asB('GET', `/v1/pay-runs/${todayIn('Asia/Kolkata').slice(0, 7)}`)),
+  },
+  'POST /v1/pay-runs/:period/recompute': {
+    kind: 'own tenant',
+    run: async () =>
+      holdsNothingOfA(
+        await asB('POST', `/v1/pay-runs/${todayIn('Asia/Kolkata').slice(0, 7)}/recompute`),
+      ),
+  },
+  'POST /v1/pay-runs/:period/approve': {
+    kind: 'own tenant',
+    run: async () =>
+      holdsNothingOfA(
+        await asB('POST', `/v1/pay-runs/${todayIn('Asia/Kolkata').slice(0, 7)}/approve`, {
+          version: 1,
+        }),
+      ),
+  },
+  'POST /v1/pay-adjustments': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', '/v1/pay-adjustments', {
+            id: newId(),
+            userId: id,
+            period: todayIn('Asia/Kolkata').slice(0, 7),
+            kind: 'earning',
+            key: 'arrears',
+            amount: '100',
+            note: 'B arrears',
+          }),
+        a.member.id,
+      ),
+  },
+  'GET /v1/statutory-payslips/:userId/:period': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('GET', `/v1/statutory-payslips/${id}/${todayIn('Asia/Kolkata').slice(0, 7)}`),
+        a.member.id,
+      ),
+  },
   'GET /v1/payroll-gross/:userId': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/payroll-gross/${id}`), a.member.id),
@@ -3390,6 +3470,32 @@ beforeAll(async () => {
     values: { order_value: '500000' },
   });
   expect(accountPlan.statusCode).toBe(200);
+  // Statutory payroll switched on for both tenants (D128); A pays its member this month.
+  for (const token of [aToken, await bAdmin()]) {
+    expect(
+      (await send(token, 'PATCH', '/v1/settings', { modulesOn: ['statutory_payroll'] })).statusCode,
+    ).toBe(200);
+  }
+  expect(
+    (
+      await send(aToken, 'PUT', `/v1/salary-structures/${a.member.id}`, {
+        basic: '15000',
+        hra: '6000',
+      })
+    ).statusCode,
+  ).toBe(200);
+  expect(
+    (
+      await send(aToken, 'PUT', `/v1/statutory-profiles/${a.member.id}`, {
+        workState: 'MH',
+        uan: '100200300400',
+      })
+    ).statusCode,
+  ).toBe(200);
+  expect(
+    (await send(aToken, 'POST', '/v1/pay-runs', { period: todayIn('Asia/Kolkata').slice(0, 7) }))
+      .statusCode,
+  ).toBe(201);
   // A photo of A's, uploaded and confirmed as a phone would.
   aPhotoId = newId();
   const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);

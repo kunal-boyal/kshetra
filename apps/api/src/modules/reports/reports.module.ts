@@ -35,6 +35,7 @@ import { OutstandingReport } from './outstanding';
 import { SellThroughReport } from './sell-through';
 import { ForecastAccuracyReport } from './forecast-accuracy';
 import { SchemeSummaryReport } from './scheme-summary';
+import { PayRegisterReport } from './pay-register';
 import { AuditLogReport } from './audit-log-report';
 import { DashboardService } from './dashboard.service';
 import { ExportsService } from './exports.service';
@@ -94,6 +95,7 @@ import { TargetAchievementReport } from './target-achievement';
     SellThroughReport,
     ForecastAccuracyReport,
     SchemeSummaryReport,
+    PayRegisterReport,
     AuditLogReport,
   ],
   exports: [ReportSchedulesService],

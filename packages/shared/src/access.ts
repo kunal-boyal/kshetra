@@ -76,6 +76,8 @@ export const PERMISSIONS_BY_AREA = {
     'expense.mark_paid',
     'payroll.manage',
     'payslip.view',
+    'payroll.run',
+    'salary.manage',
   ],
   data: [
     'report.view',

@@ -88,6 +88,7 @@ const FIELD_KEYS = {
   holidays: ['calendar', 'date', 'name', 'optional'],
   external_metrics: ['metric', 'date', 'period', 'employee_code', 'account_code', 'value'],
   payroll_gross: ['code', 'gross', 'from'],
+  salary_structures: ['code', 'from', 'basic', 'da', 'hra', 'conveyance', 'special'],
   sell_through: [
     'account_code',
     'month',

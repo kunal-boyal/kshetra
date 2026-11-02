@@ -75,7 +75,8 @@ describe('settings (M2, spec 5.1)', () => {
       legalName: 'Settings Company Private Limited',
       taxId: '07ABCDE1234F1Z5',
       brandColour: '#0f6e6e',
-      modulesOff: [],
+      // Statutory payroll starts off (decision D128).
+      modulesOff: ['statutory_payroll'],
     });
     const refused = await t.admin('PATCH', '/v1/settings', {
       taxId: 'NOT-A-GSTIN',
@@ -184,7 +185,7 @@ describe('modules (M2, spec 5.13)', () => {
       200,
     );
     const config = (await t.admin('GET', '/v1/config')).json();
-    expect(config.settings.modulesOff).toEqual(['leave_attendance']);
+    expect(config.settings.modulesOff).toEqual(['leave_attendance', 'statutory_payroll']);
     expect(config.access.permissions).not.toContain('leave.request');
     expect((await t.admin('PATCH', '/v1/settings', { modulesOff: ['core'] })).statusCode).toBe(400);
   });

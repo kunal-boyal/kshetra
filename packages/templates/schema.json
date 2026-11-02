@@ -464,6 +464,8 @@
         "expense.mark_paid",
         "payroll.manage",
         "payslip.view",
+        "payroll.run",
+        "salary.manage",
         "report.view",
         "export.create",
         "report.schedule",
@@ -3635,6 +3637,24 @@
               "account_finance",
               "expenses",
               "payroll_inputs",
+              "statutory_payroll",
+              "integrations",
+              "sso",
+              "advanced_analytics"
+            ]
+          }
+        },
+        "modulesOn": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "leave_attendance",
+              "orders",
+              "account_finance",
+              "expenses",
+              "payroll_inputs",
+              "statutory_payroll",
               "integrations",
               "sso",
               "advanced_analytics"

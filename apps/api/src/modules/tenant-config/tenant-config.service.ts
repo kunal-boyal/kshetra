@@ -5,6 +5,7 @@ import {
   AUTO_APPROVAL_DELAY_HOURS,
   LOCALES,
   type ReviewRulesResult,
+  OPT_IN_MODULES,
   SWITCHABLE_MODULES,
   type SwitchableModule,
   type TenantSettings,
@@ -40,11 +41,18 @@ export class TenantConfigService {
     return modules ? SWITCHABLE_MODULES.filter((module) => !modules.includes(module)) : [];
   }
 
-  /** Settings as everyone reads them: the admin's switched-off modules, and those outside the plan. */
+  /**
+   * Settings as everyone reads them: the admin's switched-off modules, those outside the plan, and
+   * the opt-in modules the admin hasn't switched on (decision D128).
+   */
   private async effective(tenantId: string, stored: TenantSettings): Promise<TenantSettings> {
     const outside = await this.outsidePlan(tenantId);
-    if (outside.length === 0) return stored;
-    return { ...stored, modulesOff: [...new Set([...stored.modulesOff, ...outside])] };
+    const notOn = OPT_IN_MODULES.filter((module) => !stored.modulesOn.includes(module));
+    if (outside.length === 0 && notOn.length === 0) return stored;
+    return {
+      ...stored,
+      modulesOff: [...new Set([...stored.modulesOff, ...outside, ...notOn])],
+    };
   }
 
   /** The tenant's settings, defaults filled in. */
@@ -95,16 +103,35 @@ export class TenantConfigService {
       .for('update');
     const before = await this.effective(tenantId, withDefaults(row?.settings ?? {}));
     const changed = { ...row?.settings, ...patch };
+    const stored = withDefaults(row?.settings ?? {});
+    const outside: readonly SwitchableModule[] =
+      patch.modulesOff || patch.modulesOn ? await this.outsidePlan(tenantId) : [];
+    const refuse = (path: string, modules: readonly string[]) => {
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+        { path, issue: `Your plan does not include ${modules.join(', ')}` },
+      ]);
+    };
     if (patch.modulesOff) {
       // A module outside the plan can't be switched on, and only the admin's own choices are kept.
-      const outside = await this.outsidePlan(tenantId);
-      const opened = outside.filter((module) => !patch.modulesOff!.includes(module));
-      if (opened.length > 0) {
-        throw new AppError('VALIDATION', 'Check the highlighted fields.', [
-          { path: 'modulesOff', issue: `Your plan does not include ${opened.join(', ')}` },
-        ]);
-      }
-      changed.modulesOff = patch.modulesOff.filter((module) => !outside.includes(module));
+      // Opt-in modules switch on only through `modulesOn` (decision D128); listing one switches
+      // it off.
+      const opened = outside.filter(
+        (module) => !patch.modulesOff!.includes(module) && !OPT_IN_MODULES.includes(module),
+      );
+      if (opened.length > 0) refuse('modulesOff', opened);
+      changed.modulesOff = patch.modulesOff.filter(
+        (module) => !outside.includes(module) && !OPT_IN_MODULES.includes(module),
+      );
+      changed.modulesOn = (patch.modulesOn ?? stored.modulesOn).filter(
+        (module) => !patch.modulesOff!.includes(module),
+      );
+    }
+    if (patch.modulesOn) {
+      const opened = patch.modulesOn.filter((module) => outside.includes(module));
+      if (opened.length > 0) refuse('modulesOn', opened);
+      changed.modulesOn = patch.modulesOn.filter(
+        (module) => OPT_IN_MODULES.includes(module) && !(patch.modulesOff ?? []).includes(module),
+      );
     }
     const settings = await this.effective(tenantId, withDefaults(changed));
     await tx

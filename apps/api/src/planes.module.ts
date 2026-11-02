@@ -4,6 +4,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import type { Config } from './config';
 import { EntitlementsService } from './modules/billing/entitlements.service';
 import { LicenceEntitlements } from './modules/billing/licence-entitlements';
+import { StatutoryRatesService } from './modules/billing/statutory-rates.service';
 import { UsageService } from './modules/billing/usage.service';
 import { IamAccess } from './modules/iam/access.service';
 import { IamAdmission } from './modules/iam/admission.service';
@@ -36,6 +37,7 @@ import {
   PeopleNames,
   SeatCounts,
   SecondFactors,
+  StatutoryRates,
   SupportGrants,
   SupportNotices,
   TenantArchives,
@@ -88,6 +90,7 @@ import {
     { provide: ApiClientCredentials, useExisting: ApiClientsService },
     { provide: TenantArchives, useExisting: CellTenantArchives },
     { provide: TenantModules, useExisting: CellTenantModules },
+    { provide: StatutoryRates, useExisting: StatutoryRatesService },
   ],
   exports: [
     CellAdmission,
@@ -107,6 +110,7 @@ import {
     ApiClientCredentials,
     TenantArchives,
     TenantModules,
+    StatutoryRates,
   ],
 })
 export class PlanesModule implements OnModuleInit {

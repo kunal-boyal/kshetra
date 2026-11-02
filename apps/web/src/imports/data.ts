@@ -30,6 +30,7 @@ export const TARGET_PERMISSIONS: Record<
   | 'holidays'
   | 'external_metrics'
   | 'payroll_gross'
+  | 'salary_structures'
   | 'sell_through'
   | 'forecasts',
   TenantPermission
@@ -47,6 +48,7 @@ export const TARGET_PERMISSIONS: Record<
   holidays: 'calendar.manage',
   external_metrics: 'metric.record',
   payroll_gross: 'payroll.manage',
+  salary_structures: 'salary.manage',
   sell_through: 'sell_through.record',
   forecasts: 'forecast.record',
 };

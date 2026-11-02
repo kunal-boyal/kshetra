@@ -75,7 +75,8 @@ describe('the config bundle (spec 11.2)', () => {
     expect(response.headers['cache-control']).toBe('private, no-cache');
     const bundle = response.json();
     expect(bundle.version).toBeGreaterThan(0);
-    expect(bundle.settings).toEqual(SETTING_DEFAULTS);
+    // Statutory payroll stays off until switched on (decision D128).
+    expect(bundle.settings).toEqual({ ...SETTING_DEFAULTS, modulesOff: ['statutory_payroll'] });
     expect(bundle.terminology.en['term.account']).toEqual({ one: 'Account', other: 'Accounts' });
     expect(bundle.terminology.hi['term.punch_in']).toBe('दिन शुरू करें');
     expect(bundle.designations.map((d: { key: string }) => d.key)).toEqual([
@@ -84,7 +85,8 @@ describe('the config bundle (spec 11.2)', () => {
       'executive',
     ]);
     expect(bundle.access).toMatchObject({ role: 'tenant_admin', scope: 'tenant' });
-    expect(bundle.access.permissions).toHaveLength(TENANT_PERMISSIONS.length);
+    // Every permission but statutory payroll's, whose module starts off (decision D128).
+    expect(bundle.access.permissions).toHaveLength(TENANT_PERMISSIONS.length - 2);
 
     const etag = String(response.headers.etag);
     const unchanged = await owner.get('/v1/config', { 'if-none-match': etag });
@@ -130,7 +132,11 @@ describe('changing configuration (module M2)', () => {
     expect(after.json().terminology.en['term.account']).toEqual(words['term.account'].en);
 
     const changed = await owner.patch('/v1/settings', { gpsIntervalSeconds: 120 });
-    expect(changed.json()).toEqual({ ...SETTING_DEFAULTS, gpsIntervalSeconds: 120 });
+    expect(changed.json()).toEqual({
+      ...SETTING_DEFAULTS,
+      gpsIntervalSeconds: 120,
+      modulesOff: ['statutory_payroll'],
+    });
     const latest = (await phone.get('/v1/config')).json();
     expect(latest.version).toBeGreaterThan(after.json().version);
     expect(latest.settings.gpsIntervalSeconds).toBe(120);

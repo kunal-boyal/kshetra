@@ -28,6 +28,7 @@ export const REPORT_KEYS = [
   'outstanding',
   'audit_log',
   'payroll_summary',
+  'pay_register',
   'sell_through',
   'forecast_accuracy',
 ] as const;
@@ -43,6 +44,7 @@ export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], Switcha
   account_statement: 'account_finance',
   outstanding: 'account_finance',
   payroll_summary: 'payroll_inputs',
+  pay_register: 'statutory_payroll',
 };
 
 /** Reports that need a permission beyond `report.view`, as their records do elsewhere. */
@@ -54,6 +56,7 @@ export const REPORT_PERMISSION: Partial<Record<(typeof REPORT_KEYS)[number], Ten
   audit_log: 'audit.view',
   gps_audit_trail: 'trail.view',
   payroll_summary: 'payroll.manage',
+  pay_register: 'payroll.run',
 };
 
 /**

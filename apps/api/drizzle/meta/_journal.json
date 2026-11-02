@@ -687,6 +687,20 @@
       "when": 1793559689538,
       "tag": "0097_scheme_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1793568550983,
+      "tag": "0098_statutory_payroll",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1793568558032,
+      "tag": "0099_statutory_payroll_permissions",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "fmcg",
-  "version": 5,
+  "version": 6,
   "name": {
     "en": "FMCG and consumer goods",
     "hi": "एफ़एमसीजी और उपभोक्ता सामान"
@@ -123,7 +123,9 @@
         "sell_through.record",
         "forecast.record",
         "forecast.adjust",
-        "scheme.manage"
+        "scheme.manage",
+        "payroll.run",
+        "salary.manage"
       ]
     },
     {

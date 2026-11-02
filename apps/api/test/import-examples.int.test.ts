@@ -41,6 +41,14 @@ async function admin(name: string) {
   await world.user(tenantId, { phone, designation: 'head', role: 'tenant_admin' });
   const token = (await world.signIn(phone)).accessToken;
   await world.territory(tenantId, `T-${newId().slice(-6)}`);
+  // Every target's module open, statutory payroll's too (decision D128).
+  const on = await app.inject({
+    method: 'PATCH',
+    url: '/v1/settings',
+    headers: { authorization: `Bearer ${token}`, 'idempotency-key': newId() },
+    payload: { modulesOn: ['statutory_payroll'] },
+  });
+  expect(on.statusCode, on.body).toBe(200);
   return { tenantId, token };
 }
 

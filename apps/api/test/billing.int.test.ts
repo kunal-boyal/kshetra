@@ -204,7 +204,7 @@ describe('entitlements (spec 5.13)', () => {
     expect((await send('GET', '/v1/orders', t.admin)).statusCode).toBe(200);
     await send('PUT', `/platform/v1/tenants/${t.tenantId}/plan`, staff, { planId: null });
     const free = (await send('GET', '/v1/config', t.admin)).json().settings.modulesOff;
-    expect(free).toEqual(['leave_attendance']);
+    expect(free).toEqual(['leave_attendance', 'statutory_payroll']);
   });
 
   it('gives the last seat to one of two people added at once (D101)', async () => {
