@@ -12,6 +12,7 @@ import { BUNDLE_SHAPE } from './config-bundle.controller';
  */
 const FINGERPRINTS: Record<number, string> = {
   8: '294c0bbed096b2e5',
+  9: '9ce5bf7d73d4245c',
 };
 
 describe('the config bundle’s shape', () => {
