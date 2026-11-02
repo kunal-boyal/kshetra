@@ -41,6 +41,7 @@ const runsKey = (id: string) => ['erp', id, 'runs'] as const;
 const PROVIDER_NAMES: Record<ErpConnectionResult['provider'], string> = {
   zoho_books: 'Zoho Books',
   sap_b1: 'SAP Business One',
+  tally: 'Tally',
 };
 
 const STATUS_BADGE: Record<ErpConnectionResult['status'], BadgeVariant> = {
@@ -79,7 +80,8 @@ export function ErpPage() {
         <p className="ks-muted">{t('common.loading')}</p>
       ) : (
         providers.data.providers.map((entry) =>
-          entry.provider === 'sap_b1' ? (
+          // Tally's card comes with its orders file (D129, part 7).
+          entry.provider === 'tally' ? null : entry.provider === 'sap_b1' ? (
             <SapCard key={entry.provider} connection={entry.connection} />
           ) : (
             <ZohoCard

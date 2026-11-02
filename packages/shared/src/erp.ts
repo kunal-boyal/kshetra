@@ -8,7 +8,7 @@
 import type { TenantPermission } from './access';
 import { divide, scaled, unscaled } from './pricing';
 
-export const ERP_PROVIDERS = ['zoho_books', 'sap_b1'] as const;
+export const ERP_PROVIDERS = ['zoho_books', 'sap_b1', 'tally'] as const;
 export type ErpProvider = (typeof ERP_PROVIDERS)[number];
 
 /**

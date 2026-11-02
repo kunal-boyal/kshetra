@@ -94,6 +94,7 @@ describe('connecting Zoho Books (D129)', () => {
       providers: [
         { provider: 'zoho_books', configured: true, connection: null },
         { provider: 'sap_b1', configured: true, connection: null },
+        { provider: 'tally', configured: true, connection: null },
       ],
     });
 

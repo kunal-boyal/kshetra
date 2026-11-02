@@ -28,14 +28,17 @@ export const ErpSettings = z
     defaultTerritory: z.string().trim().min(1).max(60).nullable().default(null),
     /** The price list an item's rate goes to; null is the default list. */
     itemPriceList: z.uuid().nullable().default(null),
-    /** Zoho's price books, each read into one of the tenant's price lists. */
+    /**
+     * Zoho's price books, SAP's price lists (by number) or Tally's price levels (by name), each
+     * read into one of the tenant's price lists.
+     */
     priceBooks: z
-      .array(z.strictObject({ pricebookId: z.string().min(1).max(40), priceList: z.uuid() }))
+      .array(z.strictObject({ pricebookId: z.string().min(1).max(100), priceList: z.uuid() }))
       .max(20)
       .default([]),
     /** SAP: a user field on items holding the GST rate (BR-60). */
     taxRateField: z.string().trim().min(1).max(100).nullable().default(null),
-    /** SAP: the GST rate of an item whose field is empty. */
+    /** SAP and Tally: the GST rate of an item whose own is missing. */
     defaultTaxRate: z
       .string()
       .trim()
@@ -58,6 +61,19 @@ export const ErpSettings = z
       .default({ customers: true, items: true, invoices: true, payments: true }),
     /** Accepted orders go to the books as sales orders. */
     pushOrders: z.boolean().default(false),
+    /** Tally: the groups whose ledgers are customers, with every group under them (BR-61). */
+    debtorGroups: z
+      .array(z.string().trim().min(1).max(100))
+      .min(1)
+      .max(20)
+      .default(['Sundry Debtors']),
+    /** Tally: a group's name to the territory code its customers belong to. */
+    groupTerritories: z
+      .record(z.string().trim().min(1).max(100), z.string().trim().min(1).max(60))
+      .default({}),
+    /** Tally: the voucher types read as sales and receipts, with every type under them. */
+    salesTypes: z.array(z.string().trim().min(1).max(100)).min(1).max(20).default(['Sales']),
+    receiptTypes: z.array(z.string().trim().min(1).max(100)).min(1).max(20).default(['Receipt']),
   })
   .meta({ id: 'ErpSettings' });
 export type ErpSettings = z.infer<typeof ErpSettings>;
@@ -124,6 +140,17 @@ export const SapConnectBody = z
   })
   .meta({ id: 'SapConnectBody' });
 
+/**
+ * `POST /v1/erp-connections/tally`: a Tally connection, which reaches nothing; the company is
+ * fixed by the first file uploaded (BR-61).
+ */
+export const TallyConnectBody = z.strictObject({}).meta({ id: 'TallyConnectBody' });
+
+/** `POST /v1/erp-connections/{id}/uploads`: the file's name, for the runs list. */
+export const ErpUploadQuery = z
+  .strictObject({ name: z.string().trim().min(1).max(200).optional() })
+  .meta({ id: 'ErpUploadQuery' });
+
 export const ErpOrganizationBody = z
   .strictObject({ organizationId: z.string().min(1).max(40) })
   .meta({ id: 'ErpOrganizationBody' });
@@ -152,15 +179,21 @@ export type ErpProblem = z.infer<typeof ErpProblem>;
 export const ErpRunResult = z
   .object({
     id: z.uuid(),
-    kind: z.enum(['pull', 'push']),
+    /** A read, a send of orders, or a Tally file uploaded (BR-61). */
+    kind: z.enum(['pull', 'push', 'upload']),
     status: z.enum(['running', 'ok', 'partial', 'failed']),
-    /** Why a run stopped short: the day's calls, Zoho's limit, a refused token, an error. */
-    stoppedBy: z.enum(['daily_limit', 'rate_limited', 'reconnect', 'error']).nullable(),
+    /**
+     * Why a run stopped short: the day's calls, Zoho's limit, a refused token, an error, or an
+     * uploaded file that couldn't be read.
+     */
+    stoppedBy: z.enum(['daily_limit', 'rate_limited', 'reconnect', 'error', 'bad_file']).nullable(),
     startedAt: z.iso.datetime(),
     finishedAt: z.iso.datetime().nullable(),
     counts: z.partialRecord(ErpEntity, ErpRunCounts),
     problems: z.array(ErpProblem),
     calls: z.int(),
+    /** Tally: the uploaded file's name. */
+    file: z.string().nullable(),
   })
   .meta({ id: 'ErpRun' });
 export type ErpRunResult = z.infer<typeof ErpRunResult>;

@@ -69,13 +69,15 @@ export async function createApp(
   }
 
   const fastify = app.getHttpAdapter().getInstance();
-  // Import files arrive as the request body itself (M19), up to 20 MB; everything else stays
-  // within the 1 MB limit.
+  // Import files, and Tally's XML exports (BR-61), arrive as the request body itself (M19), up to
+  // 20 MB; everything else stays within the 1 MB limit.
   fastify.addContentTypeParser(
     [
       'text/csv',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/octet-stream',
+      'application/xml',
+      'text/xml',
     ],
     { parseAs: 'buffer', bodyLimit: MAX_FILE_BYTES },
     (_request, body, done) => done(null, body),

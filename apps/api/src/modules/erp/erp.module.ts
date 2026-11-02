@@ -6,8 +6,10 @@ import { AccountsModule } from '../accounts/accounts.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { IamModule } from '../iam/iam.module';
 import { ImportsModule } from '../imports/imports.module';
+import { MediaModule } from '../media/media.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OrdersModule } from '../orders/orders.module';
+import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { ErpConnectionsService } from './erp-connections.service';
 import { ErpController } from './erp.controller';
@@ -16,11 +18,13 @@ import { ErpUpkeep } from './erp.upkeep';
 import { FakeSapB1 } from './fake-sap-b1';
 import { FakeZohoBooks } from './fake-zoho-books';
 import { PublicSapTransport, SapB1, SapTransport } from './sap-b1';
+import { TallyReads } from './tally-runs';
 import { PublicZohoTransport, ZohoBooks, ZohoTransport } from './zoho-books';
 
 /**
- * ERP connectors (module M20, BR-59, BR-60, decision D129): Zoho Books and SAP Business One. Records come in through
- * the import targets their modules register; nothing here writes another module's tables.
+ * ERP connectors (module M20, BR-59 to BR-61, decision D129): Zoho Books, SAP Business One and
+ * Tally. Records come in through the import targets their modules register; nothing here writes
+ * another module's tables.
  */
 @Module({
   imports: [
@@ -28,8 +32,10 @@ import { PublicZohoTransport, ZohoBooks, ZohoTransport } from './zoho-books';
     CatalogueModule,
     IamModule,
     ImportsModule,
+    MediaModule,
     NotificationsModule,
     OrdersModule,
+    TenantConfigModule,
     TerritoriesModule,
   ],
   controllers: [ErpController],
@@ -37,6 +43,7 @@ import { PublicZohoTransport, ZohoBooks, ZohoTransport } from './zoho-books';
     ErpConnectionsService,
     ErpRuns,
     ErpUpkeep,
+    TallyReads,
     ZohoBooks,
     ColumnCipher,
     FakeZohoBooks,

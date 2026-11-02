@@ -59,6 +59,8 @@ import {
 } from './erp-connections.service';
 import { CallMeter, ErpDailyLimit, ErpFailed, ErpRateLimited, ErpReconnect } from './erp-calls';
 import { type SapSession, SapB1 } from './sap-b1';
+import { TallyFileRefused } from './tally-file';
+import { type RunKit, TallyReads } from './tally-runs';
 import { ZohoBooks, type ZohoLink } from './zoho-books';
 
 /** Rows committed in one transaction. */
@@ -69,7 +71,11 @@ const DAY_MS = 86_400_000;
 /** Nobody, for asking who holds a permission with no one left out. */
 const NOBODY = '00000000-0000-0000-0000-000000000000';
 /** Providers by name, as their own brands write them in any language. */
-const PROVIDER_NAMES: Record<string, string> = { zoho_books: 'Zoho Books' };
+const PROVIDER_NAMES: Record<string, string> = {
+  zoho_books: 'Zoho Books',
+  sap_b1: 'SAP Business One',
+  tally: 'Tally',
+};
 /** Orders sent in one run; the rest go in the next. */
 const PUSH_BATCH = 100;
 
@@ -78,6 +84,8 @@ type Counts = NonNullable<ErpRunResult['counts'][ErpEntity]>;
 /** A record read from the books, mapped to a row of an import target, or why it isn't. */
 interface Candidate {
   externalId: string;
+  /** Tally: its name there, by which vouchers refer to it. */
+  externalName?: string | null;
   /** Its number, code or name in the books, to find it there. */
   label: string;
   /** When the books last changed it, where they say. */
@@ -89,6 +97,7 @@ interface Candidate {
 
 interface Link {
   localKey: string | null;
+  externalName?: string | null;
   fingerprint: string | null;
   externalModified: string | null;
 }
@@ -155,6 +164,7 @@ export class ErpRuns {
     private readonly priceLists: PriceListsService,
     private readonly cipher: ColumnCipher,
     private readonly audit: AuditLog,
+    private readonly tally: TallyReads,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -166,7 +176,10 @@ export class ErpRuns {
     if (connectionId) return this.go(tenantId, connectionId, runId, 'pull');
     const all = await this.database.forTenant(tenantId, (tx) => this.connections.all(tx, tenantId));
     for (const connection of all) {
-      if (connection.status === 'connected') await this.go(tenantId, connection.id, null, 'pull');
+      // Tally is read only from the files uploaded, each its own run.
+      if (connection.status === 'connected' && connection.provider !== 'tally') {
+        await this.go(tenantId, connection.id, null, 'pull');
+      }
     }
   }
 
@@ -204,18 +217,22 @@ export class ErpRuns {
     if (!connection) return;
     const settings = ErpSettings.parse(connection.settings);
     const sap = connection.provider === 'sap_b1';
+    const tally = connection.provider === 'tally';
     if (kind === 'push' && !settings.pushOrders) return;
+    // Tally is reached by no one: a run reads the file it was made for, and orders leave in a file.
+    if (tally && (kind === 'push' || !runId)) return;
     const ready =
       connection.status === 'connected' &&
-      (sap
-        ? connection.endpoint &&
-          connection.companyDb &&
-          connection.username &&
-          connection.credentialsSealed
-        : connection.refreshTokenSealed &&
-          connection.organizationId &&
-          connection.accountsServer &&
-          connection.apiDomain);
+      (tally ||
+        (sap
+          ? connection.endpoint &&
+            connection.companyDb &&
+            connection.username &&
+            connection.credentialsSealed
+          : connection.refreshTokenSealed &&
+            connection.organizationId &&
+            connection.accountsServer &&
+            connection.apiDomain));
     let access: Access | null = null;
     if (ready) {
       access = await this.resolver
@@ -259,23 +276,28 @@ export class ErpRuns {
       tenantId,
       connection,
       access,
-      link: sap
-        ? (null as unknown as ZohoLink)
-        : {
-            connectionId: connection.id,
-            accountsServer: connection.accountsServer!,
-            apiDomain: connection.apiDomain!,
-            refreshToken: this.cipher.open(connection.refreshTokenSealed!, sealedAt(connection.id)),
-            organizationId: connection.organizationId,
-          },
+      link:
+        sap || tally
+          ? (null as unknown as ZohoLink)
+          : {
+              connectionId: connection.id,
+              accountsServer: connection.accountsServer!,
+              apiDomain: connection.apiDomain!,
+              refreshToken: this.cipher.open(
+                connection.refreshTokenSealed!,
+                sealedAt(connection.id),
+              ),
+              organizationId: connection.organizationId,
+            },
       sap: null,
-      // SAP's Service Layer keeps no daily or per-minute limit of its own.
-      meter: sap
-        ? new CallMeter(0, Number.POSITIVE_INFINITY, undefined, Number.POSITIVE_INFINITY)
-        : new CallMeter(
-            connection.callsDay === today ? connection.callsUsed : 0,
-            settings.dailyCalls,
-          ),
+      // SAP's Service Layer keeps no daily or per-minute limit of its own, and Tally isn't called.
+      meter:
+        sap || tally
+          ? new CallMeter(0, Number.POSITIVE_INFINITY, undefined, Number.POSITIVE_INFINITY)
+          : new CallMeter(
+              connection.callsDay === today ? connection.callsUsed : 0,
+              settings.dailyCalls,
+            ),
       settings,
       mapping: {
         accountType: settings.accountType,
@@ -294,7 +316,10 @@ export class ErpRuns {
 
     let stoppedBy: ErpRunResult['stoppedBy'] = null;
     try {
-      if (sap) {
+      if (tally) {
+        const file = await this.tally.file(tenantId, id);
+        await this.tally.read(connection, settings, file, this.kit(run), today);
+      } else if (sap) {
         run.sap = await this.sapB1.signIn(
           {
             connectionId: connection.id,
@@ -325,7 +350,8 @@ export class ErpRuns {
         if (settings.read.payments) await this.payments(run);
       }
     } catch (error) {
-      if (error instanceof ErpDailyLimit) stoppedBy = 'daily_limit';
+      if (error instanceof TallyFileRefused) stoppedBy = 'bad_file';
+      else if (error instanceof ErpDailyLimit) stoppedBy = 'daily_limit';
       else if (error instanceof ErpRateLimited) stoppedBy = 'rate_limited';
       else if (error instanceof ErpReconnect) stoppedBy = 'reconnect';
       else {
@@ -339,7 +365,7 @@ export class ErpRuns {
     if (run.sap) await this.sapB1.signOut(run.sap);
     await this.finish(run, stoppedBy, today);
     // Orders accepted while the books were out of reach, or whose records have just come in.
-    if (kind === 'pull' && settings.pushOrders && !stoppedBy) {
+    if (kind === 'pull' && !tally && settings.pushOrders && !stoppedBy) {
       await this.schedulePush(tenantId, connection.id, 0);
     }
   }
@@ -502,6 +528,23 @@ export class ErpRuns {
   }
 
   /** What each local key is in the books. */
+  /** What a Tally run's steps use of this run: the same settling every provider's records get. */
+  private kit(run: Run): RunKit {
+    return {
+      settle: (entity, target, links, candidates) =>
+        this.settle(run, entity, target, links as Map<string, Link>, candidates),
+      links: (entity) => this.links(run, entity),
+      counts: (entity) => this.counts(run, entity),
+      problem: (entity, externalId, label, issue) =>
+        this.problem(run, entity, externalId, label, issue),
+      listName: (id) => this.listName(run, id),
+      territoryCodes: (codes) =>
+        this.database.forTenant(run.tenantId, (tx) =>
+          this.accounts.territoryCodes(tx, run.tenantId, codes),
+        ),
+    };
+  }
+
   private byLocalKey(links: Map<string, Link>): Map<string, string> {
     return new Map(
       [...links].flatMap(([externalId, link]) =>
@@ -889,6 +932,7 @@ export class ErpRuns {
           externalId: candidate.externalId,
           link: {
             localKey: before?.localKey ?? null,
+            externalName: candidate.externalName,
             fingerprint: null,
             externalModified: candidate.modified,
           },
@@ -903,17 +947,32 @@ export class ErpRuns {
         this.problem(run, entity, candidate.externalId, candidate.label, 'duplicate_code');
         seen.push({
           externalId: candidate.externalId,
-          link: { localKey: null, fingerprint: null, externalModified: candidate.modified },
+          link: {
+            localKey: null,
+            externalName: candidate.externalName,
+            fingerprint: null,
+            externalModified: candidate.modified,
+          },
         });
         continue;
       }
       holders.set(key, candidate.externalId);
       const print = fingerprint(row);
-      if (before?.fingerprint === print && before.localKey === key) {
+      // A record renamed in Tally writes nothing new, but its link learns the new name.
+      if (
+        before?.fingerprint === print &&
+        before.localKey === key &&
+        (candidate.externalName === undefined || before.externalName === candidate.externalName)
+      ) {
         counts.unchanged += 1;
         seen.push({
           externalId: candidate.externalId,
-          link: { localKey: key, fingerprint: print, externalModified: candidate.modified },
+          link: {
+            localKey: key,
+            externalName: candidate.externalName,
+            fingerprint: print,
+            externalModified: candidate.modified,
+          },
         });
         continue;
       }
@@ -1002,6 +1061,7 @@ export class ErpRuns {
           externalId: entry.candidate.externalId,
           link: {
             localKey: entry.key,
+            externalName: entry.candidate.externalName,
             fingerprint: entry.print,
             externalModified: entry.candidate.modified,
           },
@@ -1010,6 +1070,7 @@ export class ErpRuns {
       for (const entry of left) {
         links.set(entry.candidate.externalId, {
           localKey: entry.key,
+          externalName: entry.candidate.externalName ?? null,
           fingerprint: entry.print,
           externalModified: entry.candidate.modified,
         });
@@ -1033,6 +1094,7 @@ export class ErpRuns {
             entity,
             externalId,
             localKey: link.localKey,
+            externalName: link.externalName ?? null,
             fingerprint: link.fingerprint,
             externalModified: link.externalModified,
           })),
@@ -1041,6 +1103,8 @@ export class ErpRuns {
           target: [erpLinks.tenantId, erpLinks.connectionId, erpLinks.entity, erpLinks.externalId],
           set: {
             localKey: sql`excluded.local_key`,
+            // A provider that names no records keeps what another run learnt.
+            externalName: sql`coalesce(excluded.external_name, ${erpLinks.externalName})`,
             fingerprint: sql`excluded.fingerprint`,
             externalModified: sql`excluded.external_modified`,
             updatedAt: sql`now()`,
@@ -1055,6 +1119,7 @@ export class ErpRuns {
         .select({
           externalId: erpLinks.externalId,
           localKey: erpLinks.localKey,
+          externalName: erpLinks.externalName,
           fingerprint: erpLinks.fingerprint,
           externalModified: erpLinks.externalModified,
         })
@@ -1124,7 +1189,7 @@ export class ErpRuns {
       0,
     );
     const status: ErpRunResult['status'] =
-      stoppedBy === 'reconnect' || stoppedBy === 'error'
+      stoppedBy === 'reconnect' || stoppedBy === 'error' || stoppedBy === 'bad_file'
         ? wrote > 0
           ? 'partial'
           : 'failed'
