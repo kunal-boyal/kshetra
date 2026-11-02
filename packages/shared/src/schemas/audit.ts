@@ -150,6 +150,7 @@ export const AUDIT_ACTIONS = [
   'erp.connected',
   'erp.settings_changed',
   'erp.file_uploaded',
+  'erp.file_downloaded',
   'erp.disconnected',
   'erp.run',
   'data_export.created',

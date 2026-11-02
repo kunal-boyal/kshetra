@@ -33,6 +33,8 @@ import { PriceListsService } from './price-lists.service';
 
 interface Planned {
   row: number;
+  /** The cells the row left out, which keep what the item holds when the import says so. */
+  absent: ReadonlySet<string>;
   id: string | null;
   code: string;
   name: string;
@@ -329,6 +331,11 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
 
       planned.push({
         row,
+        absent: new Set(
+          ['category', 'pack_label', 'case_factor', 'measure_type', 'hsn', 'mrp', 'active'].filter(
+            (key) => cells[key] === undefined,
+          ),
+        ),
         id: current?.id ?? null,
         code,
         name,
@@ -451,6 +458,32 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
     let created = 0;
     let updated = 0;
     for (const entry of planned) {
+      const [before] = entry.id
+        ? await tx
+            .select()
+            .from(items)
+            .where(and(eq(items.tenantId, tenantId), eq(items.id, entry.id)))
+        : [];
+      const beforeUnits = entry.id
+        ? await tx
+            .select({ unitKey: itemUnits.unitKey, factor: itemUnits.factor })
+            .from(itemUnits)
+            .where(and(eq(itemUnits.tenantId, tenantId), eq(itemUnits.itemId, entry.id)))
+        : [];
+      // A connection's row keeps what it leaves out (D129): the case, pack, measure, HSN, MRP.
+      const keep = (key: string) => Boolean(context.keepMissing && before && entry.absent.has(key));
+      if (keep('pack_label')) entry.packLabel = before!.packLabel;
+      if (keep('measure_type')) {
+        entry.measureType = before!.measureType as MeasureType | null;
+        entry.measurePerBaseUnit = before!.measurePerBaseUnit;
+      }
+      if (keep('hsn')) entry.hsn = before!.hsn;
+      if (keep('mrp')) entry.mrp = before!.mrp;
+      if (keep('active')) entry.active = before!.active;
+      if (keep('case_factor')) {
+        const kept = beforeUnits.find((unit) => unit.unitKey === caseUnit);
+        entry.caseFactor = kept ? Number(kept.factor) : null;
+      }
       const columns = {
         productId: await productId(entry.productName, entry.category),
         code: entry.code,
@@ -480,14 +513,6 @@ export class ItemsImport implements ImportTargetSource, OnModuleInit {
         await tx.insert(items).values({ id, tenantId, ...columns, createdBy: by, updatedBy: by });
         created += 1;
       } else {
-        const [before] = await tx
-          .select()
-          .from(items)
-          .where(and(eq(items.tenantId, tenantId), eq(items.id, id)));
-        const beforeUnits = await tx
-          .select({ unitKey: itemUnits.unitKey, factor: itemUnits.factor })
-          .from(itemUnits)
-          .where(and(eq(itemUnits.tenantId, tenantId), eq(itemUnits.itemId, id)));
         const same =
           before &&
           (Object.keys(columns) as (keyof typeof columns)[]).every(

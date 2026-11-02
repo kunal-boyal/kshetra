@@ -6,21 +6,25 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { accounts } from '../src/db/schema/accounts';
 import { items, priceListItems } from '../src/db/schema/catalogue';
-import { erpLinks } from '../src/db/schema/erp';
+import { erpLinks, erpRuns } from '../src/db/schema/erp';
 import { accountInvoices, accountReceipts } from '../src/db/schema/finance';
 import { territories } from '../src/db/schema/territories';
 import { ErpRuns } from '../src/modules/erp/erp-runs';
+import { readTallyFile } from '../src/modules/erp/tally-file';
+import { MediaService } from '../src/modules/media/media.service';
 import { TenantConfigService } from '../src/modules/tenant-config/tenant-config.service';
 import { SYSTEM_ACTOR } from '../src/platform/audit';
 import { Database } from '../src/platform/database';
+import { orderingTenant } from './erp-orders';
 import { newAddress, newPhone, startApp, World } from './support';
 
 /**
  * Tally by file exchange (module M20, BR-61, decision D129): connecting with nothing to reach,
  * uploading its masters and Day Book as Tally exports them, in UTF-8 or UTF-16, through the import
  * targets; the same file again, a ledger renamed in Tally, another company's file, files that
- * aren't Tally's or declare entities, one that can't be read, and the module off. Tests run no
- * workers, so they read each upload as the worker would.
+ * aren't Tally's or declare entities, one that can't be read, and the module off; then accepted
+ * orders out as a Tally file, once each unless asked again, and confirmed by a later Day Book.
+ * Tests run no workers, so they read each upload and make each file as the worker would.
  */
 
 let app: NestFastifyApplication;
@@ -341,5 +345,161 @@ describe('reading Tally’s files (BR-61)', () => {
     const closed = await send(org.admin, org.connection.id, MASTERS);
     expect(closed.statusCode).toBe(403);
     expect(closed.json().error.code).toBe('MODULE_DISABLED');
+  });
+});
+
+/** A company's masters as Tally exports them: one debtor ledger and the stock items given. */
+const mastersOf = (ledger: { name: string; alias: string }, items: [string, string][]) =>
+  `<ENVELOPE><HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER><BODY><IMPORTDATA>
+<REQUESTDESC><REPORTNAME>All Masters</REPORTNAME><STATICVARIABLES>
+<SVCURRENTCOMPANY>Kisan Agro Supplies</SVCURRENTCOMPANY></STATICVARIABLES></REQUESTDESC>
+<REQUESTDATA>
+<TALLYMESSAGE xmlns:UDF="TallyUDF"><LEDGER NAME="${ledger.name}"><GUID>led-${ledger.alias}</GUID>
+<PARENT>Sundry Debtors</PARENT><LANGUAGENAME.LIST><NAME.LIST TYPE="String"><NAME>${ledger.name}</NAME>
+<NAME>${ledger.alias}</NAME></NAME.LIST></LANGUAGENAME.LIST></LEDGER></TALLYMESSAGE>
+${items
+  .map(
+    ([name, alias]) => `<TALLYMESSAGE xmlns:UDF="TallyUDF"><STOCKITEM NAME="${name}">
+<GUID>item-${alias}</GUID><PARENT>Bio Inputs</PARENT><BASEUNITS>Nos</BASEUNITS>
+<LANGUAGENAME.LIST><NAME.LIST TYPE="String"><NAME>${name}</NAME><NAME>${alias}</NAME></NAME.LIST>
+</LANGUAGENAME.LIST></STOCKITEM></TALLYMESSAGE>`,
+  )
+  .join('\n')}
+</REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`;
+
+describe('accepted orders out to Tally (BR-61)', () => {
+  it('makes a file of the waiting orders under Tally’s names, once each unless asked again', async () => {
+    const t = await orderingTenant(app, world, 'Tally Orders Agro');
+    const made = await call('POST', '/v1/erp-connections/tally', t.admin, {});
+    const connection = made.json();
+    const saved = await call('PUT', `/v1/erp-connections/${connection.id}/settings`, t.admin, {
+      accountType: 'distributor',
+      defaultTerritory: t.marketCode,
+      defaultTaxRate: '18',
+      units: { Nos: 'pack' },
+    });
+    expect(saved.statusCode, saved.body).toBe(200);
+    // KARANJ isn't in Tally.
+    const masters = mastersOf({ name: 'Kisan Traders & Co', alias: t.distributorCode }, [
+      ['Neem Oil 500 ml', 'NEEM'],
+      ['Urea 45 kg', 'UREA'],
+    ]);
+    expect((await upload(t.tenantId, t.admin, connection.id, masters)).counts).toMatchObject({
+      account: { read: 1 },
+      item: { read: 2 },
+    });
+
+    // 2 cases of neem at 360 a pack: 24 packs; urea rejected. Cases still sell after the books'
+    // rows, which carry no case factor, keep what the portal set (D129).
+    const partly = await t.order({ NEEM: '2', UREA: '1' }, ['NEEM']);
+    const karanj = await t.order({ KARANJ: '1' }, ['KARANJ']);
+    const waiting = async () =>
+      (await call('GET', '/v1/erp-connections', t.admin)).json().providers[2].connection
+        .ordersWaiting;
+    expect(await waiting()).toBe(2);
+
+    const make = async (body: object = {}) => {
+      const asked = await call(
+        'POST',
+        `/v1/erp-connections/${connection.id}/orders-file`,
+        t.admin,
+        body,
+      );
+      expect(asked.statusCode, asked.body).toBe(202);
+      await app
+        .get(ErpRuns)
+        .push(
+          t.tenantId,
+          connection.id,
+          asked.json().id,
+          (body as { again?: string }).again ?? null,
+        );
+      return (await call('GET', `/v1/erp-connections/${connection.id}/runs`, t.admin)).json()
+        .items[0];
+    };
+    const bytesOf = async (runId: string) =>
+      app.get(Database).forTenant(t.tenantId, async (tx) => {
+        const [run] = await tx
+          .select({ fileMediaId: erpRuns.fileMediaId })
+          .from(erpRuns)
+          .where(and(eq(erpRuns.tenantId, t.tenantId), eq(erpRuns.id, runId)));
+        return (await app.get(MediaService).read(tx, t.tenantId, run!.fileMediaId!)).bytes;
+      });
+
+    const first = await make();
+    expect(first).toMatchObject({
+      kind: 'push',
+      status: 'partial',
+      download: true,
+      file: expect.stringMatching(/^tally-orders-\d{4}-\d{2}-\d{2}\.xml$/),
+      counts: { order: { read: 2, created: 1, skipped: 1 } },
+    });
+    expect(first.problems).toEqual([
+      expect.objectContaining({
+        externalId: karanj.id,
+        issue: 'not_in_books',
+        detail: 'item:KARANJ',
+      }),
+    ]);
+    const bytes = await bytesOf(first.id);
+    const text = new TextDecoder().decode(bytes);
+    expect(text).toContain('<PARTYLEDGERNAME>Kisan Traders &amp; Co</PARTYLEDGERNAME>');
+    expect(text).toContain('<STOCKITEMNAME>Neem Oil 500 ml</STOCKITEMNAME>');
+    expect(text).toContain('<RATE>360.00</RATE>');
+    expect(text).toContain('<ACTUALQTY> 24</ACTUALQTY>');
+    expect(text).not.toContain('Urea 45 kg');
+    // The file reads back as Tally's own import would.
+    expect(readTallyFile(bytes).vouchers).toEqual([
+      expect.objectContaining({
+        type: 'Sales Order',
+        number: String(partly.number),
+        reference: String(partly.number),
+        party: 'Kisan Traders & Co',
+        partyAmount: '-8640.00',
+      }),
+    ]);
+    expect(await waiting()).toBe(1);
+
+    const link = await call(
+      'GET',
+      `/v1/erp-connections/${connection.id}/runs/${first.id}/file`,
+      t.admin,
+    );
+    expect(link.statusCode, link.body).toBe(200);
+    expect(link.json()).toMatchObject({ url: expect.any(String), expiresAt: expect.any(String) });
+
+    // Nothing new: no file, and the first order isn't carried twice.
+    const quiet = await make();
+    expect(quiet).toMatchObject({ download: false, counts: { order: { read: 1, created: 0 } } });
+    const none = await call(
+      'GET',
+      `/v1/erp-connections/${connection.id}/runs/${quiet.id}/file`,
+      t.admin,
+    );
+    expect(none.statusCode).toBe(404);
+
+    // Asked again, the first file's order comes once more.
+    const again = await make({ again: first.id });
+    expect(again).toMatchObject({ download: true, counts: { order: { created: 1 } } });
+    expect(readTallyFile(await bytesOf(again.id)).vouchers).toHaveLength(1);
+
+    // A later Day Book holds it as Tally's own sales order.
+    const dayBook = `<ENVELOPE><HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER><BODY>
+<IMPORTDATA><REQUESTDESC><REPORTNAME>Vouchers</REPORTNAME><STATICVARIABLES>
+<SVCURRENTCOMPANY>Kisan Agro Supplies</SVCURRENTCOMPANY></STATICVARIABLES></REQUESTDESC>
+<REQUESTDATA><TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER VCHTYPE="Sales Order">
+<GUID>so-1</GUID><DATE>20261102</DATE><VOUCHERTYPENAME>Sales Order</VOUCHERTYPENAME>
+<VOUCHERNUMBER>${partly.number}</VOUCHERNUMBER><REFERENCE>${partly.number}</REFERENCE>
+<PARTYLEDGERNAME>Kisan Traders &amp; Co</PARTYLEDGERNAME></VOUCHER></TALLYMESSAGE>
+</REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`;
+    const confirmed = await upload(t.tenantId, t.admin, connection.id, dayBook);
+    expect(confirmed.counts.order).toMatchObject({ read: 1, updated: 1 });
+    // An uploaded file is never served back.
+    const back = await call(
+      'GET',
+      `/v1/erp-connections/${connection.id}/runs/${confirmed.id}/file`,
+      t.admin,
+    );
+    expect(back.statusCode).toBe(404);
   });
 });

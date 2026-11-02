@@ -25,6 +25,11 @@ export interface ImportContext {
   emptyValues: readonly string[];
   /** Percentage columns where a value of 1 or less is a fraction (BR-17). */
   fractions: readonly string[];
+  /**
+   * Cells a row leaves out keep what the record already holds, rather than clearing it: an ERP
+   * connection's rows carry only what the books know (decision D129). Files leave this off.
+   */
+  keepMissing?: boolean;
 }
 
 /**

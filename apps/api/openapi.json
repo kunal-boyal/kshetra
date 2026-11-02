@@ -9650,6 +9650,7 @@
                 "erp.connected",
                 "erp.settings_changed",
                 "erp.file_uploaded",
+                "erp.file_downloaded",
                 "erp.disconnected",
                 "erp.run",
                 "data_export.created",
@@ -9946,6 +9947,7 @@
                               "erp.connected",
                               "erp.settings_changed",
                               "erp.file_uploaded",
+                              "erp.file_downloaded",
                               "erp.disconnected",
                               "erp.run",
                               "data_export.created",
@@ -13800,6 +13802,65 @@
         }
       }
     },
+    "/v1/erp-connections/{id}/orders-file": {
+      "post": {
+        "operationId": "ErpController.ordersFile",
+        "summary": "Make a Tally file of the accepted orders waiting, or of an earlier file’s again",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TallyOrdersFileBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpRun"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/erp-connections/{id}/organization": {
       "put": {
         "operationId": "ErpController.organization",
@@ -13938,6 +13999,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErpRun"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/erp-connections/{id}/runs/{runId}/file": {
+      "get": {
+        "operationId": "ErpController.file",
+        "summary": "A short-lived link to save a Tally orders file, for 7 days after it was made",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpFileLink"
                 }
               }
             }
@@ -15019,6 +15139,7 @@
                           "erp.connected",
                           "erp.settings_changed",
                           "erp.file_uploaded",
+                          "erp.file_downloaded",
                           "erp.disconnected",
                           "erp.run",
                           "data_export.created",
@@ -20759,6 +20880,7 @@
                           "erp.connected",
                           "erp.settings_changed",
                           "erp.file_uploaded",
+                          "erp.file_downloaded",
                           "erp.disconnected",
                           "erp.run",
                           "data_export.created",
@@ -21117,6 +21239,7 @@
                           "erp.connected",
                           "erp.settings_changed",
                           "erp.file_uploaded",
+                          "erp.file_downloaded",
                           "erp.disconnected",
                           "erp.run",
                           "data_export.created",
@@ -21573,6 +21696,7 @@
                 "erp.connected",
                 "erp.settings_changed",
                 "erp.file_uploaded",
+                "erp.file_downloaded",
                 "erp.disconnected",
                 "erp.run",
                 "data_export.created",
@@ -28181,6 +28305,7 @@
                               "erp.connected",
                               "erp.settings_changed",
                               "erp.file_uploaded",
+                              "erp.file_downloaded",
                               "erp.disconnected",
                               "erp.run",
                               "data_export.created",
@@ -36230,6 +36355,18 @@
                 "type": "null"
               }
             ]
+          },
+          "ordersWaiting": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -36245,7 +36382,26 @@
           "username",
           "connectedAt",
           "connectedBy",
-          "lastRunAt"
+          "lastRunAt",
+          "ordersWaiting"
+        ],
+        "additionalProperties": false
+      },
+      "ErpFileLink": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "url",
+          "expiresAt"
         ],
         "additionalProperties": false
       },
@@ -36489,6 +36645,9 @@
               "string",
               "null"
             ]
+          },
+          "download": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -36501,7 +36660,8 @@
           "counts",
           "problems",
           "calls",
-          "file"
+          "file",
+          "download"
         ],
         "additionalProperties": false
       },
@@ -36733,6 +36893,12 @@
               "minLength": 1,
               "maxLength": 100
             }
+          },
+          "orderType": {
+            "default": "Sales Order",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
           }
         },
         "required": [
@@ -36751,7 +36917,8 @@
           "debtorGroups",
           "groupTerritories",
           "salesTypes",
-          "receiptTypes"
+          "receiptTypes",
+          "orderType"
         ],
         "additionalProperties": false
       },
@@ -36968,6 +37135,12 @@
               "minLength": 1,
               "maxLength": 100
             }
+          },
+          "orderType": {
+            "default": "Sales Order",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
           }
         },
         "additionalProperties": false
@@ -37815,6 +37988,7 @@
                   "erp.connected",
                   "erp.settings_changed",
                   "erp.file_uploaded",
+                  "erp.file_downloaded",
                   "erp.disconnected",
                   "erp.run",
                   "data_export.created",
@@ -46901,6 +47075,7 @@
                   "erp.connected",
                   "erp.settings_changed",
                   "erp.file_uploaded",
+                  "erp.file_downloaded",
                   "erp.disconnected",
                   "erp.run",
                   "data_export.created",
@@ -47357,6 +47532,7 @@
                   "erp.connected",
                   "erp.settings_changed",
                   "erp.file_uploaded",
+                  "erp.file_downloaded",
                   "erp.disconnected",
                   "erp.run",
                   "data_export.created",
@@ -52350,6 +52526,17 @@
       "TallyConnectBody": {
         "type": "object",
         "properties": {},
+        "additionalProperties": false
+      },
+      "TallyOrdersFileBody": {
+        "type": "object",
+        "properties": {
+          "again": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
         "additionalProperties": false
       },
       "TargetPeriod": {

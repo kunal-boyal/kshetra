@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type EventPayload, ErpSettings, recordCutoffs } from '@thelamp/shared';
+import { type EventPayload, ErpSettings, EXPORT_KEEP_DAYS, recordCutoffs } from '@thelamp/shared';
 import { Database } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
@@ -17,7 +17,8 @@ const RUN_KEEP_DAYS = 90;
  * What runs ERP connections in the background (decision D129): each tenant's books are read every
  * hour and on Sync now, accepted orders are sent within a minute and after each read, one run of a
  * connection at a time on the `connectors` queue, and runs past their keeping time are removed daily,
- * with the Tally files uploaded past the tenant's `importFileRetentionDays` (BR-41).
+ * with the Tally files uploaded past the tenant's `importFileRetentionDays` (BR-41) and the orders
+ * files past their 7 days.
  */
 @Injectable()
 export class ErpUpkeep implements OnModuleInit {
@@ -47,7 +48,12 @@ export class ErpUpkeep implements OnModuleInit {
       'connectors',
       PUSH,
       (data) =>
-        this.runs.push(String(data.tenantId), data.connectionId ? String(data.connectionId) : null),
+        this.runs.push(
+          String(data.tenantId),
+          data.connectionId ? String(data.connectionId) : null,
+          data.runId ? String(data.runId) : null,
+          data.again ? String(data.again) : null,
+        ),
       { perTenant: true },
     );
     // An accepted order, or one accepted as it was placed, goes to the books within a minute.
@@ -78,6 +84,12 @@ export class ErpUpkeep implements OnModuleInit {
       await this.database.forTenant(tenantId, async (tx) => {
         const files = recordCutoffs(await this.tenantConfig.settings(tx, tenantId), new Date());
         await this.connections.expireFiles(tx, tenantId, files.importFiles);
+        await this.connections.expireFiles(
+          tx,
+          tenantId,
+          new Date(Date.now() - EXPORT_KEEP_DAYS * DAY_MS),
+          'push',
+        );
         await this.connections.removeRunsBefore(tx, tenantId, cutoff);
       });
     });
