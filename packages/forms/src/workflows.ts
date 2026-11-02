@@ -133,6 +133,12 @@ export const REQUEST_FACTS: Record<RequestType, readonly AnyField[]> = {
       label: label('Over the credit limit', 'उधार सीमा से अधिक'),
       required: false,
     },
+    {
+      type: 'yes_no',
+      key: 'short_stock',
+      label: label('More than the supplier holds', 'सप्लायर के स्टॉक से अधिक'),
+      required: false,
+    },
   ],
   new_account: [],
   account_location_change: [],

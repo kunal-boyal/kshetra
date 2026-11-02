@@ -14,6 +14,7 @@ import {
   ReviewQueueQuery,
   SalaryStructureBody,
   StatutoryProfileBody,
+  type SwitchableModule,
   todayIn,
 } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
@@ -195,7 +196,16 @@ export class DemoContent implements DemoKit {
       .toISOString()
       .slice(0, 10);
     travelTo(this.at(first, 7 * 60));
-    const admin = await this.person(adminId, 'Admin');
+    let admin = await this.person(adminId, 'Admin');
+    // Distributors' stock is opt-in (decision D130): switched on where the template's account
+    // types hold stock, before anyone's access is read, so the team holds its permissions.
+    const holdsStock = (
+      await this.tx((tx) => this.get(AccountTypesService).list(tx, this.tenantId))
+    ).some((type) => type.definition.keepsStock);
+    if (holdsStock) {
+      await this.switchOn(admin, 'inventory');
+      admin = await this.person(adminId, 'Admin');
+    }
 
     log('Products, territories and the team');
     await this.catalogue(admin);
@@ -213,6 +223,7 @@ export class DemoContent implements DemoKit {
         planId: growth,
         extraModules: [
           'advanced_analytics',
+          ...(holdsStock ? (['inventory'] as const) : []),
           ...(this.options.statutory ? (['statutory_payroll'] as const) : []),
         ],
         limits: {},
@@ -260,6 +271,8 @@ export class DemoContent implements DemoKit {
         for (const person of team) await this.requests.weekEnd(person, date);
         travelTo(this.at(date, 19 * 60 + 15));
         await this.commerce.weekEnd(admin, date);
+        travelTo(this.at(date, 19 * 60 + 45));
+        await this.commerce.stockCount(team);
         await this.requests.pay(admin, date);
       }
       if (working) await this.decisions(approvers, date, today);
@@ -336,11 +349,7 @@ export class DemoContent implements DemoKit {
   private async payroll(admin: Person, team: FieldPerson[], today: string): Promise<void> {
     const [year, month] = today.split('-').map(Number) as [number, number];
     const lastMonth = new Date(Date.UTC(year, month - 2, 1)).toISOString().slice(0, 7);
-    await this.tx((tx) =>
-      this.get(TenantConfigService).updateSettings(tx, this.tenantId, userActor(admin.access), {
-        modulesOn: ['statutory_payroll'],
-      }),
-    );
+    await this.switchOn(admin, 'statutory_payroll');
     // The admin's access again, now holding payroll's permissions.
     const payer = await this.person(admin.id, admin.name);
     const payroll = this.get(StatutoryPayrollService);
@@ -397,6 +406,17 @@ export class DemoContent implements DemoKit {
   }
 
   /** Someone's access, on their phone when they have one. */
+  /** Switches an opt-in module on beside those already on. */
+  private async switchOn(admin: Person, module: SwitchableModule): Promise<void> {
+    const config = this.get(TenantConfigService);
+    await this.tx(async (tx) => {
+      const { modulesOn } = await config.settings(tx, this.tenantId);
+      await config.updateSettings(tx, this.tenantId, userActor(admin.access), {
+        modulesOn: [...new Set([...modulesOn, module])],
+      });
+    });
+  }
+
   private async person(id: string, name: string, deviceId?: string): Promise<Person> {
     const access = await this.get(AccessResolver).onBehalfOf(
       this.tenantId,

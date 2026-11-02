@@ -93,6 +93,14 @@ function Showing({ order }: { order: OrderResult }) {
                 : t('orders.scheme_named', { name: line.scheme.name[locale] })}
             </span>
           ) : null}
+          {line.shortUnits ? (
+            <StatusBadge variant="pending">
+              {t('stock.short_when_placed', {
+                short: formatNumber(line.shortUnits as `${number}`, { locale }),
+                unit: line.item.baseUnit,
+              })}
+            </StatusBadge>
+          ) : null}
         </span>
       ),
     },

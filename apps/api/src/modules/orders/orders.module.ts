@@ -10,6 +10,7 @@ import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { OrderCredit } from './order-credit';
+import { OrderStock } from './order-stock';
 import { VisitOrdersProvider } from './visit-orders.provider';
 import { OrderRequests } from './order.requests';
 import { OrdersController } from './orders.controller';
@@ -38,11 +39,12 @@ import { SchemesSync } from './schemes.sync';
     OrdersService,
     OrderRequests,
     OrderCredit,
+    OrderStock,
     OrdersSync,
     VisitOrdersProvider,
     SchemesService,
     SchemesSync,
   ],
-  exports: [OrdersService, OrderCredit, SchemesService],
+  exports: [OrdersService, OrderCredit, OrderStock, SchemesService],
 })
 export class OrdersModule {}

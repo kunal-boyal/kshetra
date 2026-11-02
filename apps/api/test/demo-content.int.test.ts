@@ -173,6 +173,19 @@ describe('demo content (decision D70)', () => {
         [tenantId],
       );
       expect(schemed!.lines).toBeGreaterThan(0);
+      // Distributors' stock (D130): switched on beside statutory payroll, opened, moved by the
+      // orders delivered, and counted on the Saturday.
+      expect(counts.stockCounts).toBeGreaterThan(0);
+      const [moved] = await sql<{ opening: number; received: number; counted: number }>(
+        `select count(*) filter (where kind = 'opening')::int as opening,
+                count(*) filter (where kind in ('received', 'sold'))::int as received,
+                (select count(*)::int from cell.stock_counts c where c.tenant_id = $1) as counted
+           from cell.stock_movements where tenant_id = $1`,
+        [tenantId],
+      );
+      expect(moved!.opening).toBeGreaterThan(0);
+      expect(moved!.received).toBeGreaterThan(0);
+      expect(moved!.counted).toBe(counts.stockCounts);
       // With --statutory, last month's pay run is approved for everyone given a salary, and one
       // person's PAN isn't on file (D128).
       const runs = await sql<{ period: string; status: string; payslips: number; no_pan: number }>(

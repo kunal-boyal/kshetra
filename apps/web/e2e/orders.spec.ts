@@ -54,6 +54,7 @@ const LINE = {
   decision: 'pending',
   decisionReason: null,
   fulfilledUnits: null,
+  shortUnits: null,
 };
 
 const ANSWERS: Record<string, unknown> = {

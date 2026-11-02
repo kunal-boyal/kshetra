@@ -22,6 +22,7 @@ import {
   RegularisationResult,
   SellThroughResult,
   ForecastResult,
+  StockCountResult,
   type PauseShiftBody,
   type ResumeShiftBody,
   ShiftResult,
@@ -35,6 +36,7 @@ import type { ReceiptsPayload } from './expenses';
 import { photoSender } from './photos';
 import { FORECAST_KIND, type QueuedForecast } from './forecasts';
 import { type QueuedStatement, SELL_THROUGH_KIND } from './sell-through';
+import { type QueuedCount, STOCK_COUNT_KIND } from './stock';
 
 /** A proposed location, with the account it is for. */
 export interface LocationProposalPayload extends CreateLocationProposalBody {
@@ -162,6 +164,13 @@ export function senders(
         );
       },
     },
+    // Stock counts (BR-62, D130): set the account's stock once, by the count's own ID.
+    [STOCK_COUNT_KIND]: {
+      async send(payload) {
+        const { body } = payload as QueuedCount;
+        await client.request('POST', '/v1/stock/counts', StockCountResult, { body });
+      },
+    },
     // Leave (M13): after its document photo, if any.
     'leave_request.create': {
       async send(payload) {
@@ -232,6 +241,7 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'mock_location.report': 'uploads.kind_mock_report',
   [SELL_THROUGH_KIND]: 'uploads.kind_sell_through',
   [FORECAST_KIND]: 'uploads.kind_forecast',
+  [STOCK_COUNT_KIND]: 'uploads.kind_stock_count',
 };
 
 type Translate = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string;

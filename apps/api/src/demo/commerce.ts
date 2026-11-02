@@ -22,6 +22,7 @@ import { ForecastsService } from '../modules/forecasts/forecasts.service';
 import { OrdersService } from '../modules/orders/orders.service';
 import { SchemesService } from '../modules/orders/schemes.service';
 import { SellThroughService } from '../modules/sell-through/sell-through.service';
+import { StockService } from '../modules/stock/stock.service';
 import { TenantConfigService } from '../modules/tenant-config/tenant-config.service';
 import { ApprovalsService } from '../modules/workflow/approvals.service';
 import { userActor } from '../platform/audit';
@@ -56,7 +57,16 @@ export class DemoCommerce {
   private stockTypes = new Set<string>();
   /** Each account's last closing by item, so the next month's stock follows on. */
   private readonly stock = new Map<string, bigint>();
-  private counts = { orders: 0, deliveries: 0, statements: 0, forecasts: 0, schemes: 0 };
+  /** The accounts that supply others and hold stock the app keeps (decision D130). */
+  private stockHolders: Place[] = [];
+  private counts = {
+    orders: 0,
+    deliveries: 0,
+    statements: 0,
+    forecasts: 0,
+    schemes: 0,
+    stockCounts: 0,
+  };
 
   constructor(private readonly kit: DemoKit) {}
 
@@ -71,10 +81,12 @@ export class DemoCommerce {
       (item) => item.active,
     );
     if (this.items.length === 0) return;
+    const types = await kit.tx((tx) => kit.get(AccountTypesService).list(tx, kit.tenantId));
     this.stockTypes = new Set(
-      (await kit.tx((tx) => kit.get(AccountTypesService).list(tx, kit.tenantId)))
-        .filter((type) => type.definition.sellThrough)
-        .map((type) => type.key),
+      types.filter((type) => type.definition.sellThrough).map((type) => type.key),
+    );
+    const holdingTypes = new Set(
+      types.filter((type) => type.definition.keepsStock).map((type) => type.key),
     );
     // People, such as doctors at a hospital, belong to their parent but buy nothing from it.
     const places = team.flatMap((person) => person.places);
@@ -150,6 +162,31 @@ export class DemoCommerce {
         },
       ]);
       await this.snapshot(admin, place.id, opening);
+    }
+
+    // Each supplier that holds stock opens with some of every item (BR-62, decision D130); orders
+    // delivered then move it, in from the company and out to the accounts it supplies.
+    if (!admin.access.permissions.has('stock.record')) return;
+    this.stockHolders = this.suppliers.filter((place) => holdingTypes.has(place.type));
+    const stock = kit.get(StockService);
+    for (const place of this.stockHolders) {
+      try {
+        await kit.tx((tx) =>
+          stock.record(tx, admin.access, {
+            id: newId(),
+            accountId: place.id,
+            kind: 'opening',
+            occurredOn: opening,
+            note: 'Stock brought forward',
+            lines: this.items.map((item) => ({
+              itemId: item.id,
+              quantity: String(kit.dice.int(4, 30) * 12),
+            })),
+          }),
+        );
+      } catch (error) {
+        kit.once('opening stock', error);
+      }
     }
   }
 
@@ -459,6 +496,49 @@ export class DemoCommerce {
             kit.once('forecast', error);
           }
         }
+      }
+    }
+  }
+
+  /**
+   * The week's count (BR-62, decision D130): whoever holds each supplier that holds stock counts a
+   * few items there, mostly as the app expects, now and then a few short, so the counts show
+   * adjustments and the odd one flagged past the tolerance.
+   */
+  async stockCount(team: readonly FieldPerson[]): Promise<void> {
+    if (this.stockHolders.length === 0) return;
+    const { kit } = this;
+    const stock = kit.get(StockService);
+    for (const place of this.stockHolders) {
+      const counter = team.find(
+        (person) =>
+          person.access.permissions.has('stock.count') &&
+          person.places.some((each) => each.id === place.id && each.held),
+      );
+      if (!counter) continue;
+      try {
+        const levels = await kit.tx((tx) => stock.levels(tx, counter.access, place.id));
+        const lines = kit.dice
+          .shuffle(levels.items)
+          .slice(0, kit.dice.int(2, 4))
+          .map((level) => {
+            const expected = BigInt(level.onHand.split('.')[0]!);
+            const off = kit.dice.int(0, 9) === 0 ? BigInt(kit.dice.int(3, 12)) : 0n;
+            const counted = expected - off > 0n ? expected - off : 0n;
+            return { itemId: level.item.id, counted: String(counted) };
+          });
+        if (lines.length === 0) continue;
+        await kit.tx((tx) =>
+          stock.count(tx, counter.access, {
+            id: newId(),
+            accountId: place.id,
+            countedAt: new Date().toISOString(),
+            lines,
+          }),
+        );
+        this.counts.stockCounts++;
+      } catch (error) {
+        kit.once('stock count', error);
       }
     }
   }

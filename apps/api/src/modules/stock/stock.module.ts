@@ -4,10 +4,12 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { IamModule } from '../iam/iam.module';
 import { ImportsModule } from '../imports/imports.module';
 import { OrdersModule } from '../orders/orders.module';
+import { SyncModule } from '../sync/sync.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { StockController } from './stock.controller';
 import { StockLevelsImport, StockMovementsImport } from './stock.import';
 import { StockService } from './stock.service';
+import { StockSync } from './stock.sync';
 import { StockUpkeep } from './stock.upkeep';
 
 /**
@@ -21,10 +23,11 @@ import { StockUpkeep } from './stock.upkeep';
     IamModule,
     ImportsModule,
     OrdersModule,
+    SyncModule,
     TenantConfigModule,
   ],
   controllers: [StockController],
-  providers: [StockService, StockUpkeep, StockMovementsImport, StockLevelsImport],
+  providers: [StockService, StockUpkeep, StockMovementsImport, StockLevelsImport, StockSync],
   exports: [StockService],
 })
 export class StockModule {}

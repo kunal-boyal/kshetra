@@ -55,6 +55,7 @@ import {
   withSchemes,
 } from '../orders';
 import { type ItemPrice, useAccountPrices } from '../prices';
+import { cartShortfall, useAccountStock } from '../stock';
 import { useSync } from '../sync';
 import { HUES } from './account';
 
@@ -87,6 +88,15 @@ export function OrderScreen({ accountId }: { accountId: string }) {
   const rounding = bundle?.catalogue?.rounding ?? 'per_unit_first';
   const offline = bundle?.settings.ordersAllowedOffline ?? true;
   const currency = bundle?.settings.currency ?? 'INR';
+  // BR-62, decision D130: a supplier that holds stock, seen by this person, says what it lacks of
+  // the cart. Only flagged, never refused; the server keeps the flag on the order's lines.
+  const supplier = accounts?.find((entry) => entry.id === account?.parentId);
+  const supplierType = bundle?.accountTypes?.find((entry) => entry.key === supplier?.type);
+  const seesSupplierStock =
+    !(bundle?.settings.modulesOff ?? []).includes('inventory') &&
+    Boolean(supplierType?.keepsStock) &&
+    (bundle?.access.permissions ?? []).includes('stock.view');
+  const supplierStock = useAccountStock(seesSupplierStock && supplier ? supplier.id : null);
   const [step, setStep] = useState<'items' | 'review'>('items');
   const [q, setQ] = useState('');
   const [category, setCategory] = useState(ALL);
@@ -140,6 +150,11 @@ export function OrderScreen({ accountId }: { accountId: string }) {
   );
   const lists = [...new Set((offers ?? []).map((offer) => offer.list.name))];
   const lineOf = (itemId: string) => lines.find((line) => line.itemId === itemId);
+  const shortfall = cartShortfall(
+    supplierStock,
+    priced.map((line) => ({ itemId: line.itemId, baseUnits: line.values.baseUnits })),
+  );
+  const shortOf = (itemId: string) => shortfall.find((entry) => entry.itemId === itemId);
 
   function setLine(itemId: string, line: CartLine | null) {
     // BR-13: an item appears on one line.
@@ -272,6 +287,14 @@ export function OrderScreen({ accountId }: { accountId: string }) {
                           : t('orders.scheme_named', { name: line.scheme.name[locale] }),
                       ]
                     : []),
+                  ...(shortOf(line.itemId)
+                    ? [
+                        t('stock.short_by', {
+                          short: number(shortOf(line.itemId)!.short),
+                          unit: unitName(line.offer.item.baseUnit),
+                        }),
+                      ]
+                    : []),
                   ...cart.free
                     .filter((free) => free.ofItemId === line.itemId)
                     .map((free) => {
@@ -310,6 +333,11 @@ export function OrderScreen({ accountId }: { accountId: string }) {
               free: money(unscaled(scaled(limit, 2) - scaled(balance.outstanding, 2), 2)),
               limit: money(limit),
             })}
+          </Notice>
+        ) : null}
+        {shortfall.length > 0 && supplier ? (
+          <Notice tone="pending" icon={TriangleAlert}>
+            {t('stock.cart_short', { name: supplier.name, count: shortfall.length })}
           </Notice>
         ) : null}
         {tooLarge ? (
@@ -456,6 +484,12 @@ export function OrderScreen({ accountId }: { accountId: string }) {
                         ? `${money(offer.rate)}/${unitName(offer.item.baseUnit)}`
                         : money(offer.rate),
                       inOtherUnit ? unitName(line.unitKey) : null,
+                      supplierStock
+                        ? t('stock.supplier_has', {
+                            count: number(supplierStock.get(offer.item.id) ?? '0'),
+                            unit: unitName(offer.item.baseUnit),
+                          })
+                        : null,
                     ]
                       .filter(Boolean)
                       .join(' · ')}

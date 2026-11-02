@@ -59,6 +59,7 @@ function line(id: string, itemId: string, code: string, overrides: Record<string
     decision: 'pending',
     decisionReason: null,
     fulfilledUnits: null,
+    shortUnits: null,
     ...overrides,
   };
 }
@@ -720,6 +721,24 @@ describe('stock behind a secondary order (D130)', () => {
         'Green Fields Agro holds less than this asks for: NEEM item short by 4 pack; UREA item short by 36 pack. It can still be placed.',
       ),
     ).toBeVisible();
+  });
+
+  it('keeps on a line what the supplier lacked when the order was placed', async () => {
+    renderAt(
+      `/orders/${ORDER}`,
+      fakeClient(
+        {
+          [`/v1/orders/${ORDER}`]: order({
+            ...secondary,
+            lines: [line(NEEM_LINE, NEEM, 'NEEM', { shortUnits: '6.000' })],
+          }),
+        },
+        {},
+        ['order.view'],
+        BUNDLE,
+      ),
+    );
+    expect(await screen.findByText('Supplier short by 6 pack when placed')).toBeVisible();
   });
 
   it('says nothing without stock to see', async () => {

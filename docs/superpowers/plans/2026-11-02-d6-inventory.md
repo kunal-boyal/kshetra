@@ -120,9 +120,9 @@ Settled by these defaults unless Kunal says otherwise:
 
 ### Pull request 3: the phone and the demo
 
-- [ ] The `stock_levels` sync entity, scoped by reach.
-- [ ] Stock on the account screen; the cart shows the supplier's stock and short lines.
-- [ ] Counting at `/stock-count/<accountId>`, queued as `stock.count`.
-- [ ] The sell-through statement pre-filled from the ledger.
-- [ ] Demo content: openings, receipts and sales from fulfilment, and a count a week.
-- [ ] Jest. Progress and the tracker. `pnpm verify` before each merge.
+- [x] The `stock` sync entity (one row an account), scoped by reach.
+- [x] Stock on the account screen; the cart shows the supplier's stock and short lines. The short-stock flag kept on the order's lines (`short_units`) and the `short_stock` approval fact.
+- [x] Counting at `/stock-count/<accountId>`, queued as `stock.count`.
+- [ ] The sell-through statement pre-filled from the ledger: deferred, as the phone would need the month's movements, not only the levels it keeps.
+- [x] Demo content: openings, receipts and sales from fulfilment, and a count a week.
+- [x] Jest. Progress and the tracker. `pnpm verify` before each merge.

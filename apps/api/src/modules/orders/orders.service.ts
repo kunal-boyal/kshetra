@@ -34,6 +34,8 @@ import {
   todayIn,
   type ErpOrder,
   unscaled,
+  stockUnits,
+  stockUnitsText,
 } from '@thelamp/shared';
 import {
   and,
@@ -71,6 +73,7 @@ import { TerritoriesService } from '../territories/territories.service';
 import { ApprovalsService } from '../workflow/approvals.service';
 import { AuditService } from '../audit/audit.service';
 import { OrderCredit } from './order-credit';
+import { OrderStock } from './order-stock';
 import { SchemesService } from './schemes.service';
 
 /** An order that reached the server this long after it was placed was taken offline (D104). */
@@ -123,6 +126,7 @@ export class OrdersService {
     private readonly people: People,
     private readonly config: TenantConfigService,
     private readonly credit: OrderCredit,
+    private readonly stock: OrderStock,
     private readonly schemes: SchemesService,
     private readonly audit: AuditLog,
     private readonly outbox: Outbox,
@@ -377,6 +381,27 @@ export class OrdersService {
     const totals = orderTotals(lines);
     const photoIds = await this.checkPhotos(tx, access, body.photos, body.id);
 
+    // BR-62: what the supplying account lacks, against its stock now; flagged, never refused.
+    const placed = [
+      ...lines.map((line) => ({ ...line, freeOfLineId: null as string | null })),
+      ...freeLines,
+    ];
+    const short =
+      account.parentAccountId && !access.modulesOff.includes('inventory')
+        ? await this.stock.short(
+            tx,
+            tenantId,
+            account.parentAccountId,
+            placed.map((line) => ({ itemId: line.item.id, baseUnits: line.baseUnits })),
+          )
+        : [];
+    // An item's shortfall is kept on its first line, the paid one, as BR-13 gives an item one.
+    const shortOn = new Map<string, string>();
+    for (const entry of short) {
+      const first = placed.find((line) => line.item.id === entry.itemId);
+      if (first) shortOn.set(first.id, entry.short);
+    }
+
     const number = await this.nextNumber(tx, tenantId);
     await tx.insert(orders).values({
       id: body.id,
@@ -399,10 +424,7 @@ export class OrdersService {
       photoIds,
     });
     await tx.insert(orderLines).values(
-      [
-        ...lines.map((line) => ({ ...line, freeOfLineId: null as string | null })),
-        ...freeLines,
-      ].map((line, position) => ({
+      placed.map((line, position) => ({
         id: line.id,
         tenantId,
         orderId: body.id,
@@ -434,6 +456,7 @@ export class OrdersService {
         scheme: line.scheme,
         schemeDiscount: line.schemeDiscount,
         freeOfLineId: line.freeOfLineId,
+        shortUnits: shortOn.get(line.id) ?? null,
       })),
     );
     await this.photos.attach(tx, tenantId, photoIds, { type: 'order', id: body.id });
@@ -450,7 +473,10 @@ export class OrdersService {
       'order',
       body.id,
       userActor(access),
-      { accountId: account.id, facts: { total: totals.total, over_credit: overCredit } },
+      {
+        accountId: account.id,
+        facts: { total: totals.total, over_credit: overCredit, short_stock: short.length > 0 },
+      },
     );
     await tx
       .update(orders)
@@ -1425,5 +1451,6 @@ function lineResult(line: LineRow): OrderResult['lines'][number] {
     decision: line.decision,
     decisionReason: line.decisionReason,
     fulfilledUnits: line.fulfilledUnits,
+    shortUnits: line.shortUnits === null ? null : stockUnitsText(stockUnits(line.shortUnits)),
   };
 }
