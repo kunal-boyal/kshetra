@@ -82,6 +82,8 @@ export function notificationMessage(
             body: 'notify.data_request_refused_body',
             params,
           };
+    case 'erp.reconnect':
+      return { title: 'notify.erp_reconnect_title', body: 'notify.erp_reconnect_body', params };
     case 'support.emergency':
       return {
         title: 'notify.support_emergency_title',

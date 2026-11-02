@@ -16,6 +16,7 @@ import {
   newId,
   paymentRow,
   perItemSalesBook,
+  salesOrderFor,
   type ZohoContact,
   type ZohoInvoice,
   type ZohoItem,
@@ -32,11 +33,20 @@ import { type Access, AccessResolver } from '../../platform/auth';
 import { ColumnCipher } from '../../platform/column-cipher';
 import { Database, type TenantTx } from '../../platform/database';
 import { reportError } from '../../platform/error-reports';
+import { Queues } from '../../platform/queues';
 import { CONFIG } from '../../platform/tokens';
 import { AccountsService } from '../accounts/accounts.service';
+import { OrdersService } from '../orders/orders.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { People } from '../iam/people';
 import { PriceListsService } from '../catalogue/price-lists.service';
 import { ImportRefused, type ImportRow, ImportTargets } from '../imports/targets';
-import { type ConnectionRow, ErpConnectionsService, sealedAt } from './erp-connections.service';
+import {
+  type ConnectionRow,
+  ErpConnectionsService,
+  PUSH,
+  sealedAt,
+} from './erp-connections.service';
 import {
   CallMeter,
   ZohoBooks,
@@ -52,6 +62,12 @@ const BATCH = 500;
 /** Problems kept a run, so a run over a broken mapping stays readable. */
 const PROBLEMS_KEPT = 200;
 const DAY_MS = 86_400_000;
+/** Nobody, for asking who holds a permission with no one left out. */
+const NOBODY = '00000000-0000-0000-0000-000000000000';
+/** Providers by name, as their own brands write them in any language. */
+const PROVIDER_NAMES: Record<string, string> = { zoho_books: 'Zoho Books' };
+/** Orders sent in one run; the rest go in the next. */
+const PUSH_BATCH = 100;
 
 type Counts = NonNullable<ErpRunResult['counts'][ErpEntity]>;
 
@@ -112,8 +128,8 @@ export function fingerprint(row: ErpRow): string {
  * haven't changed costs no read of its own page.
  */
 @Injectable()
-export class ErpPull {
-  private readonly logger = new Logger(ErpPull.name);
+export class ErpRuns {
+  private readonly logger = new Logger(ErpRuns.name);
 
   constructor(
     private readonly database: Database,
@@ -122,20 +138,55 @@ export class ErpPull {
     private readonly resolver: AccessResolver,
     private readonly targets: ImportTargets,
     private readonly accounts: AccountsService,
+    private readonly ordersService: OrdersService,
+    private readonly notifications: NotificationsService,
+    private readonly people: People,
+    private readonly queues: Queues,
     private readonly priceLists: PriceListsService,
     private readonly cipher: ColumnCipher,
     private readonly audit: AuditLog,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
-  /** The hourly run, or Sync now's (`runId`); a tenant without a working connection is skipped. */
-  async run(tenantId: string, connectionId: string | null, runId: string | null): Promise<void> {
+  /** The hourly read, or Sync now's (`runId`); a tenant without a working connection is skipped. */
+  pull(tenantId: string, connectionId: string | null, runId: string | null): Promise<void> {
+    return this.go(tenantId, connectionId, runId, 'pull');
+  }
+
+  /**
+   * Sends accepted orders to the books (BR-59), soon after they are accepted and after each hourly
+   * read, for every order still waiting: one run at a time for a connection, so a push that finds
+   * one under way comes back a minute later.
+   */
+  push(tenantId: string, connectionId: string | null): Promise<void> {
+    return this.go(tenantId, connectionId, null, 'push');
+  }
+
+  /** Asks for a push of what is waiting, once a minute at most for a connection. */
+  async schedulePush(tenantId: string, connectionId: string, delayMs = 30_000): Promise<void> {
+    const minute = Math.floor((Date.now() + delayMs) / 60_000);
+    await this.queues.add(
+      'connectors',
+      PUSH,
+      { tenantId, connectionId },
+      { jobId: `erp-push-${connectionId}-${minute}`, delay: delayMs },
+    );
+  }
+
+  private async go(
+    tenantId: string,
+    connectionId: string | null,
+    runId: string | null,
+    kind: 'pull' | 'push',
+  ): Promise<void> {
     const connection = await this.database.forTenant(tenantId, (tx) =>
       connectionId
         ? this.connections.byId(tx, tenantId, connectionId).catch(() => undefined)
         : this.connections.row(tx, tenantId),
     );
     if (!connection) return;
+    const settings = ErpSettings.parse(connection.settings);
+    if (kind === 'push' && !settings.pushOrders) return;
     const ready =
       connection.status === 'connected' &&
       connection.refreshTokenSealed &&
@@ -155,7 +206,7 @@ export class ErpPull {
           throw error;
         });
     }
-    // A closed module, a read-only or moving tenant, or no working connection: nothing to read.
+    // A closed module, a read-only or moving tenant, or no working connection: nothing to do.
     if (!ready || !access || access.readOnly || access.moving) {
       if (runId) await this.close(tenantId, runId, 'failed', ready ? 'error' : 'reconnect');
       return;
@@ -169,14 +220,16 @@ export class ErpPull {
           tenantId,
           id: fresh,
           connectionId: connection.id,
-          kind: 'pull',
+          kind,
           status: 'running',
         });
         return fresh;
       }));
-    if (!id) return;
+    if (!id) {
+      if (kind === 'push') await this.schedulePush(tenantId, connection.id, 60_000);
+      return;
+    }
 
-    const settings = ErpSettings.parse(connection.settings);
     const today = new Date().toISOString().slice(0, 10);
     const run: Run = {
       id,
@@ -209,26 +262,127 @@ export class ErpPull {
 
     let stoppedBy: ErpRunResult['stoppedBy'] = null;
     try {
-      if (settings.read.customers) await this.customers(run);
-      if (settings.read.items) {
-        await this.items(run);
-        await this.priceBooks(run);
+      if (kind === 'push') {
+        await this.orders(run);
+      } else {
+        if (settings.read.customers) await this.customers(run);
+        if (settings.read.items) {
+          await this.items(run);
+          await this.priceBooks(run);
+        }
+        if (settings.read.invoices) await this.invoices(run);
+        if (settings.read.payments) await this.payments(run);
       }
-      if (settings.read.invoices) await this.invoices(run);
-      if (settings.read.payments) await this.payments(run);
     } catch (error) {
       if (error instanceof ZohoDailyLimit) stoppedBy = 'daily_limit';
       else if (error instanceof ZohoRateLimited) stoppedBy = 'rate_limited';
       else if (error instanceof ZohoReconnect) stoppedBy = 'reconnect';
       else {
         stoppedBy = 'error';
-        if (!(error instanceof ZohoFailed)) reportError(error, { tenantId, job: 'erp.pull' });
+        if (!(error instanceof ZohoFailed)) reportError(error, { tenantId, job: `erp.${kind}` });
         this.logger.warn(
-          `A pull for ${tenantId} stopped: ${error instanceof Error ? error.message : 'unknown'}`,
+          `An ERP ${kind} for ${tenantId} stopped: ${error instanceof Error ? error.message : 'unknown'}`,
         );
       }
     }
     await this.finish(run, stoppedBy, today);
+    // Orders accepted while the books were out of reach, or whose records have just come in.
+    if (kind === 'pull' && settings.pushOrders && !stoppedBy) {
+      await this.schedulePush(tenantId, connection.id, 0);
+    }
+  }
+
+  /**
+   * Each accepted order since the connection was made that the books don't hold yet, oldest
+   * first: looked for by its number before it is created, so a lost answer never makes two.
+   */
+  private async orders(run: Run): Promise<void> {
+    const counts = this.counts(run, 'order');
+    const sent = await this.links(run, 'order');
+    const sentOrders = new Set([...sent.values()].map((link) => link.localKey));
+    const waiting = await this.database.forTenant(run.tenantId, async (tx) => {
+      const ids = (
+        await this.ordersService.acceptedSince(tx, run.tenantId, run.connection.createdAt, 500)
+      ).filter((id) => !sentOrders.has(id));
+      const found = await this.ordersService.forErp(tx, run.tenantId, ids.slice(0, PUSH_BATCH));
+      const accounts = await this.accounts.refs(
+        tx,
+        run.tenantId,
+        [...found.values()].map((order) => order.accountId),
+      );
+      return [...found].map(([id, order]) => ({
+        id,
+        order: { ...order, accountCode: accounts.get(order.accountId)?.code ?? '' },
+      }));
+    });
+    if (waiting.length === 0) return;
+    const customerOf = this.byLocalKey(await this.links(run, 'account'));
+    const itemOf = this.byLocalKey(await this.links(run, 'item'));
+    for (const { id, order } of waiting) {
+      counts.read += 1;
+      const label = `#${order.number}`;
+      const mapped = salesOrderFor(
+        order,
+        customerOf.get(order.accountCode) ?? null,
+        (code) => itemOf.get(code) ?? null,
+      );
+      if ('nothing' in mapped) {
+        counts.unchanged += 1;
+        continue;
+      }
+      if ('missing' in mapped) {
+        counts.skipped += 1;
+        this.problem(run, 'order', id, label, 'not_in_books', {
+          field: null,
+          detail: mapped.missing.join(', '),
+        });
+        continue;
+      }
+      const reference = mapped.body.reference_number;
+      let externalId: string | null = null;
+      for await (const page of this.zoho.list<{ salesorder_id: string; reference_number?: string }>(
+        run.link,
+        run.meter,
+        'salesorders',
+        'salesorders',
+        { reference_number: reference },
+      )) {
+        externalId =
+          page.find((found) => found.reference_number === reference)?.salesorder_id ?? null;
+        break;
+      }
+      if (externalId) {
+        counts.unchanged += 1;
+      } else {
+        try {
+          const made = await this.zoho.post(run.link, run.meter, 'salesorders', mapped.body);
+          externalId = String((made.salesorder as { salesorder_id: string }).salesorder_id);
+          counts.created += 1;
+        } catch (error) {
+          if (!(error instanceof ZohoFailed)) throw error;
+          counts.skipped += 1;
+          this.problem(run, 'order', id, label, 'refused', { field: null, detail: error.message });
+          continue;
+        }
+      }
+      await this.database.forTenant(run.tenantId, (tx) =>
+        this.saveLinks(tx, run, 'order', [
+          {
+            externalId: externalId!,
+            link: { localKey: id, fingerprint: null, externalModified: null },
+          },
+        ]),
+      );
+    }
+  }
+
+  /** What each local key is in the books. */
+  private byLocalKey(links: Map<string, Link>): Map<string, string> {
+    return new Map(
+      [...links].flatMap(([externalId, link]) =>
+        link.localKey ? [[link.localKey, externalId] as const] : [],
+      ),
+    );
   }
 
   private async customers(run: Run): Promise<void> {
@@ -694,6 +848,20 @@ export class ErpPull {
         .where(
           and(eq(erpConnections.tenantId, run.tenantId), eq(erpConnections.id, run.connection.id)),
         );
+      // The books refused the agreement: whoever may connect them hears, once a day.
+      if (stoppedBy === 'reconnect') {
+        for (const userId of await this.people.holding(tx, run.tenantId, 'erp.manage', NOBODY)) {
+          await this.notifications.notify(tx, run.tenantId, {
+            userId,
+            event: 'erp.reconnect',
+            values: {
+              provider: PROVIDER_NAMES[run.connection.provider] ?? run.connection.provider,
+            },
+            link: '/settings/erp',
+            dedupeKey: `erp-reconnect:${run.connection.id}:${today}`,
+          });
+        }
+      }
       // A run is audited when it wrote or failed; a quiet hour leaves only its run row.
       if (wrote > 0 || status === 'failed') {
         await this.audit.record(tx, run.tenantId, userActor(run.access), {

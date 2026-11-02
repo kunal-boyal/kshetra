@@ -41,7 +41,12 @@ export class FakeZohoBooks extends ZohoTransport {
   private readonly codes = new Set<string>();
   private readonly refreshTokens = new Set<string>();
   private readonly accessTokens = new Set<string>();
-  private failures: { match: string; status: number; afterwards?: () => void }[] = [];
+  private failures: {
+    match: string;
+    status: number;
+    method?: 'GET' | 'POST';
+    afterwards?: () => void;
+  }[] = [];
 
   /** A code Zoho would hand the browser after the person agreed. */
   issueCode(): string {
@@ -50,9 +55,18 @@ export class FakeZohoBooks extends ZohoTransport {
     return code;
   }
 
-  /** The next request whose path holds `match` answers `status`, after `afterwards` runs. */
-  failNext(match: string, status: number, afterwards?: () => void): void {
-    this.failures.push({ match, status, ...(afterwards ? { afterwards } : {}) });
+  /**
+   * The next request whose path holds `match` (and of `method`, if given) answers `status`, after
+   * `afterwards` runs; a status of 0 does the work and then loses the answer, as a dropped
+   * connection would.
+   */
+  failNext(match: string, status: number, method?: 'GET' | 'POST', afterwards?: () => void): void {
+    this.failures.push({
+      match,
+      status,
+      ...(method ? { method } : {}),
+      ...(afterwards ? { afterwards } : {}),
+    });
   }
 
   /** Every refresh token stops working, as if the person revoked access at Zoho. */
@@ -69,7 +83,10 @@ export class FakeZohoBooks extends ZohoTransport {
   async send(request: ZohoRequest): Promise<ZohoAnswer> {
     this.requests.push(request);
     const url = new URL(request.url);
-    const failure = this.failures.find((entry) => url.pathname.includes(entry.match));
+    const failure = this.failures.find(
+      (entry) =>
+        url.pathname.includes(entry.match) && (!entry.method || entry.method === request.method),
+    );
     if (failure) {
       this.failures = this.failures.filter((entry) => entry !== failure);
       if (failure.status === 0) {

@@ -2775,6 +2775,9 @@ export const en = {
   'notify.support_requested_body':
     '{staff} asks to {access} your organisation for {duration}: {reason}. Approve or decline it in Settings.',
   'support.duration': { one: '{count} hour', other: '{count} hours' },
+  'notify.erp_reconnect_title': 'Connect {provider} again',
+  'notify.erp_reconnect_body':
+    '{provider} no longer accepts the connection, so nothing is read from it or sent to it. Connect it again in Settings › ERP.',
   'support.access_read': 'see',
   'support.access_write': 'see and change',
   'notify.support_emergency_title': 'Vendor support entered in an emergency',

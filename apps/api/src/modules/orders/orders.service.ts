@@ -32,9 +32,23 @@ import {
   statusAfterFulfilment,
   statusFromLines,
   todayIn,
+  type ErpOrder,
   unscaled,
 } from '@thelamp/shared';
-import { and, asc, count, desc, eq, inArray, isNull, lt, or, type SQL, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm';
 import { orderCounters, orderLines, orders } from '../../db/schema/orders';
 import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
@@ -1053,6 +1067,92 @@ export class OrdersService {
    * The orders register (M18): one row per line of the orders people among `people` placed from
    * `from` to `to`, with the order, by placing, a page at a time.
    */
+  /**
+   * Orders the company supplies that were accepted, placed since a moment, oldest first: what an
+   * ERP connection sends to the books (decision D129). Fulfilled ones were accepted before.
+   */
+  async acceptedSince(
+    tx: TenantTx,
+    tenantId: string,
+    since: Date,
+    limit: number,
+  ): Promise<string[]> {
+    const rows = await tx
+      .select({ id: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.tenantId, tenantId),
+          eq(orders.supplierKind, 'company'),
+          inArray(orders.status, [
+            'accepted',
+            'partially_accepted',
+            'fulfilled',
+            'partially_fulfilled',
+          ]),
+          gte(orders.placedAt, since),
+        ),
+      )
+      .orderBy(asc(orders.placedAt))
+      .limit(limit);
+    return rows.map((row) => row.id);
+  }
+
+  /**
+   * Orders as the books are sent them (decision D129): number, the day placed on the tenant's
+   * clock, the account, and each line's item code, decision, base units and taxable value.
+   */
+  async forErp(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, Omit<ErpOrder, 'accountCode'> & { accountId: string }>> {
+    if (ids.length === 0) return new Map();
+    const { timezone } = await this.config.settings(tx, tenantId);
+    const heads = await tx
+      .select({
+        id: orders.id,
+        number: orders.number,
+        accountId: orders.accountId,
+        placedAt: orders.placedAt,
+      })
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), inArray(orders.id, [...ids])));
+    const lines = await tx
+      .select({
+        id: orderLines.id,
+        orderId: orderLines.orderId,
+        snapshot: orderLines.snapshot,
+        decision: orderLines.decision,
+        baseUnits: orderLines.baseUnits,
+        taxable: orderLines.taxable,
+        freeOfLineId: orderLines.freeOfLineId,
+      })
+      .from(orderLines)
+      .where(and(eq(orderLines.tenantId, tenantId), inArray(orderLines.orderId, [...ids])))
+      .orderBy(asc(orderLines.orderId), asc(orderLines.id));
+    return new Map(
+      heads.map((head) => [
+        head.id,
+        {
+          number: head.number,
+          accountId: head.accountId,
+          date: todayIn(timezone, head.placedAt),
+          lines: lines
+            .filter((line) => line.orderId === head.id)
+            .map((line) => ({
+              id: line.id,
+              itemCode: (line.snapshot as LineSnapshot).code,
+              decision: line.decision,
+              baseUnits: line.baseUnits,
+              taxable: line.taxable,
+              freeOfLineId: line.freeOfLineId,
+            })),
+        },
+      ]),
+    );
+  }
+
   async registerRows(
     tx: TenantTx,
     tenantId: string,

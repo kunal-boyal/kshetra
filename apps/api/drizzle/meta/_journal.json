@@ -715,6 +715,13 @@
       "when": 1793599261249,
       "tag": "0101_erp_connector_actor",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1793606968485,
+      "tag": "0102_erp_reconnect_notification",
+      "breakpoints": true
     }
   ]
 }
