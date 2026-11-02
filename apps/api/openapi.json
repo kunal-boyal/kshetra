@@ -6405,12 +6405,32 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "collected": {
+                      "type": "object",
+                      "properties": {
+                        "notInBooks": {
+                          "type": "string"
+                        },
+                        "leftAfter": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "notInBooks",
+                        "leftAfter"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
                     "latest",
                     "history",
-                    "receivables"
+                    "receivables",
+                    "collected"
                   ],
                   "additionalProperties": false
                 }
@@ -9801,6 +9821,12 @@
                 "stock.recorded",
                 "stock.counted",
                 "stock.loaded",
+                "collection.recorded",
+                "collection.confirmed",
+                "collection.rejected",
+                "collection.bounced",
+                "collection.matched",
+                "collection.unmatched",
                 "forecast.recorded",
                 "organisation.renamed",
                 "organisation.logo_changed",
@@ -10101,6 +10127,12 @@
                               "stock.recorded",
                               "stock.counted",
                               "stock.loaded",
+                              "collection.recorded",
+                              "collection.confirmed",
+                              "collection.rejected",
+                              "collection.bounced",
+                              "collection.matched",
+                              "collection.unmatched",
                               "forecast.recorded",
                               "organisation.renamed",
                               "organisation.logo_changed",
@@ -11690,6 +11722,690 @@
         }
       }
     },
+    "/v1/collections": {
+      "get": {
+        "operationId": "CollectionsController.list",
+        "summary": "Collections, newest first: the caller’s own, or those in their reach",
+        "tags": [
+          "Collections"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:read",
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Any one of: collection.record, collection.view",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "recorded",
+                "confirmed",
+                "rejected",
+                "bounced",
+                "in_books"
+              ]
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Period"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Collection"
+                      }
+                    },
+                    "nextCursor": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "summary": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "counts": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string",
+                                "enum": [
+                                  "recorded",
+                                  "confirmed",
+                                  "rejected",
+                                  "bounced",
+                                  "in_books"
+                                ]
+                              },
+                              "additionalProperties": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "amounts": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string",
+                                "enum": [
+                                  "recorded",
+                                  "confirmed",
+                                  "rejected",
+                                  "bounced",
+                                  "in_books"
+                                ]
+                              },
+                              "additionalProperties": {
+                                "$ref": "#/components/schemas/Money"
+                              }
+                            }
+                          },
+                          "required": [
+                            "counts",
+                            "amounts"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "CollectionsController.record",
+        "summary": "Record money taken from an account, with its references and the cheque’s photo",
+        "tags": [
+          "Collections"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: collection.record",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordCollectionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/{id}": {
+      "get": {
+        "operationId": "CollectionsController.get",
+        "summary": "One collection, with its decision and the receipt it was matched to",
+        "tags": [
+          "Collections"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:read",
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Any one of: collection.record, collection.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/{id}/bounce": {
+      "post": {
+        "operationId": "CollectionsController.bounce",
+        "summary": "Mark a confirmed cheque bounced, with why",
+        "tags": [
+          "Collections"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: collection.confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/{id}/match": {
+      "post": {
+        "operationId": "CollectionsController.match",
+        "summary": "Match a confirmed collection to the books’ receipt for it, by hand",
+        "tags": [
+          "Collections"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: collection.confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "receiptId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "receiptId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/{id}/unmatch": {
+      "post": {
+        "operationId": "CollectionsController.unmatch",
+        "summary": "Undo a match made by mistake; the collection waits for its receipt again",
+        "tags": [
+          "Collections"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: collection.confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/decisions": {
+      "post": {
+        "operationId": "CollectionsController.decide",
+        "summary": "Confirm or reject several collections, each on its own",
+        "tags": [
+          "Collections"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "finance:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: collection.confirm",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "decision": {
+                          "type": "string",
+                          "enum": [
+                            "confirm",
+                            "reject"
+                          ]
+                        },
+                        "reason": {
+                          "type": "string",
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "decision"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "items"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "collection": {
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/Collection"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "error": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "collection",
+                          "error"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "results"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/config": {
       "get": {
         "operationId": "ConfigBundleController.bundle",
@@ -11998,6 +12714,16 @@
                           "minimum": 0,
                           "maximum": 100
                         },
+                        "collectionCashLimit": {
+                          "anyOf": [
+                            {
+                              "$ref": "#/components/schemas/Money"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "ageingBuckets": {
                           "minItems": 1,
                           "maxItems": 8,
@@ -12083,6 +12809,7 @@
                         "forecastPlanMetric",
                         "stockSource",
                         "countTolerancePct",
+                        "collectionCashLimit",
                         "ageingBuckets",
                         "planNotificationTime",
                         "quietHoursStart",
@@ -15448,6 +16175,12 @@
                           "stock.recorded",
                           "stock.counted",
                           "stock.loaded",
+                          "collection.recorded",
+                          "collection.confirmed",
+                          "collection.rejected",
+                          "collection.bounced",
+                          "collection.matched",
+                          "collection.unmatched",
                           "forecast.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
@@ -17904,7 +18637,8 @@
                       "attachment",
                       "receipt",
                       "odometer",
-                      "signature"
+                      "signature",
+                      "collection"
                     ]
                   },
                   "contentType": {
@@ -21232,6 +21966,12 @@
                           "stock.recorded",
                           "stock.counted",
                           "stock.loaded",
+                          "collection.recorded",
+                          "collection.confirmed",
+                          "collection.rejected",
+                          "collection.bounced",
+                          "collection.matched",
+                          "collection.unmatched",
                           "forecast.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
@@ -21594,6 +22334,12 @@
                           "stock.recorded",
                           "stock.counted",
                           "stock.loaded",
+                          "collection.recorded",
+                          "collection.confirmed",
+                          "collection.rejected",
+                          "collection.bounced",
+                          "collection.matched",
+                          "collection.unmatched",
                           "forecast.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
@@ -22054,6 +22800,12 @@
                 "stock.recorded",
                 "stock.counted",
                 "stock.loaded",
+                "collection.recorded",
+                "collection.confirmed",
+                "collection.rejected",
+                "collection.bounced",
+                "collection.matched",
+                "collection.unmatched",
                 "forecast.recorded",
                 "organisation.renamed",
                 "organisation.logo_changed",
@@ -23833,6 +24585,16 @@
                     "minimum": 0,
                     "maximum": 100
                   },
+                  "collectionCashLimit": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/Money"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "ageingBuckets": {
                     "minItems": 1,
                     "maxItems": 8,
@@ -24160,6 +24922,16 @@
                       "minimum": 0,
                       "maximum": 100
                     },
+                    "collectionCashLimit": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Money"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "ageingBuckets": {
                       "minItems": 1,
                       "maxItems": 8,
@@ -24245,6 +25017,7 @@
                     "forecastPlanMetric",
                     "stockSource",
                     "countTolerancePct",
+                    "collectionCashLimit",
                     "ageingBuckets",
                     "planNotificationTime",
                     "quietHoursStart",
@@ -26360,6 +27133,46 @@
                               "type": "array",
                               "items": {
                                 "$ref": "#/components/schemas/SyncStock"
+                              }
+                            },
+                            "removed": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              }
+                            }
+                          },
+                          "required": [
+                            "pass",
+                            "first",
+                            "done",
+                            "rows",
+                            "removed"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "collections": {
+                          "type": "object",
+                          "properties": {
+                            "pass": {
+                              "type": "string",
+                              "enum": [
+                                "full",
+                                "changes"
+                              ]
+                            },
+                            "first": {
+                              "type": "boolean"
+                            },
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "rows": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/SyncCollection"
                               }
                             },
                             "removed": {
@@ -28841,6 +29654,12 @@
                               "stock.recorded",
                               "stock.counted",
                               "stock.loaded",
+                              "collection.recorded",
+                              "collection.confirmed",
+                              "collection.rejected",
+                              "collection.bounced",
+                              "collection.matched",
+                              "collection.unmatched",
                               "forecast.recorded",
                               "organisation.renamed",
                               "organisation.logo_changed",
@@ -33950,6 +34769,275 @@
         ],
         "additionalProperties": false
       },
+      "Collection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "number": {
+            "type": "string"
+          },
+          "account": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "collector": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "collectedOn": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "collectedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "upi",
+              "cheque",
+              "bank_transfer"
+            ]
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chequeNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chequeBank": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chequeDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "inGeofence": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "recorded",
+              "confirmed",
+              "rejected",
+              "bounced",
+              "in_books"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decidedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "code",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "number": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "byHand": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "number",
+                  "date",
+                  "byHand"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can": {
+            "type": "object",
+            "properties": {
+              "decide": {
+                "type": "boolean"
+              },
+              "bounce": {
+                "type": "boolean"
+              },
+              "match": {
+                "type": "boolean"
+              },
+              "unmatch": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "decide",
+              "bounce",
+              "match",
+              "unmatch"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "account",
+          "collector",
+          "collectedOn",
+          "collectedAt",
+          "amount",
+          "mode",
+          "reference",
+          "chequeNumber",
+          "chequeBank",
+          "chequeDate",
+          "note",
+          "photos",
+          "inGeofence",
+          "status",
+          "reason",
+          "decidedBy",
+          "decidedAt",
+          "receipt",
+          "can"
+        ],
+        "additionalProperties": false
+      },
       "Condition": {
         "type": "object",
         "properties": {
@@ -34938,7 +36026,9 @@
                 "submission.created",
                 "submission.reviewed",
                 "order.placed",
-                "order.status_changed"
+                "order.status_changed",
+                "collection.recorded",
+                "collection.status_changed"
               ]
             }
           },
@@ -38548,6 +39638,12 @@
                   "stock.recorded",
                   "stock.counted",
                   "stock.loaded",
+                  "collection.recorded",
+                  "collection.confirmed",
+                  "collection.rejected",
+                  "collection.bounced",
+                  "collection.matched",
+                  "collection.unmatched",
                   "forecast.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
@@ -42320,7 +43416,8 @@
               "attachment",
               "receipt",
               "odometer",
-              "signature"
+              "signature",
+              "collection"
             ]
           },
           "status": {
@@ -42989,6 +44086,34 @@
             "properties": {
               "type": {
                 "type": "string",
+                "const": "collected"
+              },
+              "modes": {
+                "description": "Count only collections taken in these ways",
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "cash",
+                    "upi",
+                    "cheque",
+                    "bank_transfer"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false,
+            "description": "Money the person collected from accounts, by the day taken, rejected and bounced collections left out (decision D132)"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
                 "const": "active_days"
               },
               "forms": {
@@ -43352,6 +44477,8 @@
               "data_request.received",
               "data_request.due_soon",
               "data_request.closed",
+              "collection.rejected",
+              "collection.bounced",
               "erp.reconnect"
             ]
           },
@@ -45020,6 +46147,9 @@
           "stock.count",
           "finance.view",
           "finance.manage",
+          "collection.record",
+          "collection.view",
+          "collection.confirm",
           "leave.request",
           "regularisation.request",
           "expense.claim",
@@ -46280,6 +47410,16 @@
             "minimum": 0,
             "maximum": 100
           },
+          "collectionCashLimit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "ageingBuckets": {
             "minItems": 1,
             "maxItems": 8,
@@ -47106,6 +48246,168 @@
         ],
         "additionalProperties": false
       },
+      "RecordCollectionBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "visitId": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "upi",
+              "cheque",
+              "bank_transfer"
+            ]
+          },
+          "reference": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chequeNumber": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chequeBank": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chequeDate": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "photos": {
+            "default": [],
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "fix": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "location": {
+                    "$ref": "#/components/schemas/GeoPointInput"
+                  },
+                  "accuracy": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "description": "Metres, as the phone reports"
+                  },
+                  "mocked": {
+                    "type": "boolean",
+                    "description": "Whether the operating system says the fix is mocked"
+                  },
+                  "capturedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": [
+                  "location",
+                  "accuracy",
+                  "mocked",
+                  "capturedAt"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "collectedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "amount",
+          "mode",
+          "collectedAt"
+        ],
+        "additionalProperties": false
+      },
       "RecordPaymentBody": {
         "type": "object",
         "properties": {
@@ -47557,7 +48859,8 @@
           "sell_through",
           "forecast_accuracy",
           "stock_on_hand",
-          "stock_ledger"
+          "stock_ledger",
+          "collections"
         ]
       },
       "ReportPage": {
@@ -47785,6 +49088,12 @@
                   "stock.recorded",
                   "stock.counted",
                   "stock.loaded",
+                  "collection.recorded",
+                  "collection.confirmed",
+                  "collection.rejected",
+                  "collection.bounced",
+                  "collection.matched",
+                  "collection.unmatched",
                   "forecast.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
@@ -48245,6 +49554,12 @@
                   "stock.recorded",
                   "stock.counted",
                   "stock.loaded",
+                  "collection.recorded",
+                  "collection.confirmed",
+                  "collection.rejected",
+                  "collection.bounced",
+                  "collection.matched",
+                  "collection.unmatched",
                   "forecast.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
@@ -53204,6 +54519,114 @@
         ],
         "additionalProperties": false
       },
+      "SyncCollection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "number": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "collectedOn": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "collectedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "upi",
+              "cheque",
+              "bank_transfer"
+            ]
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chequeNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chequeBank": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chequeDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "recorded",
+              "confirmed",
+              "rejected",
+              "bounced",
+              "in_books"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "accountId",
+          "userId",
+          "collectedOn",
+          "collectedAt",
+          "amount",
+          "mode",
+          "reference",
+          "chequeNumber",
+          "chequeBank",
+          "chequeDate",
+          "status",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
       "SyncForecast": {
         "type": "object",
         "properties": {
@@ -55120,7 +56543,9 @@
                 "submission.created",
                 "submission.reviewed",
                 "order.placed",
-                "order.status_changed"
+                "order.status_changed",
+                "collection.recorded",
+                "collection.status_changed"
               ]
             }
           },
@@ -55539,7 +56964,9 @@
                 "submission.created",
                 "submission.reviewed",
                 "order.placed",
-                "order.status_changed"
+                "order.status_changed",
+                "collection.recorded",
+                "collection.status_changed"
               ]
             }
           },
@@ -56148,8 +57575,8 @@
               "orders:write": "order.view, order.fulfil",
               "submissions:read": "user.view, account.view",
               "attendance:read": "user.view",
-              "finance:read": "finance.view",
-              "finance:write": "finance.view, finance.manage",
+              "finance:read": "finance.view, collection.view",
+              "finance:write": "finance.view, finance.manage, collection.view, collection.confirm",
               "targets:read": "target.view",
               "targets:write": "target.view, target.edit, forecast.record, forecast.adjust",
               "metrics:write": "metric.record, sell_through.record",

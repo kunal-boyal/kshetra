@@ -91,6 +91,11 @@ export const AccountFinanceResult = z.object({
   history: z.array(FinanceSnapshot),
   /** Worked out from the account's invoices once it has any (D121); null otherwise. */
   receivables: Receivables.nullable(),
+  /**
+   * The field's collections not yet in the books (BR-63, D132), and what the account owes after
+   * them: from its invoices, else its latest balance; null `leftAfter` without either.
+   */
+  collected: z.object({ notInBooks: z.string(), leftAfter: z.string().nullable() }),
 });
 
 /** `GET /v1/accounts/{id}/invoices`: open ones, or every one, newest due date first. */

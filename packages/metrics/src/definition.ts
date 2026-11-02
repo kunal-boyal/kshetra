@@ -82,6 +82,19 @@ export const MetricSource = z
         description:
           'What accounts sold through, from their monthly stock statements, credited to whoever saved the latest (decision D124)',
       }),
+    z
+      .strictObject({
+        type: z.literal('collected'),
+        modes: z
+          .array(z.enum(['cash', 'upi', 'cheque', 'bank_transfer']))
+          .min(1)
+          .optional()
+          .meta({ description: 'Count only collections taken in these ways' }),
+      })
+      .meta({
+        description:
+          'Money the person collected from accounts, by the day taken, rejected and bounced collections left out (decision D132)',
+      }),
     z.strictObject({ type: z.literal('active_days'), forms }),
     z.strictObject({ type: z.literal('new_accounts'), accountType: Key }),
     z.strictObject({ type: z.literal('external') }).meta({

@@ -96,6 +96,9 @@ export const NOTIFICATION_KINDS = {
   },
   /** The person hears how their request was answered. */
   'data_request.closed': { category: 'approvals', external: ['push'], urgent: false, inbox: true },
+  /** The office rejected a collection of the person's, or a cheque of it bounced (D132). */
+  'collection.rejected': { category: 'review', external: ['push'], urgent: false, inbox: true },
+  'collection.bounced': { category: 'review', external: ['push'], urgent: false, inbox: true },
   /** The ERP refused the connection's agreement: an admin connects it again (decision D129). */
   'erp.reconnect': { category: 'imports', external: ['email'], urgent: false, inbox: true },
 } as const satisfies Record<string, NotificationKind>;

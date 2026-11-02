@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "pharma",
-  "version": 8,
+  "version": 9,
   "name": {
     "en": "Pharma",
     "hi": "फ़ार्मा"
@@ -111,6 +111,9 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.record",
+        "collection.view",
+        "collection.confirm",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -200,6 +203,8 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.record",
+        "collection.view",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -258,6 +263,8 @@
         "order.view",
         "order.decide",
         "finance.view",
+        "collection.record",
+        "collection.view",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -296,6 +303,7 @@
         "expense.claim",
         "payslip.view",
         "finance.view",
+        "collection.record",
         "forecast.record",
         "stock.view",
         "stock.count"
@@ -318,6 +326,8 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.view",
+        "collection.confirm",
         "expense.mark_paid",
         "payroll.manage",
         "payslip.view",
@@ -1137,14 +1147,6 @@
             "hi": "परिणाम"
           },
           "required": true
-        },
-        {
-          "key": "collection",
-          "type": "currency",
-          "label": {
-            "en": "Collection",
-            "hi": "वसूली"
-          }
         }
       ]
     },

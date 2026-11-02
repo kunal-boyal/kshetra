@@ -25,8 +25,9 @@ export const API_SCOPES = {
   'submissions:read': ['user.view', 'account.view'],
   /** Attendance days and shifts are read by person, so this reads people too. */
   'attendance:read': ['user.view'],
-  'finance:read': ['finance.view'],
-  'finance:write': ['finance.view', 'finance.manage'],
+  /** Account finance, and the collections the field took (D132). */
+  'finance:read': ['finance.view', 'collection.view'],
+  'finance:write': ['finance.view', 'finance.manage', 'collection.view', 'collection.confirm'],
   'targets:read': ['target.view'],
   /** Targets, and forecasts from a planning system (D126). */
   'targets:write': ['target.view', 'target.edit', 'forecast.record', 'forecast.adjust'],

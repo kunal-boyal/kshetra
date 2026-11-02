@@ -457,6 +457,9 @@
         "stock.count",
         "finance.view",
         "finance.manage",
+        "collection.record",
+        "collection.view",
+        "collection.confirm",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -2772,6 +2775,34 @@
           "properties": {
             "type": {
               "type": "string",
+              "const": "collected"
+            },
+            "modes": {
+              "description": "Count only collections taken in these ways",
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "cash",
+                  "upi",
+                  "cheque",
+                  "bank_transfer"
+                ]
+              }
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false,
+          "description": "Money the person collected from accounts, by the day taken, rejected and bounced collections left out (decision D132)"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "const": "active_days"
             },
             "forms": {
@@ -3826,6 +3857,16 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100
+        },
+        "collectionCashLimit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "ageingBuckets": {
           "minItems": 1,

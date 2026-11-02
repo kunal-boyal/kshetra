@@ -49,6 +49,7 @@ const PARAMS: Record<MetricSourceType, readonly Param[]> = {
   productive_visits: ['accountTypes'],
   order_lines: ['statuses'],
   sell_through: ['stock', 'items'],
+  collected: [],
   active_days: ['forms'],
   new_accounts: ['accountType'],
   external: [],

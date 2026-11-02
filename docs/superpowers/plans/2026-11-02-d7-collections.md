@@ -85,7 +85,7 @@
 ### Everywhere
 
 - **Audit:** `collection.recorded`, `.confirmed`, `.rejected`, `.bounced`, `.matched` and `.unmatched`.
-- **Events:** `collection.recorded` and `collection.status_changed`. Webhook events `collection.confirmed` and `collection.bounced` carry IDs, amounts and statuses only.
+- **Events:** `collection.recorded` and `collection.status_changed`, which are also the webhook events (as built: a webhook event must be an outbox event, as orders' are). They carry IDs, amounts and statuses only.
 - **Strings:** all in English and Hindi. Money goes through `formatMoney`.
 
 ## Review focus
@@ -120,9 +120,9 @@
   - `POST /v1/collections/{id}/bounce`;
   - `POST /v1/collections/{id}/match` and `/unmatch`.
 - [ ] Extend the account's finance:
-  - `GET /v1/accounts/{id}/finance` and `receivables()` gain `collectedNotInBooks` and `leftAfterCollections`;
-  - the `balances` sync row carries them too, as version 2;
-  - so do `OrderCredit` and the `outstanding` report.
+  - `GET /v1/accounts/{id}/finance` gains `collected`: not yet in the books, and what is left after it;
+  - `OrderCredit` counts collections not yet in the books as paid.
+  - *As built:* the `balances` sync row is unchanged; the phone works the figure out from the `collections` entity, queued collections included. The `outstanding` report, a month-end view, is unchanged too; the `collections` report lists what waits.
 - [ ] Add the metric source `collected` (`DayRecords.collections` from `forMetrics()`, its calculator in `calculate.ts`, added to `COMPUTED_SOURCES`). `performance.upkeep.ts` recomputes the collector's day on `collection.recorded` and `collection.status_changed`.
 - [ ] Add the `collections` report: a register with mode, reference, status, decider and matched receipt.
 - [ ] Add notifications to the collector on rejection and bounce (`notify.collection_rejected`, `notify.collection_bounced`), and the webhook events.

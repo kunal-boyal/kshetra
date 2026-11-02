@@ -28,6 +28,7 @@ import { AccountsService } from '../accounts/accounts.service';
 import { AccountBalances } from '../accounts/account-balances';
 import { OrderCredit } from '../orders/order-credit';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { CollectionsService } from './collections.service';
 import { ReceivablesService } from './receivables.service';
 
 const invalid = (issues: ErrorDetail[]) =>
@@ -57,6 +58,7 @@ export class FinanceService implements OnModuleInit {
     private readonly audit: AuditLog,
     private readonly balances: AccountBalances,
     private readonly receivables: ReceivablesService,
+    private readonly collections: CollectionsService,
   ) {}
 
   onModuleInit(): void {
@@ -96,7 +98,14 @@ export class FinanceService implements OnModuleInit {
         const owed =
           (await this.receivables.receivables(tx, tenantId, [accountId])).get(accountId)
             ?.outstanding ?? latest.outstanding;
-        return scaled(owed, 2) + scaled(total, 2) > scaled(latest.creditLimit, 2);
+        // What the field collected and the books don't show yet counts as paid (BR-63).
+        const { leftAfter } = await this.collections.afterCollections(
+          tx,
+          tenantId,
+          accountId,
+          owed,
+        );
+        return scaled(leftAfter, 2) + scaled(total, 2) > scaled(latest.creditLimit, 2);
       },
     });
   }
@@ -290,10 +299,21 @@ export class FinanceService implements OnModuleInit {
     const figures = (await this.receivables.receivables(tx, access.tenantId, [accountId])).get(
       accountId,
     );
+    const owed = figures?.outstanding ?? latest?.outstanding ?? null;
+    const collected = await this.collections.afterCollections(
+      tx,
+      access.tenantId,
+      accountId,
+      owed ?? '0',
+    );
     return {
       latest: latest ?? null,
       history,
       receivables: figures ? { ...figures, creditLimit: latest?.creditLimit ?? null } : null,
+      collected: {
+        notInBooks: collected.notInBooks,
+        leftAfter: owed === null ? null : collected.leftAfter,
+      },
     };
   }
 

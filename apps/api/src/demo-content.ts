@@ -38,7 +38,7 @@ try {
   }).run();
   console.log(
     `Done: ${counts.shifts} shifts, ${counts.visits} visits, ${counts.entries} entries, ${counts.photos} photos, ${counts.reviews} reviews, ${counts.proposals} proposals; ` +
-      `${counts.orders} orders, ${counts.deliveries} delivered, ${counts.stockCounts} stock counts; ${counts.leave} leave requests, ${counts.fixes} fixed days, ` +
+      `${counts.orders} orders, ${counts.deliveries} delivered, ${counts.stockCounts} stock counts, ${counts.collections} collections; ${counts.leave} leave requests, ${counts.fixes} fixed days, ` +
       `${counts.claims} claims, ${counts.paid} paid; ${counts.decisions} decisions.`,
   );
   void started;

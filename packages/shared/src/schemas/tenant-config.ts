@@ -5,11 +5,12 @@ import { contrastRatio, HEX_COLOUR } from '../colour';
 import { TARGET_PERIOD_KINDS } from '../periods';
 import { bucketsIssue, DEFAULT_AGEING_BUCKETS } from '../finance';
 import { DEFAULT_CREDIT_DAYS } from '../receivables';
+import { DEFAULT_COLLECTION_CASH_LIMIT } from '../collections';
 import { SWITCHABLE_MODULES } from '../modules';
 import { ANOMALY_FLAGS } from '../anomalies';
 import { RAW_LOCATION_RETENTION_DAYS_MAX, SYNC_WINDOW_HOURS_MAX } from '../retention';
 import { TERMINOLOGY_KEYS, type TerminologyKey } from '../terminology';
-import { Key, LOCALES, LocalizedNoun, localizedText, NounForms } from './config';
+import { Key, LOCALES, LocalizedNoun, localizedText, Money, NounForms } from './config';
 
 /**
  * A tenant's configuration as every app reads it (spec 5.1, 5.2, 11.2): its settings, its words,
@@ -173,6 +174,11 @@ export const TenantSettings = z.strictObject({
   stockSource: z.enum(['kept', 'books']),
   /** A count differing from what was expected by more than this share is flagged (BR-62). */
   countTolerancePct: range(0, 100),
+  /**
+   * Cash from one account in a day at or above this is refused (BR-63, section 269ST); null
+   * turns the check off.
+   */
+  collectionCashLimit: Money.nullable(),
   /** Days past due that account finance ages outstanding into (M11, BR-20). */
   ageingBuckets: z
     .array(
@@ -237,6 +243,7 @@ export const SETTING_DEFAULTS: TenantSettings = {
   forecastPlanMetric: null,
   stockSource: 'kept',
   countTolerancePct: 5,
+  collectionCashLimit: DEFAULT_COLLECTION_CASH_LIMIT,
   ageingBuckets: DEFAULT_AGEING_BUCKETS.map((bucket) => ({ ...bucket })),
   planNotificationTime: '08:00',
   quietHoursStart: '21:00',

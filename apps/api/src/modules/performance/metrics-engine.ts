@@ -10,6 +10,7 @@ import { VisitsService } from '../field/visits.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { OrdersService } from '../orders/orders.service';
 import { PlanningService } from '../planning/planning.service';
+import { CollectionsService } from '../finance/collections.service';
 import { SellThroughService } from '../sell-through/sell-through.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { externalValuesFor } from './external-values.store';
@@ -30,6 +31,7 @@ export class MetricsEngine {
     private readonly orders: OrdersService,
     private readonly accounts: AccountsService,
     private readonly sellThrough: SellThroughService,
+    private readonly collections: CollectionsService,
   ) {}
 
   /** Recomputes every metric for one person and date on the tenant's clock. */
@@ -54,6 +56,7 @@ export class MetricsEngine {
       external: await externalValuesFor(tx, tenantId, userId, date),
       newAccounts: await this.accounts.createdFor(tx, tenantId, userId, date, timezone),
       sellThrough: await this.sellThrough.forMetrics(tx, tenantId, userId, date),
+      collections: await this.collections.forMetrics(tx, tenantId, userId, date),
     });
     const day = and(
       eq(metricFactsDaily.tenantId, tenantId),

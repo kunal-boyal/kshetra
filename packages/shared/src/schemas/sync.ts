@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { COLLECTION_MODES, COLLECTION_STATUSES } from '../collections';
 import { ORDER_STATUSES } from '../orders';
 import { SELL_THROUGH_FLAGS } from '../sell-through';
 import { SCHEME_KINDS } from '../schemes';
@@ -33,6 +34,7 @@ export const SYNC_ENTITIES = [
   'forecasts',
   'schemes',
   'stock',
+  'collections',
 ] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
@@ -281,6 +283,31 @@ export const SyncStock = z
   .meta({ id: 'SyncStock' });
 
 /**
+ * A collection as the phone keeps it (BR-63, decision D132): the person's own of the last 60 days,
+ * so they see what the office decided, and every collection not yet in the books at the accounts
+ * they reach, so what an account owes after them reads the same offline. Only for people who
+ * record or see collections.
+ */
+export const SyncCollection = z
+  .object({
+    id: z.uuid(),
+    number: z.string(),
+    accountId: z.uuid(),
+    userId: z.uuid(),
+    collectedOn: z.iso.date(),
+    collectedAt: z.iso.datetime(),
+    amount: z.string(),
+    mode: z.enum(COLLECTION_MODES),
+    reference: z.string().nullable(),
+    chequeNumber: z.string().nullable(),
+    chequeBank: z.string().nullable(),
+    chequeDate: z.iso.date().nullable(),
+    status: z.enum(COLLECTION_STATUSES),
+    reason: z.string().nullable(),
+  })
+  .meta({ id: 'SyncCollection' });
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -311,6 +338,7 @@ export const SyncSellThroughPage = page(SyncSellThrough);
 export const SyncForecastsPage = page(SyncForecast);
 export const SyncSchemesPage = page(SyncScheme);
 export const SyncStockPage = page(SyncStock);
+export const SyncCollectionsPage = page(SyncCollection);
 
 export const SyncPullResult = z.object({
   entities: z.object({
@@ -328,6 +356,7 @@ export const SyncPullResult = z.object({
     forecasts: SyncForecastsPage.optional(),
     schemes: SyncSchemesPage.optional(),
     stock: SyncStockPage.optional(),
+    collections: SyncCollectionsPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -351,4 +380,5 @@ export type SyncSellThrough = z.infer<typeof SyncSellThrough>;
 export type SyncForecast = z.infer<typeof SyncForecast>;
 export type SyncScheme = z.infer<typeof SyncScheme>;
 export type SyncStock = z.infer<typeof SyncStock>;
+export type SyncCollection = z.infer<typeof SyncCollection>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

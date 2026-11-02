@@ -1,5 +1,6 @@
 import {
   type ApprovalResult,
+  CollectionListQuery,
   FinanceSnapshotBody,
   type GeoPoint,
   type ItemResult,
@@ -17,6 +18,7 @@ import {
 import { AccountTypesService } from '../modules/accounts/account-types.service';
 import { CatalogueService } from '../modules/catalogue/catalogue.service';
 import { PriceListsService } from '../modules/catalogue/price-lists.service';
+import { CollectionsService } from '../modules/finance/collections.service';
 import { FinanceService } from '../modules/finance/finance.service';
 import { ForecastsService } from '../modules/forecasts/forecasts.service';
 import { OrdersService } from '../modules/orders/orders.service';
@@ -66,6 +68,7 @@ export class DemoCommerce {
     forecasts: 0,
     schemes: 0,
     stockCounts: 0,
+    collections: 0,
   };
 
   constructor(private readonly kit: DemoKit) {}
@@ -362,6 +365,82 @@ export class DemoCommerce {
     } catch (error) {
       kit.once('order', error);
       return false;
+    }
+  }
+
+  /**
+   * Money taken at a visit to an account the company supplies, now and then (BR-63, decision
+   * D132): mostly cash or UPI, some by bank transfer, waiting for the office's evening.
+   */
+  async collect(
+    person: FieldPerson,
+    place: Place,
+    visitId: string,
+    at: number,
+    fix: { location: GeoPoint; accuracy: number; mocked: boolean; capturedAt: string },
+  ): Promise<void> {
+    const { kit } = this;
+    if (!this.limits.has(place.id) || !person.access.permissions.has('collection.record')) return;
+    if (!kit.dice.chance(0.3)) return;
+    const mode = kit.dice.pick(['cash', 'cash', 'upi', 'upi', 'bank_transfer'] as const);
+    try {
+      await kit.tx((tx) =>
+        kit.get(CollectionsService).record(tx, person.access, {
+          id: newId(),
+          accountId: place.id,
+          visitId,
+          amount: String(kit.dice.int(4, 90) * 500),
+          mode,
+          reference:
+            mode === 'cash'
+              ? null
+              : `${mode === 'upi' ? 'UPI' : 'NEFT'} ${kit.dice.int(100000, 999999)}`,
+          chequeNumber: null,
+          chequeBank: null,
+          chequeDate: null,
+          note: null,
+          photos: [],
+          fix,
+          collectedAt: new Date(at).toISOString(),
+        }),
+      );
+      this.counts.collections++;
+    } catch (error) {
+      kit.once('collection', error);
+    }
+  }
+
+  /**
+   * The office's evening with the day's collections (BR-63): most confirmed, now and then one
+   * turned down as not received.
+   */
+  async confirmCollections(approvers: readonly Person[], date: string): Promise<void> {
+    const { kit } = this;
+    const office = approvers.find((person) => person.access.permissions.has('collection.confirm'));
+    if (!office) return;
+    const service = kit.get(CollectionsService);
+    try {
+      const waiting = (
+        await kit.tx((tx) =>
+          service.list(
+            tx,
+            office.access,
+            CollectionListQuery.parse({ status: 'recorded', limit: 100 }),
+          ),
+        )
+      ).items.filter((item) => item.collectedOn <= date && item.can.decide);
+      if (waiting.length === 0) return;
+      await kit.tx((tx) =>
+        service.decide(tx, office.access, {
+          items: waiting.map((item) =>
+            kit.dice.chance(0.05)
+              ? { id: item.id, decision: 'reject' as const, reason: 'Not received in the bank' }
+              : { id: item.id, decision: 'confirm' as const },
+          ),
+        }),
+      );
+    } catch (error) {
+      kit.once('collection decision', error);
     }
   }
 

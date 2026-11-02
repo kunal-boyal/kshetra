@@ -15,6 +15,7 @@ export const PHOTO_KINDS = [
   'receipt',
   'odometer',
   'signature',
+  'collection',
 ] as const;
 export const PhotoKind = z.enum(PHOTO_KINDS);
 

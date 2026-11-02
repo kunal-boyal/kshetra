@@ -1,3 +1,4 @@
+import { FinanceModule } from '../finance/finance.module';
 import { Module } from '@nestjs/common';
 import { AccountsModule } from '../accounts/accounts.module';
 import { FieldModule } from '../field/field.module';
@@ -36,6 +37,7 @@ import { PerformanceUpkeep } from './performance.upkeep';
     TerritoriesModule,
     ImportsModule,
     SellThroughModule,
+    FinanceModule,
   ],
   controllers: [PerformanceController, MetricsAdminController],
   providers: [

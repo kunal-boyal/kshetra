@@ -3,6 +3,7 @@ import type {
   SyncPlanItem,
   SyncAccount,
   SyncBalance,
+  SyncCollection,
   SyncSellThrough,
   SyncStock,
   SyncForecast,
@@ -287,6 +288,15 @@ const MIGRATIONS: readonly string[] = [
      items TEXT NOT NULL,
      sync_gen INTEGER NOT NULL
    );`,
+  // Collections (BR-63, decision D132): the person's own and those not yet in the books at the
+  // accounts they see, kept whole, by account.
+  `CREATE TABLE ref_collections (
+     id TEXT PRIMARY KEY NOT NULL,
+     account_id TEXT NOT NULL,
+     collection TEXT NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );
+   CREATE INDEX ref_collections_account ON ref_collections (account_id);`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */
@@ -639,6 +649,15 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
       items: JSON.parse(String(record.items)) as SyncStock['items'],
     }),
   },
+  collections: {
+    table: 'ref_collections',
+    columns: (collection) => ({
+      id: collection.id,
+      account_id: collection.accountId,
+      collection: JSON.stringify(collection),
+    }),
+    read: (record) => JSON.parse(String(record.collection)) as SyncCollection,
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -656,6 +675,7 @@ export type RowOf<Name extends SyncEntity> = {
   forecasts: SyncForecast;
   schemes: SyncScheme;
   stock: SyncStock;
+  collections: SyncCollection;
 }[Name];
 
 /** Every row the phone holds of one entity. */

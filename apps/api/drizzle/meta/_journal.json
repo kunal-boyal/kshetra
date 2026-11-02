@@ -757,6 +757,20 @@
       "when": 1793627576863,
       "tag": "0107_order_short_units",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1793645210909,
+      "tag": "0108_collections",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1793645227131,
+      "tag": "0109_collection_permissions",
+      "breakpoints": true
     }
   ]
 }

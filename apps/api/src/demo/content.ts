@@ -403,6 +403,7 @@ export class DemoContent implements DemoKit {
     if (ageDays < 2) return;
     travelTo(this.at(date, 20 * 60));
     await this.requests.evening(approvers, date, this.commerce);
+    await this.commerce.confirmCollections(approvers, date);
   }
 
   /** Someone's access, on their phone when they have one. */
@@ -1146,6 +1147,13 @@ export class DemoContent implements DemoKit {
       visitId,
       orderedAt,
       this.fix(place.location, orderedAt),
+    );
+    await this.commerce.collect(
+      person,
+      place,
+      visitId,
+      orderedAt + 2 * MINUTE,
+      this.fix(place.location, orderedAt + 2 * MINUTE),
     );
     if (form && !this.broken.has(`form:${form.key}`)) {
       const inVisit = linked.includes(form);

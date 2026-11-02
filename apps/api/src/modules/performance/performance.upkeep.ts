@@ -132,6 +132,16 @@ export class PerformanceUpkeep implements OnModuleInit {
         }
       },
     );
+    // A collection counts on the day it was taken for whoever took it, until it is turned down
+    // (BR-63, decision D132).
+    this.outbox.consume(
+      ['collection.recorded', 'collection.status_changed'],
+      'performance.collections',
+      async (event, tx) => {
+        const payload = event.payload as EventPayload<'collection.recorded'>;
+        await this.engine.recompute(tx, event.tenantId, payload.userId, payload.collectedOn);
+      },
+    );
     this.outbox.consume(['plan_item.status_changed'], 'performance.plan', async (event, tx) => {
       const payload = event.payload as EventPayload<'plan_item.status_changed'>;
       await this.engine.recompute(tx, event.tenantId, payload.userId, payload.date);
