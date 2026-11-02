@@ -271,6 +271,25 @@ export function RulesPage() {
           onChange={(event) => set('forecastPlanMetric', event.target.value || null)}
         />,
       )}
+      {settings.modulesOff.includes('inventory')
+        ? null
+        : group(
+            t('stock.title'),
+            <>
+              <SelectField
+                label={t('admin.rule_stockSource')}
+                help={t('admin.rule_stockSource_help')}
+                value={value('stockSource')}
+                options={(['kept', 'books'] as const).map((source) => ({
+                  value: source,
+                  label: t(`admin.rule_stockSource_${source}`),
+                }))}
+                {...(errors.stockSource ? { error: errors.stockSource } : {})}
+                onChange={(event) => set('stockSource', event.target.value)}
+              />
+              {number('countTolerancePct', 0, 100, '%')}
+            </>,
+          )}
       {group(
         t('admin.rules_notifications'),
         <>

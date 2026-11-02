@@ -113,10 +113,10 @@ Settled by these defaults unless Kunal says otherwise:
 
 ### Pull request 2: the portal
 
-- [ ] A Stock section on the account page: levels with value, movements, Record a movement, Count.
-- [ ] Settings › Inventory, and the module on the Modules page.
-- [ ] The order desk shows the supplier's stock. The order page shows short lines.
-- [ ] Vitest, Playwright with axe, strings in English and Hindi.
+- [x] A Stock section on the account page: levels with value, movements, Record goods in or out, Count stock, and the counts with their flags.
+- [x] The module on the Modules page, and a Stock section on Settings › Rules (where stock comes from, the count tolerance), beside the other modules' rules rather than a page of its own. Account types take `keepsStock` from templates and configuration files, as `sellThrough` does.
+- [x] The order desk and an order's page say where the supplier holds less than the order asks for (`SupplierShortfall`), against its stock now; the flag kept on the order itself comes with part 3.
+- [x] Vitest, Playwright with axe, strings in English and Hindi.
 
 ### Pull request 3: the phone and the demo
 

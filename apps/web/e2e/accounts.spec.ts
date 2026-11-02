@@ -449,6 +449,9 @@ async function mockSignedIn(page: Page, types: object[] = [DISTRIBUTOR]) {
             'finance.view',
             'finance.manage',
             'forecast.record',
+            'stock.view',
+            'stock.record',
+            'stock.count',
           ],
         },
       },
@@ -672,6 +675,71 @@ test('an account’s stock statement shows what sold through, and passes axe (D1
   await expect(section).toContainText('No price');
   await section.getByText(/Versions/).click();
   await expect(section.getByRole('button', { name: 'Show version 1' })).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('an account’s stock shows what it holds, records and counts, and passes axe (D130)', async ({
+  page,
+}) => {
+  await mockSignedIn(page, [{ ...DISTRIBUTOR, keepsStock: true }]);
+  const neem = {
+    id: '01a10000-0000-7000-8000-0000000000e1',
+    code: 'NEEM',
+    name: 'Neem oil',
+    baseUnit: 'pack',
+  };
+  await page.route(`**/v1/accounts/${SHOP}/stock**`, (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/movements')) {
+      return route.fulfill({
+        json: {
+          items: [
+            {
+              id: '01a10000-0000-7000-8000-0000000000f1',
+              kind: 'received',
+              item: neem,
+              units: '24',
+              occurredOn: '2026-11-02',
+              source: { type: 'order', id: '01a10000-0000-7000-8000-0000000000f2' },
+              note: null,
+              by: null,
+              createdAt: '2026-11-02T06:00:00.000Z',
+            },
+          ],
+          nextCursor: null,
+        },
+      });
+    }
+    if (path.endsWith('/counts')) return route.fulfill({ json: { items: [], nextCursor: null } });
+    return route.fulfill({
+      json: {
+        accountId: SHOP,
+        source: 'kept',
+        value: '8640.00',
+        items: [
+          {
+            item: neem,
+            onHand: '24',
+            value: '8640.00',
+            movedAt: '2026-11-02T06:00:00.000Z',
+            countedOn: null,
+          },
+        ],
+      },
+    });
+  });
+  await page.route('**/v1/catalogue', (route) =>
+    route.fulfill({
+      json: { version: 1, units: [], measureTypes: [], items: [{ ...neem, active: true }] },
+    }),
+  );
+  await page.goto(`/accounts/${SHOP}`);
+  const section = page.getByRole('region', { name: 'Stock' });
+  await expect(section.getByRole('table', { name: 'Stock' })).toContainText('24 pack');
+  await section.locator('summary', { hasText: 'Movements' }).click();
+  await expect(section.getByRole('table', { name: 'Movements' })).toContainText('+24');
+  await section.getByRole('button', { name: 'Count stock' }).click();
+  await expect(section.getByRole('form', { name: 'Count stock' })).toBeVisible();
   await expectAccessible(page);
 });
 

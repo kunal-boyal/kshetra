@@ -4,6 +4,8 @@ import {
   type OrderLineResult,
   type OrderResult,
   scaled,
+  stockUnits,
+  stockUnitsText,
 } from '@thelamp/shared';
 import {
   Button,
@@ -26,6 +28,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section, useDates } from '../people/shared';
 import { Printable, PrintButton } from '../print';
+import { SupplierShortfall } from '../stock/supplier-stock';
 import { useOrder, useOrderWrites } from './data';
 import { ORDER_BADGE, OrderTimeline } from './order-preview';
 
@@ -177,6 +180,24 @@ function Showing({ order }: { order: OrderResult }) {
         ]}
       >
         <Notice icon={<Icon icon={Info} />}>{t('orders.not_an_invoice')}</Notice>
+        {['submitted', 'accepted', 'partially_accepted', 'partially_fulfilled'].includes(
+          order.status,
+        ) ? (
+          <SupplierShortfall
+            supplier={order.supplier.account}
+            lines={order.lines
+              .filter((line) => line.decision !== 'rejected')
+              .map((line) => ({
+                itemId: line.item.id,
+                name: line.item.name,
+                // What is still to go out.
+                baseUnits: stockUnitsText(
+                  stockUnits(line.baseUnits) - stockUnits(line.fulfilledUnits ?? '0'),
+                ),
+                unit: line.item.baseUnit,
+              }))}
+          />
+        ) : null}
         <Facts
           items={[
             [t('orders.account'), `${order.account.name} (${order.account.code})`],
