@@ -48,7 +48,7 @@ Tracking: **no**: nothing is linked to data from other companies' apps or sites,
 | Identifiers: user ID, device ID (the app's own random key) | Yes | No | App functionality |
 | Diagnostics: crash data, once error reporting is on | No | No | App functionality |
 
-The pay estimate (My pay estimate, where the organisation uses payroll inputs, D117) is shown from the organisation's records and never sent from the phone, so it adds no data type.
+The pay estimate (My pay estimate, where the organisation uses payroll inputs, D117) and statutory payslips (My payslips, where it runs statutory payroll, D128) are shown from the organisation's records and never sent from the phone, so they add no data type.
 
 ## App Review information
 

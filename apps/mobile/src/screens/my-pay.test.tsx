@@ -1,10 +1,10 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import type { SessionState } from '@thelamp/api-client';
+import { ApiError, type SessionState } from '@thelamp/api-client';
 import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import { claim, migrate } from '@thelamp/api-client/sync';
 import { SETTING_DEFAULTS, type SyncPullResult, todayIn } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AppProvider, useApp } from '../app-state';
 import type { MobileClient } from '../client';
 import { LanguageProvider } from '../i18n';
@@ -49,13 +49,65 @@ const slip = (period: string, patch: object) => ({
   },
   ...patch,
 });
-const SLIPS: Record<string, object> = {
+const SLIPS: Record<string, object | null> = {
   [`/v1/payslips/${ASHA}/${THIS_MONTH}`]: slip(THIS_MONTH, {
     paid: 10.5,
     amount: '12115.38',
     toDate: true,
   }),
   [`/v1/payslips/${ASHA}/${LAST_MONTH}`]: slip(LAST_MONTH, { monthlyGross: null, amount: null }),
+};
+
+const MONTH_BEFORE = (() => {
+  const [year, month] = LAST_MONTH.split('-').map(Number) as [number, number];
+  return new Date(Date.UTC(year, month - 2, 1)).toISOString().slice(0, 7);
+})();
+/** Last month's approved statutory payslip; the month before has none (D128). */
+const STATUTORY: Record<string, object | null> = {
+  [`/v1/statutory-payslips/${ASHA}/${LAST_MONTH}`]: {
+    user: { id: ASHA, code: 'SUN-004', name: 'Asha Rao' },
+    period: LAST_MONTH,
+    status: 'approved',
+    profile: {
+      workState: 'MH',
+      ptWomen: false,
+      pfMember: true,
+      pfFullWage: false,
+      uan: '100200300400',
+      esiNumber: null,
+      panOnFile: true,
+    },
+    structure: {
+      basic: '15000.00',
+      da: '0.00',
+      hra: '6000.00',
+      conveyance: '0.00',
+      special: '4000.00',
+      others: [],
+    },
+    scheduled: 26,
+    paid: 26,
+    esiCovered: true,
+    wages: '19000.00',
+    earnings: [
+      { key: 'basic', amount: '15000.00' },
+      { key: 'hra', amount: '6000.00' },
+      { key: 'special', amount: '4000.00' },
+    ],
+    deductions: [
+      { key: 'pf', amount: '2280.00' },
+      { key: 'esi', amount: '143.00' },
+      { key: 'pt', amount: '200.00' },
+    ],
+    employer: [{ key: 'eps', amount: '1583.00' }],
+    gross: '25000.00',
+    totalDeductions: '2623.00',
+    net: '22377.00',
+    flags: [],
+    rateSetId: 'reference-2026-09',
+    reviewed: false,
+  },
+  [`/v1/statutory-payslips/${ASHA}/${MONTH_BEFORE}`]: null,
 };
 
 const full = <T,>(rows: T[]) => ({
@@ -66,7 +118,7 @@ const full = <T,>(rows: T[]) => ({
   removed: [],
 });
 
-function fakeClient() {
+function fakeClient(statutory = false) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -90,7 +142,9 @@ function fakeClient() {
     })),
     heartbeat: jest.fn(async () => undefined),
     request: jest.fn<(...args: unknown[]) => Promise<unknown>>(async (method, path) => {
-      const found = method === 'GET' ? SLIPS[String(path)] : undefined;
+      const pages = statutory ? STATUTORY : SLIPS;
+      const found = method === 'GET' ? pages[String(path)] : undefined;
+      if (found === null) throw new ApiError(404, 'NOT_FOUND', 'No payslip.');
       if (!found) throw new Error(`Nothing at ${String(path)}`);
       return found;
     }),
@@ -99,7 +153,11 @@ function fakeClient() {
       etag: '"1-role-4"',
       bundle: {
         version: 1,
-        settings: SETTING_DEFAULTS,
+        // Statutory payroll is opt-in, so bundles list it as off until it is on (D128).
+        settings: {
+          ...SETTING_DEFAULTS,
+          modulesOff: statutory ? ['payroll_inputs'] : ['statutory_payroll'],
+        },
         terminology: {},
         designations: [],
         accountTypes: [],
@@ -118,8 +176,8 @@ function Shown() {
   return <MyPayScreen />;
 }
 
-async function renderPhone() {
-  const fake = fakeClient();
+async function renderPhone(statutory = false) {
+  const fake = fakeClient(statutory);
   const db = nodeSqlite();
   await migrate(db);
   await claim(db, fake.client.owner);
@@ -154,5 +212,27 @@ describe('my pay estimate on the phone (M14, decision D117)', () => {
     // Last month had no gross: no estimate, only the days.
     expect(await screen.findByText('No monthly gross for this month')).toBeOnTheScreen();
     expect(screen.getByText('24 of 26')).toBeOnTheScreen();
+  });
+});
+
+describe('my payslips on the phone (decision D128)', () => {
+  it('shows last month’s approved payslip, with net pay in words and the review label', async () => {
+    await renderPhone(true);
+    expect(await screen.findByText('Net pay: ₹22,377.00')).toBeOnTheScreen();
+    expect(
+      screen.getByText('In words: Twenty-two thousand three hundred seventy-seven rupees only'),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(/Awaiting review by a chartered accountant/)).toBeOnTheScreen();
+    expect(screen.getByText('Provident fund')).toBeOnTheScreen();
+    expect(screen.getByText('₹2,280.00')).toBeOnTheScreen();
+    expect(screen.getByText('100200300400')).toBeOnTheScreen();
+    expect(screen.queryByText(/Attendance-based estimate/)).toBeNull();
+  });
+
+  it('steps back a month, and says when a month has no approved payslip', async () => {
+    await renderPhone(true);
+    await screen.findByText('Net pay: ₹22,377.00');
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    expect(await screen.findByText(/^No approved payslip for /)).toBeOnTheScreen();
   });
 });

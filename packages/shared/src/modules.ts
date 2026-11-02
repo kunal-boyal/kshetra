@@ -79,6 +79,25 @@ export const MODULE_PERMISSIONS: Record<SwitchableModule, readonly TenantPermiss
   advanced_analytics: ['report.schedule', 'dashboard.manage'],
 };
 
+/**
+ * Permissions that stay while another module is open too: a person's own payslip is the estimate's
+ * (payroll inputs) or the statutory one's, whichever the organisation uses (decision D128).
+ */
+export const ALSO_IN_MODULES: Partial<Record<TenantPermission, readonly SwitchableModule[]>> = {
+  'payslip.view': ['statutory_payroll'],
+};
+
+/** Whether switched-off modules take a permission away: its own module and any it shares are off. */
+export function permissionClosed(
+  permission: TenantPermission,
+  off: readonly string[] | ReadonlySet<string>,
+): boolean {
+  const closed = off instanceof Set ? off : new Set(off as readonly string[]);
+  const owner = moduleOf(permission);
+  if (owner === 'core' || !closed.has(owner)) return false;
+  return (ALSO_IN_MODULES[permission] ?? []).every((module) => closed.has(module));
+}
+
 /** The module a permission belongs to. */
 export function moduleOf(permission: TenantPermission): ModuleKey {
   for (const module of SWITCHABLE_MODULES) {
@@ -92,8 +111,8 @@ export function effectivePermissions(
   permissions: Iterable<TenantPermission>,
   off: readonly SwitchableModule[],
 ): Set<TenantPermission> {
-  const closed = new Set<ModuleKey>(off);
-  return new Set([...permissions].filter((permission) => !closed.has(moduleOf(permission))));
+  const closed = new Set<string>(off);
+  return new Set([...permissions].filter((permission) => !permissionClosed(permission, closed)));
 }
 
 /**
@@ -104,8 +123,5 @@ export function closedByModules(
   required: readonly TenantPermission[],
   off: readonly SwitchableModule[],
 ): boolean {
-  return (
-    required.length > 0 &&
-    required.every((permission) => off.includes(moduleOf(permission) as SwitchableModule))
-  );
+  return required.length > 0 && required.every((permission) => permissionClosed(permission, off));
 }

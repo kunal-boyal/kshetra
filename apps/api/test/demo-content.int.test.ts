@@ -83,6 +83,7 @@ describe('demo content (decision D70)', () => {
         days: 10,
         seed: 3,
         log: (line) => lines.push(line),
+        statutory: true,
       });
 
       // Nothing was refused along the way, and every kind of record was made.
@@ -172,6 +173,31 @@ describe('demo content (decision D70)', () => {
         [tenantId],
       );
       expect(schemed!.lines).toBeGreaterThan(0);
+      // With --statutory, last month's pay run is approved for everyone given a salary, and one
+      // person's PAN isn't on file (D128).
+      const runs = await sql<{ period: string; status: string; payslips: number; no_pan: number }>(
+        `select r.period, r.status,
+                (select count(*)::int from cell.payslips p
+                  where p.tenant_id = r.tenant_id and p.pay_run_id = r.id and p.included) as payslips,
+                (select count(*)::int from cell.payslips p
+                  where p.tenant_id = r.tenant_id and p.pay_run_id = r.id and p.included
+                    and p.figures->'flags' ? 'no_pan') as no_pan
+           from cell.pay_runs r where r.tenant_id = $1`,
+        [tenantId],
+      );
+      const structures = await sql<{ people: number }>(
+        `select count(distinct user_id)::int as people from cell.salary_structures where tenant_id = $1`,
+        [tenantId],
+      );
+      expect(runs).toEqual([
+        {
+          period: expect.stringMatching(/^\d{4}-\d{2}$/),
+          status: 'approved',
+          payslips: structures[0]!.people,
+          no_pan: 1,
+        },
+      ]);
+      expect(structures[0]!.people).toBeGreaterThan(8);
 
       // A tenant is filled once, and only a demo tenant.
       await expect(fill({ slug, days: 1, seed: 3, log: () => {} })).rejects.toThrow(

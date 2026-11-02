@@ -1,4 +1,4 @@
-import { moduleOf } from './modules';
+import { permissionClosed } from './modules';
 /**
  * The permission catalogue of spec Appendix E, grouped by its areas. A role holds a list of these,
  * and the role's data scope decides whose records each one reaches (spec 4.2). Stored roles refer
@@ -207,7 +207,7 @@ export function canGrant(
   const held = new Set(actor.permissions);
   const closed = new Set(actor.modulesOff ?? []);
   for (const permission of role.permissions) {
-    if (closed.has(moduleOf(permission as TenantPermission))) continue;
+    if (permissionClosed(permission as TenantPermission, closed)) continue;
     if (!held.has(permission)) return false;
   }
   return scopeContains(actor.scope, role.scope);

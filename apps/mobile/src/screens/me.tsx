@@ -71,7 +71,9 @@ export function MeScreen() {
   const modulesOff = config.data?.bundle.settings.modulesOff ?? [];
   const leaveOn = !modulesOff.includes('leave_attendance');
   const expensesOn = !modulesOff.includes('expenses');
-  const payrollOn = !modulesOff.includes('payroll_inputs');
+  // Payslips are the estimate's or the statutory payroll's, whichever is on (D128).
+  const statutoryOn = !modulesOff.includes('statutory_payroll');
+  const payrollOn = !modulesOff.includes('payroll_inputs') || statutoryOn;
   const designation = config.data?.bundle.designations.find(
     (entry) => entry.key === me.data?.designation,
   );
@@ -205,7 +207,7 @@ export function MeScreen() {
         {payrollOn && permissions.has('payslip.view') ? (
           <ListRow
             lead={<IconChip icon={Wallet} hue="mint" />}
-            label={t('pay.title')}
+            label={t(statutoryOn ? 'pay.statutory_title' : 'pay.title')}
             onPress={() => router.push('/pay')}
           />
         ) : null}

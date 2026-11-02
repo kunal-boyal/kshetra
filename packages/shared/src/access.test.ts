@@ -85,7 +85,11 @@ describe('granting a role', () => {
     // A permission of a module that is off does nothing, so it never stops a grant (D82, D89).
     const payroll = { permissions: ['user.view', 'payslip.view'], scope: 'self' as const };
     expect(canGrant(manager, payroll)).toBe(false);
-    expect(canGrant({ ...manager, modulesOff: ['payroll_inputs'] }, payroll)).toBe(true);
+    // Payslips belong to both payroll modules, so both must be off (D128).
+    expect(canGrant({ ...manager, modulesOff: ['payroll_inputs'] }, payroll)).toBe(false);
+    expect(
+      canGrant({ ...manager, modulesOff: ['payroll_inputs', 'statutory_payroll'] }, payroll),
+    ).toBe(true);
   });
 
   it('lets an API client give any role but one that can change access (D94)', () => {

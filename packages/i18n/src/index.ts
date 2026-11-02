@@ -20,4 +20,4 @@ export { TERMINOLOGY_DEFAULTS, resolveTerminology } from './terminology';
 export type { ResolvedTerminology } from './terminology';
 export { createTranslator, MESSAGES, placeholders, translate } from './translate';
 export type { Catalogue, Message, TranslateOptions } from './translate';
-export { amountInWords } from './words';
+export { amountInWords, PAYSLIP_LINE_WORDS } from './words';

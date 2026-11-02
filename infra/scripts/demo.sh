@@ -7,8 +7,9 @@
 #                                               bootstraps, migrates and restarts the demo with them
 #   infra/scripts/demo.sh provision <args...>   makes a demo tenant: pnpm provision's arguments, plus --demo;
 #                                               --logo takes a file on this machine
-#   infra/scripts/demo.sh content --tenant <slug> [--days 26]
-#                                               fills a new demo tenant with weeks of fictional work
+#   infra/scripts/demo.sh content --tenant <slug> [--days 26] [--statutory]
+#                                               fills a new demo tenant with weeks of fictional work;
+#                                               --statutory adds payroll (use --days 45)
 #   infra/scripts/demo.sh pause                 stops the instance between demos (the disk and address remain)
 #   infra/scripts/demo.sh resume                starts it again and waits until the demo answers
 #   infra/scripts/demo.sh status                says whether it runs, and checks the demo's health
@@ -154,5 +155,5 @@ case "${1:-}" in
   pause) pause ;;
   resume) resume ;;
   status) status ;;
-  *) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' && exit 1 ;;
+  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' && exit 1 ;;
 esac

@@ -39,6 +39,8 @@ From the repository root, with Docker running:
    infra/scripts/demo.sh content --tenant demo-agro --days 26
    ```
 
+   For a prospect who runs payroll, fill a separate demo tenant with `--days 45 --statutory` (see the content, below).
+
 8. Sign in at https://app.thelamp.in with that number and its code. For the phone, a preview build with `EXPO_PUBLIC_DIRECTORY_URL=https://app.thelamp.in`.
 
 ## Every day
@@ -57,6 +59,7 @@ From the repository root, with Docker running:
 - each month's targets, set and locked by the managers;
 - every working day (Sundays off, a few absences): the managers' plans, punch-in, a trail of points, planned visits to the accounts each person holds with an order now and then and a form with photos (item lines, dates within the field's limits, and a signature where the form needs one), activities without an account such as farmer meetings or CMEs, now and then a new account proposed for the manager to decide, punch-out, and the managers' reviews, except the last two days', which wait; today stops at the present, so people are on duty;
 - what the nightly jobs would do: missed plans and everyone's attendance.
+- with `--statutory` (decision D128): statutory payroll switched on, with a salary structure and Maharashtra's statutory details for the managers and field people, and last month's pay run approved, so the portal's Pay run, each printed payslip and the phone's My payslips have something to show; one person's PAN isn't on file, so their payslip carries the flag. Use `--days 45` or more with it, so last month is a month of work. Every payroll screen still says it awaits a chartered accountant's review.
 
 It runs the app's own services as each person, on a simulated clock set to each moment, so every rule applies and the events work out attendance, metrics and leaderboards. At the end it releases the fictional phones of the demo numbers, so real phones can sign in with them.
 

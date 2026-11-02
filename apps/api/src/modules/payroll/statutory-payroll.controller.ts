@@ -14,7 +14,7 @@ import {
   StatutoryProfileResult,
 } from '@thelamp/shared';
 import type { FastifyReply } from 'fastify';
-import { type Access, CurrentAccess, Requires, RequiresAny } from '../../platform/auth';
+import { type Access, CurrentAccess, InModule, Requires, RequiresAny } from '../../platform/auth';
 import { Database } from '../../platform/database';
 import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
@@ -205,6 +205,8 @@ export class StatutoryPayrollController {
     response: StatutoryPayslip,
   })
   @RequiresAny('payroll.run', 'payslip.view')
+  // `payslip.view` is the estimate's too, so the module closes the route on its own (D128).
+  @InModule('statutory_payroll')
   payslip(@CurrentAccess() access: Access, @Param() params: unknown) {
     const { userId, period } = StatutoryPayslipParams.parse(params);
     return this.database.forTenant(access.tenantId, (tx) =>

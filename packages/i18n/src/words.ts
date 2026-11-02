@@ -1,4 +1,5 @@
 import type { Locale } from '@thelamp/shared';
+import type { MessageKey } from './messages/en';
 
 /**
  * An amount in rupees written out in words in the Indian system (crore, lakh, thousand, hundred),
@@ -193,3 +194,24 @@ export function amountInWords(amount: string, locale: Locale): string {
   const capital = `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
   return paise > 0 ? `${capital} and ${below100(paise, 'en')} paise` : capital;
 }
+
+/**
+ * The words for a statutory payslip's lines (decision D128), shared by the portal and the phone.
+ * An allowance or adjustment of the tenant's own has none, and shows its key.
+ */
+export const PAYSLIP_LINE_WORDS: Readonly<Record<string, MessageKey>> = {
+  basic: 'payslip.line_basic',
+  da: 'payslip.line_da',
+  hra: 'payslip.line_hra',
+  conveyance: 'payslip.line_conveyance',
+  special: 'payslip.line_special',
+  pf: 'payslip.line_pf',
+  esi: 'payslip.line_esi',
+  pt: 'payslip.line_pt',
+  lwf: 'payslip.line_lwf',
+  tds: 'payslip.line_tds',
+  epf: 'payslip.line_epf',
+  eps: 'payslip.line_eps',
+  edli: 'payslip.line_edli',
+  pf_admin: 'payslip.line_pf_admin',
+};

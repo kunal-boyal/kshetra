@@ -3,7 +3,7 @@ import {
   formatMoney,
   formatMonth,
   formatNumber,
-  type MessageKey,
+  PAYSLIP_LINE_WORDS,
 } from '@thelamp/i18n';
 import type { StatutoryPayslip } from '@thelamp/shared';
 import { Icon, Notice } from '@thelamp/ui-web';
@@ -13,24 +13,6 @@ import { useAccess } from '../people/data';
 import { PageHeader } from '../people/shared';
 import { Printable, PrintButton } from '../print';
 import { useStatutoryPayslip } from './statutory-data';
-
-/** The words for a payslip's lines; an allowance or adjustment of the tenant's own shows its key. */
-const LINE_WORDS: Record<string, MessageKey> = {
-  basic: 'payslip.line_basic',
-  da: 'payslip.line_da',
-  hra: 'payslip.line_hra',
-  conveyance: 'payslip.line_conveyance',
-  special: 'payslip.line_special',
-  pf: 'payslip.line_pf',
-  esi: 'payslip.line_esi',
-  pt: 'payslip.line_pt',
-  lwf: 'payslip.line_lwf',
-  tds: 'payslip.line_tds',
-  epf: 'payslip.line_epf',
-  eps: 'payslip.line_eps',
-  edli: 'payslip.line_edli',
-  pf_admin: 'payslip.line_pf_admin',
-};
 
 /**
  * A statutory payslip (M14, BR-56 to BR-58, decisions D99 and D128): one person's month with their
@@ -49,7 +31,7 @@ export function StatutoryPayslipPage({ userId, period }: { userId: string; perio
     <div className="flex flex-col gap-6">
       <PageHeader
         back={{ to: '/pay-run', label: t('payrun.back') }}
-        title={t('payslip.title', { month })}
+        title={t('payslip.statutory_title', { month })}
       >
         {slip ? <PrintButton printable="statutory-payslip" /> : null}
       </PageHeader>
@@ -62,7 +44,7 @@ export function StatutoryPayslipPage({ userId, period }: { userId: string; perio
       ) : (
         <Printable
           id="statutory-payslip"
-          title={t('payslip.title', { month })}
+          title={t('payslip.statutory_title', { month })}
           details={[
             `${slip.user.name} (${slip.user.code})`,
             ...(slip.status === 'draft' ? [t('payslip.draft')] : []),
@@ -88,7 +70,8 @@ function Slip({
   const { t } = useLanguage();
   const money = (amount: string) => formatMoney(amount as `${number}`, { locale, currency });
   const count = (value: number) => formatNumber(value, { locale });
-  const word = (key: string) => (LINE_WORDS[key] ? t(LINE_WORDS[key]) : key.replaceAll('_', ' '));
+  const word = (key: string) =>
+    PAYSLIP_LINE_WORDS[key] ? t(PAYSLIP_LINE_WORDS[key]) : key.replaceAll('_', ' ');
   const table = (caption: string, lines: StatutoryPayslip['earnings'], total?: string) => (
     <table className="ks-table">
       <caption className="heading-sm text-start">{caption}</caption>

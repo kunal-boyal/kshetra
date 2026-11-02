@@ -1,7 +1,8 @@
-// `node dist/demo-content.mjs --tenant <slug> [--days 26] [--seed 7] [--photos <folder>]`: fills a
-// new demo tenant with a few weeks of fictional work (decision D70). The simulated clock comes
-// first, before any module reads the time. On the demo box: `infra/scripts/demo.sh content
-// --tenant <slug>`. `--photos` takes real photographs from a local folder, never committed.
+// `node dist/demo-content.mjs --tenant <slug> [--days 26] [--seed 7] [--photos <folder>]
+// [--statutory]`: fills a new demo tenant with a few weeks of fictional work (decision D70). The
+// simulated clock comes first, before any module reads the time. On the demo box:
+// `infra/scripts/demo.sh content --tenant <slug>`. `--photos` takes real photographs from a local
+// folder, never committed; `--statutory` switches statutory payroll on (D128).
 import './demo/clock';
 import { parseArgs } from 'node:util';
 import { createCommandContext, report } from './context';
@@ -14,6 +15,8 @@ const { values } = parseArgs({
     seed: { type: 'string', default: '7' },
     // A local folder of photographs to use instead of drawn shapes (see DemoOptions.photos).
     photos: { type: 'string' },
+    // Statutory payroll switched on with an approved last month (decision D128); use --days 45.
+    statutory: { type: 'boolean', default: false },
   },
 });
 const days = Number(values.days);
@@ -31,6 +34,7 @@ try {
     seed: Number(values.seed) || 7,
     log: (line) => console.log(line),
     ...(values.photos ? { photos: values.photos } : {}),
+    statutory: values.statutory,
   }).run();
   console.log(
     `Done: ${counts.shifts} shifts, ${counts.visits} visits, ${counts.entries} entries, ${counts.photos} photos, ${counts.reviews} reviews, ${counts.proposals} proposals; ` +
