@@ -6,6 +6,7 @@ import { createCommandContext, report } from './context';
 import { StaffService } from './modules/console/staff.service';
 import { SecondFactorService } from './modules/directory/second-factor.service';
 import { SsoService } from './modules/directory/sso.service';
+import { ErpConnectionsService } from './modules/erp/erp-connections.service';
 import { WebhooksService } from './modules/webhooks/webhooks.service';
 import { TenantDirectory } from './platform/planes';
 
@@ -16,12 +17,14 @@ try {
     staff: await app.get(StaffService).resealSecrets(),
     sso: await app.get(SsoService).resealSecrets(),
     webhooks: 0,
+    erp: 0,
   };
   for (const tenantId of await app.get(TenantDirectory).tenantsOn(config.CELL_ID)) {
     counts.webhooks += await app.get(WebhooksService).resealSecrets(tenantId);
+    counts.erp += await app.get(ErpConnectionsService).resealSecrets(tenantId);
   }
   console.log(
-    `Sealed again under the current key: ${counts.authenticators} authenticators, ${counts.staff} staff authenticators, ${counts.sso} SSO connections, ${counts.webhooks} webhook secrets.`,
+    `Sealed again under the current key: ${counts.authenticators} authenticators, ${counts.staff} staff authenticators, ${counts.sso} SSO connections, ${counts.webhooks} webhook secrets, ${counts.erp} ERP tokens.`,
   );
 } catch (error) {
   report(error);

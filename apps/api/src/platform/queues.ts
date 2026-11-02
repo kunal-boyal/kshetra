@@ -17,6 +17,7 @@ export const QUEUE_NAMES = [
   'notifications',
   'exports',
   'webhooks',
+  'connectors',
 ] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
@@ -54,6 +55,8 @@ const CONCURRENCY: Record<QueueName, number> = {
   exports: 2,
   // Each try waits on a receiver for up to ten seconds.
   webhooks: 8,
+  // Each run waits on the ERP's paced calls; tenants' runs go side by side.
+  connectors: 4,
 };
 
 /**

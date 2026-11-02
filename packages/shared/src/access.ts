@@ -87,7 +87,7 @@ export const PERMISSIONS_BY_AREA = {
     'import.run',
     'audit.view',
   ],
-  integrations_and_billing: ['api_client.manage', 'webhook.manage', 'billing.manage'],
+  integrations_and_billing: ['api_client.manage', 'webhook.manage', 'erp.manage', 'billing.manage'],
 } as const;
 
 export type PermissionArea = keyof typeof PERMISSIONS_BY_AREA;
@@ -143,6 +143,7 @@ export const SECOND_FACTOR_PERMISSIONS = [
   'settings.manage',
   'module.manage',
   'billing.manage',
+  'erp.manage',
 ] as const satisfies readonly TenantPermission[];
 
 /** Whether a role's holder needs an authenticator code to sign in on the web. */

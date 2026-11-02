@@ -701,6 +701,20 @@
       "when": 1793568558032,
       "tag": "0099_statutory_payroll_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1793599241311,
+      "tag": "0100_erp_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1793599261249,
+      "tag": "0101_erp_connector_actor",
+      "breakpoints": true
     }
   ]
 }

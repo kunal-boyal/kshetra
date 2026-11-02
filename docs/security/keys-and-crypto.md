@@ -17,7 +17,7 @@ How the product's keys are made, kept, used, rotated and destroyed, and every cr
 | Key | Algorithm and strength | Protects | Held by | Cryptoperiod | Rotation |
 |---|---|---|---|---|---|
 | `JWT_SIGNING_KEY`, `JWT_PUBLISHED_KEYS` | ECDSA P-256 (ES256), 128-bit | Access tokens for tenant users, API clients and vendor staff | API | 1 year | Three deploys through `JWT_PUBLISHED_KEYS`, no token refused |
-| `COLUMN_KEY`, `COLUMN_KEY_PREVIOUS` | AES-256-GCM, 96-bit random nonce, the column and row as associated data | TOTP seeds (tenant and staff), SSO client secrets and private keys, webhook signing secrets | API, worker | 1 year | `COLUMN_KEY_PREVIOUS`, then `pnpm reseal`, then empty it |
+| `COLUMN_KEY`, `COLUMN_KEY_PREVIOUS` | AES-256-GCM, 96-bit random nonce, the column and row as associated data | TOTP seeds (tenant and staff), SSO client secrets and private keys, webhook signing secrets, ERP refresh tokens | API, worker | 1 year | `COLUMN_KEY_PREVIOUS`, then `pnpm reseal`, then empty it |
 | `OTP_PEPPER` | HMAC-SHA-256 key, 288 bits | Stored SMS codes (each an HMAC of its challenge and code) | API | 1 year | Replace; codes of the last five minutes stop working |
 | `ARCHIVE_SIGNING_KEY` | Ed25519 seed, 128-bit | Tenant data exports and personal-data archives, which customers verify | API, worker | 3 years, or on compromise | Replace; publish the new public key with its start date beside the old one, which still verifies older archives |
 | `CLOUDFRONT_PRIVATE_KEY` | ECDSA P-256 with SHA-256 | Signed media links, five minutes each | API, worker | 1 year | Second public key in the key group, then swap |
@@ -42,6 +42,7 @@ Locally and in tests, without `COLUMN_KEY` or `ARCHIVE_SIGNING_KEY`, a key is de
 | SMS sign-in codes | `randomInt`, six digits | HMAC-SHA-256 under `OTP_PEPPER`, bound to the challenge |
 | API client secrets | Random bytes, base64url | SHA-256 digest, compared in constant time; shown once |
 | Webhook signing secrets | 24 random bytes (`whsec_`) | Sealed under `COLUMN_KEY`; shown once |
+| ERP refresh tokens (D129) | Issued by the provider (Zoho Books) | Sealed under `COLUMN_KEY`; revoked at the provider on disconnect; access tokens are held only in the worker's memory for their hour |
 | TOTP seeds | 20 random bytes (160 bits) | Sealed under `COLUMN_KEY` |
 | Recovery codes | 50 random bits each | scrypt N = 2^14, r = 8, p = 1, salted |
 | Staff passwords | Chosen by staff, 12 to 200 characters, checked against context words and breaches | scrypt N = 2^15, r = 8, p = 3, 16-byte salt, parameters stored |

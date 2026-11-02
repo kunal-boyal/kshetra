@@ -729,6 +729,7 @@ Rules: BR-42, BR-43.
 - The public API is the same `/v1` API the apps use, limited by scopes, plus bulk upsert endpoints for masters.
 - Webhooks: subscriptions to event types from section 12.4, payloads signed with HMAC-SHA256 over the timestamp and body, retries with exponential backoff for 24 hours, a delivery log with replay.
 - Per-client rate limits by plan and interactive documentation generated from the OpenAPI document.
+- ERP connectors (D129): a tenant connects its books, Zoho Books first, from Settings with the provider's OAuth; customers, items and prices, invoices and payments come in every hour and on demand through the same import targets as files and the bulk API, and accepted orders go out as sales orders. The connection acts as itself (`connector` in the audit log), within the integrations module, under `erp.manage`.
 
 ### M21. Audit and data governance
 
@@ -846,6 +847,7 @@ Each rule is implemented once in `packages/shared` (or enforced on the server wh
 | BR-56 | Statutory wages and earnings (D128): wages are basic, DA, special allowance and allowances not excluded; when the excluded allowances exceed half the remuneration, the excess counts as wages. Each component is earned as BR-26 prorates gross, `round(amount × min(paid, scheduled) ÷ scheduled, 2)` |
 | BR-57 | Statutory deductions (D128): PF 12% of earned wages on the ceiling unless opted for the full wage, the employer's 12% split into EPS (8.33% on the ceiling) and EPF, each to the rupee; ESI 0.75% and 3.25% of earned wages, up to the rupee, for those whose wages at the contribution period's start were within the limit, nothing from the employee under the daily floor; professional tax by the work state's slabs (monthly or on the year's gross, with February's or March's amount); the labour welfare fund in its months. Rates come from the set in force on the month's last day |
 | BR-58 | TDS on salary, new regime (D128): the year's income is what earlier months of the financial year paid, this month's gross and the structure's gross for each month left, less the standard deduction; tax by the slabs, the rebate up to its limit with marginal relief, then cess, to the rupee; this month's TDS is what is not yet deducted over the months left, this one included. Surcharge, no PAN on file and other income are flagged, not worked out |
+| BR-59 | ERP records in (D129): a connection calls only its provider's own hosts, HTTPS on 443, checked before a secret or token is sent. Each record becomes a row of an existing import target and passes that target's check and commit: a customer is an account of the mapped type, its code the customer number, its territory a named custom field, else its present one, else the mapped default; an item's code is its SKU, its rate a price in the mapped list, and each mapped per-item price book a price in its list; drafts are not read and void invoices are cancelled; a payment is a receipt against the invoices it was applied to. A record without a code, or with a code another record holds, is listed and not written; rows the import refuses are listed and the rest written; a row unchanged since it was written is not written again. A run stops before a tenth of the provider's daily limit is left, and at its rate limit, carrying on next time |
 
 ## 8. Screens and user experience
 
@@ -1551,6 +1553,8 @@ App upgrades: local database migrations are versioned and run at app start befor
 | `SYNC_RESET` | 410 | Run a full refresh |
 | `OTP_INVALID`, `OTP_EXPIRED` | 400 | Retype, or request a new code |
 | `UPGRADE_REQUIRED` | 426 | Blocking update screen |
+| `ERP_NOT_CONFIGURED` | 409 | The cell holds no client for that ERP; say it isn't set up here (D129) |
+| `ERP_REFUSED` | 502 | The ERP refused the connection's request, such as a spent code; connect again (D129) |
 
 ## 12. Platform services
 
@@ -2231,6 +2235,11 @@ Each example becomes at least one automated test.
 | FX-67 | BR-58 | 1,50,000 a month from April; 1,00,000 from October | 12,567 a month; nil |
 | FX-68 | BR-58 | Nine months at 1,50,000 with 1,13,103 deducted, then 2,00,000 from January | 22,966 a month for the rest of the year |
 | FX-69 | BR-58 | Income 12,00,000; 12,10,000; 13,00,000 | Nil; 10,400 (marginal relief); 78,000 |
+| FX-70 | BR-59 | `https://accounts.zoho.in`; `…zoho.in.evil.example`; `http://accounts.zoho.in`; port 8443; a path | Taken; not Zoho; not HTTPS; not 443; not a host |
+| FX-71 | BR-59 | A customer with number C-1042 and Territory NSK; the field empty with a present territory, then none, then no default | Account C-1042 in NSK; the present one; the default; listed as no territory |
+| FX-72 | BR-59 | An item with SKU TEA-250 at 120.50 in pcs (mapped to piece); a book rate of 99 in Wholesale; no SKU | TEA-250 at 120.5 in piece; 99 in Wholesale; listed as no SKU |
+| FX-73 | BR-51, BR-59 | An overdue invoice of 23,600; void; draft; a customer not linked; a payment of 10,000 applied to two invoices | Open; cancelled; not read; listed; a receipt against both |
+| FX-74 | BR-59 | 898, 899 and 900 calls used of a daily limit of 1,000 | 2 left, 1 left, none |
 
 ## Appendix E. Permission catalogue
 
@@ -2250,7 +2259,7 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | Finance | `finance.view`, `finance.manage` |
 | People operations | `leave.request`, `regularisation.request`, `expense.claim`, `approval.act`, `calendar.manage`, `leave_type.manage`, `expense_policy.manage`, `expense.mark_paid`, `payroll.manage`, `payslip.view`, `payroll.run`, `salary.manage` (D128) |
 | Data | `report.view`, `export.create`, `report.schedule`, `dashboard.manage`, `import.run`, `audit.view` (`report.schedule` and `dashboard.manage` belong to the advanced analytics module, D122) |
-| Integrations and billing | `api_client.manage`, `webhook.manage`, `billing.manage` |
+| Integrations and billing | `api_client.manage`, `webhook.manage`, `erp.manage` (D129), `billing.manage` |
 | Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.flags.manage`, `platform.billing.manage`, `platform.staff.manage` (inviting and disabling vendor staff, decision D88) |
 
 ## Appendix F. Environment variables
@@ -2270,6 +2279,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 | `JWT_SIGNING_KEY` (directory), `JWKS_URL` (cells), `OTP_PEPPER`, `COLUMN_KEY` | Token signing and verification, OTP hashing, the AES-256 key for encrypted columns, kept in Secrets Manager under KMS (decision D88) |
 | `CONSOLE_URL` | Where the platform console runs, for vendor staff's setup links (decision D88) |
 | `OBJECT_STORE`, `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `CLOUDFRONT_DOMAIN`, `CLOUDFRONT_KEY_ID`, `CLOUDFRONT_PRIVATE_KEY` | Media storage and signed reads. `OBJECT_STORE` is `s3`, or `memory` in tests only. The endpoint and keys are MinIO's locally; in AWS they stay unset, and the task's role signs requests (decision D42). |
+| `ZOHO_API`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` | Zoho Books (D129): the vendor's server-based client, whose redirect is the portal's `/settings/erp/zoho`; without both, the portal says Zoho isn't set up here. `ZOHO_API` is `public`, or `memory` in tests only. |
 | `OTP_PROVIDER`, `SMS_PROVIDER`, `SMS_API_KEY`, `SMS_TEMPLATE_IDS` | OTP and SMS; `console` is allowed only locally |
 | `WHATSAPP_PROVIDER`, `WHATSAPP_API_KEY`, `WHATSAPP_SENDER_ID` | WhatsApp templates |
 | `FCM_PROJECT_ID`, `FCM_SERVICE_ACCOUNT`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_KEY` or `EXPO_ACCESS_TOKEN` | Push |

@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "agri",
-  "version": 8,
+  "version": 9,
   "name": { "en": "Agri inputs", "hi": "कृषि इनपुट" },
   "description": {
     "en": "For seed, crop protection and fertiliser companies: distributors, retailers and farmers; farmer meetings, demos and distributor visits that record sales, collection and liquidation; orders by the case.",
@@ -101,6 +101,7 @@
         "audit.view",
         "api_client.manage",
         "webhook.manage",
+        "erp.manage",
         "billing.manage",
         "sell_through.record",
         "forecast.record",

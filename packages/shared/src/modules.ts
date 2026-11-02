@@ -74,7 +74,7 @@ export const MODULE_PERMISSIONS: Record<SwitchableModule, readonly TenantPermiss
   expenses: ['expense.claim', 'expense_policy.manage', 'expense.mark_paid'],
   payroll_inputs: ['payroll.manage', 'payslip.view'],
   statutory_payroll: ['payroll.run', 'salary.manage'],
-  integrations: ['api_client.manage', 'webhook.manage'],
+  integrations: ['api_client.manage', 'webhook.manage', 'erp.manage'],
   sso: [],
   advanced_analytics: ['report.schedule', 'dashboard.manage'],
 };

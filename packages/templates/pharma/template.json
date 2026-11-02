@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "pharma",
-  "version": 6,
+  "version": 7,
   "name": {
     "en": "Pharma",
     "hi": "फ़ार्मा"
@@ -129,6 +129,7 @@
         "audit.view",
         "api_client.manage",
         "webhook.manage",
+        "erp.manage",
         "billing.manage",
         "sell_through.record",
         "forecast.record",

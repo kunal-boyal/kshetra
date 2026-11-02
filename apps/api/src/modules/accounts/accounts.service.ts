@@ -1218,6 +1218,33 @@ export class AccountsService {
     return new Map(rows.map((row) => [row.id, row]));
   }
 
+  /**
+   * The territory code each account sits in, by account code, across the tenant: an ERP connection
+   * keeps it when the books name none (decision D129).
+   */
+  async territoryCodes(
+    tx: TenantTx,
+    tenantId: string,
+    codes: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (codes.length === 0) return new Map();
+    const rows = await tx
+      .select({ code: accounts.code, territoryId: accounts.territoryId })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.code, [...new Set(codes)])));
+    const territories = await this.territories.byIds(
+      tx,
+      tenantId,
+      rows.map((row) => row.territoryId),
+    );
+    return new Map(
+      rows.flatMap((row) => {
+        const territory = territories.get(row.territoryId);
+        return territory ? [[row.code, territory.code] as const] : [];
+      }),
+    );
+  }
+
   /** Accounts by ID as reports show them: code, name, type and segments. */
   async forReport(
     tx: TenantTx,

@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "generic",
-  "version": 8,
+  "version": 9,
   "name": { "en": "Generic", "hi": "सामान्य" },
   "description": {
     "en": "A starting point for any field team: customers, visit and meeting forms, and metrics for visits, coverage and order value.",
@@ -82,6 +82,7 @@
         "audit.view",
         "api_client.manage",
         "webhook.manage",
+        "erp.manage",
         "billing.manage",
         "sell_through.record",
         "forecast.record",

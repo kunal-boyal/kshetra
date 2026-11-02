@@ -9,10 +9,17 @@ import {
   supportPermissions,
   type TenantPermission,
   SECOND_FACTOR_PERMISSIONS,
+  ERP_CONNECTOR_PERMISSIONS,
 } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
 import { devices, roles, users } from '../../db/schema/iam';
-import { type Access, AccessResolver, type AuthContext, moduleDisabled } from '../../platform/auth';
+import {
+  type Access,
+  AccessResolver,
+  type AuthContext,
+  type ConnectorAccess,
+  moduleDisabled,
+} from '../../platform/auth';
 import { Database } from '../../platform/database';
 import type { Config } from '../../config';
 import {
@@ -212,6 +219,32 @@ export class IamAccess extends AccessResolver {
    * A phone-only role is no bar, as nobody signs in; it is refused, as a request would be, once
    * they or the tenant are no longer active.
    */
+  async forConnector(tenantId: string, connector: ConnectorAccess, cell: string): Promise<Access> {
+    const standing = await this.tenants.standing(tenantId);
+    if (!standing || !isOpenTenant(standing.status) || standing.cell !== this.cellConfig.CELL_ID) {
+      throw revoked();
+    }
+    const { modulesOff } = await this.database.forTenant(tenantId, (tx) =>
+      this.config.settings(tx, tenantId),
+    );
+    // Connections are the integrations module's: kept while it is closed, idle (decision D129).
+    if (modulesOff.includes('integrations')) throw moduleDisabled();
+    return {
+      userId: connector.connectionId,
+      tenantId,
+      cell,
+      revision: 0,
+      roleId: connector.connectionId,
+      roleKey: 'connector',
+      scope: 'tenant',
+      permissions: effectivePermissions([...ERP_CONNECTOR_PERMISSIONS], modulesOff),
+      modulesOff,
+      ...(await this.state(tenantId, standing)),
+      apiClient: { id: connector.connectionId, name: connector.provider, scopes: [] },
+      connector,
+    };
+  }
+
   async onBehalfOf(tenantId: string, userId: string, cell: string): Promise<Access> {
     const revision = await this.database.forTenant(tenantId, async (tx) => {
       const [user] = await tx

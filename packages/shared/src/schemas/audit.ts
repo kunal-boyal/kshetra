@@ -5,7 +5,7 @@ import { z } from 'zod';
  * Entries are never changed or deleted, except when retention drops a whole month (D9).
  */
 
-export const AUDIT_ACTOR_KINDS = ['user', 'platform', 'system', 'api_client'] as const;
+export const AUDIT_ACTOR_KINDS = ['user', 'platform', 'system', 'api_client', 'connector'] as const;
 
 /** Every action the log records. Add new ones, never rename old ones. */
 export const AUDIT_ACTIONS = [
@@ -147,6 +147,10 @@ export const AUDIT_ACTIONS = [
   'webhook.updated',
   'webhook.secret_rotated',
   'webhook.replayed',
+  'erp.connected',
+  'erp.settings_changed',
+  'erp.disconnected',
+  'erp.run',
   'data_export.created',
   'data_export.downloaded',
   'data_request.raised',

@@ -9647,6 +9647,10 @@
                 "webhook.updated",
                 "webhook.secret_rotated",
                 "webhook.replayed",
+                "erp.connected",
+                "erp.settings_changed",
+                "erp.disconnected",
+                "erp.run",
                 "data_export.created",
                 "data_export.downloaded",
                 "data_request.raised",
@@ -9706,7 +9710,8 @@
                 "user",
                 "platform",
                 "system",
-                "api_client"
+                "api_client",
+                "connector"
               ]
             }
           },
@@ -9767,7 +9772,8 @@
                                   "user",
                                   "platform",
                                   "system",
-                                  "api_client"
+                                  "api_client",
+                                  "connector"
                                 ]
                               },
                               "id": {
@@ -9936,6 +9942,10 @@
                               "webhook.updated",
                               "webhook.secret_rotated",
                               "webhook.replayed",
+                              "erp.connected",
+                              "erp.settings_changed",
+                              "erp.disconnected",
+                              "erp.run",
                               "data_export.created",
                               "data_export.downloaded",
                               "data_request.raised",
@@ -13701,6 +13711,403 @@
         }
       }
     },
+    "/v1/erp-connections": {
+      "get": {
+        "operationId": "ErpController.providers",
+        "summary": "The ERPs this server can connect, and the connection",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpProviders"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/erp-connections/{id}/disconnect": {
+      "post": {
+        "operationId": "ErpController.disconnect",
+        "summary": "Disconnect the ERP; its links stay for connecting again",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/erp-connections/{id}/organization": {
+      "put": {
+        "operationId": "ErpController.organization",
+        "summary": "Choose the organisation in the books to connect",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErpOrganizationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/erp-connections/{id}/runs": {
+      "get": {
+        "operationId": "ErpController.runs",
+        "summary": "The connection’s latest runs, newest first",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpRuns"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "ErpController.syncNow",
+        "summary": "Read the books now",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpRun"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/erp-connections/{id}/settings": {
+      "put": {
+        "operationId": "ErpController.settings",
+        "summary": "Change what the connection reads and how",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErpSettingsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/erp-connections/zoho/complete": {
+      "post": {
+        "operationId": "ErpController.complete",
+        "summary": "Finish connecting Zoho Books with what it sent the browser back with",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErpCompleteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/erp-connections/zoho/start": {
+      "post": {
+        "operationId": "ErpController.start",
+        "summary": "Where to send the browser to connect Zoho Books",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErpStartBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpStart"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/expense-claims": {
       "get": {
         "operationId": "ExpensesController.list",
@@ -14442,6 +14849,10 @@
                           "webhook.updated",
                           "webhook.secret_rotated",
                           "webhook.replayed",
+                          "erp.connected",
+                          "erp.settings_changed",
+                          "erp.disconnected",
+                          "erp.run",
                           "data_export.created",
                           "data_export.downloaded",
                           "data_request.raised",
@@ -14457,7 +14868,8 @@
                           "user",
                           "platform",
                           "system",
-                          "api_client"
+                          "api_client",
+                          "connector"
                         ]
                       }
                     },
@@ -20176,6 +20588,10 @@
                           "webhook.updated",
                           "webhook.secret_rotated",
                           "webhook.replayed",
+                          "erp.connected",
+                          "erp.settings_changed",
+                          "erp.disconnected",
+                          "erp.run",
                           "data_export.created",
                           "data_export.downloaded",
                           "data_request.raised",
@@ -20191,7 +20607,8 @@
                           "user",
                           "platform",
                           "system",
-                          "api_client"
+                          "api_client",
+                          "connector"
                         ]
                       }
                     },
@@ -20528,6 +20945,10 @@
                           "webhook.updated",
                           "webhook.secret_rotated",
                           "webhook.replayed",
+                          "erp.connected",
+                          "erp.settings_changed",
+                          "erp.disconnected",
+                          "erp.run",
                           "data_export.created",
                           "data_export.downloaded",
                           "data_request.raised",
@@ -20543,7 +20964,8 @@
                           "user",
                           "platform",
                           "system",
-                          "api_client"
+                          "api_client",
+                          "connector"
                         ]
                       }
                     },
@@ -20978,6 +21400,10 @@
                 "webhook.updated",
                 "webhook.secret_rotated",
                 "webhook.replayed",
+                "erp.connected",
+                "erp.settings_changed",
+                "erp.disconnected",
+                "erp.run",
                 "data_export.created",
                 "data_export.downloaded",
                 "data_request.raised",
@@ -20998,7 +21424,8 @@
                 "user",
                 "platform",
                 "system",
-                "api_client"
+                "api_client",
+                "connector"
               ]
             }
           },
@@ -27410,7 +27837,8 @@
                                   "user",
                                   "platform",
                                   "system",
-                                  "api_client"
+                                  "api_client",
+                                  "connector"
                                 ]
                               },
                               "id": {
@@ -27579,6 +28007,10 @@
                               "webhook.updated",
                               "webhook.secret_rotated",
                               "webhook.replayed",
+                              "erp.connected",
+                              "erp.settings_changed",
+                              "erp.disconnected",
+                              "erp.run",
                               "data_export.created",
                               "data_export.downloaded",
                               "data_request.raised",
@@ -35443,6 +35875,769 @@
         ],
         "additionalProperties": false
       },
+      "ErpCompleteBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "accountsServer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "code",
+          "state",
+          "accountsServer"
+        ],
+        "additionalProperties": false
+      },
+      "ErpConnection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "zoho_books"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "choosing",
+              "connected",
+              "needs_reconnect",
+              "disconnected"
+            ]
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "in",
+                  "com",
+                  "eu",
+                  "com.au",
+                  "jp",
+                  "ca",
+                  "com.cn",
+                  "sa",
+                  "ae"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "organization": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "organizations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ErpSettings"
+          },
+          "connectedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connectedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastRunAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "status",
+          "region",
+          "organization",
+          "organizations",
+          "settings",
+          "connectedAt",
+          "connectedBy",
+          "lastRunAt"
+        ],
+        "additionalProperties": false
+      },
+      "ErpOrganizationBody": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "organizationId"
+        ],
+        "additionalProperties": false
+      },
+      "ErpProviders": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "enum": [
+                    "zoho_books"
+                  ]
+                },
+                "configured": {
+                  "type": "boolean"
+                },
+                "connection": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErpConnection"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "provider",
+                "configured",
+                "connection"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "providers"
+        ],
+        "additionalProperties": false
+      },
+      "ErpRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "pull",
+              "push"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "ok",
+              "partial",
+              "failed"
+            ]
+          },
+          "stoppedBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "daily_limit",
+                  "rate_limited",
+                  "reconnect",
+                  "error"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "counts": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "account",
+                "item",
+                "price",
+                "invoice",
+                "receipt",
+                "order"
+              ]
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "read": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "created": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "updated": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "unchanged": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "skipped": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "read",
+                "created",
+                "updated",
+                "unchanged",
+                "skipped"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "entity": {
+                  "type": "string",
+                  "enum": [
+                    "account",
+                    "item",
+                    "price",
+                    "invoice",
+                    "receipt",
+                    "order"
+                  ]
+                },
+                "externalId": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "issue": {
+                  "type": "string",
+                  "enum": [
+                    "no_customer_number",
+                    "no_account_type",
+                    "no_territory",
+                    "no_sku",
+                    "unknown_customer",
+                    "duplicate_code",
+                    "not_per_item",
+                    "refused"
+                  ]
+                },
+                "field": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "detail": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "entity",
+                "externalId",
+                "label",
+                "issue",
+                "field",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "calls": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "stoppedBy",
+          "startedAt",
+          "finishedAt",
+          "counts",
+          "problems",
+          "calls"
+        ],
+        "additionalProperties": false
+      },
+      "ErpRuns": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErpRun"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "ErpSettings": {
+        "type": "object",
+        "properties": {
+          "accountType": {
+            "default": null,
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Key"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "territoryField": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "defaultTerritory": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemPriceList": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priceBooks": {
+            "default": [],
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pricebookId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "priceList": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              },
+              "required": [
+                "pricebookId",
+                "priceList"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "units": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            },
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Key"
+            }
+          },
+          "invoiceDays": {
+            "default": 180,
+            "type": "integer",
+            "minimum": 7,
+            "maximum": 730
+          },
+          "dailyCalls": {
+            "default": 1000,
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 100000
+          },
+          "read": {
+            "default": {
+              "customers": true,
+              "items": true,
+              "invoices": true,
+              "payments": true
+            },
+            "type": "object",
+            "properties": {
+              "customers": {
+                "type": "boolean"
+              },
+              "items": {
+                "type": "boolean"
+              },
+              "invoices": {
+                "type": "boolean"
+              },
+              "payments": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "customers",
+              "items",
+              "invoices",
+              "payments"
+            ],
+            "additionalProperties": false
+          },
+          "pushOrders": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accountType",
+          "territoryField",
+          "defaultTerritory",
+          "itemPriceList",
+          "priceBooks",
+          "units",
+          "invoiceDays",
+          "dailyCalls",
+          "read",
+          "pushOrders"
+        ],
+        "additionalProperties": false
+      },
+      "ErpSettingsInput": {
+        "type": "object",
+        "properties": {
+          "accountType": {
+            "default": null,
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Key"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "territoryField": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "defaultTerritory": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemPriceList": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priceBooks": {
+            "default": [],
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pricebookId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "priceList": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              },
+              "required": [
+                "pricebookId",
+                "priceList"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "units": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            },
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Key"
+            }
+          },
+          "invoiceDays": {
+            "default": 180,
+            "type": "integer",
+            "minimum": 7,
+            "maximum": 730
+          },
+          "dailyCalls": {
+            "default": 1000,
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 100000
+          },
+          "read": {
+            "default": {
+              "customers": true,
+              "items": true,
+              "invoices": true,
+              "payments": true
+            },
+            "type": "object",
+            "properties": {
+              "customers": {
+                "type": "boolean"
+              },
+              "items": {
+                "type": "boolean"
+              },
+              "invoices": {
+                "type": "boolean"
+              },
+              "payments": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "customers",
+              "items",
+              "invoices",
+              "payments"
+            ],
+            "additionalProperties": false
+          },
+          "pushOrders": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ErpStart": {
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "authorizeUrl"
+        ],
+        "additionalProperties": false
+      },
+      "ErpStartBody": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "type": "string",
+            "enum": [
+              "in",
+              "com",
+              "eu",
+              "com.au",
+              "jp",
+              "ca",
+              "com.cn",
+              "sa",
+              "ae"
+            ]
+          }
+        },
+        "required": [
+          "region"
+        ],
+        "additionalProperties": false
+      },
       "Error": {
         "type": "object",
         "properties": {
@@ -35495,6 +36690,8 @@
                   "SSO_REQUIRED",
                   "SUPPORT_READ_ONLY",
                   "UPGRADE_REQUIRED",
+                  "ERP_NOT_CONFIGURED",
+                  "ERP_REFUSED",
                   "INTERNAL"
                 ],
                 "description": "A stable code from spec 11.4"
@@ -36234,6 +37431,10 @@
                   "webhook.updated",
                   "webhook.secret_rotated",
                   "webhook.replayed",
+                  "erp.connected",
+                  "erp.settings_changed",
+                  "erp.disconnected",
+                  "erp.run",
                   "data_export.created",
                   "data_export.downloaded",
                   "data_request.raised",
@@ -36249,7 +37450,8 @@
                   "user",
                   "platform",
                   "system",
-                  "api_client"
+                  "api_client",
+                  "connector"
                 ]
               }
             },
@@ -42609,6 +43811,7 @@
           "audit.view",
           "api_client.manage",
           "webhook.manage",
+          "erp.manage",
           "billing.manage"
         ]
       },
@@ -45312,6 +46515,10 @@
                   "webhook.updated",
                   "webhook.secret_rotated",
                   "webhook.replayed",
+                  "erp.connected",
+                  "erp.settings_changed",
+                  "erp.disconnected",
+                  "erp.run",
                   "data_export.created",
                   "data_export.downloaded",
                   "data_request.raised",
@@ -45327,7 +46534,8 @@
                   "user",
                   "platform",
                   "system",
-                  "api_client"
+                  "api_client",
+                  "connector"
                 ]
               }
             },
@@ -45762,6 +46970,10 @@
                   "webhook.updated",
                   "webhook.secret_rotated",
                   "webhook.replayed",
+                  "erp.connected",
+                  "erp.settings_changed",
+                  "erp.disconnected",
+                  "erp.run",
                   "data_export.created",
                   "data_export.downloaded",
                   "data_request.raised",
@@ -45777,7 +46989,8 @@
                   "user",
                   "platform",
                   "system",
-                  "api_client"
+                  "api_client",
+                  "connector"
                 ]
               }
             },
