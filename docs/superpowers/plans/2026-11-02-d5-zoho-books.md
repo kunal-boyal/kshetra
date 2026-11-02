@@ -212,8 +212,8 @@ English and Hindi: `erp.*` and `audit.actor_connector`, and `notify.erp_reconnec
 
 ### Pull request 3: the portal
 
-- [ ] Settings › ERP with the connect flow and return page, the organisation, mappings, Sync now, runs and Disconnect.
-- [ ] Vitest and Playwright with axe.
+- [x] Settings › ERP with the connect flow and return page, the organisation, mappings, Sync now, runs and Disconnect.
+- [x] Vitest and Playwright with axe.
 - [ ] Docs:
   - decision D129;
   - spec M20, BR-59 and Appendix E;

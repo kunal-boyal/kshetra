@@ -61,6 +61,7 @@ import { MetricEditorPage } from './settings/metric-editor-page';
 import { MetricsPage } from './settings/metrics-page';
 import { BillingPage } from './settings/billing-page';
 import { DevelopersPage } from './settings/developers-page';
+import { ErpPage, ZohoReturnPage } from './settings/erp-page';
 import { SecurityDataPage } from './settings/security-page';
 import { AuditLogPage } from './settings/audit-log-page';
 import { DataExportPage } from './settings/data-export-page';
@@ -431,6 +432,25 @@ const supportSettings = createRoute({
   path: '/support',
   component: SupportPage,
 });
+const erpSettings = createRoute({
+  getParentRoute: () => settings,
+  path: '/erp',
+  component: ErpPage,
+});
+// Zoho Books sends the browser back here with its code (decision D129).
+const zohoReturn = createRoute({
+  getParentRoute: () => settings,
+  path: '/erp/zoho',
+  validateSearch: (search: Record<string, unknown>): Record<string, string | undefined> =>
+    Object.fromEntries(
+      ['code', 'state', 'accounts-server', 'location', 'error'].flatMap((key) =>
+        typeof search[key] === 'string' ? [[key, search[key]]] : [],
+      ),
+    ),
+  component: function ZohoReturnRoute() {
+    return <ZohoReturnPage search={zohoReturn.useSearch()} />;
+  },
+});
 const developerSettings = createRoute({
   getParentRoute: () => settings,
   path: '/developers',
@@ -660,6 +680,8 @@ const tree = root.addChildren([
       ssoSettings,
       supportSettings,
       developerSettings,
+      erpSettings,
+      zohoReturn,
       apiClientSettings,
       webhookSettings,
       securitySettings,

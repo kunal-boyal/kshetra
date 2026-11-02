@@ -171,6 +171,61 @@ const ANSWERS: Record<string, unknown> = {
       },
     ],
   },
+  '/v1/erp-connections': {
+    providers: [
+      {
+        provider: 'zoho_books',
+        configured: true,
+        connection: {
+          id: '01a10000-0000-7000-8000-0000000000f1',
+          provider: 'zoho_books',
+          status: 'connected',
+          region: 'in',
+          organization: { id: '60001', name: 'Sunrise Traders Pvt Ltd' },
+          organizations: [],
+          settings: {
+            accountType: null,
+            territoryField: null,
+            defaultTerritory: null,
+            itemPriceList: null,
+            priceBooks: [],
+            units: {},
+            invoiceDays: 180,
+            dailyCalls: 1000,
+            read: { customers: true, items: true, invoices: true, payments: true },
+            pushOrders: false,
+          },
+          connectedAt: '2026-11-02T05:00:00.000Z',
+          connectedBy: null,
+          lastRunAt: '2026-11-02T06:00:00.000Z',
+        },
+      },
+    ],
+  },
+  '/v1/erp-connections/01a10000-0000-7000-8000-0000000000f1/runs': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000f3',
+        kind: 'pull',
+        status: 'partial',
+        stoppedBy: null,
+        startedAt: '2026-11-02T06:00:00.000Z',
+        finishedAt: '2026-11-02T06:01:00.000Z',
+        counts: { account: { read: 4, created: 2, updated: 0, unchanged: 0, skipped: 2 } },
+        problems: [
+          {
+            entity: 'account',
+            externalId: '460000000026049',
+            label: 'No Number Traders',
+            issue: 'no_customer_number',
+            field: null,
+            detail: null,
+          },
+        ],
+        calls: 9,
+      },
+    ],
+  },
   '/v1/webhooks': {
     items: [
       {
@@ -729,6 +784,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
             'billing.manage',
             'api_client.manage',
             'webhook.manage',
+            'erp.manage',
             'audit.view',
             'dashboard.manage',
           ],
@@ -760,6 +816,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'announcements',
     'api-clients',
     'webhooks',
+    'erp-connections',
     'data-exports',
     'data-requests',
     'dashboard-layouts',
@@ -819,6 +876,8 @@ for (const path of [
   'sso',
   'support',
   'developers',
+  'erp',
+  'erp/zoho?error=access_denied',
   'security',
   'data-export',
   'data-requests',
