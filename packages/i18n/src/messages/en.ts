@@ -61,6 +61,8 @@ export const en = {
   'error.OTP_INVALID': 'That code is not right. Check it and try again.',
   'error.OTP_EXPIRED': 'This code has expired. Ask for a new one.',
   'error.UPGRADE_REQUIRED': 'Update the app to continue.',
+  'error.ERP_NOT_CONFIGURED': 'This server isn’t set up to connect to that ERP yet.',
+  'error.ERP_REFUSED': 'The ERP refused the request. Try connecting again.',
   'error.INTERNAL': 'Something went wrong. Try again in a moment.',
 
   // The copy of spec 8.4, which states exactly what each figure represents.
@@ -661,6 +663,7 @@ export const en = {
   'perm.audit.view': 'View the audit log',
   'perm.api_client.manage': 'Manage API clients',
   'perm.webhook.manage': 'Manage webhooks',
+  'perm.erp.manage': 'Connect and manage the ERP',
   'perm.billing.manage': 'Manage billing',
   'nav.imports': 'Imports',
   'nav.territories': 'Territories',
@@ -5075,6 +5078,7 @@ export const en = {
   'audit.actor_system': 'The system',
   'audit.actor_platform': 'Vendor staff',
   'audit.actor_api_client': 'An API client',
+  'audit.actor_connector': 'The ERP connection',
   'audit_log.title': 'Audit log',
   'audit_log.intro':
     'Every change made in your organisation: who made it, when, from where, and what it was before and after. Entries are kept as long as Settings › Rules says.',

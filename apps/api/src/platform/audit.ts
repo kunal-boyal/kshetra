@@ -24,6 +24,9 @@ export const SYSTEM_ACTOR: AuditActor = { kind: 'system', id: null };
  * the grant it acted under; or an API client.
  */
 export function userActor(access: Access): AuditActor {
+  if (access.connector) {
+    return { kind: 'connector', id: access.connector.connectionId, deviceId: null };
+  }
   if (access.apiClient) {
     return { kind: 'api_client', id: access.apiClient.id, ip: access.ip, deviceId: null };
   }

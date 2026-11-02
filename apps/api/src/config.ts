@@ -8,6 +8,12 @@ const minimumVersion = z
   .transform((value) => value || undefined)
   .pipe(z.string().regex(APP_VERSION, 'Use a version such as 1.4.0').optional());
 
+// A value an empty line in .env leaves unset.
+const unsetWhenEmpty = z
+  .string()
+  .optional()
+  .transform((value) => value?.trim() || undefined);
+
 export const PROCESS_ROLES = ['api', 'worker', 'scheduler'] as const;
 
 /**
@@ -27,7 +33,8 @@ export type CellSecret =
   | 'JWT_PUBLISHED_KEYS'
   | 'CLOUDFRONT_PRIVATE_KEY'
   | 'MSG91_AUTH_KEY'
-  | 'SMTP_URL';
+  | 'SMTP_URL'
+  | 'ZOHO_CLIENT_SECRET';
 
 const DATABASES: CellSecret[] = ['DATABASE_URL', 'DIRECTORY_DATABASE_URL'];
 
@@ -43,6 +50,7 @@ export const ROLE_SECRETS: Record<(typeof PROCESS_ROLES)[number], readonly CellS
     'CLOUDFRONT_PRIVATE_KEY',
     'MSG91_AUTH_KEY',
     'SMTP_URL',
+    'ZOHO_CLIENT_SECRET',
   ],
   worker: [
     ...DATABASES,
@@ -52,6 +60,7 @@ export const ROLE_SECRETS: Record<(typeof PROCESS_ROLES)[number], readonly CellS
     'CLOUDFRONT_PRIVATE_KEY',
     'MSG91_AUTH_KEY',
     'SMTP_URL',
+    'ZOHO_CLIENT_SECRET',
   ],
   scheduler: DATABASES,
 };
@@ -252,6 +261,12 @@ const schema = z
     // D101): `pwned` asks its range API, which sees only five hex digits of the password's SHA-1;
     // `off` skips the check, for working offline; `memory` knows a few, for tests.
     PASSWORD_BREACH_CHECK: z.enum(['pwned', 'off', 'memory']).default('pwned'),
+    // Zoho Books (decision D129): the vendor's client, registered in Zoho's API console as a
+    // server-based application whose redirect is the portal's /settings/erp/zoho. Without both, the
+    // portal says the cell isn't set up for it. `memory` answers from a fake organisation, in tests.
+    ZOHO_API: z.enum(['public', 'memory']).default('public'),
+    ZOHO_CLIENT_ID: unsetWhenEmpty,
+    ZOHO_CLIENT_SECRET: unsetWhenEmpty,
     // Where an SSO domain's TXT record is looked up (decision D101): the public DNS, or records
     // a test sets.
     DOMAIN_RECORDS: z.enum(['dns', 'memory']).default('dns'),
@@ -510,6 +525,7 @@ const schema = z
       ['PAYMENT_PROVIDER', config.PAYMENT_PROVIDER],
       ['PASSWORD_BREACH_CHECK', config.PASSWORD_BREACH_CHECK],
       ['DOMAIN_RECORDS', config.DOMAIN_RECORDS],
+      ['ZOHO_API', config.ZOHO_API],
     ] as const) {
       if (value === 'memory' && config.NODE_ENV !== 'test') {
         ctx.addIssue({

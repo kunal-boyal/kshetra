@@ -42,6 +42,7 @@ import { AppVersionGuard } from './platform/app-version';
 import { AccessTokens, AuthGuard } from './platform/auth';
 import { Database } from './platform/database';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { ErpModule } from './modules/erp/erp.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { HEALTH_CHECKS, HealthController, type HealthChecks } from './platform/health.controller';
 import { API_ROUTES, DocsController } from './platform/docs.controller';
@@ -92,6 +93,7 @@ export const FEATURE_MODULES = [
   ReviewModule,
   MeteringModule,
   WebhooksModule,
+  ErpModule,
   GovernanceModule,
 ];
 

@@ -50,6 +50,10 @@ export const ERROR_HTTP_STATUS = {
   SSO_REQUIRED: 403,
   SUPPORT_READ_ONLY: 403,
   UPGRADE_REQUIRED: 426,
+  /** This cell has no credentials for the ERP asked for (decision D129). */
+  ERP_NOT_CONFIGURED: 409,
+  /** The ERP refused what the connection asked of it, such as an expired or reused code. */
+  ERP_REFUSED: 502,
   INTERNAL: 500,
 } as const satisfies Record<string, number>;
 

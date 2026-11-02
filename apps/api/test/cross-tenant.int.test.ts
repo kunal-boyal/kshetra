@@ -14,6 +14,7 @@ import { InvoicesService } from '../src/modules/billing/invoices.service';
 import { TenantBillingService } from '../src/modules/billing/tenant-billing.service';
 import { StaffService } from '../src/modules/console/staff.service';
 import { DirectoryDatabase } from '../src/modules/directory/directory.database';
+import { FakeZohoBooks } from '../src/modules/erp/fake-zoho-books';
 import { SupportService } from '../src/modules/directory/support.service';
 import { AnnouncementsService } from '../src/modules/directory/announcements.service';
 import { NotificationDelivery } from '../src/modules/notifications/delivery';
@@ -87,6 +88,7 @@ let aSupportGrantId: string;
 let aApiClient: { id: string; clientId: string; secret: string };
 /** A webhook of A's and the test message it sent. */
 let aWebhookId: string;
+let aErpConnectionId: string;
 let aWebhookMessageId: string;
 /** A data export of A's, still waiting, as no worker runs here. */
 let aDataExportId: string;
@@ -444,6 +446,63 @@ const FIXTURES: Record<string, Fixture> = {
   'POST /v1/api-clients/:id/revoke': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('POST', `/v1/api-clients/${id}/revoke`), aApiClient.id),
+  },
+  'GET /v1/erp-connections': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/erp-connections')),
+  },
+  'POST /v1/erp-connections/zoho/start': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asB('POST', '/v1/erp-connections/zoho/start', { region: 'in' });
+      expect(reply.statusCode, reply.body).toBe(200);
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /v1/erp-connections/zoho/complete': {
+    kind: 'write',
+    run: async () => {
+      const started = await asB('POST', '/v1/erp-connections/zoho/start', { region: 'in' });
+      const reply = await asB('POST', '/v1/erp-connections/zoho/complete', {
+        code: app.get(FakeZohoBooks).issueCode(),
+        state: new URL(started.json().authorizeUrl).searchParams.get('state'),
+        accountsServer: 'https://accounts.zoho.in',
+      });
+      expect(reply.statusCode, reply.body).toBe(200);
+      expect(reply.json().id).not.toBe(aErpConnectionId);
+      holdsNothingOfA(reply);
+    },
+  },
+  'PUT /v1/erp-connections/:id/organization': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/erp-connections/${id}/organization`, { organizationId: '60001' }),
+        aErpConnectionId,
+      ),
+  },
+  'PUT /v1/erp-connections/:id/settings': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('PUT', `/v1/erp-connections/${id}/settings`, { invoiceDays: 30 }),
+        aErpConnectionId,
+      ),
+  },
+  'POST /v1/erp-connections/:id/disconnect': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => asB('POST', `/v1/erp-connections/${id}/disconnect`), aErpConnectionId),
+  },
+  'GET /v1/erp-connections/:id/runs': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => asB('GET', `/v1/erp-connections/${id}/runs`), aErpConnectionId),
+  },
+  'POST /v1/erp-connections/:id/runs': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere((id) => asB('POST', `/v1/erp-connections/${id}/runs`), aErpConnectionId),
   },
   'GET /v1/webhooks': {
     kind: 'own tenant',
@@ -3035,6 +3094,15 @@ beforeAll(async () => {
   expect(hooked.statusCode, hooked.body).toBe(201);
   aWebhookMessageId = (await send(aToken, 'POST', `/v1/webhooks/${aWebhookId}/test`)).json()
     .messageId;
+  // A's Zoho Books connection, made through the fake organisation.
+  const erpStart = await send(aToken, 'POST', '/v1/erp-connections/zoho/start', { region: 'in' });
+  const erpDone = await send(aToken, 'POST', '/v1/erp-connections/zoho/complete', {
+    code: app.get(FakeZohoBooks).issueCode(),
+    state: new URL(erpStart.json().authorizeUrl).searchParams.get('state'),
+    accountsServer: 'https://accounts.zoho.in',
+  });
+  expect(erpDone.statusCode, erpDone.body).toBe(200);
+  aErpConnectionId = erpDone.json().id;
   aDataExportId = newId();
   const exported = await send(aToken, 'POST', '/v1/data-exports', { id: aDataExportId });
   expect(exported.statusCode, exported.body).toBe(201);

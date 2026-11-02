@@ -56,6 +56,8 @@ export const hi: Record<MessageKey, Message> = {
   'error.OTP_INVALID': 'यह कोड सही नहीं है। जाँचकर फिर कोशिश करें।',
   'error.OTP_EXPIRED': 'इस कोड की समय-सीमा खत्म हो गई है। नया कोड मँगाएँ।',
   'error.UPGRADE_REQUIRED': 'जारी रखने के लिए ऐप अपडेट करें।',
+  'error.ERP_NOT_CONFIGURED': 'यह सर्वर अभी उस ERP से जुड़ने के लिए तैयार नहीं है।',
+  'error.ERP_REFUSED': 'ERP ने अनुरोध नहीं माना। फिर से जोड़ें।',
   'error.INTERNAL': 'कुछ गड़बड़ हो गई। थोड़ी देर में फिर कोशिश करें।',
 
   'copy.offline_save': 'इस फ़ोन पर सहेज लिया गया। इंटरनेट मिलने पर यह अपलोड हो जाएगा।',
@@ -644,6 +646,7 @@ export const hi: Record<MessageKey, Message> = {
   'perm.audit.view': 'ऑडिट लॉग देखें',
   'perm.api_client.manage': 'API क्लाइंट संभालें',
   'perm.webhook.manage': 'वेबहुक संभालें',
+  'perm.erp.manage': 'ERP जोड़ें और संभालें',
   'perm.billing.manage': 'बिलिंग संभालें',
   'nav.imports': 'इम्पोर्ट',
   'nav.territories': 'क्षेत्र',
@@ -5060,6 +5063,7 @@ export const hi: Record<MessageKey, Message> = {
   'audit.actor_system': 'सिस्टम',
   'audit.actor_platform': 'वेंडर स्टाफ़',
   'audit.actor_api_client': 'एक API क्लाइंट',
+  'audit.actor_connector': 'ERP कनेक्शन',
   'audit_log.title': 'ऑडिट लॉग',
   'audit_log.intro':
     'आपके संगठन में किया गया हर बदलाव: किसने किया, कब, कहाँ से, और पहले और बाद में क्या था। प्रविष्टियाँ उतने समय रखी जाती हैं जितना Settings › Rules में लिखा है।',

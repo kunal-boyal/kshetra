@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "building",
-  "version": 6,
+  "version": 7,
   "name": {
     "en": "Building materials and paints",
     "hi": "बिल्डिंग मटीरियल और पेंट"
@@ -99,6 +99,7 @@
         "audit.view",
         "api_client.manage",
         "webhook.manage",
+        "erp.manage",
         "billing.manage",
         "sell_through.record",
         "forecast.record",

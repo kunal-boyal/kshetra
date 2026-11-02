@@ -58,8 +58,8 @@ The tasks' security group lets them out only on HTTPS (443) and SMTP over TLS (4
 
 | Process | Reaches |
 |---|---|
-| `api` | The database and Redis; AWS's APIs (S3, Secrets Manager, CloudWatch); MSG91 for sign-in codes; Have I Been Pwned's range API (`api.pwnedpasswords.com`) for new staff passwords; Sentry once set; tenants' OIDC identity providers, through the outbound guard; DNS TXT records of SSO domains, through the VPC's resolver |
-| `worker` | The database and Redis; AWS's APIs; MSG91, Expo push and SES; Sentry once set; tenants' webhook receivers, through the outbound guard |
+| `api` | The database and Redis; AWS's APIs (S3, Secrets Manager, CloudWatch); MSG91 for sign-in codes; Zoho Books' accounts servers and API while an admin connects it (D129); Have I Been Pwned's range API (`api.pwnedpasswords.com`) for new staff passwords; Sentry once set; tenants' OIDC identity providers, through the outbound guard; DNS TXT records of SSO domains, through the VPC's resolver |
+| `worker` | The database and Redis; AWS's APIs; MSG91, Expo push and SES; Sentry once set; tenants' webhook receivers, through the outbound guard; Zoho Books' accounts servers and API (`accounts.zoho.*`, `www.zohoapis.*`), through the outbound guard, for tenants that connect it (D129) |
 | `scheduler` | The database and Redis; CloudWatch, through its log stream |
 | `migrate`, `bootstrap` | The database |
 

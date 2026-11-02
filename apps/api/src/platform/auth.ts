@@ -58,6 +58,16 @@ export interface ApiClientAccess {
   scopes: readonly ApiScopeKey[];
 }
 
+/**
+ * An ERP connection at work (decision D129): nobody at the tenant. Its access also carries an
+ * `apiClient` of the connection's ID, so everything that asks whether a person is calling answers
+ * no, as it does for a client of the API; the audit names it as a connector.
+ */
+export interface ConnectorAccess {
+  connectionId: string;
+  provider: string;
+}
+
 /** Vendor support inside a tenant under a grant (module M22, decision D93). */
 export interface SupportAccess {
   grantId: string;
@@ -86,6 +96,8 @@ export interface Access extends AuthContext {
   support?: SupportAccess;
   /** Set when an API client is calling; nobody at the tenant is. */
   apiClient?: ApiClientAccess;
+  /** Set when an ERP connection is at work, with `apiClient` (decision D129). */
+  connector?: ConnectorAccess;
 }
 
 declare module 'fastify' {
@@ -102,6 +114,15 @@ export abstract class AccessResolver {
   abstract resolve(auth: AuthContext): Promise<Access>;
   /** Someone's access now, for background work done on their behalf, such as an import. */
   abstract onBehalfOf(tenantId: string, userId: string, cell: string): Promise<Access>;
+  /**
+   * An ERP connection's access (decision D129): the whole tenant, with the permissions its import
+   * targets need, less switched-off modules; refused while the integrations module is off.
+   */
+  abstract forConnector(
+    tenantId: string,
+    connector: ConnectorAccess,
+    cell: string,
+  ): Promise<Access>;
 }
 
 export type AccessRule =

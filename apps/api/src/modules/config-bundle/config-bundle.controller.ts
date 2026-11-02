@@ -19,9 +19,10 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
  * (decision D45). 4: the catalogue's units (decision D46). 5: item fields and price rounding
  * (decision D77). 6: order rejection reasons (decision D78). 7: target periods (decision D108).
  * 8: the sell-through term (decision D124), and the permissions phases 3 and 4 added. A test holds
- * each shape's fingerprint, so the bundle can't change without this moving too.
+ * each shape's fingerprint, so the bundle can't change without this moving too. 9: `erp.manage`
+ * (decision D129).
  */
-export const BUNDLE_SHAPE = 8;
+export const BUNDLE_SHAPE = 9;
 
 /** True when an `If-None-Match` header names this ETag, weak or strong. */
 function matches(header: string | undefined, etag: string): boolean {

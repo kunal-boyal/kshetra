@@ -84,6 +84,10 @@ export function testConfig(overrides: Record<string, string> = {}): Config {
     PAYMENT_PROVIDER: 'memory',
     PASSWORD_BREACH_CHECK: 'memory',
     DOMAIN_RECORDS: 'memory',
+    // A fake Zoho Books organisation (decision D129); the client is a stand-in, never Zoho's.
+    ZOHO_API: 'memory',
+    ZOHO_CLIENT_ID: 'test-zoho-client',
+    ZOHO_CLIENT_SECRET: 'test-zoho-client-secret',
     // One approved template, so tests see both a template and an event without one.
     WHATSAPP_TEMPLATES: JSON.stringify({ 'plan.today': { en: 'plan_today_en' } }),
     OTP_PEPPER: 'a-test-pepper-of-16+',
