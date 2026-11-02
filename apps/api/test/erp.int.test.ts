@@ -90,7 +90,10 @@ describe('connecting Zoho Books (D129)', () => {
     const org = await organisation('ERP Connecting');
     const listed = await call('GET', '/v1/erp-connections', org.admin);
     expect(listed.json()).toEqual({
-      providers: [{ provider: 'zoho_books', configured: true, connection: null }],
+      providers: [
+        { provider: 'zoho_books', configured: true, connection: null },
+        { provider: 'sap_b1', configured: true, connection: null },
+      ],
     });
 
     const started = await call('POST', '/v1/erp-connections/zoho/start', org.admin, {

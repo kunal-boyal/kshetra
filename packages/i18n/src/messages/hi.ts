@@ -5178,6 +5178,7 @@ export const hi: Record<MessageKey, Message> = {
   'erp.issue_duplicate_code': 'Zoho के एक और रिकॉर्ड का यही कोड है',
   'erp.issue_not_per_item': 'केवल प्रति-आइटम सेल्स प्राइस बुक पढ़ी जा सकती हैं',
   'erp.issue_not_in_books': 'इसका ग्राहक या कोई आइटम अभी Zoho में नहीं है; यह इंतज़ार करता है',
+  'erp.issue_no_tax_rate': 'इसकी GST दर नहीं है, और कोई डिफ़ॉल्ट दर तय नहीं है',
   'erp.issue_refused': 'इसे नहीं माना गया',
   'erp.disconnect': 'अलग करें',
   'erp.disconnect_question':

@@ -33,7 +33,16 @@ export const ErpSettings = z
       .array(z.strictObject({ pricebookId: z.string().min(1).max(40), priceList: z.uuid() }))
       .max(20)
       .default([]),
-    /** Zoho's unit names to the catalogue's unit keys, where they differ. */
+    /** SAP: a user field on items holding the GST rate (BR-60). */
+    taxRateField: z.string().trim().min(1).max(100).nullable().default(null),
+    /** SAP: the GST rate of an item whose field is empty. */
+    defaultTaxRate: z
+      .string()
+      .trim()
+      .regex(/^\d{1,2}(\.\d{1,4})?$/, 'Write a rate such as 18 or 5.5')
+      .nullable()
+      .default(null),
+    /** The books' unit names to the catalogue's unit keys, where they differ. */
     units: z.record(z.string().trim().min(1).max(40), Key).default({}),
     /** How many days back invoices and payments are read. */
     invoiceDays: z.int().min(7).max(730).default(180),
@@ -65,6 +74,10 @@ export const ErpConnectionResult = z
     /** The organisations to choose from while the status is `choosing`. */
     organizations: z.array(ErpOrganization),
     settings: ErpSettings,
+    /** SAP: the Service Layer's address, company database and user; the password never returns. */
+    endpoint: z.string().nullable(),
+    companyDb: z.string().nullable(),
+    username: z.string().nullable(),
     connectedAt: z.iso.datetime().nullable(),
     connectedBy: z.object({ id: z.uuid(), name: z.string() }).nullable(),
     lastRunAt: z.iso.datetime().nullable(),
@@ -97,6 +110,19 @@ export const ErpCompleteBody = z
     accountsServer: z.string().min(1).max(200),
   })
   .meta({ id: 'ErpCompleteBody' });
+
+/**
+ * `POST /v1/erp-connections/sap-b1`: the Service Layer's address (HTTPS on 443), the company
+ * database, and a user made for the connection; checked by signing in before it is kept.
+ */
+export const SapConnectBody = z
+  .strictObject({
+    endpoint: z.string().trim().min(1).max(300),
+    companyDb: z.string().trim().min(1).max(100),
+    username: z.string().trim().min(1).max(100),
+    password: z.string().min(1).max(200),
+  })
+  .meta({ id: 'SapConnectBody' });
 
 export const ErpOrganizationBody = z
   .strictObject({ organizationId: z.string().min(1).max(40) })

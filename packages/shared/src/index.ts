@@ -1279,8 +1279,26 @@ export {
   ErpSettings,
   ErpStartBody,
   ErpStartResult,
+  SapConnectBody,
   ZohoRegionKey,
 } from './schemas/erp';
+export {
+  SAP_SERVICE_PATH,
+  type SapAddress,
+  type SapBusinessPartner,
+  sapCustomerRow,
+  sapEndpointIssue,
+  type SapInvoice,
+  sapInvoiceRow,
+  type SapItem,
+  type SapItemPrice,
+  sapItemRow,
+  type SapMapping,
+  type SapPayment,
+  sapPaymentRow,
+  sapPaymentTotal,
+  sapServiceRoot,
+} from './erp-sap';
 export {
   ARCHIVE_FORMAT,
   ARCHIVE_MANIFEST,

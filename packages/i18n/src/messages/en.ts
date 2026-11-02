@@ -5197,6 +5197,7 @@ export const en = {
   'erp.issue_duplicate_code': 'another Zoho record has the same code',
   'erp.issue_not_per_item': 'only per-item sales price books can be read',
   'erp.issue_not_in_books': 'its customer or an item isn’t in Zoho yet; it waits',
+  'erp.issue_no_tax_rate': 'it has no GST rate, and no default rate is set',
   'erp.issue_refused': 'it was refused',
   'erp.disconnect': 'Disconnect',
   'erp.disconnect_question':

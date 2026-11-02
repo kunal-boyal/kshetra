@@ -14,6 +14,7 @@ import { InvoicesService } from '../src/modules/billing/invoices.service';
 import { TenantBillingService } from '../src/modules/billing/tenant-billing.service';
 import { StaffService } from '../src/modules/console/staff.service';
 import { DirectoryDatabase } from '../src/modules/directory/directory.database';
+import { FAKE_SAP_COMPANY } from '../src/modules/erp/fake-sap-b1';
 import { FakeZohoBooks } from '../src/modules/erp/fake-zoho-books';
 import { SupportService } from '../src/modules/directory/support.service';
 import { AnnouncementsService } from '../src/modules/directory/announcements.service';
@@ -470,6 +471,17 @@ const FIXTURES: Record<string, Fixture> = {
       });
       expect(reply.statusCode, reply.body).toBe(200);
       expect(reply.json().id).not.toBe(aErpConnectionId);
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /v1/erp-connections/sap-b1': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asB('POST', '/v1/erp-connections/sap-b1', {
+        endpoint: 'https://b1.tenant-b.example',
+        ...FAKE_SAP_COMPANY,
+      });
+      expect(reply.statusCode, reply.body).toBe(200);
       holdsNothingOfA(reply);
     },
   },

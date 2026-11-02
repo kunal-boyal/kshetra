@@ -35,7 +35,7 @@ export const MOVE_SKIPPED_TABLES = ['sync_tombstones'];
 export const ARCHIVE_SECRET_COLUMNS: Record<string, readonly string[]> = {
   api_clients: ['secret_hash'],
   devices: ['device_key_hash', 'push_token'],
-  erp_connections: ['refresh_token_sealed'],
+  erp_connections: ['refresh_token_sealed', 'credentials_sealed'],
   push_tokens: ['token'],
   webhook_subscriptions: ['secret_sealed'],
 };

@@ -722,6 +722,13 @@
       "when": 1793606968485,
       "tag": "0102_erp_reconnect_notification",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1793614587465,
+      "tag": "0103_erp_sap_b1",
+      "breakpoints": true
     }
   ]
 }

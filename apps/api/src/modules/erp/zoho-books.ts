@@ -1,15 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  AppError,
-  callsLeft,
-  ZOHO_CALLS_PER_MINUTE,
-  ZOHO_REGIONS,
-  type ZohoRegion,
-  zohoHostIssue,
-} from '@thelamp/shared';
+import { AppError, ZOHO_REGIONS, type ZohoRegion, zohoHostIssue } from '@thelamp/shared';
 import type { Config } from '../../config';
 import { publicFetch } from '../../platform/outbound';
 import { CONFIG } from '../../platform/tokens';
+import { type CallMeter, ErpFailed, ErpRateLimited, ErpReconnect } from './erp-calls';
 
 /** What Zoho Books may read and write for a connection (docs/integrations/zoho-books.md). */
 export const ZOHO_SCOPES = [
@@ -63,54 +57,6 @@ export class PublicZohoTransport extends ZohoTransport {
       json = null;
     }
     return { status: response.status, json };
-  }
-}
-
-/** The books answered 429: a limit was met; the run stops and the next carries on. */
-export class ZohoRateLimited extends Error {}
-/** The refresh token was refused: the connection must be made again. */
-export class ZohoReconnect extends Error {}
-/** The run's share of the day's calls is spent. */
-export class ZohoDailyLimit extends Error {}
-/** Any other refusal, with Zoho's code and message (never a token). */
-export class ZohoFailed extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-/**
- * Counts a run's calls against the organisation's day (BR-59) and paces them under Zoho's
- * per-minute limit; `used` is the day's count, saved with the run.
- */
-export class CallMeter {
-  private readonly recent: number[] = [];
-
-  constructor(
-    public used: number,
-    private readonly dailyLimit: number,
-    private readonly sleep: (ms: number) => Promise<void> = (ms) =>
-      new Promise((resolve) => setTimeout(resolve, ms)),
-  ) {}
-
-  /** Calls made in this run. */
-  calls = 0;
-
-  async take(): Promise<void> {
-    if (callsLeft(this.used, this.dailyLimit) <= 0) throw new ZohoDailyLimit();
-    const now = Date.now();
-    while (this.recent.length > 0 && now - this.recent[0]! >= 60_000) this.recent.shift();
-    if (this.recent.length >= ZOHO_CALLS_PER_MINUTE) {
-      await this.sleep(60_000 - (now - this.recent[0]!));
-      this.recent.shift();
-    }
-    this.recent.push(Date.now());
-    this.used += 1;
-    this.calls += 1;
   }
 }
 
@@ -316,10 +262,10 @@ export class ZohoBooks {
       })}`,
       headers: {},
     });
-    if (answer.status === 429) throw new ZohoRateLimited();
+    if (answer.status === 429) throw new ErpRateLimited();
     const body = (answer.json ?? {}) as Record<string, unknown>;
     if (answer.status !== 200 || typeof body.access_token !== 'string') {
-      throw new ZohoReconnect();
+      throw new ErpReconnect();
     }
     const seconds = Number(body.expires_in ?? 3600);
     // Kept five minutes short of its hour, so a call never starts on a token about to lapse.
@@ -331,10 +277,10 @@ export class ZohoBooks {
   }
 
   private refuseFailure(answer: ZohoAnswer): void {
-    if (answer.status === 429) throw new ZohoRateLimited();
-    if (answer.status === 401) throw new ZohoReconnect();
+    if (answer.status === 429) throw new ErpRateLimited();
+    if (answer.status === 401) throw new ErpReconnect();
     if (answer.status >= 300) {
-      throw new ZohoFailed(answer.status, codeOf(answer.json), message(answer.json));
+      throw new ErpFailed(answer.status, codeOf(answer.json), message(answer.json));
     }
   }
 
@@ -358,7 +304,7 @@ export class ZohoBooks {
 
   private origin(address: string): string {
     if (zohoHostIssue(address, address.includes('zohoapis') ? 'api' : 'accounts')) {
-      throw new ZohoReconnect();
+      throw new ErpReconnect();
     }
     return address
       .trim()
