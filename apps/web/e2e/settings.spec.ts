@@ -914,6 +914,7 @@ async function mockSignedIn(page: Page, brandColour: string | null = null) {
     'data-exports',
     'data-requests',
     'dashboard-layouts',
+    'modules',
   ]) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
