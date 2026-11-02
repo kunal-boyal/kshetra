@@ -18272,6 +18272,44 @@
         }
       }
     },
+    "/v1/modules": {
+      "get": {
+        "operationId": "SettingsController.modules",
+        "summary": "The modules the tenant's plan leaves out, which no switch opens",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Any one of: module.manage, settings.manage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModulesResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/notification-prefs": {
       "get": {
         "operationId": "NotificationsController.prefs",
@@ -43060,6 +43098,33 @@
           "unit",
           "direction",
           "targetable"
+        ],
+        "additionalProperties": false
+      },
+      "ModulesResult": {
+        "type": "object",
+        "properties": {
+          "outsidePlan": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "leave_attendance",
+                "orders",
+                "account_finance",
+                "expenses",
+                "payroll_inputs",
+                "statutory_payroll",
+                "integrations",
+                "sso",
+                "advanced_analytics",
+                "inventory"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outsidePlan"
         ],
         "additionalProperties": false
       },

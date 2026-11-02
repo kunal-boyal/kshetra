@@ -3627,6 +3627,11 @@ export const en = {
   'admin.module_on': 'On',
   'admin.module_always_on': 'Always on',
   'admin.module_coming': 'Arrives later',
+  'admin.module_not_in_plan': 'Not in your plan',
+  'admin.module_not_in_plan_about':
+    'Your plan doesn’t include this module. Ask us to add it to your plan to switch it on.',
+  'admin.modules_outside_plan':
+    'Your plan doesn’t include a module you switched on. Reload the page to see which modules your plan includes.',
   'admin.module_core': 'Core',
   'admin.module_core_about':
     'People, territories, {term.account:other:lower}, forms, shifts and tracking, visits, review, plans and metrics, dashboards, notifications, imports and exports.',

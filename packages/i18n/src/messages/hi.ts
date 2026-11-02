@@ -3617,6 +3617,11 @@ export const hi: Record<MessageKey, Message> = {
   'admin.module_on': 'चालू',
   'admin.module_always_on': 'हमेशा चालू',
   'admin.module_coming': 'बाद में आएगा',
+  'admin.module_not_in_plan': 'आपके प्लान में नहीं',
+  'admin.module_not_in_plan_about':
+    'आपके प्लान में यह मॉड्यूल शामिल नहीं है। इसे चालू करने के लिए हमसे इसे अपने प्लान में जोड़ने को कहें।',
+  'admin.modules_outside_plan':
+    'आपने जो मॉड्यूल चालू किया, वह आपके प्लान में शामिल नहीं है। आपके प्लान में कौन-से मॉड्यूल हैं, यह देखने के लिए पेज फिर से लोड करें।',
   'admin.module_core': 'मूल',
   'admin.module_core_about':
     'लोग, क्षेत्र, {term.account:other}, फ़ॉर्म, शिफ़्ट और ट्रैकिंग, विज़िट, समीक्षा, योजनाएँ और मीट्रिक, डैशबोर्ड, सूचनाएँ, इंपोर्ट और एक्सपोर्ट।',

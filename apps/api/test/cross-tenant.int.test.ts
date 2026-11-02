@@ -1881,6 +1881,10 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA({ ...theirs, body: theirs.body.replace(aSubmissionId, '') } as Reply);
     },
   },
+  'GET /v1/modules': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/modules')),
+  },
   'GET /v1/review-rules': {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asB('GET', '/v1/review-rules')),

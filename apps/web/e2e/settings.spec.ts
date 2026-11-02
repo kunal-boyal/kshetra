@@ -789,6 +789,8 @@ const ANSWERS: Record<string, unknown> = {
       metrics: [{ metric: 'visits', weight: 100 }],
     },
   },
+  // The plan leaves single sign-on out, so the Modules page shows it with no switch (D89).
+  '/v1/modules': { outsidePlan: ['sso'] },
   '/v1/terminology': {
     overrides: {
       'term.account': {

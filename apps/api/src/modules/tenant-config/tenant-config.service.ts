@@ -36,7 +36,7 @@ export class TenantConfigService {
    * wherever settings are read, so their routes, phone copies and screens close as an admin's
    * switch closes them; without a plan, none are left out.
    */
-  private async outsidePlan(tenantId: string): Promise<SwitchableModule[]> {
+  async outsidePlan(tenantId: string): Promise<SwitchableModule[]> {
     const { modules } = await this.entitlements.forTenant(tenantId);
     return modules ? SWITCHABLE_MODULES.filter((module) => !modules.includes(module)) : [];
   }

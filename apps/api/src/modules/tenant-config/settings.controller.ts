@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Patch, Put } from '@nestjs/common';
 import {
   AppError,
+  ModulesResult,
   ReviewRulesResult,
   TenantSettings,
   TerminologyOverrides,
@@ -42,6 +43,17 @@ export class SettingsController {
     return this.database.forTenant(access.tenantId, (tx) =>
       this.config.updateSettings(tx, access.tenantId, userActor(access), patch),
     );
+  }
+
+  @Get('modules')
+  @Contract({
+    tag: 'Settings',
+    summary: "The modules the tenant's plan leaves out, which no switch opens",
+    response: ModulesResult,
+  })
+  @RequiresAny('module.manage', 'settings.manage')
+  async modules(@CurrentAccess() access: Access): Promise<ModulesResult> {
+    return { outsidePlan: await this.config.outsidePlan(access.tenantId) };
   }
 
   @Get('review-rules')

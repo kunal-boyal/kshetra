@@ -403,6 +403,7 @@ export {
   CoreConfigBundle,
   LOGO_MAX_BYTES,
   LOGO_TYPES,
+  ModulesResult,
   OrganisationResult,
   PortableSettings,
   SETTING_DEFAULTS,
