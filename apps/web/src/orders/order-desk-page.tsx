@@ -1,6 +1,7 @@
 import { ApiError } from '@thelamp/api-client';
 import { formatMoney, formatNumber } from '@thelamp/i18n';
 import {
+  AccountResult,
   gstHalves,
   newId,
   orderSizeIssue,
@@ -19,6 +20,7 @@ import {
   TextAreaField,
   TextField,
 } from '@thelamp/ui-web';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Plus, Send, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
@@ -27,10 +29,11 @@ import { useCatalogue } from '../catalogue/data';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
-import { useAccess } from '../people/data';
+import { read, useAccess } from '../people/data';
 import { Facts, PageHeader, Section } from '../people/shared';
 import { useTypeList } from '../settings/types-data';
 import { useAccountSchemes } from '../schemes/data';
+import { SupplierShortfall } from '../stock/supplier-stock';
 import { useAccountPrices, useOrderWrites } from './data';
 
 interface DraftLine {
@@ -133,6 +136,11 @@ function Cart({
   const catalogue = useCatalogue();
   const prices = useAccountPrices(account.id);
   const schemes = useAccountSchemes(account.id);
+  // An account with a parent orders through it (D78): its stock is what the order draws on.
+  const supplier = useQuery({
+    queryKey: ['account', account.id, 'supplier'],
+    queryFn: () => read(client, `/v1/accounts/${account.id}`, AccountResult),
+  }).data?.parent;
   const rounding = config.data?.bundle.catalogue.rounding ?? 'per_unit_first';
   const [id] = useState(() => newId());
   const [lines, setLines] = useState<DraftLine[]>([]);
@@ -418,6 +426,15 @@ function Cart({
       {prices.data && offered.length === 0 ? (
         <p className="ks-muted">{t('prices.none_body')}</p>
       ) : null}
+      <SupplierShortfall
+        supplier={supplier ?? null}
+        lines={cart.lines.map((entry) => ({
+          itemId: entry.item.id,
+          name: entry.item.name,
+          baseUnits: entry.priced.baseUnits,
+          unit: entry.item.baseUnit,
+        }))}
+      />
       <DataTable
         caption={t('orders.lines_caption')}
         columns={columns}

@@ -196,6 +196,37 @@ describe('rules (M2, spec 5.1)', () => {
   });
 });
 
+describe('stock rules (D130)', () => {
+  it('chooses where stock comes from and the count tolerance while inventory is on', async () => {
+    const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN);
+    renderAt('/settings/rules', client);
+    const user = userEvent.setup();
+    const stock = await screen.findByRole('region', { name: 'Stock' });
+    await user.selectOptions(
+      within(stock).getByRole('combobox', { name: /Where stock comes from/ }),
+      'books',
+    );
+    const tolerance = within(stock).getByRole('spinbutton', { name: /A count is flagged/ });
+    await user.clear(tolerance);
+    await user.type(tolerance, '10');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Saved.')).toBeVisible();
+    expect((writesOf(client)[0]![3] as { body: object }).body).toEqual({
+      stockSource: 'books',
+      countTolerancePct: 10,
+    });
+  });
+
+  it('leaves stock out while inventory is off', async () => {
+    const client = fakeClient({}, {}, ADMIN, {
+      settings: { ...SETTING_DEFAULTS, modulesOff: ['inventory'] },
+    });
+    renderAt('/settings/rules', client);
+    expect(await screen.findByRole('region', { name: 'Evidence checks' })).toBeVisible();
+    expect(screen.queryByRole('region', { name: 'Stock' })).toBeNull();
+  });
+});
+
 describe('the forecast plan metric (D126)', () => {
   it('offers the money metrics in use, and none', async () => {
     const entry = (key: string, unit: string, active = true) => ({

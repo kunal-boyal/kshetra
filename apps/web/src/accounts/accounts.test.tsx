@@ -887,3 +887,163 @@ describe('the account form', () => {
     });
   });
 });
+
+describe("an account's stock (D130)", () => {
+  const STOCK_NEEM = {
+    id: '01a10000-0000-7000-8000-0000000000e1',
+    code: 'NEEM',
+    name: 'Neem oil',
+    baseUnit: 'pack',
+  };
+  const STOCK_UREA = {
+    id: '01a10000-0000-7000-8000-0000000000e2',
+    code: 'UREA',
+    name: 'Urea 45 kg',
+    baseUnit: 'bag',
+  };
+
+  const STOCK = {
+    accountId: SHOP,
+    source: 'kept',
+    value: '6840.00',
+    items: [
+      {
+        item: STOCK_NEEM,
+        onHand: '19',
+        value: '6840.00',
+        movedAt: '2026-11-02T06:00:00.000Z',
+        countedOn: null,
+      },
+      {
+        item: STOCK_UREA,
+        onHand: '-2',
+        value: null,
+        movedAt: '2026-11-01T06:00:00.000Z',
+        countedOn: '2026-11-01',
+      },
+    ],
+  };
+  const MOVEMENTS = {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000f1',
+        kind: 'received',
+        item: STOCK_NEEM,
+        units: '24',
+        occurredOn: '2026-11-02',
+        source: { type: 'order', id: '01a10000-0000-7000-8000-0000000000f2' },
+        note: null,
+        by: null,
+        createdAt: '2026-11-02T06:00:00.000Z',
+      },
+    ],
+    nextCursor: null,
+  };
+  const COUNT = {
+    id: '01a10000-0000-7000-8000-0000000000f3',
+    accountId: SHOP,
+    countedAt: '2026-11-02T07:00:00.000Z',
+    by: { id: '01a10000-0000-7000-8000-000000000004', name: 'Asha Rao' },
+    note: null,
+    flagged: true,
+    lines: [
+      {
+        item: STOCK_NEEM,
+        counted: '18',
+        expected: '19',
+        difference: '-1',
+        flags: ['beyond_tolerance'],
+      },
+    ],
+  };
+
+  function stockClient(permissions: string[], source: 'kept' | 'books' = 'kept') {
+    return fakeClient(
+      {
+        [`/v1/accounts/${SHOP}/overview`]: OVERVIEW,
+        [`/v1/accounts/${SHOP}/stock`]: { ...STOCK, source },
+        [`/v1/accounts/${SHOP}/stock/movements`]: MOVEMENTS,
+        [`/v1/accounts/${SHOP}/stock/counts`]: { items: [COUNT], nextCursor: null },
+        '/v1/catalogue': {
+          version: 1,
+          units: [],
+          measureTypes: [],
+          items: [
+            { ...STOCK_NEEM, active: true },
+            { ...STOCK_UREA, active: true },
+          ],
+        },
+      },
+      {
+        'POST /v1/stock/movements': () => ({ id: 'x', movements: [] }),
+        'POST /v1/stock/counts': () => COUNT,
+      },
+      ['account.view', ...permissions] as never,
+      { accountTypes: [{ ...DISTRIBUTOR, keepsStock: true }, FARMER] },
+    );
+  }
+
+  it('shows what it holds, a negative level as it is, its movements and counts', async () => {
+    renderAt(`/accounts/${SHOP}`, stockClient(['stock.view']));
+    const user = userEvent.setup();
+    const section = await screen.findByRole('region', { name: 'Stock' });
+    const table = await within(section).findByRole('table', { name: 'Stock' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('Neem oil');
+    expect(rows[0]).toHaveTextContent('19 pack');
+    expect(rows[1]).toHaveTextContent('Below zero');
+    expect(rows[1]).toHaveTextContent('-2 bag');
+    expect(within(section).getByText(/Worth ₹6,840\.00 at its prices/)).toBeVisible();
+    // Viewing only: nothing to record or count.
+    expect(within(section).queryByRole('button', { name: 'Count stock' })).toBeNull();
+    await user.click(within(section).getByText('Movements'));
+    expect(await within(section).findByRole('table', { name: 'Movements' })).toHaveTextContent(
+      '+24',
+    );
+    await user.click(within(section).getByText('Counts'));
+    expect(within(section).getByText(/counted 18, expected 19 · past the tolerance/)).toBeVisible();
+  });
+
+  it('records goods out once by its ID, and counts with big gaps flagged', async () => {
+    const client = stockClient(['stock.view', 'stock.record', 'stock.count']);
+    renderAt(`/accounts/${SHOP}`, client);
+    const user = userEvent.setup();
+    const section = await screen.findByRole('region', { name: 'Stock' });
+    await user.click(
+      await within(section).findByRole('button', { name: 'Record goods in or out' }),
+    );
+    const form = within(section).getByRole('form', { name: 'Record goods in or out' });
+    await user.selectOptions(within(form).getByLabelText('Kind'), 'sold');
+    await user.selectOptions(within(form).getByLabelText('Item'), STOCK_NEEM.id);
+    await user.type(within(form).getByLabelText(/Quantity/), '5');
+    await user.click(within(form).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(writesOf(client)).toHaveLength(1));
+    expect(writesOf(client)[0]![3]).toMatchObject({
+      body: { accountId: SHOP, kind: 'sold', lines: [{ itemId: STOCK_NEEM.id, quantity: '5' }] },
+    });
+
+    await user.click(within(section).getByRole('button', { name: 'Count stock' }));
+    const count = within(section).getByRole('form', { name: 'Count stock' });
+    // The items held start the count; one left empty isn't counted.
+    const counted = within(count).getAllByLabelText(/Counted/);
+    expect(counted).toHaveLength(2);
+    await user.type(counted[0]!, '18');
+    await user.click(within(count).getByRole('button', { name: 'Save the count' }));
+    expect(await within(section).findByText(/Count saved\. Stock is set to it\./)).toBeVisible();
+    expect(within(section).getByText(/Take a second look at: Neem oil: 18 \/ 19/)).toBeVisible();
+    expect(writesOf(client)[1]![3]).toMatchObject({
+      body: { accountId: SHOP, lines: [{ itemId: STOCK_NEEM.id, counted: '18' }] },
+    });
+  });
+
+  it('offers no entries while the books keep stock', async () => {
+    renderAt(
+      `/accounts/${SHOP}`,
+      stockClient(['stock.view', 'stock.record', 'stock.count'], 'books'),
+    );
+    const section = await screen.findByRole('region', { name: 'Stock' });
+    expect(await within(section).findByText(/Loaded from your books/)).toBeVisible();
+    expect(within(section).queryByRole('button', { name: 'Record goods in or out' })).toBeNull();
+    expect(within(section).getByRole('button', { name: 'Count stock' })).toBeVisible();
+  });
+});

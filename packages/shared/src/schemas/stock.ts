@@ -93,6 +93,8 @@ export const StockLevel = z.object({
   countedOn: z.iso.date().nullable(),
 });
 
+export type StockLevel = z.infer<typeof StockLevel>;
+
 /** `GET /v1/accounts/{id}/stock`: the account's stock, item by item, and where it comes from. */
 export const StockLevelsResult = z
   .object({

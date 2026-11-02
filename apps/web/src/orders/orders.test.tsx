@@ -683,3 +683,51 @@ describe('schemes on orders (D127)', () => {
     expect(body.free).toEqual([{ itemId: UREA, baseUnits: '1.000', ofItemId: UREA }]);
   });
 });
+
+describe('stock behind a secondary order (D130)', () => {
+  const DIST = '01a10000-0000-7000-8000-000000000081';
+  const levels = (neem: string) => ({
+    accountId: DIST,
+    source: 'kept',
+    value: null,
+    items: [
+      {
+        item: { id: NEEM, code: 'NEEM', name: 'NEEM item', baseUnit: 'pack' },
+        onHand: neem,
+        value: null,
+        movedAt: null,
+        countedOn: null,
+      },
+    ],
+  });
+  const secondary = order({
+    supplier: { kind: 'account', account: { id: DIST, code: 'D-80', name: 'Green Fields Agro' } },
+  });
+
+  it('says where the supplier holds less than the order asks for, without refusing it', async () => {
+    renderAt(
+      `/orders/${ORDER}`,
+      fakeClient(
+        { [`/v1/orders/${ORDER}`]: secondary, [`/v1/accounts/${DIST}/stock`]: levels('20') },
+        {},
+        ['order.view', 'stock.view'],
+        BUNDLE,
+      ),
+    );
+    // 24 packs of neem against 20; urea, which it doesn't hold at all, 36 short.
+    expect(
+      await screen.findByText(
+        'Green Fields Agro holds less than this asks for: NEEM item short by 4 pack; UREA item short by 36 pack. It can still be placed.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('says nothing without stock to see', async () => {
+    renderAt(
+      `/orders/${ORDER}`,
+      fakeClient({ [`/v1/orders/${ORDER}`]: secondary }, {}, ['order.view'], BUNDLE),
+    );
+    expect(await screen.findByRole('heading', { level: 1, name: /Order 1187/ })).toBeVisible();
+    expect(screen.queryByText(/holds less than this asks for/)).toBeNull();
+  });
+});
