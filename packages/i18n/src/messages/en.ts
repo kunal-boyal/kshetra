@@ -3188,6 +3188,8 @@ export const en = {
   'sell_through.month': 'Month',
   'sell_through.none': 'No {term.sell_through:lower} for this month yet.',
   'sell_through.carried': 'Opening stock comes forward from last month’s closing.',
+  'sell_through.from_ledger':
+    'From the stock ledger: {received} in, {returned} sent back. Change them if they differ.',
   'sell_through.total': 'Sold through {value} in all',
   'sell_through.open_until': 'Can still change until {date}.',
   'sell_through.closed': 'This month is closed.',

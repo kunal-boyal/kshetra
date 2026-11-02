@@ -1,5 +1,11 @@
 import type { Outbox, OutboxItem, SqlDatabase } from '@thelamp/api-client/sync';
-import { newId, type StockCountBody, stockShortfall, type SyncStock } from '@thelamp/shared';
+import {
+  ledgerMonth,
+  newId,
+  type StockCountBody,
+  stockShortfall,
+  type SyncStock,
+} from '@thelamp/shared';
 import { useMemo } from 'react';
 import { useLocalRows } from './local-data';
 import { useOutboxItems } from './sync';
@@ -48,6 +54,22 @@ export function useAccountStock(accountId: string | null): Map<string, string> |
         : stockOf(rows, queuedCounts(items), accountId),
     [rows, items, accountId],
   );
+}
+
+/**
+ * What the ledger says came in and went back at an account in a month, by item, to pre-fill its
+ * sell-through statement (BR-62); empty unless the app keeps stock there and the phone sees it.
+ */
+export function useLedgerMonth(
+  accountId: string,
+  period: string,
+  kept: boolean,
+): Map<string, { received: string; returned: string }> {
+  const rows = useLocalRows('stock');
+  return useMemo(() => {
+    const row = kept ? rows?.find((entry) => entry.accountId === accountId) : undefined;
+    return ledgerMonth(row?.items ?? [], period);
+  }, [rows, accountId, period, kept]);
 }
 
 /** What a supplier lacks of a cart's lines, from the phone's copy of its stock (BR-62). */

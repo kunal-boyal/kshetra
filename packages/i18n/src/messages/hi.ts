@@ -3179,6 +3179,8 @@ export const hi: Record<MessageKey, Message> = {
   'sell_through.month': 'महीना',
   'sell_through.none': 'इस महीने का अभी कोई {term.sell_through} नहीं।',
   'sell_through.carried': 'शुरुआती स्टॉक पिछले महीने के बचे स्टॉक से आता है।',
+  'sell_through.from_ledger':
+    'स्टॉक लेजर से: {received} आए, {returned} वापस भेजे। अलग हों तो बदलें।',
   'sell_through.total': 'कुल {value} की बिक्री',
   'sell_through.open_until': '{date} तक बदल सकते हैं।',
   'sell_through.closed': 'यह महीना बंद हो चुका है।',

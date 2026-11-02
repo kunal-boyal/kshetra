@@ -267,7 +267,15 @@ export const SyncStock = z
     id: z.uuid(),
     accountId: z.uuid(),
     items: z.array(
-      z.object({ itemId: z.uuid(), onHand: z.string(), countedOn: z.iso.date().nullable() }),
+      z.object({
+        itemId: z.uuid(),
+        onHand: z.string(),
+        countedOn: z.iso.date().nullable(),
+        /** Goods in and sent back this month and last, from the ledger (BR-62). */
+        moved: z.array(
+          z.object({ period: z.string(), received: z.string(), returned: z.string() }),
+        ),
+      }),
     ),
   })
   .meta({ id: 'SyncStock' });

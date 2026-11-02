@@ -174,3 +174,33 @@ export function stockShortfall(
     ];
   });
 }
+
+/** An item's goods in and goods sent back for one month, from the ledger. */
+export interface LedgerMonth {
+  period: string;
+  received: string;
+  returned: string;
+}
+
+/**
+ * What the stock ledger says came in and went back in a month (BR-62, decision D130), by item, to
+ * pre-fill a sell-through statement while the app keeps stock: `received` movements as received,
+ * `returned_out` as returned. Only items with any movement that month are named; what a person
+ * already recorded for the month stays theirs.
+ */
+export function ledgerMonth(
+  items: readonly { itemId: string; moved: readonly LedgerMonth[] }[],
+  period: string,
+): Map<string, { received: string; returned: string }> {
+  const month = new Map<string, { received: string; returned: string }>();
+  for (const item of items) {
+    const moved = item.moved.find((entry) => entry.period === period);
+    if (moved && (stockUnits(moved.received) !== 0n || stockUnits(moved.returned) !== 0n)) {
+      month.set(item.itemId, {
+        received: stockUnitsText(stockUnits(moved.received)),
+        returned: stockUnitsText(stockUnits(moved.returned)),
+      });
+    }
+  }
+  return month;
+}
