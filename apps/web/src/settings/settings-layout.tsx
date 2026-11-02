@@ -162,6 +162,7 @@ export const SETTINGS_GROUPS = [
         label: (t) => t('developers.title'),
         shown: can('api_client.manage', 'webhook.manage'),
       },
+      { to: '/settings/erp', label: (t) => t('erp.title'), shown: can('erp.manage') },
     ],
   },
 ] as const satisfies readonly { key: string; pages: readonly Page[] }[];
