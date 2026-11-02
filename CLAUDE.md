@@ -236,7 +236,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 ## Accounts and approvals (decision D43)
 
 - Who sees an account is `AccountsService.reach()`: today's slot holders within the caller's scope, their territories when the scope covers territory, and what they proposed. List, read and sync through it.
-- Account types carry form-engine fields, so their schemas and the full `ConfigBundle` live in `@thelamp/forms`; `@thelamp/shared` has `CoreConfigBundle`. When the bundle gains a part, raise `BUNDLE_SHAPE` in the config-bundle controller so phones fetch it again.
+- Account types carry form-engine fields, so their schemas and the full `ConfigBundle` live in `@thelamp/forms`; `@thelamp/shared` has `CoreConfigBundle`. When the bundle's schema changes in any way (a part, a field, a term, a permission), raise `BUNDLE_SHAPE` in the config-bundle controller so phones and browsers fetch it again, and record its fingerprint in `bundle-shape.test.ts`, which fails until both are done.
 - A request that needs approval registers its type with `RequestTypes` in the owning module and starts with `ApprovalsService.request()` in the same transaction; its `decided()` applies the outcome in the deciding transaction.
 - Records made on a phone carry their own IDs: wrap the create in `idempotent()` keyed by `<kind>:<id>`, so a resend replays and a changed body is `IDEMPOTENCY_CONFLICT`.
 - Points are `geography(Point, 4326)`: write with `pointSql()`, read with `pointOf()` from `src/platform/geo.ts`.
