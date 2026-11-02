@@ -1,5 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { newId } from '@thelamp/shared';
+import { newId, SETTING_DEFAULTS, todayIn } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StockService } from '../src/modules/stock/stock.service';
 import { TenantConfigService } from '../src/modules/tenant-config/tenant-config.service';
@@ -282,17 +282,42 @@ describe('distributors’ stock (BR-62, D130)', () => {
       );
     await expect.poll(onHand).toEqual({ NEEM: '-6', UREA: '-12' });
 
+    // Then 20 urea come in and 2 go back to the company.
+    for (const [kind, quantity] of [
+      ['received', '20'],
+      ['returned_out', '2'],
+    ] as const) {
+      const entry = await call('POST', '/v1/stock/movements', t.admin, {
+        id: newId(),
+        accountId: t.distributor,
+        kind,
+        lines: [{ itemId: t.itemIds.UREA, quantity }],
+      });
+      expect(entry.statusCode, entry.body).toBe(201);
+    }
+
     // The SME's phone keeps the distributor's stock, one row an account; the retailer holds none.
+    // Each item carries the month's goods in and sent back, from which a statement pre-fills.
     const pulled = await call('GET', '/v1/sync/pull?entities=stock', t.sme);
     expect(pulled.statusCode, pulled.body).toBe(200);
     const rows = pulled.json().entities.stock.rows;
     expect(rows).toHaveLength(1);
     expect(rows[0].accountId).toBe(t.distributor);
+    const month = todayIn(SETTING_DEFAULTS.timezone).slice(0, 7);
     expect(
       Object.fromEntries(
-        rows[0].items.map((item: { itemId: string; onHand: string }) => [item.itemId, item.onHand]),
+        rows[0].items.map(
+          (item: { itemId: string; onHand: string; moved: { period: string }[] }) => [
+            item.itemId,
+            [item.onHand, item.moved],
+          ],
+        ),
       ),
-    ).toEqual({ [t.itemIds.NEEM!]: '-6', [t.itemIds.UREA!]: '-12' });
+    ).toEqual({
+      // The opening and the sale move no goods in or back.
+      [t.itemIds.NEEM!]: ['-6', []],
+      [t.itemIds.UREA!]: ['6', [{ period: month, received: '20', returned: '2' }]],
+    });
 
     // Switched off, the entity sends nothing and its scope tells phones to drop their copies.
     await settings(t.tenantId, { modulesOff: ['inventory'] });

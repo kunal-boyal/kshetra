@@ -8,6 +8,7 @@ import {
   shiftPeriod,
   type SwitchableModule,
   type SyncPullResult,
+  type TenantSettings,
   todayIn,
 } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
@@ -155,7 +156,7 @@ const DISTRIBUTOR = {
     hi: { one: 'वितरक', other: 'वितरक' },
   },
   contacts: false,
-  sellThrough: false,
+  sellThrough: true,
   keepsStock: true,
 };
 
@@ -328,8 +329,20 @@ function pulled(): SyncPullResult {
           id: SUPPLIER,
           accountId: SUPPLIER,
           items: [
-            { itemId: SEED, onHand: '30', countedOn: '2026-10-30' },
-            { itemId: SPRAY, onHand: '-2', countedOn: null },
+            // This month 36 seed packs came in and 2 went back (D130).
+            {
+              itemId: SEED,
+              onHand: '30',
+              countedOn: '2026-10-30',
+              moved: [
+                {
+                  period: todayIn(SETTING_DEFAULTS.timezone).slice(0, 7),
+                  received: '36',
+                  returned: '2',
+                },
+              ],
+            },
+            { itemId: SPRAY, onHand: '-2', countedOn: null, moved: [] },
           ],
         },
       ]),
@@ -350,7 +363,7 @@ function pulled(): SyncPullResult {
   };
 }
 
-function fakeClient(modulesOff: SwitchableModule[] = []) {
+function fakeClient(modulesOff: SwitchableModule[] = [], settings: Partial<TenantSettings> = {}) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -401,7 +414,7 @@ function fakeClient(modulesOff: SwitchableModule[] = []) {
       etag: '"1-role-2"',
       bundle: {
         version: 1,
-        settings: { ...SETTING_DEFAULTS, modulesOff },
+        settings: { ...SETTING_DEFAULTS, ...settings, modulesOff },
         terminology: {},
         designations: [],
         accountTypes: [CUSTOMER, DISTRIBUTOR],
@@ -453,9 +466,10 @@ async function renderPhone(
   page: Page,
   db: SqlDatabase = nodeSqlite(),
   modulesOff: SwitchableModule[] = [],
+  settings: Partial<TenantSettings> = {},
 ) {
   await migrate(db);
-  const fake = fakeClient(modulesOff);
+  const fake = fakeClient(modulesOff, settings);
   await render(
     <LanguageProvider initial="en">
       <AppProvider
@@ -1025,5 +1039,35 @@ describe('distributors’ stock on the phone (BR-62, D130)', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /^Place the order/ })).toBeEnabled(),
     );
+  });
+
+  it('pre-fills a statement from the ledger where the app keeps stock, and saves what was typed over it', async () => {
+    const db = nodeSqlite();
+    await renderPhone({ name: 'sell_through', id: SUPPLIER }, db);
+    expect(
+      await screen.findByText(
+        'From the stock ledger: 36 in, 2 sent back. Change them if they differ.',
+      ),
+    ).toBeOnTheScreen();
+    // Only the closing is typed; received and returned come from the ledger.
+    await fireEvent.changeText(screen.getAllByLabelText('Closing')[0]!, '20');
+    expect(await screen.findByText('Sold through 14')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved. It uploads when there is a signal.');
+    const [queued] = (await new Outbox(db, {}).items(OWNER)).filter(
+      (entry) => entry.kind === 'sell_through.save',
+    );
+    expect(queued?.payload).toMatchObject({
+      accountId: SUPPLIER,
+      body: { lines: [{ itemId: SEED, received: '36', returned: '2', closing: '20' }] },
+    });
+  });
+
+  it('pre-fills nothing while the books keep stock', async () => {
+    await renderPhone({ name: 'sell_through', id: SUPPLIER }, nodeSqlite(), [], {
+      stockSource: 'books',
+    });
+    await screen.findByText(/SEED-1 · Opening/);
+    expect(screen.queryByText(/From the stock ledger/)).toBeNull();
   });
 });

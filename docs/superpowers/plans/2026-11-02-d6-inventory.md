@@ -123,6 +123,6 @@ Settled by these defaults unless Kunal says otherwise:
 - [x] The `stock` sync entity (one row an account), scoped by reach.
 - [x] Stock on the account screen; the cart shows the supplier's stock and short lines. The short-stock flag kept on the order's lines (`short_units`) and the `short_stock` approval fact.
 - [x] Counting at `/stock-count/<accountId>`, queued as `stock.count`.
-- [ ] The sell-through statement pre-filled from the ledger: deferred, as the phone would need the month's movements, not only the levels it keeps.
+- [x] The sell-through statement pre-filled from the ledger: a follow-up pull request, the month's movements carried on each synced item.
 - [x] Demo content: openings, receipts and sales from fulfilment, and a count a week.
 - [x] Jest. Progress and the tracker. `pnpm verify` before each merge.

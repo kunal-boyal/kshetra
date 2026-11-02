@@ -27,6 +27,7 @@ import { useConfig } from '../data';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { lineFrom, queueStatement, type StatementLine, useStatement } from '../sell-through';
+import { useLedgerMonth } from '../stock';
 import { useSync } from '../sync';
 
 interface Draft {
@@ -44,7 +45,9 @@ const typed = (value: string, empty: string) => value.trim().replace(/,/g, '') |
  * `/sell-through/<accountId>`: an account's stock statement for the month (BR-53, decision D124),
  * in the template's word, such as liquidation. Each item starts from last month's closing; the
  * person types what came in, went back and is left, sees what sold through as the server will
- * work it out, and saves offline. Last month stays open for its first days after.
+ * work it out, and saves offline. Last month stays open for its first days after. Where the app
+ * keeps the account's stock, an item not yet recorded for the month starts from what the ledger
+ * says came in and went back (BR-62), which the person may change.
  */
 export function SellThroughScreen({ accountId }: { accountId: string }) {
   const { client } = useApp();
@@ -60,6 +63,15 @@ export function SellThroughScreen({ accountId }: { accountId: string }) {
   const lastOpen = statementOpen(lastMonth, today);
   const [period, setPeriod] = useState(thisMonth);
   const statement = useStatement(accountId, period);
+  const bundle = config.data?.bundle;
+  const type = bundle?.accountTypes?.find((entry) => entry.key === account?.type);
+  const ledger = useLedgerMonth(
+    accountId,
+    period,
+    Boolean(type?.keepsStock) &&
+      !(bundle?.settings.modulesOff ?? []).includes('inventory') &&
+      bundle?.settings.stockSource === 'kept',
+  );
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
@@ -67,14 +79,19 @@ export function SellThroughScreen({ accountId }: { accountId: string }) {
   const [error, setError] = useState<string>();
   const number = (value: string) => formatNumber(Number(value), { locale });
 
+  /** An item's goods in and sent back before anything is typed: its line, else the ledger's. */
+  const startOf = (itemId: string, line: StatementLine | undefined) =>
+    line ?? ledger.get(itemId) ?? { received: '0', returned: '0' };
+
   /** What the person typed for an item, over its current line. */
   const sentFor = (itemId: string, line: StatementLine | undefined): SellThroughLineBody | null => {
     const draft = drafts[itemId];
     if (!draft) return null;
+    const start = startOf(itemId, line);
     return {
       itemId,
-      received: typed(draft.received, line?.received ?? '0'),
-      returned: typed(draft.returned, line?.returned ?? '0'),
+      received: typed(draft.received, start.received),
+      returned: typed(draft.returned, start.returned),
       closing: typed(draft.closing, line?.closing ?? ''),
     };
   };
@@ -113,7 +130,7 @@ export function SellThroughScreen({ accountId }: { accountId: string }) {
 
   const needle = q.trim().toLowerCase();
   const known = (itemId: string) =>
-    statement?.lines.has(itemId) || statement?.carried.has(itemId) ? 0 : 1;
+    statement?.lines.has(itemId) || statement?.carried.has(itemId) || ledger.has(itemId) ? 0 : 1;
   const shown = (items ?? [])
     .filter((item) => item.active)
     .filter(
@@ -175,6 +192,8 @@ export function SellThroughScreen({ accountId }: { accountId: string }) {
               ? lineFrom(sent, line, carried)
               : line;
           const opening = line?.opening ?? carried ?? '0';
+          const start = startOf(item.id, line);
+          const fromLedger = !line && ledger.has(item.id);
           const set = (patch: Partial<Draft>) =>
             setDrafts((current) => ({
               ...current,
@@ -186,6 +205,14 @@ export function SellThroughScreen({ accountId }: { accountId: string }) {
               <Text tone="muted">
                 {item.code} · {t('sell_through.opening', { value: number(opening) })}
               </Text>
+              {fromLedger ? (
+                <Text variant="bodySm" tone="muted">
+                  {t('sell_through.from_ledger', {
+                    received: number(start.received),
+                    returned: number(start.returned),
+                  })}
+                </Text>
+              ) : null}
               <View style={styles.row}>
                 <View style={styles.cell}>
                   <TextField
@@ -193,7 +220,7 @@ export function SellThroughScreen({ accountId }: { accountId: string }) {
                     numeric
                     keyboardType="decimal-pad"
                     value={draft.received}
-                    placeholder={line?.received ?? '0'}
+                    placeholder={start.received}
                     onChangeText={(value) => set({ received: value })}
                   />
                 </View>
@@ -203,7 +230,7 @@ export function SellThroughScreen({ accountId }: { accountId: string }) {
                     numeric
                     keyboardType="decimal-pad"
                     value={draft.returned}
-                    placeholder={line?.returned ?? '0'}
+                    placeholder={start.returned}
                     onChangeText={(value) => set({ returned: value })}
                   />
                 </View>

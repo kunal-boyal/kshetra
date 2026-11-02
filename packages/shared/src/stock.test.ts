@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   countResult,
+  ledgerMonth,
   movementsFromFulfilment,
   onHandAfter,
   signedUnits,
@@ -115,5 +116,29 @@ describe('a cart against its supplier’s stock (FX-93, BR-62)', () => {
       { itemId: 'karanj', ordered: '12', onHand: '0', short: '12' },
     ]);
     expect(stockShortfall([{ itemId: 'neem', baseUnits: '30' }], onHand)).toEqual([]);
+  });
+});
+
+describe('a statement pre-filled from the ledger (FX-94, BR-62)', () => {
+  it('takes the month’s goods in and sent back by item, naming only items that moved', () => {
+    const items = [
+      {
+        itemId: 'neem',
+        moved: [
+          { period: '2026-10', received: '24.000', returned: '0' },
+          { period: '2026-11', received: '36', returned: '2.500' },
+        ],
+      },
+      { itemId: 'urea', moved: [{ period: '2026-10', received: '12', returned: '0' }] },
+      { itemId: 'karanj', moved: [{ period: '2026-11', received: '0', returned: '0' }] },
+    ];
+    expect([...ledgerMonth(items, '2026-11')]).toEqual([
+      ['neem', { received: '36', returned: '2.5' }],
+    ]);
+    expect([...ledgerMonth(items, '2026-10')]).toEqual([
+      ['neem', { received: '24', returned: '0' }],
+      ['urea', { received: '12', returned: '0' }],
+    ]);
+    expect(ledgerMonth(items, '2026-09').size).toBe(0);
   });
 });

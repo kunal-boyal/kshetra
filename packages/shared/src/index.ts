@@ -1476,6 +1476,8 @@ export {
   countResult,
   type FulfilledLine,
   type FulfilmentMovement,
+  type LedgerMonth,
+  ledgerMonth,
   movementSign,
   movementsFromFulfilment,
   onHandAfter,

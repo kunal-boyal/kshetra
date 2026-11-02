@@ -53684,12 +53684,36 @@
                       "type": "null"
                     }
                   ]
+                },
+                "moved": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "period": {
+                        "type": "string"
+                      },
+                      "received": {
+                        "type": "string"
+                      },
+                      "returned": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "period",
+                      "received",
+                      "returned"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [
                 "itemId",
                 "onHand",
-                "countedOn"
+                "countedOn",
+                "moved"
               ],
               "additionalProperties": false
             }
