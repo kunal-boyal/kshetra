@@ -6,10 +6,12 @@ import { AccountsModule } from '../accounts/accounts.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { IamModule } from '../iam/iam.module';
 import { ImportsModule } from '../imports/imports.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { OrdersModule } from '../orders/orders.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { ErpConnectionsService } from './erp-connections.service';
 import { ErpController } from './erp.controller';
-import { ErpPull } from './erp-pull';
+import { ErpRuns } from './erp-runs';
 import { ErpUpkeep } from './erp.upkeep';
 import { FakeZohoBooks } from './fake-zoho-books';
 import { PublicZohoTransport, ZohoBooks, ZohoTransport } from './zoho-books';
@@ -19,11 +21,19 @@ import { PublicZohoTransport, ZohoBooks, ZohoTransport } from './zoho-books';
  * the import targets their modules register; nothing here writes another module's tables.
  */
 @Module({
-  imports: [AccountsModule, CatalogueModule, IamModule, ImportsModule, TerritoriesModule],
+  imports: [
+    AccountsModule,
+    CatalogueModule,
+    IamModule,
+    ImportsModule,
+    NotificationsModule,
+    OrdersModule,
+    TerritoriesModule,
+  ],
   controllers: [ErpController],
   providers: [
     ErpConnectionsService,
-    ErpPull,
+    ErpRuns,
     ErpUpkeep,
     ZohoBooks,
     ColumnCipher,

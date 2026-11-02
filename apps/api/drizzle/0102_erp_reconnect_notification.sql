@@ -1,0 +1,1 @@
+ALTER TYPE "cell"."notification_event" ADD VALUE 'erp.reconnect';

@@ -8,6 +8,8 @@ import {
   itemRow,
   paymentRow,
   perItemSalesBook,
+  salesOrderFor,
+  type ErpOrder,
   type ZohoContact,
   zohoHostIssue,
   zohoRegionOf,
@@ -228,5 +230,76 @@ describe('the day’s calls (FX-74, BR-59)', () => {
     expect(callsLeft(899, 1000)).toBe(1);
     expect(callsLeft(900, 1000)).toBe(0);
     expect(callsLeft(950, 1000)).toBe(0);
+  });
+});
+
+describe('an accepted order as a sales order (FX-75, FX-76, BR-59)', () => {
+  const order: ErpOrder = {
+    number: 1042,
+    date: '2026-11-02',
+    accountCode: 'C-1042',
+    lines: [
+      {
+        id: 'l1',
+        itemCode: 'TEA-250',
+        decision: 'accepted',
+        baseUnits: '24.000',
+        taxable: '2468.50',
+        freeOfLineId: null,
+      },
+      {
+        id: 'l2',
+        itemCode: 'SOAP-100',
+        decision: 'rejected',
+        baseUnits: '10.000',
+        taxable: '300.00',
+        freeOfLineId: null,
+      },
+      {
+        id: 'l3',
+        itemCode: 'TEA-250',
+        decision: 'accepted',
+        baseUnits: '2.000',
+        taxable: '0.00',
+        freeOfLineId: 'l1',
+      },
+      {
+        id: 'l4',
+        itemCode: 'SOAP-100',
+        decision: 'rejected',
+        baseUnits: '1.000',
+        taxable: '0.00',
+        freeOfLineId: 'l2',
+      },
+    ],
+  };
+  const ids: Record<string, string> = { 'TEA-250': 'z-tea', 'SOAP-100': 'z-soap' };
+
+  it('sends the accepted lines and their free goods, at the rate before tax per base unit', () => {
+    // 2,468.50 for 24 units is 102.854…, rounded half up to 102.85.
+    expect(salesOrderFor(order, 'z-c1042', (code) => ids[code] ?? null)).toEqual({
+      body: {
+        customer_id: 'z-c1042',
+        date: '2026-11-02',
+        reference_number: '1042',
+        line_items: [
+          { item_id: 'z-tea', quantity: 24, rate: 102.85 },
+          { item_id: 'z-tea', quantity: 2, rate: 0 },
+        ],
+      },
+    });
+  });
+
+  it('waits while the customer or an item is not in the books, and sends nothing for none accepted', () => {
+    expect(salesOrderFor(order, null, () => null)).toEqual({
+      missing: ['account:C-1042', 'item:TEA-250'],
+    });
+    const rejected = {
+      ...order,
+      lines: order.lines.map((line) => ({ ...line, decision: 'rejected' as const })),
+    };
+    expect(salesOrderFor(rejected, 'z-c1042', (code) => ids[code] ?? null)).toEqual({
+      nothing: true,
+    });
   });
 });

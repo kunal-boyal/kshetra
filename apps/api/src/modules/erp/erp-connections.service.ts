@@ -31,6 +31,8 @@ type RunRow = typeof erpRuns.$inferSelect;
 
 /** The job that reads the books into the tenant's records. */
 export const PULL = 'erp.pull';
+/** The job that sends accepted orders to the books. */
+export const PUSH = 'erp.push';
 /** A connection's state is good for ten minutes, the time to agree at Zoho. */
 const STATE_SECONDS = 600;
 /** A run still marked running after this long was cut short (a worker stopped). */

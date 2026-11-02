@@ -207,8 +207,8 @@ English and Hindi: `erp.*` and `audit.actor_connector`, and `notify.erp_reconnec
 
 ### Pull request 2: orders out
 
-- [ ] `salesOrderFor()`; the push consumer and job; reference lookup before create; waiting orders retried on the hourly run; the `erp.reconnect` notification.
-- [ ] Integration: an accepted order becomes one sales order, even when the first try times out after creating; a partly accepted order sends the accepted lines; an order whose account has no link waits.
+- [x] `salesOrderFor()`; the push consumer and job; reference lookup before create; waiting orders retried on the hourly run; the `erp.reconnect` notification.
+- [x] Integration: an accepted order becomes one sales order, even when the first try times out after creating; a partly accepted order sends the accepted lines; an order whose account has no link waits.
 
 ### Pull request 3: the portal
 

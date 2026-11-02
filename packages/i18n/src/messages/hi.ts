@@ -2770,6 +2770,9 @@ export const hi: Record<MessageKey, Message> = {
   'notify.support_requested_body':
     '{staff} आपके संगठन को {duration} के लिए {access} चाहते हैं: {reason}। सेटिंग्स में इसे मंज़ूर या नामंज़ूर करें।',
   'support.duration': { one: '{count} घंटे', other: '{count} घंटे' },
+  'notify.erp_reconnect_title': '{provider} को फिर से जोड़ें',
+  'notify.erp_reconnect_body':
+    '{provider} अब कनेक्शन नहीं मानता, इसलिए उससे कुछ पढ़ा या भेजा नहीं जा रहा। सेटिंग्स › ERP में इसे फिर से जोड़ें।',
   'support.access_read': 'देखना',
   'support.access_write': 'देखना और बदलना',
   'notify.support_emergency_title': 'आपात स्थिति में वेंडर सहायता ने प्रवेश किया',

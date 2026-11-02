@@ -105,7 +105,7 @@ compared by `last_modified_time`, and everything else by the fingerprint of the 
 - that the payment list carries `invoice_numbers`;
 - that the item list carries `sku`, `unit`, `tax_percentage` and `group_name`.
 
-## Sales orders (pull request 2)
+## Sales orders
 
 Source: <https://www.zoho.com/books/api/v3/sales-order/>
 
@@ -116,4 +116,5 @@ Source: <https://www.zoho.com/books/api/v3/sales-order/>
   - `line_items[]` with `item_id`, `quantity` and `rate`.
 - **No duplicates:** Zoho documents no idempotency key. The connector looks for its reference with
   `GET /salesorders?reference_number=…` before creating, so a lost answer never makes a second
-  order.
+  order. That the list takes `reference_number` as a filter is to be confirmed against the trial
+  organisation; the connector also checks each answer's `reference_number` itself.

@@ -6,6 +6,7 @@
  */
 
 import type { TenantPermission } from './access';
+import { divide, scaled, unscaled } from './pricing';
 
 export const ERP_PROVIDERS = ['zoho_books'] as const;
 export type ErpProvider = (typeof ERP_PROVIDERS)[number];
@@ -171,6 +172,7 @@ export const ERP_ISSUES = [
   'unknown_customer',
   'duplicate_code',
   'not_per_item',
+  'not_in_books',
   'refused',
 ] as const;
 export type ErpIssue = (typeof ERP_ISSUES)[number];
@@ -311,4 +313,78 @@ export const ZOHO_CALLS_PER_MINUTE = 90;
  */
 export function callsLeft(usedToday: number, dailyLimit: number): number {
   return Math.max(0, Math.floor(dailyLimit * 0.9) - usedToday);
+}
+
+/** An order as the books are sent it (decision D129): its number, day and lines as decided. */
+export interface ErpOrder {
+  number: number;
+  /** The day it was placed, on the tenant's clock. */
+  date: string;
+  accountCode: string;
+  lines: {
+    id: string;
+    itemCode: string;
+    decision: 'pending' | 'accepted' | 'rejected';
+    /** The quantity in the item's base unit, as Zoho counts it. */
+    baseUnits: string;
+    /** What the line comes to before tax, after its scheme. */
+    taxable: string;
+    /** Free goods name the line they come with. */
+    freeOfLineId: string | null;
+  }[];
+}
+
+/** A sales order as Zoho Books takes it. */
+export interface ZohoSalesOrderBody {
+  customer_id: string;
+  date: string;
+  reference_number: string;
+  line_items: { item_id: string; quantity: number; rate: number }[];
+}
+
+/**
+ * An accepted order as a sales order (BR-59): the accepted lines and the free goods that come
+ * with them, each in the item's base unit at its rate before tax after the scheme, so the books
+ * apply the item's own tax; the reference is the order's number. An order whose customer or any
+ * item isn't linked to the books names what is missing and waits; none accepted sends nothing.
+ */
+export function salesOrderFor(
+  order: ErpOrder,
+  customerId: string | null,
+  itemIdOf: (itemCode: string) => string | null,
+): { body: ZohoSalesOrderBody } | { missing: string[] } | { nothing: true } {
+  const accepted = new Set(
+    order.lines
+      .filter((line) => line.decision === 'accepted' && !line.freeOfLineId)
+      .map((line) => line.id),
+  );
+  const lines = order.lines.filter((line) =>
+    line.freeOfLineId ? accepted.has(line.freeOfLineId) : accepted.has(line.id),
+  );
+  if (lines.length === 0) return { nothing: true };
+  const missing = [
+    ...(customerId ? [] : [`account:${order.accountCode}`]),
+    ...[...new Set(lines.map((line) => line.itemCode))]
+      .filter((code) => !itemIdOf(code))
+      .map((code) => `item:${code}`),
+  ];
+  if (missing.length > 0) return { missing };
+  return {
+    body: {
+      customer_id: customerId!,
+      date: order.date,
+      reference_number: String(order.number),
+      line_items: lines.map((line) => {
+        const units = scaled(line.baseUnits, 3);
+        // Paise per base unit, rounded half up: taxable × 1000 ÷ milli-units.
+        const rate = units === 0n ? 0n : divide(scaled(line.taxable, 2) * 1000n, units);
+        return {
+          item_id: itemIdOf(line.itemCode)!,
+          // Numbers only on the way out, as Zoho's JSON takes them; worked out exactly above.
+          quantity: Number(unscaled(units, 3)),
+          rate: Number(unscaled(rate, 2)),
+        };
+      }),
+    },
+  };
 }

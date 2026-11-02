@@ -96,6 +96,8 @@ export const NOTIFICATION_KINDS = {
   },
   /** The person hears how their request was answered. */
   'data_request.closed': { category: 'approvals', external: ['push'], urgent: false, inbox: true },
+  /** The ERP refused the connection's agreement: an admin connects it again (decision D129). */
+  'erp.reconnect': { category: 'imports', external: ['email'], urgent: false, inbox: true },
 } as const satisfies Record<string, NotificationKind>;
 
 export type NotificationEvent = keyof typeof NOTIFICATION_KINDS;

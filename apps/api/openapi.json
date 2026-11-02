@@ -36251,6 +36251,7 @@
                     "unknown_customer",
                     "duplicate_code",
                     "not_per_item",
+                    "not_in_books",
                     "refused"
                   ]
                 },
@@ -42133,7 +42134,8 @@
               "support.emergency",
               "data_request.received",
               "data_request.due_soon",
-              "data_request.closed"
+              "data_request.closed",
+              "erp.reconnect"
             ]
           },
           "category": {
