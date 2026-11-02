@@ -10,6 +10,7 @@ import type { ConsoleContext } from './context';
 import { AccountPage } from './pages/account';
 import { BillingPage } from './pages/billing';
 import { BillingSettingsPage } from './pages/billing-settings';
+import { StatutoryRatesPage } from './pages/statutory-rates';
 import { InvoicePage } from './pages/invoice';
 import { NewTenantPage } from './pages/new-tenant';
 import { NewPlanPage, PlanPage } from './pages/plan';
@@ -86,6 +87,11 @@ const billingSettings = createRoute({
   path: '/billing/settings',
   component: BillingSettingsPage,
 });
+const statutoryRates = createRoute({
+  getParentRoute: () => app,
+  path: '/billing/payroll-rates',
+  component: StatutoryRatesPage,
+});
 const invoice = createRoute({
   getParentRoute: () => app,
   path: '/invoices/$invoiceId',
@@ -124,6 +130,7 @@ const routeTree = root.addChildren([
     plan,
     billing,
     billingSettings,
+    statutoryRates,
     invoice,
     staff,
     account,

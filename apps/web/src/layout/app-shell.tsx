@@ -22,6 +22,7 @@ import {
   Users,
   Receipt,
   Wallet,
+  Calculator,
   UserRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -199,6 +200,12 @@ export function AppShell() {
           to: '/payroll',
           icon: Wallet,
           label: t('nav.payroll'),
+        }),
+        // Statutory payroll (decision D128), an opt-in module: its permission goes with it.
+        ...only(access.can('payroll.run'), {
+          to: '/pay-run',
+          icon: Calculator,
+          label: t('nav.pay_run'),
         }),
         ...only(access.can('live_map.view'), {
           to: '/live-map',

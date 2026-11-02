@@ -1353,7 +1353,9 @@ export {
   StatutoryProfileBody,
   StatutoryProfileResult,
   StatutoryRates,
+  StatutoryRatesResult,
   type StatutoryRatesValue,
+  StatutoryReviewBody,
   StatutoryRateSet,
   StatutoryState,
 } from './schemas/statutory';

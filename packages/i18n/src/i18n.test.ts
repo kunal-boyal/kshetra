@@ -12,6 +12,7 @@ import {
   formatWeekday,
 } from './format';
 import { en, type MessageKey } from './messages/en';
+import { amountInWords } from './words';
 import { resolveTerminology, TERMINOLOGY_DEFAULTS } from './terminology';
 import { createTranslator, MESSAGES, placeholders, translate, pluralForm } from './translate';
 
@@ -175,5 +176,22 @@ describe('plural forms without Intl.PluralRules (Hermes)', () => {
     }
     expect(pluralForm('en', undefined)).toBe('other');
     expect(pluralForm('en', '1')).toBe('one');
+  });
+});
+
+describe('amounts in words (decision D128)', () => {
+  it('writes rupees in the Indian system, in English and Hindi, with paise', () => {
+    expect(amountInWords('22377.00', 'en')).toBe(
+      'Twenty-two thousand three hundred seventy-seven rupees',
+    );
+    expect(amountInWords('22377.00', 'hi')).toBe('बाईस हज़ार तीन सौ सतहत्तर रुपये');
+    expect(amountInWords('1234567.50', 'en')).toBe(
+      'Twelve lakh thirty-four thousand five hundred sixty-seven rupees and fifty paise',
+    );
+    expect(amountInWords('10000000.05', 'hi')).toBe('एक करोड़ रुपये और पाँच पैसे');
+    expect(amountInWords('0.00', 'en')).toBe('Zero rupees');
+    expect(amountInWords('271667.00', 'en')).toBe(
+      'Two lakh seventy-one thousand six hundred sixty-seven rupees',
+    );
   });
 });

@@ -43,6 +43,7 @@ import {
   UserStatusBadge,
 } from './shared';
 import { SubmissionsSection } from '../submissions/submissions-section';
+import { SalarySection } from '../payroll/salary-section';
 import { LeaveSection } from './leave-section';
 import { WorkSection } from './work-section';
 import { useQueryPaging } from '../paging';
@@ -337,6 +338,7 @@ function Person({ user }: { user: UserView }) {
       <WorkSection userId={user.id} calendarKey={user.calendarKey} />
       {access.modulesOff.includes('leave_attendance') ? null : <LeaveSection userId={user.id} />}
       <SubmissionsSection userId={user.id} />
+      {access.can('salary.manage') ? <SalarySection userId={user.id} /> : null}
       <Transfers user={user} />
       <History userId={user.id} />
     </div>
