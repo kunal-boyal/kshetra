@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
 import {
   ErpCompleteBody,
   ErpConnectionResult,
@@ -9,19 +9,25 @@ import {
   ErpSettings,
   ErpStartBody,
   ErpStartResult,
+  ErpUploadQuery,
+  AppError,
   IdParams,
   SapConnectBody,
+  TallyConnectBody,
 } from '@thelamp/shared';
+import { createHash } from 'node:crypto';
 import { type Access, CurrentAccess, InModule, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
+import { idempotent, requireIdempotencyKey } from '../../platform/idempotency';
 import { Contract } from '../../platform/routes';
 import { ErpConnectionsService } from './erp-connections.service';
 
 /**
  * ERP connections (spec 11.2, module M20, decision D129), for holders of `erp.manage`: connecting
- * Zoho Books through its OAuth, the organisation, the mappings, Sync now, the runs and
- * disconnecting. Zoho sends the browser back to the portal, which hands the code to `complete`,
- * so no route here is public.
+ * Zoho Books through its OAuth, SAP Business One by its Service Layer, or Tally by its files; the
+ * organisation, the mappings, Sync now or a Tally file uploaded, the runs and disconnecting. Zoho
+ * sends the browser back to the portal, which hands the code to `complete`, so no route here is
+ * public.
  */
 @Controller('v1/erp-connections')
 @InModule('integrations')
@@ -84,6 +90,68 @@ export class ErpController {
   })
   connectSap(@CurrentAccess() access: Access, @Body() body: unknown) {
     return this.connections.connectSap(access, SapConnectBody.parse(body));
+  }
+
+  // Connecting again changes nothing but the status, so a resend is harmless.
+  @Post('tally')
+  @HttpCode(200)
+  @Requires('erp.manage')
+  @Contract({
+    tag: 'Integrations',
+    summary: 'Connect Tally, whose records come in the files an admin uploads',
+    body: TallyConnectBody,
+    response: ErpConnectionResult,
+  })
+  connectTally(@CurrentAccess() access: Access, @Body() body: unknown) {
+    TallyConnectBody.parse(body ?? {});
+    return this.connections.connectTally(access);
+  }
+
+  @Post(':id/uploads')
+  @HttpCode(202)
+  @Requires('erp.manage')
+  @Contract({
+    tag: 'Integrations',
+    summary: 'Upload a file exported from Tally (masters or the Day Book, XML) to read',
+    params: IdParams,
+    query: ErpUploadQuery,
+    response: ErpRunResult,
+    idempotencyKey: true,
+    headers: [
+      {
+        name: 'Content-Type',
+        description: 'application/xml, text/xml or application/octet-stream',
+      },
+    ],
+  })
+  async upload(
+    @CurrentAccess() access: Access,
+    @Param() params: unknown,
+    @Query() query: unknown,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    const { id } = IdParams.parse(params);
+    const { name } = ErpUploadQuery.parse(query);
+    if (!(body instanceof Uint8Array)) {
+      throw new AppError('VALIDATION', 'Send the file itself as the body.', [
+        { path: 'body', issue: 'Send the file with Content-Type application/xml' },
+      ]);
+    }
+    const sha256 = createHash('sha256').update(body).digest('hex');
+    const result = await this.database.forTenant(access.tenantId, (tx) =>
+      idempotent(
+        tx,
+        access.tenantId,
+        requireIdempotencyKey(key),
+        { route: 'POST /v1/erp-connections/{id}/uploads', by: access.userId, id, sha256 },
+        async () => ({
+          status: 202,
+          body: await this.connections.upload(tx, access, id, body, name ?? 'tally.xml'),
+        }),
+      ),
+    );
+    return result.body;
   }
 
   @Put(':id/organization')

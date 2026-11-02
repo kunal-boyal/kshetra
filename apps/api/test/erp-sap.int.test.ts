@@ -115,6 +115,7 @@ describe('connecting SAP Business One (D129)', () => {
     expect(listed.providers.map((entry: { provider: string }) => entry.provider)).toEqual([
       'zoho_books',
       'sap_b1',
+      'tally',
     ]);
   });
 });

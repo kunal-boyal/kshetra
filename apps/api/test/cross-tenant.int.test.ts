@@ -485,6 +485,35 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(reply);
     },
   },
+  'POST /v1/erp-connections/tally': {
+    kind: 'write',
+    run: async () => {
+      const reply = await asB('POST', '/v1/erp-connections/tally', {});
+      expect(reply.statusCode, reply.body).toBe(200);
+      expect(reply.json().id).not.toBe(aErpConnectionId);
+      holdsNothingOfA(reply);
+    },
+  },
+  'POST /v1/erp-connections/:id/uploads': {
+    kind: 'by ID',
+    run: async () => {
+      const token = await bAdmin();
+      await sameAsNowhere(
+        (id) =>
+          app.inject({
+            method: 'POST',
+            url: `/v1/erp-connections/${id}/uploads?name=Master.xml`,
+            headers: {
+              authorization: `Bearer ${token}`,
+              'idempotency-key': newId(),
+              'content-type': 'application/xml',
+            },
+            payload: '<ENVELOPE><TALLYMESSAGE><LEDGER NAME="B"/></TALLYMESSAGE></ENVELOPE>',
+          }),
+        aErpConnectionId,
+      );
+    },
+  },
   'PUT /v1/erp-connections/:id/organization': {
     kind: 'by ID',
     run: () =>

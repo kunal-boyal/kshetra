@@ -9649,6 +9649,7 @@
                 "webhook.replayed",
                 "erp.connected",
                 "erp.settings_changed",
+                "erp.file_uploaded",
                 "erp.disconnected",
                 "erp.run",
                 "data_export.created",
@@ -9944,6 +9945,7 @@
                               "webhook.replayed",
                               "erp.connected",
                               "erp.settings_changed",
+                              "erp.file_uploaded",
                               "erp.disconnected",
                               "erp.run",
                               "data_export.created",
@@ -14012,6 +14014,75 @@
         }
       }
     },
+    "/v1/erp-connections/{id}/uploads": {
+      "post": {
+        "operationId": "ErpController.upload",
+        "summary": "Upload a file exported from Tally (masters or the Day Book, XML) to read",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": false,
+            "description": "application/xml, text/xml or application/octet-stream",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpRun"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/erp-connections/sap-b1": {
       "post": {
         "operationId": "ErpController.connectSap",
@@ -14032,6 +14103,54 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SapConnectBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/erp-connections/tally": {
+      "post": {
+        "operationId": "ErpController.connectTally",
+        "summary": "Connect Tally, whose records come in the files an admin uploads",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TallyConnectBody"
               }
             }
           }
@@ -14899,6 +15018,7 @@
                           "webhook.replayed",
                           "erp.connected",
                           "erp.settings_changed",
+                          "erp.file_uploaded",
                           "erp.disconnected",
                           "erp.run",
                           "data_export.created",
@@ -20638,6 +20758,7 @@
                           "webhook.replayed",
                           "erp.connected",
                           "erp.settings_changed",
+                          "erp.file_uploaded",
                           "erp.disconnected",
                           "erp.run",
                           "data_export.created",
@@ -20995,6 +21116,7 @@
                           "webhook.replayed",
                           "erp.connected",
                           "erp.settings_changed",
+                          "erp.file_uploaded",
                           "erp.disconnected",
                           "erp.run",
                           "data_export.created",
@@ -21450,6 +21572,7 @@
                 "webhook.replayed",
                 "erp.connected",
                 "erp.settings_changed",
+                "erp.file_uploaded",
                 "erp.disconnected",
                 "erp.run",
                 "data_export.created",
@@ -28057,6 +28180,7 @@
                               "webhook.replayed",
                               "erp.connected",
                               "erp.settings_changed",
+                              "erp.file_uploaded",
                               "erp.disconnected",
                               "erp.run",
                               "data_export.created",
@@ -35961,7 +36085,8 @@
             "type": "string",
             "enum": [
               "zoho_books",
-              "sap_b1"
+              "sap_b1",
+              "tally"
             ]
           },
           "status": {
@@ -36150,7 +36275,8 @@
                   "type": "string",
                   "enum": [
                     "zoho_books",
-                    "sap_b1"
+                    "sap_b1",
+                    "tally"
                   ]
                 },
                 "configured": {
@@ -36193,7 +36319,8 @@
             "type": "string",
             "enum": [
               "pull",
-              "push"
+              "push",
+              "upload"
             ]
           },
           "status": {
@@ -36213,7 +36340,8 @@
                   "daily_limit",
                   "rate_limited",
                   "reconnect",
-                  "error"
+                  "error",
+                  "bad_file"
                 ]
               },
               {
@@ -36355,6 +36483,12 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "file": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -36366,7 +36500,8 @@
           "finishedAt",
           "counts",
           "problems",
-          "calls"
+          "calls",
+          "file"
         ],
         "additionalProperties": false
       },
@@ -36448,7 +36583,7 @@
                 "pricebookId": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 40
+                  "maxLength": 100
                 },
                 "priceList": {
                   "type": "string",
@@ -36545,6 +36680,59 @@
           "pushOrders": {
             "default": false,
             "type": "boolean"
+          },
+          "debtorGroups": {
+            "default": [
+              "Sundry Debtors"
+            ],
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          "groupTerritories": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "salesTypes": {
+            "default": [
+              "Sales"
+            ],
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          "receiptTypes": {
+            "default": [
+              "Receipt"
+            ],
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
           }
         },
         "required": [
@@ -36559,7 +36747,11 @@
           "invoiceDays",
           "dailyCalls",
           "read",
-          "pushOrders"
+          "pushOrders",
+          "debtorGroups",
+          "groupTerritories",
+          "salesTypes",
+          "receiptTypes"
         ],
         "additionalProperties": false
       },
@@ -36626,7 +36818,7 @@
                 "pricebookId": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 40
+                  "maxLength": 100
                 },
                 "priceList": {
                   "type": "string",
@@ -36723,6 +36915,59 @@
           "pushOrders": {
             "default": false,
             "type": "boolean"
+          },
+          "debtorGroups": {
+            "default": [
+              "Sundry Debtors"
+            ],
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          "groupTerritories": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "salesTypes": {
+            "default": [
+              "Sales"
+            ],
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          "receiptTypes": {
+            "default": [
+              "Receipt"
+            ],
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
           }
         },
         "additionalProperties": false
@@ -36761,6 +37006,17 @@
         "required": [
           "region"
         ],
+        "additionalProperties": false
+      },
+      "ErpUploadQuery": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
         "additionalProperties": false
       },
       "Error": {
@@ -37558,6 +37814,7 @@
                   "webhook.replayed",
                   "erp.connected",
                   "erp.settings_changed",
+                  "erp.file_uploaded",
                   "erp.disconnected",
                   "erp.run",
                   "data_export.created",
@@ -46643,6 +46900,7 @@
                   "webhook.replayed",
                   "erp.connected",
                   "erp.settings_changed",
+                  "erp.file_uploaded",
                   "erp.disconnected",
                   "erp.run",
                   "data_export.created",
@@ -47098,6 +47356,7 @@
                   "webhook.replayed",
                   "erp.connected",
                   "erp.settings_changed",
+                  "erp.file_uploaded",
                   "erp.disconnected",
                   "erp.run",
                   "data_export.created",
@@ -52086,6 +52345,11 @@
           "managerId",
           "status"
         ],
+        "additionalProperties": false
+      },
+      "TallyConnectBody": {
+        "type": "object",
+        "properties": {},
         "additionalProperties": false
       },
       "TargetPeriod": {

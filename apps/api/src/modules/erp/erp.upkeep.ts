@@ -1,9 +1,10 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type EventPayload, ErpSettings } from '@thelamp/shared';
+import { type EventPayload, ErpSettings, recordCutoffs } from '@thelamp/shared';
 import { Database } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
+import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ErpConnectionsService, PULL, PUSH } from './erp-connections.service';
 import { ErpRuns } from './erp-runs';
 
@@ -15,7 +16,8 @@ const RUN_KEEP_DAYS = 90;
 /**
  * What runs ERP connections in the background (decision D129): each tenant's books are read every
  * hour and on Sync now, accepted orders are sent within a minute and after each read, one run of a
- * connection at a time on the `connectors` queue, and runs past their keeping time are removed daily.
+ * connection at a time on the `connectors` queue, and runs past their keeping time are removed daily,
+ * with the Tally files uploaded past the tenant's `importFileRetentionDays` (BR-41).
  */
 @Injectable()
 export class ErpUpkeep implements OnModuleInit {
@@ -26,6 +28,7 @@ export class ErpUpkeep implements OnModuleInit {
     private readonly connections: ErpConnectionsService,
     private readonly runs: ErpRuns,
     private readonly outbox: Outbox,
+    private readonly tenantConfig: TenantConfigService,
   ) {}
 
   onModuleInit(): void {
@@ -56,6 +59,8 @@ export class ErpUpkeep implements OnModuleInit {
         if (status !== 'accepted' && status !== 'partially_accepted') return;
         for (const connection of await this.connections.all(tx, event.tenantId)) {
           if (connection.status !== 'connected') continue;
+          // Tally's orders leave only in the file an admin makes (BR-61).
+          if (connection.provider === 'tally') continue;
           if (!ErpSettings.parse(connection.settings).pushOrders) continue;
           await this.runs.schedulePush(event.tenantId, connection.id);
         }
@@ -70,9 +75,11 @@ export class ErpUpkeep implements OnModuleInit {
     this.queues.handle('maintenance', 'erp.retention', async (data) => {
       const tenantId = String(data.tenantId);
       const cutoff = new Date(Date.now() - RUN_KEEP_DAYS * DAY_MS);
-      await this.database.forTenant(tenantId, (tx) =>
-        this.connections.removeRunsBefore(tx, tenantId, cutoff),
-      );
+      await this.database.forTenant(tenantId, async (tx) => {
+        const files = recordCutoffs(await this.tenantConfig.settings(tx, tenantId), new Date());
+        await this.connections.expireFiles(tx, tenantId, files.importFiles);
+        await this.connections.removeRunsBefore(tx, tenantId, cutoff);
+      });
     });
     this.schedules.everyForTenants({
       name: 'erp_retention',

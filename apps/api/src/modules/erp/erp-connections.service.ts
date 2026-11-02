@@ -13,7 +13,7 @@ import {
   type ZohoRegion,
   zohoRegionOf,
 } from '@thelamp/shared';
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, lt } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
 import { erpConnections, erpLinks, erpRuns } from '../../db/schema/erp';
 import { AuditLog, userActor } from '../../platform/audit';
@@ -27,10 +27,12 @@ import { CONFIG } from '../../platform/tokens';
 import { RedisClient } from '../../platform/redis';
 import { AccountTypesService } from '../accounts/account-types.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
+import { MediaService } from '../media/media.service';
 import { PriceListsService } from '../catalogue/price-lists.service';
 import { People } from '../iam/people';
 import { TerritoriesService } from '../territories/territories.service';
 import { SapB1 } from './sap-b1';
+import { checkTallyFile, TallyFileRefused, tallyText } from './tally-file';
 import { ZohoBooks } from './zoho-books';
 
 export type ConnectionRow = typeof erpConnections.$inferSelect;
@@ -44,6 +46,8 @@ export const PUSH = 'erp.push';
 const STATE_SECONDS = 600;
 /** A run still marked running after this long was cut short (a worker stopped). */
 const STALE_RUN_MS = 2 * 60 * 60_000;
+/** A Tally file is an import file: 20 MB at most, as the body parser allows (M19). */
+const TALLY_FILE_MAX_BYTES = 20 * 1024 * 1024;
 
 /** Where the refresh token is sealed: its column and row, so it can't be moved to another. */
 export const sealedAt = (id: string) => `erp_connections.refresh_token_sealed:${id}`;
@@ -76,11 +80,13 @@ export class ErpConnectionsService {
     private readonly territories: TerritoriesService,
     private readonly catalogue: CatalogueService,
     private readonly priceLists: PriceListsService,
+    private readonly media: MediaService,
   ) {}
 
   async providers(tx: TenantTx, tenantId: string) {
     const zoho = await this.row(tx, tenantId, 'zoho_books');
     const sap = await this.row(tx, tenantId, 'sap_b1');
+    const tally = await this.row(tx, tenantId, 'tally');
     return {
       providers: [
         {
@@ -93,6 +99,12 @@ export class ErpConnectionsService {
           provider: 'sap_b1' as const,
           configured: true,
           connection: sap ? await this.result(tx, sap) : null,
+        },
+        // Tally needs nothing of the cell either: its files come up through the portal.
+        {
+          provider: 'tally' as const,
+          configured: true,
+          connection: tally ? await this.result(tx, tally) : null,
         },
       ],
     };
@@ -178,6 +190,159 @@ export class ErpConnectionsService {
       });
       return this.result(tx, row!);
     });
+  }
+
+  /**
+   * Connects Tally (BR-61), or connects it again after a disconnection: nothing is reached, so it
+   * is connected at once; its company is the one its first file names, and the mappings are kept.
+   */
+  async connectTally(access: Access): Promise<ErpConnectionResult> {
+    return this.database.forTenant(access.tenantId, async (tx) => {
+      const before = await this.row(tx, access.tenantId, 'tally', true);
+      const id = before?.id ?? newId();
+      const now = new Date();
+      const values = {
+        status: 'connected',
+        connectedBy: access.userId,
+        connectedAt: now,
+        updatedAt: now,
+        updatedBy: access.userId,
+      };
+      const [row] = before
+        ? await tx
+            .update(erpConnections)
+            .set(values)
+            .where(and(eq(erpConnections.tenantId, access.tenantId), eq(erpConnections.id, id)))
+            .returning()
+        : await tx
+            .insert(erpConnections)
+            .values({
+              tenantId: access.tenantId,
+              id,
+              provider: 'tally',
+              settings: ErpSettings.parse({}),
+              createdBy: access.userId,
+              ...values,
+            })
+            .returning();
+      if (before?.status !== 'connected') {
+        await this.audit.record(tx, access.tenantId, userActor(access), {
+          action: 'erp.connected',
+          target: { type: 'erp_connection', id },
+          before: before ? { status: before.status } : null,
+          after: { provider: 'tally' },
+        });
+      }
+      return this.result(tx, row!);
+    });
+  }
+
+  /**
+   * Keeps a file exported from Tally and asks for it to be read (BR-61): a Tally export, with no
+   * declarations, of the connection's company (the first file names it), while no other file is
+   * being read. The file is an import file, kept for the tenant's `importFileRetentionDays`.
+   */
+  async upload(
+    tx: TenantTx,
+    access: Access,
+    id: string,
+    bytes: Uint8Array,
+    fileName: string,
+  ): Promise<ErpRunResult> {
+    const row = await this.byId(tx, access.tenantId, id, true);
+    if (row.provider !== 'tally') throw notFound();
+    if (row.status !== 'connected') {
+      throw new AppError('CONFLICT', 'Connect Tally first.');
+    }
+    if (bytes.byteLength === 0 || bytes.byteLength > TALLY_FILE_MAX_BYTES) {
+      throw new AppError('VALIDATION', 'Upload a file of at most 20 MB.', [
+        { path: 'file', issue: bytes.byteLength === 0 ? 'The file is empty' : 'Larger than 20 MB' },
+      ]);
+    }
+    let company: string | null;
+    try {
+      ({ company } = checkTallyFile(tallyText(bytes)));
+    } catch (error) {
+      if (!(error instanceof TallyFileRefused)) throw error;
+      throw new AppError('ERP_REFUSED', 'This isn’t a file exported from Tally.', [
+        { path: 'file', issue: `tally_${error.issue}` },
+      ]);
+    }
+    if (company && row.organizationName && company !== row.organizationName) {
+      throw new AppError('ERP_REFUSED', 'This file is from another company in Tally.', [
+        { path: 'file', issue: 'tally_other_company' },
+      ]);
+    }
+    if (await this.running(tx, access.tenantId, id)) {
+      throw new AppError('CONFLICT', 'A file is still being read; upload this one once it is.');
+    }
+    const runId = newId();
+    const file = await this.media.store(tx, access.tenantId, {
+      kind: 'import_file',
+      fileName,
+      contentType: 'application/xml',
+      bytes,
+      userId: access.userId,
+      ownerType: 'erp_run',
+      ownerId: runId,
+      retentionClass: 'import_file',
+    });
+    if (company && !row.organizationName) {
+      await tx
+        .update(erpConnections)
+        .set({ organizationId: company.slice(0, 200), organizationName: company })
+        .where(and(eq(erpConnections.tenantId, access.tenantId), eq(erpConnections.id, id)));
+    }
+    const [run] = await tx
+      .insert(erpRuns)
+      .values({
+        tenantId: access.tenantId,
+        id: runId,
+        connectionId: id,
+        kind: 'upload',
+        status: 'running',
+        fileMediaId: file.id,
+        fileName,
+      })
+      .returning();
+    await this.audit.record(tx, access.tenantId, userActor(access), {
+      action: 'erp.file_uploaded',
+      target: { type: 'erp_run', id: runId },
+      after: { connectionId: id, fileName, bytes: bytes.byteLength, sha256: file.sha256 },
+    });
+    // The worker reads it once this transaction has committed.
+    await this.queues.add(
+      'connectors',
+      PULL,
+      { tenantId: access.tenantId, connectionId: id, runId },
+      { jobId: `erp-pull-${runId}` },
+    );
+    return runResult(run!);
+  }
+
+  /**
+   * Removes the Tally files uploaded before the cutoff (the tenant's `importFileRetentionDays`,
+   * BR-41); each run's record stays. Returns how many files went.
+   */
+  async expireFiles(tx: TenantTx, tenantId: string, before: Date): Promise<number> {
+    const old = await tx
+      .select({ fileMediaId: erpRuns.fileMediaId })
+      .from(erpRuns)
+      .where(
+        and(
+          eq(erpRuns.tenantId, tenantId),
+          isNotNull(erpRuns.fileMediaId),
+          lt(erpRuns.startedAt, before),
+        ),
+      );
+    let removed = 0;
+    for (const { fileMediaId } of old) {
+      if (await this.media.objectKey(tx, tenantId, fileMediaId!)) {
+        await this.media.expire(tx, tenantId, fileMediaId!);
+        removed += 1;
+      }
+    }
+    return removed;
   }
 
   /** Where to send the browser to agree; the state comes back with the person and the tenant. */
@@ -380,6 +545,10 @@ export class ErpConnectionsService {
       const row = await this.byId(tx, access.tenantId, id, true);
       if (row.status !== 'connected') {
         throw new AppError('CONFLICT', 'Connect the ERP and choose its organisation first.');
+      }
+      // Tally is never reached: its records come only in the files uploaded.
+      if (row.provider === 'tally') {
+        throw new AppError('CONFLICT', 'Upload a file exported from Tally instead.');
       }
       const running = await this.running(tx, access.tenantId, id);
       if (running) return { row: running, fresh: false };
@@ -584,5 +753,6 @@ export function runResult(row: RunRow): ErpRunResult {
     counts: row.counts,
     problems: row.problems as ErpProblem[],
     calls: row.calls,
+    file: row.fileName,
   };
 }

@@ -1,0 +1,182 @@
+<ENVELOPE>
+ <HEADER>
+  <TALLYREQUEST>Import Data</TALLYREQUEST>
+ </HEADER>
+ <BODY>
+  <IMPORTDATA>
+   <REQUESTDESC>
+    <REPORTNAME>All Masters</REPORTNAME>
+    <STATICVARIABLES>
+     <SVCURRENTCOMPANY>Sahyadri Agro Inputs</SVCURRENTCOMPANY>
+    </STATICVARIABLES>
+   </REQUESTDESC>
+   <REQUESTDATA>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <GROUP NAME="Sundry Debtors" RESERVEDNAME="Sundry Debtors">
+      <GUID>4c7e1f20-0000-4000-8000-000000000011</GUID>
+      <PARENT>Current Assets</PARENT>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Sundry Debtors</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+     </GROUP>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <GROUP NAME="Debtors - Nashik" RESERVEDNAME="">
+      <GUID>4c7e1f20-0000-4000-8000-000000000012</GUID>
+      <PARENT>Sundry Debtors</PARENT>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Debtors - Nashik</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+     </GROUP>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <VOUCHERTYPE NAME="GST Sales" RESERVEDNAME="">
+      <GUID>4c7e1f20-0000-4000-8000-000000000021</GUID>
+      <PARENT>Sales</PARENT>
+     </VOUCHERTYPE>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Shree Ganesh Agencies" RESERVEDNAME="">
+      <ADDRESS.LIST TYPE="String">
+       <ADDRESS>12 Market Road</ADDRESS>
+       <ADDRESS>Near the bus stand, Nashik</ADDRESS>
+      </ADDRESS.LIST>
+      <GUID>4c7e1f20-0000-4000-8000-000000000101</GUID>
+      <PARENT>Debtors - Nashik</PARENT>
+      <LEDSTATENAME>Maharashtra</LEDSTATENAME>
+      <PINCODE>422001</PINCODE>
+      <ALTERID> 41</ALTERID>
+      <MAILINGNAME>&#4; Shree Ganesh Agencies</MAILINGNAME>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Shree Ganesh Agencies</NAME>
+        <NAME>SGA-014</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Kisan Seva Kendra &amp; Sons" RESERVEDNAME="">
+      <ADDRESS.LIST TYPE="String">
+       <ADDRESS>Station Road, Baramati</ADDRESS>
+      </ADDRESS.LIST>
+      <GUID>4c7e1f20-0000-4000-8000-000000000102</GUID>
+      <PARENT>Sundry Debtors</PARENT>
+      <LEDSTATENAME>Maharashtra</LEDSTATENAME>
+      <PINCODE>413102</PINCODE>
+      <ALTERID> 44</ALTERID>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Kisan Seva Kendra &amp; Sons</NAME>
+        <NAME>KSK-002</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Pawar Krishi Bhandar" RESERVEDNAME="">
+      <GUID>4c7e1f20-0000-4000-8000-000000000103</GUID>
+      <PARENT>Sundry Debtors</PARENT>
+      <ALTERID> 45</ALTERID>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Pawar Krishi Bhandar</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <LEDGER NAME="Deccan Packaging" RESERVEDNAME="">
+      <GUID>4c7e1f20-0000-4000-8000-000000000104</GUID>
+      <PARENT>Sundry Creditors</PARENT>
+      <ALTERID> 46</ALTERID>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Deccan Packaging</NAME>
+        <NAME>DP-001</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+     </LEDGER>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <STOCKITEM NAME="Neem Gold 1 L" RESERVEDNAME="">
+      <GUID>4c7e1f20-0000-4000-8000-000000000201</GUID>
+      <PARENT>Bio Pesticides</PARENT>
+      <BASEUNITS>Nos</BASEUNITS>
+      <ALTERID> 77</ALTERID>
+      <GSTDETAILS.LIST>
+       <APPLICABLEFROM>20170701</APPLICABLEFROM>
+       <HSNCODE>38089199</HSNCODE>
+       <STATEWISEDETAILS.LIST>
+        <STATENAME>&#4; Any</STATENAME>
+        <RATEDETAILS.LIST>
+         <GSTRATEDUTYHEAD>CGST</GSTRATEDUTYHEAD>
+         <GSTRATE> 9</GSTRATE>
+        </RATEDETAILS.LIST>
+        <RATEDETAILS.LIST>
+         <GSTRATEDUTYHEAD>SGST/UTGST</GSTRATEDUTYHEAD>
+         <GSTRATE> 9</GSTRATE>
+        </RATEDETAILS.LIST>
+        <RATEDETAILS.LIST>
+         <GSTRATEDUTYHEAD>IGST</GSTRATEDUTYHEAD>
+         <GSTRATE> 18</GSTRATE>
+        </RATEDETAILS.LIST>
+       </STATEWISEDETAILS.LIST>
+      </GSTDETAILS.LIST>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Neem Gold 1 L</NAME>
+        <NAME>NG-1L</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+      <FULLPRICELIST.LIST>
+       <DATE>20250401</DATE>
+       <PRICELEVEL>Dealer</PRICELEVEL>
+       <PRICELEVELLIST.LIST>
+        <RATE>410.00/Nos</RATE>
+       </PRICELEVELLIST.LIST>
+      </FULLPRICELIST.LIST>
+     </STOCKITEM>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <STOCKITEM NAME="Humic Plus 500 g" RESERVEDNAME="">
+      <GUID>4c7e1f20-0000-4000-8000-000000000202</GUID>
+      <PARENT>Soil Conditioners</PARENT>
+      <BASEUNITS>Nos</BASEUNITS>
+      <ALTERID> 78</ALTERID>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Humic Plus 500 g</NAME>
+        <NAME>HP-500</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+      <FULLPRICELIST.LIST>
+       <DATE>20250401</DATE>
+       <PRICELEVEL>Dealer</PRICELEVEL>
+       <PRICELEVELLIST.LIST>
+        <RATE>120.00/Nos</RATE>
+       </PRICELEVELLIST.LIST>
+      </FULLPRICELIST.LIST>
+     </STOCKITEM>
+    </TALLYMESSAGE>
+    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+     <STOCKITEM NAME="Spray Pump 16 L" RESERVEDNAME="">
+      <GUID>4c7e1f20-0000-4000-8000-000000000203</GUID>
+      <PARENT>Equipment</PARENT>
+      <BASEUNITS>Nos</BASEUNITS>
+      <ALTERID> 79</ALTERID>
+      <LANGUAGENAME.LIST>
+       <NAME.LIST TYPE="String">
+        <NAME>Spray Pump 16 L</NAME>
+       </NAME.LIST>
+      </LANGUAGENAME.LIST>
+     </STOCKITEM>
+    </TALLYMESSAGE>
+   </REQUESTDATA>
+  </IMPORTDATA>
+ </BODY>
+</ENVELOPE>

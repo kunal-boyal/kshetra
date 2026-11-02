@@ -1282,6 +1282,8 @@ export {
   ErpStartBody,
   ErpStartResult,
   SapConnectBody,
+  TallyConnectBody,
+  ErpUploadQuery,
   ZohoRegionKey,
 } from './schemas/erp';
 export {
@@ -1303,6 +1305,30 @@ export {
   sapPaymentTotal,
   sapServiceRoot,
 } from './erp-sap';
+export {
+  type TallyBill,
+  tallyCustomerRow,
+  tallyDate,
+  tallyDebit,
+  type TallyGroup,
+  type TallyGstDetail,
+  tallyInvoiceRow,
+  tallyItemCode,
+  tallyItemRow,
+  type TallyLedger,
+  type TallyMapping,
+  tallyNumber,
+  type TallyPrice,
+  tallyPriceOn,
+  tallyQuantity,
+  tallyRate,
+  tallyReceiptRow,
+  type TallyStockItem,
+  type TallyVoucher,
+  tallyVoucherKind,
+  type TallyVoucherType,
+  tallyUnder,
+} from './erp-tally';
 export {
   ARCHIVE_FORMAT,
   ARCHIVE_MANIFEST,

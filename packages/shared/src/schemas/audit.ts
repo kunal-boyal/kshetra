@@ -149,6 +149,7 @@ export const AUDIT_ACTIONS = [
   'webhook.replayed',
   'erp.connected',
   'erp.settings_changed',
+  'erp.file_uploaded',
   'erp.disconnected',
   'erp.run',
   'data_export.created',
