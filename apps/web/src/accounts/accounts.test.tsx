@@ -236,6 +236,8 @@ describe("an account's finance (M11, D79)", () => {
         ...patch,
       },
       history: [],
+      receivables: null,
+      collected: { notInBooks: '0.00', leftAfter: '42000.50' },
     },
   });
 
@@ -283,6 +285,7 @@ describe("an account's finance (M11, D79)", () => {
             advance: '0.00',
             creditLimit: '20000.00',
           },
+          collected: { notInBooks: '0.00', leftAfter: '13500.00' },
         },
         [`/v1/accounts/${SHOP}/invoices`]: {
           items: [
@@ -366,6 +369,8 @@ describe("an account's finance (M11, D79)", () => {
             createdAt: '2026-10-15T05:00:00.000Z',
           },
           history: [],
+          receivables: null,
+          collected: { notInBooks: '0.00', leftAfter: '42000.50' },
         },
         [`/v1/accounts/${SHOP}/statement`]: {
           from: `${year}-04-01`,
