@@ -12,6 +12,7 @@ import {
   tallyItemRow,
   tallyPriceOn,
   tallyReceiptRow,
+  tallyUnder,
   tallyVoucherKind,
 } from '@thelamp/shared';
 import { and, eq } from 'drizzle-orm';
@@ -52,6 +53,8 @@ export interface RunKit {
   listName(id: string | null): Promise<string>;
   /** Each account's present territory code, by account code. */
   territoryCodes(codes: string[]): Promise<Map<string, string>>;
+  /** Marks the orders the books show by their numbers as in the books. */
+  confirmOrders(numbers: ReadonlySet<string>): Promise<void>;
 }
 
 type Structure = NonNullable<ConnectionRow['structure']>;
@@ -108,6 +111,14 @@ export class TallyReads {
     if (settings.read.invoices || settings.read.payments) {
       await this.vouchers(file, mapping, settings, types, kit);
     }
+    // Our orders as Tally holds them: its sales orders whose reference is our number.
+    const orders = new Set(
+      file.vouchers
+        .filter((voucher) => voucher.reference && !voucher.cancelled)
+        .filter((voucher) => tallyUnder(voucher.type, [settings.orderType], types))
+        .map((voucher) => voucher.reference),
+    );
+    if (orders.size > 0) await kit.confirmOrders(orders);
   }
 
   /** Each group's and voucher type's parent, from this file over those before it. */

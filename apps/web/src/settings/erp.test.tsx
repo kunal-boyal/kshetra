@@ -18,6 +18,13 @@ const SETTINGS = {
   dailyCalls: 1000,
   read: { customers: true, items: true, invoices: true, payments: true },
   pushOrders: false,
+  taxRateField: null,
+  defaultTaxRate: null,
+  debtorGroups: ['Sundry Debtors'],
+  groupTerritories: {},
+  salesTypes: ['Sales'],
+  receiptTypes: ['Receipt'],
+  orderType: 'Sales Order',
 };
 const connection = (patch: object = {}) => ({
   id: ID,
@@ -334,6 +341,174 @@ describe('SAP Business One in Settings › ERP (D129)', () => {
     await waitFor(() => expect(writesOf(client)).toHaveLength(1));
     expect(writesOf(client)[0]![3]).toMatchObject({
       body: { taxRateField: 'U_GST', defaultTaxRate: '18', pushOrders: true },
+    });
+  });
+});
+
+const TALLY_ID = '01a10000-0000-7000-8000-0000000000f5';
+const FILE_RUN = {
+  ...RUN,
+  id: '01a10000-0000-7000-8000-0000000000f6',
+  kind: 'push',
+  status: 'ok',
+  counts: { order: { read: 2, created: 2, updated: 0, unchanged: 0, skipped: 0 } },
+  problems: [],
+  calls: 0,
+  file: 'tally-orders-2026-11-02.xml',
+  download: true,
+};
+const tallyConnection = (patch: object = {}) => ({
+  ...connection(),
+  id: TALLY_ID,
+  provider: 'tally',
+  region: null,
+  organization: { id: 'Sahyadri Agro Inputs', name: 'Sahyadri Agro Inputs' },
+  endpoint: null,
+  companyDb: null,
+  username: null,
+  ordersWaiting: 2,
+  ...patch,
+});
+
+function tallyClient(current: object | null) {
+  let held = current;
+  return fakeClient(
+    {
+      '/v1/erp-connections': () => ({
+        providers: [
+          { provider: 'zoho_books', configured: true, connection: null },
+          { provider: 'sap_b1', configured: true, connection: null },
+          { provider: 'tally', configured: true, connection: held },
+        ],
+      }),
+      [`/v1/erp-connections/${TALLY_ID}/runs`]: { items: [FILE_RUN] },
+      [`/v1/erp-connections/${TALLY_ID}/runs/${FILE_RUN.id}/file`]: {
+        url: 'https://media.example/tally-orders.xml?signature=s',
+        expiresAt: '2026-11-02T06:05:00.000Z',
+      },
+      '/v1/territories': {
+        items: [{ id: 't1', parentId: null, level: 0, code: 'NSK', name: 'Nashik', active: true }],
+      },
+      '/v1/price-lists': { items: [{ id: WHOLESALE, name: 'Wholesale' }] },
+    },
+    {
+      'POST /v1/erp-connections/tally': () => {
+        held = tallyConnection({ organization: null });
+        return held;
+      },
+      [`POST /v1/erp-connections/${TALLY_ID}/uploads`]: ({ file }: RequestOptions) => {
+        if ((file?.data as File | undefined)?.name === 'Other.xml') {
+          throw new ApiError(502, 'ERP_REFUSED', 'This file is from another company in Tally.', [
+            { path: 'file', issue: 'tally_other_company' },
+          ]);
+        }
+        return { ...RUN, kind: 'upload', status: 'running', file: 'Master.xml', download: false };
+      },
+      [`POST /v1/erp-connections/${TALLY_ID}/orders-file`]: () => ({
+        ...FILE_RUN,
+        status: 'running',
+        download: false,
+      }),
+      [`PUT /v1/erp-connections/${TALLY_ID}/settings`]: ({ body }: RequestOptions) => {
+        held = tallyConnection({ settings: { ...SETTINGS, ...(body as object) } });
+        return held;
+      },
+    },
+    ['erp.manage'],
+    BUNDLE,
+  );
+}
+
+describe('Tally in Settings › ERP (D129, BR-61)', () => {
+  it('connects in a click, with nothing to reach', async () => {
+    const client = tallyClient(null);
+    renderAt('/settings/erp', client);
+    const user = userEvent.setup();
+    const tally = await screen.findByRole('region', { name: 'Tally' });
+    await user.click(within(tally).getByRole('button', { name: 'Use Tally' }));
+    expect(await within(tally).findByText('Named by the first file you upload')).toBeVisible();
+    expect(writesOf(client)[0]!.slice(0, 2)).toEqual(['POST', '/v1/erp-connections/tally']);
+  });
+
+  it('uploads a file exported from Tally, and says why another company’s is refused', async () => {
+    const client = tallyClient(tallyConnection());
+    renderAt('/settings/erp', client);
+    const user = userEvent.setup();
+    const tally = await screen.findByRole('region', { name: 'Tally' });
+    const input = within(tally).getByLabelText('Upload a file from Tally');
+    await user.upload(input, new File(['<ENVELOPE/>'], 'Master.xml', { type: 'text/xml' }));
+    expect(await within(tally).findByText(/The file is being read/)).toBeVisible();
+    const [, path, , options] = writesOf(client)[0]!;
+    expect(path).toBe(`/v1/erp-connections/${TALLY_ID}/uploads?name=Master.xml`);
+    expect(options).toMatchObject({ file: { type: 'application/xml' } });
+
+    await user.upload(input, new File(['<ENVELOPE/>'], 'Other.xml', { type: 'text/xml' }));
+    expect(
+      await within(tally).findByText(
+        'This file is from another company in Tally than the one connected.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('makes the orders file, saves it, and makes it again, with no Sync now', async () => {
+    const go = vi.spyOn(browser, 'go').mockImplementation(() => {});
+    const client = tallyClient(tallyConnection());
+    renderAt('/settings/erp', client);
+    const user = userEvent.setup();
+    const tally = await screen.findByRole('region', { name: 'Tally' });
+    expect(within(tally).getByText(/2 accepted .* are waiting for a file/)).toBeVisible();
+    expect(within(tally).queryByRole('button', { name: 'Sync now' })).toBeNull();
+    await user.click(within(tally).getByRole('button', { name: 'Make the file' }));
+    await waitFor(() =>
+      expect(writesOf(client)[0]!.slice(0, 2)).toEqual([
+        'POST',
+        `/v1/erp-connections/${TALLY_ID}/orders-file`,
+      ]),
+    );
+    await user.click(await within(tally).findByRole('button', { name: /^Save the file of/ }));
+    await waitFor(() =>
+      expect(go).toHaveBeenCalledWith('https://media.example/tally-orders.xml?signature=s'),
+    );
+    await user.click(within(tally).getByRole('button', { name: /^Make the file of .* again/ }));
+    await waitFor(() =>
+      expect(writesOf(client)[1]![3]).toMatchObject({ body: { again: FILE_RUN.id } }),
+    );
+  });
+
+  it('maps Tally’s groups, voucher types and price levels, without Zoho’s or SAP’s fields', async () => {
+    const client = tallyClient(tallyConnection());
+    renderAt('/settings/erp', client);
+    const user = userEvent.setup();
+    const tally = await screen.findByRole('region', { name: 'Tally' });
+    const form = within(tally).getByRole('form', { name: 'What comes in, and where' });
+    expect(within(form).queryByLabelText(/daily calls/)).toBeNull();
+    expect(within(form).queryByLabelText(/SAP field/)).toBeNull();
+    expect(within(form).queryByRole('checkbox', { name: /Send accepted/ })).toBeNull();
+    const groups = within(form).getByLabelText(/Customer groups/);
+    await user.clear(groups);
+    await user.type(groups, 'Sundry Debtors, Dealers');
+    await user.click(within(form).getByRole('button', { name: 'Add a group' }));
+    await user.type(within(form).getByLabelText(/Group in Tally/), 'Debtors - Nashik');
+    await user.selectOptions(within(form).getByRole('combobox', { name: 'Territory' }), 'NSK');
+    await user.click(within(form).getByRole('button', { name: 'Add a price level' }));
+    await user.type(within(form).getByLabelText(/Price level in Tally/), 'Dealer');
+    await user.selectOptions(
+      within(form).getByRole('combobox', { name: 'Into the price list' }),
+      WHOLESALE,
+    );
+    await user.type(within(form).getByLabelText(/GST rate when Tally gives none/), '12');
+    await user.click(within(form).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(writesOf(client)).toHaveLength(1));
+    expect(writesOf(client)[0]![3]).toMatchObject({
+      body: {
+        debtorGroups: ['Sundry Debtors', 'Dealers'],
+        groupTerritories: { 'Debtors - Nashik': 'NSK' },
+        priceBooks: [{ pricebookId: 'Dealer', priceList: WHOLESALE }],
+        defaultTaxRate: '12',
+        salesTypes: ['Sales'],
+        receiptTypes: ['Receipt'],
+        orderType: 'Sales Order',
+      },
     });
   });
 });

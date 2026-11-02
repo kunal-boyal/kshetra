@@ -26,6 +26,8 @@ import {
   paymentRow,
   perItemSalesBook,
   salesOrderFor,
+  tallyImportFile,
+  tallyOrderFor,
   type ZohoContact,
   type ZohoInvoice,
   type ZohoItem,
@@ -49,6 +51,7 @@ import { OrdersService } from '../orders/orders.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { People } from '../iam/people';
 import { PriceListsService } from '../catalogue/price-lists.service';
+import { MediaService } from '../media/media.service';
 import { ImportRefused, type ImportRow, ImportTargets } from '../imports/targets';
 import {
   type ConnectionRow,
@@ -78,6 +81,10 @@ const PROVIDER_NAMES: Record<string, string> = {
 };
 /** Orders sent in one run; the rest go in the next. */
 const PUSH_BATCH = 100;
+/** An order Tally's Day Book shows as its own sales order. */
+const IN_BOOKS = 'in_books';
+/** Orders in one Tally file; the rest go in the next. */
+const TALLY_FILE_BATCH = 500;
 
 type Counts = NonNullable<ErpRunResult['counts'][ErpEntity]>;
 
@@ -165,6 +172,7 @@ export class ErpRuns {
     private readonly cipher: ColumnCipher,
     private readonly audit: AuditLog,
     private readonly tally: TallyReads,
+    private readonly media: MediaService,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -188,8 +196,13 @@ export class ErpRuns {
    * read, for every order still waiting: one run at a time for a connection, so a push that finds
    * one under way comes back a minute later.
    */
-  push(tenantId: string, connectionId: string | null): Promise<void> {
-    return this.go(tenantId, connectionId, null, 'push');
+  push(
+    tenantId: string,
+    connectionId: string | null,
+    runId: string | null = null,
+    again: string | null = null,
+  ): Promise<void> {
+    return this.go(tenantId, connectionId, runId, 'push', again);
   }
 
   /** Asks for a push of what is waiting, once a minute at most for a connection. */
@@ -208,6 +221,7 @@ export class ErpRuns {
     connectionId: string | null,
     runId: string | null,
     kind: 'pull' | 'push',
+    again: string | null = null,
   ): Promise<void> {
     const connection = await this.database.forTenant(tenantId, (tx) =>
       connectionId
@@ -218,9 +232,9 @@ export class ErpRuns {
     const settings = ErpSettings.parse(connection.settings);
     const sap = connection.provider === 'sap_b1';
     const tally = connection.provider === 'tally';
-    if (kind === 'push' && !settings.pushOrders) return;
-    // Tally is reached by no one: a run reads the file it was made for, and orders leave in a file.
-    if (tally && (kind === 'push' || !runId)) return;
+    if (kind === 'push' && !tally && !settings.pushOrders) return;
+    // Tally is reached by no one: a run reads the file uploaded, or writes the orders file asked for.
+    if (tally && !runId) return;
     const ready =
       connection.status === 'connected' &&
       (tally ||
@@ -316,7 +330,9 @@ export class ErpRuns {
 
     let stoppedBy: ErpRunResult['stoppedBy'] = null;
     try {
-      if (tally) {
+      if (tally && kind === 'push') {
+        await this.tallyOrders(run, again, today);
+      } else if (tally) {
         const file = await this.tally.file(tenantId, id);
         await this.tally.read(connection, settings, file, this.kit(run), today);
       } else if (sap) {
@@ -442,14 +458,17 @@ export class ErpRuns {
    * Accepted orders the company supplies since the connection was made that the books don't hold
    * yet, oldest first, a batch at a time, with their account's code.
    */
-  private async waitingOrders(run: Run) {
+  private async waitingOrders(run: Run, batch = PUSH_BATCH, again: readonly string[] = []) {
     const sent = await this.links(run, 'order');
     const sentOrders = new Set([...sent.values()].map((link) => link.localKey));
     return this.database.forTenant(run.tenantId, async (tx) => {
       const ids = (
         await this.ordersService.acceptedSince(tx, run.tenantId, run.connection.createdAt, 500)
       ).filter((id) => !sentOrders.has(id));
-      const found = await this.ordersService.forErp(tx, run.tenantId, ids.slice(0, PUSH_BATCH));
+      const found = await this.ordersService.forErp(tx, run.tenantId, [
+        ...again,
+        ...ids.slice(0, batch),
+      ]);
       const accounts = await this.accounts.refs(
         tx,
         run.tenantId,
@@ -527,7 +546,85 @@ export class ErpRuns {
     }
   }
 
-  /** What each local key is in the books. */
+  /**
+   * Tally's orders file (BR-61): each waiting order, and those an earlier file carried when it is
+   * named again, as a sales order under the names Tally knows its customer and items by; orders
+   * whose customer or an item came from no file wait. The file is kept 7 days, and each order it
+   * carries is linked to this run, so no later file carries it unless asked again.
+   */
+  private async tallyOrders(run: Run, again: string | null, today: string): Promise<void> {
+    const counts = this.counts(run, 'order');
+    const carried = again
+      ? [...(await this.links(run, 'order')).values()]
+          .filter((link) => link.externalModified === again && link.localKey)
+          .map((link) => link.localKey!)
+      : [];
+    const waiting = await this.waitingOrders(run, TALLY_FILE_BATCH, carried);
+    const named = (links: Map<string, Link>) =>
+      new Map(
+        [...links.values()].flatMap((link) =>
+          link.localKey && link.externalName ? [[link.localKey, link.externalName] as const] : [],
+        ),
+      );
+    const parties = named(await this.links(run, 'account'));
+    const items = named(await this.links(run, 'item'));
+    const vouchers: string[] = [];
+    const sent: { externalId: string; link: Link }[] = [];
+    for (const { id, order } of waiting) {
+      counts.read += 1;
+      const mapped = tallyOrderFor(
+        id,
+        order,
+        parties.get(order.accountCode) ?? null,
+        (code) => items.get(code) ?? null,
+        run.settings.orderType,
+      );
+      if ('nothing' in mapped) {
+        counts.unchanged += 1;
+        continue;
+      }
+      if ('missing' in mapped) {
+        counts.skipped += 1;
+        this.problem(run, 'order', id, `#${order.number}`, 'not_in_books', {
+          field: null,
+          detail: mapped.missing.join(', '),
+        });
+        continue;
+      }
+      counts.created += 1;
+      vouchers.push(mapped.voucher);
+      sent.push({
+        externalId: id,
+        link: {
+          localKey: id,
+          externalName: String(order.number),
+          fingerprint: null,
+          externalModified: run.id,
+        },
+      });
+    }
+    if (vouchers.length === 0) return;
+    const fileName = `tally-orders-${today}.xml`;
+    await this.database.forTenant(run.tenantId, async (tx) => {
+      const file = await this.media.store(tx, run.tenantId, {
+        kind: 'export_file',
+        fileName,
+        contentType: 'application/xml',
+        bytes: new TextEncoder().encode(tallyImportFile(run.connection.organizationName, vouchers)),
+        userId: null,
+        ownerType: 'erp_run',
+        ownerId: run.id,
+        retentionClass: 'export_file',
+        download: true,
+      });
+      await tx
+        .update(erpRuns)
+        .set({ fileMediaId: file.id, fileName })
+        .where(and(eq(erpRuns.tenantId, run.tenantId), eq(erpRuns.id, run.id)));
+      await this.saveLinks(tx, run, 'order', sent);
+    });
+  }
+
   /** What a Tally run's steps use of this run: the same settling every provider's records get. */
   private kit(run: Run): RunKit {
     return {
@@ -542,9 +639,38 @@ export class ErpRuns {
         this.database.forTenant(run.tenantId, (tx) =>
           this.accounts.territoryCodes(tx, run.tenantId, codes),
         ),
+      confirmOrders: (numbers) => this.confirmOrders(run, numbers),
     };
   }
 
+  /**
+   * Orders a Day Book shows as Tally's own sales orders, by the number they carry as their
+   * reference, are marked in the books; each counts once.
+   */
+  private async confirmOrders(run: Run, numbers: ReadonlySet<string>): Promise<void> {
+    const counts = this.counts(run, 'order');
+    const found = [...(await this.links(run, 'order'))].filter(
+      ([, link]) => link.externalName && numbers.has(link.externalName),
+    );
+    counts.read += found.length;
+    const fresh = found.filter(([, link]) => link.fingerprint !== IN_BOOKS);
+    counts.unchanged += found.length - fresh.length;
+    counts.updated += fresh.length;
+    if (fresh.length === 0) return;
+    await this.database.forTenant(run.tenantId, (tx) =>
+      this.saveLinks(
+        tx,
+        run,
+        'order',
+        fresh.map(([externalId, link]) => ({
+          externalId,
+          link: { ...link, fingerprint: IN_BOOKS },
+        })),
+      ),
+    );
+  }
+
+  /** What each local key is in the books. */
   private byLocalKey(links: Map<string, Link>): Map<string, string> {
     return new Map(
       [...links].flatMap(([externalId, link]) =>
@@ -1000,6 +1126,8 @@ export class ErpRuns {
       target: target as ImportTarget,
       emptyValues: [],
       fractions: [],
+      // The books' rows carry only what the books know; the rest stays as the portal set it.
+      keepMissing: true,
     };
     await this.database.forTenant(run.tenantId, async (tx) => {
       if (target.startsWith('accounts:')) await source.fields(tx, run.tenantId, context.target);

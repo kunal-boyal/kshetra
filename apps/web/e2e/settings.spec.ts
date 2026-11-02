@@ -203,6 +203,7 @@ const ANSWERS: Record<string, unknown> = {
           connectedAt: '2026-11-02T05:00:00.000Z',
           connectedBy: null,
           lastRunAt: '2026-11-02T06:00:00.000Z',
+          ordersWaiting: null,
         },
       },
       {
@@ -235,7 +236,58 @@ const ANSWERS: Record<string, unknown> = {
           connectedAt: '2026-11-02T05:00:00.000Z',
           connectedBy: null,
           lastRunAt: null,
+          ordersWaiting: null,
         },
+      },
+      {
+        provider: 'tally',
+        configured: true,
+        connection: {
+          id: '01a10000-0000-7000-8000-0000000000fa',
+          provider: 'tally',
+          status: 'connected',
+          region: null,
+          organization: { id: 'Sahyadri Agro Inputs', name: 'Sahyadri Agro Inputs' },
+          organizations: [],
+          endpoint: null,
+          companyDb: null,
+          username: null,
+          settings: {
+            accountType: null,
+            territoryField: null,
+            defaultTerritory: null,
+            itemPriceList: null,
+            priceBooks: [],
+            taxRateField: null,
+            defaultTaxRate: '12',
+            units: {},
+            invoiceDays: 180,
+            dailyCalls: 1000,
+            read: { customers: true, items: true, invoices: true, payments: true },
+            pushOrders: false,
+          },
+          connectedAt: '2026-11-02T05:00:00.000Z',
+          connectedBy: null,
+          lastRunAt: '2026-11-02T07:00:00.000Z',
+          ordersWaiting: 3,
+        },
+      },
+    ],
+  },
+  '/v1/erp-connections/01a10000-0000-7000-8000-0000000000fa/runs': {
+    items: [
+      {
+        id: '01a10000-0000-7000-8000-0000000000fb',
+        kind: 'push',
+        status: 'ok',
+        stoppedBy: null,
+        startedAt: '2026-11-02T07:00:00.000Z',
+        finishedAt: '2026-11-02T07:00:02.000Z',
+        counts: { order: { read: 2, created: 2, updated: 0, unchanged: 0, skipped: 0 } },
+        problems: [],
+        calls: 0,
+        file: 'tally-orders-2026-11-02.xml',
+        download: true,
       },
     ],
   },
@@ -262,6 +314,7 @@ const ANSWERS: Record<string, unknown> = {
         ],
         calls: 9,
         file: null,
+        download: false,
       },
     ],
   },
@@ -1110,5 +1163,20 @@ test('Settings › ERP shows Zoho Books and SAP Business One, each with its runs
   await expect(
     page.getByText('No Number Traders: it has no customer number in Zoho.', { exact: false }),
   ).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('Settings › ERP shows Tally with its upload, orders file and runs', async ({ page }) => {
+  await mockSignedIn(page);
+  await page.goto('/settings/erp');
+  const tally = page.getByRole('region', { name: 'Tally' });
+  await expect(tally.getByText('Sahyadri Agro Inputs')).toBeVisible();
+  await expect(tally.getByText(/3 accepted .* are waiting for a file/)).toBeVisible();
+  await expect(tally.getByRole('button', { name: 'Make the file', exact: true })).toBeEnabled();
+  await expect(tally.getByRole('button', { name: /^Save the file of/ })).toBeVisible();
+  await expect(tally.getByRole('button', { name: 'Sync now' })).toHaveCount(0);
+  await expect(tally.getByLabel(/GST rate when Tally gives none/)).toHaveValue('12');
+  await tally.getByText('How to export from TallyPrime').click();
+  await expect(tally.getByText(/Export › Masters/)).toBeVisible();
   await expectAccessible(page);
 });

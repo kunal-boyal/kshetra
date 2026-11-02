@@ -10,6 +10,9 @@ import {
   ErpStartBody,
   ErpStartResult,
   ErpUploadQuery,
+  ErpFileLink,
+  ErpRunParams,
+  TallyOrdersFileBody,
   AppError,
   IdParams,
   SapConnectBody,
@@ -152,6 +155,36 @@ export class ErpController {
       ),
     );
     return result.body;
+  }
+
+  // One run at a time; a resend while the first is made is refused, never a second file.
+  @Post(':id/orders-file')
+  @HttpCode(202)
+  @Requires('erp.manage')
+  @Contract({
+    tag: 'Integrations',
+    summary: 'Make a Tally file of the accepted orders waiting, or of an earlier file’s again',
+    params: IdParams,
+    body: TallyOrdersFileBody,
+    response: ErpRunResult,
+  })
+  ordersFile(@CurrentAccess() access: Access, @Param() params: unknown, @Body() body: unknown) {
+    const { id } = IdParams.parse(params);
+    const { again } = TallyOrdersFileBody.parse(body ?? {});
+    return this.connections.requestOrdersFile(access, id, again ?? null);
+  }
+
+  @Get(':id/runs/:runId/file')
+  @Requires('erp.manage')
+  @Contract({
+    tag: 'Integrations',
+    summary: 'A short-lived link to save a Tally orders file, for 7 days after it was made',
+    params: ErpRunParams,
+    response: ErpFileLink,
+  })
+  file(@CurrentAccess() access: Access, @Param() params: unknown) {
+    const { id, runId } = ErpRunParams.parse(params);
+    return this.connections.fileLink(access, id, runId);
   }
 
   @Put(':id/organization')

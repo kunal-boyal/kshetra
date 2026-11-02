@@ -5238,6 +5238,64 @@ export const en = {
   'erp.tax_rate_field_help': 'A user field on SAP’s items, such as U_GST, with rates like 18.',
   'erp.default_tax_rate': 'GST rate when the field is empty',
   'erp.default_tax_rate_help': 'For example 18. An item with neither is left out and listed.',
+  'erp.tally': 'Tally',
+  'erp.tally_intro':
+    'Tally runs on your own computer, so nothing here reaches it. Export your masters and Day Book from TallyPrime and upload them here, then make a file of accepted {term.order:other:lower} and import it into Tally.',
+  'erp.tally_connect': 'Use Tally',
+  'erp.tally_company': 'Company in Tally',
+  'erp.tally_company_none': 'Named by the first file you upload',
+  'erp.tally_how': 'How to export from TallyPrime',
+  'erp.tally_how_masters':
+    'Masters: Export › Masters, choose All Masters and the XML (Data Interchange) format.',
+  'erp.tally_how_day_book':
+    'Transactions: open the Day Book for a period, then Export in XML. Export a month at a time if a year comes to more than 20 MB.',
+  'erp.tally_how_orders':
+    '{term.order:other}: make the file below, save it, and use Import › Transactions in Tally.',
+  'erp.tally_upload': 'Upload a file from Tally',
+  'erp.tally_upload_help':
+    'An XML file exported from TallyPrime, up to 20 MB. Upload the masters first.',
+  'erp.tally_uploading': 'Uploading…',
+  'erp.tally_uploaded': 'The file is being read. Its run appears below when it finishes.',
+  'erp.tally_issue_not_tally': 'This isn’t a file exported from Tally. Export it again in XML.',
+  'erp.tally_issue_declarations':
+    'This file declares entities, which Tally’s own files never do, so it wasn’t read.',
+  'erp.tally_issue_other_company':
+    'This file is from another company in Tally than the one connected.',
+  'erp.tally_orders': '{term.order:other} for Tally',
+  'erp.tally_orders_waiting': {
+    one: '{n} accepted {term.order:one:lower} is waiting for a file.',
+    other: '{n} accepted {term.order:other:lower} are waiting for a file.',
+  },
+  'erp.tally_make_file': 'Make the file',
+  'erp.tally_file_asked': 'The file is being made. It appears in the runs below with Save.',
+  'erp.tally_save_file': 'Save',
+  'erp.tally_save_file_of': 'Save the file of {at}',
+  'erp.tally_make_again': 'Make again',
+  'erp.tally_make_again_of': 'Make the file of {at} again, for an import that went wrong',
+  'erp.col_file': 'File',
+  'erp.debtor_groups': 'Customer groups',
+  'erp.debtor_groups_help':
+    'Tally groups whose ledgers are customers, with every group under them. Separate them with commas.',
+  'erp.group_territories': 'Territories by group',
+  'erp.group_territories_help':
+    'A Tally group and the territory its customers belong to. A ledger takes the nearest group listed above it.',
+  'erp.group_name': 'Group in Tally',
+  'erp.group_territory': 'Territory',
+  'erp.add_group_territory': 'Add a group',
+  'erp.sales_types': 'Sales voucher types',
+  'erp.sales_types_help':
+    'Read as invoices, with every type under them. Separate them with commas.',
+  'erp.receipt_types': 'Receipt voucher types',
+  'erp.receipt_types_help':
+    'Read as receipts, with every type under them. Separate them with commas.',
+  'erp.order_type': 'Voucher type for {term.order:other:lower}',
+  'erp.order_type_help': 'Accepted {term.order:other:lower} go into Tally as this type.',
+  'erp.tally_price_levels': 'Price levels',
+  'erp.tally_price_levels_help':
+    'Each Tally price level named here is read into one of your price lists.',
+  'erp.tally_price_level': 'Price level in Tally',
+  'erp.add_tally_price_level': 'Add a price level',
+  'erp.tally_default_tax_rate': 'GST rate when Tally gives none',
   'erp.endpoint_not_an_address': 'Write a full address, such as https://b1.yourcompany.in',
   'erp.endpoint_not_https': 'Use an https:// address',
   'erp.endpoint_not_443':

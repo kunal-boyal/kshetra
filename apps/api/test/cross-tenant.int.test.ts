@@ -514,6 +514,24 @@ const FIXTURES: Record<string, Fixture> = {
       );
     },
   },
+  'POST /v1/erp-connections/:id/orders-file': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', `/v1/erp-connections/${id}/orders-file`, {}),
+        aErpConnectionId,
+      ),
+  },
+  'GET /v1/erp-connections/:id/runs/:runId/file': {
+    kind: 'by ID',
+    run: () => {
+      const runId = newId();
+      return sameAsNowhere(
+        (id) => asB('GET', `/v1/erp-connections/${id}/runs/${runId}/file`),
+        aErpConnectionId,
+      );
+    },
+  },
   'PUT /v1/erp-connections/:id/organization': {
     kind: 'by ID',
     run: () =>

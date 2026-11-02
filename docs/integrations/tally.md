@@ -8,7 +8,7 @@ The third ERP connector (decision D129, BR-61). It reuses the import targets, li
 - **In:** an admin exports from TallyPrime and uploads the file in Settings › ERP:
   - masters: Export › Masters, all masters, XML (Data Interchange);
   - transactions: the Day Book for a period, Export, XML.
-- **Out (part 7):** accepted orders come down as a Tally XML file, which the admin imports with Import › Transactions.
+- **Out:** accepted orders come down as a Tally XML file, which the admin imports with Import › Transactions.
 - An agent on the customer's computer, sending files on its own, may come later.
 
 ## Files
@@ -45,14 +45,27 @@ The third ERP connector (decision D129, BR-61). It reuses the import targets, li
 - where the customer's release keeps the GST rate: on the item, its stock group, or the newer HSN details;
 - `BILLCREDITPERIOD` written as a date rather than days;
 - the aliases the customer actually uses for codes;
-- whether Tally matches a voucher imported again with the same `REMOTEID` (part 7);
-- that `VOUCHERNUMBER` is kept when the Sales Order type numbers automatically (part 7).
+- whether Tally matches a voucher imported again with the same `REMOTEID`;
+- that `VOUCHERNUMBER` is kept when the Sales Order type numbers automatically;
+- that quantities written without their unit take the stock item's base unit.
 
-## Sales orders (part 7)
+## Sales orders
 
-Accepted orders become `Sales Order` vouchers in one import file:
+An admin presses Make the file in Settings › ERP. The worker writes every waiting accepted order, up to 500 a file, as a `Sales Order` voucher (the type the mappings name):
 
-- `DATE`, `VOUCHERNUMBER` and `REFERENCE` (our order number), `REMOTEID` (our order's ID) and `PARTYLEDGERNAME`;
-- one `ALLINVENTORYENTRIES.LIST` a line: `STOCKITEMNAME`, `RATE` and `ACTUALQTY`/`BILLEDQTY` in the base unit.
+- `DATE`, `VOUCHERNUMBER` and `REFERENCE` (our order number), `REMOTEID` (our order's ID);
+- `PARTYLEDGERNAME`, and the party's ledger entry for the total, a debit;
+- one `ALLINVENTORYENTRIES.LIST` a line, for the accepted lines and their free goods: `STOCKITEMNAME`, `RATE` per base unit before tax, `AMOUNT`, and `ACTUALQTY`/`BILLEDQTY` in the base unit, written without the unit, so Tally takes the item's own.
+
+Then:
+
+- **Saving:** the file is kept 7 days. Save gives a five-minute link, and every download is audited. The admin imports it with Import › Transactions.
+- **Once each:** an order goes in one file. Make again puts an earlier file's orders in a new one, for an import that went wrong.
+- **Waiting:** an order whose customer or an item came from no upload waits as `not_in_books` until a file brings them.
+- **Confirmed:** a later Day Book holding a sales order whose `REFERENCE` is our number marks the order as in the books.
 
 A sales order posts no sale in Tally until it is converted there.
+
+## What stays as the portal set it
+
+A connection's rows carry only what the books know. The items import keeps an item's case unit, pack label, measure, HSN, MRP and active flag when a connection's row leaves them out (`ImportContext.keepMissing`), so orders in cases still work after every upload.

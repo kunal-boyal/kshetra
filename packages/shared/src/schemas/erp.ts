@@ -74,6 +74,8 @@ export const ErpSettings = z
     /** Tally: the voucher types read as sales and receipts, with every type under them. */
     salesTypes: z.array(z.string().trim().min(1).max(100)).min(1).max(20).default(['Sales']),
     receiptTypes: z.array(z.string().trim().min(1).max(100)).min(1).max(20).default(['Receipt']),
+    /** Tally: the voucher type accepted orders go in as, and later Day Books show them by. */
+    orderType: z.string().trim().min(1).max(100).default('Sales Order'),
   })
   .meta({ id: 'ErpSettings' });
 export type ErpSettings = z.infer<typeof ErpSettings>;
@@ -97,6 +99,8 @@ export const ErpConnectionResult = z
     connectedAt: z.iso.datetime().nullable(),
     connectedBy: z.object({ id: z.uuid(), name: z.string() }).nullable(),
     lastRunAt: z.iso.datetime().nullable(),
+    /** Tally: accepted orders no orders file has carried yet (at most 500 counted). */
+    ordersWaiting: z.int().nullable(),
   })
   .meta({ id: 'ErpConnection' });
 export type ErpConnectionResult = z.infer<typeof ErpConnectionResult>;
@@ -151,6 +155,20 @@ export const ErpUploadQuery = z
   .strictObject({ name: z.string().trim().min(1).max(200).optional() })
   .meta({ id: 'ErpUploadQuery' });
 
+/**
+ * `POST /v1/erp-connections/{id}/orders-file`: a file of the accepted orders waiting for Tally,
+ * with, if named, every order an earlier file carried again (BR-61).
+ */
+export const TallyOrdersFileBody = z
+  .strictObject({ again: z.uuid().optional() })
+  .meta({ id: 'TallyOrdersFileBody' });
+
+/** `GET /v1/erp-connections/{id}/runs/{runId}/file`: a short-lived link to save an orders file. */
+export const ErpRunParams = z.strictObject({ id: z.uuid(), runId: z.uuid() });
+export const ErpFileLink = z
+  .object({ url: z.string(), expiresAt: z.iso.datetime() })
+  .meta({ id: 'ErpFileLink' });
+
 export const ErpOrganizationBody = z
   .strictObject({ organizationId: z.string().min(1).max(40) })
   .meta({ id: 'ErpOrganizationBody' });
@@ -192,8 +210,10 @@ export const ErpRunResult = z
     counts: z.partialRecord(ErpEntity, ErpRunCounts),
     problems: z.array(ErpProblem),
     calls: z.int(),
-    /** Tally: the uploaded file's name. */
+    /** Tally: the uploaded file's name, or the orders file's. */
     file: z.string().nullable(),
+    /** Tally: whether the orders file can still be saved (kept 7 days). */
+    download: z.boolean(),
   })
   .meta({ id: 'ErpRun' });
 export type ErpRunResult = z.infer<typeof ErpRunResult>;

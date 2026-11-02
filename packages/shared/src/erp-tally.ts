@@ -1,4 +1,11 @@
-import { decimalCell, type ErpMapped, type ErpMapping } from './erp';
+import {
+  acceptedLinesOut,
+  decimalCell,
+  type ErpMapped,
+  type ErpMapping,
+  type ErpOrder,
+} from './erp';
+import { divide, scaled, unscaled } from './pricing';
 
 /**
  * Tally by file exchange (module M20, BR-61, decision D129): what a connection reads of the XML
@@ -236,9 +243,9 @@ export function tallyPriceOn(item: TallyStockItem, level: string, today: string)
   return price ? (tallyRate(price.rate)?.rate ?? null) : null;
 }
 
-/** A stock item's code: its first alias that fits an item code, never its name. */
+/** A stock item's code: its first alias that fits an item code (as an account code), never its name. */
 export function tallyItemCode(item: TallyStockItem): string | null {
-  return item.aliases.map(text).find((alias) => alias.length > 0 && alias.length <= 40) ?? null;
+  return item.aliases.map(text).find((alias) => ACCOUNT_CODE.test(alias)) ?? null;
 }
 
 /**
@@ -330,4 +337,110 @@ export function tallyReceiptRow(voucher: TallyVoucher, accountCode: string | nul
       status: voucher.cancelled ? 'cancelled' : 'open',
     },
   };
+}
+
+/** Text as XML carries it: the five characters that would end a value, escaped. */
+function escape(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/** A quantity as Tally writes one, with the space it leads with. */
+const quantityText = (quantity: string) =>
+  ` ${quantity.includes('.') ? quantity.replace(/0+$/, '').replace(/\.$/, '') : quantity}`;
+
+/**
+ * An accepted order as a Tally sales order voucher (BR-61): its accepted lines and their free
+ * goods, as for Zoho and SAP, in each stock item's base unit at the rate before tax, so Tally
+ * applies the item's own tax when it becomes an invoice there; the party and stock items by their
+ * names in Tally, the voucher number and reference the order's number, and `REMOTEID` its ID. An
+ * order whose customer or an item came from no file names what is missing and waits.
+ */
+export function tallyOrderFor(
+  orderId: string,
+  order: ErpOrder,
+  party: string | null,
+  itemNameOf: (itemCode: string) => string | null,
+  orderType: string,
+): { voucher: string } | { missing: string[] } | { nothing: true } {
+  const lines = acceptedLinesOut(order);
+  if (lines.length === 0) return { nothing: true };
+  const missing = [
+    ...(party ? [] : [`account:${order.accountCode}`]),
+    ...[...new Set(lines.map((line) => line.itemCode))]
+      .filter((code) => !itemNameOf(code))
+      .map((code) => `item:${code}`),
+  ];
+  if (missing.length > 0) return { missing };
+  // Each line's amount, quantity × rate to the paisa, and the order's taxable total.
+  const amounts = lines.map((line) =>
+    divide(scaled(line.quantity, 3) * scaled(line.rate, 2), 1000n),
+  );
+  const total = amounts.reduce((sum, amount) => sum + amount, 0n);
+  const number = escape(String(order.number));
+  const type = escape(orderType);
+  const date = order.date.replace(/-/g, '');
+  const entries = lines
+    .map(
+      (line, index) => `   <ALLINVENTORYENTRIES.LIST>
+    <STOCKITEMNAME>${escape(itemNameOf(line.itemCode)!)}</STOCKITEMNAME>
+    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+    <RATE>${line.rate}</RATE>
+    <AMOUNT>${unscaled(amounts[index]!, 2)}</AMOUNT>
+    <ACTUALQTY>${quantityText(line.quantity)}</ACTUALQTY>
+    <BILLEDQTY>${quantityText(line.quantity)}</BILLEDQTY>
+   </ALLINVENTORYENTRIES.LIST>`,
+    )
+    .join('\n');
+  return {
+    voucher: `<TALLYMESSAGE xmlns:UDF="TallyUDF">
+  <VOUCHER REMOTEID="${escape(orderId)}" VCHTYPE="${type}" ACTION="Create" OBJVIEW="Invoice Voucher View">
+   <DATE>${date}</DATE>
+   <VOUCHERTYPENAME>${type}</VOUCHERTYPENAME>
+   <VOUCHERNUMBER>${number}</VOUCHERNUMBER>
+   <REFERENCE>${number}</REFERENCE>
+   <PARTYLEDGERNAME>${escape(party!)}</PARTYLEDGERNAME>
+   <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+   <ISINVOICE>Yes</ISINVOICE>
+   <LEDGERENTRIES.LIST>
+    <LEDGERNAME>${escape(party!)}</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+    <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+    <AMOUNT>-${unscaled(total, 2)}</AMOUNT>
+   </LEDGERENTRIES.LIST>
+${entries}
+  </VOUCHER>
+ </TALLYMESSAGE>`,
+  };
+}
+
+/** The file Tally imports (Import › Transactions): every voucher, for the company named. */
+export function tallyImportFile(company: string | null, vouchers: readonly string[]): string {
+  const current = company
+    ? `
+    <STATICVARIABLES>
+     <SVCURRENTCOMPANY>${escape(company)}</SVCURRENTCOMPANY>
+    </STATICVARIABLES>`
+    : '';
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+ <HEADER>
+  <TALLYREQUEST>Import Data</TALLYREQUEST>
+ </HEADER>
+ <BODY>
+  <IMPORTDATA>
+   <REQUESTDESC>
+    <REPORTNAME>Vouchers</REPORTNAME>${current}
+   </REQUESTDESC>
+   <REQUESTDATA>
+${vouchers.map((voucher) => ` ${voucher}`).join('\n')}
+   </REQUESTDATA>
+  </IMPORTDATA>
+ </BODY>
+</ENVELOPE>
+`;
 }

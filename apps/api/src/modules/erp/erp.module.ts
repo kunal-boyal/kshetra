@@ -7,6 +7,7 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { IamModule } from '../iam/iam.module';
 import { ImportsModule } from '../imports/imports.module';
 import { MediaModule } from '../media/media.module';
+import { MediaUrls } from '../media/media-urls';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OrdersModule } from '../orders/orders.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
@@ -44,6 +45,7 @@ import { PublicZohoTransport, ZohoBooks, ZohoTransport } from './zoho-books';
     ErpRuns,
     ErpUpkeep,
     TallyReads,
+    MediaUrls,
     ZohoBooks,
     ColumnCipher,
     FakeZohoBooks,

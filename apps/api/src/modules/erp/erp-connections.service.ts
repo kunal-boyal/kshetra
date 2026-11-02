@@ -5,6 +5,7 @@ import {
   type ErpProblem,
   type ErpRunResult,
   ErpSettings,
+  EXPORT_KEEP_DAYS,
   type ErpProvider,
   type ErrorDetail,
   newId,
@@ -28,6 +29,8 @@ import { RedisClient } from '../../platform/redis';
 import { AccountTypesService } from '../accounts/account-types.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
 import { MediaService } from '../media/media.service';
+import { MediaUrls } from '../media/media-urls';
+import { OrdersService } from '../orders/orders.service';
 import { PriceListsService } from '../catalogue/price-lists.service';
 import { People } from '../iam/people';
 import { TerritoriesService } from '../territories/territories.service';
@@ -40,8 +43,12 @@ type RunRow = typeof erpRuns.$inferSelect;
 
 /** The job that reads the books into the tenant's records. */
 export const PULL = 'erp.pull';
-/** The job that sends accepted orders to the books. */
+/** The job that sends accepted orders to the books, or writes Tally's orders file. */
 export const PUSH = 'erp.push';
+/** An orders file is kept as long as an export (spec 12.2). */
+const ORDERS_FILE_KEEP_MS = EXPORT_KEEP_DAYS * 86_400_000;
+/** Orders counted as waiting for Tally, at most. */
+const WAITING_COUNTED = 500;
 /** A connection's state is good for ten minutes, the time to agree at Zoho. */
 const STATE_SECONDS = 600;
 /** A run still marked running after this long was cut short (a worker stopped). */
@@ -81,6 +88,8 @@ export class ErpConnectionsService {
     private readonly catalogue: CatalogueService,
     private readonly priceLists: PriceListsService,
     private readonly media: MediaService,
+    private readonly urls: MediaUrls,
+    private readonly orders: OrdersService,
   ) {}
 
   async providers(tx: TenantTx, tenantId: string) {
@@ -321,16 +330,102 @@ export class ErpConnectionsService {
   }
 
   /**
-   * Removes the Tally files uploaded before the cutoff (the tenant's `importFileRetentionDays`,
-   * BR-41); each run's record stays. Returns how many files went.
+   * Asks for a file of the accepted orders waiting for Tally (BR-61), and, when an earlier file is
+   * named, every order it carried again, for an import that went wrong; one run at a time.
    */
-  async expireFiles(tx: TenantTx, tenantId: string, before: Date): Promise<number> {
+  async requestOrdersFile(access: Access, id: string, again: string | null): Promise<ErpRunResult> {
+    const run = await this.database.forTenant(access.tenantId, async (tx) => {
+      const row = await this.byId(tx, access.tenantId, id, true);
+      if (row.provider !== 'tally') throw notFound();
+      if (row.status !== 'connected') throw new AppError('CONFLICT', 'Connect Tally first.');
+      if (again) {
+        const [earlier] = await tx
+          .select({ kind: erpRuns.kind })
+          .from(erpRuns)
+          .where(
+            and(
+              eq(erpRuns.tenantId, access.tenantId),
+              eq(erpRuns.connectionId, id),
+              eq(erpRuns.id, again),
+            ),
+          );
+        if (earlier?.kind !== 'push') {
+          throw invalid([{ path: 'again', issue: 'Choose an earlier orders file' }]);
+        }
+      }
+      if (await this.running(tx, access.tenantId, id)) {
+        throw new AppError('CONFLICT', 'A file is still being read or made; try once it is done.');
+      }
+      const [created] = await tx
+        .insert(erpRuns)
+        .values({
+          tenantId: access.tenantId,
+          id: newId(),
+          connectionId: id,
+          kind: 'push',
+          status: 'running',
+        })
+        .returning();
+      return created!;
+    });
+    await this.queues.add(
+      'connectors',
+      PUSH,
+      { tenantId: access.tenantId, connectionId: id, runId: run.id, again },
+      { jobId: `erp-push-${run.id}` },
+    );
+    return runResult(run);
+  }
+
+  /**
+   * A five-minute link to save an orders file, for 7 days after it was made (spec 12.2); every
+   * download is audited. Uploaded files are never served back.
+   */
+  async fileLink(access: Access, id: string, runId: string) {
+    return this.database.forTenant(access.tenantId, async (tx) => {
+      await this.byId(tx, access.tenantId, id);
+      const [run] = await tx
+        .select()
+        .from(erpRuns)
+        .where(
+          and(
+            eq(erpRuns.tenantId, access.tenantId),
+            eq(erpRuns.connectionId, id),
+            eq(erpRuns.id, runId),
+          ),
+        );
+      const key =
+        run && runResult(run).download
+          ? await this.media.objectKey(tx, access.tenantId, run.fileMediaId!)
+          : null;
+      if (!run || !key) throw notFound();
+      await this.audit.record(tx, access.tenantId, userActor(access), {
+        action: 'erp.file_downloaded',
+        target: { type: 'erp_run', id: runId },
+        after: { connectionId: id, fileName: run.fileName },
+      });
+      return this.urls.read(key);
+    });
+  }
+
+  /**
+   * Removes the Tally files uploaded before the cutoff (the tenant's `importFileRetentionDays`,
+   * BR-41), or the orders files made before it (7 days); each run's record stays. Returns how many
+   * files went.
+   */
+  async expireFiles(
+    tx: TenantTx,
+    tenantId: string,
+    before: Date,
+    kind: 'upload' | 'push' = 'upload',
+  ): Promise<number> {
     const old = await tx
       .select({ fileMediaId: erpRuns.fileMediaId })
       .from(erpRuns)
       .where(
         and(
           eq(erpRuns.tenantId, tenantId),
+          eq(erpRuns.kind, kind),
           isNotNull(erpRuns.fileMediaId),
           lt(erpRuns.startedAt, before),
         ),
@@ -680,12 +775,21 @@ export class ErpConnectionsService {
     ) {
       details.push({ path: 'accountType', issue: 'Choose one of your account types' });
     }
-    if (settings.defaultTerritory) {
+    const groups = Object.entries(settings.groupTerritories);
+    if (settings.defaultTerritory || groups.length > 0) {
       const codes = new Set(
         (await this.territories.list(tx, tenantId, { active: true })).map((t) => t.code),
       );
-      if (!codes.has(settings.defaultTerritory)) {
+      if (settings.defaultTerritory && !codes.has(settings.defaultTerritory)) {
         details.push({ path: 'defaultTerritory', issue: 'Choose one of your active territories' });
+      }
+      for (const [group, code] of groups) {
+        if (!codes.has(code)) {
+          details.push({
+            path: `groupTerritories.${group}`,
+            issue: 'Choose one of your active territories',
+          });
+        }
       }
     }
     const lists = new Set((await this.priceLists.refs(tx, tenantId)).map((list) => list.id));
@@ -738,7 +842,33 @@ export class ErpConnectionsService {
       connectedAt: row.connectedAt?.toISOString() ?? null,
       connectedBy: by && row.connectedBy ? { id: row.connectedBy, name: by.name } : null,
       lastRunAt: row.lastRunAt?.toISOString() ?? null,
+      ordersWaiting:
+        row.provider === 'tally' && row.status === 'connected'
+          ? await this.ordersWaiting(tx, row)
+          : null,
     };
+  }
+
+  /** Accepted orders since Tally was connected that no orders file has carried. */
+  private async ordersWaiting(tx: TenantTx, row: ConnectionRow): Promise<number> {
+    const sent = await tx
+      .select({ localKey: erpLinks.localKey })
+      .from(erpLinks)
+      .where(
+        and(
+          eq(erpLinks.tenantId, row.tenantId),
+          eq(erpLinks.connectionId, row.id),
+          eq(erpLinks.entity, 'order'),
+        ),
+      );
+    const carried = new Set(sent.map((link) => link.localKey));
+    const accepted = await this.orders.acceptedSince(
+      tx,
+      row.tenantId,
+      row.createdAt,
+      WAITING_COUNTED,
+    );
+    return accepted.filter((id) => !carried.has(id)).length;
   }
 }
 
@@ -754,5 +884,9 @@ export function runResult(row: RunRow): ErpRunResult {
     problems: row.problems as ErpProblem[],
     calls: row.calls,
     file: row.fileName,
+    download:
+      row.kind === 'push' &&
+      row.fileMediaId !== null &&
+      Date.now() - row.startedAt.getTime() < ORDERS_FILE_KEEP_MS,
   };
 }

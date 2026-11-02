@@ -5220,6 +5220,66 @@ export const hi: Record<MessageKey, Message> = {
   'erp.default_tax_rate': 'फ़ील्ड खाली होने पर GST दर',
   'erp.default_tax_rate_help':
     'जैसे 18। जिस आइटम के पास दोनों न हों, वह छोड़ा जाता है और सूची में आता है।',
+  'erp.tally': 'Tally',
+  'erp.tally_intro':
+    'Tally आपके अपने कंप्यूटर पर चलता है, इसलिए यहाँ से कुछ भी उस तक नहीं पहुँचता। TallyPrime से अपने मास्टर्स और डे बुक निर्यात करके यहाँ अपलोड करें, फिर स्वीकृत {term.order:other:lower} की फ़ाइल बनाकर Tally में आयात करें।',
+  'erp.tally_connect': 'Tally का उपयोग करें',
+  'erp.tally_company': 'Tally में कंपनी',
+  'erp.tally_company_none': 'आपकी अपलोड की गई पहली फ़ाइल से तय होगी',
+  'erp.tally_how': 'TallyPrime से निर्यात कैसे करें',
+  'erp.tally_how_masters':
+    'मास्टर्स: Export › Masters, All Masters और XML (Data Interchange) फ़ॉर्मैट चुनें।',
+  'erp.tally_how_day_book':
+    'लेन-देन: किसी अवधि की डे बुक खोलें, फिर XML में Export करें। साल भर की फ़ाइल 20 MB से बड़ी हो तो एक-एक महीना निर्यात करें।',
+  'erp.tally_how_orders':
+    '{term.order:other}: नीचे फ़ाइल बनाएँ, सहेजें और Tally में Import › Transactions का उपयोग करें।',
+  'erp.tally_upload': 'Tally से फ़ाइल अपलोड करें',
+  'erp.tally_upload_help':
+    'TallyPrime से निर्यात की गई XML फ़ाइल, 20 MB तक। पहले मास्टर्स अपलोड करें।',
+  'erp.tally_uploading': 'अपलोड हो रहा है…',
+  'erp.tally_uploaded': 'फ़ाइल पढ़ी जा रही है। पूरा होने पर उसका रन नीचे दिखेगा।',
+  'erp.tally_issue_not_tally':
+    'यह Tally से निर्यात की गई फ़ाइल नहीं है। इसे XML में फिर से निर्यात करें।',
+  'erp.tally_issue_declarations':
+    'यह फ़ाइल एंटिटी घोषित करती है, जो Tally की अपनी फ़ाइलें कभी नहीं करतीं, इसलिए इसे पढ़ा नहीं गया।',
+  'erp.tally_issue_other_company':
+    'यह फ़ाइल Tally में जुड़ी हुई कंपनी के बजाय किसी दूसरी कंपनी की है।',
+  'erp.tally_orders': 'Tally के लिए {term.order:other}',
+  'erp.tally_orders_waiting': {
+    one: '{n} स्वीकृत {term.order:one:lower} फ़ाइल की प्रतीक्षा में है।',
+    other: '{n} स्वीकृत {term.order:other:lower} फ़ाइल की प्रतीक्षा में हैं।',
+  },
+  'erp.tally_make_file': 'फ़ाइल बनाएँ',
+  'erp.tally_file_asked': 'फ़ाइल बन रही है। यह नीचे के रन में सहेजें के साथ दिखेगी।',
+  'erp.tally_save_file': 'सहेजें',
+  'erp.tally_save_file_of': '{at} की फ़ाइल सहेजें',
+  'erp.tally_make_again': 'फिर से बनाएँ',
+  'erp.tally_make_again_of': 'गलत हुए आयात के लिए {at} की फ़ाइल फिर से बनाएँ',
+  'erp.col_file': 'फ़ाइल',
+  'erp.debtor_groups': 'ग्राहक समूह',
+  'erp.debtor_groups_help':
+    'Tally के वे समूह जिनके लेजर ग्राहक हैं, उनके नीचे के सभी समूहों सहित। इन्हें अल्पविराम से अलग करें।',
+  'erp.group_territories': 'समूह के अनुसार क्षेत्र',
+  'erp.group_territories_help':
+    'Tally का एक समूह और वह क्षेत्र जिसके उसके ग्राहक हैं। लेजर अपने ऊपर के सबसे निकट सूचीबद्ध समूह का क्षेत्र लेता है।',
+  'erp.group_name': 'Tally में समूह',
+  'erp.group_territory': 'क्षेत्र',
+  'erp.add_group_territory': 'समूह जोड़ें',
+  'erp.sales_types': 'बिक्री वाउचर प्रकार',
+  'erp.sales_types_help':
+    'इनवॉइस के रूप में पढ़े जाते हैं, इनके नीचे के सभी प्रकारों सहित। इन्हें अल्पविराम से अलग करें।',
+  'erp.receipt_types': 'रसीद वाउचर प्रकार',
+  'erp.receipt_types_help':
+    'रसीद के रूप में पढ़े जाते हैं, इनके नीचे के सभी प्रकारों सहित। इन्हें अल्पविराम से अलग करें।',
+  'erp.order_type': '{term.order:other} का वाउचर प्रकार',
+  'erp.order_type_help':
+    'स्वीकृत {term.order:other:lower} इसी प्रकार के रूप में Tally में जाते हैं।',
+  'erp.tally_price_levels': 'मूल्य स्तर',
+  'erp.tally_price_levels_help':
+    'यहाँ बताया गया हर Tally मूल्य स्तर आपकी किसी मूल्य सूची में पढ़ा जाता है।',
+  'erp.tally_price_level': 'Tally में मूल्य स्तर',
+  'erp.add_tally_price_level': 'मूल्य स्तर जोड़ें',
+  'erp.tally_default_tax_rate': 'जब Tally कोई दर न दे तब GST दर',
   'erp.endpoint_not_an_address': 'पूरा पता लिखें, जैसे https://b1.yourcompany.in',
   'erp.endpoint_not_https': 'https:// वाला पता दें',
   'erp.endpoint_not_443':

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ErpOrder } from './erp';
 import {
   type TallyLedger,
   type TallyMapping,
@@ -7,9 +8,11 @@ import {
   tallyCustomerRow,
   tallyDate,
   tallyDebit,
+  tallyImportFile,
   tallyInvoiceRow,
   tallyItemRow,
   tallyNumber,
+  tallyOrderFor,
   tallyQuantity,
   tallyRate,
   tallyReceiptRow,
@@ -264,5 +267,79 @@ describe('receipt vouchers as receipts (FX-87, BR-61)', () => {
         status: 'open',
       },
     });
+  });
+});
+
+describe('an accepted order as a Tally sales order (FX-88, BR-61)', () => {
+  const order: ErpOrder = {
+    number: 1042,
+    date: '2026-11-02',
+    accountCode: 'SGA-014',
+    lines: [
+      {
+        id: 'l1',
+        itemCode: 'NG-1L',
+        decision: 'accepted',
+        baseUnits: '24.000',
+        taxable: '2468.50',
+        freeOfLineId: null,
+      },
+      {
+        id: 'l2',
+        itemCode: 'NG-1L',
+        decision: 'accepted',
+        baseUnits: '2.000',
+        taxable: '0.00',
+        freeOfLineId: 'l1',
+      },
+      {
+        id: 'l3',
+        itemCode: 'HP-500',
+        decision: 'rejected',
+        baseUnits: '100.000',
+        taxable: '300.00',
+        freeOfLineId: null,
+      },
+    ],
+  };
+  const names: Record<string, string> = { 'NG-1L': 'Neem Gold 1 L' };
+  const nameOf = (code: string) => names[code] ?? null;
+
+  it('writes the accepted lines and free goods under the names Tally knows, escaped', () => {
+    const made = tallyOrderFor('0190-ab', order, 'Kisan Seva Kendra & Sons', nameOf, 'Sales Order');
+    if (!('voucher' in made)) throw new Error('expected a voucher');
+    expect(made.voucher).toContain('REMOTEID="0190-ab" VCHTYPE="Sales Order"');
+    expect(made.voucher).toContain('<DATE>20261102</DATE>');
+    expect(made.voucher).toContain('<VOUCHERNUMBER>1042</VOUCHERNUMBER>');
+    expect(made.voucher).toContain('<REFERENCE>1042</REFERENCE>');
+    expect(made.voucher).toContain(
+      '<PARTYLEDGERNAME>Kisan Seva Kendra &amp; Sons</PARTYLEDGERNAME>',
+    );
+    // 24 at 102.85 is 2,468.40, and 2 free at 0; the party owes their sum.
+    expect(made.voucher).toContain('<AMOUNT>-2468.40</AMOUNT>');
+    expect(made.voucher.match(/<STOCKITEMNAME>Neem Gold 1 L<\/STOCKITEMNAME>/g)).toHaveLength(2);
+    expect(made.voucher).toContain('<RATE>102.85</RATE>');
+    expect(made.voucher).toContain('<ACTUALQTY> 24</ACTUALQTY>');
+    expect(made.voucher).toContain('<ACTUALQTY> 2</ACTUALQTY>');
+    expect(made.voucher).not.toContain('HP-500');
+  });
+
+  it('waits for a customer or item no file brought, and sends nothing when nothing was accepted', () => {
+    expect(tallyOrderFor('o', order, null, () => null, 'Sales Order')).toEqual({
+      missing: ['account:SGA-014', 'item:NG-1L'],
+    });
+    const rejected = {
+      ...order,
+      lines: order.lines.map((line) => ({ ...line, decision: 'rejected' as const })),
+    };
+    expect(tallyOrderFor('o', rejected, 'A', nameOf, 'Sales Order')).toEqual({ nothing: true });
+  });
+
+  it('wraps the vouchers in an import file for the company', () => {
+    const file = tallyImportFile('Sahyadri Agro <Inputs>', ['<TALLYMESSAGE/>']);
+    expect(file).toContain('<TALLYREQUEST>Import Data</TALLYREQUEST>');
+    expect(file).toContain('<SVCURRENTCOMPANY>Sahyadri Agro &lt;Inputs&gt;</SVCURRENTCOMPANY>');
+    expect(file).toContain('<TALLYMESSAGE/>');
+    expect(tallyImportFile(null, [])).not.toContain('SVCURRENTCOMPANY');
   });
 });
