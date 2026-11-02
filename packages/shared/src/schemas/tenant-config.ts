@@ -165,6 +165,14 @@ export const TenantSettings = z.strictObject({
    * D126); null leaves the comparison out.
    */
   forecastPlanMetric: Key.nullable(),
+  /**
+   * Where distributors' stock comes from (BR-62, decision D130): `kept`, a ledger the app moves
+   * on fulfilment, counts and entries; or `books`, levels loaded from the books, which nothing here
+   * moves.
+   */
+  stockSource: z.enum(['kept', 'books']),
+  /** A count differing from what was expected by more than this share is flagged (BR-62). */
+  countTolerancePct: range(0, 100),
   /** Days past due that account finance ages outstanding into (M11, BR-20). */
   ageingBuckets: z
     .array(
@@ -227,6 +235,8 @@ export const SETTING_DEFAULTS: TenantSettings = {
   ordersAllowedOffline: true,
   defaultCreditDays: DEFAULT_CREDIT_DAYS,
   forecastPlanMetric: null,
+  stockSource: 'kept',
+  countTolerancePct: 5,
   ageingBuckets: DEFAULT_AGEING_BUCKETS.map((bucket) => ({ ...bucket })),
   planNotificationTime: '08:00',
   quietHoursStart: '21:00',

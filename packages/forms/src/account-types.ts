@@ -84,6 +84,10 @@ export const AccountType = z
       description:
         'Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)',
     }),
+    keepsStock: z.boolean().default(false).meta({
+      description:
+        'Whether accounts of this type hold stock the inventory module keeps or loads, item by item (decision D130)',
+    }),
   })
   .meta({ id: 'AccountType' });
 

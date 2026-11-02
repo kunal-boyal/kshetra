@@ -32,7 +32,9 @@ export const TARGET_PERMISSIONS: Record<
   | 'payroll_gross'
   | 'salary_structures'
   | 'sell_through'
-  | 'forecasts',
+  | 'forecasts'
+  | 'stock_movements'
+  | 'stock_levels',
   TenantPermission
 > = {
   users: 'user.manage',
@@ -51,6 +53,8 @@ export const TARGET_PERMISSIONS: Record<
   salary_structures: 'salary.manage',
   sell_through: 'sell_through.record',
   forecasts: 'forecast.record',
+  stock_movements: 'stock.record',
+  stock_levels: 'stock.record',
 };
 
 export interface TargetChoice {

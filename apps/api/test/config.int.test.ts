@@ -75,8 +75,11 @@ describe('the config bundle (spec 11.2)', () => {
     expect(response.headers['cache-control']).toBe('private, no-cache');
     const bundle = response.json();
     expect(bundle.version).toBeGreaterThan(0);
-    // Statutory payroll stays off until switched on (decision D128).
-    expect(bundle.settings).toEqual({ ...SETTING_DEFAULTS, modulesOff: ['statutory_payroll'] });
+    // Statutory payroll and inventory stay off until switched on (decisions D128 and D130).
+    expect(bundle.settings).toEqual({
+      ...SETTING_DEFAULTS,
+      modulesOff: ['statutory_payroll', 'inventory'],
+    });
     expect(bundle.terminology.en['term.account']).toEqual({ one: 'Account', other: 'Accounts' });
     expect(bundle.terminology.hi['term.punch_in']).toBe('दिन शुरू करें');
     expect(bundle.designations.map((d: { key: string }) => d.key)).toEqual([
@@ -85,8 +88,10 @@ describe('the config bundle (spec 11.2)', () => {
       'executive',
     ]);
     expect(bundle.access).toMatchObject({ role: 'tenant_admin', scope: 'tenant' });
-    // Every permission but statutory payroll's, whose module starts off (decision D128).
-    expect(bundle.access.permissions).toHaveLength(TENANT_PERMISSIONS.length - 2);
+    // Every permission but statutory payroll's two and inventory's three, whose modules start
+    // off (decisions D128 and D130).
+    expect(bundle.access.permissions).toHaveLength(TENANT_PERMISSIONS.length - 5);
+    expect(bundle.access.permissions).not.toContain('stock.view');
 
     const etag = String(response.headers.etag);
     const unchanged = await owner.get('/v1/config', { 'if-none-match': etag });
@@ -135,7 +140,7 @@ describe('changing configuration (module M2)', () => {
     expect(changed.json()).toEqual({
       ...SETTING_DEFAULTS,
       gpsIntervalSeconds: 120,
-      modulesOff: ['statutory_payroll'],
+      modulesOff: ['statutory_payroll', 'inventory'],
     });
     const latest = (await phone.get('/v1/config')).json();
     expect(latest.version).toBeGreaterThan(after.json().version);

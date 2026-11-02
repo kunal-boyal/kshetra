@@ -405,6 +405,8 @@ const FIXTURES: Record<string, Fixture> = {
         'external-metrics',
         'sell-through',
         'forecasts',
+        'stock-movements',
+        'stock-levels',
       ] as const
     ).map((target) => [
       `POST /v1/bulk/${target}`,
@@ -2999,6 +3001,45 @@ const FIXTURES: Record<string, Fixture> = {
         aAccountId,
       ),
   },
+  'GET /v1/accounts/:id/stock': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/stock`), aAccountId),
+  },
+  'GET /v1/accounts/:id/stock/movements': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/stock/movements`), aAccountId),
+  },
+  'GET /v1/accounts/:id/stock/counts': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/accounts/${id}/stock/counts`), aAccountId),
+  },
+  'POST /v1/stock/movements': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', '/v1/stock/movements', {
+            id: newId(),
+            accountId: id,
+            kind: 'received',
+            lines: [{ itemId: aItemId, quantity: '1' }],
+          }),
+        aAccountId,
+      ),
+  },
+  'POST /v1/stock/counts': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', '/v1/stock/counts', {
+            id: newId(),
+            accountId: id,
+            lines: [{ itemId: aItemId, counted: '1' }],
+          }),
+        aAccountId,
+      ),
+  },
   'PUT /v1/accounts/:id/sell-through/:period': {
     kind: 'by ID',
     run: () =>
@@ -3608,10 +3649,15 @@ beforeAll(async () => {
     values: { order_value: '500000' },
   });
   expect(accountPlan.statusCode).toBe(200);
-  // Statutory payroll switched on for both tenants (D128); A pays its member this month.
+  // Statutory payroll (D128) and inventory (D130) switched on for both tenants; A pays its member
+  // this month.
   for (const token of [aToken, await bAdmin()]) {
     expect(
-      (await send(token, 'PATCH', '/v1/settings', { modulesOn: ['statutory_payroll'] })).statusCode,
+      (
+        await send(token, 'PATCH', '/v1/settings', {
+          modulesOn: ['statutory_payroll', 'inventory'],
+        })
+      ).statusCode,
     ).toBe(200);
   }
   expect(

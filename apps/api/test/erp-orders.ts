@@ -6,7 +6,8 @@ import { newAddress, newDevice, newPhone, type World } from './support';
 /**
  * An agri tenant for orders going out to the books (D129): a head, an ASM and an SME holding a
  * distributor, the items NEEM, UREA and KARANJ with a standard price list, and `order()`, which
- * places an order in cases and has the ASM and the head decide each line.
+ * places an order in cases and has the ASM and the head decide each line. Also used for stock
+ * (decision D130).
  */
 export async function orderingTenant(app: NestFastifyApplication, world: World, name: string) {
   const call = (method: 'GET' | 'POST' | 'PUT', url: string, token: string, body?: object) =>
@@ -130,5 +131,13 @@ export async function orderingTenant(app: NestFastifyApplication, world: World, 
     expect(decided.statusCode, decided.body).toBe(200);
     return decided.json() as { id: string; number: number; status: string };
   };
-  return { tenantId, admin: tokens.head, marketCode, distributorCode, order };
+  return {
+    tenantId,
+    admin: tokens.head,
+    marketCode,
+    distributor,
+    distributorCode,
+    itemIds,
+    order,
+  };
 }

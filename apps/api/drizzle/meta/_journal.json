@@ -736,6 +736,20 @@
       "when": 1793619080781,
       "tag": "0104_erp_tally",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1793624377894,
+      "tag": "0105_stock",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1793624385055,
+      "tag": "0106_stock_permissions",
+      "breakpoints": true
     }
   ]
 }

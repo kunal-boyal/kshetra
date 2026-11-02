@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "building",
-  "version": 7,
+  "version": 8,
   "name": {
     "en": "Building materials and paints",
     "hi": "बिल्डिंग मटीरियल और पेंट"
@@ -106,7 +106,10 @@
         "forecast.adjust",
         "scheme.manage",
         "payroll.run",
-        "salary.manage"
+        "salary.manage",
+        "stock.view",
+        "stock.record",
+        "stock.count"
       ]
     },
     {
@@ -185,7 +188,10 @@
         "sell_through.record",
         "forecast.record",
         "forecast.adjust",
-        "scheme.manage"
+        "scheme.manage",
+        "stock.view",
+        "stock.record",
+        "stock.count"
       ]
     },
     {
@@ -233,7 +239,9 @@
         "report.schedule",
         "sell_through.record",
         "forecast.record",
-        "forecast.adjust"
+        "forecast.adjust",
+        "stock.view",
+        "stock.count"
       ]
     },
     {
@@ -261,7 +269,9 @@
         "payslip.view",
         "finance.view",
         "sell_through.record",
-        "forecast.record"
+        "forecast.record",
+        "stock.view",
+        "stock.count"
       ],
       "mobileOnly": true
     },
@@ -286,7 +296,9 @@
         "payslip.view",
         "report.view",
         "export.create",
-        "import.run"
+        "import.run",
+        "stock.view",
+        "stock.record"
       ]
     },
     {
@@ -302,7 +314,8 @@
         "leaderboard.view",
         "account.view",
         "order.view",
-        "report.view"
+        "report.view",
+        "stock.view"
       ]
     }
   ],
@@ -440,6 +453,7 @@
   "accountTypes": [
     {
       "key": "dealer",
+      "keepsStock": true,
       "name": {
         "en": {
           "one": "Dealer",

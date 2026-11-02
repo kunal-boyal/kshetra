@@ -32,6 +32,9 @@ export const API_SCOPES = {
   'targets:write': ['target.view', 'target.edit', 'forecast.record', 'forecast.adjust'],
   /** External metric values, such as secondary sales from an ERP, and stock statements (D124). */
   'metrics:write': ['metric.record', 'sell_through.record'],
+  /** Distributors' stock: levels and movements, and loading them from a distributor's own system (D130). */
+  'stock:read': ['stock.view'],
+  'stock:write': ['stock.view', 'stock.record'],
   'reports:read': ['report.view', 'export.create'],
   'audit:read': ['audit.view'],
 } as const satisfies Record<string, readonly TenantPermission[]>;
