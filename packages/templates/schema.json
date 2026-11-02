@@ -452,6 +452,9 @@
         "order.line_decide",
         "order.fulfil",
         "scheme.manage",
+        "stock.view",
+        "stock.record",
+        "stock.count",
         "finance.view",
         "finance.manage",
         "leave.request",
@@ -1318,6 +1321,11 @@
         "sellThrough": {
           "default": false,
           "description": "Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)",
+          "type": "boolean"
+        },
+        "keepsStock": {
+          "default": false,
+          "description": "Whether accounts of this type hold stock the inventory module keeps or loads, item by item (decision D130)",
           "type": "boolean"
         }
       },
@@ -3641,7 +3649,8 @@
               "statutory_payroll",
               "integrations",
               "sso",
-              "advanced_analytics"
+              "advanced_analytics",
+              "inventory"
             ]
           }
         },
@@ -3658,7 +3667,8 @@
               "statutory_payroll",
               "integrations",
               "sso",
-              "advanced_analytics"
+              "advanced_analytics",
+              "inventory"
             ]
           }
         },
@@ -3804,6 +3814,18 @@
               "type": "null"
             }
           ]
+        },
+        "stockSource": {
+          "type": "string",
+          "enum": [
+            "kept",
+            "books"
+          ]
+        },
+        "countTolerancePct": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
         },
         "ageingBuckets": {
           "minItems": 1,

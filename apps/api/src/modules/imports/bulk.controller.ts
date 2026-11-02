@@ -26,6 +26,8 @@ const TARGET_OF: Record<BulkTarget, string> = {
   'external-metrics': 'external_metrics',
   'sell-through': 'sell_through',
   forecasts: 'forecasts',
+  'stock-movements': 'stock_movements',
+  'stock-levels': 'stock_levels',
 };
 
 /**
@@ -200,6 +202,44 @@ export class BulkController {
     @Headers('idempotency-key') key?: string,
   ) {
     return this.load(access, 'sell_through', BulkBody.parse(body).rows, key);
+  }
+
+  @Post('stock-movements')
+  @HttpCode(200)
+  @Requires('stock.record')
+  @Contract({
+    tag: 'Integrations',
+    summary:
+      "Record goods in and out of accounts' stock, such as a distributor's own sales, once each by reference (BR-62)",
+    body: BulkBody,
+    response: BulkResult,
+    idempotencyKey: true,
+  })
+  stockMovements(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key?: string,
+  ) {
+    return this.load(access, 'stock_movements', BulkBody.parse(body).rows, key);
+  }
+
+  @Post('stock-levels')
+  @HttpCode(200)
+  @Requires('stock.record')
+  @Contract({
+    tag: 'Integrations',
+    summary:
+      'Load what accounts hold of each item: their levels while the books keep stock, else openings (BR-62)',
+    body: BulkBody,
+    response: BulkResult,
+    idempotencyKey: true,
+  })
+  stockLevels(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key?: string,
+  ) {
+    return this.load(access, 'stock_levels', BulkBody.parse(body).rows, key);
   }
 
   @Post('forecasts')

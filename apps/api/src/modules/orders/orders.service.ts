@@ -1068,6 +1068,37 @@ export class OrdersService {
    * `from` to `to`, with the order, by placing, a page at a time.
    */
   /**
+   * An order's buyer and supplier and each accepted line's item and base units fulfilled so far,
+   * for moving distributors' stock (BR-62, decision D130); null for an order that isn't there.
+   */
+  async forStock(tx: TenantTx, tenantId: string, id: string) {
+    const [order] = await tx
+      .select({
+        accountId: orders.accountId,
+        supplierKind: orders.supplierKind,
+        supplierAccountId: orders.supplierAccountId,
+      })
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.id, id)));
+    if (!order) return null;
+    const lines = await tx
+      .select({
+        lineId: orderLines.id,
+        itemId: orderLines.itemId,
+        fulfilledUnits: orderLines.fulfilledUnits,
+      })
+      .from(orderLines)
+      .where(
+        and(
+          eq(orderLines.tenantId, tenantId),
+          eq(orderLines.orderId, id),
+          eq(orderLines.decision, 'accepted'),
+        ),
+      );
+    return { ...order, lines };
+  }
+
+  /**
    * Orders the company supplies that were accepted, placed since a moment, oldest first: what an
    * ERP connection sends to the books (decision D129). Fulfilled ones were accepted before.
    */

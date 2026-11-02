@@ -22,6 +22,8 @@ export const IMPORT_TARGETS = [
   'salary_structures',
   'sell_through',
   'forecasts',
+  'stock_movements',
+  'stock_levels',
 ] as const;
 export const AccountsImportTarget = z.templateLiteral(['accounts:', Key]);
 export const ImportTarget = z

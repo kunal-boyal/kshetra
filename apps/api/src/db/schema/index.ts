@@ -30,3 +30,4 @@ export * from './sell-through';
 export * from './forecasts';
 export * from './schemes';
 export * from './erp';
+export * from './stock';

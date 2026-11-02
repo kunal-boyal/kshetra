@@ -86,7 +86,7 @@ describe('the organisation (M2)', () => {
     expect(screen.getByText('Always on')).toBeVisible();
     expect(screen.queryAllByText('Arrives later')).toHaveLength(0);
     const modules = screen.getByRole('region', { name: 'Modules' });
-    expect(within(modules).getAllByRole('switch')).toHaveLength(9);
+    expect(within(modules).getAllByRole('switch')).toHaveLength(10);
   });
 
   it('says when a logo is too big, before sending it', async () => {
@@ -273,16 +273,16 @@ describe('terminology (M2, spec 5.2)', () => {
 
 describe('modules (M2, spec 5.13)', () => {
   it('switches a module off; Core always stays on', async () => {
-    // As the server reads it: statutory payroll off until switched on (decision D128).
+    // As the server reads it: statutory payroll and inventory off until switched on (D128, D130).
     const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN, {
-      settings: { ...SETTING_DEFAULTS, modulesOff: ['statutory_payroll'] },
+      settings: { ...SETTING_DEFAULTS, modulesOff: ['statutory_payroll', 'inventory'] },
     });
     renderAt('/settings/modules', client);
     const user = userEvent.setup();
     const list = await screen.findByRole('list', { name: 'Modules' });
     expect(within(list).getByText('Always on')).toBeVisible();
     expect(within(list).queryAllByText('Arrives later')).toHaveLength(0);
-    expect(within(list).getAllByRole('checkbox', { name: 'On' })).toHaveLength(9);
+    expect(within(list).getAllByRole('checkbox', { name: 'On' })).toHaveLength(10);
     const module = (name: string) => within(within(list).getByText(name).closest('li')!);
     // Statutory payroll starts off (decision D128); switching it on names it on.
     await user.click(module('Statutory payroll').getByRole('checkbox', { name: 'On' }));
@@ -293,7 +293,8 @@ describe('modules (M2, spec 5.13)', () => {
     await waitFor(() =>
       expect(writesOf(client)[0]![3]).toMatchObject({
         body: {
-          modulesOff: ['leave_attendance', 'orders', 'account_finance'],
+          // Inventory stays off: opt-in, and not switched on here.
+          modulesOff: ['inventory', 'leave_attendance', 'orders', 'account_finance'],
           modulesOn: ['statutory_payroll'],
         },
       }),

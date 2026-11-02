@@ -17,6 +17,7 @@ export const MODULE_KEYS = [
   'integrations',
   'sso',
   'advanced_analytics',
+  'inventory',
 ] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 
@@ -41,13 +42,15 @@ export const AVAILABLE_MODULES: readonly ModuleKey[] = [
   'integrations',
   'sso',
   'advanced_analytics',
+  'inventory',
 ];
 
 /**
- * Modules that stay off until a tenant's admin switches them on (decision D128): statutory payroll
- * ships off, as an add-on awaiting a chartered accountant's review.
+ * Modules that stay off until a tenant's admin switches them on (decisions D128 and D130):
+ * statutory payroll ships off, as an add-on awaiting a chartered accountant's review, and
+ * inventory, as an add-on that makes fulfilment move distributors' stock.
  */
-export const OPT_IN_MODULES: readonly SwitchableModule[] = ['statutory_payroll'];
+export const OPT_IN_MODULES: readonly SwitchableModule[] = ['statutory_payroll', 'inventory'];
 
 /**
  * The permissions each module brings. Anything not listed is Core's: the catalogue stays there, as
@@ -77,6 +80,7 @@ export const MODULE_PERMISSIONS: Record<SwitchableModule, readonly TenantPermiss
   integrations: ['api_client.manage', 'webhook.manage', 'erp.manage'],
   sso: [],
   advanced_analytics: ['report.schedule', 'dashboard.manage'],
+  inventory: ['stock.view', 'stock.record', 'stock.count'],
 };
 
 /**

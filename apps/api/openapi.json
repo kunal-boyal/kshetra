@@ -2327,7 +2327,8 @@
                         "statutory_payroll",
                         "integrations",
                         "sso",
-                        "advanced_analytics"
+                        "advanced_analytics",
+                        "inventory"
                       ]
                     }
                   },
@@ -4442,7 +4443,8 @@
                         "statutory_payroll",
                         "integrations",
                         "sso",
-                        "advanced_analytics"
+                        "advanced_analytics",
+                        "inventory"
                       ]
                     }
                   },
@@ -5461,6 +5463,8 @@
               "targets:read",
               "targets:write",
               "metrics:write",
+              "stock:read",
+              "stock:write",
               "reports:read",
               "audit:read"
             ]
@@ -7858,6 +7862,221 @@
         }
       }
     },
+    "/v1/accounts/{id}/stock": {
+      "get": {
+        "operationId": "StockController.levels",
+        "summary": "An account's stock, item by item, valued at its prices, and where it comes from",
+        "tags": [
+          "Stock"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "stock:read",
+              "stock:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: stock.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockLevels"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/{id}/stock/counts": {
+      "get": {
+        "operationId": "StockController.counts",
+        "summary": "An account's stock counts, newest first, with what each found",
+        "tags": [
+          "Stock"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "stock:read",
+              "stock:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: stock.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockCounts"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/{id}/stock/movements": {
+      "get": {
+        "operationId": "StockController.movements",
+        "summary": "An account's stock movements, newest first",
+        "tags": [
+          "Stock"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "stock:read",
+              "stock:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: stock.view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovements"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/announcements": {
       "get": {
         "operationId": "AnnouncementsController.current",
@@ -9579,6 +9798,9 @@
                 "report_schedule.left",
                 "dashboard_layout.changed",
                 "sell_through.recorded",
+                "stock.recorded",
+                "stock.counted",
+                "stock.loaded",
                 "forecast.recorded",
                 "organisation.renamed",
                 "organisation.logo_changed",
@@ -9876,6 +10098,9 @@
                               "report_schedule.left",
                               "dashboard_layout.changed",
                               "sell_through.recorded",
+                              "stock.recorded",
+                              "stock.counted",
+                              "stock.loaded",
                               "forecast.recorded",
                               "organisation.renamed",
                               "organisation.logo_changed",
@@ -10553,7 +10778,9 @@
                 "receipts",
                 "external-metrics",
                 "sell-through",
-                "forecasts"
+                "forecasts",
+                "stock-movements",
+                "stock-levels"
               ]
             }
           },
@@ -10980,6 +11207,136 @@
         }
       }
     },
+    "/v1/bulk/stock-levels": {
+      "post": {
+        "operationId": "BulkController.stockLevels",
+        "summary": "Load what accounts hold of each item: their levels while the books keep stock, else openings (BR-62)",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "stock:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: stock.record",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bulk/stock-movements": {
+      "post": {
+        "operationId": "BulkController.stockMovements",
+        "summary": "Record goods in and out of accounts' stock, such as a distributor's own sales, once each by reference (BR-62)",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "stock:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: stock.record",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "A new random value for each change; a repeat returns the first result",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/bulk/users": {
       "post": {
         "operationId": "BulkController.users",
@@ -11074,6 +11431,8 @@
               "targets:read",
               "targets:write",
               "metrics:write",
+              "stock:read",
+              "stock:write",
               "reports:read",
               "audit:read"
             ]
@@ -11454,7 +11813,8 @@
                               "statutory_payroll",
                               "integrations",
                               "sso",
-                              "advanced_analytics"
+                              "advanced_analytics",
+                              "inventory"
                             ]
                           }
                         },
@@ -11471,7 +11831,8 @@
                               "statutory_payroll",
                               "integrations",
                               "sso",
-                              "advanced_analytics"
+                              "advanced_analytics",
+                              "inventory"
                             ]
                           }
                         },
@@ -11625,6 +11986,18 @@
                             }
                           ]
                         },
+                        "stockSource": {
+                          "type": "string",
+                          "enum": [
+                            "kept",
+                            "books"
+                          ]
+                        },
+                        "countTolerancePct": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
                         "ageingBuckets": {
                           "minItems": 1,
                           "maxItems": 8,
@@ -11708,6 +12081,8 @@
                         "ordersAllowedOffline",
                         "defaultCreditDays",
                         "forecastPlanMetric",
+                        "stockSource",
+                        "countTolerancePct",
                         "ageingBuckets",
                         "planNotificationTime",
                         "quietHoursStart",
@@ -13165,6 +13540,8 @@
               "targets:read",
               "targets:write",
               "metrics:write",
+              "stock:read",
+              "stock:write",
               "reports:read",
               "audit:read"
             ]
@@ -15068,6 +15445,9 @@
                           "report_schedule.left",
                           "dashboard_layout.changed",
                           "sell_through.recorded",
+                          "stock.recorded",
+                          "stock.counted",
+                          "stock.loaded",
                           "forecast.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
@@ -18860,6 +19240,8 @@
               "targets:read",
               "targets:write",
               "metrics:write",
+              "stock:read",
+              "stock:write",
               "reports:read",
               "audit:read"
             ]
@@ -20809,6 +21191,9 @@
                           "report_schedule.left",
                           "dashboard_layout.changed",
                           "sell_through.recorded",
+                          "stock.recorded",
+                          "stock.counted",
+                          "stock.loaded",
                           "forecast.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
@@ -21168,6 +21553,9 @@
                           "report_schedule.left",
                           "dashboard_layout.changed",
                           "sell_through.recorded",
+                          "stock.recorded",
+                          "stock.counted",
+                          "stock.loaded",
                           "forecast.recorded",
                           "organisation.renamed",
                           "organisation.logo_changed",
@@ -21625,6 +22013,9 @@
                 "report_schedule.left",
                 "dashboard_layout.changed",
                 "sell_through.recorded",
+                "stock.recorded",
+                "stock.counted",
+                "stock.loaded",
                 "forecast.recorded",
                 "organisation.renamed",
                 "organisation.logo_changed",
@@ -23214,7 +23605,8 @@
                         "statutory_payroll",
                         "integrations",
                         "sso",
-                        "advanced_analytics"
+                        "advanced_analytics",
+                        "inventory"
                       ]
                     }
                   },
@@ -23231,7 +23623,8 @@
                         "statutory_payroll",
                         "integrations",
                         "sso",
-                        "advanced_analytics"
+                        "advanced_analytics",
+                        "inventory"
                       ]
                     }
                   },
@@ -23390,6 +23783,18 @@
                       }
                     ]
                   },
+                  "stockSource": {
+                    "type": "string",
+                    "enum": [
+                      "kept",
+                      "books"
+                    ]
+                  },
+                  "countTolerancePct": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
                   "ageingBuckets": {
                     "minItems": 1,
                     "maxItems": 8,
@@ -23532,7 +23937,8 @@
                           "statutory_payroll",
                           "integrations",
                           "sso",
-                          "advanced_analytics"
+                          "advanced_analytics",
+                          "inventory"
                         ]
                       }
                     },
@@ -23549,7 +23955,8 @@
                           "statutory_payroll",
                           "integrations",
                           "sso",
-                          "advanced_analytics"
+                          "advanced_analytics",
+                          "inventory"
                         ]
                       }
                     },
@@ -23703,6 +24110,18 @@
                         }
                       ]
                     },
+                    "stockSource": {
+                      "type": "string",
+                      "enum": [
+                        "kept",
+                        "books"
+                      ]
+                    },
+                    "countTolerancePct": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
                     "ageingBuckets": {
                       "minItems": 1,
                       "maxItems": 8,
@@ -23786,6 +24205,8 @@
                     "ordersAllowedOffline",
                     "defaultCreditDays",
                     "forecastPlanMetric",
+                    "stockSource",
+                    "countTolerancePct",
                     "ageingBuckets",
                     "planNotificationTime",
                     "quietHoursStart",
@@ -24649,6 +25070,107 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StatutoryProfileResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/stock/counts": {
+      "post": {
+        "operationId": "StockController.count",
+        "summary": "Count an account's stock; it sets a kept ledger at once, flagging large gaps",
+        "tags": [
+          "Stock"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: stock.count",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockCountBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockCount"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/stock/movements": {
+      "post": {
+        "operationId": "StockController.record",
+        "summary": "Record goods in or out of an account, or a correction, while the app keeps stock",
+        "tags": [
+          "Stock"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          },
+          {
+            "apiClient": [
+              "stock:write"
+            ]
+          }
+        ],
+        "x-access": "Every one of: stock.record",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordStockBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordStockResult"
                 }
               }
             }
@@ -26501,6 +27023,8 @@
               "targets:read",
               "targets:write",
               "metrics:write",
+              "stock:read",
+              "stock:write",
               "reports:read",
               "audit:read"
             ]
@@ -26955,6 +27479,8 @@
               "targets:read",
               "targets:write",
               "metrics:write",
+              "stock:read",
+              "stock:write",
               "reports:read",
               "audit:read"
             ]
@@ -28234,6 +28760,9 @@
                               "report_schedule.left",
                               "dashboard_layout.changed",
                               "sell_through.recorded",
+                              "stock.recorded",
+                              "stock.counted",
+                              "stock.loaded",
                               "forecast.recorded",
                               "organisation.renamed",
                               "organisation.logo_changed",
@@ -30655,6 +31184,11 @@
             "default": false,
             "description": "Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)",
             "type": "boolean"
+          },
+          "keepsStock": {
+            "default": false,
+            "description": "Whether accounts of this type hold stock the inventory module keeps or loads, item by item (decision D130)",
+            "type": "boolean"
           }
         },
         "required": [
@@ -30671,7 +31205,8 @@
           "segmentRules",
           "visitFrequencyNorms",
           "contacts",
-          "sellThrough"
+          "sellThrough",
+          "keepsStock"
         ],
         "additionalProperties": false
       },
@@ -30834,6 +31369,11 @@
           "sellThrough": {
             "default": false,
             "description": "Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)",
+            "type": "boolean"
+          },
+          "keepsStock": {
+            "default": false,
+            "description": "Whether accounts of this type hold stock the inventory module keeps or loads, item by item (decision D130)",
             "type": "boolean"
           }
         },
@@ -31013,6 +31553,11 @@
             "description": "Whether accounts of this type give a monthly stock statement by item, for what they sold through (decision D124)",
             "type": "boolean"
           },
+          "keepsStock": {
+            "default": false,
+            "description": "Whether accounts of this type hold stock the inventory module keeps or loads, item by item (decision D130)",
+            "type": "boolean"
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -31039,6 +31584,7 @@
           "visitFrequencyNorms",
           "contacts",
           "sellThrough",
+          "keepsStock",
           "id",
           "version"
         ],
@@ -31274,6 +31820,8 @@
                 "targets:read",
                 "targets:write",
                 "metrics:write",
+                "stock:read",
+                "stock:write",
                 "reports:read",
                 "audit:read"
               ]
@@ -34108,6 +34656,8 @@
                 "targets:read",
                 "targets:write",
                 "metrics:write",
+                "stock:read",
+                "stock:write",
                 "reports:read",
                 "audit:read"
               ]
@@ -37917,6 +38467,9 @@
                   "report_schedule.left",
                   "dashboard_layout.changed",
                   "sell_through.recorded",
+                  "stock.recorded",
+                  "stock.counted",
+                  "stock.loaded",
                   "forecast.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
@@ -39846,7 +40399,9 @@
               "payroll_gross",
               "salary_structures",
               "sell_through",
-              "forecasts"
+              "forecasts",
+              "stock_movements",
+              "stock_levels"
             ]
           },
           {
@@ -39874,7 +40429,9 @@
               "payroll_gross",
               "salary_structures",
               "sell_through",
-              "forecasts"
+              "forecasts",
+              "stock_movements",
+              "stock_levels"
             ]
           },
           {
@@ -44346,6 +44903,9 @@
           "order.line_decide",
           "order.fulfil",
           "scheme.manage",
+          "stock.view",
+          "stock.record",
+          "stock.count",
           "finance.view",
           "finance.manage",
           "leave.request",
@@ -44961,7 +45521,8 @@
                 "statutory_payroll",
                 "integrations",
                 "sso",
-                "advanced_analytics"
+                "advanced_analytics",
+                "inventory"
               ]
             }
           },
@@ -45145,7 +45706,8 @@
                 "statutory_payroll",
                 "integrations",
                 "sso",
-                "advanced_analytics"
+                "advanced_analytics",
+                "inventory"
               ]
             }
           },
@@ -45430,7 +45992,8 @@
                 "statutory_payroll",
                 "integrations",
                 "sso",
-                "advanced_analytics"
+                "advanced_analytics",
+                "inventory"
               ]
             }
           },
@@ -45447,7 +46010,8 @@
                 "statutory_payroll",
                 "integrations",
                 "sso",
-                "advanced_analytics"
+                "advanced_analytics",
+                "inventory"
               ]
             }
           },
@@ -45592,6 +46156,18 @@
               }
             ]
           },
+          "stockSource": {
+            "type": "string",
+            "enum": [
+              "kept",
+              "books"
+            ]
+          },
+          "countTolerancePct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
           "ageingBuckets": {
             "minItems": 1,
             "maxItems": 8,
@@ -45717,7 +46293,8 @@
                 "statutory_payroll",
                 "integrations",
                 "sso",
-                "advanced_analytics"
+                "advanced_analytics",
+                "inventory"
               ]
             }
           },
@@ -46464,6 +47041,93 @@
         ],
         "additionalProperties": false
       },
+      "RecordStockBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "opening",
+              "received",
+              "sold",
+              "returned_in",
+              "returned_out",
+              "corrected"
+            ]
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "quantity": {
+                  "type": "string",
+                  "pattern": "^-?\\d{1,12}(?:\\.\\d{1,3})?$"
+                }
+              },
+              "required": [
+                "itemId",
+                "quantity"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "kind",
+          "lines"
+        ],
+        "additionalProperties": false
+      },
+      "RecordStockResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "movements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockMovement"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "movements"
+        ],
+        "additionalProperties": false
+      },
       "Regularisation": {
         "type": "object",
         "properties": {
@@ -46779,7 +47443,9 @@
           "payroll_summary",
           "pay_register",
           "sell_through",
-          "forecast_accuracy"
+          "forecast_accuracy",
+          "stock_on_hand",
+          "stock_ledger"
         ]
       },
       "ReportPage": {
@@ -47004,6 +47670,9 @@
                   "report_schedule.left",
                   "dashboard_layout.changed",
                   "sell_through.recorded",
+                  "stock.recorded",
+                  "stock.counted",
+                  "stock.loaded",
                   "forecast.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
@@ -47461,6 +48130,9 @@
                   "report_schedule.left",
                   "dashboard_layout.changed",
                   "sell_through.recorded",
+                  "stock.recorded",
+                  "stock.counted",
+                  "stock.loaded",
                   "forecast.recorded",
                   "organisation.renamed",
                   "organisation.logo_changed",
@@ -51136,6 +51808,469 @@
         ],
         "additionalProperties": false
       },
+      "StockCount": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "countedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "item": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "baseUnit": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "baseUnit"
+                  ],
+                  "additionalProperties": false
+                },
+                "counted": {
+                  "type": "string"
+                },
+                "expected": {
+                  "type": "string"
+                },
+                "difference": {
+                  "type": "string"
+                },
+                "flags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "beyond_tolerance",
+                      "was_negative"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "item",
+                "counted",
+                "expected",
+                "difference",
+                "flags"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "flagged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "countedAt",
+          "by",
+          "note",
+          "lines",
+          "flagged"
+        ],
+        "additionalProperties": false
+      },
+      "StockCountBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "countedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "counted": {
+                  "type": "string",
+                  "pattern": "^\\d{1,12}(?:\\.\\d{1,3})?$"
+                }
+              },
+              "required": [
+                "itemId",
+                "counted"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "lines"
+        ],
+        "additionalProperties": false
+      },
+      "StockCounts": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockCount"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "StockLevels": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "kept",
+              "books"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "item": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "baseUnit": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "baseUnit"
+                  ],
+                  "additionalProperties": false
+                },
+                "onHand": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "movedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "countedOn": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "item",
+                "onHand",
+                "value",
+                "movedAt",
+                "countedOn"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "accountId",
+          "source",
+          "items",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "StockMovement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "opening",
+              "received",
+              "sold",
+              "returned_in",
+              "returned_out",
+              "counted",
+              "corrected"
+            ]
+          },
+          "item": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "baseUnit": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "baseUnit"
+            ],
+            "additionalProperties": false
+          },
+          "units": {
+            "type": "string"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "order",
+                  "count",
+                  "entry",
+                  "import"
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "by": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "item",
+          "units",
+          "occurredOn",
+          "source",
+          "note",
+          "by",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "StockMovements": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockMovement"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
       "SubmissionResult": {
         "type": "object",
         "properties": {
@@ -52938,7 +54073,8 @@
                 "statutory_payroll",
                 "integrations",
                 "sso",
-                "advanced_analytics"
+                "advanced_analytics",
+                "inventory"
               ]
             }
           },
@@ -52956,7 +54092,8 @@
                 "statutory_payroll",
                 "integrations",
                 "sso",
-                "advanced_analytics"
+                "advanced_analytics",
+                "inventory"
               ]
             }
           },
@@ -54825,6 +55962,8 @@
               "targets:read": "target.view",
               "targets:write": "target.view, target.edit, forecast.record, forecast.adjust",
               "metrics:write": "metric.record, sell_through.record",
+              "stock:read": "stock.view",
+              "stock:write": "stock.view, stock.record",
               "reports:read": "report.view, export.create",
               "audit:read": "audit.view"
             }

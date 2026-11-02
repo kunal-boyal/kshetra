@@ -35,6 +35,8 @@ export const BULK_TARGETS = [
   'external-metrics',
   'sell-through',
   'forecasts',
+  'stock-movements',
+  'stock-levels',
 ] as const;
 
 /** `GET /v1/bulk/fields`: a bulk target's fields, custom fields included. */

@@ -17,6 +17,7 @@ import { PayrollModule } from '../payroll/payroll.module';
 import { PerformanceModule } from '../performance/performance.module';
 import { ForecastsModule } from '../forecasts/forecasts.module';
 import { SellThroughModule } from '../sell-through/sell-through.module';
+import { StockModule } from '../stock/stock.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { WorkflowModule } from '../workflow/workflow.module';
@@ -33,6 +34,7 @@ import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
 import { OutstandingReport } from './outstanding';
 import { SellThroughReport } from './sell-through';
+import { StockLedgerReport, StockOnHandReport } from './stock';
 import { ForecastAccuracyReport } from './forecast-accuracy';
 import { SchemeSummaryReport } from './scheme-summary';
 import { PayRegisterReport } from './pay-register';
@@ -70,6 +72,7 @@ import { TargetAchievementReport } from './target-achievement';
     MetricsModule,
     WorkflowModule,
     SellThroughModule,
+    StockModule,
     ForecastsModule,
   ],
   controllers: [ReportsController, ReportSchedulesController],
@@ -93,6 +96,8 @@ import { TargetAchievementReport } from './target-achievement';
     AccountStatementReport,
     OutstandingReport,
     SellThroughReport,
+    StockOnHandReport,
+    StockLedgerReport,
     ForecastAccuracyReport,
     SchemeSummaryReport,
     PayRegisterReport,

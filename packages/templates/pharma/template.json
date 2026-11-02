@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "pharma",
-  "version": 7,
+  "version": 8,
   "name": {
     "en": "Pharma",
     "hi": "फ़ार्मा"
@@ -136,7 +136,10 @@
         "forecast.adjust",
         "scheme.manage",
         "payroll.run",
-        "salary.manage"
+        "salary.manage",
+        "stock.view",
+        "stock.record",
+        "stock.count"
       ]
     },
     {
@@ -214,7 +217,10 @@
         "audit.view",
         "forecast.record",
         "forecast.adjust",
-        "scheme.manage"
+        "scheme.manage",
+        "stock.view",
+        "stock.record",
+        "stock.count"
       ]
     },
     {
@@ -261,7 +267,9 @@
         "export.create",
         "report.schedule",
         "forecast.record",
-        "forecast.adjust"
+        "forecast.adjust",
+        "stock.view",
+        "stock.count"
       ]
     },
     {
@@ -288,7 +296,9 @@
         "expense.claim",
         "payslip.view",
         "finance.view",
-        "forecast.record"
+        "forecast.record",
+        "stock.view",
+        "stock.count"
       ],
       "mobileOnly": true
     },
@@ -313,7 +323,9 @@
         "payslip.view",
         "report.view",
         "export.create",
-        "import.run"
+        "import.run",
+        "stock.view",
+        "stock.record"
       ]
     },
     {
@@ -329,7 +341,8 @@
         "leaderboard.view",
         "account.view",
         "order.view",
-        "report.view"
+        "report.view",
+        "stock.view"
       ]
     }
   ],
@@ -762,6 +775,7 @@
     },
     {
       "key": "stockist",
+      "keepsStock": true,
       "name": {
         "en": {
           "one": "Stockist",

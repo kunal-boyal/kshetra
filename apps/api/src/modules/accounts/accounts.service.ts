@@ -1218,6 +1218,20 @@ export class AccountsService {
     return new Map(rows.map((row) => [row.id, row]));
   }
 
+  /** Each account's type, by account ID, across the tenant (stock, decision D130). */
+  async typesOf(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select({ id: accounts.id, typeId: accounts.typeId })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, [...new Set(ids)])));
+    return new Map(rows.map((row) => [row.id, row.typeId]));
+  }
+
   /**
    * The territory code each account sits in, by account code, across the tenant: an ERP connection
    * keeps it when the books name none (decision D129).

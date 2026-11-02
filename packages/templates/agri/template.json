@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "agri",
-  "version": 9,
+  "version": 10,
   "name": { "en": "Agri inputs", "hi": "कृषि इनपुट" },
   "description": {
     "en": "For seed, crop protection and fertiliser companies: distributors, retailers and farmers; farmer meetings, demos and distributor visits that record sales, collection and liquidation; orders by the case.",
@@ -108,7 +108,10 @@
         "forecast.adjust",
         "scheme.manage",
         "payroll.run",
-        "salary.manage"
+        "salary.manage",
+        "stock.view",
+        "stock.record",
+        "stock.count"
       ]
     },
     {
@@ -184,7 +187,10 @@
         "sell_through.record",
         "forecast.record",
         "forecast.adjust",
-        "scheme.manage"
+        "scheme.manage",
+        "stock.view",
+        "stock.record",
+        "stock.count"
       ]
     },
     {
@@ -229,7 +235,9 @@
         "report.schedule",
         "sell_through.record",
         "forecast.record",
-        "forecast.adjust"
+        "forecast.adjust",
+        "stock.view",
+        "stock.count"
       ]
     },
     {
@@ -254,7 +262,9 @@
         "payslip.view",
         "finance.view",
         "sell_through.record",
-        "forecast.record"
+        "forecast.record",
+        "stock.view",
+        "stock.count"
       ],
       "mobileOnly": true
     },
@@ -276,7 +286,9 @@
         "payslip.view",
         "report.view",
         "export.create",
-        "import.run"
+        "import.run",
+        "stock.view",
+        "stock.record"
       ]
     },
     {
@@ -289,7 +301,8 @@
         "leaderboard.view",
         "account.view",
         "order.view",
-        "report.view"
+        "report.view",
+        "stock.view"
       ]
     }
   ],
@@ -374,6 +387,7 @@
   "accountTypes": [
     {
       "key": "distributor",
+      "keepsStock": true,
       "sellThrough": true,
       "name": {
         "en": { "one": "Distributor", "other": "Distributors" },
