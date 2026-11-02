@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import type { ErpOrder } from './erp';
 import {
   type SapMapping,
   sapCustomerRow,
   sapEndpointIssue,
   sapInvoiceRow,
+  sapOrderFor,
   sapItemRow,
   sapPaymentRow,
   sapPaymentTotal,
@@ -181,6 +183,61 @@ describe('invoices and incoming payments (FX-80, BR-51, BR-60)', () => {
         against: '10041',
         status: 'open',
       },
+    });
+  });
+});
+
+describe('an accepted order as a SAP sales order (FX-81, BR-60)', () => {
+  const order: ErpOrder = {
+    number: 1042,
+    date: '2026-11-02',
+    accountCode: 'C20000',
+    lines: [
+      {
+        id: 'l1',
+        itemCode: 'TEA-250',
+        decision: 'accepted',
+        baseUnits: '24.000',
+        taxable: '2468.50',
+        freeOfLineId: null,
+      },
+      {
+        id: 'l2',
+        itemCode: 'TEA-250',
+        decision: 'accepted',
+        baseUnits: '2.000',
+        taxable: '0.00',
+        freeOfLineId: 'l1',
+      },
+      {
+        id: 'l3',
+        itemCode: 'SOAP-100',
+        decision: 'rejected',
+        baseUnits: '10.000',
+        taxable: '300.00',
+        freeOfLineId: null,
+      },
+    ],
+  };
+
+  it('sends the accepted lines and free goods with the order’s number as NumAtCard', () => {
+    expect(sapOrderFor(order, true, () => true)).toEqual({
+      body: {
+        CardCode: 'C20000',
+        DocDate: '2026-11-02',
+        DocDueDate: '2026-11-02',
+        NumAtCard: '1042',
+        DocumentLines: [
+          { ItemCode: 'TEA-250', Quantity: 24, UnitPrice: 102.85 },
+          { ItemCode: 'TEA-250', Quantity: 2, UnitPrice: 0 },
+        ],
+      },
+    });
+  });
+
+  it('waits while the customer or an item hasn’t come in from SAP', () => {
+    expect(sapOrderFor(order, false, (code) => code !== 'TEA-250')).toEqual({
+      missing: ['account:C20000', 'item:TEA-250'],
     });
   });
 });

@@ -54,10 +54,11 @@ export class ErpUpkeep implements OnModuleInit {
       async (event, tx) => {
         const { status } = event.payload as EventPayload<'order.status_changed'>;
         if (status !== 'accepted' && status !== 'partially_accepted') return;
-        const connection = await this.connections.row(tx, event.tenantId);
-        if (!connection || connection.status !== 'connected') return;
-        if (!ErpSettings.parse(connection.settings).pushOrders) return;
-        await this.runs.schedulePush(event.tenantId, connection.id);
+        for (const connection of await this.connections.all(tx, event.tenantId)) {
+          if (connection.status !== 'connected') continue;
+          if (!ErpSettings.parse(connection.settings).pushOrders) continue;
+          await this.runs.schedulePush(event.tenantId, connection.id);
+        }
       },
     );
     this.schedules.everyForTenants({

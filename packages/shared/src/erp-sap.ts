@@ -1,4 +1,10 @@
-import { decimalCell, type ErpMapped, type ErpMapping } from './erp';
+import {
+  acceptedLinesOut,
+  decimalCell,
+  type ErpMapped,
+  type ErpMapping,
+  type ErpOrder,
+} from './erp';
 
 /**
  * SAP Business One through its Service Layer (module M20, BR-60, decision D129): what a connection
@@ -245,6 +251,52 @@ export function sapPaymentRow(
         .filter((number): number is string => Boolean(number))
         .join(', '),
       status: yes(payment.Cancelled) ? 'cancelled' : 'open',
+    },
+  };
+}
+
+/** A sales order as the Service Layer takes it. */
+export interface SapOrderBody {
+  CardCode: string;
+  DocDate: string;
+  DocDueDate: string;
+  /** The customer's reference: our order number, by which it is found again. */
+  NumAtCard: string;
+  DocumentLines: { ItemCode: string; Quantity: number; UnitPrice: number }[];
+}
+
+/**
+ * An accepted order as a SAP sales order (BR-60): its accepted lines and their free goods, as for
+ * Zoho, with `NumAtCard` the order's number; due the day it was placed, as delivery is settled in
+ * SAP. Codes are the same in both, so an order waits only while its customer or an item hasn't
+ * come in from SAP.
+ */
+export function sapOrderFor(
+  order: ErpOrder,
+  customerLinked: boolean,
+  itemLinked: (itemCode: string) => boolean,
+): { body: SapOrderBody } | { missing: string[] } | { nothing: true } {
+  const lines = acceptedLinesOut(order);
+  if (lines.length === 0) return { nothing: true };
+  const missing = [
+    ...(customerLinked ? [] : [`account:${order.accountCode}`]),
+    ...[...new Set(lines.map((line) => line.itemCode))]
+      .filter((code) => !itemLinked(code))
+      .map((code) => `item:${code}`),
+  ];
+  if (missing.length > 0) return { missing };
+  return {
+    body: {
+      CardCode: order.accountCode,
+      DocDate: order.date,
+      DocDueDate: order.date,
+      NumAtCard: String(order.number),
+      // Numbers only on the way out, as the Service Layer's JSON takes them.
+      DocumentLines: lines.map((line) => ({
+        ItemCode: line.itemCode,
+        Quantity: Number(line.quantity),
+        UnitPrice: Number(line.rate),
+      })),
     },
   };
 }

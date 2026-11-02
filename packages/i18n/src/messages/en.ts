@@ -5153,9 +5153,9 @@ export const en = {
   'erp.daily_calls': 'Your Zoho plan’s daily calls',
   'erp.daily_calls_help':
     'Free is 1,000, Standard 2,000, Professional 5,000. A tenth is always left for you.',
-  'erp.push_orders': 'Send accepted {term.order:other:lower} to Zoho',
+  'erp.push_orders': 'Send accepted {term.order:other:lower} to {provider}',
   'erp.push_orders_help':
-    'Those the company supplies, once accepted, with their accepted lines. Each goes to Zoho once.',
+    'Those the company supplies, once accepted, with their accepted lines. Each goes to {provider} once.',
   'erp.save_mappings': 'Save',
   'erp.saved': 'Saved.',
   'erp.runs': 'Runs',
@@ -5201,13 +5201,47 @@ export const en = {
   'erp.issue_refused': 'it was refused',
   'erp.disconnect': 'Disconnect',
   'erp.disconnect_question':
-    'Disconnect Zoho Books? Nothing more is read or sent until you connect it again. What came in stays.',
+    'Disconnect {provider}? Nothing more is read or sent until you connect it again. What came in stays.',
   'erp.connecting_title': 'Connecting Zoho Books',
   'erp.connecting': 'Finishing the connection…',
   'erp.refused_at_zoho': 'Zoho didn’t give access. Nothing was connected.',
   'erp.return_incomplete':
     'Zoho sent the browser back without what is needed. Start connecting again.',
   'erp.back_to_erp': 'Back to ERP',
+  'erp.sap': 'SAP Business One',
+  'erp.sap_intro':
+    'Connects through SAP’s Service Layer with a user your SAP admin makes for this. Your SAP partner publishes the Service Layer on HTTPS, port 443, with a valid certificate.',
+  'erp.sap_connect': 'Connect SAP Business One',
+  'erp.sap_save_details': 'Check and save the details',
+  'erp.sap_change': 'Change the details',
+  'erp.sap_endpoint': 'Service Layer address',
+  'erp.sap_endpoint_help': 'For example https://b1.yourcompany.in. HTTPS on port 443 only.',
+  'erp.sap_company': 'Company database',
+  'erp.sap_username': 'SAP user',
+  'erp.sap_username_help':
+    'A user made for this connection, able to read customers, items, price lists, invoices and payments, and to add {term.order:other:lower} to SAP.',
+  'erp.sap_password': 'Password',
+  'erp.sap_password_help':
+    'Checked by signing in to SAP, then kept sealed. It is never shown again.',
+  'erp.sap_reconnect_notice':
+    'SAP no longer accepts this user, so nothing is read from it or sent to it. Enter the details again; your mappings are kept.',
+  'erp.sap_territory_field_help':
+    'A user field on SAP’s business partners, such as U_Territory. Leave it empty to keep each one’s territory here.',
+  'erp.sap_price_lists': 'SAP price lists',
+  'erp.sap_price_lists_help':
+    'Each SAP price list you name by its number is read into one of your price lists.',
+  'erp.sap_price_list_no': 'Price list number in SAP',
+  'erp.add_sap_price_list': 'Add a price list',
+  'erp.tax_rate_field': 'SAP field holding the GST rate',
+  'erp.tax_rate_field_help': 'A user field on SAP’s items, such as U_GST, with rates like 18.',
+  'erp.default_tax_rate': 'GST rate when the field is empty',
+  'erp.default_tax_rate_help': 'For example 18. An item with neither is left out and listed.',
+  'erp.endpoint_not_an_address': 'Write a full address, such as https://b1.yourcompany.in',
+  'erp.endpoint_not_https': 'Use an https:// address',
+  'erp.endpoint_not_443':
+    'Use HTTPS on port 443; ask your SAP partner to publish the Service Layer there',
+  'erp.endpoint_not_a_host': 'Write just the server’s address, without a user name or query',
+  'erp.endpoint_not_service_layer': 'Use the server’s address, or its Service Layer path /b1s/v2',
   'audit_log.title': 'Audit log',
   'audit_log.intro':
     'Every change made in your organisation: who made it, when, from where, and what it was before and after. Entries are kept as long as Settings › Rules says.',

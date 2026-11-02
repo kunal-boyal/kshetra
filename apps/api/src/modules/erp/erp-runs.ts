@@ -11,6 +11,7 @@ import {
   sapInvoiceRow,
   type SapItem,
   sapItemRow,
+  sapOrderFor,
   type SapMapping,
   type SapPayment,
   sapPaymentRow,
@@ -203,8 +204,7 @@ export class ErpRuns {
     if (!connection) return;
     const settings = ErpSettings.parse(connection.settings);
     const sap = connection.provider === 'sap_b1';
-    // SAP's orders out are part 5's; until then a push for SAP sends nothing.
-    if (kind === 'push' && (!settings.pushOrders || sap)) return;
+    if (kind === 'push' && !settings.pushOrders) return;
     const ready =
       connection.status === 'connected' &&
       (sap
@@ -305,10 +305,14 @@ export class ErpRuns {
           },
           run.meter,
         );
-        if (settings.read.customers) await this.sapCustomers(run, today);
-        if (settings.read.items) await this.sapItems(run, today);
-        if (settings.read.invoices) await this.sapInvoices(run, today);
-        if (settings.read.payments) await this.sapPayments(run, today);
+        if (kind === 'push') {
+          await this.sapOrders(run);
+        } else {
+          if (settings.read.customers) await this.sapCustomers(run, today);
+          if (settings.read.items) await this.sapItems(run, today);
+          if (settings.read.invoices) await this.sapInvoices(run, today);
+          if (settings.read.payments) await this.sapPayments(run, today);
+        }
       } else if (kind === 'push') {
         await this.orders(run);
       } else {
@@ -346,23 +350,7 @@ export class ErpRuns {
    */
   private async orders(run: Run): Promise<void> {
     const counts = this.counts(run, 'order');
-    const sent = await this.links(run, 'order');
-    const sentOrders = new Set([...sent.values()].map((link) => link.localKey));
-    const waiting = await this.database.forTenant(run.tenantId, async (tx) => {
-      const ids = (
-        await this.ordersService.acceptedSince(tx, run.tenantId, run.connection.createdAt, 500)
-      ).filter((id) => !sentOrders.has(id));
-      const found = await this.ordersService.forErp(tx, run.tenantId, ids.slice(0, PUSH_BATCH));
-      const accounts = await this.accounts.refs(
-        tx,
-        run.tenantId,
-        [...found.values()].map((order) => order.accountId),
-      );
-      return [...found].map(([id, order]) => ({
-        id,
-        order: { ...order, accountCode: accounts.get(order.accountId)?.code ?? '' },
-      }));
-    });
+    const waiting = await this.waitingOrders(run);
     if (waiting.length === 0) return;
     const customerOf = this.byLocalKey(await this.links(run, 'account'));
     const itemOf = this.byLocalKey(await this.links(run, 'item'));
@@ -405,6 +393,95 @@ export class ErpRuns {
         try {
           const made = await this.zoho.post(run.link, run.meter, 'salesorders', mapped.body);
           externalId = String((made.salesorder as { salesorder_id: string }).salesorder_id);
+          counts.created += 1;
+        } catch (error) {
+          if (!(error instanceof ErpFailed)) throw error;
+          counts.skipped += 1;
+          this.problem(run, 'order', id, label, 'refused', { field: null, detail: error.message });
+          continue;
+        }
+      }
+      await this.database.forTenant(run.tenantId, (tx) =>
+        this.saveLinks(tx, run, 'order', [
+          {
+            externalId: externalId!,
+            link: { localKey: id, fingerprint: null, externalModified: null },
+          },
+        ]),
+      );
+    }
+  }
+
+  /**
+   * Accepted orders the company supplies since the connection was made that the books don't hold
+   * yet, oldest first, a batch at a time, with their account's code.
+   */
+  private async waitingOrders(run: Run) {
+    const sent = await this.links(run, 'order');
+    const sentOrders = new Set([...sent.values()].map((link) => link.localKey));
+    return this.database.forTenant(run.tenantId, async (tx) => {
+      const ids = (
+        await this.ordersService.acceptedSince(tx, run.tenantId, run.connection.createdAt, 500)
+      ).filter((id) => !sentOrders.has(id));
+      const found = await this.ordersService.forErp(tx, run.tenantId, ids.slice(0, PUSH_BATCH));
+      const accounts = await this.accounts.refs(
+        tx,
+        run.tenantId,
+        [...found.values()].map((order) => order.accountId),
+      );
+      return [...found].map(([id, order]) => ({
+        id,
+        order: { ...order, accountCode: accounts.get(order.accountId)?.code ?? '' },
+      }));
+    });
+  }
+
+  /**
+   * SAP's sales orders (BR-60): each waiting order, looked for by its number (`NumAtCard`) before
+   * it is created, so a lost answer never makes two; linked as it goes.
+   */
+  private async sapOrders(run: Run): Promise<void> {
+    const counts = this.counts(run, 'order');
+    const waiting = await this.waitingOrders(run);
+    if (waiting.length === 0) return;
+    const customers = new Set((await this.accountCodes(run)).values());
+    const items = new Set(this.byLocalKey(await this.links(run, 'item')).keys());
+    for (const { id, order } of waiting) {
+      counts.read += 1;
+      const label = `#${order.number}`;
+      const mapped = sapOrderFor(order, customers.has(order.accountCode), (code) =>
+        items.has(code),
+      );
+      if ('nothing' in mapped) {
+        counts.unchanged += 1;
+        continue;
+      }
+      if ('missing' in mapped) {
+        counts.skipped += 1;
+        this.problem(run, 'order', id, label, 'not_in_books', {
+          field: null,
+          detail: mapped.missing.join(', '),
+        });
+        continue;
+      }
+      const reference = mapped.body.NumAtCard.replaceAll("'", "''");
+      let externalId: string | null = null;
+      for await (const page of this.sapB1.list<{ DocEntry: number; NumAtCard?: string }>(
+        run.sap!,
+        run.meter,
+        'Orders',
+        { $filter: `NumAtCard eq '${reference}'` },
+      )) {
+        const found = page.find((entry) => entry.NumAtCard === mapped.body.NumAtCard);
+        externalId = found ? String(found.DocEntry) : null;
+        break;
+      }
+      if (externalId) {
+        counts.unchanged += 1;
+      } else {
+        try {
+          const made = await this.sapB1.post(run.sap!, run.meter, 'Orders', mapped.body);
+          externalId = String(made.DocEntry);
           counts.created += 1;
         } catch (error) {
           if (!(error instanceof ErpFailed)) throw error;
