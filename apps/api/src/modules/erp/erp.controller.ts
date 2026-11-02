@@ -10,6 +10,7 @@ import {
   ErpStartBody,
   ErpStartResult,
   IdParams,
+  SapConnectBody,
 } from '@thelamp/shared';
 import { type Access, CurrentAccess, InModule, Requires } from '../../platform/auth';
 import { Database } from '../../platform/database';
@@ -68,6 +69,21 @@ export class ErpController {
   })
   complete(@CurrentAccess() access: Access, @Body() body: unknown) {
     return this.connections.complete(access, ErpCompleteBody.parse(body));
+  }
+
+  // Checked by signing in to the books before anything is kept; sending it again changes nothing
+  // more than the details sent.
+  @Post('sap-b1')
+  @HttpCode(200)
+  @Requires('erp.manage')
+  @Contract({
+    tag: 'Integrations',
+    summary: 'Connect SAP Business One, or change its Service Layer, company, user or password',
+    body: SapConnectBody,
+    response: ErpConnectionResult,
+  })
+  connectSap(@CurrentAccess() access: Access, @Body() body: unknown) {
+    return this.connections.connectSap(access, SapConnectBody.parse(body));
   }
 
   @Put(':id/organization')

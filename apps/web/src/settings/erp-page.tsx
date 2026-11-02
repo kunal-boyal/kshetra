@@ -72,13 +72,16 @@ export function ErpPage() {
       ) : !providers.data ? (
         <p className="ks-muted">{t('common.loading')}</p>
       ) : (
-        providers.data.providers.map((entry) => (
-          <ZohoCard
-            key={entry.provider}
-            configured={entry.configured}
-            connection={entry.connection}
-          />
-        ))
+        // SAP Business One's card arrives with its orders out (D129, part 5).
+        providers.data.providers
+          .filter((entry) => entry.provider === 'zoho_books')
+          .map((entry) => (
+            <ZohoCard
+              key={entry.provider}
+              configured={entry.configured}
+              connection={entry.connection}
+            />
+          ))
       )}
     </div>
   );

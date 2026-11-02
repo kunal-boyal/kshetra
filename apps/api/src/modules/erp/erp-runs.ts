@@ -5,7 +5,15 @@ import {
   type ErpEntity,
   type ErpIssue,
   type ErpMapped,
-  type ErpMapping,
+  type SapBusinessPartner,
+  sapCustomerRow,
+  type SapInvoice,
+  sapInvoiceRow,
+  type SapItem,
+  sapItemRow,
+  type SapMapping,
+  type SapPayment,
+  sapPaymentRow,
   type ErpProblem,
   type ErpRow,
   type ErpRunResult,
@@ -43,19 +51,14 @@ import { PriceListsService } from '../catalogue/price-lists.service';
 import { ImportRefused, type ImportRow, ImportTargets } from '../imports/targets';
 import {
   type ConnectionRow,
+  credentialsAt,
   ErpConnectionsService,
   PUSH,
   sealedAt,
 } from './erp-connections.service';
-import {
-  CallMeter,
-  ZohoBooks,
-  ZohoDailyLimit,
-  ZohoFailed,
-  type ZohoLink,
-  ZohoRateLimited,
-  ZohoReconnect,
-} from './zoho-books';
+import { CallMeter, ErpDailyLimit, ErpFailed, ErpRateLimited, ErpReconnect } from './erp-calls';
+import { type SapSession, SapB1 } from './sap-b1';
+import { ZohoBooks, type ZohoLink } from './zoho-books';
 
 /** Rows committed in one transaction. */
 const BATCH = 500;
@@ -95,10 +98,15 @@ interface Run {
   tenantId: string;
   connection: ConnectionRow;
   access: Access;
+  /** Zoho's link, or null for another provider. */
   link: ZohoLink;
+  /** SAP's signed-in session, or null for another provider. */
+  sap: SapSession | null;
   meter: CallMeter;
   settings: ErpSettings;
-  mapping: ErpMapping;
+  mapping: SapMapping;
+  /** The day each kind of record has been read through, moved as each step completes (SAP). */
+  cursors: Partial<Record<string, string>>;
   /** A run asked for by Sync now reads every customer's own page again. */
   full: boolean;
   counts: Partial<Record<ErpEntity, Counts>>;
@@ -135,6 +143,7 @@ export class ErpRuns {
     private readonly database: Database,
     private readonly connections: ErpConnectionsService,
     private readonly zoho: ZohoBooks,
+    private readonly sapB1: SapB1,
     private readonly resolver: AccessResolver,
     private readonly targets: ImportTargets,
     private readonly accounts: AccountsService,
@@ -148,9 +157,16 @@ export class ErpRuns {
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
-  /** The hourly read, or Sync now's (`runId`); a tenant without a working connection is skipped. */
-  pull(tenantId: string, connectionId: string | null, runId: string | null): Promise<void> {
-    return this.go(tenantId, connectionId, runId, 'pull');
+  /**
+   * The hourly read of each of a tenant's connections (no `connectionId`), or one connection's, or
+   * Sync now's (`runId`); a connection that doesn't work is skipped.
+   */
+  async pull(tenantId: string, connectionId: string | null, runId: string | null): Promise<void> {
+    if (connectionId) return this.go(tenantId, connectionId, runId, 'pull');
+    const all = await this.database.forTenant(tenantId, (tx) => this.connections.all(tx, tenantId));
+    for (const connection of all) {
+      if (connection.status === 'connected') await this.go(tenantId, connection.id, null, 'pull');
+    }
   }
 
   /**
@@ -186,13 +202,20 @@ export class ErpRuns {
     );
     if (!connection) return;
     const settings = ErpSettings.parse(connection.settings);
-    if (kind === 'push' && !settings.pushOrders) return;
+    const sap = connection.provider === 'sap_b1';
+    // SAP's orders out are part 5's; until then a push for SAP sends nothing.
+    if (kind === 'push' && (!settings.pushOrders || sap)) return;
     const ready =
       connection.status === 'connected' &&
-      connection.refreshTokenSealed &&
-      connection.organizationId &&
-      connection.accountsServer &&
-      connection.apiDomain;
+      (sap
+        ? connection.endpoint &&
+          connection.companyDb &&
+          connection.username &&
+          connection.credentialsSealed
+        : connection.refreshTokenSealed &&
+          connection.organizationId &&
+          connection.accountsServer &&
+          connection.apiDomain);
     let access: Access | null = null;
     if (ready) {
       access = await this.resolver
@@ -236,24 +259,33 @@ export class ErpRuns {
       tenantId,
       connection,
       access,
-      link: {
-        connectionId: connection.id,
-        accountsServer: connection.accountsServer!,
-        apiDomain: connection.apiDomain!,
-        refreshToken: this.cipher.open(connection.refreshTokenSealed!, sealedAt(connection.id)),
-        organizationId: connection.organizationId,
-      },
-      meter: new CallMeter(
-        connection.callsDay === today ? connection.callsUsed : 0,
-        settings.dailyCalls,
-      ),
+      link: sap
+        ? (null as unknown as ZohoLink)
+        : {
+            connectionId: connection.id,
+            accountsServer: connection.accountsServer!,
+            apiDomain: connection.apiDomain!,
+            refreshToken: this.cipher.open(connection.refreshTokenSealed!, sealedAt(connection.id)),
+            organizationId: connection.organizationId,
+          },
+      sap: null,
+      // SAP's Service Layer keeps no daily or per-minute limit of its own.
+      meter: sap
+        ? new CallMeter(0, Number.POSITIVE_INFINITY, undefined, Number.POSITIVE_INFINITY)
+        : new CallMeter(
+            connection.callsDay === today ? connection.callsUsed : 0,
+            settings.dailyCalls,
+          ),
       settings,
       mapping: {
         accountType: settings.accountType,
         territoryField: settings.territoryField,
         defaultTerritory: settings.defaultTerritory,
         units: settings.units,
+        taxRateField: settings.taxRateField,
+        defaultTaxRate: settings.defaultTaxRate,
       },
+      cursors: { ...connection.cursors },
       full: runId !== null,
       counts: {},
       problems: [],
@@ -262,7 +294,22 @@ export class ErpRuns {
 
     let stoppedBy: ErpRunResult['stoppedBy'] = null;
     try {
-      if (kind === 'push') {
+      if (sap) {
+        run.sap = await this.sapB1.signIn(
+          {
+            connectionId: connection.id,
+            root: connection.endpoint!,
+            companyDb: connection.companyDb!,
+            username: connection.username!,
+            password: this.cipher.open(connection.credentialsSealed!, credentialsAt(connection.id)),
+          },
+          run.meter,
+        );
+        if (settings.read.customers) await this.sapCustomers(run, today);
+        if (settings.read.items) await this.sapItems(run, today);
+        if (settings.read.invoices) await this.sapInvoices(run, today);
+        if (settings.read.payments) await this.sapPayments(run, today);
+      } else if (kind === 'push') {
         await this.orders(run);
       } else {
         if (settings.read.customers) await this.customers(run);
@@ -274,17 +321,18 @@ export class ErpRuns {
         if (settings.read.payments) await this.payments(run);
       }
     } catch (error) {
-      if (error instanceof ZohoDailyLimit) stoppedBy = 'daily_limit';
-      else if (error instanceof ZohoRateLimited) stoppedBy = 'rate_limited';
-      else if (error instanceof ZohoReconnect) stoppedBy = 'reconnect';
+      if (error instanceof ErpDailyLimit) stoppedBy = 'daily_limit';
+      else if (error instanceof ErpRateLimited) stoppedBy = 'rate_limited';
+      else if (error instanceof ErpReconnect) stoppedBy = 'reconnect';
       else {
         stoppedBy = 'error';
-        if (!(error instanceof ZohoFailed)) reportError(error, { tenantId, job: `erp.${kind}` });
+        if (!(error instanceof ErpFailed)) reportError(error, { tenantId, job: `erp.${kind}` });
         this.logger.warn(
           `An ERP ${kind} for ${tenantId} stopped: ${error instanceof Error ? error.message : 'unknown'}`,
         );
       }
     }
+    if (run.sap) await this.sapB1.signOut(run.sap);
     await this.finish(run, stoppedBy, today);
     // Orders accepted while the books were out of reach, or whose records have just come in.
     if (kind === 'pull' && settings.pushOrders && !stoppedBy) {
@@ -359,7 +407,7 @@ export class ErpRuns {
           externalId = String((made.salesorder as { salesorder_id: string }).salesorder_id);
           counts.created += 1;
         } catch (error) {
-          if (!(error instanceof ZohoFailed)) throw error;
+          if (!(error instanceof ErpFailed)) throw error;
           counts.skipped += 1;
           this.problem(run, 'order', id, label, 'refused', { field: null, detail: error.message });
           continue;
@@ -553,6 +601,188 @@ export class ErpRuns {
     }
     this.counts(run, 'receipt').read += candidates.length;
     await this.settle(run, 'receipt', 'receipts', links, candidates);
+  }
+
+  /**
+   * SAP's `$filter` for what changed since a kind of record was last read through, a day either
+   * side of its cursor so nothing written around midnight is missed; Sync now reads everything.
+   */
+  private changedSince(run: Run, entity: string): string | null {
+    const cursor = run.cursors[entity];
+    if (run.full || !cursor) return null;
+    const day = new Date(Date.parse(`${cursor}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
+    return `UpdateDate ge '${day}'`;
+  }
+
+  private filterOf(...parts: (string | null)[]): Record<string, string> {
+    const filter = parts.filter(Boolean).join(' and ');
+    return filter ? { $filter: filter } : {};
+  }
+
+  /** SAP's business partners that are customers, as accounts (BR-60). */
+  private async sapCustomers(run: Run, today: string): Promise<void> {
+    const links = await this.links(run, 'account');
+    const counts = this.counts(run, 'account');
+    const partners: SapBusinessPartner[] = [];
+    for await (const page of this.sapB1.list<SapBusinessPartner>(
+      run.sap!,
+      run.meter,
+      'BusinessPartners',
+      this.filterOf("CardType eq 'cCustomer'", this.changedSince(run, 'account')),
+    )) {
+      partners.push(...page);
+    }
+    counts.read += partners.length;
+    const present = await this.database.forTenant(run.tenantId, (tx) =>
+      this.accounts.territoryCodes(
+        tx,
+        run.tenantId,
+        partners.map((partner) => String(partner.CardCode ?? '').trim()).filter(Boolean),
+      ),
+    );
+    await this.settle(
+      run,
+      'account',
+      `accounts:${run.settings.accountType ?? ''}`,
+      links,
+      partners.map((partner) => ({
+        externalId: partner.CardCode,
+        label: partner.CardCode,
+        modified: partner.UpdateDate ?? null,
+        mapped: sapCustomerRow(partner, run.mapping, present.get(partner.CardCode) ?? null),
+        localKey: (row) => row.code!,
+      })),
+    );
+    run.cursors.account = today;
+  }
+
+  /** SAP's items, and their prices in the price lists the mappings name (BR-60). */
+  private async sapItems(run: Run, today: string): Promise<void> {
+    const groups = new Map<number, string>();
+    for await (const page of this.sapB1.list<{ Number: number; GroupName: string }>(
+      run.sap!,
+      run.meter,
+      'ItemGroups',
+    )) {
+      for (const group of page) groups.set(group.Number, group.GroupName);
+    }
+    const items: SapItem[] = [];
+    for await (const page of this.sapB1.list<SapItem>(
+      run.sap!,
+      run.meter,
+      'Items',
+      this.filterOf(this.changedSince(run, 'item')),
+    )) {
+      items.push(...page);
+    }
+    this.counts(run, 'item').read += items.length;
+    const groupOf = (item: SapItem) =>
+      item.ItemsGroupCode === undefined ? null : (groups.get(item.ItemsGroupCode) ?? null);
+    await this.settle(
+      run,
+      'item',
+      'items',
+      await this.links(run, 'item'),
+      items.map((item) => ({
+        externalId: item.ItemCode,
+        label: item.ItemCode,
+        modified: item.UpdateDate ?? null,
+        mapped: sapItemRow(item, run.mapping, groupOf(item), { rate: null, list: '' }),
+        localKey: (row) => row.item_code!,
+      })),
+    );
+    // Each mapped SAP price list (its number) into one of the tenant's price lists.
+    const priceLinks = await this.links(run, 'price');
+    for (const { pricebookId, priceList } of run.settings.priceBooks) {
+      const listNo = Number(pricebookId);
+      const listName = await this.listName(run, priceList);
+      const candidates: Candidate[] = items.flatMap((item) => {
+        const price = item.ItemPrices?.find((entry) => entry.PriceList === listNo);
+        if (!price || price.Price === null || price.Price === undefined) return [];
+        return [
+          {
+            externalId: `${pricebookId}:${item.ItemCode}`,
+            label: `${pricebookId}: ${item.ItemCode}`,
+            modified: null,
+            mapped: sapItemRow(item, run.mapping, groupOf(item), {
+              rate: price.Price,
+              list: listName,
+            }),
+            localKey: (row: ErpRow) => `${priceList}:${row.item_code}`,
+          },
+        ];
+      });
+      this.counts(run, 'price').read += candidates.length;
+      await this.settle(run, 'price', 'items', priceLinks, candidates);
+    }
+    run.cursors.item = today;
+  }
+
+  /** SAP's A/R invoices of the last `invoiceDays`, for customers already linked (BR-51, BR-60). */
+  private async sapInvoices(run: Run, today: string): Promise<void> {
+    const linked = new Set((await this.accountCodes(run)).values());
+    const invoices: SapInvoice[] = [];
+    for await (const page of this.sapB1.list<SapInvoice>(
+      run.sap!,
+      run.meter,
+      'Invoices',
+      this.filterOf(`DocDate ge '${this.since(run)}'`, this.changedSince(run, 'invoice')),
+    )) {
+      invoices.push(...page);
+    }
+    this.counts(run, 'invoice').read += invoices.length;
+    await this.settle(
+      run,
+      'invoice',
+      'invoices',
+      await this.links(run, 'invoice'),
+      invoices.map((invoice) => ({
+        externalId: String(invoice.DocEntry),
+        label: String(invoice.DocNum),
+        modified: invoice.UpdateDate ?? null,
+        mapped: sapInvoiceRow(invoice, linked.has(invoice.CardCode)),
+        localKey: (row) => row.number!,
+      })),
+    );
+    run.cursors.invoice = today;
+  }
+
+  /** SAP's incoming payments, against the invoices they were applied to (BR-51, BR-60). */
+  private async sapPayments(run: Run, today: string): Promise<void> {
+    const linked = new Set((await this.accountCodes(run)).values());
+    const invoiceNumbers = new Map(
+      [...(await this.links(run, 'invoice'))].flatMap(([entry, link]) =>
+        link.localKey ? [[Number(entry), link.localKey] as const] : [],
+      ),
+    );
+    const payments: SapPayment[] = [];
+    for await (const page of this.sapB1.list<SapPayment>(
+      run.sap!,
+      run.meter,
+      'IncomingPayments',
+      this.filterOf(`DocDate ge '${this.since(run)}'`, this.changedSince(run, 'receipt')),
+    )) {
+      payments.push(...page);
+    }
+    this.counts(run, 'receipt').read += payments.length;
+    await this.settle(
+      run,
+      'receipt',
+      'receipts',
+      await this.links(run, 'receipt'),
+      payments.map((payment) => ({
+        externalId: String(payment.DocEntry),
+        label: String(payment.DocNum),
+        modified: payment.UpdateDate ?? null,
+        mapped: sapPaymentRow(
+          payment,
+          linked.has(payment.CardCode),
+          (entry) => invoiceNumbers.get(entry) ?? null,
+        ),
+        localKey: (row) => row.number!,
+      })),
+    );
+    run.cursors.receipt = today;
   }
 
   /**
@@ -843,6 +1073,7 @@ export class ErpRuns {
           lastRunAt: now,
           callsDay: today,
           callsUsed: run.meter.used,
+          cursors: run.cursors,
           ...(stoppedBy === 'reconnect' ? { status: 'needs_reconnect' } : {}),
         })
         .where(

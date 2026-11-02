@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { CallMeter, ZohoDailyLimit } from './zoho-books';
+import { CallMeter, ErpDailyLimit } from './erp-calls';
 
 describe('the call meter (BR-59)', () => {
   it('stops before the day’s limit, keeping a tenth back', async () => {
     const meter = new CallMeter(898, 1000, async () => {});
     await meter.take();
     await meter.take();
-    await expect(meter.take()).rejects.toBeInstanceOf(ZohoDailyLimit);
+    await expect(meter.take()).rejects.toBeInstanceOf(ErpDailyLimit);
     expect(meter.used).toBe(900);
     expect(meter.calls).toBe(2);
   });

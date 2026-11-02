@@ -14,9 +14,9 @@ import {
 import { cell, changeColumns, isolation } from './common';
 
 /**
- * A tenant's connection to its ERP (module M20, BR-59, decision D129): which organisation in which
- * of the provider's regions, the mappings, and the refresh token, sealed under `COLUMN_KEY` naming
- * its column and row. One a tenant and provider; disconnecting forgets the token and keeps the row,
+ * A tenant's connection to its ERP (module M20, BR-59, BR-60, decision D129): Zoho's organisation
+ * and region with its refresh token, or SAP Business One's Service Layer, company and user with
+ * its password, each secret sealed under `COLUMN_KEY` naming its column and row; and the mappings. One a tenant and provider; disconnecting forgets the token and keeps the row,
  * so its links carry on when it connects again.
  */
 export const erpConnections = cell
@@ -37,6 +37,14 @@ export const erpConnections = cell
         .notNull()
         .default([]),
       refreshTokenSealed: text('refresh_token_sealed'),
+      /** SAP: the Service Layer's root, the company database and the connection's user. */
+      endpoint: text('endpoint'),
+      companyDb: text('company_db'),
+      username: text('username'),
+      /** SAP: the user's password, sealed as the refresh token is; never shown again. */
+      credentialsSealed: text('credentials_sealed'),
+      /** SAP: the day each kind of record was last read through, for reading only what changed. */
+      cursors: jsonb('cursors').$type<Partial<Record<string, string>>>().notNull().default({}),
       settings: jsonb('settings').$type<ErpSettings>().notNull(),
       connectedBy: uuid('connected_by'),
       connectedAt: timestamp('connected_at', { withTimezone: true }),

@@ -14012,6 +14012,54 @@
         }
       }
     },
+    "/v1/erp-connections/sap-b1": {
+      "post": {
+        "operationId": "ErpController.connectSap",
+        "summary": "Connect SAP Business One, or change its Service Layer, company, user or password",
+        "tags": [
+          "Integrations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: erp.manage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SapConnectBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErpConnection"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/erp-connections/zoho/complete": {
       "post": {
         "operationId": "ErpController.complete",
@@ -35912,7 +35960,8 @@
           "provider": {
             "type": "string",
             "enum": [
-              "zoho_books"
+              "zoho_books",
+              "sap_b1"
             ]
           },
           "status": {
@@ -35990,6 +36039,24 @@
           "settings": {
             "$ref": "#/components/schemas/ErpSettings"
           },
+          "endpoint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "companyDb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "connectedAt": {
             "anyOf": [
               {
@@ -36048,6 +36115,9 @@
           "organization",
           "organizations",
           "settings",
+          "endpoint",
+          "companyDb",
+          "username",
           "connectedAt",
           "connectedBy",
           "lastRunAt"
@@ -36079,7 +36149,8 @@
                 "provider": {
                   "type": "string",
                   "enum": [
-                    "zoho_books"
+                    "zoho_books",
+                    "sap_b1"
                   ]
                 },
                 "configured": {
@@ -36252,6 +36323,7 @@
                     "duplicate_code",
                     "not_per_item",
                     "not_in_books",
+                    "no_tax_rate",
                     "refused"
                   ]
                 },
@@ -36391,6 +36463,31 @@
               "additionalProperties": false
             }
           },
+          "taxRateField": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "defaultTaxRate": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,2}(\\.\\d{1,4})?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "units": {
             "default": {},
             "type": "object",
@@ -36456,6 +36553,8 @@
           "defaultTerritory",
           "itemPriceList",
           "priceBooks",
+          "taxRateField",
+          "defaultTaxRate",
           "units",
           "invoiceDays",
           "dailyCalls",
@@ -36541,6 +36640,31 @@
               ],
               "additionalProperties": false
             }
+          },
+          "taxRateField": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "defaultTaxRate": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,2}(\\.\\d{1,4})?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "units": {
             "default": {},
@@ -47901,6 +48025,38 @@
         "required": [
           "userId",
           "changes"
+        ],
+        "additionalProperties": false
+      },
+      "SapConnectBody": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "companyDb": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "endpoint",
+          "companyDb",
+          "username",
+          "password"
         ],
         "additionalProperties": false
       },

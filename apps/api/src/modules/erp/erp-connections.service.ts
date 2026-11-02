@@ -1,12 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   AppError,
   type ErpConnectionResult,
   type ErpProblem,
   type ErpRunResult,
   ErpSettings,
+  type ErpProvider,
   type ErrorDetail,
   newId,
+  sapEndpointIssue,
+  sapServiceRoot,
   type ZohoRegion,
   zohoRegionOf,
 } from '@thelamp/shared';
@@ -17,13 +20,17 @@ import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import { ColumnCipher } from '../../platform/column-cipher';
 import { Database, type TenantTx } from '../../platform/database';
+import { publicUrlIssue } from '../../platform/outbound';
 import { Queues } from '../../platform/queues';
+import type { Config } from '../../config';
+import { CONFIG } from '../../platform/tokens';
 import { RedisClient } from '../../platform/redis';
 import { AccountTypesService } from '../accounts/account-types.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
 import { PriceListsService } from '../catalogue/price-lists.service';
 import { People } from '../iam/people';
 import { TerritoriesService } from '../territories/territories.service';
+import { SapB1 } from './sap-b1';
 import { ZohoBooks } from './zoho-books';
 
 export type ConnectionRow = typeof erpConnections.$inferSelect;
@@ -40,6 +47,8 @@ const STALE_RUN_MS = 2 * 60 * 60_000;
 
 /** Where the refresh token is sealed: its column and row, so it can't be moved to another. */
 export const sealedAt = (id: string) => `erp_connections.refresh_token_sealed:${id}`;
+/** Where SAP's password is sealed. */
+export const credentialsAt = (id: string) => `erp_connections.credentials_sealed:${id}`;
 const stateKey = (state: string) => `erp-state:${createHash('sha256').update(state).digest('hex')}`;
 
 const notFound = () => new AppError('NOT_FOUND', 'This was not found.');
@@ -59,6 +68,8 @@ export class ErpConnectionsService {
     private readonly cipher: ColumnCipher,
     private readonly redis: RedisClient,
     private readonly zoho: ZohoBooks,
+    private readonly sapB1: SapB1,
+    @Inject(CONFIG) private readonly cellConfig: Config,
     private readonly queues: Queues,
     private readonly people: People,
     private readonly accountTypes: AccountTypesService,
@@ -68,16 +79,105 @@ export class ErpConnectionsService {
   ) {}
 
   async providers(tx: TenantTx, tenantId: string) {
-    const row = await this.row(tx, tenantId);
+    const zoho = await this.row(tx, tenantId, 'zoho_books');
+    const sap = await this.row(tx, tenantId, 'sap_b1');
     return {
       providers: [
         {
           provider: 'zoho_books' as const,
           configured: this.zoho.configured(),
-          connection: row ? await this.result(tx, row) : null,
+          connection: zoho ? await this.result(tx, zoho) : null,
+        },
+        // SAP Business One needs nothing of the cell: each tenant brings its own server and user.
+        {
+          provider: 'sap_b1' as const,
+          configured: true,
+          connection: sap ? await this.result(tx, sap) : null,
         },
       ],
     };
+  }
+
+  /**
+   * Connects SAP Business One, or changes its details (BR-60): the Service Layer's address must be
+   * HTTPS on 443 and public, and the company, user and password must sign in before anything is
+   * kept. The password is sealed and never shown again; the mappings are kept.
+   */
+  async connectSap(
+    access: Access,
+    input: { endpoint: string; companyDb: string; username: string; password: string },
+  ): Promise<ErpConnectionResult> {
+    const shape = sapEndpointIssue(input.endpoint);
+    if (shape) throw invalid([{ path: 'endpoint', issue: shape }]);
+    const root = sapServiceRoot(input.endpoint);
+    if (this.cellConfig.SAP_B1_API === 'public') {
+      const reach = await publicUrlIssue(root);
+      if (reach) throw invalid([{ path: 'endpoint', issue: reach }]);
+    }
+    await this.sapB1.check({
+      connectionId: 'checking',
+      root,
+      companyDb: input.companyDb,
+      username: input.username,
+      password: input.password,
+    });
+    return this.database.forTenant(access.tenantId, async (tx) => {
+      const before = await this.row(tx, access.tenantId, 'sap_b1', true);
+      const id = before?.id ?? newId();
+      const now = new Date();
+      const values = {
+        status: 'connected',
+        endpoint: root,
+        companyDb: input.companyDb,
+        username: input.username,
+        credentialsSealed: this.cipher.seal(input.password, credentialsAt(id)),
+        organizationId: input.companyDb,
+        organizationName: input.companyDb,
+        connectedBy: access.userId,
+        connectedAt: now,
+        updatedAt: now,
+        updatedBy: access.userId,
+      };
+      const [row] = before
+        ? await tx
+            .update(erpConnections)
+            .set(values)
+            .where(and(eq(erpConnections.tenantId, access.tenantId), eq(erpConnections.id, id)))
+            .returning()
+        : await tx
+            .insert(erpConnections)
+            .values({
+              tenantId: access.tenantId,
+              id,
+              provider: 'sap_b1',
+              settings: ErpSettings.parse({}),
+              createdBy: access.userId,
+              ...values,
+            })
+            .returning();
+      // Another company's records are read afresh, and its changes from the start.
+      if (before && (before.companyDb !== input.companyDb || before.endpoint !== root)) {
+        await this.forgetSeen(tx, access.tenantId, id);
+        await tx
+          .update(erpConnections)
+          .set({ cursors: {} })
+          .where(and(eq(erpConnections.tenantId, access.tenantId), eq(erpConnections.id, id)));
+      }
+      await this.audit.record(tx, access.tenantId, userActor(access), {
+        action: 'erp.connected',
+        target: { type: 'erp_connection', id },
+        before: before
+          ? { status: before.status, endpoint: before.endpoint, companyDb: before.companyDb }
+          : null,
+        after: {
+          provider: 'sap_b1',
+          endpoint: root,
+          companyDb: input.companyDb,
+          username: input.username,
+        },
+      });
+      return this.result(tx, row!);
+    });
   }
 
   /** Where to send the browser to agree; the state comes back with the person and the tenant. */
@@ -111,7 +211,7 @@ export class ErpConnectionsService {
     const tokens = await this.zoho.exchange(input.accountsServer, input.code);
     const organizations = await this.zoho.organizations(tokens.apiDomain, tokens.accessToken);
     return this.database.forTenant(access.tenantId, async (tx) => {
-      const before = await this.row(tx, access.tenantId, true);
+      const before = await this.row(tx, access.tenantId, 'zoho_books', true);
       const id = before?.id ?? newId();
       const kept = before?.organizationId
         ? organizations.find((org) => org.id === before.organizationId)
@@ -238,6 +338,7 @@ export class ErpConnectionsService {
         .set({
           status: 'disconnected',
           refreshTokenSealed: null,
+          credentialsSealed: null,
           organizations: [],
           updatedAt: new Date(),
           updatedBy: access.userId,
@@ -344,29 +445,52 @@ export class ErpConnectionsService {
   async resealSecrets(tenantId: string): Promise<number> {
     return this.database.forTenant(tenantId, async (tx) => {
       const rows = await tx
-        .select({ id: erpConnections.id, sealed: erpConnections.refreshTokenSealed })
+        .select({
+          id: erpConnections.id,
+          token: erpConnections.refreshTokenSealed,
+          credentials: erpConnections.credentialsSealed,
+        })
         .from(erpConnections)
         .where(eq(erpConnections.tenantId, tenantId));
       let resealed = 0;
       for (const row of rows) {
-        if (!row.sealed || this.cipher.isCurrent(row.sealed)) continue;
+        const token = row.token && !this.cipher.isCurrent(row.token);
+        const credentials = row.credentials && !this.cipher.isCurrent(row.credentials);
+        if (!token && !credentials) continue;
         await tx
           .update(erpConnections)
-          .set({ refreshTokenSealed: this.cipher.reseal(row.sealed, sealedAt(row.id)) })
+          .set({
+            ...(token
+              ? { refreshTokenSealed: this.cipher.reseal(row.token!, sealedAt(row.id)) }
+              : {}),
+            ...(credentials
+              ? { credentialsSealed: this.cipher.reseal(row.credentials!, credentialsAt(row.id)) }
+              : {}),
+          })
           .where(and(eq(erpConnections.tenantId, tenantId), eq(erpConnections.id, row.id)));
-        resealed += 1;
+        resealed += (token ? 1 : 0) + (credentials ? 1 : 0);
       }
       return resealed;
     });
   }
 
-  async row(tx: TenantTx, tenantId: string, lock = false): Promise<ConnectionRow | undefined> {
+  async row(
+    tx: TenantTx,
+    tenantId: string,
+    provider: ErpProvider = 'zoho_books',
+    lock = false,
+  ): Promise<ConnectionRow | undefined> {
     const query = tx
       .select()
       .from(erpConnections)
-      .where(and(eq(erpConnections.tenantId, tenantId), eq(erpConnections.provider, 'zoho_books')));
+      .where(and(eq(erpConnections.tenantId, tenantId), eq(erpConnections.provider, provider)));
     const [row] = lock ? await query.for('update') : await query;
     return row;
+  }
+
+  /** Every connection of a tenant, whichever its provider. */
+  async all(tx: TenantTx, tenantId: string): Promise<ConnectionRow[]> {
+    return tx.select().from(erpConnections).where(eq(erpConnections.tenantId, tenantId));
   }
 
   async byId(tx: TenantTx, tenantId: string, id: string, lock = false): Promise<ConnectionRow> {
@@ -431,9 +555,12 @@ export class ErpConnectionsService {
       : undefined;
     return {
       id: row.id,
-      provider: 'zoho_books',
+      provider: row.provider as ErpConnectionResult['provider'],
       status: row.status as ErpConnectionResult['status'],
       region: row.accountsServer ? zohoRegionOf(row.accountsServer) : null,
+      endpoint: row.endpoint,
+      companyDb: row.companyDb,
+      username: row.username,
       organization: row.organizationId
         ? { id: row.organizationId, name: row.organizationName ?? row.organizationId }
         : null,

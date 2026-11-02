@@ -265,6 +265,9 @@ const schema = z
     // server-based application whose redirect is the portal's /settings/erp/zoho. Without both, the
     // portal says the cell isn't set up for it. `memory` answers from a fake organisation, in tests.
     ZOHO_API: z.enum(['public', 'memory']).default('public'),
+    // SAP Business One (decision D129): each tenant's own Service Layer, reached through the
+    // outbound guard; `memory` answers from a fake company, in tests only.
+    SAP_B1_API: z.enum(['public', 'memory']).default('public'),
     ZOHO_CLIENT_ID: unsetWhenEmpty,
     ZOHO_CLIENT_SECRET: unsetWhenEmpty,
     // Where an SSO domain's TXT record is looked up (decision D101): the public DNS, or records
@@ -526,6 +529,7 @@ const schema = z
       ['PASSWORD_BREACH_CHECK', config.PASSWORD_BREACH_CHECK],
       ['DOMAIN_RECORDS', config.DOMAIN_RECORDS],
       ['ZOHO_API', config.ZOHO_API],
+      ['SAP_B1_API', config.SAP_B1_API],
     ] as const) {
       if (value === 'memory' && config.NODE_ENV !== 'test') {
         ctx.addIssue({

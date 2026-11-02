@@ -71,7 +71,7 @@ This is recommended over relaxing D101, which would open the cell's outbound tra
 
 ### Rules (BR-60)
 
-Pure functions in `packages/shared/src/erp-sap.ts`, with fixtures FX-77 onwards:
+Pure functions in `packages/shared/src/erp-sap.ts`, with fixtures FX-77 to FX-80 (the sales order's in part 5):
 
 - `sapCustomerRow()`:
   - the code is `CardCode`, only for `CardType = cCustomer`;
@@ -114,14 +114,14 @@ Before creating an order, the connector looks it up with `GET /Orders?$filter=Nu
 
 ### Pull request 4: SAP Business One, the connection and records in
 
-- [ ] The provider seam in `ErpPull`. `sap_b1` in `ERP_PROVIDERS`. `credentials_sealed`, and an `endpoint` column for the server address.
-- [ ] `SapB1` client: sign in, paging, change filters and sign out, through `publicFetch`. `FakeSapB1` for tests (`SAP_B1_API=memory`).
-- [ ] The BR-60 rules and fixtures. The mappings: account type, territory user field, default territory, price lists, units, tax rate field and default.
-- [ ] Routes:
+- [x] The provider seam in `ErpPull`. `sap_b1` in `ERP_PROVIDERS`. `credentials_sealed`, and an `endpoint` column for the server address.
+- [x] `SapB1` client: sign in, paging, change filters and sign out, through `publicFetch`. `FakeSapB1` for tests (`SAP_B1_API=memory`).
+- [x] The BR-60 rules and fixtures. The mappings: account type, territory user field, default territory, price lists, units, tax rate field and default.
+- [x] Routes:
   - `POST /v1/erp-connections/sap-b1`, which checks the details by signing in, then saves them sealed;
   - the existing settings, runs and disconnect routes, shared with Zoho.
-- [ ] Cross-tenant fixtures, `pnpm openapi`, docs (`docs/integrations/sap-business-one.md`, D129, spec BR-60, services and security).
-- [ ] Integration tests against `FakeSapB1`:
+- [x] Cross-tenant fixtures, `pnpm openapi`, docs (`docs/integrations/sap-business-one.md`, D129, spec BR-60, services and security).
+- [x] Integration tests against `FakeSapB1`:
   - connecting with good and wrong details;
   - a private or wrong-port address refused;
   - a full read, then a changes-only read;
