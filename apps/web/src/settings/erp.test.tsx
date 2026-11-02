@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ApiError } from '@thelamp/api-client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { browser } from '../browser';
 import { fakeClient, renderAt, type RequestOptions, writesOf } from '../test-support';
@@ -235,5 +236,104 @@ describe('Settings › ERP (D129)', () => {
     expect(await screen.findByText(/no longer accepts this connection/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Connect again' })).toBeVisible();
     expect(screen.queryByRole('form', { name: 'What comes in, and where' })).toBeNull();
+  });
+});
+
+const SAP_ID = '01a10000-0000-7000-8000-0000000000f9';
+const sapConnection = (patch: object = {}) => ({
+  ...connection(),
+  id: SAP_ID,
+  provider: 'sap_b1',
+  region: null,
+  organization: { id: 'SBODEMOIN', name: 'SBODEMOIN' },
+  endpoint: 'https://b1.sunrise.example/b1s/v2',
+  companyDb: 'SBODEMOIN',
+  username: 'thelamp-connector',
+  ...patch,
+});
+
+function sapClient(current: object | null) {
+  let held = current;
+  return fakeClient(
+    {
+      '/v1/erp-connections': () => ({
+        providers: [
+          { provider: 'zoho_books', configured: true, connection: null },
+          { provider: 'sap_b1', configured: true, connection: held },
+        ],
+      }),
+      [`/v1/erp-connections/${SAP_ID}/runs`]: { items: [] },
+      '/v1/territories': { items: [] },
+      '/v1/price-lists': { items: [{ id: WHOLESALE, name: 'Wholesale' }] },
+    },
+    {
+      'POST /v1/erp-connections/sap-b1': ({ body }: RequestOptions) => {
+        if ((body as { endpoint: string }).endpoint.includes(':50000')) {
+          throw new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
+            { path: 'endpoint', issue: 'not_443' },
+          ]);
+        }
+        held = sapConnection();
+        return held;
+      },
+      [`PUT /v1/erp-connections/${SAP_ID}/settings`]: ({ body }: RequestOptions) => {
+        held = sapConnection({ settings: { ...SETTINGS, ...(body as object) } });
+        return held;
+      },
+    },
+    ['erp.manage'],
+    BUNDLE,
+  );
+}
+
+describe('SAP Business One in Settings › ERP (D129)', () => {
+  it('connects with the Service Layer, company, user and password, and explains a wrong port', async () => {
+    const client = sapClient(null);
+    renderAt('/settings/erp', client);
+    const user = userEvent.setup();
+    const form = await screen.findByRole('form', { name: 'Connect SAP Business One' });
+    await user.type(
+      within(form).getByLabelText(/Service Layer address/),
+      'https://b1.sunrise.example:50000',
+    );
+    await user.type(within(form).getByLabelText(/Company database/), 'SBODEMOIN');
+    await user.type(within(form).getByLabelText(/SAP user/), 'thelamp-connector');
+    await user.type(within(form).getByLabelText(/Password/), 'fictional-password');
+    await user.click(within(form).getByRole('button', { name: 'Connect SAP Business One' }));
+    expect(await within(form).findByText(/Use HTTPS on port 443/)).toBeVisible();
+
+    const address = within(form).getByLabelText(/Service Layer address/);
+    await user.clear(address);
+    await user.type(address, 'https://b1.sunrise.example');
+    await user.click(within(form).getByRole('button', { name: 'Connect SAP Business One' }));
+    expect(await screen.findByText('SBODEMOIN')).toBeVisible();
+    expect(writesOf(client)[1]![3]).toMatchObject({
+      body: {
+        endpoint: 'https://b1.sunrise.example',
+        companyDb: 'SBODEMOIN',
+        username: 'thelamp-connector',
+        password: 'fictional-password',
+      },
+    });
+    expect(screen.queryByText('fictional-password')).toBeNull();
+  });
+
+  it('maps SAP’s GST field and default rate, without Zoho’s daily calls', async () => {
+    const client = sapClient(sapConnection());
+    renderAt('/settings/erp', client);
+    const user = userEvent.setup();
+    const sap = await screen.findByRole('region', { name: 'SAP Business One' });
+    const form = within(sap).getByRole('form', { name: 'What comes in, and where' });
+    expect(within(form).queryByLabelText(/daily calls/)).toBeNull();
+    await user.type(within(form).getByLabelText(/SAP field holding the GST rate/), 'U_GST');
+    await user.type(within(form).getByLabelText(/GST rate when the field is empty/), '18');
+    await user.click(
+      within(form).getByRole('checkbox', { name: /Send accepted .* to SAP Business One/ }),
+    );
+    await user.click(within(form).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(writesOf(client)).toHaveLength(1));
+    expect(writesOf(client)[0]![3]).toMatchObject({
+      body: { taxRateField: 'U_GST', defaultTaxRate: '18', pushOrders: true },
+    });
   });
 });

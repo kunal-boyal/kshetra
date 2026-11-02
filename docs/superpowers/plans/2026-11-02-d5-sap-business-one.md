@@ -71,7 +71,7 @@ This is recommended over relaxing D101, which would open the cell's outbound tra
 
 ### Rules (BR-60)
 
-Pure functions in `packages/shared/src/erp-sap.ts`, with fixtures FX-77 to FX-80 (the sales order's in part 5):
+Pure functions in `packages/shared/src/erp-sap.ts`, with fixtures FX-77 to FX-80 and FX-81 for the sales order:
 
 - `sapCustomerRow()`:
   - the code is `CardCode`, only for `CardType = cCustomer`;
@@ -131,7 +131,7 @@ Before creating an order, the connector looks it up with `GET /Orders?$filter=Nu
 
 ### Pull request 5: SAP Business One, orders out and the portal
 
-- [ ] Accepted orders as B1 sales orders, found by `NumAtCard` before creating.
-- [ ] The SAP card in Settings › ERP: address, company database, user and password (shown once, never read back), mappings, Sync now, runs and disconnect.
-- [ ] Vitest and Playwright with axe. Progress and tracker. `pnpm verify` before each merge.
+- [x] Accepted orders as B1 sales orders, found by `NumAtCard` before creating.
+- [x] The SAP card in Settings › ERP: address, company database, user and password (shown once, never read back), mappings, Sync now, runs and disconnect.
+- [x] Vitest and Playwright with axe. Progress and tracker. `pnpm verify` before each merge.
 - [ ] Once there is a real system: a pass against it, recorded in progress.

@@ -183,12 +183,17 @@ const ANSWERS: Record<string, unknown> = {
           region: 'in',
           organization: { id: '60001', name: 'Sunrise Traders Pvt Ltd' },
           organizations: [],
+          endpoint: null,
+          companyDb: null,
+          username: null,
           settings: {
             accountType: null,
             territoryField: null,
             defaultTerritory: null,
             itemPriceList: null,
             priceBooks: [],
+            taxRateField: null,
+            defaultTaxRate: null,
             units: {},
             invoiceDays: 180,
             dailyCalls: 1000,
@@ -200,8 +205,41 @@ const ANSWERS: Record<string, unknown> = {
           lastRunAt: '2026-11-02T06:00:00.000Z',
         },
       },
+      {
+        provider: 'sap_b1',
+        configured: true,
+        connection: {
+          id: '01a10000-0000-7000-8000-0000000000f9',
+          provider: 'sap_b1',
+          status: 'connected',
+          region: null,
+          organization: { id: 'SBODEMOIN', name: 'SBODEMOIN' },
+          organizations: [],
+          endpoint: 'https://b1.sunrise.example/b1s/v2',
+          companyDb: 'SBODEMOIN',
+          username: 'thelamp-connector',
+          settings: {
+            accountType: null,
+            territoryField: null,
+            defaultTerritory: null,
+            itemPriceList: null,
+            priceBooks: [],
+            taxRateField: 'U_GST',
+            defaultTaxRate: '18',
+            units: {},
+            invoiceDays: 180,
+            dailyCalls: 1000,
+            read: { customers: true, items: true, invoices: true, payments: true },
+            pushOrders: true,
+          },
+          connectedAt: '2026-11-02T05:00:00.000Z',
+          connectedBy: null,
+          lastRunAt: null,
+        },
+      },
     ],
   },
+  '/v1/erp-connections/01a10000-0000-7000-8000-0000000000f9/runs': { items: [] },
   '/v1/erp-connections/01a10000-0000-7000-8000-0000000000f1/runs': {
     items: [
       {
@@ -1057,3 +1095,19 @@ for (const theme of ['light', 'outdoor']) {
     await expectAccessible(page);
   });
 }
+
+test('Settings › ERP shows Zoho Books and SAP Business One, each with its runs', async ({
+  page,
+}) => {
+  await mockSignedIn(page);
+  await page.goto('/settings/erp');
+  const sap = page.getByRole('region', { name: 'SAP Business One' });
+  await expect(page.getByRole('region', { name: 'Zoho Books' })).toBeVisible();
+  await expect(sap.getByText('https://b1.sunrise.example/b1s/v2')).toBeVisible();
+  await expect(sap.getByRole('form', { name: 'What comes in, and where' })).toBeVisible();
+  await expect(sap.getByLabel(/SAP field holding the GST rate/)).toHaveValue('U_GST');
+  await expect(
+    page.getByText('No Number Traders: it has no customer number in Zoho.', { exact: false }),
+  ).toBeVisible();
+  await expectAccessible(page);
+});

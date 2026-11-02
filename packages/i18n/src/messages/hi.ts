@@ -5137,9 +5137,9 @@ export const hi: Record<MessageKey, Message> = {
   'erp.daily_calls': 'आपके Zoho प्लान की रोज़ की कॉल',
   'erp.daily_calls_help':
     'Free 1,000, Standard 2,000, Professional 5,000। दसवाँ हिस्सा हमेशा आपके लिए बचा रहता है।',
-  'erp.push_orders': 'स्वीकार किए गए {term.order:other:lower} Zoho में भेजें',
+  'erp.push_orders': 'स्वीकार किए गए {term.order:other:lower} {provider} में भेजें',
   'erp.push_orders_help':
-    'कंपनी द्वारा सप्लाई होने वाले, स्वीकार होने पर, उनकी स्वीकृत लाइनों के साथ। हर एक Zoho में एक बार जाता है।',
+    'कंपनी द्वारा सप्लाई होने वाले, स्वीकार होने पर, उनकी स्वीकृत लाइनों के साथ। हर एक {provider} में एक बार जाता है।',
   'erp.save_mappings': 'सेव करें',
   'erp.saved': 'सेव हो गया।',
   'erp.runs': 'रन',
@@ -5182,13 +5182,48 @@ export const hi: Record<MessageKey, Message> = {
   'erp.issue_refused': 'इसे नहीं माना गया',
   'erp.disconnect': 'अलग करें',
   'erp.disconnect_question':
-    'Zoho Books को अलग करें? दोबारा जोड़ने तक कुछ पढ़ा या भेजा नहीं जाएगा। जो आ चुका है वह रहेगा।',
+    '{provider} को अलग करें? दोबारा जोड़ने तक कुछ पढ़ा या भेजा नहीं जाएगा। जो आ चुका है वह रहेगा।',
   'erp.connecting_title': 'Zoho Books जोड़ा जा रहा है',
   'erp.connecting': 'कनेक्शन पूरा हो रहा है…',
   'erp.refused_at_zoho': 'Zoho ने अनुमति नहीं दी। कुछ नहीं जुड़ा।',
   'erp.return_incomplete':
     'Zoho ने ज़रूरी जानकारी के बिना ब्राउज़र वापस भेजा। फिर से जोड़ना शुरू करें।',
   'erp.back_to_erp': 'ERP पर वापस',
+  'erp.sap': 'SAP Business One',
+  'erp.sap_intro':
+    'SAP के Service Layer से, आपके SAP एडमिन द्वारा इसके लिए बनाए गए यूज़र के साथ जुड़ता है। आपका SAP पार्टनर Service Layer को HTTPS, पोर्ट 443 पर, सही प्रमाणपत्र के साथ उपलब्ध कराता है।',
+  'erp.sap_connect': 'SAP Business One जोड़ें',
+  'erp.sap_save_details': 'जाँचें और जानकारी सेव करें',
+  'erp.sap_change': 'जानकारी बदलें',
+  'erp.sap_endpoint': 'Service Layer का पता',
+  'erp.sap_endpoint_help': 'जैसे https://b1.yourcompany.in। केवल HTTPS, पोर्ट 443।',
+  'erp.sap_company': 'कंपनी डेटाबेस',
+  'erp.sap_username': 'SAP यूज़र',
+  'erp.sap_username_help':
+    'इस कनेक्शन के लिए बनाया गया यूज़र, जो ग्राहक, आइटम, प्राइस लिस्ट, इनवॉइस और भुगतान पढ़ सके, और SAP में {term.order:other:lower} जोड़ सके।',
+  'erp.sap_password': 'पासवर्ड',
+  'erp.sap_password_help':
+    'SAP में साइन इन करके जाँचा जाता है, फिर सील करके रखा जाता है। यह दोबारा कभी नहीं दिखता।',
+  'erp.sap_reconnect_notice':
+    'SAP अब यह यूज़र नहीं मानता, इसलिए उससे कुछ पढ़ा या भेजा नहीं जा रहा। जानकारी फिर से भरें; आपकी मैपिंग बनी रहेगी।',
+  'erp.sap_territory_field_help':
+    'SAP के बिज़नेस पार्टनर पर एक यूज़र फ़ील्ड, जैसे U_Territory। खाली छोड़ें तो हर एक की टेरिटरी यहाँ जैसी है वैसी रहेगी।',
+  'erp.sap_price_lists': 'SAP प्राइस लिस्ट',
+  'erp.sap_price_lists_help':
+    'नंबर से लिखी हर SAP प्राइस लिस्ट आपकी किसी एक प्राइस लिस्ट में पढ़ी जाती है।',
+  'erp.sap_price_list_no': 'SAP में प्राइस लिस्ट नंबर',
+  'erp.add_sap_price_list': 'प्राइस लिस्ट जोड़ें',
+  'erp.tax_rate_field': 'GST दर वाला SAP फ़ील्ड',
+  'erp.tax_rate_field_help': 'SAP के आइटम पर एक यूज़र फ़ील्ड, जैसे U_GST, जिसमें 18 जैसी दरें हों।',
+  'erp.default_tax_rate': 'फ़ील्ड खाली होने पर GST दर',
+  'erp.default_tax_rate_help':
+    'जैसे 18। जिस आइटम के पास दोनों न हों, वह छोड़ा जाता है और सूची में आता है।',
+  'erp.endpoint_not_an_address': 'पूरा पता लिखें, जैसे https://b1.yourcompany.in',
+  'erp.endpoint_not_https': 'https:// वाला पता दें',
+  'erp.endpoint_not_443':
+    'पोर्ट 443 पर HTTPS दें; अपने SAP पार्टनर से Service Layer वहाँ उपलब्ध कराने को कहें',
+  'erp.endpoint_not_a_host': 'केवल सर्वर का पता लिखें, यूज़र नाम या क्वेरी के बिना',
+  'erp.endpoint_not_service_layer': 'सर्वर का पता दें, या उसका Service Layer पाथ /b1s/v2',
   'audit_log.title': 'ऑडिट लॉग',
   'audit_log.intro':
     'आपके संगठन में किया गया हर बदलाव: किसने किया, कब, कहाँ से, और पहले और बाद में क्या था। प्रविष्टियाँ उतने समय रखी जाती हैं जितना Settings › Rules में लिखा है।',

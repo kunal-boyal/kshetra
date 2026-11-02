@@ -37,6 +37,12 @@ import { Facts, fieldErrors, PageHeader, Section } from '../people/shared';
 const KEY = ['erp'] as const;
 const runsKey = (id: string) => ['erp', id, 'runs'] as const;
 
+/** Each provider by the name its brand writes, the same in every language. */
+const PROVIDER_NAMES: Record<ErpConnectionResult['provider'], string> = {
+  zoho_books: 'Zoho Books',
+  sap_b1: 'SAP Business One',
+};
+
 const STATUS_BADGE: Record<ErpConnectionResult['status'], BadgeVariant> = {
   connected: 'success',
   choosing: 'pending',
@@ -72,16 +78,17 @@ export function ErpPage() {
       ) : !providers.data ? (
         <p className="ks-muted">{t('common.loading')}</p>
       ) : (
-        // SAP Business One's card arrives with its orders out (D129, part 5).
-        providers.data.providers
-          .filter((entry) => entry.provider === 'zoho_books')
-          .map((entry) => (
+        providers.data.providers.map((entry) =>
+          entry.provider === 'sap_b1' ? (
+            <SapCard key={entry.provider} connection={entry.connection} />
+          ) : (
             <ZohoCard
               key={entry.provider}
               configured={entry.configured}
               connection={entry.connection}
             />
-          ))
+          ),
+        )
       )}
     </div>
   );
@@ -151,6 +158,212 @@ function ZohoCard({
         )}
       </div>
     </Section>
+  );
+}
+
+/**
+ * SAP Business One (BR-60): the Service Layer's address, the company database and a user made for
+ * the connection, checked by signing in; the password is never shown again. Once connected, the
+ * mappings, runs and Disconnect, as for Zoho.
+ */
+function SapCard({ connection }: { connection: ErpConnectionResult | null }) {
+  const { t, locale } = useLanguage();
+  const access = useAccess();
+  const [changing, setChanging] = useState(false);
+  const at = (time: string) => formatDateTime(time, { locale, timeZone: access.timezone });
+  const live = connection && connection.status !== 'disconnected' ? connection : null;
+  return (
+    <Section title={t('erp.sap')}>
+      <div className="flex flex-col gap-4">
+        <p className="ks-muted">{t('erp.sap_intro')}</p>
+        {!live ? (
+          <SapConnectForm current={connection} onDone={() => setChanging(false)} />
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusBadge variant={STATUS_BADGE[live.status]}>
+                {t(`erp.status_${live.status}`)}
+              </StatusBadge>
+            </div>
+            <Facts
+              items={[
+                [t('erp.sap_endpoint'), live.endpoint ?? '—'],
+                [t('erp.sap_company'), live.companyDb ?? '—'],
+                [t('erp.sap_username'), live.username ?? '—'],
+                [
+                  t('erp.connected'),
+                  live.connectedAt
+                    ? live.connectedBy
+                      ? t('erp.connected_by', {
+                          at: at(live.connectedAt),
+                          name: live.connectedBy.name,
+                        })
+                      : at(live.connectedAt)
+                    : '—',
+                ],
+                [t('erp.last_run'), live.lastRunAt ? at(live.lastRunAt) : t('erp.never')],
+              ]}
+            />
+            {live.status === 'needs_reconnect' ? (
+              <>
+                <p className="ks-notice" role="alert">
+                  {t('erp.sap_reconnect_notice')}
+                </p>
+                <SapConnectForm current={live} onDone={() => setChanging(false)} />
+              </>
+            ) : changing ? (
+              <SapConnectForm current={live} onDone={() => setChanging(false)} />
+            ) : (
+              <div>
+                <Button size="sm" variant="secondary" onClick={() => setChanging(true)}>
+                  {t('erp.sap_change')}
+                </Button>
+              </div>
+            )}
+            {live.status === 'connected' ? (
+              <>
+                <MappingsForm connection={live} />
+                <Runs connectionId={live.id} />
+              </>
+            ) : null}
+            <Disconnect connection={live} />
+          </>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+/** The issues the API names an address by, in the reader's words. */
+const ENDPOINT_ISSUES = new Set([
+  'not_an_address',
+  'not_https',
+  'not_443',
+  'not_a_host',
+  'not_service_layer',
+]);
+
+function SapConnectForm({
+  current,
+  onDone,
+}: {
+  current: ErpConnectionResult | null;
+  onDone: () => void;
+}) {
+  const { client } = useApp();
+  const queryClient = useQueryClient();
+  const { t } = useLanguage();
+  const [draft, setDraft] = useState({
+    endpoint: current?.endpoint ?? '',
+    companyDb: current?.companyDb ?? '',
+    username: current?.username ?? '',
+    password: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [failure, setFailure] = useState<unknown>();
+  const [busy, setBusy] = useState(false);
+  const change = (patch: Partial<typeof draft>) => setDraft((now) => ({ ...now, ...patch }));
+  const again = Boolean(current && current.status !== 'disconnected');
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setErrors({});
+    setFailure(undefined);
+    try {
+      await write(client, 'POST', '/v1/erp-connections/sap-b1', ConnectionSchema, {
+        endpoint: draft.endpoint.trim(),
+        companyDb: draft.companyDb.trim(),
+        username: draft.username.trim(),
+        password: draft.password,
+      });
+      change({ password: '' });
+      await queryClient.invalidateQueries({ queryKey: KEY });
+      onDone();
+    } catch (error) {
+      const found = fieldErrors(error);
+      setErrors(
+        Object.fromEntries(
+          Object.entries(found).map(([path, issue]) => [
+            path,
+            path === 'endpoint' && ENDPOINT_ISSUES.has(issue)
+              ? t(`erp.endpoint_${issue as 'not_https'}`)
+              : issue,
+          ]),
+        ),
+      );
+      setFailure(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const label = t(again ? 'erp.sap_save_details' : 'erp.sap_connect');
+  return (
+    <form
+      className="flex max-w-xl flex-col gap-3"
+      aria-label={label}
+      onSubmit={(event) => void save(event)}
+      noValidate
+    >
+      <TextField
+        label={t('erp.sap_endpoint')}
+        help={t('erp.sap_endpoint_help')}
+        type="url"
+        autoComplete="off"
+        value={draft.endpoint}
+        error={errors.endpoint}
+        onChange={(event) => change({ endpoint: event.target.value })}
+        required
+      />
+      <TextField
+        label={t('erp.sap_company')}
+        autoComplete="off"
+        value={draft.companyDb}
+        error={errors.companyDb}
+        onChange={(event) => change({ companyDb: event.target.value })}
+        required
+      />
+      <TextField
+        label={t('erp.sap_username')}
+        help={t('erp.sap_username_help')}
+        autoComplete="off"
+        value={draft.username}
+        error={errors.username}
+        onChange={(event) => change({ username: event.target.value })}
+        required
+      />
+      <TextField
+        label={t('erp.sap_password')}
+        help={t('erp.sap_password_help')}
+        type="password"
+        autoComplete="new-password"
+        value={draft.password}
+        error={errors.password}
+        onChange={(event) => change({ password: event.target.value })}
+        required
+      />
+      {failure && Object.keys(fieldErrors(failure)).length === 0 ? (
+        <p className="ks-help error" role="alert">
+          {errorMessage(failure, t)}
+        </p>
+      ) : null}
+      <div>
+        <Button
+          type="submit"
+          variant="primary"
+          busy={busy}
+          disabled={
+            !draft.endpoint.trim() ||
+            !draft.companyDb.trim() ||
+            !draft.username.trim() ||
+            !draft.password
+          }
+        >
+          {label}
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -270,6 +483,8 @@ type Draft = {
   defaultTerritory: string;
   itemPriceList: string;
   priceBooks: { pricebookId: string; priceList: string }[];
+  taxRateField: string;
+  defaultTaxRate: string;
   units: { name: string; unit: string }[];
   invoiceDays: string;
   dailyCalls: string;
@@ -283,6 +498,8 @@ const draftOf = (settings: ErpSettings): Draft => ({
   defaultTerritory: settings.defaultTerritory ?? '',
   itemPriceList: settings.itemPriceList ?? '',
   priceBooks: settings.priceBooks,
+  taxRateField: settings.taxRateField ?? '',
+  defaultTaxRate: settings.defaultTaxRate ?? '',
   units: Object.entries(settings.units).map(([name, unit]) => ({ name, unit })),
   invoiceDays: String(settings.invoiceDays),
   dailyCalls: String(settings.dailyCalls),
@@ -313,6 +530,8 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
   const units = config.data?.bundle.catalogue.units ?? [];
   const lists = priceLists.data ?? [];
   const listOptions = lists.map((list) => ({ value: list.id, label: list.name }));
+  const sap = connection.provider === 'sap_b1';
+  const provider = PROVIDER_NAMES[connection.provider];
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -328,6 +547,8 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
         priceBooks: draft.priceBooks
           .map((book) => ({ pricebookId: book.pricebookId.trim(), priceList: book.priceList }))
           .filter((book) => book.pricebookId && book.priceList),
+        taxRateField: draft.taxRateField.trim() || null,
+        defaultTaxRate: draft.defaultTaxRate.trim() || null,
         units: Object.fromEntries(
           draft.units
             .map((entry) => [entry.name.trim(), entry.unit] as const)
@@ -389,7 +610,7 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
       />
       <TextField
         label={t('erp.territory_field')}
-        help={t('erp.territory_field_help')}
+        help={t(sap ? 'erp.sap_territory_field_help' : 'erp.territory_field_help')}
         value={draft.territoryField}
         error={errors.territoryField}
         onChange={(event) => change({ territoryField: event.target.value })}
@@ -410,21 +631,23 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
             })),
         ]}
       />
-      <SelectField
-        label={t('erp.item_price_list')}
-        help={t('erp.item_price_list_help')}
-        value={draft.itemPriceList}
-        error={errors.itemPriceList}
-        onChange={(event) => change({ itemPriceList: event.target.value })}
-        options={[{ value: '', label: t('erp.default_list') }, ...listOptions]}
-      />
+      {sap ? null : (
+        <SelectField
+          label={t('erp.item_price_list')}
+          help={t('erp.item_price_list_help')}
+          value={draft.itemPriceList}
+          error={errors.itemPriceList}
+          onChange={(event) => change({ itemPriceList: event.target.value })}
+          options={[{ value: '', label: t('erp.default_list') }, ...listOptions]}
+        />
+      )}
       <fieldset className="flex flex-col gap-2">
-        <legend className="ks-label">{t('erp.price_books')}</legend>
-        <p className="ks-help">{t('erp.price_books_help')}</p>
+        <legend className="ks-label">{t(sap ? 'erp.sap_price_lists' : 'erp.price_books')}</legend>
+        <p className="ks-help">{t(sap ? 'erp.sap_price_lists_help' : 'erp.price_books_help')}</p>
         {draft.priceBooks.map((book, index) => (
           <div key={index} className="flex flex-wrap items-end gap-2">
             <TextField
-              label={t('erp.price_book_id')}
+              label={t(sap ? 'erp.sap_price_list_no' : 'erp.price_book_id')}
               value={book.pricebookId}
               error={errors[`priceBooks.${index}.pricebookId`]}
               onChange={(event) =>
@@ -467,7 +690,7 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
               change({ priceBooks: [...draft.priceBooks, { pricebookId: '', priceList: '' }] })
             }
           >
-            {t('erp.add_price_book')}
+            {t(sap ? 'erp.add_sap_price_list' : 'erp.add_price_book')}
           </Button>
         </div>
       </fieldset>
@@ -522,6 +745,25 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
           </Button>
         </div>
       </fieldset>
+      {sap ? (
+        <div className="flex flex-wrap gap-4">
+          <TextField
+            label={t('erp.tax_rate_field')}
+            help={t('erp.tax_rate_field_help')}
+            value={draft.taxRateField}
+            error={errors.taxRateField}
+            onChange={(event) => change({ taxRateField: event.target.value })}
+          />
+          <TextField
+            label={t('erp.default_tax_rate')}
+            help={t('erp.default_tax_rate_help')}
+            inputMode="decimal"
+            value={draft.defaultTaxRate}
+            error={errors.defaultTaxRate}
+            onChange={(event) => change({ defaultTaxRate: event.target.value })}
+          />
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-4">
         <TextField
           label={t('erp.invoice_days')}
@@ -531,18 +773,20 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
           error={errors.invoiceDays}
           onChange={(event) => change({ invoiceDays: event.target.value })}
         />
-        <TextField
-          label={t('erp.daily_calls')}
-          help={t('erp.daily_calls_help')}
-          inputMode="numeric"
-          value={draft.dailyCalls}
-          error={errors.dailyCalls}
-          onChange={(event) => change({ dailyCalls: event.target.value })}
-        />
+        {sap ? null : (
+          <TextField
+            label={t('erp.daily_calls')}
+            help={t('erp.daily_calls_help')}
+            inputMode="numeric"
+            value={draft.dailyCalls}
+            error={errors.dailyCalls}
+            onChange={(event) => change({ dailyCalls: event.target.value })}
+          />
+        )}
       </div>
       <Checkbox
-        label={t('erp.push_orders')}
-        detail={t('erp.push_orders_help')}
+        label={t('erp.push_orders', { provider })}
+        detail={t('erp.push_orders_help', { provider })}
         checked={draft.pushOrders}
         onChange={(event) => change({ pushOrders: event.target.checked })}
       />
@@ -713,7 +957,9 @@ function Disconnect({ connection }: { connection: ErpConnectionResult }) {
       ) : null}
       {asking ? (
         <Confirm
-          question={t('erp.disconnect_question')}
+          question={t('erp.disconnect_question', {
+            provider: PROVIDER_NAMES[connection.provider],
+          })}
           action={
             <Button size="sm" variant="danger" busy={busy} onClick={() => void disconnect()}>
               {t('erp.disconnect')}

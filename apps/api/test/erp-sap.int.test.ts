@@ -12,6 +12,7 @@ import { FAKE_SAP_COMPANY, FakeSapB1 } from '../src/modules/erp/fake-sap-b1';
 import { TenantConfigService } from '../src/modules/tenant-config/tenant-config.service';
 import { SYSTEM_ACTOR } from '../src/platform/audit';
 import { Database } from '../src/platform/database';
+import { orderingTenant } from './erp-orders';
 import { newAddress, newPhone, startApp, World } from './support';
 
 /**
@@ -371,5 +372,70 @@ describe('reading SAP Business One (BR-60)', () => {
         tx.select().from(erpConnections).where(eq(erpConnections.tenantId, org.tenantId)),
       );
     expect(row!.credentialsSealed).toBeNull();
+  });
+});
+
+describe('orders out to SAP Business One (BR-60)', () => {
+  it('sends accepted lines once by NumAtCard, even when SAP’s answer is lost, and holds what SAP lacks', async () => {
+    const t = await orderingTenant(app, world, 'SAP Orders Agro');
+    const connection = (await connect(t.admin)).json();
+    const saved = await call('PUT', `/v1/erp-connections/${connection.id}/settings`, t.admin, {
+      accountType: 'distributor',
+      defaultTerritory: t.marketCode,
+      defaultTaxRate: '18',
+      pushOrders: true,
+      read: { customers: true, items: true, invoices: false, payments: false },
+    });
+    expect(saved.statusCode, saved.body).toBe(200);
+    sap.partners = [
+      { CardCode: t.distributorCode, CardName: 'Kisan Traders', CardType: 'cCustomer' },
+    ];
+    sap.itemGroups = [];
+    // KARANJ isn't in SAP.
+    sap.items = ['NEEM', 'UREA'].map((code) => ({
+      ItemCode: code,
+      ItemName: `${code} item`,
+      SalesUnit: 'pack',
+      ItemPrices: [],
+    }));
+    sap.orders = [];
+
+    // 2 cases of neem at 360 a pack: 24 packs; urea rejected.
+    const partly = await t.order({ NEEM: '2', UREA: '1' }, ['NEEM']);
+    const karanj = await t.order({ KARANJ: '1' }, ['KARANJ']);
+    await app.get(ErpRuns).pull(t.tenantId, connection.id, null);
+
+    sap.failNext('/Orders', 0, 'POST');
+    await app.get(ErpRuns).push(t.tenantId, connection.id);
+    expect(await latestRun(t.admin, connection.id)).toMatchObject({
+      kind: 'push',
+      status: 'failed',
+      stoppedBy: 'error',
+    });
+    expect(sap.orders).toHaveLength(1);
+
+    await app.get(ErpRuns).push(t.tenantId, connection.id);
+    const pushed = await latestRun(t.admin, connection.id);
+    expect(pushed).toMatchObject({
+      kind: 'push',
+      status: 'partial',
+      counts: { order: { read: 2, unchanged: 1, skipped: 1 } },
+    });
+    expect(pushed.problems).toEqual([
+      expect.objectContaining({
+        externalId: karanj.id,
+        issue: 'not_in_books',
+        detail: 'item:KARANJ',
+      }),
+    ]);
+    expect(sap.orders).toEqual([
+      expect.objectContaining({
+        CardCode: t.distributorCode,
+        NumAtCard: String(partly.number),
+        DocumentLines: [{ ItemCode: 'NEEM', Quantity: 24, UnitPrice: 360 }],
+      }),
+    ]);
+    await app.get(ErpRuns).push(t.tenantId, connection.id);
+    expect(sap.orders).toHaveLength(1);
   });
 });
