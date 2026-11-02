@@ -154,6 +154,7 @@ describe('entitlements (spec 5.13)', () => {
     expect((await send('GET', '/v1/orders', t.admin)).statusCode).toBe(200);
     const open = await send('GET', `/platform/v1/tenants/${t.tenantId}/entitlements`, staff);
     expect(open.json()).toMatchObject({ plan: null, modules: [...MODULE_KEYS] });
+    expect((await send('GET', '/v1/modules', t.admin)).json()).toEqual({ outsidePlan: [] });
 
     const basic = await addPlan(`basic${newId().slice(-6)}`);
     const set = await send('PUT', `/platform/v1/tenants/${t.tenantId}/plan`, staff, {
@@ -171,6 +172,12 @@ describe('entitlements (spec 5.13)', () => {
       expect.arrayContaining(['orders', 'account_finance', 'expenses']),
     );
     expect(bundle.settings.modulesOff).not.toContain('leave_attendance');
+    // The Modules page reads what the plan leaves out, so it offers no switch for those.
+    const outside = (await send('GET', '/v1/modules', t.admin)).json().outsidePlan;
+    expect(outside).toEqual(
+      expect.arrayContaining(['orders', 'account_finance', 'expenses', 'inventory']),
+    );
+    expect(outside).not.toContain('leave_attendance');
 
     // The admin can switch off what the plan opens, never on what it leaves out.
     const opened = await send('PATCH', '/v1/settings', t.admin, { modulesOff: [] });
@@ -194,6 +201,11 @@ describe('entitlements (spec 5.13)', () => {
     });
     expect(closed.statusCode, closed.body).toBe(200);
     expect(closed.json().modulesOff).toContain('leave_attendance');
+    // An opt-in module the plan leaves out can't be switched on either.
+    const optIn = await send('PATCH', '/v1/settings', t.admin, { modulesOn: ['inventory'] });
+    expect(optIn.json().error.details).toEqual([
+      { path: 'modulesOn', issue: 'Your plan does not include inventory' },
+    ]);
 
     // A module added for this tenant alone opens; moving off the plan opens everything again,
     // except what the admin chose to switch off.
@@ -202,6 +214,7 @@ describe('entitlements (spec 5.13)', () => {
       extraModules: ['orders'],
     });
     expect((await send('GET', '/v1/orders', t.admin)).statusCode).toBe(200);
+    expect((await send('GET', '/v1/modules', t.admin)).json().outsidePlan).not.toContain('orders');
     await send('PUT', `/platform/v1/tenants/${t.tenantId}/plan`, staff, { planId: null });
     const free = (await send('GET', '/v1/config', t.admin)).json().settings.modulesOff;
     expect(free).toEqual(['leave_attendance', 'statutory_payroll', 'inventory']);

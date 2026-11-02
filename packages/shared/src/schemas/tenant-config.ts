@@ -273,6 +273,11 @@ export const UpdateSettingsBody = TenantSettings.omit({ logoMediaId: true })
   .partial()
   .refine((body) => Object.keys(body).length > 0, 'Send at least one setting to change');
 
+/** The tenant's modules as its plan allows them (decision D89): those its plan leaves out. */
+export const ModulesResult = z
+  .object({ outsidePlan: z.array(z.enum(SWITCHABLE_MODULES)) })
+  .meta({ id: 'ModulesResult' });
+
 const TermLabel = localizedText(40);
 
 type TerminologyShape = {
@@ -347,6 +352,7 @@ export const CoreConfigBundle = z.object({
 });
 
 export type UpdateSettingsBody = z.output<typeof UpdateSettingsBody>;
+export type ModulesResult = z.output<typeof ModulesResult>;
 export type TerminologyOverrides = z.output<typeof TerminologyOverrides>;
 export type TermValue = z.output<typeof TermValue>;
 export type TerminologyResult = z.output<typeof TerminologyResult>;

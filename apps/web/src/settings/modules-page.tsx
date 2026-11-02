@@ -13,8 +13,8 @@ import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
-import { PageHeader } from '../people/shared';
-import { useAdmin } from './data';
+import { fieldErrors, PageHeader } from '../people/shared';
+import { useAdmin, useModulesOutsidePlan } from './data';
 
 /** What stops while a module is off, where it isn't plain from its screens (decision D125). */
 export const MODULE_OFF_NOTES: Partial<Record<ModuleKey, MessageKey>> = {
@@ -25,7 +25,7 @@ export const MODULE_OFF_NOTES: Partial<Record<ModuleKey, MessageKey>> = {
 /**
  * Modules (M2, spec 5.13): what the organisation uses. Switching one off hides its screens, takes
  * its permissions from every role, and closes its routes. Core is always on; modules of later
- * phases show as coming.
+ * phases show as coming, and modules the plan leaves out as not in it, with no switch (D89).
  */
 export function ModulesPage() {
   const { client, queryClient } = useApp();
@@ -34,11 +34,21 @@ export function ModulesPage() {
   const config = useConfig(client, queryClient);
   const admin = useAdmin();
   const saved = config.data?.bundle.settings.modulesOff;
+  const outside = useModulesOutsidePlan();
   const [off, setOff] = useState<SwitchableModule[]>();
   const [error, setError] = useState<unknown>();
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
-  if (!saved) return <p className="ks-muted">{t('common.loading')}</p>;
+  if (!saved || !outside.data) {
+    return outside.error ? (
+      <p className="ks-help error" role="alert">
+        {errorMessage(outside.error, t)}
+      </p>
+    ) : (
+      <p className="ks-muted">{t('common.loading')}</p>
+    );
+  }
+  const outsidePlan: readonly ModuleKey[] = outside.data.outsidePlan;
   const current = off ?? saved;
   const editable = access.can('module.manage');
 
@@ -66,6 +76,7 @@ export function ModulesPage() {
       <ul className="flex flex-col gap-3" aria-label={t('admin.modules')}>
         {MODULE_KEYS.map((key) => {
           const available = AVAILABLE_MODULES.includes(key);
+          const inPlan = !outsidePlan.includes(key);
           return (
             <li key={key} className="ks-card flex flex-col gap-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -74,6 +85,8 @@ export function ModulesPage() {
                   <StatusBadge variant="info">{t('admin.module_always_on')}</StatusBadge>
                 ) : !available ? (
                   <StatusBadge variant="neutral">{t('admin.module_coming')}</StatusBadge>
+                ) : !inPlan ? (
+                  <StatusBadge variant="neutral">{t('admin.module_not_in_plan')}</StatusBadge>
                 ) : (
                   <Checkbox
                     label={t('admin.module_on')}
@@ -91,7 +104,10 @@ export function ModulesPage() {
                 )}
               </div>
               <p className="ks-muted text-sm">{t(`admin.module_${key}_about`)}</p>
-              {key !== 'core' && current.includes(key) && MODULE_OFF_NOTES[key] ? (
+              {available && !inPlan ? (
+                <p className="ks-muted text-sm">{t('admin.module_not_in_plan_about')}</p>
+              ) : null}
+              {key !== 'core' && inPlan && current.includes(key) && MODULE_OFF_NOTES[key] ? (
                 <p className="ks-muted text-sm">{t(MODULE_OFF_NOTES[key])}</p>
               ) : null}
             </li>
@@ -116,11 +132,17 @@ export function ModulesPage() {
           ) : null}
           {error !== undefined ? (
             <span className="ks-help error" role="alert">
-              {errorMessage(error, t)}
+              {planRefused(error) ? t('admin.modules_outside_plan') : errorMessage(error, t)}
             </span>
           ) : null}
         </div>
       ) : null}
     </div>
   );
+}
+
+/** Whether the server refused a switch the plan doesn't allow, which no field shows. */
+function planRefused(error: unknown): boolean {
+  const fields = fieldErrors(error);
+  return 'modulesOn' in fields || 'modulesOff' in fields;
 }

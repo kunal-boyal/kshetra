@@ -1,3 +1,4 @@
+import { ApiError } from '@thelamp/api-client';
 import { SETTING_DEFAULTS } from '@thelamp/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -303,11 +304,19 @@ describe('terminology (M2, spec 5.2)', () => {
 });
 
 describe('modules (M2, spec 5.13)', () => {
+  // Without a plan, or on one that leaves nothing out (decision D89).
+  const OPEN_PLAN = { '/v1/modules': { outsidePlan: [] } };
+
   it('switches a module off; Core always stays on', async () => {
     // As the server reads it: statutory payroll and inventory off until switched on (D128, D130).
-    const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN, {
-      settings: { ...SETTING_DEFAULTS, modulesOff: ['statutory_payroll', 'inventory'] },
-    });
+    const client = fakeClient(
+      OPEN_PLAN,
+      { 'PATCH /v1/settings': ({ body }) => saved(body) },
+      ADMIN,
+      {
+        settings: { ...SETTING_DEFAULTS, modulesOff: ['statutory_payroll', 'inventory'] },
+      },
+    );
     renderAt('/settings/modules', client);
     const user = userEvent.setup();
     const list = await screen.findByRole('list', { name: 'Modules' });
@@ -333,7 +342,11 @@ describe('modules (M2, spec 5.13)', () => {
   });
 
   it('says what stops while integrations or single sign-on are off (D125)', async () => {
-    const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN);
+    const client = fakeClient(
+      OPEN_PLAN,
+      { 'PATCH /v1/settings': ({ body }) => saved(body) },
+      ADMIN,
+    );
     renderAt('/settings/modules', client);
     const user = userEvent.setup();
     const list = await screen.findByRole('list', { name: 'Modules' });
@@ -349,6 +362,39 @@ describe('modules (M2, spec 5.13)', () => {
       expect(writesOf(client)[0]![3]).toMatchObject({
         body: { modulesOff: ['integrations', 'sso', 'payroll_inputs'] },
       }),
+    );
+  });
+
+  it('offers no switch for a module the plan leaves out, and says why (D89)', async () => {
+    const client = fakeClient(
+      { '/v1/modules': { outsidePlan: ['inventory', 'sso'] } },
+      {
+        'PATCH /v1/settings': () => {
+          throw new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
+            { path: 'modulesOn', issue: 'Your plan does not include statutory_payroll' },
+          ]);
+        },
+      },
+      ADMIN,
+      { settings: { ...SETTING_DEFAULTS, modulesOff: ['statutory_payroll', 'inventory', 'sso'] } },
+    );
+    renderAt('/settings/modules', client);
+    const user = userEvent.setup();
+    const list = await screen.findByRole('list', { name: 'Modules' });
+    const module = (name: string) => within(within(list).getByText(name).closest('li')!);
+    for (const name of ['Inventory', 'Single sign-on']) {
+      expect(module(name).getByText('Not in your plan')).toBeVisible();
+      expect(module(name).getByText(/Ask us to add it to your plan/)).toBeVisible();
+      expect(module(name).queryByRole('checkbox')).toBeNull();
+    }
+    // What stops while it is off is for modules the admin can switch.
+    expect(module('Single sign-on').queryByText(/with a one-time code/)).toBeNull();
+    expect(within(list).getAllByRole('checkbox', { name: 'On' })).toHaveLength(8);
+    // Should the plan change while the page is open, the refusal says so in words.
+    await user.click(module('Statutory payroll').getByRole('checkbox', { name: 'On' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your plan doesn’t include a module you switched on.',
     );
   });
 });

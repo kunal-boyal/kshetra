@@ -50,14 +50,19 @@ export const EXAMPLE_PLANS: PlanBody[] = [
     name: { en: 'Enterprise (example)', hi: 'एंटरप्राइज़ (उदाहरण)' },
     priceMonth: '300',
     priceYear: '3000',
+    // Every module built (spec 5.13); the opt-in ones still start off (decisions D128, D130).
     modules: [
       'core',
       'leave_attendance',
       'orders',
       'account_finance',
       'expenses',
+      'payroll_inputs',
+      'statutory_payroll',
       'integrations',
       'sso',
+      'advanced_analytics',
+      'inventory',
     ],
     limits: {
       users: null,

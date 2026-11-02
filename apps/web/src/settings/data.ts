@@ -1,5 +1,6 @@
 import {
   CalendarListResult,
+  ModulesResult,
   newId,
   OrganisationResult,
   TenantSettings,
@@ -26,6 +27,15 @@ export function useOrganisation() {
   });
 }
 
+/** The modules the plan leaves out, which the Modules page offers no switch for (D89). */
+export function useModulesOutsidePlan() {
+  const { client } = useApp();
+  return useQuery({
+    queryKey: ['modules'],
+    queryFn: () => read(client, '/v1/modules', ModulesResult),
+  });
+}
+
 export function useTerminology(enabled: boolean) {
   const { client } = useApp();
   return useQuery({
@@ -44,6 +54,7 @@ export function useAdmin() {
       queryClient.invalidateQueries({ queryKey: ['config'] }),
       queryClient.invalidateQueries({ queryKey: ['organisation'] }),
       queryClient.invalidateQueries({ queryKey: ['terminology'] }),
+      queryClient.invalidateQueries({ queryKey: ['modules'] }),
     ]);
   const key = () => ({ idempotencyKey: newId() });
   return {
