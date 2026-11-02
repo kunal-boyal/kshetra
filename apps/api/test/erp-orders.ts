@@ -92,12 +92,35 @@ export async function orderingTenant(app: NestFastifyApplication, world: World, 
   });
   expect(priced.statusCode, priced.body).toBe(200);
 
-  /** Places an order in cases, then the ASM and the head decide each line. */
-  const order = async (lines: Record<string, string>, accepted: string[]) => {
+  /** A retailer the distributor supplies, held by the SME (a secondary order's account). */
+  const retailer = async () => {
+    const id = newId();
+    const madeRetailer = await call('POST', '/v1/accounts', tokens.head, {
+      id,
+      type: 'retailer',
+      code: `R-${newId().slice(-6).toUpperCase()}`,
+      name: 'Gupta Krishi Kendra',
+      territoryId: market,
+      parentId: distributor,
+      slots: { sme: sme.userId },
+    });
+    expect(madeRetailer.statusCode, madeRetailer.body).toBe(201);
+    return id;
+  };
+
+  /**
+   * Places an order in cases at the distributor or another account, then the ASM and the head
+   * decide each line.
+   */
+  const order = async (
+    lines: Record<string, string>,
+    accepted: string[],
+    accountId: string = distributor,
+  ) => {
     const id = newId();
     const placed = await call('POST', '/v1/orders', tokens.sme, {
       id,
-      accountId: distributor,
+      accountId,
       lines: Object.entries(lines).map(([itemCode, cases]) => ({
         itemId: itemIds[itemCode],
         unitKey: 'case',
@@ -138,6 +161,8 @@ export async function orderingTenant(app: NestFastifyApplication, world: World, 
     distributor,
     distributorCode,
     itemIds,
+    sme: tokens.sme,
+    retailer,
     order,
   };
 }

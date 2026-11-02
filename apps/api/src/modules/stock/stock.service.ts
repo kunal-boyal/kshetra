@@ -8,6 +8,7 @@ import {
   newId,
   type RecordStockBody,
   signedUnits,
+  stockShortfall,
   type StockCountBody,
   type StockCountResult,
   type StockLevelsResult,
@@ -287,6 +288,26 @@ export class StockService {
       })),
     );
     return movements.length;
+  }
+
+  /**
+   * What a supplying account lacks of an order's lines, against its stock now (BR-62): nothing
+   * while inventory is off or the supplier's type keeps no stock.
+   */
+  async shortfallFor(
+    tx: TenantTx,
+    tenantId: string,
+    supplierId: string,
+    lines: readonly { itemId: string; baseUnits: string }[],
+  ): Promise<{ itemId: string; short: string }[]> {
+    const settings = await this.config.settings(tx, tenantId);
+    if (settings.modulesOff.includes('inventory')) return [];
+    if (!(await this.keepsStock(tx, tenantId, [supplierId])).get(supplierId)) return [];
+    const levels = await this.onHand(tx, tenantId, supplierId);
+    return stockShortfall(
+      lines,
+      new Map([...levels].map(([itemId, level]) => [itemId, level.onHand])),
+    ).map((entry) => ({ itemId: entry.itemId, short: entry.short }));
   }
 
   /** Refuses what only a kept ledger takes while the books keep stock. */

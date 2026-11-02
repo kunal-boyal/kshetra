@@ -4,6 +4,7 @@ import type {
   SyncAccount,
   SyncBalance,
   SyncSellThrough,
+  SyncStock,
   SyncForecast,
   SyncScheme,
   SyncContact,
@@ -276,6 +277,14 @@ const MIGRATIONS: readonly string[] = [
   `CREATE TABLE ref_schemes (
      id TEXT PRIMARY KEY NOT NULL,
      scheme TEXT NOT NULL,
+     sync_gen INTEGER NOT NULL
+   );`,
+  // Distributors' stock (BR-62, decision D130): what each account that holds stock has of each
+  // item, one row an account keyed by it.
+  `CREATE TABLE ref_stock (
+     id TEXT PRIMARY KEY NOT NULL,
+     account_id TEXT NOT NULL,
+     items TEXT NOT NULL,
      sync_gen INTEGER NOT NULL
    );`,
 ];
@@ -617,6 +626,19 @@ export const LOCAL_ENTITIES: { [Name in SyncEntity]: LocalEntity<RowOf<Name>> } 
     columns: (scheme) => ({ id: scheme.id, scheme: JSON.stringify(scheme) }),
     read: (record) => JSON.parse(String(record.scheme)) as SyncScheme,
   },
+  stock: {
+    table: 'ref_stock',
+    columns: (stock) => ({
+      id: stock.id,
+      account_id: stock.accountId,
+      items: JSON.stringify(stock.items),
+    }),
+    read: (record) => ({
+      id: String(record.id),
+      accountId: String(record.account_id),
+      items: JSON.parse(String(record.items)) as SyncStock['items'],
+    }),
+  },
 };
 
 export type RowOf<Name extends SyncEntity> = {
@@ -633,6 +655,7 @@ export type RowOf<Name extends SyncEntity> = {
   sell_through: SyncSellThrough;
   forecasts: SyncForecast;
   schemes: SyncScheme;
+  stock: SyncStock;
 }[Name];
 
 /** Every row the phone holds of one entity. */

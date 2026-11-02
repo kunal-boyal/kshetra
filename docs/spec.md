@@ -761,7 +761,8 @@ Rules: BR-42, BR-43.
 - An opt-in module: what each distributor, stockist or dealer (account types with `keepsStock`) holds of each item, in base units.
 - Each tenant chooses where stock comes from (`stockSource`): `kept`, a ledger the app moves when orders are fulfilled (into the buyer and out of a supplying account that keep stock), on counts and on entries; or `books`, levels loaded by file or the bulk API, which nothing else moves.
 - Counts by field people adjust a kept ledger at once; a difference past the tenant's tolerance (default 5%) is flagged for the manager.
-- Stock is shown on the account with its value at the account's prices, in the stock on hand and stock ledger reports, and while ordering through the supplier. A short order is flagged, never refused (BR-62).
+- Stock is shown on the account with its value at the account's prices, in the stock on hand and stock ledger reports, and while ordering through the supplier. A short order is flagged, never refused (BR-62): each short line keeps what the supplier lacked when it was placed, and the approval fact `short_stock` lets a chain route it.
+- On the phone, stock is kept offline for the accounts the person reaches, shown on the account and in the cart through a supplier; counts are taken offline and upload like any capture.
 - Company warehouses, batches, expiry, stock valuation and reorder levels are not in this module.
 
 ## 7. Business rules

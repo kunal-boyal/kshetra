@@ -28,6 +28,8 @@ import { PricesScreen } from './prices';
 import { forecastOf } from '../forecasts';
 import { ForecastScreen } from './forecast';
 import { SellThroughScreen } from './sell-through';
+import { stockOf } from '../stock';
+import { StockCountScreen } from './stock-count';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
@@ -53,6 +55,9 @@ const MARKET = '01a10000-0000-7000-8000-000000000010';
 const NEAR = '01a10000-0000-7000-8000-000000000080';
 const FAR = '01a10000-0000-7000-8000-000000000081';
 const UNPLACED = '01a10000-0000-7000-8000-000000000082';
+// A distributor that holds stock, and a retailer it supplies (BR-62, D130).
+const SUPPLIER = '01a10000-0000-7000-8000-000000000083';
+const RETAILER = '01a10000-0000-7000-8000-000000000084';
 const text = (en: string) => ({ en, hi: en });
 const SEED = '01a10000-0000-7000-8000-0000000000b0';
 const SPRAY = '01a10000-0000-7000-8000-0000000000b1';
@@ -141,14 +146,32 @@ const CUSTOMER = {
   sellThrough: true,
 };
 
-function account(id: string, name: string, location: { lat: number; lng: number } | null) {
+const DISTRIBUTOR = {
+  ...CUSTOMER,
+  id: '01a10000-0000-7000-8000-000000000071',
+  key: 'distributor',
+  name: {
+    en: { one: 'Distributor', other: 'Distributors' },
+    hi: { one: 'वितरक', other: 'वितरक' },
+  },
+  contacts: false,
+  sellThrough: false,
+  keepsStock: true,
+};
+
+function account(
+  id: string,
+  name: string,
+  location: { lat: number; lng: number } | null,
+  extra: { type?: string; parentId?: string } = {},
+) {
   return {
     id,
-    type: 'customer',
+    type: extra.type ?? 'customer',
     code: `C-${id.slice(-2)}`,
     name,
     territoryId: MARKET,
-    parentId: null,
+    parentId: extra.parentId ?? null,
     address: {},
     location,
     geofenceRadiusM: null,
@@ -191,6 +214,8 @@ function pulled(): SyncPullResult {
         account(FAR, 'India Gate Stores', { lat: 28.6129, lng: 77.2295 }),
         account(NEAR, 'Janpath Mart', { lat: 28.6225, lng: 77.2195 }),
         account(UNPLACED, 'Corner Kirana', null),
+        account(SUPPLIER, 'Kisan Traders', null, { type: 'distributor' }),
+        account(RETAILER, 'Ganesh Agro', null, { parentId: SUPPLIER }),
       ]) as SyncPullResult['entities']['accounts'],
       items: full([
         item(SEED, 'SEED-1', 'Hybrid seed', true, {
@@ -297,6 +322,17 @@ function pulled(): SyncPullResult {
           lines: [{ itemId: SEED, quantity: '120' }],
         },
       ]),
+      // What Kisan Traders holds: 30 seed packs, and 2 sprays below zero (BR-62).
+      stock: full([
+        {
+          id: SUPPLIER,
+          accountId: SUPPLIER,
+          items: [
+            { itemId: SEED, onHand: '30', countedOn: '2026-10-30' },
+            { itemId: SPRAY, onHand: '-2', countedOn: null },
+          ],
+        },
+      ]),
       contacts: full([
         {
           id: '01a10000-0000-7000-8000-000000000090',
@@ -368,7 +404,7 @@ function fakeClient(modulesOff: SwitchableModule[] = []) {
         settings: { ...SETTING_DEFAULTS, modulesOff },
         terminology: {},
         designations: [],
-        accountTypes: [CUSTOMER],
+        accountTypes: [CUSTOMER, DISTRIBUTOR],
         access: {
           role: 'field_user',
           scope: 'self',
@@ -380,6 +416,8 @@ function fakeClient(modulesOff: SwitchableModule[] = []) {
             'finance.view',
             'sell_through.record',
             'forecast.record',
+            'stock.view',
+            'stock.count',
           ],
         },
       },
@@ -395,7 +433,8 @@ type Page =
   | { name: 'prices'; id: string }
   | { name: 'order'; id: string }
   | { name: 'sell_through'; id: string }
-  | { name: 'forecast'; id: string };
+  | { name: 'forecast'; id: string }
+  | { name: 'stock_count'; id: string };
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
@@ -406,6 +445,7 @@ function Shown({ page }: { page: Page }) {
   if (page.name === 'order') return <OrderScreen accountId={page.id} />;
   if (page.name === 'sell_through') return <SellThroughScreen accountId={page.id} />;
   if (page.name === 'forecast') return <ForecastScreen accountId={page.id} />;
+  if (page.name === 'stock_count') return <StockCountScreen accountId={page.id} />;
   return <AccountScreen id={page.id} />;
 }
 
@@ -446,8 +486,8 @@ describe('accounts on the phone', () => {
     await waitFor(() =>
       expect(labels()).toEqual(['Janpath Mart', 'India Gate Stores', 'Corner Kirana']),
     );
-    expect(screen.getByText('C-80 · 1 km away')).toBeOnTheScreen();
-    expect(screen.getByText('C-81 · 2.4 km away')).toBeOnTheScreen();
+    expect(screen.getByText('C-80 · Customer · 1 km away')).toBeOnTheScreen();
+    expect(screen.getByText('C-81 · Customer · 2.4 km away')).toBeOnTheScreen();
 
     await fireEvent.changeText(screen.getByLabelText('Search'), 'c-82');
     await waitFor(() => expect(labels()).toEqual(['Corner Kirana']));
@@ -906,5 +946,84 @@ describe('schemes on the phone (BR-55, D127)', () => {
       lines: [{ itemId: SPRAY, quoted: { scheme: { key: 'ten_plus_one', discount: '0.00' } } }],
       free: [{ itemId: SPRAY, baseUnits: '2.000', ofItemId: SPRAY }],
     });
+  });
+});
+
+describe('distributors’ stock on the phone (BR-62, D130)', () => {
+  it('shows what an account holds, below zero too, and opens the count', async () => {
+    await renderPhone({ name: 'account', id: SUPPLIER });
+    expect(await screen.findByText('Hybrid seed')).toBeOnTheScreen();
+    expect(screen.getByText('30 pack')).toBeOnTheScreen();
+    expect(screen.getByText('-2 pack')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Count stock' }));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/stock-count/[accountId]',
+      params: { accountId: SUPPLIER },
+    });
+  });
+
+  it('shows no stock where the account type holds none, or the module is off', async () => {
+    await renderPhone({ name: 'account', id: NEAR });
+    await screen.findByText('Janpath Mart');
+    expect(screen.queryByRole('button', { name: 'Count stock' })).toBeNull();
+    screen.unmount();
+    await renderPhone({ name: 'account', id: SUPPLIER }, nodeSqlite(), ['inventory']);
+    await screen.findByText('Kisan Traders');
+    expect(screen.queryByText('30 pack')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Count stock' })).toBeNull();
+  });
+
+  it('counts offline: held items first, a wrong figure explained, the count queued and shown', async () => {
+    const db = nodeSqlite();
+    await renderPhone({ name: 'stock_count', id: SUPPLIER }, db);
+    expect(await screen.findByText('SEED-1 · 30 pack now')).toBeOnTheScreen();
+    expect(screen.getByText('SPRAY-1 · -2 pack now')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Counted of Hybrid seed'), '-1');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save the count' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/as numbers/);
+    await fireEvent.changeText(screen.getByLabelText('Counted of Hybrid seed'), '28');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save the count' }));
+    expect(
+      await screen.findByText('Count saved. It uploads when you’re online.'),
+    ).toBeOnTheScreen();
+    const [queued] = (await new Outbox(db, {}).items(OWNER)).filter(
+      (entry) => entry.kind === 'stock.count',
+    );
+    expect(queued?.payload).toMatchObject({
+      body: { accountId: SUPPLIER, lines: [{ itemId: SEED, counted: '28' }] },
+    });
+  });
+
+  it('lays counts still queued over what was synced', () => {
+    const synced = pulled().entities.stock!.rows;
+    const count = (counted: string) => ({
+      body: {
+        id: '01a10000-0000-7000-8000-0000000000f9',
+        accountId: SUPPLIER,
+        countedAt: '2026-11-02T06:00:00.000Z',
+        lines: [{ itemId: SEED, counted }],
+      },
+    });
+    expect([...stockOf(synced, [count('28'), count('27')], SUPPLIER)]).toEqual([
+      [SEED, '27'],
+      [SPRAY, '-2'],
+    ]);
+    expect(stockOf(synced, [count('28')], RETAILER).size).toBe(0);
+  });
+
+  it('shows the supplier’s stock in the cart and flags short lines, without refusing', async () => {
+    await renderPhone({ name: 'order', id: RETAILER });
+    expect(await screen.findByText(/Supplier has 30 pack/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /^Quantity of Hybrid seed/ }));
+    await fireEvent.changeText(screen.getByLabelText('Quantity'), '36');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    await fireEvent.press(await screen.findByRole('button', { name: /^Review: 1 item/ }));
+    expect(screen.getByText(/Supplier short by 6 pack/)).toBeOnTheScreen();
+    expect(
+      screen.getByText('Kisan Traders holds less than 1 line asks for. It can still be placed.'),
+    ).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Place the order/ })).toBeEnabled(),
+    );
   });
 });

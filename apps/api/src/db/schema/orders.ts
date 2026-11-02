@@ -136,6 +136,8 @@ export const orderLines = cell
       decision: lineDecision('decision').notNull().default('pending'),
       decisionReason: text('decision_reason'),
       fulfilledUnits: numeric('fulfilled_units', { precision: 18, scale: 3 }),
+      /** Base units its supplier lacked when it was placed (BR-62); null when it wasn't short. */
+      shortUnits: numeric('short_units', { precision: 18, scale: 3 }),
       /** The line's scheme when placed (BR-55): its key, name and kind; null for none. */
       scheme: jsonb('scheme'),
       /** What the scheme took off the taxable, before tax (BR-55). */

@@ -103,6 +103,11 @@ export const OrderLineResult = z
     decisionReason: Key.nullable(),
     /** Base units fulfilled so far; null until fulfilment starts. */
     fulfilledUnits: z.string().nullable(),
+    /**
+     * Base units its supplying account lacked when it was placed (BR-62, decision D130); null when
+     * it wasn't short, or its supplier's stock isn't kept.
+     */
+    shortUnits: z.string().nullable(),
   })
   .meta({ id: 'OrderLine' });
 

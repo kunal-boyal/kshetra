@@ -32,6 +32,7 @@ export const SYNC_ENTITIES = [
   'sell_through',
   'forecasts',
   'schemes',
+  'stock',
 ] as const;
 export const SyncEntity = z.enum(SYNC_ENTITIES).meta({ id: 'SyncEntity' });
 
@@ -257,6 +258,21 @@ export const SyncScheme = z
   .meta({ id: 'SyncScheme' });
 
 /**
+ * What an account that holds stock has of each item (BR-62, decision D130), one row an account
+ * keyed by it, so a phone shows stock at the account and in a cart through it offline. Only while
+ * inventory is on, for people who see stock.
+ */
+export const SyncStock = z
+  .object({
+    id: z.uuid(),
+    accountId: z.uuid(),
+    items: z.array(
+      z.object({ itemId: z.uuid(), onHand: z.string(), countedOn: z.iso.date().nullable() }),
+    ),
+  })
+  .meta({ id: 'SyncStock' });
+
+/**
  * One page of one entity. A `full` pass sends every row the caller may hold: when its last page
  * arrives (`done`), the phone drops the rows of that entity the pass did not send. A `changes`
  * pass sends the rows written since the last pass, and the IDs of rows to drop.
@@ -286,6 +302,7 @@ export const SyncBalancesPage = page(SyncBalance);
 export const SyncSellThroughPage = page(SyncSellThrough);
 export const SyncForecastsPage = page(SyncForecast);
 export const SyncSchemesPage = page(SyncScheme);
+export const SyncStockPage = page(SyncStock);
 
 export const SyncPullResult = z.object({
   entities: z.object({
@@ -302,6 +319,7 @@ export const SyncPullResult = z.object({
     sell_through: SyncSellThroughPage.optional(),
     forecasts: SyncForecastsPage.optional(),
     schemes: SyncSchemesPage.optional(),
+    stock: SyncStockPage.optional(),
   }),
   /** Send it with the next pull. It is opaque: its contents may change at any release. */
   cursor: z.string(),
@@ -324,4 +342,5 @@ export type SyncBalance = z.infer<typeof SyncBalance>;
 export type SyncSellThrough = z.infer<typeof SyncSellThrough>;
 export type SyncForecast = z.infer<typeof SyncForecast>;
 export type SyncScheme = z.infer<typeof SyncScheme>;
+export type SyncStock = z.infer<typeof SyncStock>;
 export type SyncPullResult = z.infer<typeof SyncPullResult>;

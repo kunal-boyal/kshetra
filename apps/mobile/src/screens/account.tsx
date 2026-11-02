@@ -1,6 +1,6 @@
 import type { FormEntry } from '@thelamp/api-client/sync';
 import { spacing } from '@thelamp/design-tokens';
-import { formatDate, formatDateTime, formatMoney } from '@thelamp/i18n';
+import { formatDate, formatDateTime, formatMoney, formatNumber } from '@thelamp/i18n';
 import { newId, PROPOSAL_ACCURACY_M, proposalFix } from '@thelamp/shared';
 import {
   AppBar,
@@ -30,6 +30,7 @@ import {
   Tag,
   UserRound,
   Wallet,
+  Boxes,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -41,6 +42,7 @@ import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
 import { creditLeft, useBalance, useOpenInvoices } from '../finance';
+import { useAccountStock } from '../stock';
 import { useOutboxItems, useSync, useSyncStatus } from '../sync';
 import { useTodayPlan } from './today-plan';
 import { CheckOutBar, useVisit, VisitCard } from './visit';
@@ -72,6 +74,9 @@ export function AccountScreen({ id }: { id: string }) {
   const priceLists = useLocalRows('price_lists');
   const orders = useLocalRows('orders');
   const balance = useBalance(id);
+  const stock = useAccountStock(id);
+  const items = useLocalRows('items');
+  const itemOf = (itemId: string) => items?.find((item) => item.id === itemId);
   const waiting = useOutboxItems();
   const { visit } = useVisit();
   const today = useTodayPlan();
@@ -89,6 +94,7 @@ export function AccountScreen({ id }: { id: string }) {
   const modulesOff = bundle?.settings.modulesOff ?? [];
   const ordersOn = !modulesOff.includes('orders');
   const financeOn = !modulesOff.includes('account_finance');
+  const inventoryOn = !modulesOff.includes('inventory');
   const openInvoices =
     useOpenInvoices(id, financeOn && permissions.has('finance.view')).data?.items ?? [];
 
@@ -173,6 +179,9 @@ export function AccountScreen({ id }: { id: string }) {
   };
   // Accounts that give a stock statement, to those who record them (BR-53, decision D124).
   const mayRecordStock = Boolean(type?.sellThrough) && permissions.has('sell_through.record');
+  // Stock at accounts that hold it (BR-62, decision D130): seen, and counted by those who count.
+  const holdsStock = inventoryOn && Boolean(type?.keepsStock) && permissions.has('stock.view');
+  const mayCount = holdsStock && permissions.has('stock.count');
   // Forecasts by item, to those who record them (BR-54, decision D126).
   const mayForecast = permissions.has('forecast.record');
   const mayOrder =
@@ -310,6 +319,18 @@ export function AccountScreen({ id }: { id: string }) {
               }
             />
           ) : null}
+          {mayCount ? (
+            <ListRow
+              lead={<IconChip icon={Boxes} hue="peach" />}
+              label={t('stock.count')}
+              onPress={() =>
+                router.push({
+                  pathname: '/stock-count/[accountId]',
+                  params: { accountId: account.id },
+                })
+              }
+            />
+          ) : null}
           {mayForecast ? (
             <ListRow
               lead={<IconChip icon={ChartLine} hue="sky" />}
@@ -354,6 +375,27 @@ export function AccountScreen({ id }: { id: string }) {
           }
         />
       </Card>
+
+      {holdsStock && stock !== undefined ? (
+        <ListGroup title={t('stock.title')}>
+          {stock.size === 0 ? (
+            <ListRow label={t('stock.none')} />
+          ) : (
+            [...stock]
+              .map(([itemId, onHand]) => ({ item: itemOf(itemId), onHand }))
+              .filter((entry) => entry.item)
+              .sort((a, b) => a.item!.name.localeCompare(b.item!.name))
+              .map(({ item, onHand }) => (
+                <ListRow
+                  key={item!.id}
+                  label={item!.name}
+                  detail={`${formatNumber(onHand as `${number}`, { locale })} ${item!.baseUnit}`}
+                  {...(onHand.startsWith('-') ? { tone: 'danger' as const } : {})}
+                />
+              ))
+          )}
+        </ListGroup>
+      ) : null}
 
       {balance && financeOn && permissions.has('finance.view') ? (
         <ListGroup title={t('finance.owes')}>
