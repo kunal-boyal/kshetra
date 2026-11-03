@@ -13,7 +13,6 @@ An account type is a kind of account your people sell to or meet, such as Distri
 
 - Set up designations first: each slot names the designations allowed in it ([Set up roles and designations](roles-and-designations.md)).
 - Decide whether codes are typed in or numbered automatically. The key of a type never changes.
-- Read the warning about sell-through and stock under "If something goes wrong" before you publish a change to a type your template marked for them.
 
 ## Steps
 
@@ -27,6 +26,8 @@ An account type is a kind of account your people sell to or meet, such as Distri
 5. **Name for one, in English**, **Name for many, in English**, and the Hindi names. A blank Hindi name shows the English one.
 6. **In use**: clear it to switch the type off. A switched-off type disappears from the accounts list's tabs and from imports.
 7. **Keeps contact people**: tick it to keep contact people on each account.
+   - **Gives a monthly sell-through statement** (the tenant's word for sell-through; **Gives a monthly liquidation statement** in agri): tick it for a type whose accounts give a stock statement each month, item by item, on the phone or the portal ([Record sell-through](../field/record-sell-through.md)).
+   - **Holds stock** (shown only while the **Inventory** module is on): tick it for a type whose accounts keep stock. Its page then shows the stock item by item, people may count it on the phone, and orders supplied through it take from it once delivered ([Keep distributors' stock](../back-office/stock.md)). While **Inventory** is off the switch is hidden and the type keeps its setting.
 
 ### Codes, locations and who adds them
 
@@ -75,7 +76,6 @@ The filled slot with the highest priority holds the account's primary person.
 |---|---|---|
 | Some details need fixing. Check the highlighted fields. | The type has problems; the list under the message names each, such as `definition.slots` with "Empty the `asm` slot first", in English from the server. | Correct each problem and save again. |
 | This type could not be found. | The link is old, or the type was not saved. | Go back to **Account types** and open it again. |
-| After you publish a change, a type stops asking for sell-through statements, or its stock section disappears. | The editor has no switches for sell-through or stock, and publishing a version from it switches both off. Your template set them on some types, such as Distributor and Retailer for sell-through in agri, and the distributor-like types for stock. | Don't publish changes to those types from this page until this is fixed. If it has happened, ask the vendor to restore the setting through a configuration import ([Export and import the configuration](configuration-export-import.md)). |
 
 ## Waiting on the owner
 
