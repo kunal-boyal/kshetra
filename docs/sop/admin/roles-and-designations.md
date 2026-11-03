@@ -65,6 +65,7 @@ A role decides what people may do and whose records they reach. A designation is
 - The Admin role always holds every permission across the organisation; its permissions, reach and **Mobile app only** can't change.
 - A role whose permissions include `role.manage`, `user.manage`, `settings.manage`, `module.manage`, `billing.manage` or `erp.manage` makes its holders use an authenticator app on the web ([Set up sign-in security and single sign-on](security-and-sso.md)).
 - Permissions of a module that is off do nothing while it is off, though they stay ticked.
+- Two permissions nothing used, "Set people policies" and "Edit notification messages", were taken out in November 2026 (D137), and every role lost them. A role that held nothing else shows 0 permissions: tick what its people should do, or move them to another role.
 - Keys are unique among roles, and among designations.
 - A designation can't stop allowing reports while people with it have active reports. A person can report only to someone whose designation allows reports.
 - Roles and designations can't be deleted. Stop using one by moving its people to another.

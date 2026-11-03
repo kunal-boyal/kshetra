@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "pharma",
-  "version": 9,
+  "version": 10,
   "name": {
     "en": "Pharma",
     "hi": "फ़ार्मा"
@@ -98,8 +98,6 @@
         "form.manage",
         "metric.manage",
         "workflow.manage",
-        "policy.manage",
-        "notification_template.manage",
         "module.manage",
         "catalogue.manage",
         "price_list.manage",
@@ -190,8 +188,6 @@
         "form.manage",
         "metric.manage",
         "workflow.manage",
-        "policy.manage",
-        "notification_template.manage",
         "module.manage",
         "catalogue.manage",
         "price_list.manage",

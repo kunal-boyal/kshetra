@@ -1,6 +1,8 @@
 import { newId, NUMBER_IN_USE } from '@thelamp/shared';
 import { ModulesContainer, Reflector } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { SigningKey } from '../src/modules/directory/signing-key';
@@ -674,6 +676,68 @@ describe('roles and designations', () => {
     expect(
       (await owner.patch(`/v1/designations/${manager.id}`, { ranked: true })).json(),
     ).toMatchObject({ key: 'manager', ranked: true, canHaveReports: true });
+  });
+
+  it('load and work while holding permissions taken out since (D137), until 0110 strips them', async () => {
+    const { tenantId, admin, m } = await org('Yamuna Agro');
+    const owner = await web(admin);
+    const made = await owner.post('/v1/roles', {
+      key: 'notices',
+      name: { en: 'Notices', hi: 'सूचनाएँ' },
+      scope: 'self',
+      permissions: ['report.view'],
+    });
+    expect(made.statusCode).toBe(201);
+    const retired = ['policy.manage', 'notification_template.manage'];
+    // As stored before D137: the manager's role also holds both, the new role only one.
+    await asAdmin(
+      `update cell.roles set permissions = permissions || $2::text[]
+        where tenant_id = $1 and key = 'manager'`,
+      [tenantId, retired],
+    );
+    await asAdmin(
+      `update cell.roles set permissions = '{notification_template.manage}'
+        where tenant_id = $1 and key = 'notices'`,
+      [tenantId],
+    );
+
+    const listed = await owner.get('/v1/roles');
+    expect(listed.statusCode).toBe(200);
+    const byKey = Object.fromEntries(
+      (listed.json().items as { id: string; key: string; permissions: string[] }[]).map((role) => [
+        role.key,
+        role,
+      ]),
+    );
+    expect(byKey.manager!.permissions).toContain('user.view');
+    expect(byKey.manager!.permissions).not.toContain('policy.manage');
+    expect(byKey.notices!.permissions).toEqual([]);
+
+    // The role's holder signs in and works; the admin still changes the role.
+    const manager = await web(m);
+    const me = await manager.get('/v1/me');
+    expect(me.statusCode).toBe(200);
+    expect(me.json().permissions).not.toContain('notification_template.manage');
+    expect((await manager.get('/v1/users')).statusCode).toBe(200);
+    expect((await manager.get('/v1/config')).statusCode).toBe(200);
+    const renamed = await owner.patch(`/v1/roles/${byKey.notices!.id}`, {
+      name: { en: 'Notice board', hi: 'सूचना पट' },
+    });
+    expect(renamed.statusCode).toBe(200);
+
+    // The migration's own statement leaves every other permission where it was.
+    const migration = readFileSync(join(__dirname, '../drizzle/0110_retired_access.sql'), 'utf8');
+    await asAdmin(migration.split('--> statement-breakpoint')[0]!);
+    const stored = await asAdmin<{ key: string; permissions: string[] }>(
+      `select key, permissions from cell.roles where tenant_id = $1 order by key`,
+      [tenantId],
+    );
+    for (const role of stored) {
+      expect(role.permissions.filter((p) => retired.includes(p))).toEqual([]);
+    }
+    expect(stored.find((role) => role.key === 'manager')!.permissions).toEqual(
+      byKey.manager!.permissions,
+    );
   });
 });
 

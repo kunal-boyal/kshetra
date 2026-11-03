@@ -1,6 +1,12 @@
 import { checkFields, checkForm, type FormContext } from '@thelamp/forms';
 import { additive, checkMetrics, checkScore, computed } from '@thelamp/metrics';
-import { dashboardLayoutIssues, type ErrorDetail, issueAt } from '@thelamp/shared';
+import {
+  dashboardLayoutIssues,
+  type ErrorDetail,
+  issueAt,
+  RETIRED_PERMISSIONS,
+  RETIRED_REQUEST_TYPES,
+} from '@thelamp/shared';
 import { checkAccountTypes } from './schema/account-types';
 import { checkCatalogue } from './schema/catalogue';
 import { checkImports } from './schema/imports';
@@ -104,9 +110,45 @@ export function checkTemplate(template: Template): ErrorDetail[] {
   ];
 }
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+/**
+ * A file as if what was taken out since it was written weren't in it (decision D137): a role's
+ * retired permissions, and a chain for a retired request type. Anything else is left for the
+ * schema to judge.
+ */
+export function withoutRetired(input: unknown): unknown {
+  if (!isObject(input)) return input;
+  const file = { ...input };
+  if (Array.isArray(file.roles)) {
+    file.roles = file.roles.map((role: unknown) =>
+      isObject(role) && Array.isArray(role.permissions)
+        ? {
+            ...role,
+            permissions: role.permissions.filter(
+              (permission: unknown) => !RETIRED_PERMISSIONS.includes(permission as string),
+            ),
+          }
+        : role,
+    );
+  }
+  if (isObject(file.workflows) && Array.isArray(file.workflows.definitions)) {
+    file.workflows = {
+      ...file.workflows,
+      definitions: file.workflows.definitions.filter(
+        (definition: unknown) =>
+          !isObject(definition) ||
+          !RETIRED_REQUEST_TYPES.includes(definition.requestType as string),
+      ),
+    };
+  }
+  return file;
+}
+
 /** Parses and checks a template, and returns it with defaults filled in, or every issue found. */
 export function validateTemplate(input: unknown): ValidationResult {
-  const parsed = TemplateSchema.safeParse(input);
+  const parsed = TemplateSchema.safeParse(withoutRetired(input));
   if (!parsed.success) {
     return {
       ok: false,

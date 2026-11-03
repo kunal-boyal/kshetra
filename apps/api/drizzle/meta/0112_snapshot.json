@@ -1,6 +1,6 @@
 {
   "id": "8b345abe-35c5-4913-9e43-8455dd84230c",
-  "prevId": "b0ab0f6e-8be2-4594-b313-fc9439e641a1",
+  "prevId": "f7763263-17e9-48dd-a089-3a471008ab57",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -21240,8 +21240,7 @@
         "order",
         "new_account",
         "account_location_change",
-        "journey_plan",
-        "target_lock"
+        "journey_plan"
       ]
     },
     "cell.skip_reason": {

@@ -10,10 +10,15 @@ export const REQUEST_TYPES = [
   'new_account',
   'account_location_change',
   'journey_plan',
-  'target_lock',
 ] as const;
 
 export type RequestType = (typeof REQUEST_TYPES)[number];
+
+/**
+ * Request types taken out because nothing ever made such a request (decision D137). Configuration
+ * files from before may still hold a chain for one, which is read as if it weren't there.
+ */
+export const RETIRED_REQUEST_TYPES: readonly string[] = ['target_lock'];
 
 /** Request types about one account, so a step can route to the user in one of its slots. */
 export const ACCOUNT_REQUEST_TYPES = [
