@@ -127,6 +127,9 @@ export const en = {
   'stepup.intro':
     'This change decides who can sign in as whom. Enter the code your authenticator app shows now.',
   'stepup.continue': 'Continue',
+  'stepup.no_authenticator':
+    'This change needs a code from an authenticator app, and you have none set up. Set one up at Sign-in security first, then make the change again.',
+  'stepup.set_up': 'Set up an authenticator',
   'security.title': 'Sign-in security',
   'security.intro': 'How you sign in to the portal.',
   'security.sms_note':
@@ -534,6 +537,8 @@ export const en = {
   'roles.mobile_only': 'Mobile app only',
   'roles.mobile_only_help': 'People with this role sign in only on the app, never on the web.',
   'roles.built_in': 'Built in',
+  'roles.admin_fixed':
+    'This role always holds every permission, across the whole organisation. Only its name can change.',
   'roles.permission_count': {
     one: '{count} permission',
     other: '{count} permissions',
@@ -633,8 +638,6 @@ export const en = {
   'perm.form.manage': 'Build forms',
   'perm.metric.manage': 'Define metrics',
   'perm.workflow.manage': 'Set approval chains',
-  'perm.policy.manage': 'Set people policies',
-  'perm.notification_template.manage': 'Edit notification messages',
   'perm.module.manage': 'Switch modules on and off',
   'perm.catalogue.manage': 'Manage the catalogue',
   'perm.price_list.manage': 'Manage price lists',
@@ -1249,7 +1252,6 @@ export const en = {
   'approval.type_new_account': 'New {term.account:other:lower}',
   'approval.type_account_location_change': '{term.account} location',
   'approval.type_journey_plan': '{term.journey_plan}',
-  'approval.type_target_lock': '{term.target} lock',
   'import.field_accounts_code': 'Code',
   'import.field_accounts_name': 'Name',
   'import.field_accounts_territory_code': 'Territory code',
@@ -2799,6 +2801,9 @@ export const en = {
   'notify.support_emergency_title': 'Vendor support entered in an emergency',
   'notify.support_emergency_body':
     '{staff} can see your organisation until {ends}, approved by a second vendor admin: {reason}. You can end it in Settings.',
+  'notify.support_second_factor_reset_title': 'Vendor support reset an authenticator',
+  'notify.support_second_factor_reset_body':
+    "{staff} removed {name}'s authenticator and ended their sessions: {reason}. They set up a new one at their next sign-in on the web.",
   'notifications.title': 'Notifications',
   'notifications.today': 'Today',
   'notifications.earlier': 'Earlier',
@@ -3507,6 +3512,8 @@ export const en = {
   'organisation.col_product': 'The product calls it',
   'organisation.field_rules': 'Field rules',
   'organisation.change_rules': 'All rules',
+  'organisation.change_modules': 'Change modules',
+  'organisation.module_off': 'Off',
   'organisation.rule_geofence': 'Geofence',
   'organisation.geofence_value': 'Within {metres} m',
   'organisation.rule_auto': 'Auto-approval',
@@ -3608,6 +3615,20 @@ export const en = {
   'admin.rule_journeyPlanApproval': "{term.journey_plan:other} need their manager's approval",
   'admin.rule_targetUnlockByAdmin': 'Admins may unlock locked {term.target:other:lower}',
   'admin.rule_defaultCreditDays': 'Credit days when an invoice gives none',
+  'admin.rule_ordersNeedOpenShift':
+    'Take {term.order:other:lower} on the app only after {term.punch_in:lower}',
+  'admin.rule_ordersAllowedOffline':
+    'Let the app take {term.order:other:lower} offline, sent with the next sync',
+  'admin.buckets_help':
+    'The bands of days past due that each balance is aged into, earliest first. Only the last band has no end.',
+  'admin.buckets_issue':
+    'Each band must start after the one before it ends, and only the last band may have no end.',
+  'admin.bucket_n': 'Band {n}',
+  'admin.bucket_from': 'From day',
+  'admin.bucket_to': 'To day',
+  'admin.bucket_to_help': 'Leave empty for no end, on the last band only.',
+  'admin.bucket_add': 'Add a band',
+  'admin.bucket_remove': 'Remove band {n}',
   'admin.rule_countTolerancePct': 'A count is flagged past this difference (%)',
   'admin.rule_collectionCashLimit':
     'Cash from one {term.account:lower} in a day must stay under (₹)',
@@ -3627,7 +3648,10 @@ export const en = {
   'admin.terminology_intro':
     "Your organisation's own words. The apps use them everywhere, on the web at once and on phones at their next sync.",
   'admin.terminology_empty':
-    "Leave a term empty to keep the product's word, shown faintly in each box.",
+    "Leave a term empty to keep the product's word, shown faintly in each box. Hindi left empty takes the English.",
+  'admin.term_incomplete': "Fill this in too, or clear the term to keep the product's word.",
+  'admin.terms_incomplete':
+    "Some terms are only partly filled in. Finish them, or clear them to keep the product's words. Nothing was saved.",
   'admin.term_account': '{term.account:other}',
   'admin.term_field_user': '{term.field_user:other}',
   'admin.term_activity': '{term.activity:other}',
@@ -4311,7 +4335,6 @@ export const en = {
   'chains.type_new_account': 'New {term.account:other:lower}',
   'chains.type_account_location_change': '{term.account} locations',
   'chains.type_journey_plan': '{term.journey_plan:other}',
-  'chains.type_target_lock': 'Locking {term.target:other:lower}',
   'chains.none': 'No chain: requests go to the requester’s manager.',
   'chains.version': 'Version {version}, saved {when}',
   'chains.version_by': 'Version {version}, saved {when} by {name}',
@@ -4480,6 +4503,14 @@ export const en = {
   'console.suspend_question': 'Suspend {name}? Nobody there can sign in until it is reactivated.',
   'console.suspend_reason': 'Why',
   'console.reactivate': 'Reactivate',
+  'console.reactivate_trial_ends': 'New trial ends on',
+  'console.reactivate_needs':
+    'It has no subscription and its trial has ended. Give a new trial end to reopen it on trial, or start a subscription under Billing, which reopens it.',
+  'console.active_billed_note':
+    'An active tenant is billed from the start, so it needs its plan, its subscription and its billing details. To bill it later, open it on trial.',
+  'console.trial_only_note':
+    'Opening a tenant active starts its subscription, which needs billing access, so it opens on trial.',
+  'console.error_reason': '{reason}',
   'console.tenant_name': 'Organisation name',
   'console.slug_help': 'Lowercase letters, digits and hyphens; it never changes',
   'console.opens_as': 'Opens as',
@@ -4523,7 +4554,7 @@ export const en = {
   'console.password_changed': 'Your password is changed, and your other sessions have ended.',
   'console.disable_question': 'Disable {name}?',
   'console.disable_note':
-    'They are signed out at once and can never sign in again. Invite them afresh if needed.',
+    'They are signed out at once and can’t sign in again. Inviting them afresh, with the same email, sends a new setup link.',
   'console.plans': 'Plans',
   'console.new_plan': 'New plan',
   'console.col_plan': 'Plan',
@@ -5053,7 +5084,7 @@ export const en = {
   'console.hours_minutes': '{hours} h {minutes} min',
   'console.second_factor_reset': 'Reset an authenticator',
   'console.second_factor_intro':
-    'For someone who has lost their authenticator and their recovery codes, when no other admin can reset it. Confirm who is calling first.',
+    'For someone who has lost their authenticator and their recovery codes, when no other admin can reset it. Confirm who is calling first. The organisation’s admins are told, and it shows in its audit log.',
   'console.member_phone': 'Their mobile number',
   'console.second_factor_reason': 'How you confirmed it is them',
   'console.second_factor_removed':
@@ -5112,7 +5143,9 @@ export const en = {
   'sso.enabled_help': 'People in these domains can choose Sign in with SSO',
   'sso.enforced': 'Required',
   'sso.enforced_help':
-    'People in these domains can’t sign in to the portal with a code; phones still can',
+    'People in these domains, once a domain is proved, can’t sign in to the portal with a code; phones still can',
+  'sso.enforced_unproved':
+    'Prove one of these domains is yours first, under Prove your domains; until then single sign-on can’t be required.',
   'sso.save': 'Save single sign-on',
   'sso.saved': 'Saved',
   'common.copy': 'Copy',

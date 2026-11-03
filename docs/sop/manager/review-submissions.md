@@ -39,7 +39,7 @@ Every form your team fills in the field (an activity, in the tenant's words) wai
 1. Choose the **Waiting** chip, and narrow with **More filters** if you want only some forms or dates: the filters apply.
 2. Choose **Approve … clean**. It asks **Approve … waiting submissions without flags?** and says only those without flags are approved.
 3. Choose **Approve … clean** again to go ahead, or **Cancel**.
-4. The page says **… approved.** and **… left for a closer look.**: flagged ones, your own, ones already decided, and ones outside your scope.
+4. The page says **… approved.** and **… left for a closer look.**: flagged ones, those from a phone that failed its integrity check (**Phone failed its integrity check**), your own, ones already decided, and ones outside your scope.
 
 At most 100 are approved in one go (`BULK_REVIEW_MAX`); choose it again for the rest.
 
@@ -69,7 +69,7 @@ A submission waiting for automatic approval says **Approves itself … unless yo
 - Nobody reviews their own work, and rejecting or changing a decision needs a note of at least 3 characters (`reviewRefusal()`, spec M7).
 - Flags are set when the submission arrives (BR-32, BR-33, BR-50): **Outside the geofence**, **Photo from the gallery**, **Repeated photo**, **Phone clock was off**, **Photo taken far away**, **Travelled too fast**, **Many places in minutes**, **Off shift** and **Fake location used**. A flag never stops a record being made; it makes it wait for a person. Your admin may switch the last five checks off in Settings › **Rules** › **Evidence checks**.
 - **Why it was flagged** explains each anomaly flag (BR-50, `anomalyFlags()`), for example how far a photo was taken from the form, or how fast the person would have travelled between two records.
-- **Phone failed its integrity check** marks a phone whose integrity verdict is not genuine (`integrityWarning()`).
+- **Phone failed its integrity check** marks a phone whose integrity verdict is not genuine (`integrityWarning()`). Approving the clean ones together leaves these for a person, as it does flagged ones; you may still approve one after looking at it.
 - Automatic approval runs every 15 minutes. It approves only a waiting submission of a form set to **Approved by the rules**, once its wait is over, with no flags, not outside the geofence and from a phone without an integrity warning (`autoApprovable()`). One that no longer qualifies waits for a person.
 - Approving a submission made in a planned visit completes that planned visit; rejecting it returns the visit to planned, or to missed once its day has ended (BR-35).
 

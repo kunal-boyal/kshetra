@@ -1,7 +1,12 @@
-import type { ApiError } from '@thelamp/api-client';
+import { type ApiError, noAuthenticator } from '@thelamp/api-client';
+import { AuthenticatorStatus } from '@thelamp/shared';
 import { Button, TextField } from '@thelamp/ui-web';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
+import { useApp } from './context';
 import { errorMessage, useLanguage } from './i18n';
+import { read } from './people/data';
 
 type Asker = (wrong: ApiError | null) => Promise<string | null>;
 
@@ -18,9 +23,11 @@ export function askForStepUp(wrong: ApiError | null): Promise<string | null> {
 /**
  * Asks for a fresh code from the person's authenticator when a change needs one: a phone or
  * email, someone's authenticator, single sign-on. The change goes ahead once the code checks
- * out; cancelling leaves it undone.
+ * out; cancelling leaves it undone. Someone with no authenticator is sent to set one up at
+ * Sign-in security first, rather than asked for a code they can't have.
  */
 export function StepUpPrompt() {
+  const { client } = useApp();
   const { t } = useLanguage();
   const [pending, setPending] = useState<{
     wrong: ApiError | null;
@@ -29,6 +36,12 @@ export function StepUpPrompt() {
   const [code, setCode] = useState('');
   const field = useRef<HTMLDivElement>(null);
   const title = useId();
+  const status = useQuery({
+    queryKey: ['authenticator'],
+    queryFn: () => read(client, '/auth/v1/authenticator', AuthenticatorStatus),
+    enabled: pending !== undefined,
+  });
+  const unset = noAuthenticator(pending?.wrong) || status.data?.enrolled === false;
 
   useEffect(() => {
     asker = (wrong) =>
@@ -46,7 +59,7 @@ export function StepUpPrompt() {
       field.current?.scrollIntoView?.({ block: 'nearest' });
       field.current?.querySelector('input')?.focus();
     }
-  }, [pending]);
+  }, [pending, unset]);
 
   if (!pending) return null;
   const answer = (value: string | null) => {
@@ -69,26 +82,40 @@ export function StepUpPrompt() {
         <h2 id={title} className="heading-md">
           {t('stepup.title')}
         </h2>
-        <p className="ks-muted">{t('stepup.intro')}</p>
-        <div ref={field}>
-          <TextField
-            label={t('signin.totp_label')}
-            error={pending.wrong ? errorMessage(pending.wrong, t) : undefined}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            numeric
-            value={code}
-            onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
-            required
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" variant="primary" disabled={code.length !== 6}>
-            {t('stepup.continue')}
-          </Button>
-          <Button onClick={() => answer(null)}>{t('common.cancel')}</Button>
-        </div>
+        {unset ? (
+          <>
+            <p role="alert">{t('stepup.no_authenticator')}</p>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/security" className="ks-btn primary" onClick={() => answer(null)}>
+                {t('stepup.set_up')}
+              </Link>
+              <Button onClick={() => answer(null)}>{t('common.cancel')}</Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="ks-muted">{t('stepup.intro')}</p>
+            <div ref={field}>
+              <TextField
+                label={t('signin.totp_label')}
+                error={pending.wrong ? errorMessage(pending.wrong, t) : undefined}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                numeric
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+                required
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" variant="primary" disabled={code.length !== 6}>
+                {t('stepup.continue')}
+              </Button>
+              <Button onClick={() => answer(null)}>{t('common.cancel')}</Button>
+            </div>
+          </>
+        )}
       </form>
     </div>
   );

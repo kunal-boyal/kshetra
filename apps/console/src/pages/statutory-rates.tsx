@@ -13,6 +13,7 @@ import { ArrowLeft } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useConsole } from '../context';
 import { useConsoleMutations, useStatutoryRates } from '../data';
+import { UnshownErrors } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 import { holds } from './shared';
 
@@ -123,6 +124,7 @@ function ReviewForm({ rates }: { rates: StatutoryRatesResult }) {
         <p className="ks-muted text-sm">
           {t('console.statutory_review_help', { version: rates.rulesVersion })}
         </p>
+        <UnshownErrors errors={errors} shown={['reviewer', 'reviewedOn']} />
         <div className="grid gap-3 md:grid-cols-3">
           <SelectField
             label={t('console.statutory_review_set')}
@@ -221,6 +223,7 @@ function AddSetForm({ rates }: { rates: StatutoryRatesResult }) {
       >
         <h2 className="heading-md">{t('console.statutory_add')}</h2>
         <p className="ks-muted text-sm">{t('console.statutory_add_help')}</p>
+        <UnshownErrors errors={fieldErrors(addStatutoryRateSet.error)} shown={[]} named />
         <TextAreaField
           label={t('console.statutory_json')}
           rows={14}

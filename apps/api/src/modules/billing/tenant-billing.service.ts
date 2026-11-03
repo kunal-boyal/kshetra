@@ -165,21 +165,13 @@ export class TenantBillingService {
     if (tenant.status === 'terminated') {
       throw new AppError('CONFLICT', 'A terminated tenant can’t subscribe.');
     }
-    const [plan] = await this.database.db.select().from(plans).where(eq(plans.id, body.planId));
-    if (!plan) throw new AppError('NOT_FOUND', 'There is no such plan.');
-    if (!plan.active && plan.id !== tenant.planId) {
-      throw new AppError('VALIDATION', 'Check the highlighted fields.', [
-        { path: 'planId', issue: 'This plan is switched off' },
-      ]);
-    }
+    const { plan, startsOn } = await this.checkSubscription(
+      body,
+      tenant.planId,
+      (path) => path,
+      now,
+    );
     const today = todayIn(BILLING_TIME_ZONE, now);
-    const startsOn = body.startsOn ?? today;
-    if (startsOn < addDays(today, -31) || startsOn > addDays(today, 31)) {
-      throw new AppError('VALIDATION', 'Check the highlighted fields.', [
-        { path: 'startsOn', issue: 'Start within a month of today' },
-      ]);
-    }
-    await this.settings.forInvoicing();
     const [account] = await this.database.db
       .select({ tenantId: billingAccounts.tenantId })
       .from(billingAccounts)
@@ -257,6 +249,35 @@ export class TenantBillingService {
       await this.invoices.chargeDue(tenantId, now);
     }
     return this.overview(tenantId, now);
+  }
+
+  /**
+   * What a subscription needs before anything is written: a plan on sale (or the tenant's own),
+   * a start within a month of today, and the vendor's invoicing settings ready. A tenant created
+   * active is checked here before it is made (decision D134); `at` names its fields.
+   */
+  async checkSubscription(
+    body: SubscriptionBody,
+    tenantPlanId: string | null,
+    at: (path: string) => string,
+    now = new Date(),
+  ): Promise<{ plan: Plan; startsOn: string }> {
+    const [plan] = await this.database.db.select().from(plans).where(eq(plans.id, body.planId));
+    if (!plan) throw new AppError('NOT_FOUND', 'There is no such plan.');
+    if (!plan.active && plan.id !== tenantPlanId) {
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+        { path: at('planId'), issue: 'This plan is switched off' },
+      ]);
+    }
+    const today = todayIn(BILLING_TIME_ZONE, now);
+    const startsOn = body.startsOn ?? today;
+    if (startsOn < addDays(today, -31) || startsOn > addDays(today, 31)) {
+      throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+        { path: at('startsOn'), issue: 'Start within a month of today' },
+      ]);
+    }
+    await this.settings.forInvoicing();
+    return { plan, startsOn };
   }
 
   /**

@@ -18,7 +18,9 @@ import {
   whatsappConsents,
 } from '../../db/schema/notifications';
 import { Database, type TenantTx } from '../../platform/database';
+import { PhoneSessions } from '../../platform/planes';
 import { CONFIG } from '../../platform/tokens';
+import { DevicesService } from '../iam/devices.service';
 import { People } from '../iam/people';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { NotificationsService } from './notifications.service';
@@ -66,6 +68,8 @@ export class NotificationDelivery {
     private readonly sms: SmsSender,
     private readonly email: EmailSender,
     private readonly whatsapp: WhatsAppSender,
+    private readonly devices: DevicesService,
+    private readonly phones: PhoneSessions,
     @Inject(CONFIG) private readonly cell: Config,
   ) {}
 
@@ -175,10 +179,22 @@ export class NotificationDelivery {
   ): Promise<Outcome | { transient: string }> {
     const skipped: Outcome = { status: 'skipped', address: null, result: null, deadTokens: [] };
     if (channel === 'push') {
-      const tokens = await tx
-        .select({ token: pushTokens.token, locale: pushTokens.locale })
+      const registered = await tx
+        .select({
+          token: pushTokens.token,
+          locale: pushTokens.locale,
+          deviceId: pushTokens.deviceId,
+        })
         .from(pushTokens)
         .where(and(eq(pushTokens.tenantId, tenantId), eq(pushTokens.userId, notification.userId)));
+      // Only a phone still bound and signed in hears push: never one reset or signed out (M16).
+      const ids = registered.map((row) => row.deviceId);
+      const bound = await this.devices.bound(tx, tenantId, ids);
+      const signedIn = await this.phones.signedIn(
+        tenantId,
+        ids.filter((id) => bound.has(id)),
+      );
+      const tokens = registered.filter((row) => signedIn.has(row.deviceId));
       if (tokens.length === 0) return skipped;
       const messages = [];
       for (const token of tokens) {

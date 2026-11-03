@@ -9,8 +9,8 @@ import {
   LOGO_MAX_BYTES,
   LOGO_TYPES,
   MODULE_KEYS,
+  type ModuleKey,
   nearestPassingShade,
-  type SwitchableModule,
   TERMINOLOGY_KEYS,
   type TerminologyKey,
   type UpdateSettingsBody,
@@ -23,7 +23,6 @@ import {
   Notice,
   SelectField,
   StatusBadge,
-  SwitchRow,
   TextAreaField,
   TextField,
 } from '@thelamp/ui-web';
@@ -36,7 +35,6 @@ import { useAccess } from '../people/data';
 import { fieldErrors, PageHeader, Section } from '../people/shared';
 import { useAdmin, useOrganisation } from './data';
 import { timeZones } from './rules-page';
-import { MODULE_OFF_NOTES } from './modules-page';
 
 /** What a change came to: saved, refused by the API, or stopped here with our own words. */
 type Said =
@@ -66,7 +64,6 @@ interface Draft {
   /** Empty for the product's own colour. */
   brandColour: string;
   timezone: string;
-  modulesOff: SwitchableModule[];
 }
 
 const TERMS = Object.keys(TERMINOLOGY_KEYS) as TerminologyKey[];
@@ -75,12 +72,12 @@ const TERMS = Object.keys(TERMINOLOGY_KEYS) as TerminologyKey[];
  * The organisation (M2, spec 5.1), as the prototype's settings page draws it (decision D104): the
  * brand and its words on the left, the modules and the field rules on the right, one Save under
  * both. The logo goes up when chosen; everything else waits for Save, which sends only what
- * changed.
+ * changed. Modules are only shown here: Settings › Modules is the one place to switch them
+ * (decision D135).
  */
 export function OrganisationPage() {
   const { client, queryClient } = useApp();
   const { t } = useLanguage();
-  const access = useAccess();
   const config = useConfig(client, queryClient);
   const organisation = useOrganisation();
   const admin = useAdmin();
@@ -98,7 +95,6 @@ export function OrganisationPage() {
     privacyPolicyUrl: settings.privacyPolicyUrl ?? '',
     brandColour: settings.brandColour ?? '',
     timezone: settings.timezone,
-    modulesOff: settings.modulesOff,
   };
   const value = draft ?? saved;
   const set = (change: Partial<Draft>) => {
@@ -119,7 +115,6 @@ export function OrganisationPage() {
     }
     if (value.brandColour !== saved.brandColour) body.brandColour = value.brandColour || null;
     if (value.timezone !== saved.timezone) body.timezone = value.timezone;
-    if (value.modulesOff.join() !== saved.modulesOff.join()) body.modulesOff = value.modulesOff;
     return body as UpdateSettingsBody;
   }
   const renamed = value.name.trim() !== saved.name;
@@ -209,42 +204,7 @@ export function OrganisationPage() {
           <Words terms={bundle.terminology} />
         </div>
         <div className="flex min-w-0 flex-[2_1_20rem] flex-col gap-4">
-          <Section title={t('admin.modules')}>
-            <div className="flex flex-col">
-              {MODULE_KEYS.map((key) =>
-                key === 'core' || !AVAILABLE_MODULES.includes(key) ? (
-                  <div key={key} className="ks-switch-row">
-                    <span className="ks-switch-text">
-                      <span className="ks-title">{t(`admin.module_${key}`)}</span>
-                      <span className="ks-meta">{t(`admin.module_${key}_about`)}</span>
-                    </span>
-                    <StatusBadge variant={key === 'core' ? 'info' : 'neutral'}>
-                      {t(key === 'core' ? 'admin.module_always_on' : 'admin.module_coming')}
-                    </StatusBadge>
-                  </div>
-                ) : (
-                  <SwitchRow
-                    key={key}
-                    label={t(`admin.module_${key}`)}
-                    description={
-                      value.modulesOff.includes(key) && MODULE_OFF_NOTES[key]
-                        ? `${t(`admin.module_${key}_about`)} ${t(MODULE_OFF_NOTES[key])}`
-                        : t(`admin.module_${key}_about`)
-                    }
-                    checked={!value.modulesOff.includes(key)}
-                    disabled={!access.can('module.manage')}
-                    onChange={(on) =>
-                      set({
-                        modulesOff: on
-                          ? value.modulesOff.filter((entry) => entry !== key)
-                          : [...value.modulesOff, key],
-                      })
-                    }
-                  />
-                ),
-              )}
-            </div>
-          </Section>
+          <ModulesInUse modulesOff={settings.modulesOff} />
           <FieldRules />
         </div>
       </div>
@@ -467,6 +427,50 @@ function Words({
           </tbody>
         </table>
       </div>
+    </Section>
+  );
+}
+
+/**
+ * Which modules are on, with a way to the Modules page, the one place to switch them (decision
+ * D135): it alone knows the plan and switches opt-in modules on.
+ */
+function ModulesInUse({ modulesOff }: { modulesOff: readonly ModuleKey[] }) {
+  const { t } = useLanguage();
+  const access = useAccess();
+  const status = (key: ModuleKey) =>
+    key === 'core'
+      ? { variant: 'info' as const, text: t('admin.module_always_on') }
+      : modulesOff.includes(key)
+        ? { variant: 'neutral' as const, text: t('organisation.module_off') }
+        : { variant: 'success' as const, text: t('admin.module_on') };
+  return (
+    <Section
+      title={t('admin.modules')}
+      actions={
+        access.can('module.manage') || access.can('settings.manage') ? (
+          <Link to="/settings/modules" className="ks-btn ghost sm">
+            {t('organisation.change_modules')}
+          </Link>
+        ) : null
+      }
+    >
+      <ul className="flex flex-col" aria-label={t('admin.modules')}>
+        {MODULE_KEYS.filter((key) => key === 'core' || AVAILABLE_MODULES.includes(key)).map(
+          (key) => {
+            const { variant, text } = status(key);
+            return (
+              <li key={key} className="ks-switch-row">
+                <span className="ks-switch-text">
+                  <span className="ks-title">{t(`admin.module_${key}`)}</span>
+                  <span className="ks-meta">{t(`admin.module_${key}_about`)}</span>
+                </span>
+                <StatusBadge variant={variant}>{text}</StatusBadge>
+              </li>
+            );
+          },
+        )}
+      </ul>
     </Section>
   );
 }

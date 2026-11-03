@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "fmcg",
-  "version": 9,
+  "version": 10,
   "name": {
     "en": "FMCG and consumer goods",
     "hi": "एफ़एमसीजी और उपभोक्ता सामान"
@@ -88,8 +88,6 @@
         "form.manage",
         "metric.manage",
         "workflow.manage",
-        "policy.manage",
-        "notification_template.manage",
         "module.manage",
         "catalogue.manage",
         "price_list.manage",
@@ -180,8 +178,6 @@
         "form.manage",
         "metric.manage",
         "workflow.manage",
-        "policy.manage",
-        "notification_template.manage",
         "module.manage",
         "catalogue.manage",
         "price_list.manage",

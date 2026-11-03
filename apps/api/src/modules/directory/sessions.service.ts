@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   AppError,
   type DeviceInfo,
@@ -14,22 +14,24 @@ import {
   type SignedIn,
   type TenantSummary,
 } from '@thelamp/shared';
-import { and, desc, eq, gt, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, gt, isNotNull, isNull, ne } from 'drizzle-orm';
 import {
   identities,
   memberships,
   refreshTokens,
   ssoConnections,
+  ssoDomains,
   supportGrants,
   totpSecrets,
 } from '../../db/schema/directory';
 import { EndedSessions } from '../../platform/ended-sessions';
-import { CellAdmission, PeopleEmails, TenantModules } from '../../platform/planes';
+import { CellAdmission, PeopleEmails, SignedOutPhones, TenantModules } from '../../platform/planes';
 import { RedisClient } from '../../platform/redis';
 import { currentRequest } from '../../platform/request-context';
 import { SecurityLog } from '../../platform/security-log';
 import { DirectoryDatabase, type DirectoryDb, type DirectoryTx } from './directory.database';
 import { activeMemberships, type MembershipRow } from './memberships';
+import { DirectoryPhoneSessions } from './phone-sessions';
 import { digest, newSecret } from './secrets';
 import { grantOpen, type SupportGrantRow, supportGrantRows } from './support-grants';
 import { SigningKey } from './signing-key';
@@ -77,6 +79,8 @@ type Claimed = { overlap: boolean } & (
  */
 @Injectable()
 export class SessionsService {
+  private readonly logger = new Logger(SessionsService.name);
+
   constructor(
     private readonly database: DirectoryDatabase,
     private readonly keys: SigningKey,
@@ -86,6 +90,8 @@ export class SessionsService {
     private readonly modules: TenantModules,
     private readonly security: SecurityLog,
     private readonly ended: EndedSessions,
+    private readonly phones: DirectoryPhoneSessions,
+    private readonly signedOut: SignedOutPhones,
   ) {}
 
   /**
@@ -214,12 +220,37 @@ export class SessionsService {
   }
 
   private async endFamily(db: DirectoryDb | DirectoryTx, familyId: string): Promise<void> {
-    await db
+    const endedAt = new Date();
+    const ended = await db
       .update(refreshTokens)
-      .set({ revokedAt: new Date() })
-      .where(and(eq(refreshTokens.familyId, familyId), isNull(refreshTokens.revokedAt)));
+      .set({ revokedAt: endedAt })
+      .where(and(eq(refreshTokens.familyId, familyId), isNull(refreshTokens.revokedAt)))
+      .returning({ deviceId: refreshTokens.deviceId, membershipId: refreshTokens.membershipId });
     // Its access tokens are refused too, once the ending commits (decision D101).
     this.database.whenCommitted(db as DirectoryTx, () => void this.ended.end([familyId]));
+    // A phone signed out hears no more push (M16), unless it is signed in again already.
+    const phone = ended.find((row) => row.deviceId && row.membershipId);
+    if (phone) {
+      this.database.whenCommitted(
+        db as DirectoryTx,
+        () => void this.forgetPhone(phone.membershipId!, phone.deviceId!, endedAt),
+      );
+    }
+  }
+
+  /** Tells the cell a phone's session ended, so its push address goes; failing, push skips it. */
+  private async forgetPhone(membershipId: string, deviceId: string, endedAt: Date): Promise<void> {
+    try {
+      const [row] = await this.database.db
+        .select({ tenantId: memberships.tenantId })
+        .from(memberships)
+        .where(eq(memberships.id, membershipId));
+      if (!row) return;
+      if ((await this.phones.signedIn(row.tenantId, [deviceId])).has(deviceId)) return;
+      await this.signedOut.forget(row.tenantId, [deviceId], endedAt);
+    } catch (error) {
+      this.logger.warn(`Forgetting a signed-out phone's push address failed: ${String(error)}`);
+    }
   }
 
   /** The member behind a tenant's user, whose own sessions these are. */
@@ -394,20 +425,32 @@ export class SessionsService {
 
   /**
    * A tenant that requires single sign-on refuses web OTP to its people in the connection's
-   * domains (decision D91); phones, and people outside those domains, carry on. While the SSO
-   * module is closed, by the plan or the tenant's admin, nobody can sign in through it, so nobody
-   * is refused for it (decision D125).
+   * proved domains (decision D91); phones, and people outside those domains, carry on. A domain
+   * not yet proved signs nobody in through SSO (D101), so nobody in it is refused either. While
+   * the SSO module is closed, by the plan or the tenant's admin, nobody can sign in through it, so
+   * nobody is refused for it (decision D125).
    */
   private async refuseWhereSsoRequired(row: MembershipRow): Promise<void> {
     const [connection] = await this.database.db
-      .select({ enforced: ssoConnections.enforced, domains: ssoConnections.domains })
+      .select({ enforced: ssoConnections.enforced })
       .from(ssoConnections)
       .where(and(eq(ssoConnections.tenantId, row.tenantId), eq(ssoConnections.enabled, true)));
     if (!connection?.enforced) return;
     if ((await this.modules.off(row.tenantId)).includes('sso')) return;
     const email = await this.emails.emailOf(row.tenantId, row.userId);
     const domain = email?.split('@')[1]?.toLowerCase();
-    if (domain && connection.domains.includes(domain)) {
+    if (!domain) return;
+    const [proved] = await this.database.db
+      .select({ domain: ssoDomains.domain })
+      .from(ssoDomains)
+      .where(
+        and(
+          eq(ssoDomains.tenantId, row.tenantId),
+          eq(ssoDomains.domain, domain),
+          isNotNull(ssoDomains.verifiedAt),
+        ),
+      );
+    if (proved) {
       throw new AppError(
         'SSO_REQUIRED',
         'Your organisation signs you in with its own sign-in. Choose Sign in with SSO.',

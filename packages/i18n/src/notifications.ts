@@ -102,6 +102,12 @@ export function notificationMessage(
         body: 'notify.support_emergency_body',
         params,
       };
+    case 'support.second_factor_reset':
+      return {
+        title: 'notify.support_second_factor_reset_title',
+        body: 'notify.support_second_factor_reset_body',
+        params,
+      };
     case 'plan.today':
       return { title: 'notify.plan_today_title', body: 'notify.plan_today_body', params };
     case 'approval.waiting':

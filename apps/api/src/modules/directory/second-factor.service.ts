@@ -285,9 +285,11 @@ export class SecondFactorService extends SecondFactors {
         .where(eq(totpSecrets.identityId, identityId))
         .for('update');
       if (!row?.enabledAt) {
+        // The detail lets the web's prompt send the person to set one up, not ask again.
         throw new AppError(
           'CONFLICT',
           'Set up an authenticator at Sign-in security first; this change needs a code from it.',
+          [{ path: 'authenticator', issue: 'No authenticator is set up' }],
         );
       }
       const step = matchTotp(

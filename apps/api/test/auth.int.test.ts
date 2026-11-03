@@ -262,8 +262,10 @@ describe('one organisation a person (D103)', () => {
       tenantId: lambda,
       userId: joined.id,
     });
+    // The whole reason is the message too, which the portal shows where there is no field.
     await expect(setStatus(kappa!, person.userIds[0]!, 'active')).rejects.toMatchObject({
       code: 'CONFLICT',
+      message: NUMBER_IN_USE,
       details: [{ path: 'phone', issue: NUMBER_IN_USE }],
     });
   });

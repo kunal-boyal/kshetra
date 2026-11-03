@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "generic",
-  "version": 11,
+  "version": 12,
   "name": { "en": "Generic", "hi": "सामान्य" },
   "description": {
     "en": "A starting point for any field team: customers, visit and meeting forms, and metrics for visits, coverage and order value.",
@@ -51,8 +51,6 @@
         "form.manage",
         "metric.manage",
         "workflow.manage",
-        "policy.manage",
-        "notification_template.manage",
         "module.manage",
         "catalogue.manage",
         "price_list.manage",
@@ -140,8 +138,6 @@
         "form.manage",
         "metric.manage",
         "workflow.manage",
-        "policy.manage",
-        "notification_template.manage",
         "module.manage",
         "catalogue.manage",
         "price_list.manage",

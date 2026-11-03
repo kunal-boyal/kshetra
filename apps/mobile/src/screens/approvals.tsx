@@ -31,7 +31,6 @@ export const TYPE_BADGE: Record<RequestType, BadgeVariant> = {
   new_account: 'info',
   account_location_change: 'info',
   journey_plan: 'neutral',
-  target_lock: 'neutral',
 };
 
 const ALL = 'all';

@@ -23,10 +23,16 @@ Everyone's session ends on their next request, on the web and on phones. Phones 
 
 ## Reactivate
 
-1. On a suspended tenant's page, in **Tenant tools**, select **Reactivate**. It acts at once, without asking.
-2. The tenant opens on Trial if its trial hasn't ended, otherwise as Active.
+Every open tenant is on trial or billed (decision D134), so a tenant opens again only when one of these holds:
 
-If the tenant was suspended because its trial ended or its subscription ended, start its subscription instead of reactivating ([Bill a tenant](billing-and-invoices.md)): subscribing opens it and bills it. A tenant reactivated without a subscription stays open and is never billed.
+- It has a subscription that is still running (for example, billing suspended it for an unpaid invoice, or you suspended it yourself). It opens as Active.
+- Its trial hasn't ended. It opens on Trial.
+- It is a demo tenant. It opens as before.
+
+1. On a suspended tenant's page, in **Tenant tools**, select **Reactivate**. It acts at once, without asking.
+2. If the tenant has neither a running subscription nor a trial left (its trial or its subscription ended), the card says "It has no subscription and its trial has ended. Give a new trial end to reopen it on trial, or start a subscription under Billing, which reopens it." Then either:
+   - enter **New trial ends on** (a day after today, within 90 days) and select **Reactivate**: it opens on Trial until the end of that day, India time, and is suspended again if no subscription starts by then; or
+   - start its subscription in its **Billing** card ([Bill a tenant](billing-and-invoices.md)), which needs `platform.billing.manage`: subscribing opens it as Active and bills it.
 
 ## Terminate
 
@@ -47,7 +53,7 @@ The archive is signed by the tenant's cell. The customer can check it with the c
 
 1. Before the deletion date, select **Undo termination** on the **Termination** card.
 2. The console asks "Undo the termination of {name}? It is suspended again, and nothing is deleted." Select **Undo termination** again.
-3. The tenant is Suspended again. **Reactivate** opens it, or start its subscription.
+3. The tenant is Suspended again. **Reactivate** opens it as above, or start its subscription.
 
 ## After 30 days
 
@@ -56,7 +62,7 @@ A job on the tenant's cell deletes everything the tenant holds there, its audit 
 ## What the system checks
 
 - Only a suspended tenant can be terminated, and only with its slug typed exactly.
-- A terminated tenant can't be suspended or subscribe; only a suspended one can be reactivated.
+- A terminated tenant can't be suspended or subscribe; only a suspended one can be reactivated, and only on trial or billed (decision D134). A new trial end is refused for a tenant with a running subscription and for a demo tenant.
 - Undo works only before the data is deleted.
 - Suspending, reactivating, terminating, undoing and the deletion (with a count of what went) are recorded in the platform audit; each export asked for and each link copied is recorded in the tenant's own audit log.
 
@@ -64,7 +70,13 @@ A job on the tenant's cell deletes everything the tenant holds there, its audit 
 
 | What you see | What it means | What to do |
 |---|---|---|
-| This changed somewhere else. Refresh and try again. | One of: the tenant isn't suspended; it isn't terminated (on undo); its data is already deleted; or the tenant lives on another cell, whose own console prepares its exports | Refresh the page. For another cell, use that cell's console |
+| Under **New trial ends on**: "Choose a day after today, within 90 days" | The day is today or earlier, or more than 90 days away | Choose another day |
+| Under **New trial ends on**: "It has no subscription and its trial has ended: give a new trial end, or start a subscription" | Its subscription ended or was cancelled while the page was open | Give a new trial end, or start a subscription |
+| "It has a subscription, so it opens without a trial" | A subscription started while the page was open | Refresh the page and select **Reactivate** without a trial end |
+| Only a suspended tenant can be reactivated. | It was reactivated meanwhile | Refresh the page |
+| Suspend the tenant before terminating it. | The tenant isn't suspended | Suspend it first |
+| The tenant is not terminated. / The tenant’s data is deleted already. | On undo: it isn't terminated, or it is too late | Refresh the page |
+| The tenant lives on cell {cell}; use that cell's console for its exports. | The tenant lives on another cell, whose own console prepares its exports | Use that cell's console |
 | **Terminate** stays greyed out | **Why** is shorter than 3 characters, or the slug doesn't match | Fill both; type the slug exactly |
 | The export shows Failed | Preparing the archive failed | Select **Prepare another export**; if it fails again, check the `exports` queue on [Health](cell-health.md) |
 | You don't see **Tenant tools** or **Termination** | Your role can't manage tenants | Ask Implementation or a platform admin |

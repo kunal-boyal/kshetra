@@ -24,6 +24,7 @@ import {
 import { type FormEvent, useState } from 'react';
 import { useConsole } from '../context';
 import { useAnnouncements, useConsoleMutations, useTenants } from '../data';
+import { UnshownErrors } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 import { holds, VIEWER_TIME_ZONE } from './shared';
 
@@ -211,6 +212,19 @@ function AnnounceForm() {
     <Card>
       <form className="flex max-w-2xl flex-col gap-4" onSubmit={send} noValidate>
         <h2 className="heading-md">{t('console.announce_title')}</h2>
+        <UnshownErrors
+          errors={errors}
+          shown={[
+            'title.en',
+            'title.hi',
+            'body.en',
+            'body.hi',
+            'surfaces',
+            ...(audience === 'some' ? ['tenantIds'] : []),
+            'startsAt',
+            'endsAt',
+          ]}
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField
             label={t('console.announce_title_en')}

@@ -1,5 +1,5 @@
 import { emailMessage, formatDate, formatMoney } from '@thelamp/i18n';
-import type { ConsoleTenant, TenantBillingResult } from '@thelamp/shared';
+import type { BillingAccountBody, ConsoleTenant, TenantBillingResult } from '@thelamp/shared';
 import {
   Button,
   Card,
@@ -10,6 +10,7 @@ import {
   TextField,
 } from '@thelamp/ui-web';
 import { type FormEvent, type ReactNode, useState } from 'react';
+import type { z } from 'zod';
 import { useConsole } from '../context';
 import { useConsoleMutations, usePlans, useTenantBilling } from '../data';
 import { EmailField } from '../fields';
@@ -135,6 +136,122 @@ function AccountSection({ tenant, billing }: { tenant: ConsoleTenant; billing: B
   );
 }
 
+/** A tenant's details as a buyer, as the billing details form holds them. */
+export type AccountDraft = {
+  legalName: string;
+  gstin: string;
+  address: string;
+  stateCode: string;
+  email: string;
+  language: 'en' | 'hi';
+};
+
+/** The form's starting values: the saved details, or the tenant's name in Maharashtra. */
+export function accountDraft(name: string, account?: Billing['account']): AccountDraft {
+  return {
+    legalName: account?.legalName ?? name,
+    gstin: account?.gstin ?? '',
+    address: account?.address ?? '',
+    stateCode: account?.stateCode ?? '27',
+    email: account?.email ?? '',
+    language: account?.language ?? 'en',
+  };
+}
+
+/** The details as the API takes them. */
+export function accountBody(draft: AccountDraft): z.input<typeof BillingAccountBody> {
+  return {
+    legalName: draft.legalName.trim(),
+    gstin: draft.gstin.trim() || null,
+    address: draft.address.trim(),
+    stateCode: draft.stateCode,
+    email: draft.email.trim(),
+    language: draft.language,
+  };
+}
+
+/**
+ * The billing details' fields, here and on a new tenant that opens active (decision D134), whose
+ * errors come under `billing.`, which `prefix` names.
+ */
+export function AccountFields({
+  draft,
+  change,
+  errors,
+  checked,
+  prefix = '',
+}: {
+  draft: AccountDraft;
+  change: (patch: Partial<AccountDraft>) => void;
+  errors: Record<string, string>;
+  checked: boolean;
+  prefix?: string;
+}) {
+  const { t } = useLanguage();
+  const error = (key: keyof AccountDraft) => errors[`${prefix}${key}`];
+  return (
+    <>
+      <TextField
+        label={t('console.legal_name')}
+        value={draft.legalName}
+        onChange={(event) => change({ legalName: event.target.value })}
+        error={error('legalName')}
+        required
+      />
+      <TextField
+        label={t('console.gstin')}
+        help={t('console.gstin_help')}
+        value={draft.gstin}
+        onChange={(event) => change({ gstin: event.target.value.toUpperCase() })}
+        error={error('gstin')}
+        autoComplete="off"
+      />
+      <TextAreaField
+        label={t('console.address')}
+        value={draft.address}
+        onChange={(event) => change({ address: event.target.value })}
+        error={error('address')}
+        rows={3}
+        required
+      />
+      <SelectField
+        label={t('console.place_of_supply')}
+        value={draft.stateCode}
+        onChange={(event) => change({ stateCode: event.target.value })}
+        options={STATE_OPTIONS}
+        error={error('stateCode')}
+      />
+      <EmailField
+        label={t('console.billing_email')}
+        checked={checked}
+        value={draft.email}
+        onChange={(email) => change({ email })}
+        error={error('email')}
+        required
+      />
+      <SelectField
+        label={t('console.language')}
+        value={draft.language}
+        onChange={(event) => change({ language: event.target.value as 'en' | 'hi' })}
+        options={[
+          { value: 'en', label: 'English' },
+          { value: 'hi', label: 'हिन्दी' },
+        ]}
+      />
+    </>
+  );
+}
+
+/** The paths the billing details' fields show their errors under. */
+export const ACCOUNT_FIELDS = [
+  'legalName',
+  'gstin',
+  'address',
+  'stateCode',
+  'email',
+  'language',
+] as const satisfies readonly (keyof AccountDraft)[];
+
 function AccountForm({
   tenant,
   billing,
@@ -147,17 +264,10 @@ function AccountForm({
   const { t } = useLanguage();
   const { saveBillingAccount } = useConsoleMutations();
   const [checked, setChecked] = useState(false);
-  const [draft, setDraft] = useState({
-    legalName: billing.account?.legalName ?? tenant.name,
-    gstin: billing.account?.gstin ?? '',
-    address: billing.account?.address ?? '',
-    stateCode: billing.account?.stateCode ?? '27',
-    email: billing.account?.email ?? '',
-    language: billing.account?.language ?? ('en' as 'en' | 'hi'),
-  });
+  const [draft, setDraft] = useState(() => accountDraft(tenant.name, billing.account));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string>();
-  const change = (patch: Partial<typeof draft>) => setDraft((now) => ({ ...now, ...patch }));
+  const change = (patch: Partial<AccountDraft>) => setDraft((now) => ({ ...now, ...patch }));
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -169,17 +279,7 @@ function AccountForm({
     setErrors({});
     setFailure(undefined);
     try {
-      await saveBillingAccount.mutateAsync({
-        tenantId: tenant.id,
-        body: {
-          legalName: draft.legalName.trim(),
-          gstin: draft.gstin.trim() || null,
-          address: draft.address.trim(),
-          stateCode: draft.stateCode,
-          email: draft.email.trim(),
-          language: draft.language,
-        },
-      });
+      await saveBillingAccount.mutateAsync({ tenantId: tenant.id, body: accountBody(draft) });
       onDone();
     } catch (error) {
       setErrors(fieldErrors(error));
@@ -189,53 +289,7 @@ function AccountForm({
 
   return (
     <form className="flex max-w-xl flex-col gap-4" onSubmit={save} noValidate>
-      <TextField
-        label={t('console.legal_name')}
-        value={draft.legalName}
-        onChange={(event) => change({ legalName: event.target.value })}
-        error={errors.legalName}
-        required
-      />
-      <TextField
-        label={t('console.gstin')}
-        help={t('console.gstin_help')}
-        value={draft.gstin}
-        onChange={(event) => change({ gstin: event.target.value.toUpperCase() })}
-        error={errors.gstin}
-        autoComplete="off"
-      />
-      <TextAreaField
-        label={t('console.address')}
-        value={draft.address}
-        onChange={(event) => change({ address: event.target.value })}
-        error={errors.address}
-        rows={3}
-        required
-      />
-      <SelectField
-        label={t('console.place_of_supply')}
-        value={draft.stateCode}
-        onChange={(event) => change({ stateCode: event.target.value })}
-        options={STATE_OPTIONS}
-        error={errors.stateCode}
-      />
-      <EmailField
-        label={t('console.billing_email')}
-        checked={checked}
-        value={draft.email}
-        onChange={(email) => change({ email })}
-        error={errors.email}
-        required
-      />
-      <SelectField
-        label={t('console.language')}
-        value={draft.language}
-        onChange={(event) => change({ language: event.target.value as 'en' | 'hi' })}
-        options={[
-          { value: 'en', label: 'English' },
-          { value: 'hi', label: 'हिन्दी' },
-        ]}
-      />
+      <AccountFields draft={draft} change={change} errors={errors} checked={checked} />
       <Failure message={failure} />
       <div className="flex flex-wrap gap-3">
         <Button type="submit" variant="primary" busy={saveBillingAccount.isPending}>

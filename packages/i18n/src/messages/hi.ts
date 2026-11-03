@@ -117,6 +117,9 @@ export const hi: Record<MessageKey, Message> = {
   'stepup.intro':
     'यह बदलाव तय करता है कि कौन किसके नाम से साइन इन कर सकता है। अपने ऑथेंटिकेटर ऐप में अभी दिख रहा कोड डालें।',
   'stepup.continue': 'आगे बढ़ें',
+  'stepup.no_authenticator':
+    'इस बदलाव के लिए ऑथेंटिकेटर ऐप का कोड चाहिए, और आपका कोई ऑथेंटिकेटर सेट नहीं है। पहले साइन-इन सुरक्षा में एक सेट करें, फिर बदलाव दोबारा करें।',
+  'stepup.set_up': 'ऑथेंटिकेटर सेट करें',
   'security.title': 'साइन-इन सुरक्षा',
   'security.intro': 'आप पोर्टल में कैसे साइन इन करते हैं।',
   'security.sms_note':
@@ -518,6 +521,8 @@ export const hi: Record<MessageKey, Message> = {
   'roles.mobile_only': 'केवल मोबाइल ऐप',
   'roles.mobile_only_help': 'इस भूमिका वाले लोग केवल ऐप पर साइन इन करते हैं, वेब पर कभी नहीं।',
   'roles.built_in': 'पहले से बनी',
+  'roles.admin_fixed':
+    'इस भूमिका के पास हमेशा पूरे संगठन में हर अनुमति रहती है। केवल इसका नाम बदला जा सकता है।',
   'roles.permission_count': {
     one: '{count} अनुमति',
     other: '{count} अनुमतियाँ',
@@ -618,8 +623,6 @@ export const hi: Record<MessageKey, Message> = {
   'perm.form.manage': 'फ़ॉर्म बनाएँ',
   'perm.metric.manage': 'मेट्रिक तय करें',
   'perm.workflow.manage': 'स्वीकृति का क्रम तय करें',
-  'perm.policy.manage': 'लोगों से जुड़ी नीतियाँ तय करें',
-  'perm.notification_template.manage': 'सूचना संदेश बदलें',
   'perm.module.manage': 'मॉड्यूल चालू और बंद करें',
   'perm.catalogue.manage': 'कैटलॉग संभालें',
   'perm.price_list.manage': 'मूल्य सूचियाँ संभालें',
@@ -1243,7 +1246,6 @@ export const hi: Record<MessageKey, Message> = {
   'approval.type_new_account': 'नया {term.account}',
   'approval.type_account_location_change': '{term.account} की जगह',
   'approval.type_journey_plan': '{term.journey_plan}',
-  'approval.type_target_lock': '{term.target} लॉक',
   'import.field_accounts_code': 'कोड',
   'import.field_accounts_name': 'नाम',
   'import.field_accounts_territory_code': 'क्षेत्र कोड',
@@ -2796,6 +2798,9 @@ export const hi: Record<MessageKey, Message> = {
   'notify.support_emergency_title': 'आपात स्थिति में वेंडर सहायता ने प्रवेश किया',
   'notify.support_emergency_body':
     '{staff} {ends} तक आपका संगठन देख सकते हैं, दूसरे वेंडर एडमिन की मंज़ूरी से: {reason}। आप इसे सेटिंग्स में ख़त्म कर सकते हैं।',
+  'notify.support_second_factor_reset_title': 'वेंडर सहायता ने एक ऑथेंटिकेटर रीसेट किया',
+  'notify.support_second_factor_reset_body':
+    '{staff} ने {name} का ऑथेंटिकेटर हटाकर उनके सेशन ख़त्म कर दिए: {reason}। वेब पर अगले साइन इन पर वे नया ऑथेंटिकेटर चालू करेंगे।',
   'notify.category_imports': 'इंपोर्ट',
   'notifications.title': 'सूचनाएँ',
   'notifications.today': 'आज',
@@ -3499,6 +3504,8 @@ export const hi: Record<MessageKey, Message> = {
   'organisation.col_product': 'प्रोडक्ट का शब्द',
   'organisation.field_rules': 'फ़ील्ड के नियम',
   'organisation.change_rules': 'सभी नियम',
+  'organisation.change_modules': 'मॉड्यूल बदलें',
+  'organisation.module_off': 'बंद',
   'organisation.rule_geofence': 'जियोफ़ेंस',
   'organisation.geofence_value': '{metres} मी के भीतर',
   'organisation.rule_auto': 'अपने-आप मंज़ूरी',
@@ -3600,6 +3607,19 @@ export const hi: Record<MessageKey, Message> = {
   'admin.rule_journeyPlanApproval': '{term.journey_plan:other} को मैनेजर की स्वीकृति चाहिए',
   'admin.rule_targetUnlockByAdmin': 'एडमिन लॉक किए गए {term.target:other} खोल सकते हैं',
   'admin.rule_defaultCreditDays': 'जब इनवॉइस में न दिए हों तो उधार के दिन',
+  'admin.rule_ordersNeedOpenShift': 'ऐप पर {term.order:other} केवल {term.punch_in} के बाद लें',
+  'admin.rule_ordersAllowedOffline':
+    'ऐप को बिना इंटरनेट के भी {term.order:other} लेने दें, जो अगली सिंक पर भेजे जाएँ',
+  'admin.buckets_help':
+    'देय तिथि के बाद के दिनों के खंड, जिनमें हर बकाया क्रम से बाँटा जाता है। केवल आख़िरी खंड का कोई अंत नहीं होता।',
+  'admin.buckets_issue':
+    'हर खंड पिछले खंड के ख़त्म होने के बाद शुरू होना चाहिए, और केवल आख़िरी खंड बिना अंत का हो सकता है।',
+  'admin.bucket_n': 'खंड {n}',
+  'admin.bucket_from': 'किस दिन से',
+  'admin.bucket_to': 'किस दिन तक',
+  'admin.bucket_to_help': 'अंत न हो तो खाली छोड़ें, केवल आख़िरी खंड में।',
+  'admin.bucket_add': 'खंड जोड़ें',
+  'admin.bucket_remove': 'खंड {n} हटाएँ',
   'admin.rule_countTolerancePct': 'इस अंतर (%) से ज़्यादा होने पर गिनती चिह्नित होती है',
   'admin.rule_collectionCashLimit': 'एक {term.account} से एक दिन की नकद वसूली इससे कम रहे (₹)',
   'admin.rule_planNotificationTime': 'आज की योजना भेजने का समय',
@@ -3618,7 +3638,10 @@ export const hi: Record<MessageKey, Message> = {
   'admin.terminology_intro':
     'आपके संगठन के अपने शब्द। ऐप हर जगह इन्हें इस्तेमाल करते हैं, वेब पर तुरंत और फ़ोन पर अगले सिंक पर।',
   'admin.terminology_empty':
-    'उत्पाद का शब्द रखने के लिए खाना खाली छोड़ें, जो हर खाने में हल्का दिखता है।',
+    'उत्पाद का शब्द रखने के लिए खाना खाली छोड़ें, जो हर खाने में हल्का दिखता है। हिंदी खाली छोड़ने पर अंग्रेज़ी शब्द लिया जाता है।',
+  'admin.term_incomplete': 'इसे भी भरें, या उत्पाद का शब्द रखने के लिए यह शब्द खाली करें।',
+  'admin.terms_incomplete':
+    'कुछ शब्द अधूरे भरे हैं। उन्हें पूरा करें, या उत्पाद के शब्द रखने के लिए खाली करें। कुछ भी सहेजा नहीं गया।',
   'admin.term_account': '{term.account:other}',
   'admin.term_field_user': '{term.field_user:other}',
   'admin.term_activity': '{term.activity:other}',
@@ -4294,7 +4317,6 @@ export const hi: Record<MessageKey, Message> = {
   'chains.type_new_account': 'नए {term.account:other}',
   'chains.type_account_location_change': '{term.account} की जगह',
   'chains.type_journey_plan': '{term.journey_plan:other}',
-  'chains.type_target_lock': '{term.target:other} लॉक करना',
   'chains.none': 'कोई श्रृंखला नहीं: अनुरोध, अनुरोध करने वाले के मैनेजर के पास जाते हैं।',
   'chains.version': 'संस्करण {version}, {when} को सहेजा',
   'chains.version_by': 'संस्करण {version}, {when} को {name} ने सहेजा',
@@ -4463,6 +4485,14 @@ export const hi: Record<MessageKey, Message> = {
     '{name} को निलंबित करें? दोबारा चालू होने तक वहाँ कोई साइन इन नहीं कर पाएगा।',
   'console.suspend_reason': 'क्यों',
   'console.reactivate': 'दोबारा चालू करें',
+  'console.reactivate_trial_ends': 'नया ट्रायल इस तारीख़ को ख़त्म होगा',
+  'console.reactivate_needs':
+    'इसकी कोई सदस्यता नहीं है और इसका ट्रायल ख़त्म हो चुका है। इसे ट्रायल पर दोबारा खोलने के लिए ट्रायल की नई आख़िरी तारीख़ दें, या बिलिंग में सदस्यता शुरू करें, जिससे यह दोबारा खुल जाता है।',
+  'console.active_billed_note':
+    'सक्रिय टेनेंट का बिल शुरू से बनता है, इसलिए उसके लिए प्लान, सदस्यता और बिलिंग ब्योरा चाहिए। बिल बाद में बनाना हो तो इसे ट्रायल पर खोलें।',
+  'console.trial_only_note':
+    'टेनेंट को सक्रिय खोलने से उसकी सदस्यता शुरू होती है, जिसके लिए बिलिंग की अनुमति चाहिए, इसलिए यह ट्रायल पर खुलेगा।',
+  'console.error_reason': 'यह नहीं हो सका। कारण (अंग्रेज़ी में): {reason}',
   'console.tenant_name': 'संगठन का नाम',
   'console.slug_help': 'छोटे अक्षर, अंक और हाइफ़न; यह कभी नहीं बदलता',
   'console.opens_as': 'किस रूप में खुलेगा',
@@ -4505,7 +4535,7 @@ export const hi: Record<MessageKey, Message> = {
   'console.password_changed': 'आपका पासवर्ड बदल गया है, और आपके बाक़ी सेशन ख़त्म हो गए हैं।',
   'console.disable_question': '{name} को बंद करें?',
   'console.disable_note':
-    'वे तुरंत साइन आउट हो जाएँगे और फिर कभी साइन इन नहीं कर पाएँगे। ज़रूरत हो तो उन्हें नए सिरे से बुलाएँ।',
+    'वे तुरंत साइन आउट हो जाएँगे और फिर साइन इन नहीं कर पाएँगे। उन्हें उसी ईमेल से नए सिरे से बुलाने पर नया सेटअप लिंक मिलता है।',
   'console.plans': 'प्लान',
   'console.new_plan': 'नया प्लान',
   'console.col_plan': 'प्लान',
@@ -5035,7 +5065,7 @@ export const hi: Record<MessageKey, Message> = {
   'console.hours_minutes': '{hours} घं. {minutes} मि.',
   'console.second_factor_reset': 'ऑथेंटिकेटर रीसेट करें',
   'console.second_factor_intro':
-    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है।',
+    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है। संगठन के एडमिन को बताया जाता है, और यह उसके ऑडिट लॉग में दिखता है।',
   'console.member_phone': 'उनका मोबाइल नंबर',
   'console.second_factor_reason': 'आपने कैसे पुष्टि की कि यह वही हैं',
   'console.second_factor_removed':
@@ -5094,7 +5124,9 @@ export const hi: Record<MessageKey, Message> = {
   'sso.enabled_help': 'इन डोमेन के लोग SSO से साइन इन चुन सकते हैं',
   'sso.enforced': 'ज़रूरी',
   'sso.enforced_help':
-    'इन डोमेन के लोग पोर्टल में कोड से साइन इन नहीं कर सकते; फ़ोन अब भी कर सकते हैं',
+    'डोमेन साबित होने के बाद इन डोमेन के लोग पोर्टल में कोड से साइन इन नहीं कर सकते; फ़ोन अब भी कर सकते हैं',
+  'sso.enforced_unproved':
+    'पहले "अपने डोमेन साबित करें" में इनमें से कोई डोमेन अपना साबित करें; तब तक सिंगल साइन-ऑन ज़रूरी नहीं किया जा सकता।',
   'sso.save': 'सिंगल साइन-ऑन सहेजें',
   'sso.saved': 'सहेजा गया',
   'common.copy': 'कॉपी करें',
