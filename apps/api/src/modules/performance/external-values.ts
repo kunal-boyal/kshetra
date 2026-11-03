@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { type ImportProblem, newId } from '@thelamp/shared';
+import { type ImportProblem, type ImportTarget, newId } from '@thelamp/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { externalMetricValues } from '../../db/schema/metrics';
 import type { TenantTx } from '../../platform/database';
@@ -62,6 +62,14 @@ export class ExternalMetricsImport implements ImportTargetSource, OnModuleInit {
 
   onModuleInit(): void {
     this.targets.register(this);
+  }
+
+  /** Only once a metric in use is loaded from outside (D139). */
+  async offered(tx: TenantTx, tenantId: string): Promise<ImportTarget[]> {
+    const definitions = await this.metrics.definitions(tx, tenantId);
+    return definitions.some((metric) => metric.source.type === 'external')
+      ? ['external_metrics']
+      : [];
   }
 
   async fields(): Promise<TargetField[]> {

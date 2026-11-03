@@ -18,13 +18,46 @@ function Note({ id, help, error }: { id: string; help?: string; error?: string }
   );
 }
 
+export interface SelectOption {
+  value: string;
+  label: string;
+  /** Options with a group are listed under its name, in the order the groups first appear. */
+  group?: string;
+}
+
 export interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> {
   label: string;
-  options: readonly { value: string; label: string }[];
+  options: readonly SelectOption[];
   /** A first choice that means none, such as "No manager"; its value is the empty string. */
   none?: string;
   help?: string;
   error?: string;
+}
+
+const choice = (option: SelectOption) => (
+  <option key={option.value} value={option.value}>
+    {option.label}
+  </option>
+);
+
+/** Options in runs: each group's together where it first appears, ungrouped ones as they come. */
+function grouped(options: readonly SelectOption[]): [string | undefined, SelectOption[]][] {
+  const runs: [string | undefined, SelectOption[]][] = [];
+  const groups = new Map<string, SelectOption[]>();
+  for (const option of options) {
+    if (option.group === undefined) {
+      runs.push([undefined, [option]]);
+      continue;
+    }
+    const members = groups.get(option.group);
+    if (members) members.push(option);
+    else {
+      const run: SelectOption[] = [option];
+      groups.set(option.group, run);
+      runs.push([option.group, run]);
+    }
+  }
+  return runs;
 }
 
 /** A labelled choice from a list, styled as the inputs are (components/TextField). */
@@ -55,11 +88,15 @@ export function SelectField({
         {...select}
       >
         {none !== undefined ? <option value="">{none}</option> : null}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+        {grouped(options).map(([group, members]) =>
+          group === undefined ? (
+            members.map(choice)[0]
+          ) : (
+            <optgroup key={`group:${group}`} label={group}>
+              {members.map(choice)}
+            </optgroup>
+          ),
+        )}
       </select>
       <Note id={noteId} {...(help ? { help } : {})} {...(error ? { error } : {})} />
     </div>

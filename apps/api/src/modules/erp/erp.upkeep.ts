@@ -4,6 +4,7 @@ import { Database } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
 import { Queues } from '../../platform/queues';
 import { Schedules } from '../../platform/schedules';
+import { ImportTargets } from '../imports/targets';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ErpConnectionsService, PULL, PUSH } from './erp-connections.service';
 import { ErpRuns } from './erp-runs';
@@ -30,9 +31,20 @@ export class ErpUpkeep implements OnModuleInit {
     private readonly runs: ErpRuns,
     private readonly outbox: Outbox,
     private readonly tenantConfig: TenantConfigService,
+    private readonly imports: ImportTargets,
   ) {}
 
   onModuleInit(): void {
+    // While a connection is live, the Imports page says invoices and receipts come from it too
+    // (decision D139); a file still loads beside it.
+    this.imports.writtenBy(async (tx, tenantId) => {
+      const { modulesOff } = await this.tenantConfig.settings(tx, tenantId);
+      if (modulesOff.includes('integrations')) return [];
+      const connections = await this.connections.all(tx, tenantId);
+      return connections.some((connection) => connection.status === 'connected')
+        ? ['invoices', 'receipts']
+        : [];
+    });
     this.queues.handle(
       'connectors',
       PULL,

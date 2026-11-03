@@ -3,11 +3,13 @@ import {
   ImportListResult,
   ImportResult,
   type ImportStatus,
+  ImportTargetsResult,
   type ImportTarget,
   newId,
   type TenantPermission,
 } from '@thelamp/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { MessageKey } from '@thelamp/i18n';
 import { useMemo } from 'react';
 import type { WebClient } from '../client';
 import { useApp } from '../context';
@@ -60,45 +62,72 @@ export const TARGET_PERMISSIONS: Record<
 export interface TargetChoice {
   value: ImportTarget;
   label: string;
+  /** The group the choice is listed under. */
+  group: string;
+}
+
+type Family = keyof typeof TARGET_PERMISSIONS;
+
+/** How the choices are grouped, and their order on the page (decision D139). */
+const TARGET_GROUPS: readonly [MessageKey, readonly Family[]][] = [
+  ['imports.group_organisation', ['users', 'territories', 'holidays']],
+  ['imports.group_accounts', ['accounts']],
+  ['imports.group_catalogue', ['items', 'stock_levels', 'stock_movements', 'sell_through']],
+  ['imports.group_plans', ['targets', 'account_plans', 'forecasts', 'external_metrics']],
+  ['imports.group_finance', ['finance_snapshots', 'ledger_entries', 'invoices', 'receipts']],
+  ['imports.group_payroll', ['payroll_gross', 'salary_structures']],
+];
+
+const familyOf = (target: string) => target.split(':')[0] as Family;
+
+/** What the caller may import now, as the server judges it (decision D139). */
+export function useOfferedTargets() {
+  const { client } = useApp();
+  const access = useAccess();
+  return useQuery({
+    queryKey: ['import-targets'],
+    queryFn: () => read(client, '/v1/imports/targets', ImportTargetsResult),
+    enabled: access.can('import.run'),
+  });
 }
 
 /**
- * The targets, in the reader's words: people, territories, each account type by its own name
- * (`accounts:<type>`, Appendix B.2), the catalogue's items (B.3), targets (B.4) and account plans
- * (B.6). `allowed` holds the ones
- * the person may import.
+ * The targets, in the reader's words and in groups: people, territories and holidays; each
+ * account type by its own name (`accounts:<type>`, Appendix B.2); the catalogue and stock;
+ * targets, plans and metric values; finance; payroll. `allowed` holds those the server offers
+ * the person now (decision D139): their permissions, and each only where it can succeed, such as
+ * stock levels only while stock comes from the books. `fromBooks` says a live ERP connection
+ * writes a target too.
  */
 export function useImportTargets() {
   const { client, queryClient } = useApp();
   const { t, locale } = useLanguage();
-  const access = useAccess();
   const config = useConfig(client, queryClient);
+  const offered = useOfferedTargets();
   return useMemo(() => {
     const types = config.data?.bundle.accountTypes ?? [];
-    const all: TargetChoice[] = [
-      { value: 'users', label: t('imports.target_users') },
-      { value: 'territories', label: t('imports.target_territories') },
-      ...types.map((type) => ({
-        value: `accounts:${type.key}` as const,
-        label: type.name[locale].other,
-      })),
-      { value: 'items', label: t('imports.target_items') },
-      { value: 'targets', label: t('imports.target_targets') },
-      { value: 'account_plans', label: t('imports.target_account_plans') },
-    ];
-    const family = (target: string) => target.split(':')[0] as keyof typeof TARGET_PERMISSIONS;
-    const activeTypes = new Set(
-      types.filter((type) => type.active).map((type) => `accounts:${type.key}`),
-    );
-    return {
-      allowed: all.filter(
-        (choice) =>
-          access.can(TARGET_PERMISSIONS[family(choice.value)]) &&
-          (family(choice.value) !== 'accounts' || activeTypes.has(choice.value)),
-      ),
-      name: (target: string) => all.find((choice) => choice.value === target)?.label ?? target,
+    const typeName = new Map(types.map((type) => [type.key, type.name[locale].other]));
+    const name = (target: string): string => {
+      if (target.startsWith('accounts:')) {
+        return typeName.get(target.slice('accounts:'.length)) ?? target;
+      }
+      return target in TARGET_PERMISSIONS ? t(`imports.target_${target}` as MessageKey) : target;
     };
-  }, [access, config.data, locale, t]);
+    const items = offered.data?.items ?? [];
+    const allowed: TargetChoice[] = TARGET_GROUPS.flatMap(([group, families]) =>
+      families.flatMap((family) =>
+        items
+          .filter((item) => familyOf(item.target) === family)
+          .map((item) => ({ value: item.target, label: name(item.target), group: t(group) })),
+      ),
+    );
+    const books = new Set(items.filter((item) => item.fromBooks).map((item) => item.target));
+    return {
+      allowed,
+      name,
+      fromBooks: (target: ImportTarget) => books.has(target),
+    };
+  }, [config.data, offered.data, locale, t]);
 }
 
 /** While the worker has the import, the page asks again this often. */

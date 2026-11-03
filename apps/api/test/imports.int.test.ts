@@ -3,6 +3,9 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ImportsService } from '../src/modules/imports/imports.service';
 import { xlsx } from '../src/modules/imports/xlsx.test-support';
+import { TenantConfigService } from '../src/modules/tenant-config/tenant-config.service';
+import { SYSTEM_ACTOR } from '../src/platform/audit';
+import { Database } from '../src/platform/database';
 import { Queues } from '../src/platform/queues';
 import { newPhone, startApp, testConfig, World } from './support';
 
@@ -459,5 +462,77 @@ describe('territories (M4)', () => {
     expect(
       (await t.api.patch(`/v1/territories/${chennai.id}`, { active: false })).json().error.details,
     ).toEqual([{ path: 'active', issue: 'People work in this territory' }]);
+  });
+});
+
+describe('what the Imports page offers (D139)', () => {
+  const settle = (tenantId: string, patch: object) =>
+    app
+      .get(Database)
+      .forTenant(tenantId, (tx) =>
+        app.get(TenantConfigService).updateSettings(tx, tenantId, SYSTEM_ACTOR, patch),
+      );
+  const offered = async (api: ReturnType<typeof as>) => {
+    const reply = await api.get('/v1/imports/targets');
+    expect(reply.statusCode, reply.body).toBe(200);
+    return reply.json().items as { target: string; fromBooks: boolean }[];
+  };
+  const targets = async (api: ReturnType<typeof as>) =>
+    (await offered(api)).map((item) => item.target);
+
+  it('offers each target where it can succeed, and says what a live connection writes too', async () => {
+    const t = await tenant('Offer Oats');
+    const first = await targets(t.api);
+    expect(first).toEqual(expect.arrayContaining(['users', 'territories', 'items', 'invoices']));
+    expect(first.some((target) => target.startsWith('accounts:'))).toBe(true);
+    // Inventory is off, no type gives statements and no metric is loaded from outside.
+    for (const target of ['stock_movements', 'stock_levels', 'sell_through', 'external_metrics']) {
+      expect(first).not.toContain(target);
+    }
+    expect((await offered(t.api)).every((item) => !item.fromBooks)).toBe(true);
+
+    // Movements while the app keeps stock; levels while it comes from the books.
+    await settle(t.tenantId, { modulesOn: ['inventory'] });
+    expect(await targets(t.api)).toContain('stock_movements');
+    expect(await targets(t.api)).not.toContain('stock_levels');
+    await settle(t.tenantId, { stockSource: 'books' });
+    expect(await targets(t.api)).toContain('stock_levels');
+    expect(await targets(t.api)).not.toContain('stock_movements');
+
+    const metric = await t.api.post('/v1/metrics', {
+      definition: {
+        key: 'secondary_sales',
+        name: {
+          en: { one: 'Secondary sale', other: 'Secondary sales' },
+          hi: { one: 'द्वितीयक बिक्री', other: 'द्वितीयक बिक्री' },
+        },
+        unit: 'currency',
+        source: { type: 'external' },
+      },
+    });
+    expect(metric.statusCode, metric.body).toBe(201);
+    expect(await targets(t.api)).toContain('external_metrics');
+
+    const connected = await t.api.post('/v1/erp-connections/tally', {});
+    expect(connected.statusCode, connected.body).toBe(200);
+    const books = (await offered(t.api)).filter((item) => item.fromBooks);
+    expect(books.map((item) => item.target)).toEqual(['invoices', 'receipts']);
+    // With integrations off, the connection writes nothing.
+    await settle(t.tenantId, { modulesOff: ['integrations'] });
+    expect((await offered(t.api)).every((item) => !item.fromBooks)).toBe(true);
+  });
+
+  it('offers statements while an active type gives them, and only to those who import', async () => {
+    const tenantId = await world.tenant('Offer Agro', 'active', 'agri');
+    const phone = newPhone();
+    await world.user(tenantId, { phone, designation: 'business_head', role: 'tenant_admin' });
+    const admin = as((await world.signIn(phone)).accessToken);
+    expect(await targets(admin)).toContain('sell_through');
+
+    const t = await tenant('Offer Paper');
+    const managerPhone = newPhone();
+    await world.user(t.tenantId, { phone: managerPhone, managerId: t.admin.id });
+    const manager = as((await world.signIn(managerPhone)).accessToken);
+    expect((await manager.get('/v1/imports/targets')).json().error.code).toBe('FORBIDDEN');
   });
 });

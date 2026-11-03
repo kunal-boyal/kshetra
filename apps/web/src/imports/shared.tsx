@@ -2,6 +2,7 @@ import type { MessageKey } from '@thelamp/i18n';
 import type { ImportFieldInfo, ImportStatus, ImportTarget, Locale } from '@thelamp/shared';
 import { type BadgeVariant, StatusBadge } from '@thelamp/ui-web';
 import { useLanguage } from '../i18n';
+import type { TARGET_PERMISSIONS } from './data';
 
 const STATUS_VARIANTS: Record<ImportStatus, BadgeVariant> = {
   reading: 'pending',
@@ -99,7 +100,9 @@ const FIELD_KEYS = {
     'closing',
   ],
   forecasts: ['account_code', 'month', 'item_code', 'quantity'],
-} as const satisfies Record<string, readonly string[]>;
+  stock_movements: ['account_code', 'item_code', 'kind', 'quantity', 'date', 'reference'],
+  stock_levels: ['account_code', 'item_code', 'on_hand', 'as_of'],
+} as const satisfies Record<keyof typeof TARGET_PERMISSIONS, readonly string[]>;
 
 /** A field's name in the reader's language: its own label, or the app's word for it. */
 export function fieldName(

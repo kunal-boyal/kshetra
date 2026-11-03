@@ -12,6 +12,7 @@ const TENANT = {
 const ADMIN = '01a10000-0000-7000-8000-000000000002';
 const MAPPING = '01a10000-0000-7000-8000-000000000070';
 const INVALID = '01a10000-0000-7000-8000-000000000071';
+const INVOICES = '01a10000-0000-7000-8000-000000000072';
 const NORTH = '01a10000-0000-7000-8000-000000000010';
 const later = () => new Date(Date.now() + 15 * 60_000).toISOString();
 const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
@@ -71,8 +72,42 @@ const INVALID_JOB = job(INVALID, {
   ],
 });
 
+const INVOICES_JOB = job(INVOICES, {
+  target: 'invoices',
+  fileName: 'invoices.csv',
+  status: 'committed',
+  headers: ['Number', 'Customer code', 'Date', 'Amount'],
+  mapping: { Number: 'number', 'Customer code': 'account_code', Date: 'date', Amount: 'amount' },
+  fields: [
+    { key: 'number', required: true },
+    { key: 'account_code', required: true },
+    { key: 'date', required: true },
+    { key: 'amount', required: true },
+  ],
+  sheets: [],
+  sheet: null,
+  headerRow: 1,
+  totalRows: 12,
+  errorRows: 0,
+  created: 10,
+  updated: 2,
+  finishedAt: '2026-10-12T05:01:00.000Z',
+});
+
+/** What the server offers (D139): a live ERP connection writes invoices and receipts too. */
+const OFFERED = {
+  items: [
+    { target: 'users', fromBooks: false },
+    { target: 'territories', fromBooks: false },
+    { target: 'invoices', fromBooks: true },
+    { target: 'receipts', fromBooks: true },
+  ],
+};
+
 const ANSWERS: Record<string, unknown> = {
-  '/v1/imports': { items: [INVALID_JOB, job(MAPPING, {})], nextCursor: null },
+  '/v1/imports': { items: [INVOICES_JOB, INVALID_JOB, job(MAPPING, {})], nextCursor: null },
+  '/v1/imports/targets': OFFERED,
+  [`/v1/imports/${INVOICES}`]: INVOICES_JOB,
   [`/v1/imports/${MAPPING}`]: job(MAPPING, {}),
   [`/v1/imports/${INVALID}`]: INVALID_JOB,
   '/v1/territories': {
@@ -147,7 +182,14 @@ async function mockSignedIn(page: Page) {
         access: {
           role: 'tenant_admin',
           scope: 'tenant',
-          permissions: ['user.view', 'user.manage', 'territory.manage', 'import.run'],
+          permissions: [
+            'user.view',
+            'user.manage',
+            'territory.manage',
+            'import.run',
+            'finance.manage',
+            'account.view',
+          ],
         },
       },
     }),
@@ -201,5 +243,27 @@ test('the territory form and the outdoor theme pass axe', async ({ page }) => {
   await page.goto('/territories');
   await page.getByRole('button', { name: 'Edit Delhi' }).click();
   await expect(page.getByRole('combobox', { name: 'Parent' })).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('invoices are offered with what the ERP connection writes, and lead to the accounts (D139)', async ({
+  page,
+}) => {
+  await mockSignedIn(page);
+  await page.goto('/imports');
+  const what = page.getByRole('combobox', { name: 'What to import' });
+  await what.selectOption('invoices');
+  await expect(
+    page.getByText('Your ERP connection writes these too.', { exact: false }),
+  ).toBeVisible();
+  await expectAccessible(page);
+
+  await page.goto(`/imports/${INVOICES}`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Invoices' })).toBeVisible();
+  await expect(page.getByText('Imported: 10 added, 2 changed.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open accounts' })).toHaveAttribute(
+    'href',
+    '/accounts',
+  );
   await expectAccessible(page);
 });

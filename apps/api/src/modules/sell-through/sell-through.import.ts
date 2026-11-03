@@ -3,6 +3,7 @@ import {
   AppError,
   creditedDate,
   type ImportProblem,
+  type ImportTarget,
   newId,
   type SellThroughLineBody,
   statementOpen,
@@ -66,6 +67,12 @@ export class SellThroughImport implements ImportTargetSource, OnModuleInit {
 
   onModuleInit(): void {
     this.targets.register(this);
+  }
+
+  /** Only while an active type of account gives statements (D139). */
+  async offered(tx: TenantTx, tenantId: string): Promise<ImportTarget[]> {
+    const types = await this.types.list(tx, tenantId);
+    return types.some((type) => type.active && type.definition.sellThrough) ? ['sell_through'] : [];
   }
 
   async fields(): Promise<TargetField[]> {

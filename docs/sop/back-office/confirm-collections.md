@@ -11,7 +11,7 @@ Field people record the money they collect from accounts: cash, UPI, cheque or b
 
 ## Before you start
 
-- A collection is matched to the books when receipts arrive, through the bulk API or an ERP connection ([Keep receivables and statements](receivables-and-statements.md)).
+- A collection is matched to the books when receipts arrive, by import, through the bulk API or from an ERP connection ([Keep receivables and statements](receivables-and-statements.md)).
 - The cash limit is on Settings › **Rules** (**Cash from one account in a day must stay under**), by default ₹2,00,000.
 
 ## Steps

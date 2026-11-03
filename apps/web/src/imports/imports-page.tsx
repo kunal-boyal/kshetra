@@ -1,7 +1,16 @@
 import type { ImportSummary, ImportTarget } from '@thelamp/shared';
-import { Button, type Column, cn, DataTable, EmptyState, Icon, SelectField } from '@thelamp/ui-web';
+import {
+  Button,
+  type Column,
+  cn,
+  DataTable,
+  EmptyState,
+  Icon,
+  Notice,
+  SelectField,
+} from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Download, FileSpreadsheet, FileUp, Upload } from 'lucide-react';
+import { Download, FileSpreadsheet, FileUp, Info, Upload } from 'lucide-react';
 import { type FormEvent, useId, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
@@ -142,6 +151,9 @@ export function ImportsPage() {
               {t('imports.upload')}
             </Button>
           </form>
+          {chosen && choices.fromBooks(chosen) ? (
+            <Notice icon={<Icon icon={Info} />}>{t('imports.from_books')}</Notice>
+          ) : null}
           <div className="flex flex-wrap items-center gap-3">
             <Button
               size="sm"

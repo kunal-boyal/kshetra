@@ -3,6 +3,7 @@ import {
   type ImportProblem,
   ImportResult,
   type ImportResult as ImportView,
+  type TenantPermission,
 } from '@thelamp/shared';
 import {
   Button,
@@ -16,16 +17,16 @@ import {
   StatTile,
   TextField,
 } from '@thelamp/ui-web';
-import { formatNumber } from '@thelamp/i18n';
+import { formatNumber, type MessageKey } from '@thelamp/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { Check, CircleCheck, Columns3, Info, LoaderCircle, Upload } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
-import { write } from '../people/data';
+import { useAccess, write } from '../people/data';
 import { fieldErrors, PageHeader, Section } from '../people/shared';
-import { isBusy, useImport, useImportChanged, useImportTargets } from './data';
+import { isBusy, TARGET_PERMISSIONS, useImport, useImportChanged, useImportTargets } from './data';
 import { fieldName, ImportStatusBadge } from './shared';
 
 /** One import, from its columns to its outcome (M19). */
@@ -473,29 +474,57 @@ function Checked({ view, onChangeColumns }: { view: ImportView; onChangeColumns:
   );
 }
 
-/** Where what an import brought in is seen; a target without a page of its own goes back to Imports. */
-function openAfter(target: ImportView['target']) {
-  if (target.startsWith('accounts:'))
-    return { to: '/accounts', label: 'import.open_accounts' } as const;
-  switch (target) {
-    case 'users':
-      return { to: '/people', label: 'import.open_people' } as const;
-    case 'territories':
-      return { to: '/territories', label: 'import.open_territories' } as const;
-    case 'items':
-      return { to: '/settings/catalogue', label: 'import.open_items' } as const;
-    case 'targets':
-      return { to: '/targets', label: 'import.open_targets' } as const;
-    case 'holidays':
-      return { to: '/settings/calendars', label: 'import.open_holidays' } as const;
-    default:
-      return { to: '/imports', label: 'import.back_to_imports' } as const;
-  }
+interface TargetPage {
+  to: string;
+  label: MessageKey;
+  /** What opening the page needs; without it the link goes back to Imports. */
+  needs: TenantPermission;
 }
+
+const ACCOUNTS_PAGE: TargetPage = {
+  to: '/accounts',
+  label: 'import.open_accounts',
+  needs: 'account.view',
+};
+
+/**
+ * Where what each import brought in is seen (decision D139): plans, balances, statements,
+ * documents, sell-through, forecasts and stock show on each account's page, so they open the
+ * accounts; salary structures show on each person's page.
+ */
+const TARGET_PAGES: Record<keyof typeof TARGET_PERMISSIONS, TargetPage> = {
+  users: { to: '/people', label: 'import.open_people', needs: 'user.view' },
+  territories: { to: '/territories', label: 'import.open_territories', needs: 'territory.manage' },
+  accounts: ACCOUNTS_PAGE,
+  items: { to: '/settings/catalogue', label: 'import.open_items', needs: 'catalogue.manage' },
+  targets: { to: '/targets', label: 'import.open_targets', needs: 'target.view' },
+  account_plans: ACCOUNTS_PAGE,
+  finance_snapshots: ACCOUNTS_PAGE,
+  ledger_entries: ACCOUNTS_PAGE,
+  invoices: ACCOUNTS_PAGE,
+  receipts: ACCOUNTS_PAGE,
+  holidays: { to: '/settings/calendars', label: 'import.open_holidays', needs: 'calendar.manage' },
+  external_metrics: {
+    to: '/performance',
+    label: 'import.open_performance',
+    needs: 'performance.view_team',
+  },
+  payroll_gross: { to: '/payroll', label: 'import.open_payroll', needs: 'payroll.manage' },
+  salary_structures: { to: '/people', label: 'import.open_people', needs: 'user.view' },
+  sell_through: ACCOUNTS_PAGE,
+  forecasts: ACCOUNTS_PAGE,
+  stock_movements: ACCOUNTS_PAGE,
+  stock_levels: ACCOUNTS_PAGE,
+};
 
 function Committed({ view }: { view: ImportView }) {
   const { t } = useLanguage();
-  const open = openAfter(view.target);
+  const access = useAccess();
+  const page = TARGET_PAGES[view.target.split(':')[0] as keyof typeof TARGET_PAGES];
+  const open =
+    page && access.can(page.needs)
+      ? page
+      : { to: '/imports', label: 'import.back_to_imports' as const };
   return (
     <Section title={t('import.status_committed')}>
       <p role="status">

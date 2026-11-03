@@ -1,6 +1,7 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   type ImportProblem,
+  type ImportTarget,
   RECORDED_MOVEMENT_KINDS,
   type RecordedMovementKind,
   SignedStockQuantity,
@@ -126,6 +127,12 @@ export class StockMovementsImport extends StockRows implements ImportTargetSourc
 
   onModuleInit(): void {
     this.targets.register(this);
+  }
+
+  /** Only while the app keeps stock; with stock from the books, levels load instead (D139). */
+  async offered(tx: TenantTx, tenantId: string): Promise<ImportTarget[]> {
+    const { stockSource } = await this.config.settings(tx, tenantId);
+    return stockSource === 'kept' ? ['stock_movements'] : [];
   }
 
   async fields(): Promise<TargetField[]> {
@@ -290,6 +297,12 @@ export class StockLevelsImport extends StockRows implements ImportTargetSource, 
 
   onModuleInit(): void {
     this.targets.register(this);
+  }
+
+  /** Only while stock comes from the books; the app's ledger takes movements (D139). */
+  async offered(tx: TenantTx, tenantId: string): Promise<ImportTarget[]> {
+    const { stockSource } = await this.config.settings(tx, tenantId);
+    return stockSource === 'books' ? ['stock_levels'] : [];
   }
 
   async fields(): Promise<TargetField[]> {

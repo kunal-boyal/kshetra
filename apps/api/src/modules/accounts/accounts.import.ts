@@ -73,6 +73,13 @@ export class AccountsImport implements ImportTargetSource, OnModuleInit {
     this.targets.register(this);
   }
 
+  /** Each active type, by its key (decision D139). */
+  async offered(tx: TenantTx, tenantId: string): Promise<ImportTarget[]> {
+    return (await this.types.list(tx, tenantId))
+      .filter((type) => type.active)
+      .map((type) => `accounts:${type.key}` as const);
+  }
+
   private async type(tx: TenantTx, tenantId: string, target: ImportTarget): Promise<TypeRecord> {
     const key = target.slice('accounts:'.length);
     const type = await this.types.byKey(tx, tenantId, key);

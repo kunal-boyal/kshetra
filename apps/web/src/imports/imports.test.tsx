@@ -1,11 +1,17 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { TenantPermission } from '@thelamp/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { ADMIN, fakeClient, renderAt, writesOf } from '../test-support';
 
 const JOB = '01a10000-0000-7000-8000-000000000070';
 const EARLIER = '01a10000-0000-7000-8000-000000000071';
-const PERMISSIONS = ['import.run', 'user.manage', 'territory.manage'] as const;
+const PERMISSIONS = ['import.run', 'user.manage', 'user.view', 'territory.manage'] as const;
+
+/** What the server offers to import (D139), with the targets a live connection writes too. */
+const offer = (targets: string[], fromBooks: string[] = []) => ({
+  items: targets.map((target) => ({ target, fromBooks: fromBooks.includes(target) })),
+});
 
 const FIELDS = [
   { key: 'code', required: true },
@@ -65,6 +71,7 @@ describe('the imports page', () => {
     const client = fakeClient(
       {
         '/v1/imports': { items: [EARLIER_JOB], nextCursor: null },
+        '/v1/imports/targets': offer(['users', 'territories']),
         [`/v1/imports/${JOB}`]: job(),
       },
       { 'POST /v1/imports': () => job({ status: 'reading', headers: [], mapping: {} }) },
@@ -98,24 +105,107 @@ describe('the imports page', () => {
     ]);
   });
 
-  it('offers only what the person may change', async () => {
-    const client = fakeClient({ '/v1/imports': { items: [], nextCursor: null } }, {}, [
-      'import.run',
-      'territory.manage',
-      'catalogue.manage',
-    ]);
+  it('offers what the server offers the person now, in groups (D139)', async () => {
+    const noun = (one: string, other: string) => ({ en: { one, other }, hi: { one, other } });
+    const client = fakeClient(
+      {
+        '/v1/imports': { items: [], nextCursor: null },
+        // Out of order, as the server may list them; the page groups them.
+        '/v1/imports/targets': offer([
+          'stock_levels',
+          'invoices',
+          'payroll_gross',
+          'territories',
+          'external_metrics',
+          'accounts:retailer',
+          'holidays',
+          'items',
+          'receipts',
+          'sell_through',
+        ]),
+      },
+      {},
+      ['import.run'],
+      { accountTypes: [{ key: 'retailer', name: noun('Retailer', 'Retailers'), active: true }] },
+    );
     renderAt('/imports', client);
     const what = await screen.findByRole('combobox', { name: 'What to import' });
+    const groups = within(what).getAllByRole('group');
+    expect(groups.map((group) => group.getAttribute('label'))).toEqual([
+      'People and places',
+      'Accounts',
+      'Catalogue and stock',
+      'Plans and performance',
+      'Finance',
+      'Payroll',
+    ]);
     expect(
       within(what)
         .getAllByRole('option')
         .map((option) => option.textContent),
-    ).toEqual(['Territories', 'Catalogue items']);
+    ).toEqual([
+      'Territories',
+      'Holidays',
+      'Retailers',
+      'Catalogue items',
+      'Stock levels',
+      'Sell-through by item',
+      'External metric values',
+      'Invoices',
+      'Receipts and credit notes',
+      'Monthly gross',
+    ]);
     expect(screen.getByText('No imports yet')).toBeInTheDocument();
+    // Without a live connection, nothing says the books write them too.
+    const user = userEvent.setup();
+    await user.selectOptions(what, 'invoices');
+    expect(screen.queryByText(/Your ERP connection writes these too/)).toBeNull();
+  });
+
+  it('says a live ERP connection writes invoices and receipts too (D139)', async () => {
+    const client = fakeClient(
+      {
+        '/v1/imports': { items: [], nextCursor: null },
+        '/v1/imports/targets': offer(
+          ['finance_snapshots', 'invoices', 'receipts'],
+          ['invoices', 'receipts'],
+        ),
+      },
+      {},
+      ['import.run'],
+    );
+    renderAt('/imports', client);
+    const what = await screen.findByRole('combobox', { name: 'What to import' });
+    expect(what).toHaveValue('finance_snapshots');
+    expect(screen.queryByText(/Your ERP connection writes these too/)).toBeNull();
+    const user = userEvent.setup();
+    await user.selectOptions(what, 'receipts');
+    expect(screen.getByText(/Your ERP connection writes these too/)).toBeVisible();
+  });
+
+  it('offers nothing to import until the server offers something', async () => {
+    const client = fakeClient(
+      {
+        '/v1/imports': { items: [], nextCursor: null },
+        '/v1/imports/targets': offer([]),
+      },
+      {},
+      ['import.run'],
+    );
+    renderAt('/imports', client);
+    expect(await screen.findByText('No imports yet')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'What to import' })).toBeNull();
   });
 
   it('downloads the chosen target’s example file, in the reader’s language (D111)', async () => {
-    const client = fakeClient({ '/v1/imports': { items: [], nextCursor: null } }, {}, PERMISSIONS);
+    const client = fakeClient(
+      {
+        '/v1/imports': { items: [], nextCursor: null },
+        '/v1/imports/targets': offer(['users', 'territories']),
+      },
+      {},
+      PERMISSIONS,
+    );
     URL.createObjectURL = vi.fn(() => 'blob:example');
     URL.revokeObjectURL = vi.fn();
     renderAt('/imports', client);
@@ -261,10 +351,24 @@ describe('one import', () => {
   });
 
   it.each([
-    ['items', 'Open the catalogue', '/settings/catalogue'],
-    ['accounts:retailer', /^Open /, '/accounts'],
-    ['invoices', 'Back to imports', '/imports'],
-  ])('leads from a finished %s import to where it is seen', async (target, name, href) => {
+    ['items', 'Open the catalogue', '/settings/catalogue', 'catalogue.manage'],
+    ['accounts:retailer', 'Open accounts', '/accounts', 'account.view'],
+    ['holidays', 'Open holiday calendars', '/settings/calendars', 'calendar.manage'],
+    ['account_plans', 'Open accounts', '/accounts', 'account.view'],
+    ['finance_snapshots', 'Open accounts', '/accounts', 'account.view'],
+    ['ledger_entries', 'Open accounts', '/accounts', 'account.view'],
+    ['invoices', 'Open accounts', '/accounts', 'account.view'],
+    ['receipts', 'Open accounts', '/accounts', 'account.view'],
+    ['sell_through', 'Open accounts', '/accounts', 'account.view'],
+    ['forecasts', 'Open accounts', '/accounts', 'account.view'],
+    ['stock_movements', 'Open accounts', '/accounts', 'account.view'],
+    ['stock_levels', 'Open accounts', '/accounts', 'account.view'],
+    ['external_metrics', 'Open performance', '/performance', 'performance.view_team'],
+    ['payroll_gross', 'Open payroll', '/payroll', 'payroll.manage'],
+    ['salary_structures', 'Open people', '/people', 'user.view'],
+    // Without what the page needs, the link goes back to Imports.
+    ['payroll_gross', 'Back to imports', '/imports', 'report.view'],
+  ])('leads from a finished %s import to %s', async (target, name, href, needs) => {
     const client = fakeClient(
       {
         [`/v1/imports/${JOB}`]: job({
@@ -274,9 +378,10 @@ describe('one import', () => {
           updated: 0,
           totalRows: 1,
         }),
+        '/v1/imports/targets': offer([]),
       },
       {},
-      PERMISSIONS,
+      ['import.run', needs as TenantPermission],
     );
     renderAt(`/imports/${JOB}`, client);
     expect(await screen.findByText('Imported: 1 added, 0 changed.')).toBeVisible();

@@ -6,7 +6,7 @@ export { PAGE_SIZE, Pager, PagerTextProvider, usePagedRows } from './pager';
 export type { More, Paging, PagerText } from './pager';
 export type { BadgeVariant, Column } from './data';
 export { Checkbox, ChoiceGroup, SelectField, TextAreaField } from './fields';
-export type { CheckboxProps, SelectFieldProps, TextAreaFieldProps } from './fields';
+export type { CheckboxProps, SelectFieldProps, SelectOption, TextAreaFieldProps } from './fields';
 export { Icon } from './icon';
 export { KpiTile } from './kpi';
 export { Picker } from './picker';

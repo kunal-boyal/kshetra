@@ -43,7 +43,7 @@ A mistake is put right with another movement, a correction: movements are never 
 
 ### Load stock from your books
 
-Stock movements (while the app keeps stock; each movement once, by account, reference, item and kind) and stock levels (while stock comes from the books; each level replaces the last) load in bulk. The portal's **Imports** page doesn't offer these yet: it offers people, territories, accounts, catalogue items, targets and account plans only. The server takes them as file imports and through the bulk API, so today they arrive through an [ERP connection](../admin/erp-connections.md) or an integrator's API client ([API clients and webhooks](../admin/api-clients-and-webhooks.md)).
+Stock movements (while the app keeps stock; each movement once, by account, reference, item and kind) and stock levels (while stock comes from the books; each level replaces the last) load in bulk. Import them on **Imports**, under **Catalogue and stock** in **What to import**: **Stock movements** is offered while the app keeps stock and **Stock levels** while stock comes from the books ([Import and export](imports-and-exports.md)). **Open accounts** then leads to the accounts, whose **Stock** section shows them. An integrator's API client can send them too ([API clients and webhooks](../admin/api-clients-and-webhooks.md)).
 
 ### Read the stock reports
 

@@ -13,7 +13,7 @@ For the people who set up and run their organisation in the web portal: the firs
 | [Build the territory tree](territories.md) | Territory levels and the territories under them | Admin, Business head (`territory.manage`) |
 | [Define account types](account-types.md) | Each kind of account: codes, locations, slots, fields, segments | Admin, Business head (`settings.manage`) |
 | [Add and look after people](people.md) | Adding, changing, transferring and deactivating people; phones, sign-outs, seats | Admin, Business head (`user.manage`); Manager for phones and sign-outs |
-| [Import records from a spreadsheet](imports.md) | People, territories, accounts, items, targets and account plans from a file | Admin, Business head, Back office (`import.run`) |
+| [Import records from a spreadsheet](imports.md) | People, places, accounts, the catalogue and stock, plans, finance and payroll from a file | Admin, Business head, Back office (`import.run`) |
 | [Add accounts and approve proposals](accounts.md) | Adding accounts, who looks after them, approving accounts and locations proposed from phones | Admin, Business head (`account.manage`); Manager to approve (`account.approve`) |
 | [Catalogue and price lists](catalogue-and-price-lists.md) | Items, products and categories; price lists and prices | Admin, Business head (`catalogue.manage`, `price_list.manage`) |
 | [Schemes](schemes.md) | Discounts, slabs and free goods on orders | Admin, Business head (`scheme.manage`) |
