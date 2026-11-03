@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { formatDate, formatDateTime, formatNumber } from '@thelamp/i18n';
+import { addDays } from '@thelamp/shared';
 import {
   Avatar,
   Button,
@@ -9,13 +10,21 @@ import {
   StatTile,
   StatusBadge,
   TextAreaField,
+  TextField,
 } from '@thelamp/ui-web';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useConsole } from '../context';
-import { useConsoleMutations, useTemplates, useTenant, useTenantActivity } from '../data';
-import { errorMessage, useLanguage } from '../i18n';
-import { holds, TenantStatusBadge, VIEWER_TIME_ZONE } from './shared';
+import {
+  useConsoleMutations,
+  useTemplates,
+  useTenant,
+  useTenantActivity,
+  useTenantBilling,
+} from '../data';
+import { UnshownErrors } from '../fields';
+import { errorMessage, fieldErrors, useLanguage } from '../i18n';
+import { billingToday, holds, TenantStatusBadge, VIEWER_TIME_ZONE } from './shared';
 import { BillingCard } from './tenant-billing';
 import { SecondFactorResetCard } from './tenant-second-factor';
 import { TerminationCard } from './tenant-termination';
@@ -32,10 +41,15 @@ export function TenantPage({ tenantId }: { tenantId: string }) {
   const tenant = useTenant(tenantId);
   const activity = useTenantActivity(tenantId);
   const templates = useTemplates();
+  const billing = useTenantBilling(tenantId);
   const { suspend, reactivate } = useConsoleMutations();
   const [asking, setAsking] = useState(false);
   const [reason, setReason] = useState('');
+  const [trialEndsOn, setTrialEndsOn] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string>();
+  // When the page opened, to tell whether a trial has ended.
+  const [openedAt] = useState(() => Date.now());
   const manages = holds(client.staff, 'platform.tenant.manage');
 
   if (tenant.isError) {
@@ -65,26 +79,57 @@ export function TenantPage({ tenantId }: { tenantId: string }) {
 
   async function act(work: () => Promise<unknown>) {
     setFailure(undefined);
+    setErrors({});
     try {
       await work();
       setAsking(false);
       setReason('');
+      setTrialEndsOn('');
     } catch (error) {
+      setErrors(fieldErrors(error));
       setFailure(errorMessage(error, t));
     }
   }
 
+  // An open tenant is on trial or billed (decision D134): one with neither reopens on a new trial.
+  const needsTrial =
+    row.status === 'suspended' &&
+    !row.demo &&
+    billing.data?.subscription?.status !== 'active' &&
+    !(row.trialEndsAt && Date.parse(row.trialEndsAt) > openedAt);
   const tools =
     manages && row.status === 'suspended' ? (
-      <Button
-        variant="primary"
-        size="sm"
-        className="self-start"
-        busy={reactivate.isPending}
-        onClick={() => act(() => reactivate.mutateAsync(row.id))}
-      >
-        {t('console.reactivate')}
-      </Button>
+      <div className="flex flex-col gap-3">
+        <UnshownErrors errors={errors} shown={needsTrial ? ['trialEndsOn'] : []} />
+        {needsTrial ? (
+          <>
+            <p className="ks-meta">{t('console.reactivate_needs')}</p>
+            <TextField
+              label={t('console.reactivate_trial_ends')}
+              type="date"
+              min={addDays(billingToday(), 1)}
+              value={trialEndsOn}
+              onChange={(event) => setTrialEndsOn(event.target.value)}
+              error={errors.trialEndsOn}
+              required
+            />
+          </>
+        ) : null}
+        <Button
+          variant="primary"
+          size="sm"
+          className="self-start"
+          busy={reactivate.isPending}
+          disabled={needsTrial && !trialEndsOn}
+          onClick={() =>
+            act(() =>
+              reactivate.mutateAsync({ id: row.id, ...(needsTrial ? { trialEndsOn } : {}) }),
+            )
+          }
+        >
+          {t('console.reactivate')}
+        </Button>
+      </div>
     ) : manages && row.status !== 'terminated' ? (
       asking ? (
         <Confirm
@@ -201,7 +246,7 @@ export function TenantPage({ tenantId }: { tenantId: string }) {
               <h2 className="heading-md">{t('console.tools')}</h2>
               {tools}
               <p className="ks-meta">{t('console.suspend_note')}</p>
-              {failure ? (
+              {failure && Object.keys(errors).length === 0 ? (
                 <p className="ks-help error" role="alert">
                   {failure}
                 </p>

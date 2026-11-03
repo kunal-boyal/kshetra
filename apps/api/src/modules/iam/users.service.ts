@@ -6,6 +6,7 @@ import {
   type DataScope,
   type DeviceHealth,
   type DeviceSummary,
+  knownPermissions,
   type MeResult,
   needsSecondFactor,
   newId,
@@ -746,9 +747,8 @@ export class UsersService {
   /** Refuses a number that signs in to another organisation: one person, one (decision D103). */
   private async checkNumberFree(tenantId: string, phone: string): Promise<void> {
     if ((await this.members.activeElsewhere([phone], tenantId)).has(phone)) {
-      throw new AppError('CONFLICT', 'This mobile number is already in use.', [
-        { path: 'phone', issue: NUMBER_IN_USE },
-      ]);
+      // The whole reason, as the field says it: the portal shows it where there is no field.
+      throw new AppError('CONFLICT', NUMBER_IN_USE, [{ path: 'phone', issue: NUMBER_IN_USE }]);
     }
   }
 
@@ -903,7 +903,7 @@ export class UsersService {
       .select({ id: roles.id, key: roles.key, scope: roles.scope, permissions: roles.permissions })
       .from(roles)
       .where(where);
-    return role && { ...role, permissions: role.permissions as TenantPermission[] };
+    return role && { ...role, permissions: knownPermissions(role.permissions) };
   }
 }
 

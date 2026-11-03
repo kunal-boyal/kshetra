@@ -10,9 +10,11 @@ import {
   type ConsoleTenantSummary,
   type CreateTenantBody,
   deletionDue,
+  type ReactivateTenantBody,
   type TemplateSummary,
   type TenantStatus,
   todayIn,
+  TRIAL_DAYS_MOST,
 } from '@thelamp/shared';
 import { resolveTerminology } from '@thelamp/i18n';
 import { loadTemplate, TEMPLATE_KEYS } from '@thelamp/templates';
@@ -22,12 +24,14 @@ import {
   memberships,
   plans,
   refreshTokens,
+  subscriptions,
   tenants,
   usageRecords,
 } from '../../db/schema/directory';
 import { startOfLocalDate } from '../../platform/local-day';
 import { Entitlements } from '../../platform/planes';
 import type { StaffAccess } from '../../platform/auth';
+import { TenantBillingService } from '../billing/tenant-billing.service';
 import { DirectoryDatabase } from '../directory/directory.database';
 import { TenantProvisioner } from '../provisioning/provisioner';
 import { PlatformAudit } from '../directory/platform-audit';
@@ -39,7 +43,8 @@ const notFound = () => new AppError('NOT_FOUND', 'There is no such tenant.');
 /**
  * Tenants as the console sees them (module M22, decision D88): every tenant in the directory with
  * its cell, template, trial and active users; created from a template with the first admin, and
- * suspended or reactivated. Suspending closes the tenant on everyone's next request (BR-39).
+ * suspended or reactivated. Suspending closes the tenant on everyone's next request (BR-39); an
+ * open tenant is always on trial or billed (decision D134).
  */
 @Injectable()
 export class ConsoleTenantsService {
@@ -48,6 +53,7 @@ export class ConsoleTenantsService {
     private readonly provisioner: TenantProvisioner,
     private readonly audit: PlatformAudit,
     private readonly entitlements: Entitlements,
+    private readonly billing: TenantBillingService,
   ) {}
 
   async list(
@@ -76,7 +82,10 @@ export class ConsoleTenantsService {
 
   /**
    * Creates a tenant from a template with its first admin, on this cell. The console names it,
-   * so the same create again answers with the same tenant.
+   * so the same create again answers with the same tenant. A tenant that opens active is billed
+   * from the start (decision D134): it is made on a trial as long as its trial days, then its
+   * billing details and subscription are set, which open it; should billing refuse, it stays on
+   * that trial, and the same create again finishes it.
    */
   async create(by: StaffAccess, body: CreateTenantBody): Promise<ConsoleTenant> {
     const [existing] = await this.database.db
@@ -87,9 +96,23 @@ export class ConsoleTenantsService {
       if (existing.slug !== body.slug) {
         throw new AppError('IDEMPOTENCY_CONFLICT', 'This ID was used for another tenant.');
       }
+      if (body.status === 'active') await this.bill(by, body);
       return this.get(body.id);
     }
-    const { id, trialDays, planId, ...input } = body;
+    const { id, trialDays, planId, subscription } = body;
+    const input = {
+      name: body.name,
+      slug: body.slug,
+      template: body.template,
+      status: body.status,
+      admin: body.admin,
+    };
+    if (input.status === 'active' && !by.permissions.has('platform.billing.manage')) {
+      throw new AppError(
+        'FORBIDDEN',
+        'Opening a tenant active starts its subscription, which needs billing access. Open it on trial.',
+      );
+    }
     if (planId) {
       const [plan] = await this.database.db
         .select({ active: plans.active })
@@ -101,9 +124,15 @@ export class ConsoleTenantsService {
         ]);
       }
     }
-    await this.provisioner.provision(input, undefined, {
+    // Checked before anything is made, so a tenant meant to be billed isn't left on trial.
+    if (subscription) {
+      await this.billing.checkSubscription({ planId: planId!, ...subscription }, null, (path) =>
+        path === 'planId' ? path : `subscription.${path}`,
+      );
+    }
+    await this.provisioner.provision({ ...input, status: 'trial' }, undefined, {
       tenantId: id,
-      ...(input.status === 'trial' ? { trialEndsAt: new Date(Date.now() + trialDays * DAY) } : {}),
+      trialEndsAt: new Date(Date.now() + trialDays * DAY),
     });
     await this.database.db.transaction(async (tx) => {
       if (planId) await tx.update(tenants).set({ planId }).where(eq(tenants.id, id));
@@ -114,7 +143,24 @@ export class ConsoleTenantsService {
         planId,
       });
     });
+    if (input.status === 'active') await this.bill(by, body);
     return this.get(id);
+  }
+
+  /**
+   * Gives a tenant created active its billing details and starts its subscription, which opens
+   * it (decision D134). Nothing is done twice: an active subscription means it is billed.
+   */
+  private async bill(by: StaffAccess, body: CreateTenantBody): Promise<void> {
+    const current = await this.billing.current(body.id);
+    if (current?.status === 'active') return;
+    await this.billing.setAccount(by, body.id, body.billing!);
+    await this.billing.subscribe(by, body.id, { planId: body.planId!, ...body.subscription! });
+    // Billed now, so the trial it was made on in case billing refused no longer applies.
+    await this.database.db
+      .update(tenants)
+      .set({ trialEndsAt: null })
+      .where(eq(tenants.id, body.id));
   }
 
   /** Closes the tenant: nobody signs in, and every session ends on its next request. */
@@ -127,14 +173,60 @@ export class ConsoleTenantsService {
     });
   }
 
-  /** Opens a suspended tenant again: on trial while its trial lasts, otherwise active. */
-  async reactivate(by: StaffAccess, id: string): Promise<ConsoleTenant> {
-    return this.move(by, id, 'tenant.reactivated', {}, (status, trialEndsAt) => {
-      if (status !== 'suspended') {
+  /**
+   * Opens a suspended tenant again, only ever on trial or billed (decision D134): billed with an
+   * active subscription, on trial while its trial lasts or until the new trial end given, and a
+   * demo tenant as before. One with none of these is refused, naming the trial end it needs.
+   */
+  async reactivate(
+    by: StaffAccess,
+    id: string,
+    body: ReactivateTenantBody,
+    now = new Date(),
+  ): Promise<ConsoleTenant> {
+    const refused = (issue: string) =>
+      new AppError('VALIDATION', 'Check the highlighted fields.', [{ path: 'trialEndsOn', issue }]);
+    await this.database.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ status: tenants.status, trialEndsAt: tenants.trialEndsAt, demo: tenants.demo })
+        .from(tenants)
+        .where(eq(tenants.id, id))
+        .for('update');
+      if (!row) throw notFound();
+      if (row.status !== 'suspended') {
         throw new AppError('CONFLICT', 'Only a suspended tenant can be reactivated.');
       }
-      return trialEndsAt && trialEndsAt.getTime() > Date.now() ? 'trial' : 'active';
+      const [billed] = await tx
+        .select({ id: subscriptions.id })
+        .from(subscriptions)
+        .where(and(eq(subscriptions.tenantId, id), eq(subscriptions.status, 'active')))
+        .limit(1);
+      let trialEndsAt = row.trialEndsAt;
+      if (body.trialEndsOn !== undefined) {
+        if (billed) throw refused('It has a subscription, so it opens without a trial');
+        if (row.demo) throw refused('A demo tenant has no trial');
+        const today = todayIn(BILLING_TIME_ZONE, now);
+        if (body.trialEndsOn <= today || body.trialEndsOn > addDays(today, TRIAL_DAYS_MOST)) {
+          throw refused(`Choose a day after today, within ${TRIAL_DAYS_MOST} days`);
+        }
+        // The trial lasts the whole of its last day on the vendor's clock.
+        trialEndsAt = startOfLocalDate(addDays(body.trialEndsOn, 1), BILLING_TIME_ZONE);
+      }
+      const onTrial = trialEndsAt !== null && trialEndsAt.getTime() > now.getTime();
+      if (!billed && !onTrial && !row.demo) {
+        throw refused(
+          'It has no subscription and its trial has ended: give a new trial end, or start a subscription',
+        );
+      }
+      const status: TenantStatus = billed || !onTrial ? 'active' : 'trial';
+      await tx.update(tenants).set({ status, trialEndsAt }).where(eq(tenants.id, id));
+      await this.audit.record(tx, by, 'tenant.reactivated', 'tenant', id, {
+        before: row.status,
+        after: status,
+        ...(body.trialEndsOn ? { trialEndsOn: body.trialEndsOn } : {}),
+      });
     });
+    return this.get(id);
   }
 
   /** Every tenant at once, as the tenants page's figures. */

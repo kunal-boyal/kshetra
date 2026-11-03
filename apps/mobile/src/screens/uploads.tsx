@@ -22,8 +22,16 @@ function reason(item: OutboxItem, t: Translate): string | null {
   if (code === OUTBOX_CODES.dependencyDiscarded) return t('uploads.DEPENDENCY_DISCARDED');
   if (code === OUTBOX_CODES.unknownKind) return t('uploads.UNKNOWN_KIND');
   if (code === 'NETWORK') return t('common.offline');
+  // There are no fields to highlight here: the server's own words for each follow.
+  if (code === 'VALIDATION') return t('uploads.VALIDATION');
   if (isErrorCode(code)) return t(`error.${code}`);
   return item.lastError;
+}
+
+/** The item a waiting one goes after, while that one is still on the phone. */
+function waitsFor(item: OutboxItem, items: readonly OutboxItem[]): OutboxItem | undefined {
+  if (item.state !== 'queued' || item.dependsOn.length === 0) return undefined;
+  return items.find((other) => item.dependsOn.includes(other.id));
 }
 
 /**
@@ -85,6 +93,7 @@ export function UploadsScreen() {
         items.map((item) => {
           const why = reason(item, t);
           const parked = item.state === 'parked';
+          const blocker = waitsFor(item, items);
           return (
             <Card key={item.id} style={styles.item}>
               <View style={styles.row}>
@@ -102,6 +111,23 @@ export function UploadsScreen() {
               {why ? (
                 <Text variant="bodySm" tone={parked ? 'danger' : 'muted'}>
                   {why}
+                </Text>
+              ) : null}
+              {parked
+                ? item.lastErrorDetails.map((detail) => (
+                    <Text key={`${detail.path}:${detail.issue}`} variant="bodySm" tone="danger">
+                      {`• ${detail.issue}`}
+                    </Text>
+                  ))
+                : null}
+              {blocker ? (
+                <Text variant="bodySm" tone="muted">
+                  {t(
+                    blocker.state === 'parked' ? 'uploads.waits_for_refused' : 'uploads.waits_for',
+                    {
+                      item: itemLabel(blocker, t),
+                    },
+                  )}
                 </Text>
               ) : null}
               {unpriced === item.id ? (

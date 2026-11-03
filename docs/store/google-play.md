@@ -156,6 +156,8 @@ Not collected: messages, contacts, calendar, audio, files and documents, web his
 2. Closed testing with the pilot organisation, once its accounts exist (phase 1's pilot week).
 3. Production, once the closed test passes, the penetration test has no high or critical finding open (spec 15), and counsel has read the privacy notice.
 
+Once the listing is live, set `EXPO_PUBLIC_PLAY_STORE_URL` to its address in the EAS environment, so the app's blocking update screen opens it (**Open the store**); a build without it tells the person to ask their admin for the new version (decision D136).
+
 The app targets the API level Expo SDK 57 sets; Play's yearly target requirement is met by taking each SDK release. The version code is kept by EAS (`appVersionSource: remote`, `autoIncrement`).
 
 ## Waiting for
@@ -167,3 +169,4 @@ The app targets the API level Expo SDK 57 sets; Play's yearly target requirement
 | Counsel's reading of the privacy notice, and a native speaker's reading of the Hindi | Kunal |
 | The review tenant on production, and whether `DEMO_CODES` may be set there for it | Kunal |
 | The production build, screenshots and the location video, once the production cell exists | Kunal's EAS account, then us |
+| The listing's address as `EXPO_PUBLIC_PLAY_STORE_URL` in the EAS environment, for the update screen | Kunal, once the listing is live |

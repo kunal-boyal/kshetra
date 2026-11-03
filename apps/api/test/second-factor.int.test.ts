@@ -231,19 +231,47 @@ describe('resetting an authenticator (D91)', () => {
     ).toBe('FORBIDDEN');
   });
 
-  it('lets vendor support reset it by the person’s number', async () => {
+  it('lets vendor support reset it by the person’s number, and tells the tenant', async () => {
     const o = await organisation('Lone Admin Co');
     await world.signIn(o.adminPhone);
+    // Another admin, who hears of it and reads it in the audit log.
+    const secondPhone = newPhone();
+    await world.user(o.tenantId, { phone: secondPhone, designation: 'head', role: 'tenant_admin' });
+    const second = await world.signIn(secondPhone);
     const staff = await staffToken();
+    const reason = 'Lost their phone; called from the registered number';
     const reset = await asUser(
       'POST',
       `/platform/v1/tenants/${o.tenantId}/second-factor-resets`,
       staff,
-      { phone: o.adminPhone, reason: 'Lost their phone; called from the registered number' },
+      { phone: o.adminPhone, reason },
     );
     expect(reset.statusCode, reset.body).toBe(200);
     expect(reset.json()).toEqual({ removed: true });
     expect((await challenge(o.adminPhone)).enrolled).toBe(false);
+
+    // The tenant's audit log has it, as vendor staff's, and its admins are told.
+    const audit = await asUser(
+      'GET',
+      '/v1/audit?action=user.second_factor_reset',
+      second.accessToken,
+    );
+    expect(audit.statusCode, audit.body).toBe(200);
+    expect(audit.json().items).toEqual([
+      expect.objectContaining({
+        actor: expect.objectContaining({ kind: 'platform' }),
+        target: expect.objectContaining({ type: 'user', id: o.admin.id }),
+        after: { removed: true, staff: 'Support Person', reason },
+        supportGrantId: null,
+      }),
+    ]);
+    const inbox = (await asUser('GET', '/v1/notifications', second.accessToken)).json().items;
+    expect(inbox).toContainEqual(
+      expect.objectContaining({
+        event: 'support.second_factor_reset',
+        link: `/people/${o.admin.id}`,
+      }),
+    );
     const nobody = await asUser(
       'POST',
       `/platform/v1/tenants/${o.tenantId}/second-factor-resets`,

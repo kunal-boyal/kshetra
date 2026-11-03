@@ -217,15 +217,25 @@ export async function orderBody(
   };
 }
 
-/** Queues an order to send, after its visit's check-in when it was taken in a visit. */
-export async function queueOrder(sync: Ready, owner: string, body: PlaceOrderBody): Promise<void> {
+/**
+ * Queues an order to send, after its visit's check-in when it was taken in a visit and after the
+ * shift's punch-in when one is open (decision D136).
+ */
+export async function queueOrder(
+  sync: Ready,
+  owner: string,
+  body: PlaceOrderBody,
+  /** The open shift's ID: the order goes after its punch-in, which the server judges it by. */
+  shiftId?: string,
+): Promise<void> {
+  const after = [body.visitId, shiftId].filter((id): id is string => Boolean(id));
   await sync.db.transaction(async (tx) => {
     await sync.outbox.enqueue(tx, {
       id: body.id,
       owner,
       kind: 'order.place',
       payload: body,
-      ...(body.visitId ? { dependsOn: [body.visitId] } : {}),
+      ...(after.length > 0 ? { dependsOn: after } : {}),
     });
   });
 }

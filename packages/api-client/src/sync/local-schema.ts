@@ -297,6 +297,8 @@ const MIGRATIONS: readonly string[] = [
      sync_gen INTEGER NOT NULL
    );
    CREATE INDEX ref_collections_account ON ref_collections (account_id);`,
+  // What the server said of each field when it refused an upload, for the upload queue.
+  `ALTER TABLE outbox ADD COLUMN last_error_details TEXT;`,
 ];
 
 /** Applies the migrations this database hasn't had, each in its own transaction. */

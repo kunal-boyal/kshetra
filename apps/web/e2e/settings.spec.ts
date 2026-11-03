@@ -687,7 +687,6 @@ const ANSWERS: Record<string, unknown> = {
       'new_account',
       'account_location_change',
       'journey_plan',
-      'target_lock',
     ].map((requestType) => ({
       requestType,
       version: requestType === 'leave' ? 2 : 0,

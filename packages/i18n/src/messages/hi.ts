@@ -35,7 +35,7 @@ export const hi: Record<MessageKey, Message> = {
   'error.MEDIA_NOT_READY': 'एक फ़ोटो अभी अपलोड हो रही है। थोड़ी देर में अपने आप फिर कोशिश होगी।',
   'error.PRICE_CHANGED': 'कीमतें बदल गई हैं। अपनी कार्ट देखें, फिर {term.order} दोबारा भेजें।',
   'error.TARGET_LOCKED': 'यह {term.target} लॉक है। अब इसमें बदलाव नहीं हो सकता।',
-  'error.PERIOD_CLOSED': 'वह महीना बंद हो चुका है। उसका {term.sell_through} अब नहीं बदल सकता।',
+  'error.PERIOD_CLOSED': 'वह महीना बंद हो चुका है। उसके आँकड़े अब नहीं बदल सकते।',
   'error.NOT_CURRENT_APPROVER':
     'इस पर कार्रवाई की बारी आपकी नहीं है, या कोई और कार्रवाई कर चुका है। अपना इनबॉक्स रीफ़्रेश करें।',
   'error.QUOTA_EXCEEDED': 'यह आपकी सीमा से ज़्यादा है।',
@@ -117,6 +117,9 @@ export const hi: Record<MessageKey, Message> = {
   'stepup.intro':
     'यह बदलाव तय करता है कि कौन किसके नाम से साइन इन कर सकता है। अपने ऑथेंटिकेटर ऐप में अभी दिख रहा कोड डालें।',
   'stepup.continue': 'आगे बढ़ें',
+  'stepup.no_authenticator':
+    'इस बदलाव के लिए ऑथेंटिकेटर ऐप का कोड चाहिए, और आपका कोई ऑथेंटिकेटर सेट नहीं है। पहले साइन-इन सुरक्षा में एक सेट करें, फिर बदलाव दोबारा करें।',
+  'stepup.set_up': 'ऑथेंटिकेटर सेट करें',
   'security.title': 'साइन-इन सुरक्षा',
   'security.intro': 'आप पोर्टल में कैसे साइन इन करते हैं।',
   'security.sms_note':
@@ -170,8 +173,6 @@ export const hi: Record<MessageKey, Message> = {
   'app.more': 'और',
   'app.my_work': 'मेरा काम',
   'app.send_now': 'अभी भेजें',
-  'app.upload_waiting': 'बाकी',
-  'app.upload_stuck': 'ध्यान दें',
   'app.uploads_all': { one: 'बाकी {count} देखें', other: 'बाकी सभी {count} देखें' },
   'app.this_phone': 'यह फ़ोन',
   'app.synced_at': '{time} पर सिंक हुआ',
@@ -186,6 +187,7 @@ export const hi: Record<MessageKey, Message> = {
   'app.update_title': 'ऐप अपडेट करें',
   'app.update_body': 'ऐप का यह वर्ज़न अब समर्थित नहीं है। काम जारी रखने के लिए इसे अपडेट करें।',
   'app.update_action': 'स्टोर खोलें',
+  'app.update_ask_admin': 'ऐप का नया वर्ज़न कैसे मिलेगा, यह अपने एडमिन से पूछें।',
   'home.empty_title': 'अभी कोई आँकड़े नहीं',
   'home.empty_body': 'आपका संगठन मीट्रिक तय करने के बाद वे यहाँ दिखेंगे।',
   'home.waiting': 'आपके लिए बाकी',
@@ -275,6 +277,10 @@ export const hi: Record<MessageKey, Message> = {
   'uploads.DEPENDENCY_DISCARDED':
     'इस रिकॉर्ड के लिए ज़रूरी जानकारी हटा दी गई, इसलिए यह अपलोड नहीं हो सकता। इसे भी हटा दें।',
   'uploads.UNKNOWN_KIND': 'ऐप का यह वर्ज़न यह रिकॉर्ड अपलोड नहीं कर सकता। ऐप अपडेट करें।',
+  'uploads.VALIDATION': 'सर्वर ने इसकी कुछ जानकारी नहीं मानी।',
+  'uploads.waits_for': 'पहले {item} के अपलोड होने का इंतज़ार है।',
+  'uploads.waits_for_refused':
+    '{item} के लिए रुका है, जो अस्वीकार हुआ। उसे फिर से भेजें या हटा दें।',
   'app.uploads': 'अपलोड कतार',
   'app.uploads_done': 'सब कुछ अपलोड हो गया है',
   'app.sign_out_unsent': {
@@ -516,6 +522,8 @@ export const hi: Record<MessageKey, Message> = {
   'roles.mobile_only': 'केवल मोबाइल ऐप',
   'roles.mobile_only_help': 'इस भूमिका वाले लोग केवल ऐप पर साइन इन करते हैं, वेब पर कभी नहीं।',
   'roles.built_in': 'पहले से बनी',
+  'roles.admin_fixed':
+    'इस भूमिका के पास हमेशा पूरे संगठन में हर अनुमति रहती है। केवल इसका नाम बदला जा सकता है।',
   'roles.permission_count': {
     one: '{count} अनुमति',
     other: '{count} अनुमतियाँ',
@@ -616,8 +624,6 @@ export const hi: Record<MessageKey, Message> = {
   'perm.form.manage': 'फ़ॉर्म बनाएँ',
   'perm.metric.manage': 'मेट्रिक तय करें',
   'perm.workflow.manage': 'स्वीकृति का क्रम तय करें',
-  'perm.policy.manage': 'लोगों से जुड़ी नीतियाँ तय करें',
-  'perm.notification_template.manage': 'सूचना संदेश बदलें',
   'perm.module.manage': 'मॉड्यूल चालू और बंद करें',
   'perm.catalogue.manage': 'कैटलॉग संभालें',
   'perm.price_list.manage': 'मूल्य सूचियाँ संभालें',
@@ -1246,7 +1252,6 @@ export const hi: Record<MessageKey, Message> = {
   'approval.type_new_account': 'नया {term.account}',
   'approval.type_account_location_change': '{term.account} की जगह',
   'approval.type_journey_plan': '{term.journey_plan}',
-  'approval.type_target_lock': '{term.target} लॉक',
   'import.field_accounts_code': 'कोड',
   'import.field_accounts_name': 'नाम',
   'import.field_accounts_territory_code': 'क्षेत्र कोड',
@@ -1298,6 +1303,7 @@ export const hi: Record<MessageKey, Message> = {
     'अपने काम की फ़ोटो लेने के लिए कैमरा चालू करें। फ़ोटो सीधे कैमरे से ली जाती हैं, गैलरी से नहीं।',
   'camera.permission_settings': 'इस ऐप के लिए कैमरा बंद है। फ़ोन की सेटिंग में इसे चालू करें।',
   'camera.allow': 'कैमरा चालू करें',
+  'camera.open_settings': 'ऐप सेटिंग खोलें',
   'camera.live': 'लाइव कैमरा',
   'camera.preview': 'आपकी ली हुई फ़ोटो',
   'camera.shutter': 'फ़ोटो लें',
@@ -1757,6 +1763,7 @@ export const hi: Record<MessageKey, Message> = {
   'orders.rate_per': 'छूट के बाद {rate} प्रति {unit}',
   'orders.holds': 'हर एक में {count} {unit}',
   'orders.needs_fix': 'लोकेशन चालू करें: हर {term.order:lower} में दर्ज होता है कि कहाँ लिया गया।',
+  'orders.need_shift': 'यह {term.order:lower} लेने से पहले {term.punch_in} पर टैप करें।',
   'orders.needs_connection': 'यहाँ {term.order:other} के लिए इंटरनेट चाहिए; यह तुरंत भेजता है।',
   'orders.search': 'आइटम या कोड खोजें',
   'orders.categories': 'श्रेणियाँ',
@@ -2418,6 +2425,7 @@ export const hi: Record<MessageKey, Message> = {
   'visit.no_location':
     'इस {term.account:lower} की लोकेशन अभी सत्यापित नहीं है, इसलिए दूरी नहीं जाँची जाती।',
   'entry.need_shift': 'यह फ़ॉर्म भेजने से पहले अपना दिन शुरू करें।',
+  'entry.fix_denied': 'यह फ़ॉर्म भेजने के लिए लोकेशन की अनुमति दें।',
   'entry.need_visit': 'पहले {term.account:lower} पर चेक इन करें, फिर वहीं यह फ़ॉर्म भरें।',
   'entry.too_far':
     'आप {distance} मी दूर हैं। इस फ़ॉर्म के लिए आपको {radius} मी के भीतर होना चाहिए।',
@@ -2455,6 +2463,9 @@ export const hi: Record<MessageKey, Message> = {
   'shift.fix_unavailable': 'आपकी लोकेशन नहीं मिली। बाहर जाकर फिर कोशिश करें।',
   'shift.fix_mocked': 'यह लोकेशन नकली है। लोकेशन बदलने वाला कोई भी ऐप बंद करें।',
   'shift.fix_vague': 'आपकी लोकेशन अभी पर्याप्त सटीक नहीं है। बाहर जाकर फिर कोशिश करें।',
+  'location.fix_unavailable': 'आपकी लोकेशन नहीं मिली। बाहर जाकर फिर कोशिश करें।',
+  'location.fix_mocked': 'यह लोकेशन नकली है। लोकेशन बदलने वाला कोई भी ऐप बंद करें।',
+  'location.fix_vague': 'आपकी लोकेशन अभी पर्याप्त सटीक नहीं है। बाहर जाकर फिर कोशिश करें।',
   'shift.notice_title': 'ड्यूटी पर',
   'shift.notice_body': 'दिन ख़त्म होने तक आपका रास्ता रिकॉर्ड हो रहा है।',
   'shift.consent_title': 'दिन शुरू करने से पहले',
@@ -2796,6 +2807,9 @@ export const hi: Record<MessageKey, Message> = {
   'notify.support_emergency_title': 'आपात स्थिति में वेंडर सहायता ने प्रवेश किया',
   'notify.support_emergency_body':
     '{staff} {ends} तक आपका संगठन देख सकते हैं, दूसरे वेंडर एडमिन की मंज़ूरी से: {reason}। आप इसे सेटिंग्स में ख़त्म कर सकते हैं।',
+  'notify.support_second_factor_reset_title': 'वेंडर सहायता ने एक ऑथेंटिकेटर रीसेट किया',
+  'notify.support_second_factor_reset_body':
+    '{staff} ने {name} का ऑथेंटिकेटर हटाकर उनके सेशन ख़त्म कर दिए: {reason}। वेब पर अगले साइन इन पर वे नया ऑथेंटिकेटर चालू करेंगे।',
   'notify.category_imports': 'इंपोर्ट',
   'notifications.title': 'सूचनाएँ',
   'notifications.today': 'आज',
@@ -3499,6 +3513,8 @@ export const hi: Record<MessageKey, Message> = {
   'organisation.col_product': 'प्रोडक्ट का शब्द',
   'organisation.field_rules': 'फ़ील्ड के नियम',
   'organisation.change_rules': 'सभी नियम',
+  'organisation.change_modules': 'मॉड्यूल बदलें',
+  'organisation.module_off': 'बंद',
   'organisation.rule_geofence': 'जियोफ़ेंस',
   'organisation.geofence_value': '{metres} मी के भीतर',
   'organisation.rule_auto': 'अपने-आप मंज़ूरी',
@@ -3599,6 +3615,19 @@ export const hi: Record<MessageKey, Message> = {
   'admin.rule_journeyPlanApproval': '{term.journey_plan:other} को मैनेजर की स्वीकृति चाहिए',
   'admin.rule_targetUnlockByAdmin': 'एडमिन लॉक किए गए {term.target:other} खोल सकते हैं',
   'admin.rule_defaultCreditDays': 'जब इनवॉइस में न दिए हों तो उधार के दिन',
+  'admin.rule_ordersNeedOpenShift': 'ऐप पर {term.order:other} केवल {term.punch_in} के बाद लें',
+  'admin.rule_ordersAllowedOffline':
+    'ऐप को बिना इंटरनेट के भी {term.order:other} लेने दें, जो अगली सिंक पर भेजे जाएँ',
+  'admin.buckets_help':
+    'देय तिथि के बाद के दिनों के खंड, जिनमें हर बकाया क्रम से बाँटा जाता है। केवल आख़िरी खंड का कोई अंत नहीं होता।',
+  'admin.buckets_issue':
+    'हर खंड पिछले खंड के ख़त्म होने के बाद शुरू होना चाहिए, और केवल आख़िरी खंड बिना अंत का हो सकता है।',
+  'admin.bucket_n': 'खंड {n}',
+  'admin.bucket_from': 'किस दिन से',
+  'admin.bucket_to': 'किस दिन तक',
+  'admin.bucket_to_help': 'अंत न हो तो खाली छोड़ें, केवल आख़िरी खंड में।',
+  'admin.bucket_add': 'खंड जोड़ें',
+  'admin.bucket_remove': 'खंड {n} हटाएँ',
   'admin.rule_countTolerancePct': 'इस अंतर (%) से ज़्यादा होने पर गिनती चिह्नित होती है',
   'admin.rule_collectionCashLimit': 'एक {term.account} से एक दिन की नकद वसूली इससे कम रहे',
   'admin.rule_planNotificationTime': 'आज की योजना भेजने का समय',
@@ -3617,7 +3646,10 @@ export const hi: Record<MessageKey, Message> = {
   'admin.terminology_intro':
     'आपके संगठन के अपने शब्द। ऐप हर जगह इन्हें इस्तेमाल करते हैं, वेब पर तुरंत और फ़ोन पर अगले सिंक पर।',
   'admin.terminology_empty':
-    'उत्पाद का शब्द रखने के लिए खाना खाली छोड़ें, जो हर खाने में हल्का दिखता है।',
+    'उत्पाद का शब्द रखने के लिए खाना खाली छोड़ें, जो हर खाने में हल्का दिखता है। हिंदी खाली छोड़ने पर अंग्रेज़ी शब्द लिया जाता है।',
+  'admin.term_incomplete': 'इसे भी भरें, या उत्पाद का शब्द रखने के लिए यह शब्द खाली करें।',
+  'admin.terms_incomplete':
+    'कुछ शब्द अधूरे भरे हैं। उन्हें पूरा करें, या उत्पाद के शब्द रखने के लिए खाली करें। कुछ भी सहेजा नहीं गया।',
   'admin.term_account': '{term.account:other}',
   'admin.term_field_user': '{term.field_user:other}',
   'admin.term_activity': '{term.activity:other}',
@@ -3786,6 +3818,7 @@ export const hi: Record<MessageKey, Message> = {
   'collections.none_here': 'यहाँ अभी कोई वसूली नहीं हुई।',
   'collections.recent': 'हाल की वसूली',
   'collect.title': 'भुगतान लें',
+  'collect.fix_denied': 'यह भुगतान दर्ज करने के लिए लोकेशन की अनुमति दें।',
   'collect.owes': '{outstanding} बकाया',
   'collect.owes_overdue': '{outstanding} बकाया · {overdue} देय तिथि पार',
   'collect.settles': 'पहले {invoices} चुकता होंगे।',
@@ -3940,6 +3973,7 @@ export const hi: Record<MessageKey, Message> = {
   'visit.map_label': '{name} और आपकी जगह का मैप',
   'visit.you': 'आप यहाँ हैं',
   'visit.locating': 'आपकी जगह ढूँढ रहे हैं…',
+  'visit.fix_denied': 'चेक इन या चेक आउट करने के लिए लोकेशन की अनुमति दें।',
   'visit.locate_again': 'फिर से जगह लें',
   'visit.pill_inside': 'जियोफ़ेंस के अंदर · {distance} मी',
   'visit.pill_outside': '{distance} मी दूर, जियोफ़ेंस के बाहर',
@@ -4291,7 +4325,6 @@ export const hi: Record<MessageKey, Message> = {
   'chains.type_new_account': 'नए {term.account:other}',
   'chains.type_account_location_change': '{term.account} की जगह',
   'chains.type_journey_plan': '{term.journey_plan:other}',
-  'chains.type_target_lock': '{term.target:other} लॉक करना',
   'chains.none': 'कोई श्रृंखला नहीं: अनुरोध, अनुरोध करने वाले के मैनेजर के पास जाते हैं।',
   'chains.version': 'संस्करण {version}, {when} को सहेजा',
   'chains.version_by': 'संस्करण {version}, {when} को {name} ने सहेजा',
@@ -4468,6 +4501,14 @@ export const hi: Record<MessageKey, Message> = {
     '{name} को निलंबित करें? दोबारा चालू होने तक वहाँ कोई साइन इन नहीं कर पाएगा।',
   'console.suspend_reason': 'क्यों',
   'console.reactivate': 'दोबारा चालू करें',
+  'console.reactivate_trial_ends': 'नया ट्रायल इस तारीख़ को ख़त्म होगा',
+  'console.reactivate_needs':
+    'इसकी कोई सदस्यता नहीं है और इसका ट्रायल ख़त्म हो चुका है। इसे ट्रायल पर दोबारा खोलने के लिए ट्रायल की नई आख़िरी तारीख़ दें, या बिलिंग में सदस्यता शुरू करें, जिससे यह दोबारा खुल जाता है।',
+  'console.active_billed_note':
+    'सक्रिय टेनेंट का बिल शुरू से बनता है, इसलिए उसके लिए प्लान, सदस्यता और बिलिंग ब्योरा चाहिए। बिल बाद में बनाना हो तो इसे ट्रायल पर खोलें।',
+  'console.trial_only_note':
+    'टेनेंट को सक्रिय खोलने से उसकी सदस्यता शुरू होती है, जिसके लिए बिलिंग की अनुमति चाहिए, इसलिए यह ट्रायल पर खुलेगा।',
+  'console.error_reason': 'यह नहीं हो सका। कारण (अंग्रेज़ी में): {reason}',
   'console.tenant_name': 'संगठन का नाम',
   'console.slug_help': 'छोटे अक्षर, अंक और हाइफ़न; यह कभी नहीं बदलता',
   'console.opens_as': 'किस रूप में खुलेगा',
@@ -4510,7 +4551,7 @@ export const hi: Record<MessageKey, Message> = {
   'console.password_changed': 'आपका पासवर्ड बदल गया है, और आपके बाक़ी सेशन ख़त्म हो गए हैं।',
   'console.disable_question': '{name} को बंद करें?',
   'console.disable_note':
-    'वे तुरंत साइन आउट हो जाएँगे और फिर कभी साइन इन नहीं कर पाएँगे। ज़रूरत हो तो उन्हें नए सिरे से बुलाएँ।',
+    'वे तुरंत साइन आउट हो जाएँगे और फिर साइन इन नहीं कर पाएँगे। उन्हें उसी ईमेल से नए सिरे से बुलाने पर नया सेटअप लिंक मिलता है।',
   'console.plans': 'प्लान',
   'console.new_plan': 'नया प्लान',
   'console.col_plan': 'प्लान',
@@ -5040,7 +5081,7 @@ export const hi: Record<MessageKey, Message> = {
   'console.hours_minutes': '{hours} घं. {minutes} मि.',
   'console.second_factor_reset': 'ऑथेंटिकेटर रीसेट करें',
   'console.second_factor_intro':
-    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है।',
+    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है। संगठन के एडमिन को बताया जाता है, और यह उसके ऑडिट लॉग में दिखता है।',
   'console.member_phone': 'उनका मोबाइल नंबर',
   'console.second_factor_reason': 'आपने कैसे पुष्टि की कि यह वही हैं',
   'console.second_factor_removed':
@@ -5097,7 +5138,9 @@ export const hi: Record<MessageKey, Message> = {
   'sso.enabled_help': 'इन डोमेन के लोग कंपनी SSO चुन सकते हैं',
   'sso.enforced': 'ज़रूरी',
   'sso.enforced_help':
-    'इन डोमेन के लोग पोर्टल में कोड से साइन इन नहीं कर सकते; फ़ोन अब भी कर सकते हैं',
+    'डोमेन साबित होने के बाद इन डोमेन के लोग पोर्टल में कोड से साइन इन नहीं कर सकते; फ़ोन अब भी कर सकते हैं',
+  'sso.enforced_unproved':
+    'पहले "अपने डोमेन साबित करें" में इनमें से कोई डोमेन अपना साबित करें; तब तक सिंगल साइन-ऑन ज़रूरी नहीं किया जा सकता।',
   'sso.save': 'सिंगल साइन-ऑन सहेजें',
   'sso.saved': 'सहेजा गया',
   'common.copy': 'कॉपी करें',
@@ -5356,6 +5399,8 @@ export const hi: Record<MessageKey, Message> = {
   'my_data.details': 'कुछ और बताना हो तो',
   'my_data.send': 'अनुरोध भेजें',
   'my_data.sent': 'भेज दिया। आपका संगठन {date} तक जवाब देगा।',
+  'my_data.already_open':
+    'इस तरह का आपका एक अनुरोध पहले से खुला है। दोबारा पूछने से पहले उसके जवाब का इंतज़ार करें।',
   'my_data.mine': 'आपके अनुरोध',
   'my_data.none': 'अभी कोई अनुरोध नहीं है।',
   'my_data.due': '{date} तक जवाब देय',

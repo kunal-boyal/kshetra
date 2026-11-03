@@ -27,27 +27,46 @@ function productWord(key: TerminologyKey, code: Locale): Noun | string {
   return TERMINOLOGY_DEFAULTS[code][key] as Noun | string;
 }
 
-/** Only the words someone typed: an empty form keeps the product's word. */
-function overrides(words: Words): TerminologyOverrides {
+/**
+ * The words as they are saved: a term nobody typed in keeps the product's word; one typed in needs
+ * its English whole (both forms of a noun), and Hindi left blank takes the English, as forms and
+ * account types do. `missing` names each English box a typed-in term still lacks.
+ */
+function overrides(words: Words): { result: TerminologyOverrides; missing: string[] } {
   const result: Record<string, unknown> = {};
+  const missing: string[] = [];
+  const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
   for (const key of KEYS) {
     const entry = words[key];
     if (!entry) continue;
-    const noun = TERMINOLOGY_KEYS[key] === 'noun';
-    const filled = LOCALES.every((code) => {
-      const value = entry[code];
-      return noun
-        ? typeof value === 'object' && value.one.trim() && value.other.trim()
-        : typeof value === 'string' && value.trim();
-    });
-    if (filled) result[key] = entry;
+    if (TERMINOLOGY_KEYS[key] === 'noun') {
+      const en = (entry.en ?? {}) as Partial<Noun>;
+      const hi = (entry.hi ?? {}) as Partial<Noun>;
+      const typed = [en.one, en.other, hi.one, hi.other].some((value) => text(value) !== '');
+      if (!typed) continue;
+      const forms = { one: text(en.one), other: text(en.other) };
+      for (const form of ['one', 'other'] as const) {
+        if (forms[form] === '') missing.push(`${key}.en.${form}`);
+      }
+      result[key] = {
+        en: forms,
+        hi: { one: text(hi.one) || forms.one, other: text(hi.other) || forms.other },
+      };
+    } else {
+      const en = text(entry.en);
+      const hi = text(entry.hi);
+      if (en === '' && hi === '') continue;
+      if (en === '') missing.push(`${key}.en`);
+      result[key] = { en, hi: hi || en };
+    }
   }
-  return result as TerminologyOverrides;
+  return { result: result as TerminologyOverrides, missing };
 }
 
 /**
  * Terminology (M2, spec 5.2): the tenant's own words for the terms that vary by industry, in every
- * language. A term left empty keeps the product's word. Labels follow with the next config read,
+ * language. A term left empty keeps the product's word; nothing is saved while a term is half
+ * typed in, so no word is dropped without a word said. Labels follow with the next config read,
  * on the web at once and on phones at their next sync, with no release.
  */
 export function TerminologyPage() {
@@ -58,6 +77,7 @@ export function TerminologyPage() {
   const admin = useAdmin();
   const [draft, setDraft] = useState<Words>();
   const [error, setError] = useState<unknown>();
+  const [missing, setMissing] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   if (!editable) return <p className="ks-muted">{t('admin.no_access')}</p>;
@@ -70,10 +90,14 @@ export function TerminologyPage() {
   }
   if (!current.data) return <p className="ks-muted">{t('common.loading')}</p>;
   const words: Words = draft ?? (current.data.overrides as Words);
-  const errors = fieldErrors(error);
+  const errors: Record<string, string> = {
+    ...fieldErrors(error),
+    ...Object.fromEntries(missing.map((path) => [path, t('admin.term_incomplete')])),
+  };
 
   function change(key: TerminologyKey, code: Locale, form: 'one' | 'other' | null, text: string) {
     setSaved(false);
+    setMissing([]);
     const entry = { ...words[key] };
     if (form) {
       const before = (entry[code] as Noun | undefined) ?? { one: '', other: '' };
@@ -86,10 +110,13 @@ export function TerminologyPage() {
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    setBusy(true);
     setError(undefined);
+    const { result, missing: lacking } = overrides(words);
+    setMissing(lacking);
+    if (lacking.length > 0) return;
+    setBusy(true);
     try {
-      await admin.saveTerminology(overrides(words));
+      await admin.saveTerminology(result);
       setDraft(undefined);
       setSaved(true);
     } catch (caught) {
@@ -149,6 +176,11 @@ export function TerminologyPage() {
         {saved ? (
           <span className="ks-help" role="status">
             {t('admin.saved')}
+          </span>
+        ) : null}
+        {missing.length > 0 ? (
+          <span className="ks-help error" role="alert">
+            {t('admin.terms_incomplete')}
           </span>
         ) : null}
         {error !== undefined && Object.keys(errors).length === 0 ? (

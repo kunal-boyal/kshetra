@@ -99,6 +99,15 @@ export function shiftOdometerKm(
   return unscaled(scaled(closing, 1) - scaled(opening, 1), 1);
 }
 
+/**
+ * Whether a moment falls inside a shift: from its start, give or take the 5 s a punch may lag, to
+ * its end, or any time after the start while it is open (decision D136).
+ */
+export function shiftCovers(shift: ShiftWindow | null, moment: number): boolean {
+  if (!shift || moment < shift.startedAt - POINT_EARLY_MS) return false;
+  return shift.endedAt === null || moment <= shift.endedAt;
+}
+
 /** BR-44: whether a device's clock was too far from the server's when it sent a record. */
 export function clockSkewed(skewSeconds: number | null): boolean {
   return skewSeconds !== null && Math.abs(skewSeconds) > CLOCK_SKEW_LIMIT_S;

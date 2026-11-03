@@ -24,9 +24,10 @@ jest.mock('expo-network', () => ({
 }));
 jest.mock('expo-battery', () => ({ isBatteryOptimizationEnabledAsync: async () => false }));
 // The phone stands at the shop, known to within 12 m.
+const mockLocation = { granted: true };
 jest.mock('expo-location', () => ({
   Accuracy: { High: 4, Highest: 6 },
-  requestForegroundPermissionsAsync: async () => ({ granted: true }),
+  requestForegroundPermissionsAsync: async () => ({ granted: mockLocation.granted }),
   getBackgroundPermissionsAsync: async () => ({ granted: true }),
   hasStartedLocationUpdatesAsync: async () => false,
   getCurrentPositionAsync: async () => ({
@@ -293,6 +294,19 @@ describe('collecting a payment on the phone (M11, BR-63, D132)', () => {
     expect(message).toContain('Collected by Asha Rao.');
     expect(message).toContain('Awaiting the office’s confirmation.');
     share.mockRestore();
+  });
+
+  it('asks for location to record the payment, in words about the payment', async () => {
+    mockLocation.granted = false;
+    try {
+      const { db } = await renderAt('collect');
+      await fireEvent.changeText(await screen.findByLabelText('Amount', { exact: false }), '500');
+      await fireEvent.press(screen.getByRole('button', { name: 'Save ₹500.00' }));
+      expect(await screen.findByText('Allow location to record this payment.')).toBeOnTheScreen();
+      expect(await queued(db)).toEqual([]);
+    } finally {
+      mockLocation.granted = true;
+    }
   });
 
   it('asks a cheque for its number, bank and photo before it saves', async () => {

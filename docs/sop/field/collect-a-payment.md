@@ -57,6 +57,6 @@ When an account pays you, record the money on the phone: cash, UPI, cheque or ba
 | **Take a photo of the cheque** | No photo of the cheque | Tap **Photograph the cheque** |
 | **Cash from one account in a day must stay under …. … in cash taken here today already.** | Over the cash limit | Take the rest another way |
 | **This is later than today. Check the phone’s clock** | The phone's date is ahead | Correct the phone's date and time |
-| **Allow location to start or end the day.** | Location is off; the collection screen uses the punch's message | Allow location for the app |
+| **Allow location to record this payment.** | Location is off for the app | Allow location for the app, then save again |
 | **This could not be saved on the phone. Try again.** | The phone couldn't save | Try again |
 

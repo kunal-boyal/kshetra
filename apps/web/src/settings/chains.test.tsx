@@ -212,6 +212,52 @@ describe('approval chains (spec 5.9)', () => {
     expect(await within(leave).findByText('Remind before escalating')).toBeVisible();
   });
 
+  it('names a person by searching everyone, not a first page of them', async () => {
+    const KAVITA = '01a10000-0000-7000-8000-000000000071';
+    const MOHAN = '01a10000-0000-7000-8000-000000000072';
+    const named = { approver: { type: 'specific_user', userId: KAVITA }, lineDecisions: false };
+    const client = fakeClient(
+      {
+        ...PAGES([named]),
+        [`/v1/users/${KAVITA}`]: { id: KAVITA, name: 'Kavita Joshi', code: 'SUN-007' },
+        '/v1/users': {
+          items: [{ id: MOHAN, name: 'Mohan Das', code: 'SUN-412', designation: 'manager' }],
+          nextCursor: null,
+        },
+      },
+      {
+        'PUT /v1/workflows/leave': ({ body }) => ({
+          ...(body as object),
+          requestType: 'leave',
+          version: 2,
+          updatedAt: null,
+          updatedBy: null,
+        }),
+      },
+      ['workflow.manage'],
+    );
+    renderAt('/settings/approvals', client);
+    const user = userEvent.setup();
+    const types = await screen.findByRole('list', { name: 'Request types' });
+    expect(await within(types).findByText('Kavita Joshi')).toBeVisible();
+    const leave = screen.getByRole('region', { name: 'Leave' });
+    await user.click(within(leave).getByRole('button', { name: 'Edit: Leave' }));
+    const step = within(leave).getByRole('group', { name: 'Step 1' });
+    expect(within(step).getByText('Kavita Joshi')).toBeVisible();
+    await user.click(within(step).getByRole('button', { name: 'Change' }));
+    await user.type(within(step).getByRole('searchbox', { name: 'Person' }), 'Mohan');
+    await user.click(await within(step).findByRole('button', { name: /Mohan Das/ }));
+    await user.click(within(leave).getByRole('button', { name: 'Save chain' }));
+    expect(await screen.findByText('Saved as version 2.')).toBeVisible();
+    expect(writesOf(client)[0]![3]).toMatchObject({
+      body: { steps: [{ approver: { type: 'specific_user', userId: MOHAN } }] },
+    });
+    // The search went to the server, with what was typed.
+    expect(client.request.mock.calls.map(([, path]) => path)).toContain(
+      '/v1/users?status=active&limit=16&q=Mohan',
+    );
+  });
+
   it('sets the fallback role', async () => {
     const client = fakeClient(PAGES(), { 'PUT /v1/workflows/fallback': () => chains() }, [
       'workflow.manage',

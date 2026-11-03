@@ -15,7 +15,6 @@ const ADMIN = {
     'platform.plan.manage',
     'platform.support.request',
     'platform.support.approve_emergency',
-    'platform.flags.manage',
     'platform.billing.manage',
     'platform.staff.manage',
   ],

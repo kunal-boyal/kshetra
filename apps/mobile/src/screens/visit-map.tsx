@@ -63,9 +63,9 @@ export function VisitMap({
           {fix.status === 'locating' ? (
             <Text tone="muted">{t('visit.locating')}</Text>
           ) : fix.status === 'denied' ? (
-            <Text tone="muted">{t('shift.fix_denied')}</Text>
+            <Text tone="muted">{t('visit.fix_denied')}</Text>
           ) : fix.status === 'unavailable' ? (
-            <Text tone="muted">{t('shift.fix_unavailable')}</Text>
+            <Text tone="muted">{t('location.fix_unavailable')}</Text>
           ) : fence?.result === 'inside' ? (
             <StatusBadge
               variant="success"

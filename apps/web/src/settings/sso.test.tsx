@@ -55,6 +55,13 @@ function ssoClient(connection: object | null) {
     {
       'POST /v1/sso/domains/verify': ({ body }: RequestOptions) => {
         const { domain } = body as { domain: string };
+        if (domain === 'taken.example') {
+          throw new ApiError(
+            409,
+            'CONFLICT',
+            'Another organisation has verified this domain already.',
+          );
+        }
         if (domain === 'sunrise-agro.example') {
           throw new ApiError(400, 'VALIDATION', 'Check the fields.', [
             {
@@ -73,6 +80,11 @@ function ssoClient(connection: object | null) {
           enabled: boolean;
           enforced: boolean;
         };
+        if (rest.enforced && !rest.domains.includes('sunrise.example')) {
+          throw new ApiError(400, 'VALIDATION', 'Check the fields.', [
+            { path: 'enforced', issue: 'Prove a domain is yours before requiring single sign-on' },
+          ]);
+        }
         if (rest.domains.includes('bad')) {
           throw new ApiError(400, 'VALIDATION', 'Check the fields.', [
             { path: 'domains.0', issue: 'Enter a domain such as example.com' },
@@ -151,6 +163,41 @@ describe('single sign-on settings (spec M1, D91)', () => {
         'No TXT record with the token was found at _thelamp-sso.sunrise-agro.example yet',
       ),
     ).toBeVisible();
+  });
+
+  it('says when another organisation proved a domain first', async () => {
+    const client = ssoClient({
+      ...OIDC,
+      domains: ['taken.example'],
+      domainChecks: checksOf(['taken.example']),
+    });
+    renderAt('/settings/sso', client);
+    const user = userEvent.setup();
+    const proofs = await screen.findByRole('region', { name: 'Prove your domains' });
+    await user.click(within(proofs).getByRole('button', { name: 'Check now' }));
+    expect(
+      await within(proofs).findByText('Another organisation has verified this domain already.'),
+    ).toBeVisible();
+    expect(within(proofs).queryByText(/changed somewhere else/)).toBeNull();
+  });
+
+  it('explains that Required waits until a domain is proved', async () => {
+    const client = ssoClient(null);
+    renderAt('/settings/sso', client);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Issuer URL *'), 'https://login.new.example');
+    await user.type(screen.getByLabelText('Client ID *'), 'portal');
+    await user.type(screen.getByLabelText('Client secret *'), 'a secret');
+    await user.type(screen.getByLabelText('Email domains *'), 'new.example');
+    await user.click(screen.getByRole('checkbox', { name: /On/ }));
+    await user.click(screen.getByRole('checkbox', { name: /Required/ }));
+    await user.click(screen.getByRole('button', { name: 'Save single sign-on' }));
+    expect(
+      await screen.findByText(
+        'Prove one of these domains is yours first, under Prove your domains; until then single sign-on can’t be required.',
+      ),
+    ).toBeVisible();
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('sets up SAML with a certificate, and shows a domain the API refused', async () => {

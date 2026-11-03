@@ -65,12 +65,13 @@ The screen also says **This phone becomes your work phone. Your manager can move
 | **Too many attempts. Wait a moment, then try again.** | Too many codes or tries in a short time | Wait ten minutes |
 | **This phone is not registered for your account. Ask your manager to reset your device.** | Your user is bound to another phone | Ask your manager to reset your device, then sign in again |
 | **The server could not be reached. Check your connection, then try again.** | No signal, or the server is down | Move to signal and try again |
-| **Update the app** with **Open the store** | This version is too old for the server | Install the newer build you are given |
+| **Update the app** with **Open the store** | This version is too old for the server | Tap **Open the store** and update the app there |
+| **Update the app** with **Ask your admin how to get the new version of the app.** | This version is too old, and this build names no store page | Ask your admin for the newer build and install it |
 | **You have been signed out. Sign in again.** | Your session was ended, for example by an admin | Sign in again; unsent records are still on the phone |
 
 ## Waiting on the owner
 
-- The app isn't on Google Play yet: the listing needs the new company registered, its D-U-N-S number and the Play Console. Until then, **Open the store** on the update screen opens a store page that doesn't exist.
+- The app isn't on Google Play yet: the listing needs the new company registered, its D-U-N-S number and the Play Console. Until a build carries the store page's address, the update screen shows no **Open the store** and tells people to ask their admin.
 - SMS codes in production need MSG91 with DLT registration and an approved template.
 - The Hindi text awaits a native speaker's review.
 - The Outdoor display hasn't had its field test in midday sun on two Android brands.

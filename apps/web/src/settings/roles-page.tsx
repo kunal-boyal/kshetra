@@ -13,6 +13,7 @@ import {
   type Column,
   DataTable,
   Icon,
+  Notice,
   SelectField,
   StatusBadge,
   TextField,
@@ -36,6 +37,9 @@ interface Draft {
 }
 
 const AREAS = Object.keys(PERMISSIONS_BY_AREA) as PermissionArea[];
+
+/** The built-in role that holds every permission across the organisation, and can't be narrowed. */
+const ADMIN_ROLE = 'tenant_admin';
 
 /**
  * Roles (spec 4.2, M2): what people may do and whose records they reach. Nobody gives access they
@@ -143,6 +147,8 @@ function RoleEditor({ draft: initial, onDone }: { draft: Draft; onDone: () => vo
   const [failure, setFailure] = useState<unknown>();
   const [busy, setBusy] = useState(false);
   const errors = fieldErrors(failure);
+  // The admin role always holds every permission across the organisation; only its name changes.
+  const fixed = draft.id !== undefined && draft.key === ADMIN_ROLE;
   const toggle = (permission: TenantPermission, on: boolean) =>
     setDraft((current) => ({
       ...current,
@@ -158,12 +164,20 @@ function RoleEditor({ draft: initial, onDone }: { draft: Draft; onDone: () => vo
     const name = { en: draft.en.trim(), hi: draft.hi.trim() };
     try {
       if (draft.id) {
-        await write(client, 'PATCH', `/v1/roles/${draft.id}`, RoleResult, {
-          name,
-          scope: draft.scope,
-          mobileOnly: draft.mobileOnly,
-          permissions: draft.permissions,
-        });
+        await write(
+          client,
+          'PATCH',
+          `/v1/roles/${draft.id}`,
+          RoleResult,
+          fixed
+            ? { name }
+            : {
+                name,
+                scope: draft.scope,
+                mobileOnly: draft.mobileOnly,
+                permissions: draft.permissions,
+              },
+        );
       } else {
         await write(client, 'POST', '/v1/roles', RoleResult, {
           key: draft.key.trim(),
@@ -193,6 +207,7 @@ function RoleEditor({ draft: initial, onDone }: { draft: Draft; onDone: () => vo
       noValidate
     >
       <h2 className="heading-md">{draft.id ? draft.en : t('roles.new_title')}</h2>
+      {fixed ? <Notice>{t('roles.admin_fixed')}</Notice> : null}
       {failure ? (
         <p className="ks-help error" role="alert">
           {errorMessage(failure, t)}
@@ -227,6 +242,7 @@ function RoleEditor({ draft: initial, onDone }: { draft: Draft; onDone: () => vo
           label={t('roles.scope')}
           value={draft.scope}
           options={DATA_SCOPES.map((scope) => ({ value: scope, label: t(`scope.${scope}`) }))}
+          disabled={fixed}
           {...(errors.scope ? { error: errors.scope } : {})}
           onChange={(event) => setDraft({ ...draft, scope: event.target.value as DataScope })}
         />
@@ -235,6 +251,7 @@ function RoleEditor({ draft: initial, onDone }: { draft: Draft; onDone: () => vo
         label={t('roles.mobile_only')}
         detail={t('roles.mobile_only_help')}
         checked={draft.mobileOnly}
+        disabled={fixed}
         onChange={(event) => setDraft({ ...draft, mobileOnly: event.target.checked })}
       />
       <ChoiceGroup
@@ -251,6 +268,7 @@ function RoleEditor({ draft: initial, onDone }: { draft: Draft; onDone: () => vo
                   label={t(`perm.${permission}`)}
                   detail={permission}
                   checked={draft.permissions.includes(permission)}
+                  disabled={fixed}
                   onChange={(event) => toggle(permission, event.target.checked)}
                 />
               ))}

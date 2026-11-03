@@ -84,10 +84,11 @@ async function organisation(domain: string) {
 
 /**
  * Saves a connection and proves its domains, publishing each TXT record where the test's DNS
- * reads it (decision D101); a refused save comes back as it was.
+ * reads it (decision D101); a refused save comes back as it was. Requiring SSO waits for a proved
+ * domain, so a connection that requires it is saved without, proved, then saved as asked.
  */
-async function connect(o: { admin: string }, body: object) {
-  const saved = await asUser('PUT', '/v1/sso', o.admin, body);
+async function connect(o: { admin: string }, body: { enforced?: boolean; [key: string]: unknown }) {
+  const saved = await asUser('PUT', '/v1/sso', o.admin, { ...body, enforced: false });
   if (saved.statusCode !== 200) return saved;
   const records = app.get(DomainRecords) as MemoryDomainRecords;
   for (const check of saved.json().connection.domainChecks) {
@@ -96,6 +97,10 @@ async function connect(o: { admin: string }, body: object) {
       domain: check.domain,
     });
     expect(proved.statusCode, proved.body).toBe(200);
+  }
+  if (body.enforced) {
+    const required = await asUser('PUT', '/v1/sso', o.admin, body);
+    if (required.statusCode !== 200) return required;
   }
   return asUser('GET', '/v1/sso', o.admin);
 }
@@ -258,6 +263,42 @@ describe('an OIDC connection (D91)', () => {
     expect((await world.verify(o.personPhone, newDevice())).json().status).toBe('signed_in');
     // The admin, without an email in the domain, still signs in with OTP and the authenticator.
     expect((await world.verify(o.adminPhone)).json().status).toBe('second_factor');
+  });
+});
+
+describe('requiring SSO only where a domain is proved (D101)', () => {
+  it('refuses to require it before a domain is proved, and refuses web codes only in proved ones', async () => {
+    const o = await organisation('proved.example');
+    const body = {
+      settings: oidcSettings(),
+      domains: ['proved.example', 'unproved.example'],
+      enabled: true,
+      enforced: true,
+    };
+    const early = await asUser('PUT', '/v1/sso', o.admin, body);
+    expect(early.statusCode).toBe(400);
+    expect(early.json().error.details).toEqual([
+      { path: 'enforced', issue: 'Prove a domain is yours before requiring single sign-on' },
+    ]);
+
+    const saved = await asUser('PUT', '/v1/sso', o.admin, { ...body, enforced: false });
+    expect(saved.statusCode, saved.body).toBe(200);
+    const check = saved
+      .json()
+      .connection.domainChecks.find((each: { domain: string }) => each.domain === 'proved.example');
+    (app.get(DomainRecords) as MemoryDomainRecords).set(check.recordName, [check.recordValue]);
+    const proved = await asUser('POST', '/v1/sso/domains/verify', o.admin, {
+      domain: 'proved.example',
+    });
+    expect(proved.statusCode, proved.body).toBe(200);
+    const required = await asUser('PUT', '/v1/sso', o.admin, body);
+    expect(required.statusCode, required.body).toBe(200);
+
+    // In the proved domain, the web wants SSO; in the one not proved, a code still signs in.
+    expect((await world.verify(o.personPhone)).json().error.code).toBe('SSO_REQUIRED');
+    const outsiderPhone = newPhone();
+    await world.user(o.tenantId, { phone: outsiderPhone, email: 'ravi@unproved.example' });
+    expect((await world.verify(outsiderPhone)).json().status).toBe('signed_in');
   });
 });
 

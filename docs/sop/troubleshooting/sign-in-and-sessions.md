@@ -38,7 +38,7 @@ Everyone signs in with their mobile number and a six-digit code sent by SMS; the
 
 ### "This mobile number is already in use"
 
-An admin adding a person or changing their number sees, under **Mobile number**: "This mobile number is already in use. Use another number, or ask the person to be removed from their current organisation first." In an import of people the same sentence shows against the row. **Reactivate** on the person's page refuses for the same reason, but shows only **This changed somewhere else. Refresh and try again.**
+An admin adding a person or changing their number sees, under **Mobile number**: "This mobile number is already in use. Use another number, or ask the person to be removed from their current organisation first." In an import of people the same sentence shows against the row. **Reactivate** on the person's page refuses for the same reason, with the same sentence.
 
 - Why: the number is active in another organisation. A person belongs to one at a time, and the message never says which (decision D103).
 - What to do: ask the person. If they have left the other organisation, its admin must deactivate them there first; once they are inactive there, this organisation can add the number. Otherwise use another number.
@@ -56,9 +56,9 @@ Reset the phone:
 5. Tap **Reset phone** again to confirm. The page says **The phone is reset.**
 6. The person signs in on the new phone. Whichever phone signs in first becomes theirs, so the old phone must not sign in again.
 
-For a lost or stolen phone, reset it as above, then tap **Sign out everywhere** on the same page and confirm. It says **They are signed out everywhere.** The old phone can no longer reach the person's data, but it stays registered for push, so notifications meant for the person may still show on it.
+For a lost or stolen phone, reset it as above, then tap **Sign out everywhere** on the same page and confirm. It says **They are signed out everywhere.** The old phone can no longer reach the person's data, and it gets no more push notifications.
 
-Who may do it: Admin, Business head and Manager (`user.reset_device`), only for people within their scope. Nobody resets their own phone: "You cannot reset your own device. Ask your manager or an admin to do it." shows as **You don't have access to this.** By practice ([docs/runbooks/device-reset.md](../../runbooks/device-reset.md)) vendor support asks the tenant's admin rather than resetting a phone under a support grant.
+Who may do it: Admin, Business head and Manager (`user.reset_device`), only for people within their scope. Nobody resets their own phone: on your own page **Reset phone** isn't shown; ask your manager or an admin. By practice ([docs/runbooks/device-reset.md](../../runbooks/device-reset.md)) vendor support asks the tenant's admin rather than resetting a phone under a support grant.
 
 ### "Use the mobile app for this" on the web
 
@@ -93,7 +93,7 @@ Changing who signs in as whom asks for a fresh authenticator code, good for ten 
 
 - A wrong code is asked for again, three times at most.
 - Vendor support can't make these changes under a support grant; the tenant's admin makes them.
-- Someone with no authenticator set up can't step up: after they enter any code, the change fails with **This changed somewhere else. Refresh and try again.**, which here means "set up an authenticator first". This happens to an admin of a demo tenant, or one who signs in only through single sign-on. They set one up first at **Your profile and settings** › **Sign-in security** › **Set up an authenticator**, then make the change again.
+- Someone with no authenticator set up can't step up. Instead of asking for a code, **Confirm it’s you** says **This change needs a code from an authenticator app, and you have none set up. Set one up at Sign-in security first, then make the change again.**, with **Set up an authenticator**, which opens **Sign-in security**, and **Cancel**. Either leaves the change undone. This happens to an admin of a demo tenant, or one who signs in only through single sign-on. Once their authenticator is set up, they make the change again.
 - **Cancel** shows **This change needs a code from your authenticator. Make it again and enter the code.** The change simply wasn't made; there is no need to sign in again.
 
 ### Single sign-on
@@ -102,7 +102,7 @@ On the web, a tenant with **Single sign-on** on lets people in its email domains
 
 | What you see | What it means | What to do |
 |---|---|---|
-| **Your organisation signs you in with its own sign-in. Enter your work email to continue.** after the SMS code | The organisation requires SSO for this person's email domain (**Required** on **Settings** › **Single sign-on**) | The page switches to the SSO step. Enter the work email and **Continue**. |
+| **Your organisation signs you in with its own sign-in. Enter your work email to continue.** after the SMS code | The organisation requires SSO for this person's email domain, and has proved the domain (**Required** on **Settings** › **Single sign-on**). A domain not yet proved never refuses the code | The page switches to the SSO step. Enter the work email and **Continue**. |
 | **Your organisation doesn’t use single sign-on for this email. Sign in with your mobile number.** | No SSO connection covers that email's domain | Use **Mobile number**, or ask the admin to add and prove the domain. |
 | **The sign-in took too long. Try again.** | The provider's answer came back too late, or in a different browser from the one that started | Start again, and finish in the same browser. |
 | **Your organisation’s sign-in didn’t complete. Try again, or ask your administrator.** | The identity provider refused, or its answer didn't check out | The admin checks the connection's settings with the provider. |
@@ -143,4 +143,4 @@ The phone shows **Update the app** with **This version of the app is no longer s
 - SMS codes in production need MSG91 with DLT registration of the entity, the sender ID and the one-time-code template. Until then nobody can sign in by SMS on a production cell.
 - A second SMS provider behind the code sender, for outages, is planned but not built; until then the fallback is waiting.
 - The app isn't on Google Play yet, so **Open the store** has no listing to open; updates come as an installable file.
-- Texts the server writes for one field, such as the "already in use" sentence, are English even for Hindi readers (D42 open item).
+- Texts the server writes, such as the "already in use" sentence beside a field or a conflict's reason on a person's page, are English even for Hindi readers (D42 open item).

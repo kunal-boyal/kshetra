@@ -3,9 +3,9 @@ import type { PhotoKind } from '@thelamp/shared';
 import { Button, Screen, Text, useTheme } from '@thelamp/ui-mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
-import { ArrowLeft, Camera, Check, RotateCcw } from 'lucide-react-native';
+import { ArrowLeft, Camera, Check, RotateCcw, Settings } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../app-state';
 import { addResult } from '../capture-results';
@@ -101,7 +101,15 @@ export function CameraScreen({ kind, request }: { kind: PhotoKind; request: stri
             label={t('camera.allow')}
             onPress={() => void ask()}
           />
-        ) : null}
+        ) : (
+          // Turned off for good: only the phone's settings can allow it again.
+          <Button
+            variant="primary"
+            icon={Settings}
+            label={t('camera.open_settings')}
+            onPress={() => void Linking.openSettings()}
+          />
+        )}
       </Screen>
     );
   }

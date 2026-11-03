@@ -35,6 +35,8 @@ If you don't allow location all the time, the day still starts, but the app open
 
 ### Pause and resume tracking
 
+Only roles that may pause tracking (`tracking.pause`) see **Pause tracking** and **Resume tracking**; others end the day instead.
+
 1. On the shift card, tap **Pause tracking**.
 2. Under **Why are you pausing?**, choose **A break**, **Personal time**, **No GPS where I am** or **Something else**. **Cancel** closes it without pausing.
 3. The card shows **Paused**. Location stops being recorded; you stay on duty for attendance.
@@ -45,7 +47,7 @@ If you don't allow location all the time, the day still starts, but the app open
 Recording can stop by itself: the phone restarted, the app was force-stopped, a battery saver closed it, or location permission was taken away. The card then shows **Not recording**.
 
 1. Tap **Record again**. If the app can't start recording, it opens **Keep your route recorded**.
-2. Or tap **Fix this** to open **Keep your route recorded** directly.
+2. Or tap **Fix this** to open **Keep your route recorded** directly. You can also open it any time from **More** › **Keep your route recorded**, for example to set the phone up before your first day.
 3. Under **On this phone**, check **Location all the time** (**Allowed** or **Not allowed**) and **Battery use for this app** (**Restricted** or **Unrestricted**).
 4. Follow the three steps for your phone's maker (Xiaomi, Redmi and POCO, Vivo, Oppo, Realme, OnePlus, Samsung, or any other phone). For example, on Samsung: set Location to "Allow all the time", choose "Unrestricted" under Battery, and keep the app out of Sleeping or Deep sleeping apps. **Other phones** lists the other makers' steps.
 5. Tap **Open app settings** to make the changes, then come back and tap **Record again**.

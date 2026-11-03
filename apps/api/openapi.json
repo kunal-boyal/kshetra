@@ -3855,6 +3855,12 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "billing": {
+                    "$ref": "#/components/schemas/BillingAccountBody"
+                  },
+                  "subscription": {
+                    "$ref": "#/components/schemas/OpeningSubscription"
                   }
                 },
                 "required": [
@@ -4575,7 +4581,7 @@
     "/platform/v1/tenants/{id}/reactivate": {
       "post": {
         "operationId": "ConsoleTenantsController.reactivate",
-        "summary": "Reactivate a suspended tenant",
+        "summary": "Reactivate a suspended tenant, billed or on trial (a new trial end if neither)",
         "tags": [
           "Platform console"
         ],
@@ -4597,6 +4603,24 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "trialEndsOn": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Success",
@@ -6601,6 +6625,11 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 300
+                  },
+                  "savedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                   }
                 },
                 "required": [
@@ -9026,8 +9055,7 @@
                 "order",
                 "new_account",
                 "account_location_change",
-                "journey_plan",
-                "target_lock"
+                "journey_plan"
               ]
             }
           },
@@ -9090,8 +9118,7 @@
                           "order",
                           "new_account",
                           "account_location_change",
-                          "journey_plan",
-                          "target_lock"
+                          "journey_plan"
                         ]
                       },
                       "additionalProperties": {
@@ -9253,8 +9280,7 @@
                       "order",
                       "new_account",
                       "account_location_change",
-                      "journey_plan",
-                      "target_lock"
+                      "journey_plan"
                     ]
                   },
                   "facts": {
@@ -13222,7 +13248,7 @@
                           "$ref": "#/components/schemas/Key"
                         },
                         "definitions": {
-                          "maxItems": 8,
+                          "maxItems": 7,
                           "type": "array",
                           "items": {
                             "$ref": "#/components/schemas/Workflow"
@@ -23474,7 +23500,6 @@
                             "$ref": "#/components/schemas/DataScope"
                           },
                           "permissions": {
-                            "minItems": 1,
                             "type": "array",
                             "items": {
                               "$ref": "#/components/schemas/Permission"
@@ -23578,7 +23603,6 @@
                       "$ref": "#/components/schemas/DataScope"
                     },
                     "permissions": {
-                      "minItems": 1,
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Permission"
@@ -23695,7 +23719,6 @@
                       "$ref": "#/components/schemas/DataScope"
                     },
                     "permissions": {
-                      "minItems": 1,
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Permission"
@@ -31212,8 +31235,7 @@
                 "order",
                 "new_account",
                 "account_location_change",
-                "journey_plan",
-                "target_lock"
+                "journey_plan"
               ]
             }
           },
@@ -31276,8 +31298,7 @@
                         "order",
                         "new_account",
                         "account_location_change",
-                        "journey_plan",
-                        "target_lock"
+                        "journey_plan"
                       ]
                     },
                     "version": {
@@ -32806,8 +32827,7 @@
               "order",
               "new_account",
               "account_location_change",
-              "journey_plan",
-              "target_lock"
+              "journey_plan"
             ]
           },
           "requestId": {
@@ -44474,6 +44494,7 @@
               "report.scheduled",
               "support.requested",
               "support.emergency",
+              "support.second_factor_reset",
               "data_request.received",
               "data_request.due_soon",
               "data_request.closed",
@@ -44699,6 +44720,40 @@
           "token_type",
           "expires_in",
           "scope"
+        ],
+        "additionalProperties": false
+      },
+      "OpeningSubscription": {
+        "type": "object",
+        "properties": {
+          "cycle": {
+            "type": "string",
+            "enum": [
+              "month",
+              "year"
+            ]
+          },
+          "committedSeats": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          }
+        },
+        "required": [
+          "cycle"
         ],
         "additionalProperties": false
       },
@@ -46130,8 +46185,6 @@
           "form.manage",
           "metric.manage",
           "workflow.manage",
-          "policy.manage",
-          "notification_template.manage",
           "module.manage",
           "catalogue.manage",
           "price_list.manage",
@@ -52352,7 +52405,6 @@
                 "platform.plan.manage",
                 "platform.support.request",
                 "platform.support.approve_emergency",
-                "platform.flags.manage",
                 "platform.billing.manage",
                 "platform.staff.manage"
               ]
@@ -57235,8 +57287,7 @@
               "order",
               "new_account",
               "account_location_change",
-              "journey_plan",
-              "target_lock"
+              "journey_plan"
             ]
           },
           "steps": {
@@ -57274,8 +57325,7 @@
                     "order",
                     "new_account",
                     "account_location_change",
-                    "journey_plan",
-                    "target_lock"
+                    "journey_plan"
                   ]
                 },
                 "version": {

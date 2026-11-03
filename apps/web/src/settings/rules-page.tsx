@@ -1,5 +1,7 @@
 import {
+  type AgeingBucket,
   ANOMALY_FLAGS,
+  bucketsIssue,
   BURST_COUNT,
   BURST_WINDOW_MS,
   FAST_TRAVEL_KMH,
@@ -10,8 +12,8 @@ import {
   type UpdateSettingsBody,
 } from '@thelamp/shared';
 import { Button, Checkbox, Icon, SelectField, TextField } from '@thelamp/ui-web';
+import { Plus, Save, Trash2 } from 'lucide-react';
 import { formatNumber } from '@thelamp/i18n';
-import { Save } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
@@ -30,9 +32,6 @@ type Rules = Omit<
   | 'privacyPolicyUrl'
   | 'brandColour'
   | 'modulesOff'
-  // Orders arrive in phase 2, with their settings.
-  | 'ordersNeedOpenShift'
-  | 'ordersAllowedOffline'
   // Review rules live on the review page.
   | 'reviewAutoApproval'
 >;
@@ -53,8 +52,9 @@ export function timeZones(current: string): string[] {
 }
 
 /**
- * The tenant's rules (M2, spec 5.1): region and languages, field work, approvals, notifications,
- * retention and maps. One save sends what changed; the server checks every range.
+ * The tenant's rules (M2, spec 5.1): region and languages, field work, approvals, orders, account
+ * finance, notifications, retention and maps; a module's rules show while it is on. One save sends
+ * what changed; the server checks every range, and the ageing buckets are checked here first.
  */
 export function RulesPage() {
   const { client, queryClient } = useApp();
@@ -114,9 +114,11 @@ export function RulesPage() {
     </Section>
   );
 
+  const bucketsWrong = 'ageingBuckets' in draft && bucketsIssue(value('ageingBuckets')) !== null;
+
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (Object.keys(draft).length === 0) return;
+    if (Object.keys(draft).length === 0 || bucketsWrong) return;
     setBusy(true);
     setError(undefined);
     try {
@@ -226,6 +228,15 @@ export function RulesPage() {
           {flag('deviceBinding')}
         </>,
       )}
+      {settings.modulesOff.includes('orders')
+        ? null
+        : group(
+            t('orders.title'),
+            <>
+              {flag('ordersNeedOpenShift')}
+              {flag('ordersAllowedOffline')}
+            </>,
+          )}
       {group(
         t('admin.rules_approvals'),
         <>
@@ -290,6 +301,19 @@ export function RulesPage() {
               }
             />,
           )}
+      {settings.modulesOff.includes('account_finance') ? null : (
+        <Section title={t('finance.ageing')}>
+          <AgeingBuckets
+            buckets={value('ageingBuckets')}
+            error={
+              bucketsWrong
+                ? t('admin.buckets_issue')
+                : Object.entries(errors).find(([path]) => path.startsWith('ageingBuckets'))?.[1]
+            }
+            onChange={(next) => set('ageingBuckets', next)}
+          />
+        </Section>
+      )}
       {settings.modulesOff.includes('inventory')
         ? null
         : group(
@@ -345,7 +369,7 @@ export function RulesPage() {
           type="submit"
           variant="primary"
           busy={busy}
-          disabled={Object.keys(draft).length === 0}
+          disabled={Object.keys(draft).length === 0 || bucketsWrong}
           icon={<Icon icon={Save} />}
         >
           {t('common.save')}
@@ -362,5 +386,89 @@ export function RulesPage() {
         ) : null}
       </div>
     </form>
+  );
+}
+
+/** The most bands an organisation may age into (spec 5.1, M11). */
+const MOST_BUCKETS = 8;
+
+/**
+ * The bands of days past due that account finance ages outstanding into (BR-20): each from a day
+ * and to a day, the last with no end. A band keeps its key, which its stored amounts carry; a new
+ * band's key comes from its first day.
+ */
+function AgeingBuckets({
+  buckets,
+  error,
+  onChange,
+}: {
+  buckets: readonly AgeingBucket[];
+  error: string | undefined;
+  onChange: (buckets: AgeingBucket[]) => void;
+}) {
+  const { t } = useLanguage();
+  const days = (text: string) => (text === '' ? null : Number(text));
+  const change = (index: number, next: Partial<AgeingBucket>) =>
+    onChange(buckets.map((bucket, i) => (i === index ? { ...bucket, ...next } : bucket)));
+  /** A band after the last: an open last band gets 30 days, and the new one has no end. */
+  function add() {
+    const last = buckets.at(-1)!;
+    const end = last.toDays ?? last.fromDays + 29;
+    const from = end + 1;
+    const taken = new Set(buckets.map((bucket) => bucket.key));
+    let key = `d${from}`;
+    for (let n = 2; taken.has(key); n += 1) key = `d${from}_${n}`;
+    onChange([
+      ...buckets.slice(0, -1),
+      { ...last, toDays: end },
+      { key, fromDays: from, toDays: null },
+    ]);
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="ks-help">{t('admin.buckets_help')}</p>
+      {buckets.map((bucket, index) => (
+        <fieldset key={bucket.key} className="grid items-end gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <legend className="ks-label">{t('admin.bucket_n', { n: index + 1 })}</legend>
+          <TextField
+            label={t('admin.bucket_from')}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={3650}
+            value={String(bucket.fromDays)}
+            onChange={(event) => change(index, { fromDays: Number(event.target.value) || 0 })}
+          />
+          <TextField
+            label={t('admin.bucket_to')}
+            help={t('admin.bucket_to_help')}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={3650}
+            value={bucket.toDays === null ? '' : String(bucket.toDays)}
+            onChange={(event) => change(index, { toDays: days(event.target.value) })}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={buckets.length === 1}
+            icon={<Icon icon={Trash2} />}
+            aria-label={t('admin.bucket_remove', { n: index + 1 })}
+            onClick={() => onChange(buckets.filter((_, i) => i !== index))}
+          />
+        </fieldset>
+      ))}
+      {error ? (
+        <p className="ks-help error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {buckets.length < MOST_BUCKETS ? (
+        <Button size="sm" className="self-start" icon={<Icon icon={Plus} />} onClick={add}>
+          {t('admin.bucket_add')}
+        </Button>
+      ) : null}
+    </div>
   );
 }

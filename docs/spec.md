@@ -358,7 +358,7 @@ Values belong to the submitting or ordering user and to the local date of captur
 
 A workflow engine routes every request type through tenant-defined steps.
 
-Request types in version 1: leave, attendance regularisation, expense claim, order, new account, account location change, journey plan (monthly tour plan) and, optionally, target lock.
+Request types in version 1: leave, attendance regularisation, expense claim, order, new account, account location change, journey plan (monthly tour plan). Target lock, once listed as optional, was removed by D137: locking targets is `target.lock` on the targets themselves, never a request.
 
 | Step property | Options |
 |---|---|
@@ -429,7 +429,7 @@ Each module lists what it does, the rules it applies (section 7) and its accepta
 | Mobile app, every role | Mobile number and a 6-digit one-time code by SMS. WhatsApp as a fallback channel for the code is planned, not built. |
 | Web portal | Mobile number and OTP. A tenant on the SSO module offers Company SSO (OIDC or SAML) and can require it for web users. Email and OTP is planned, not built. |
 | Tenant admins on the web | A TOTP authenticator code in addition to OTP, for anyone whose role can change access (role, user, settings, module or billing management); set up at the first such sign-in, with ten single-use recovery codes. Anyone else may set one up from Sign-in security, and is then asked for it too. After SSO, the identity provider's own second factor counts; without one, ours is asked for. Phones keep OTP and device binding, and their tokens never carry the permissions that change access (D101). Changing a person's phone or email, resetting an authenticator or changing SSO needs a fresh authenticator code from the last ten minutes; SSO signs in only addresses at domains proved by a DNS TXT record, and binds each person to the provider's issuer and subject (D101). |
-| Platform console | Email, password and TOTP for vendor staff, or the vendor's own identity provider. Passwords of 12 characters or more, without the product's or the person's names and not known from breaches; staff change their own, and a platform admin resets a lost password or authenticator with a new setup link (D101). |
+| Platform console | Email, password and TOTP for vendor staff, or the vendor's own identity provider. Passwords of 12 characters or more, without the product's or the person's names and not known from breaches; staff change their own, and a platform admin resets a lost password or authenticator with a new setup link (D101); the last platform admin is reset from the command line, and inviting a disabled or still-invited email again starts that staff member's row afresh (D134). |
 
 Flow and rules:
 
@@ -742,7 +742,7 @@ Rules: BR-42, BR-43.
 
 ### M22. Platform console (vendor)
 
-- Tenants: create from a template, choose a cell (shared or dedicated), plan and trial length; suspend, reactivate, and terminate with the export and deletion procedure: a suspended tenant is terminated with its slug typed again, a final export is prepared for the customer, and its data is deleted 30 days later, its invoices kept, with a deletion certificate in the platform audit (decision D95).
+- Tenants: create from a template, choose a cell (shared or dedicated), plan and trial length, or open active with its subscription and billing details; suspend, reactivate (only on trial or billed: every open tenant is on trial or billed, D134), and terminate with the export and deletion procedure: a suspended tenant is terminated with its slug typed again, a final export is prepared for the customer, and its data is deleted 30 days later, its invoices kept, with a deletion certificate in the platform audit (decision D95).
 - Plans, entitlements, feature flags and limits per tenant.
 - Usage per tenant per month: active users, seats, storage, SMS and WhatsApp volumes, API calls.
 - Support access: a vendor user requests access to a tenant with a reason; the tenant admin approves it for a fixed time (default 4 hours). Emergency access needs a second vendor admin and notifies the tenant admin. Grants are read-only unless they say otherwise.
@@ -2165,6 +2165,7 @@ Tenant
 ```mermaid
 stateDiagram-v2
   [*] --> trial
+  [*] --> active: created with its subscription
   trial --> active: subscription started
   trial --> suspended: trial ended unpaid
   active --> grace: payment failed
@@ -2172,7 +2173,8 @@ stateDiagram-v2
   grace --> read_only: grace period ended
   read_only --> active: paid
   read_only --> suspended: continued non-payment
-  suspended --> active: paid and reactivated
+  suspended --> active: paid and reactivated, or subscription started
+  suspended --> trial: reactivated with a trial left or a new trial end
   suspended --> terminated: contract ended, export delivered, data deleted
 ```
 
@@ -2295,13 +2297,13 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | Maps | `live_map.view`, `trail.view` |
 | People | `user.view`, `user.manage`, `user.reset_device`, `user.sign_out_all`, `role.manage`, `designation.manage` |
 | Territories and accounts | `territory.manage`, `account.view`, `account.manage`, `account.import`, `account.approve`, `sell_through.record` (D124), `stock.view`, `stock.record`, `stock.count` (D130) |
-| Configuration | `settings.manage`, `terminology.manage`, `form.manage`, `metric.manage`, `workflow.manage`, `policy.manage`, `notification_template.manage`, `module.manage` |
+| Configuration | `settings.manage`, `terminology.manage`, `form.manage`, `metric.manage`, `workflow.manage`, `module.manage` (`policy.manage` and `notification_template.manage`, which nothing used, removed by D137) |
 | Catalogue and orders | `catalogue.manage`, `price_list.manage`, `order.create`, `order.create_without_shift`, `order.view`, `order.decide`, `order.line_decide`, `order.fulfil`, `scheme.manage` (D127) |
 | Finance | `finance.view`, `finance.manage`, `collection.record`, `collection.view`, `collection.confirm` (D132) |
 | People operations | `leave.request`, `regularisation.request`, `expense.claim`, `approval.act`, `calendar.manage`, `leave_type.manage`, `expense_policy.manage`, `expense.mark_paid`, `payroll.manage`, `payslip.view`, `payroll.run`, `salary.manage` (D128) |
 | Data | `report.view`, `export.create`, `report.schedule`, `dashboard.manage`, `import.run`, `audit.view` (`report.schedule` and `dashboard.manage` belong to the advanced analytics module, D122) |
 | Integrations and billing | `api_client.manage`, `webhook.manage`, `erp.manage` (D129), `billing.manage` |
-| Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.flags.manage`, `platform.billing.manage`, `platform.staff.manage` (inviting and disabling vendor staff, decision D88) |
+| Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.billing.manage`, `platform.staff.manage` (inviting and disabling vendor staff, decision D88); `platform.flags.manage`, which nothing used, removed by D137 |
 
 ## Appendix F. Environment variables
 
@@ -2336,7 +2338,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 
 Web portal and console: `VITE_DIRECTORY_URL`, `VITE_CELL_URL` (optional; where the portal calls the cell, by default its own origin, which passes `/v1` and `/auth` to the cell; the cell address handed out at sign-in is what Settings › API clients shows integrators), `VITE_PRODUCT_NAME`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN`, `VITE_PRIVACY_EMAIL` (the provider's privacy address on the public privacy and account deletion pages; without it they point to the store page).
 
-Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_PRIVACY_EMAIL` (as `VITE_PRIVACY_EMAIL`, for the app's Privacy screen), `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`, and `PRODUCT_SLUG` and `PRODUCT_NAME`, from which the app's name and store identifiers derive. The cell URL comes from the sign-in response, never from the build.
+Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_PRIVACY_EMAIL` (as `VITE_PRIVACY_EMAIL`, for the app's Privacy screen), `EXPO_PUBLIC_PLAY_STORE_URL` and `EXPO_PUBLIC_APP_STORE_URL` (each platform's store page, which the blocking update screen opens; without one it tells the person to ask their admin for the new version, decision D136), `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`, and `PRODUCT_SLUG` and `PRODUCT_NAME`, from which the app's name and store identifiers derive. The cell URL comes from the sign-in response, never from the build.
 
 ## Appendix G. Glossary
 

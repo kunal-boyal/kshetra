@@ -15,9 +15,18 @@ import {
 } from '@thelamp/ui-web';
 import { ArrowLeft, Check } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
+import { useConsole } from '../context';
 import { useConsoleMutations, usePlans, useTemplates } from '../data';
-import { EmailField, MobileField } from '../fields';
+import { EmailField, MobileField, UnshownErrors } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
+import { billingToday, holds } from './shared';
+import {
+  ACCOUNT_FIELDS,
+  AccountFields,
+  accountBody,
+  type AccountDraft,
+  accountDraft,
+} from './tenant-billing';
 
 /** A slug from a name: lowercase letters, digits and hyphens, starting with a letter. */
 export function slugOf(name: string): string {
@@ -41,16 +50,36 @@ const STEP_OF: Record<string, number> = {
   planId: 3,
   status: 3,
   trialDays: 3,
+  subscription: 3,
+  billing: 3,
 };
+
+/** Every path a field of the form shows its error under; any other shows above the form. */
+const SHOWN = [
+  'name',
+  'slug',
+  'template',
+  'admin.name',
+  'admin.phone',
+  'admin.email',
+  'planId',
+  'trialDays',
+  'subscription.committedSeats',
+  'subscription.startsOn',
+  ...ACCOUNT_FIELDS.map((key) => `billing.${key}`),
+];
 
 const HUES = ['sage', 'sky', 'butter', 'lilac', 'sand'] as const satisfies readonly Hue[];
 
 /**
  * A new tenant from an industry template, with its first admin (module M22, decision D88). The
- * form names the tenant's ID once, so sending it twice makes one tenant.
+ * form names the tenant's ID once, so sending it twice makes one tenant. It opens on trial, or
+ * active and billed from the start, with its subscription and billing details (decision D134).
  */
 export function NewTenantPage() {
+  const { client } = useConsole();
   const { t, locale } = useLanguage();
+  const canBill = holds(client.staff, 'platform.billing.manage');
   const navigate = useNavigate();
   const templates = useTemplates();
   const plans = usePlans();
@@ -63,6 +92,10 @@ export function NewTenantPage() {
   const [planId, setPlanId] = useState('');
   const [status, setStatus] = useState<'trial' | 'active'>('trial');
   const [trialDays, setTrialDays] = useState('30');
+  const [cycle, setCycle] = useState<'month' | 'year'>('month');
+  const [seats, setSeats] = useState('1');
+  const [startsOn, setStartsOn] = useState(billingToday);
+  const [account, setAccount] = useState<AccountDraft>(() => accountDraft(''));
   const [adminName, setAdminName] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
@@ -73,6 +106,9 @@ export function NewTenantPage() {
 
   const chosenSlug = slugTouched ? slug : slugOf(name);
   const chosenTemplate = template || templates.data?.items[0]?.key || '';
+  const active = status === 'active';
+  // The billing details start from the organisation's name until they are changed.
+  const draft = { ...account, legalName: account.legalName || name.trim() };
 
   async function create(event: FormEvent) {
     event.preventDefault();
@@ -80,6 +116,11 @@ export function NewTenantPage() {
     if (mobileMessage(adminPhone) || emailMessage(adminEmail)) {
       setChecked(true);
       setStep(STEPS.indexOf('admin'));
+      return;
+    }
+    if (active && emailMessage(draft.email, true)) {
+      setChecked(true);
+      setStep(STEPS.indexOf('plan'));
       return;
     }
     setErrors({});
@@ -92,7 +133,16 @@ export function NewTenantPage() {
         template: chosenTemplate,
         planId: planId || null,
         status,
-        ...(status === 'trial' ? { trialDays: Number(trialDays) } : {}),
+        ...(active
+          ? {
+              subscription: {
+                cycle,
+                committedSeats: cycle === 'year' ? Number(seats) : null,
+                startsOn,
+              },
+              billing: accountBody(draft),
+            }
+          : { trialDays: Number(trialDays) }),
         admin: {
           name: adminName.trim(),
           phone: adminPhone.trim(),
@@ -117,7 +167,16 @@ export function NewTenantPage() {
     Boolean(name.trim() && chosenSlug),
     Boolean(chosenTemplate),
     Boolean(adminName.trim() && adminPhone.trim()),
-    status === 'active' || Boolean(trialDays),
+    active
+      ? Boolean(
+          planId &&
+          startsOn &&
+          (cycle === 'month' || seats) &&
+          draft.legalName.trim() &&
+          draft.address.trim() &&
+          draft.email.trim(),
+        )
+      : Boolean(trialDays),
     true,
   ];
   const last = STEPS.length - 1;
@@ -268,14 +327,55 @@ export function NewTenantPage() {
               />
               <SelectField
                 label={t('console.opens_as')}
+                {...(canBill ? {} : { help: t('console.trial_only_note') })}
                 value={status}
                 onChange={(event) => setStatus(event.target.value as 'trial' | 'active')}
-                options={(['trial', 'active'] as const).map((value) => ({
-                  value,
-                  label: t(`console.status_${value}`),
-                }))}
+                options={(canBill ? (['trial', 'active'] as const) : (['trial'] as const)).map(
+                  (value) => ({ value, label: t(`console.status_${value}`) }),
+                )}
               />
-              {status === 'trial' ? (
+              {active ? (
+                <>
+                  <Notice>{t('console.active_billed_note')}</Notice>
+                  <h3 className="ks-label">{t('console.subscription')}</h3>
+                  <SelectField
+                    label={t('console.cycle')}
+                    value={cycle}
+                    onChange={(event) => setCycle(event.target.value as 'month' | 'year')}
+                    options={[
+                      { value: 'month', label: t('console.cycle_month') },
+                      { value: 'year', label: t('console.cycle_year') },
+                    ]}
+                  />
+                  {cycle === 'year' ? (
+                    <TextField
+                      label={t('console.committed_seats')}
+                      numeric
+                      inputMode="numeric"
+                      value={seats}
+                      onChange={(event) => setSeats(event.target.value.replace(/\D/g, ''))}
+                      error={errors['subscription.committedSeats']}
+                      required
+                    />
+                  ) : null}
+                  <TextField
+                    label={t('console.starts_on')}
+                    type="date"
+                    value={startsOn}
+                    onChange={(event) => setStartsOn(event.target.value)}
+                    error={errors['subscription.startsOn']}
+                    required
+                  />
+                  <h3 className="ks-label">{t('console.billing_details')}</h3>
+                  <AccountFields
+                    draft={draft}
+                    change={(patch) => setAccount({ ...draft, ...patch })}
+                    errors={errors}
+                    checked={checked}
+                    prefix="billing."
+                  />
+                </>
+              ) : (
                 <TextField
                   label={t('console.trial_days')}
                   numeric
@@ -284,11 +384,12 @@ export function NewTenantPage() {
                   onChange={(event) => setTrialDays(event.target.value.replace(/\D/g, ''))}
                   error={errors.trialDays}
                 />
-              ) : null}
+              )}
             </Card>
           ) : (
             <Notice>{t('console.review_note')}</Notice>
           )}
+          <UnshownErrors errors={errors} shown={SHOWN} />
           {failure ? (
             <p className="ks-help error" role="alert">
               {failure}

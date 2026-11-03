@@ -44,6 +44,7 @@ import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
 import { accountCollected, overdueOf, useCollections } from '../collections';
 import { creditLeft, useBalance, useOpenInvoices } from '../finance';
+import { useAccountPrices } from '../prices';
 import { useAccountStock } from '../stock';
 import { useOutboxItems, useSync, useSyncStatus } from '../sync';
 import { useTodayPlan } from './today-plan';
@@ -100,6 +101,8 @@ export function AccountScreen({ id }: { id: string }) {
   const invoices = useOpenInvoices(id, financeOn && permissions.has('finance.view')).data?.items;
   const openInvoices = invoices ?? [];
   const collections = useCollections(bundle?.settings.timezone ?? 'Asia/Kolkata');
+  // What this account pays today: a new order only where some list prices an item here.
+  const offers = useAccountPrices(account);
 
   if (accounts === undefined) {
     return (
@@ -189,7 +192,7 @@ export function AccountScreen({ id }: { id: string }) {
   const mayForecast = permissions.has('forecast.record');
   const mayOrder =
     ordersOn &&
-    (priceLists?.length ?? 0) > 0 &&
+    (offers?.length ?? 0) > 0 &&
     permissions.has('order.create') &&
     account.status === 'active';
   const showPrices = ordersOn && (priceLists?.length ?? 0) > 0;

@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   canGrant,
   DATA_SCOPES,
+  knownPermissions,
   PERMISSIONS_BY_AREA,
   PLATFORM_PERMISSIONS,
+  PLATFORM_ROLE_PERMISSIONS,
+  RETIRED_PERMISSIONS,
   scopeContains,
   SYSTEM_ROLES,
   TENANT_PERMISSIONS,
@@ -11,7 +14,7 @@ import {
 
 describe('the permission catalogue (spec Appendix E)', () => {
   it('lists every tenant permission once, as <area>.<action>', () => {
-    expect(TENANT_PERMISSIONS).toHaveLength(82);
+    expect(TENANT_PERMISSIONS).toHaveLength(80);
     expect(new Set(TENANT_PERMISSIONS).size).toBe(TENANT_PERMISSIONS.length);
     for (const permission of TENANT_PERMISSIONS) {
       expect(permission).toMatch(/^[a-z_]+\.[a-z_]+$/);
@@ -23,6 +26,17 @@ describe('the permission catalogue (spec Appendix E)', () => {
       expect(permission.startsWith('platform.')).toBe(true);
       expect(TENANT_PERMISSIONS).not.toContain(permission);
     }
+  });
+
+  it('leaves out the permissions nothing used (D137), and reads stored roles without them', () => {
+    for (const permission of RETIRED_PERMISSIONS) {
+      expect(TENANT_PERMISSIONS).not.toContain(permission);
+    }
+    expect(PLATFORM_PERMISSIONS).not.toContain('platform.flags.manage');
+    expect(PLATFORM_ROLE_PERMISSIONS.implementation).toEqual(['platform.tenant.manage']);
+    expect(
+      knownPermissions(['user.view', 'policy.manage', 'notification_template.manage']),
+    ).toEqual(['user.view']);
   });
 
   it('groups permissions by the areas of the catalogue', () => {

@@ -1,5 +1,5 @@
 import { type Approver, type ChainView, REQUEST_FACTS, type WorkflowStep } from '@thelamp/forms';
-import { ACCOUNT_REQUEST_TYPES, type Locale, type RequestType } from '@thelamp/shared';
+import { ACCOUNT_REQUEST_TYPES, type Locale, type RequestType, UserView } from '@thelamp/shared';
 import {
   Button,
   Icon,
@@ -10,13 +10,15 @@ import {
   StatusBadge,
   TextField,
 } from '@thelamp/ui-web';
+import { useQueries } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { ConditionEditor } from '../forms/field-editor';
 import { errorMessage, useLanguage } from '../i18n';
-import { useDesignations, useRoles, useUsers } from '../people/data';
+import { read, useDesignations, useRoles } from '../people/data';
+import { type PickedPerson, PersonPicker } from '../people/person-picker';
 import { fieldErrors, PageHeader, Section, useDates } from '../people/shared';
 import { useChains, useSaveChains } from './chains-data';
 import { useTypeList } from './types-data';
@@ -31,12 +33,15 @@ const APPROVER_TYPES = [
 
 type Option = { value: string; label: string };
 
-/** Who to choose from: the tenant's roles, designations, account slots and active people. */
+/**
+ * Who to choose from: the tenant's roles, designations and account slots. People are searched for
+ * among everyone (`PersonPicker`); `people` holds only those the chains already name.
+ */
 interface Choices {
   roles: Option[];
   designations: Option[];
   slots: Option[];
-  people: Option[];
+  people: PickedPerson[];
 }
 
 /**
@@ -52,7 +57,22 @@ export function ApprovalChainsPage() {
   const roles = useRoles();
   const designations = useDesignations();
   const types = useTypeList();
-  const people = useUsers({ status: 'active' }, 100);
+  // The people the chains name, each read by their ID: a picker searches for anyone else.
+  const named = [
+    ...new Set(
+      (chains.data?.chains ?? []).flatMap((chain) =>
+        chain.steps.flatMap((step) =>
+          step.approver.type === 'specific_user' ? [step.approver.userId] : [],
+        ),
+      ),
+    ),
+  ];
+  const people = useQueries({
+    queries: named.map((id) => ({
+      queryKey: ['user', id],
+      queryFn: () => read(client, `/v1/users/${id}`, UserView),
+    })),
+  });
   const config = useConfig(client, queryClient);
   const dates = useDates(config.data?.bundle.settings.timezone ?? 'Asia/Kolkata');
   const [editing, setEditing] = useState<RequestType | null>(null);
@@ -74,9 +94,9 @@ export function ApprovalChainsPage() {
         ),
       ),
     ].map(([value, label]) => ({ value, label })),
-    people: (people.data?.pages ?? [])
-      .flatMap((page) => page.items)
-      .map((person) => ({ value: person.id, label: `${person.name} (${person.code})` })),
+    people: people.flatMap((person) =>
+      person.data ? [{ id: person.data.id, name: person.data.name, code: person.data.code }] : [],
+    ),
   };
 
   async function setFallback(role: string) {
@@ -200,8 +220,10 @@ function brief(approver: Approver, choices: Choices, t: Translate): string {
     case 'account_slot':
       return name(choices.slots, approver.slot);
     case 'specific_user':
-      // People are listed as "Name (code)"; the name alone reads better in a line.
-      return name(choices.people, approver.userId).replace(/ \(.*\)$/, '');
+      // The name alone reads better in a line.
+      return (
+        choices.people.find((person) => person.id === approver.userId)?.name ?? approver.userId
+      );
   }
 }
 
@@ -354,8 +376,10 @@ function describe(approver: Approver, choices: Choices, t: Translate): string {
       return `${kind}: ${name(choices.roles, approver.role)}`;
     case 'account_slot':
       return `${kind}: ${name(choices.slots, approver.slot)}`;
-    case 'specific_user':
-      return `${kind}: ${name(choices.people, approver.userId)}`;
+    case 'specific_user': {
+      const person = choices.people.find((entry) => entry.id === approver.userId);
+      return `${kind}: ${person ? `${person.name} (${person.code})` : approver.userId}`;
+    }
   }
 }
 
@@ -381,7 +405,8 @@ function approverOf(type: Approver['type'], choices: Choices): Approver {
     case 'account_slot':
       return { type, slot: choices.slots[0]?.value ?? '' };
     case 'specific_user':
-      return { type, userId: choices.people[0]?.value ?? '' };
+      // Nobody until someone is searched for and chosen.
+      return { type, userId: '' };
   }
 }
 
@@ -405,6 +430,10 @@ function ChainEditor({
   );
   const [error, setError] = useState<unknown>();
   const [busy, setBusy] = useState(false);
+  // People chosen here, beside those the chains already name.
+  const [picked, setPicked] = useState<PickedPerson[]>([]);
+  const personOf = (id: string) =>
+    [...picked, ...choices.people].find((person) => person.id === id) ?? null;
   const errors = fieldErrors(error);
   const accountRequest = (ACCOUNT_REQUEST_TYPES as readonly string[]).includes(type);
   const approverTypes = APPROVER_TYPES.filter((kind) => kind !== 'account_slot' || accountRequest);
@@ -534,19 +563,17 @@ function ChainEditor({
                 />
               ) : null}
               {approver.type === 'specific_user' ? (
-                <SelectField
+                <PersonPicker
                   label={t('chains.person')}
-                  value={approver.userId}
-                  options={choices.people}
+                  value={personOf(approver.userId)}
                   {...(errors[`${at}.approver.userId`]
                     ? { error: errors[`${at}.approver.userId`] }
                     : {})}
-                  onChange={(event) =>
-                    update(index, {
-                      ...step,
-                      approver: { ...approver, userId: event.target.value },
-                    })
-                  }
+                  onChange={(person) => {
+                    if (!person) return;
+                    setPicked((current) => [...current, person]);
+                    update(index, { ...step, approver: { ...approver, userId: person.id } });
+                  }}
                 />
               ) : null}
             </div>

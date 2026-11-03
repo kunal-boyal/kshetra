@@ -51,7 +51,8 @@ A review counts for the rules' current version, which the help line names. When 
 |---|---|---|
 | This isn’t valid JSON. | The text isn't well-formed (a missing comma or quote) | Start again from the latest set's copy and change less at once |
 | Under **The rate set**: a path and a message, such as `from: …` | That part of the set doesn't fit | Fix the named part |
-| This changed somewhere else. Refresh and try again. | A set already has this ID | Choose another ID |
+| A rate set has this ID. (and above the form: "id: A rate set has this ID") | A set already has this ID | Choose another ID |
+| Above **Record a review**: a problem with the set or the note | The server refused a part no field shows, such as the set chosen | Fix that part, or refresh and choose the set again |
 | This was not found. It may have been removed. | The review names a set that doesn't exist | Refresh and choose the set again |
 | You don't see **Add a rate set** or **Record a review** | Your role can only read the sets | Ask Finance or a platform admin |
 

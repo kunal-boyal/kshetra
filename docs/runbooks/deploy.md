@@ -120,4 +120,4 @@ aws ecs run-task --cluster thelamp-staging-cell1 --launch-type FARGATE \
   --overrides '{"containerOverrides":[{"name":"api","command":["node","dist/provision.mjs","--name","<name>","--slug","<slug>","--template","agri","--admin-name","<name>","--admin-phone","<number>"]}]}'
 ```
 
-A tenant prepared elsewhere starts from its exported configuration instead (decision D66): copy the file into the task, or provision from the template and import the file in Settings › Export and import.
+It opens on a 30-day trial (`--trial-days` changes it); start its subscription in the console's Billing before the trial ends, which makes it active (decision D134). A tenant prepared elsewhere starts from its exported configuration instead (decision D66): copy the file into the task, or provision from the template and import the file in Settings › Export and import.

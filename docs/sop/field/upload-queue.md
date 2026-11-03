@@ -22,18 +22,18 @@ Almost everything you record on the phone (the day's start and end, check-ins, f
 - Amber, **… items are waiting to upload.**, or **Offline. … items are saved on this phone.** without signal: nothing to do; they upload by themselves.
 - Red, **… items were refused. Open the upload queue to see why.**: tap **View**.
 
-**More** shows the same under **Upload queue**: up to three items, each **Waiting** or **Needs you**, **See all … waiting** for the rest, and **Send now** to try at once. With nothing waiting, it says **Everything has uploaded**. The foot of **More** shows the app version and when it last synced (**Synced …**).
+**More** shows the same under **Upload queue**: up to three items, each **Waiting** or **Refused**, as the queue itself says, **See all … waiting** for the rest, and **Send now** to try at once. With nothing waiting, it says **Everything has uploaded**. The foot of **More** shows the app version and when it last synced (**Synced …**).
 
 ### Open the queue
 
 1. Tap **View** on the banner, or an item under **Upload queue** on **More**.
 2. **Upload queue** says **What you save on this phone waits here until it reaches the server.** and when it last synced (**Last synced …**, or **Not synced yet**).
 3. Tap **Sync now** to try at once. Without signal it says **No signal. Everything uploads by itself when it returns.**
-4. Each item shows what it is (such as **Check-in**, **Form**, **Order**, **Collection**, **Expense claim**, **Photo**), **Saved …**, and **Waiting** or **Refused**. A waiting item may say **Next try …** and why it is waiting.
+4. Each item shows what it is (such as **Check-in**, **Form**, **Order**, **Collection**, **Expense claim**, **Photo**), **Saved …**, and **Waiting** or **Refused**. A waiting item may say **Next try …** and why it is waiting. One that goes after another item says which: **Waits for … to upload first.**, or **Waits for …, which was refused. Try that again or discard it.** when that item was refused.
 
 ### Deal with a refused item
 
-1. Read why under the item. It is the server's reason, such as **This was recorded too long ago to be counted.**
+1. Read why under the item. It is the server's reason, such as **This was recorded too long ago to be counted.** Where the server refused some of the record's details, it says **The server refused some of its details.**, and lists below it, one per line, what the server said of each (in English, as the server words it), such as **• This item can no longer be ordered**.
 2. If the cause is fixed (for example, your manager reset your device, or your organisation is no longer read only), tap **Try again**.
 3. For an order refused because prices changed, tap **Price it again** instead ([Take an order](place-an-order.md)).
 4. If the item can never upload, tap **Discard**. It asks **Discard this record? It is deleted from this phone and will never upload.** Tap **Discard it**, or **Keep it**.
@@ -49,7 +49,7 @@ Signing out keeps the queue on the phone for your next sign-in on it ([Install t
 
 - Each item carries its own ID, so an item sent twice is applied once.
 - A record captured more than your organisation's sync window ago (72 hours by default) is refused.
-- A record captured outside your shift is refused where it needs one.
+- A record captured outside your shift is refused where it needs one. The shift, and a forecast's month, are judged at the moment the phone saved the record, as long as it uploads within the sync window and the phone's clock was right (decision D136).
 - The server judges every capture again: the fix, the geofence, the shift and the prices (BR-14, BR-32, BR-33, BR-36).
 - Not enough signal, a server error, too many requests, or a photo still uploading are passing reasons: the item backs off and tries again. Any other refusal parks it.
 
@@ -58,6 +58,7 @@ Signing out keeps the queue on the phone for your next sign-in on it ([Install t
 | What you see | What it means | What to do |
 |---|---|---|
 | **This was recorded too long ago to be counted.** | Past the sync window | Discard it; tell your manager |
+| **The server refused some of its details.** with a line for each | The server found something wrong in the record, such as an item no longer sold | Read each line; usually discard it and record it again |
 | **This was recorded outside your duty hours, so it cannot be saved.** | No shift at the time it was captured | Discard it; tell your manager if it mattered |
 | **You are too far from this account.** | A required geofence refused it | Discard it |
 | **Prices have changed. Check your cart, then send the order again.** | Prices changed before the order uploaded | **Price it again** |

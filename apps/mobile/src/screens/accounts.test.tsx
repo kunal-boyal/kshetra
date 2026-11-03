@@ -363,7 +363,11 @@ function pulled(): SyncPullResult {
   };
 }
 
-function fakeClient(modulesOff: SwitchableModule[] = [], settings: Partial<TenantSettings> = {}) {
+function fakeClient(
+  modulesOff: SwitchableModule[] = [],
+  settings: Partial<TenantSettings> = {},
+  pull: () => SyncPullResult = pulled,
+) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -374,7 +378,7 @@ function fakeClient(modulesOff: SwitchableModule[] = [], settings: Partial<Tenan
     owner: `${TENANT.id}:${USER}`,
     restore: jest.fn(async () => session),
     signOut: jest.fn(async () => undefined),
-    syncPull: jest.fn(async () => pulled()),
+    syncPull: jest.fn(async () => pull()),
     heartbeat: jest.fn(async () => undefined),
     // An account's open invoices are read online (D121); everything else answers empty.
     request: jest.fn<(...args: unknown[]) => Promise<unknown>>(async (...args: unknown[]) =>
@@ -467,9 +471,10 @@ async function renderPhone(
   db: SqlDatabase = nodeSqlite(),
   modulesOff: SwitchableModule[] = [],
   settings: Partial<TenantSettings> = {},
+  pull: () => SyncPullResult = pulled,
 ) {
   await migrate(db);
-  const fake = fakeClient(modulesOff, settings);
+  const fake = fakeClient(modulesOff, settings, pull);
   await render(
     <LanguageProvider initial="en">
       <AppProvider
@@ -663,6 +668,38 @@ describe('orders on the phone (M10, D78)', () => {
       ],
       fix: { location: { lat: 28.6315, lng: 77.2167 }, accuracy: 12 },
     });
+  });
+
+  it('offers no new order where no price list covers the account', async () => {
+    // Only Janpath Mart's own list is on the phone, so India Gate Stores has no prices.
+    const onlyJanpath = () => {
+      const result = pulled();
+      result.entities.price_lists = full([
+        priceList(JANPATH_LIST, 'Janpath terms', 'account', [NEAR]),
+      ]) as SyncPullResult['entities']['price_lists'];
+      return result;
+    };
+    await renderPhone({ name: 'account', id: FAR }, nodeSqlite(), [], {}, onlyJanpath);
+    await screen.findByText('India Gate Stores');
+    expect(await screen.findByRole('button', { name: 'Forecast by item' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'New order' })).toBeNull();
+  });
+
+  it('says to punch in first where orders need a shift, and places nothing (D136)', async () => {
+    const client = await renderPhone({ name: 'order', id: NEAR }, nodeSqlite(), [], {
+      ordersNeedOpenShift: true,
+    });
+    await fireEvent.press(await screen.findByRole('button', { name: 'More Neem spray' }));
+    await fireEvent.press(await screen.findByRole('button', { name: /^Review: 1 item/ }));
+    expect(await screen.findByText('Tap Start day before taking this order.')).toBeOnTheScreen();
+    const place = screen.getByRole('button', { name: /^Place the order/ });
+    await waitFor(() => expect(place).toBeDisabled());
+    await fireEvent.press(place);
+    expect(
+      client.request.mock.calls.some(
+        ([method, path]) => method === 'POST' && path === '/v1/orders',
+      ),
+    ).toBe(false);
   });
 
   it('steps a line by one in its unit, out of the cart below one', async () => {
@@ -895,6 +932,9 @@ describe('forecasts on the phone (BR-54, D126)', () => {
       period: NEXT,
       body: { id: queued?.id, lines: [{ itemId: SEED, quantity: '150' }] },
     });
+    // The moment it was saved, by which the server judges the month's lock (D136).
+    const { savedAt } = (queued?.payload as { body: { savedAt: string } }).body;
+    expect(Math.abs(Date.parse(savedAt) - Date.now())).toBeLessThan(60_000);
   });
 
   it('lays saves still queued over what was synced, 0 taking an item out', () => {

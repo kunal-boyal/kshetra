@@ -192,8 +192,9 @@ export class ReviewService implements OnModuleInit {
   }
 
   /**
-   * Approves many submissions at once (M7): only pending ones without flags, of people in the
-   * caller's scope and never the caller's own. Each one skipped says why.
+   * Approves many submissions at once (M7): only pending ones without flags, from a device without
+   * integrity warnings (which reviewers see as a flag), of people in the caller's scope and never
+   * the caller's own. Each one skipped says why.
    */
   async bulk(tx: TenantTx, access: Access, body: BulkReviewBody): Promise<BulkReviewResult> {
     const approved: string[] = [];
@@ -212,10 +213,16 @@ export class ReviewService implements OnModuleInit {
         }
         throw error;
       }
+      const verdict = submission.deviceId
+        ? ((await this.devices.verdicts(tx, access.tenantId, [submission.deviceId])).get(
+            submission.deviceId,
+          ) ?? null)
+        : null;
       if (submission.userId === access.userId) skipped.push({ id, reason: 'OWN_WORK' });
       else if (submission.status !== 'pending') skipped.push({ id, reason: 'NOT_PENDING' });
-      else if (submission.flags.length > 0) skipped.push({ id, reason: 'FLAGGED' });
-      else {
+      else if (submission.flags.length > 0 || integrityWarning(verdict)) {
+        skipped.push({ id, reason: 'FLAGGED' });
+      } else {
         await this.record(tx, access.tenantId, userActor(access), submission, {
           decision: 'approved',
           note: null,

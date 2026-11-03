@@ -68,3 +68,14 @@ export function errorMessage(error: unknown, t: Language['t']): string {
   if (error instanceof ApiError) return t(`error.${error.code}`);
   return t('error.INTERNAL');
 }
+
+/**
+ * What went wrong, with the server's own reason where its code alone would hide it: a conflict
+ * says why (a number in use in another organisation, people still reporting to someone, a domain
+ * another organisation proved), which "This changed somewhere else" doesn't. The server writes
+ * the reason in English, as it does the problems shown beside a form's fields.
+ */
+export function errorReason(error: unknown, t: Language['t']): string {
+  if (error instanceof ApiError && error.code === 'CONFLICT' && error.message) return error.message;
+  return errorMessage(error, t);
+}

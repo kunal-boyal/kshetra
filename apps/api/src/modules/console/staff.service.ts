@@ -81,8 +81,10 @@ export class StaffService extends StaffResolver {
   }
 
   /**
-   * Invites someone, or invites them again when they never finished: the setup link is returned
-   * once and kept only as a hash. `by` is null for the command that invites the first admin.
+   * Invites someone: the setup link is returned once and kept only as a hash. `by` is null for
+   * the command that invites the first admin. Someone still invited, whose link may have lapsed,
+   * or disabled, is invited again on their own row with a new link, the name and role given,
+   * and no password or authenticator, so each email keeps one row; someone active is refused.
    */
   async invite(
     body: InviteStaffBody,
@@ -100,38 +102,54 @@ export class StaffService extends StaffResolver {
       if (same && same.email.toLowerCase() !== body.email.toLowerCase()) {
         throw new AppError('IDEMPOTENCY_CONFLICT', 'This ID was used for someone else.');
       }
-      if (same && same.status !== 'invited') {
-        throw new AppError('CONFLICT', 'This person has already set up their account.');
+      const [found] = same
+        ? [same]
+        : await tx
+            .select()
+            .from(platformUsers)
+            .where(sql`lower(${platformUsers.email}) = lower(${body.email})`)
+            .for('update');
+      if (found?.status === 'active') {
+        throw same
+          ? new AppError('CONFLICT', 'This person has already set up their account.')
+          : new AppError('CONFLICT', 'Someone already has this email.', [
+              { path: 'email', issue: 'Already used by another staff member' },
+            ]);
       }
-      if (!same) {
-        const [taken] = await tx
-          .select({ id: platformUsers.id })
-          .from(platformUsers)
-          .where(sql`lower(${platformUsers.email}) = lower(${body.email})`);
-        if (taken) {
-          throw new AppError('CONFLICT', 'Someone already has this email.', [
-            { path: 'email', issue: 'Already used by another staff member' },
-          ]);
-        }
-      }
-      const [saved] = await tx
-        .insert(platformUsers)
-        .values({
-          id: body.id,
-          email: body.email,
-          name: body.name,
-          role: body.role,
-          setupTokenHash: digest(token),
-          setupExpiresAt: expires,
-        })
-        .onConflictDoUpdate({
-          target: platformUsers.id,
-          set: { setupTokenHash: digest(token), setupExpiresAt: expires, name: body.name },
-        })
-        .returning();
+      const [saved] = found
+        ? await tx
+            .update(platformUsers)
+            .set({
+              name: body.name,
+              role: body.role,
+              status: 'invited',
+              passwordHash: null,
+              totpSecret: null,
+              totpConfirmedAt: null,
+              totpLastStep: null,
+              failedSignIns: 0,
+              lockedUntil: null,
+              setupTokenHash: digest(token),
+              setupExpiresAt: expires,
+              authRevision: sql`${platformUsers.authRevision} + 1`,
+            })
+            .where(eq(platformUsers.id, found.id))
+            .returning()
+        : await tx
+            .insert(platformUsers)
+            .values({
+              id: body.id,
+              email: body.email,
+              name: body.name,
+              role: body.role,
+              setupTokenHash: digest(token),
+              setupExpiresAt: expires,
+            })
+            .returning();
       await this.audit.record(tx, by, 'staff.invited', 'platform_user', saved!.id, {
         email: body.email,
         role: body.role,
+        ...(found ? { again: true, before: { status: found.status, role: found.role } } : {}),
       });
       return saved!;
     });
@@ -305,10 +323,13 @@ export class StaffService extends StaffResolver {
   /**
    * Starts someone's sign-in again when they lost their password or authenticator (decision
    * D101): both are removed, their sessions end, and a new setup link is returned once. Nobody
-   * resets themselves.
+   * resets themselves in the console; `by` is null for the command that resets the last admin.
    */
-  async reset(by: StaffAccess, id: string): Promise<{ staff: StaffResult; setupUrl: string }> {
-    if (by.staffId === id) {
+  async reset(
+    by: StaffAccess | null,
+    id: string,
+  ): Promise<{ staff: StaffResult; setupUrl: string }> {
+    if (by?.staffId === id) {
       throw new AppError('FORBIDDEN', 'Ask another platform admin to reset your sign-in.');
     }
     const token = newSecret();
@@ -320,7 +341,7 @@ export class StaffService extends StaffResolver {
         .for('update');
       if (!found) throw new AppError('NOT_FOUND', 'There is no such staff member.');
       if (found.status === 'disabled') {
-        throw new AppError('CONFLICT', 'This account is disabled for good.');
+        throw new AppError('CONFLICT', 'This account is disabled. Invite them again instead.');
       }
       const [saved] = await tx
         .update(platformUsers)
@@ -339,10 +360,26 @@ export class StaffService extends StaffResolver {
         .where(eq(platformUsers.id, id))
         .returning();
       await this.endSessions(tx, id);
-      await this.audit.record(tx, by, 'staff.reset', 'platform_user', id, {});
+      await this.audit.record(
+        tx,
+        by,
+        'staff.reset',
+        'platform_user',
+        id,
+        by ? {} : { via: 'command_line' },
+      );
       return saved!;
     });
     return { staff: this.result(row), setupUrl: `${this.config.CONSOLE_URL}/setup#${token}` };
+  }
+
+  /** The staff member with this email, whatever its case; undefined for nobody. */
+  async byEmail(email: string): Promise<StaffResult | undefined> {
+    const [row] = await this.database.db
+      .select()
+      .from(platformUsers)
+      .where(sql`lower(${platformUsers.email}) = lower(${email})`);
+    return row ? this.result(row) : undefined;
   }
 
   /** Spends a refresh token for a new session; a spent one ends its whole family. */

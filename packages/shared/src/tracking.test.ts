@@ -9,6 +9,7 @@ import {
   onDutyMs,
   pointRejection,
   punchFixIssue,
+  shiftCovers,
   simplifyTrail,
   trailGaps,
   gapBefore,
@@ -75,6 +76,16 @@ describe('punching in and out (M5)', () => {
     expect(clockSkewed(null)).toBe(false);
     expect(clockSkewed(600)).toBe(false);
     expect(clockSkewed(-601)).toBe(true);
+  });
+
+  it('D136: says whether a moment falls inside a shift', () => {
+    expect(shiftCovers(null, START)).toBe(false);
+    expect(shiftCovers(shift, START - 5_000)).toBe(true);
+    expect(shiftCovers(shift, START - 5_001)).toBe(false);
+    expect(shiftCovers(shift, START + 20 * H)).toBe(true);
+    const ended = { ...shift, endedAt: START + 8 * H };
+    expect(shiftCovers(ended, START + 8 * H)).toBe(true);
+    expect(shiftCovers(ended, START + 8 * H + 1)).toBe(false);
   });
 
   it('counts time on duty without pauses, clipped to the shift', () => {

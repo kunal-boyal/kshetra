@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Put, Query } from '@nestjs/common';
 import {
   ForecastParams,
   ForecastQuery,
@@ -47,7 +47,12 @@ export class ForecastsController {
     response: ForecastResult,
   })
   @Requires('forecast.record')
-  async save(@CurrentAccess() access: Access, @Param() params: unknown, @Body() body: unknown) {
+  async save(
+    @CurrentAccess() access: Access,
+    @Param() params: unknown,
+    @Body() body: unknown,
+    @Headers('x-device-time') deviceTime: string | undefined,
+  ) {
     const parsed = ForecastParams.safeParse(params);
     if (!parsed.success) throw notFound();
     const input = SaveForecastBody.parse(body);
@@ -70,6 +75,8 @@ export class ForecastsController {
             period: parsed.data.period,
             lines: input.lines,
             ...(input.reason ? { reason: input.reason } : {}),
+            ...(input.savedAt ? { savedAt: input.savedAt } : {}),
+            ...(deviceTime ? { deviceTime } : {}),
           }),
         }),
       ),

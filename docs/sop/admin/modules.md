@@ -31,6 +31,8 @@ Modules are the parts of the product your organisation uses. Your plan decides w
 
 ## Steps
 
+This page is the only place modules are switched. The Organisation page shows which are on, with **Change modules** to come here.
+
 1. Open **Settings** › **Organisation** › **Modules**. Each module shows as a card with what it brings.
 2. To switch a module on, tick **On** on its card. To switch it off, clear **On**.
 3. Select **Save**. The page says **Saved.**

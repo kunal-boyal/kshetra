@@ -42,4 +42,4 @@ You can save again later in the month; each save is a new version, merged over t
 | **Change an item first.** | Nothing was changed | Type at least one figure |
 | **Write each quantity as a number, such as 12 or 0.5.** | A figure isn't a number | Correct it |
 | **There are no items yet.** | The phone has no catalogue items | Sync, or ask your admin |
-| **That month is closed. Its sell-through can no longer change.** (in the upload queue) | The save reached the server after the month closed | Discard it; ask your manager if the figures matter |
+| **That month is closed. Its figures can no longer change.** (in the upload queue) | The save reached the server after the month closed | Discard it; ask your manager if the figures matter |

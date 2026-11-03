@@ -11,10 +11,10 @@ You take an order at an account in two steps: choose the items and quantities, t
 
 ## Before you start
 
-- The Orders module is on, and a price list on the phone covers the account. With no price lists on the phone at all, accounts show no **New order**; with none covering this account, the order screen says **No prices for this account**.
+- The Orders module is on, and a price list on the phone covers the account. An account that no price list on the phone covers shows no **New order**.
 - The account is active and one you look after.
 - Location is on: every order records where it was taken.
-- Your admin decides whether orders may be taken offline (the default) or need a connection, and whether they need you on duty (off by default).
+- Your admin decides whether orders may be taken offline (the default) or need a connection, and whether they need you on duty (off by default). Where they need you on duty, start your day first.
 
 ## Steps
 
@@ -39,6 +39,7 @@ You take an order at an account in two steps: choose the items and quantities, t
    - **Within credit: … of the … limit was free before this order.**, or **This takes the account past its credit limit, so it may need another approval.**
    - **… holds less than … lines ask for. They can still be placed.** when the supplier is short.
    - **Turn on location: every order records where it was taken.** when there is no fix.
+   - **Tap Start day before taking this order.** where orders need you on duty and your day hasn't started. **Place the order** stays off until you start it.
 5. Add a **Note** if you need to.
 6. Tap **Place the order ·** the total. **Back to the items** goes back to change it.
 7. Where orders may be taken offline, the screen says **No signal? The order waits on this phone and sends itself. If a price changes first, you are asked to price it again.** The order saves on the phone and uploads. Where they need a connection, it says **Orders need a connection here; this sends straight away.**, and the order goes to the server at once.
@@ -66,17 +67,20 @@ If a price list or scheme changed before the order uploaded, the server refuses 
 - Each line gets at most one scheme, the one best for the customer; slabs count across the order; free goods come as their own lines at no charge; a scheme's discount comes off before tax (BR-55).
 - The server prices the order again; if any line's price or scheme differs from what the phone showed, it refuses with a price change (BR-14, `quoteDifferences()`).
 - An order past the account's credit limit is placed, and its approval may take another step. An order is never refused for the supplier's stock (BR-62).
-- An order taken in a visit uploads after the visit's check-in.
+- An order taken in a visit uploads after the visit's check-in, and one taken on duty after your **Start day**.
+- Where orders need you on duty, the server judges the shift at the moment the phone took the order, not when it uploads: an order taken offline on duty still counts after you end the day, and one taken off duty never does (decision D136).
 
 ## If something goes wrong
 
 | What you see | What it means | What to do |
 |---|---|---|
-| **No prices for this account** / **No price list on this phone covers it yet. Prices arrive with the next sync.** | No price list covers the account | Sync, or ask your admin about price lists |
+| No **New order** on the account | No price list on the phone covers the account | Sync, or ask your admin about price lists |
+| **No prices for this account** / **No price list on this phone covers it yet. Prices arrive with the next sync.** | The order screen was opened for an account no price list covers | Sync, or ask your admin about price lists |
 | **No item matches. Try another name or code.** | The search found nothing | Change the search or category |
 | **This order is too large to place.** | The total is over the ceiling | Split it into smaller orders |
 | **Turn on location: every order records where it was taken.** | No fix | Turn on location and wait for a fix |
 | **Prices have changed. Check your cart, then send the order again.** | Prices or schemes changed | **Price it again** in the upload queue |
-| **You are not on duty. Tap Start day first.** | Your organisation needs you on duty to take orders | Start your day |
+| **Tap Start day before taking this order.** | Your organisation needs you on duty to take orders | Start your day, then place it |
+| **You are not on duty. Tap Start day first.** (in the upload queue) | The order was taken off duty, or on a phone whose clock was wrong | Discard it and take it again on duty |
 | **The server could not be reached. Check your connection, then try again.** | Orders need a connection here and there is none | Move to signal and place it again |
 | **This is no longer on your phone. It may have moved to someone else.** | The account left your reach | Ask your manager |

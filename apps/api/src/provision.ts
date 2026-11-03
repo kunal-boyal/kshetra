@@ -3,7 +3,12 @@
 import { readFileSync } from 'node:fs';
 import { extname } from 'node:path';
 import { parseArgs } from 'node:util';
-import { maskPhone, ProvisionTenantInput, UpdateSettingsBody } from '@thelamp/shared';
+import {
+  maskPhone,
+  ProvisionTenantInput,
+  TRIAL_DAYS_MOST,
+  UpdateSettingsBody,
+} from '@thelamp/shared';
 import { z } from 'zod';
 import { createCommandContext, report } from './context';
 import { TenantProvisioner } from './modules/provisioning/provisioner';
@@ -16,9 +21,14 @@ import { Database } from './platform/database';
 const USAGE = `Usage: pnpm provision --name <name> --slug <slug>
                       (--template <generic|agri|pharma|fmcg|building> | --file <path>)
                       --admin-name <name> --admin-phone <number>
-                      [--admin-code <code>] [--admin-email <email>] [--status trial|active]
+                      [--admin-code <code>] [--admin-email <email>]
+                      [--trial-days <1-${TRIAL_DAYS_MOST}>]
+                                 it opens on trial for these days (30 by default) and is
+                                 suspended when the trial ends; start its subscription in the
+                                 console's Billing to make it active (decision D134)
                       [--demo]   a tenant for showing the product: its people may sign in with
-                                 the fixed codes in DEMO_CODES (decision D70)
+                                 the fixed codes in DEMO_CODES (decision D70); it has no trial
+                                 end, and may open with --status active
                       [--logo <png|jpg|webp>] [--brand-colour <#rrggbb>]
                                  the tenant's logo and brand colour, checked as Settings checks them`;
 
@@ -29,6 +39,7 @@ const { values } = parseArgs({
     template: { type: 'string' },
     file: { type: 'string' },
     status: { type: 'string' },
+    'trial-days': { type: 'string', default: '30' },
     'admin-name': { type: 'string' },
     'admin-phone': { type: 'string' },
     'admin-code': { type: 'string' },
@@ -73,6 +84,18 @@ if (!parsed.success) {
   console.error(USAGE);
   process.exit(1);
 }
+// Every open tenant is on trial or billed (decision D134); only a demo tenant is neither.
+if (parsed.data.status === 'active' && !values.demo) {
+  console.error(
+    'Only a demo tenant opens active from here. Open it on trial, then start its subscription in the console’s Billing, which makes it active.',
+  );
+  process.exit(1);
+}
+const trialDays = Number(values['trial-days']);
+if (!Number.isInteger(trialDays) || trialDays < 1 || trialDays > TRIAL_DAYS_MOST) {
+  console.error(`Give --trial-days as a whole number from 1 to ${TRIAL_DAYS_MOST}.`);
+  process.exit(1);
+}
 // Checked before anything is made, as a typo should make nothing.
 const brand = values['brand-colour']
   ? UpdateSettingsBody.safeParse({ brandColour: values['brand-colour'] })
@@ -104,9 +127,11 @@ if (values.logo) {
 
 const { app, config } = await createCommandContext();
 try {
-  const tenant = await app
-    .get(TenantProvisioner)
-    .provision(parsed.data, file, { demo: values.demo ?? false });
+  const tenant = await app.get(TenantProvisioner).provision(parsed.data, file, {
+    demo: values.demo ?? false,
+    // Demo tenants never end (decision D70); every other one's trial does.
+    ...(values.demo ? {} : { trialEndsAt: new Date(Date.now() + trialDays * 86_400_000) }),
+  });
   if (brand || logo) {
     // As the first admin would set them in Settings, so the same checks and audit apply.
     const access = await app

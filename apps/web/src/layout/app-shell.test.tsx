@@ -1,5 +1,6 @@
-import { screen, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { TenantPermission } from '@thelamp/shared';
 import { describe, expect, it } from 'vitest';
 import { fakeClient, renderAt } from '../test-support';
 
@@ -66,5 +67,43 @@ describe('the frame (decision D104)', () => {
       'lang',
       'en',
     );
+  });
+
+  it('shows Settings to whoever holds any settings page’s permission', async () => {
+    // Each of these opens one settings page and nothing else in the rail.
+    const alone: TenantPermission[] = [
+      'audit.view',
+      'workflow.manage',
+      'calendar.manage',
+      'leave_type.manage',
+      'expense_policy.manage',
+      'dashboard.manage',
+      'billing.manage',
+      'api_client.manage',
+      'webhook.manage',
+      'erp.manage',
+      'designation.manage',
+    ];
+    for (const permission of alone) {
+      const client = fakeClient({ '/v1/notifications': NOTIFICATIONS }, {}, [permission]);
+      renderAt('/notifications', client);
+      expect(await screen.findByRole('link', { name: 'Settings' }), permission).toBeVisible();
+      cleanup();
+    }
+  });
+
+  it('shows no Settings without a settings page’s permission', async () => {
+    renderAt(
+      '/notifications',
+      fakeClient({ '/v1/notifications': NOTIFICATIONS }, {}, ['user.view']),
+    );
+    expect(await screen.findByRole('link', { name: 'Home' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Settings' })).toBeNull();
+  });
+
+  it('takes Settings to the first page the person may open', async () => {
+    const client = fakeClient({ '/v1/audit': { items: [], nextCursor: null } }, {}, ['audit.view']);
+    const router = renderAt('/settings', client);
+    await waitFor(() => expect(router.state.location.pathname).toBe('/settings/security'));
   });
 });

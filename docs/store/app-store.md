@@ -12,6 +12,7 @@ What App Store Connect asks for The Lamp's iPhone app (decision D100: Play first
 | Privacy manifest | `ios.privacyManifests` | No tracking; the required-reason APIs React Native reads; Expo's modules carry their own |
 | Export compliance | `ios.config.usesNonExemptEncryption: false` | Only HTTPS and the system's encryption, which are exempt, so Connect asks nothing |
 | Tablets | `ios.supportsTablet: false` | iPhone only |
+| Store page for the update screen | EAS environment | `EXPO_PUBLIC_APP_STORE_URL`, the App Store page's address once the app is listed; without it the blocking update screen tells the person to ask their admin (decision D136) |
 | Build | EAS on Kunal's account | `eas build --profile production --platform ios`, then `eas submit --platform ios` once the account and its App Store Connect app exist |
 
 ## Distribution
@@ -72,3 +73,4 @@ Camera: photos of work, receipts and odometers, taken in the app. The app shows 
 | The support URL and privacy email | Kunal |
 | The review tenant and its demo codes on production | Kunal (the same decision as Play's) |
 | A production iOS build, screenshots, and a test on an iPhone through TestFlight | Kunal's EAS account, then us |
+| The App Store page's address as `EXPO_PUBLIC_APP_STORE_URL` in the EAS environment | Kunal, once the app is listed |

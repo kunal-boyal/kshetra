@@ -20,7 +20,7 @@ Invite the vendor's staff to the console in the role their work needs, give a ne
   | Finance | Plans, invoices and payments |
 
   These are the lines **Role** shows under the field. Implementation also terminates tenants and writes announcements; Support also resets a tenant user's lost authenticator; only a platform admin approves another's emergency support access.
-- Their work email. Each email belongs to one staff member, for good: a disabled person's email can't be invited again (see the table below).
+- Their work email. Each email belongs to one staff member: inviting an email that is Invited or Disabled invites that same person again (below); an Active one is refused.
 
 ## Invite someone
 
@@ -30,7 +30,7 @@ Invite the vendor's staff to the console in the role their work needs, give a ne
 4. Select **Copy the link** (it changes to **Copied**) and send the link to the person yourself, by a channel you trust. It is shown only now, and works for 72 hours. Nothing is emailed.
 5. They follow [Sign in and look after your account](sign-in-and-your-account.md). Their status turns from Invited to Active once they finish.
 
-If the link expires before they finish, don't invite them again: the email is already taken. Select **Reset sign-in** in their row instead, which gives a new link (below).
+If the link expires before they finish, invite them again with the same email: their row is invited afresh with the name and role you give, and a new link replaces the old one. **Reset sign-in** in their row does the same without changing the name or role.
 
 ## Reset a lost password or authenticator
 
@@ -42,9 +42,9 @@ If the link expires before they finish, don't invite them again: the email is al
 ## Disable someone
 
 1. On **Staff**, select **Disable** in their row.
-2. The console asks "Disable {name}?" and explains that they are signed out at once and can never sign in again. Select **Disable** again, or **Cancel**.
+2. The console asks "Disable {name}?" and explains that they are signed out at once and can't sign in again, and that inviting them afresh, with the same email, sends a new setup link. Select **Disable** again, or **Cancel**.
 
-Disabling is for good. Their row stays, with its history in the platform audit.
+Their row stays, with its history in the platform audit. To bring them back, invite them again with the same email under **Invite someone**: the same row is invited afresh, with no password or authenticator, the name and role you give and a new setup link. The platform audit records it as an invitation made again, with the status and role before.
 
 ## The first platform admin
 
@@ -55,21 +55,31 @@ The console can't invite its first admin. Whoever runs the environment does it o
 
 It prints the link, which works for 72 hours. From then on, platform admins invite everyone else in the console. Keep at least two platform admins, so one can reset the other.
 
+## Reset the last platform admin
+
+Nobody resets themselves in the console, so a lone platform admin who loses their authenticator or password is reset from the command line, by whoever runs the environment:
+
+1. Confirm who is asking, by a channel other than the one they asked on.
+2. Run, locally, `pnpm invite-staff --email <their-email> --reset`; in AWS, a one-off task of the cell's image running `node dist/invite-staff.mjs --email … --reset`, as for the first admin.
+3. It removes their password and authenticator, ends their sessions and prints a new setup link that works for 72 hours. Send it to them; they set up again as when invited.
+
+The reset names its person by email alone: it refuses an email no staff member has, and changes nothing; it never invites anyone new, and it refuses `--name` or `--role` beside `--reset`. A disabled account isn't reset; invite it again instead. The platform audit records the reset as made from the command line.
+
 ## What the system checks
 
 - Nobody resets or disables themselves: your own row shows no actions.
-- A disabled account can't be reset; invite someone new instead.
-- An email already used by any staff member, disabled ones included, is refused.
+- A disabled account can't be reset; invite them again instead, on the same row.
+- Each email has one row. Inviting an Invited or Disabled email invites that person again; an Active one is refused.
 - Every invitation, setup, sign-in, reset and disabling is recorded in the platform audit, with who did it.
 
 ## If something goes wrong
 
 | What you see | What it means | What to do |
 |---|---|---|
-| Under **Email**: "Already used by another staff member" | Someone has this email: an Invited person, an Active one or a disabled one | For an Invited or Active person, use **Reset sign-in**. A disabled person can't come back with the same email; use another address |
-| This changed somewhere else. Refresh and try again. | On **Reset sign-in**: the account was disabled meanwhile | Refresh **Staff**; a disabled account can't be reset |
+| Someone already has this email. (under **Email**: "Already used by another staff member") | An Active staff member has this email | Use **Reset sign-in** in their row if they lost their sign-in |
+| This account is disabled. Invite them again instead. | On **Reset sign-in**: the account was disabled meanwhile | Invite them again under **Invite someone** |
 | You don't have access to this. | Your role isn't Platform admin | Ask a platform admin |
-| They say the link has expired | 72 hours passed, or a newer link replaced it | **Reset sign-in** in their row, whether they are Invited or Active |
+| They say the link has expired | 72 hours passed, or a newer link replaced it | Invite them again, or **Reset sign-in** in their row, whether they are Invited or Active |
 
 ## Waiting on the owner
 

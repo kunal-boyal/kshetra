@@ -262,13 +262,13 @@ function Filling({ entry }: { entry: FormEntry }) {
       }
       const found = await currentFix();
       if (found.status !== 'ready') {
-        fail(t(found.status === 'denied' ? 'shift.fix_denied' : 'shift.fix_unavailable'));
+        fail(t(found.status === 'denied' ? 'entry.fix_denied' : 'location.fix_unavailable'));
         return;
       }
       const issue = punchFixIssue(found.fix);
       if (issue) {
         if (issue === 'GPS_MOCKED') reportMocked('form');
-        fail(t(issue === 'GPS_MOCKED' ? 'shift.fix_mocked' : 'shift.fix_vague'));
+        fail(t(issue === 'GPS_MOCKED' ? 'location.fix_mocked' : 'location.fix_vague'));
         return;
       }
       const account = parts.accountId

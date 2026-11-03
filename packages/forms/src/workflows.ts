@@ -148,7 +148,6 @@ export const REQUEST_FACTS: Record<RequestType, readonly AnyField[]> = {
   new_account: [],
   account_location_change: [],
   journey_plan: [],
-  target_lock: [],
 };
 
 export interface ChainContext {

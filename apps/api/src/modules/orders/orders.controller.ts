@@ -41,7 +41,11 @@ export class OrdersController {
   })
   @Requires('order.create')
   @HttpCode(201)
-  async place(@CurrentAccess() access: Access, @Body() body: unknown) {
+  async place(
+    @CurrentAccess() access: Access,
+    @Body() body: unknown,
+    @Headers('x-device-time') deviceTime: string | undefined,
+  ) {
     const input = PlaceOrderBody.parse(body);
     const result = await this.database.forTenant(access.tenantId, (tx) =>
       idempotent(
@@ -49,7 +53,10 @@ export class OrdersController {
         access.tenantId,
         `order:${input.id}`,
         { route: 'POST /v1/orders', by: access.userId, input },
-        async () => ({ status: 201, body: await this.orders.place(tx, access, input) }),
+        async () => ({
+          status: 201,
+          body: await this.orders.place(tx, access, input, deviceTime),
+        }),
       ),
     );
     return result.body;

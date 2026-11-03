@@ -9,7 +9,7 @@ The console's rail has three sections: **Customers** (**Tenants**, **New tenant*
 | Role | Permissions (`PLATFORM_ROLE_PERMISSIONS`) | What it does |
 |---|---|---|
 | Platform admin | every platform permission | Everything, including inviting and disabling staff, and approving another's emergency support access |
-| Implementation | `platform.tenant.manage`, `platform.flags.manage` | Creates, suspends, reactivates and terminates tenants; announcements |
+| Implementation | `platform.tenant.manage` | Creates, suspends, reactivates and terminates tenants; announcements |
 | Support | `platform.support.request` | Sees tenants and asks for support access; resets a tenant user's lost authenticator |
 | Finance | `platform.plan.manage`, `platform.billing.manage` | Plans, billing details, subscriptions, invoices, payments, billing settings and payroll rate sets |
 
@@ -37,8 +37,8 @@ The tenant's own side of these, such as what the first admin does after onboardi
 
 ## Two things to know about messages
 
-- Refusals show the error's general text. When the server refuses something for a reason that isn't a field, the console shows only the error code's general sentence, not the server's own reason. Most often that is "This changed somewhere else. Refresh and try again." (a conflict), which can mean, for example, that billing details are missing, that automatic payment isn't available yet, or that you already have a support request open. Each procedure's table lists what that sentence can mean there.
-- Field problems show under the field, in the server's words, in English.
+- Refusals say why. When the server refuses something with a reason of its own, such as "Add the tenant’s billing details first." or "Suspend the tenant before terminating it.", the console shows that reason (for a conflict, a refusal of access, something not found, or a used ID). The server's reasons are in English; in Hindi the console says first that it couldn't be done and that the reason follows in English. Other refusals show the error's general sentence. Each procedure's table lists the reasons you may meet there.
+- Field problems show under the field, in the server's words, in English. A problem with a part no field shows, such as the tenant a support request names, shows above the form.
 
 ## Waiting on the owner
 

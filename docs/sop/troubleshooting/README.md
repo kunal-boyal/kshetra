@@ -18,7 +18,7 @@ The apps show one sentence for each error code the server gives, in the reader's
 | Code | What the person sees | Covered in |
 |---|---|---|
 | (no connection) | The server could not be reached. Check your connection, then try again. | [Upload queue and sync](upload-queue-and-sync.md) |
-| `VALIDATION` | Some details need fixing. Check the highlighted fields. On the sign-in screen: Enter a 10-digit mobile number, such as 98765 43210. | [Upload queue and sync](upload-queue-and-sync.md), [Photos](photos.md), [Sign-in and sessions](sign-in-and-sessions.md) |
+| `VALIDATION` | Some details need fixing. Check the highlighted fields. On the sign-in screen: Enter a 10-digit mobile number, such as 98765 43210. In the field app's upload queue: The server refused some of its details., with the server's own words for each detail below it. On **My data**, for a second open request of a kind: You already have an open request of this kind. Wait for its answer before asking again. | [Upload queue and sync](upload-queue-and-sync.md), [Photos](photos.md), [Sign-in and sessions](sign-in-and-sessions.md) |
 | `UNAUTHENTICATED` | Sign in to continue. | [Sign-in and sessions](sign-in-and-sessions.md) |
 | `TOKEN_EXPIRED` | Your session needs refreshing. Try again. The apps refresh by themselves; try again if it shows. | [Sign-in and sessions](sign-in-and-sessions.md) |
 | `SESSION_REVOKED` | You have been signed out. Sign in again. | [Sign-in and sessions](sign-in-and-sessions.md) |
@@ -27,7 +27,7 @@ The apps show one sentence for each error code the server gives, in the reader's
 | `MODULE_DISABLED` | This feature is switched off for your organisation. | [Access and modules](access-and-modules.md) |
 | `USE_MOBILE_APP` | Use the mobile app for this. | [Access and modules](access-and-modules.md), [Sign-in and sessions](sign-in-and-sessions.md) |
 | `NOT_FOUND` | This was not found. It may have been removed. | [Access and modules](access-and-modules.md) |
-| `CONFLICT` | This changed somewhere else. Refresh and try again. Also when a mobile number is in use in another organisation (the field then says "This mobile number is already in use. …"), and when someone with no authenticator is asked to confirm a change. | [Upload queue and sync](upload-queue-and-sync.md), [Sign-in and sessions](sign-in-and-sessions.md) |
+| `CONFLICT` | This changed somewhere else. Refresh and try again. Where the server gives a reason, the portal shows it instead, such as "This mobile number is already in use. …" for a number in use in another organisation, "People still report to this person. …" on deactivating a manager, or "Another organisation has verified this domain already."; someone with no authenticator asked to confirm a change is sent to set one up. | [Upload queue and sync](upload-queue-and-sync.md), [Sign-in and sessions](sign-in-and-sessions.md) |
 | `IDEMPOTENCY_CONFLICT` | This request was already sent with different details. Start it again. | [Upload queue and sync](upload-queue-and-sync.md) |
 | `DEVICE_NOT_BOUND` | This phone is not registered for your account. Ask your manager to reset your device. | [Sign-in and sessions](sign-in-and-sessions.md) |
 | `ALREADY_PUNCHED_IN` | Your day has already started. | [Upload queue and sync](upload-queue-and-sync.md) |
@@ -43,7 +43,7 @@ The apps show one sentence for each error code the server gives, in the reader's
 | `MEDIA_NOT_READY` | A photo is still uploading. This will retry by itself. | [Photos](photos.md) |
 | `PRICE_CHANGED` | Prices have changed. Check your cart, then send the order again. | [Upload queue and sync](upload-queue-and-sync.md) |
 | `TARGET_LOCKED` | This target is locked and can no longer be changed. A locked target changes only after it is unlocked; see the manager's targets procedure. | [../manager/](../manager/README.md) |
-| `PERIOD_CLOSED` | That month is closed. Its sell-through can no longer change. Shown for a closed forecast month too. | [Upload queue and sync](upload-queue-and-sync.md) |
+| `PERIOD_CLOSED` | That month is closed. Its figures can no longer change. Shown for a closed sell-through or forecast month. | [Upload queue and sync](upload-queue-and-sync.md) |
 | `NOT_CURRENT_APPROVER` | It isn't your turn to act on this, or someone else already has. Refresh your inbox. | [../manager/](../manager/README.md) |
 | `QUOTA_EXCEEDED` | This is over your limit. | [Upload queue and sync](upload-queue-and-sync.md) |
 | `IMPORT_ERRORS` | Some rows have errors. Fix them, then upload the file again. The row errors list each problem. | [../admin/](../admin/README.md) |

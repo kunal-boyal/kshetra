@@ -1,8 +1,8 @@
 import { newId, timeIn, todayIn } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { and, eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { notificationDeliveries, notifications } from '../src/db/schema';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { devices, notificationDeliveries, notifications, pushTokens } from '../src/db/schema';
 import { NotificationDelivery } from '../src/modules/notifications/delivery';
 import { NotificationsUpkeep } from '../src/modules/notifications/notifications.upkeep';
 import {
@@ -276,6 +276,117 @@ describe('the inbox (M16)', () => {
     });
     expect((await t.api.asha.post('/v1/notifications/read', { all: true })).json().unread).toBe(0);
     expect((await t.api.asha.get('/v1/notifications?unread=true')).json().items).toEqual([]);
+  });
+});
+
+/** The push addresses kept for a person's phones. */
+async function tokensOf(t: Tenant, userId: string) {
+  const rows = await app.get(Database).forTenant(t.tenantId, (tx) =>
+    tx
+      .select({ token: pushTokens.token })
+      .from(pushTokens)
+      .where(and(eq(pushTokens.tenantId, t.tenantId), eq(pushTokens.userId, userId))),
+  );
+  return rows.map((row) => row.token).sort();
+}
+
+const sentTo = (token: string) => push().sent.filter((message) => message.token === token);
+
+describe('push reaches only phones still signed in (M16)', () => {
+  it('skips a phone that signed out, still reaches the other, and none once everyone is signed out', async () => {
+    const t = await tenant('Two Phones Co');
+    // Without binding, Asha signs in on a second phone too.
+    expect((await t.api.admin.patch('/v1/settings', { deviceBinding: false })).statusCode).toBe(
+      200,
+    );
+    const first = TOKEN();
+    expect(
+      (await t.api.asha.put('/v1/push-tokens', { token: first, locale: 'en' })).statusCode,
+    ).toBe(204);
+    const secondPhone = await world.signIn(t.phones.asha, newDevice('Second phone'));
+    const second = TOKEN();
+    expect(
+      (await as(secondPhone.accessToken).put('/v1/push-tokens', { token: second, locale: 'en' }))
+        .statusCode,
+    ).toBe(204);
+    expect(await tokensOf(t, t.asha.id)).toEqual([first, second].sort());
+
+    // The second phone signs out: it hears nothing more, and its address goes.
+    const out = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/logout',
+      payload: { refreshToken: secondPhone.refreshToken },
+    });
+    expect(out.statusCode, out.body).toBe(204);
+    await reject(t, await submit(t.api.asha), 'After one phone signed out');
+    await deliverAll(t);
+    expect(sentTo(second)).toEqual([]);
+    expect(sentTo(first)).toHaveLength(1);
+    await vi.waitFor(async () => expect(await tokensOf(t, t.asha.id)).toEqual([first]));
+
+    // Everyone else is signed out: the first phone's address goes too, and nothing reaches it.
+    const waiting = await submit(t.api.asha);
+    const everyone = await t.api.admin.post('/v1/users/sign-out-everyone');
+    expect(everyone.statusCode, everyone.body).toBe(200);
+    expect(await tokensOf(t, t.asha.id)).toEqual([]);
+    // The manager was signed out too; the admin, who asked, decides.
+    const rejected = await t.api.admin.post(`/v1/submissions/${waiting}/review`, {
+      decision: 'rejected',
+      note: 'After everyone signed out',
+    });
+    expect(rejected.statusCode, rejected.body).toBe(200);
+    await deliverAll(t);
+    expect(sentTo(first)).toHaveLength(1);
+    expect((await deliveries(t, t.asha.id)).at(-1)).toMatchObject({
+      channel: 'push',
+      status: 'skipped',
+    });
+  });
+
+  it('skips a phone that was reset, even with its address still kept, and reaches the next one', async () => {
+    const t = await tenant('Reset Phone Co');
+    const old = TOKEN();
+    expect((await t.api.asha.put('/v1/push-tokens', { token: old, locale: 'en' })).statusCode).toBe(
+      204,
+    );
+    const waiting = await submit(t.api.asha);
+    const reset = await t.api.manager.post(`/v1/users/${t.asha.id}/reset-device`);
+    expect(reset.statusCode, reset.body).toBe(204);
+    expect(await tokensOf(t, t.asha.id)).toEqual([]);
+
+    // Even were the address still kept, a reset phone is never sent to.
+    await app.get(Database).forTenant(t.tenantId, async (tx) => {
+      const [device] = await tx
+        .select({ id: devices.id })
+        .from(devices)
+        .where(and(eq(devices.tenantId, t.tenantId), eq(devices.userId, t.asha.id)));
+      await tx.insert(pushTokens).values({
+        tenantId: t.tenantId,
+        deviceId: device!.id,
+        userId: t.asha.id,
+        token: old,
+        locale: 'en',
+        authRevision: 1_000,
+      });
+    });
+    await reject(t, waiting, 'After the reset');
+    await deliverAll(t);
+    expect(sentTo(old)).toEqual([]);
+    expect((await deliveries(t, t.asha.id)).at(-1)).toMatchObject({
+      channel: 'push',
+      status: 'skipped',
+    });
+
+    // Signed in on her new phone, Asha hears again there.
+    const fresh = TOKEN();
+    const phone = as((await world.signIn(t.phones.asha, newDevice('New phone'))).accessToken);
+    expect((await phone.put('/v1/push-tokens', { token: fresh, locale: 'en' })).statusCode).toBe(
+      204,
+    );
+    await reject(t, await submit(phone), 'On the new phone');
+    await deliverAll(t);
+    expect(sentTo(fresh)).toHaveLength(1);
+    expect(sentTo(old)).toEqual([]);
   });
 });
 

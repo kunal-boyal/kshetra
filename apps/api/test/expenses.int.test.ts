@@ -2,9 +2,12 @@ import { createHash } from 'node:crypto';
 import { newId, todayIn, trackedKm } from '@thelamp/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import sharp from 'sharp';
+import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { expenseClaims } from '../src/db/schema';
 import { TrailsService } from '../src/modules/field/trails.service';
 import { PhotosService } from '../src/modules/media/photos.service';
+import { Database } from '../src/platform/database';
 import { type MemoryObjectStore, ObjectStore } from '../src/platform/object-store';
 import { newDevice, newPhone, startApp, testConfig, World } from './support';
 
@@ -141,6 +144,7 @@ async function tenant(name: string) {
   const t = {
     tenantId,
     fieldId: field.id,
+    headId: head.id,
     head: as((await world.signIn(phones.head)).accessToken),
     manager: as((await world.signIn(phones.manager)).accessToken),
     field: as((await world.signIn(phones.field, newDevice())).accessToken),
@@ -353,6 +357,34 @@ describe('receipts and approval (BR-30)', () => {
       status: 'Paid',
       reference: 'NEFT 4471',
     });
+  });
+
+  it('lets nobody mark their own claim paid', async () => {
+    const t = await tenant('Own Payout Co');
+    // A second admin, who may mark claims paid, with an approved claim of their own.
+    const phone = newPhone();
+    const payer = await world.user(t.tenantId, {
+      phone,
+      designation: 'manager',
+      role: 'tenant_admin',
+      managerId: t.headId,
+    });
+    const api = as((await world.signIn(phone)).accessToken);
+    const made = await claim(api, { policy: 'da', description: 'Audit tour', days: '1' });
+    expect(made.statusCode, made.body).toBe(201);
+    await app.get(Database).forTenant(t.tenantId, (tx) =>
+      tx
+        .update(expenseClaims)
+        .set({ state: 'approved' })
+        .where(and(eq(expenseClaims.tenantId, t.tenantId), eq(expenseClaims.id, made.json().id))),
+    );
+
+    const own = await api.post(`/v1/expense-claims/${made.json().id}/paid`, {});
+    expect(own.statusCode).toBe(403);
+    expect(own.json().error.code).toBe('FORBIDDEN');
+    // Someone else in the office pays it.
+    const paid = await t.head.post(`/v1/expense-claims/${made.json().id}/paid`, {});
+    expect(paid.json()).toMatchObject({ userId: payer.id, state: 'paid' });
   });
 });
 

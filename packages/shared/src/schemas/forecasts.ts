@@ -24,6 +24,11 @@ export const SaveForecastBody = z
     id: z.uuid(),
     lines: z.array(ForecastLineBody).min(1).max(500),
     reason: z.string().trim().min(1).max(300).optional(),
+    /**
+     * When the phone saved it, so a save made offline before the month locked counts as made then
+     * (decision D136). Without it, the save is judged as it arrives.
+     */
+    savedAt: z.iso.datetime({ offset: true }).optional(),
   })
   .superRefine((body, ctx) => {
     const seen = new Set<string>();

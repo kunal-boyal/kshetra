@@ -35,6 +35,23 @@ export function geofenceResult(input: {
   return input.distanceM <= input.radiusM + credit ? 'inside' : 'outside';
 }
 
+/**
+ * Decision D136: the moment work saved on a phone is judged by, such as a forecast's month lock or
+ * whether an order was taken on duty. The phone's own time of saving, when its clock agreed with
+ * the server's as it sent the record (BR-44), the time isn't ahead of the server's and it falls
+ * inside the sync window; otherwise the moment the record arrived.
+ */
+export function judgedMoment(
+  savedAt: number | null | undefined,
+  context: { now: number; syncWindowHours: number; skewed: boolean },
+): number {
+  const { now } = context;
+  if (savedAt == null || Number.isNaN(savedAt) || context.skewed) return now;
+  if (savedAt > now + FUTURE_TOLERANCE_MS) return now;
+  if (savedAt < now - context.syncWindowHours * 3_600_000) return now;
+  return Math.min(savedAt, now);
+}
+
 /** A problem with a record's evidence, as the API reports it. */
 export interface EvidenceIssue {
   code: Extract<

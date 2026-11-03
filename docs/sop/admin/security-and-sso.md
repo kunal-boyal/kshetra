@@ -20,7 +20,7 @@
 - On the web, anyone whose role holds `role.manage`, `user.manage`, `settings.manage`, `module.manage`, `billing.manage` or `erp.manage` also gives a code from an authenticator app. Anyone else may turn one on at **Sign-in security** in their profile menu. Phones never ask for it.
 - A web session ends after 12 hours without use and after 7 days at most. A single sign-on session lasts 12 hours. Phones stay signed in for 30 days without use and 90 days at most.
 - Whether each person may use one phone only is a rule ([Rules](rules.md)).
-- Changes that decide who signs in as whom ask for a fresh authenticator code, a step-up: changing a person's mobile number or email, resetting someone's authenticator, and saving single sign-on. A box **Confirm it’s you** appears at the top of the page; type the code in **Authenticator code** and select **Continue**. A code counts for ten minutes.
+- Changes that decide who signs in as whom ask for a fresh authenticator code, a step-up: changing a person's mobile number or email, resetting someone's authenticator, and saving single sign-on. A box **Confirm it’s you** appears at the top of the page; type the code in **Authenticator code** and select **Continue**. A code counts for ten minutes. If you have no authenticator, the box says so and offers **Set up an authenticator** instead of asking for a code; set one up, then make the change again.
 
 ## Steps
 
@@ -58,13 +58,13 @@ A secret or certificate already saved shows **Saved. Leave it blank to keep it.*
 ### Try it, then require it
 
 13. In a private browser window, open the portal's **Sign in** page, choose **Company SSO**, type your **Work email** and select **Continue**. You go to your provider's sign-in and come back signed in. If your role needs an authenticator and your provider didn't ask for a second factor, the portal asks for your authenticator code too.
-14. Once sign-in works for every domain, tick **Required** and save again. People in these domains then can't sign in to the portal with a code; phones still can.
+14. Once sign-in works for every domain, tick **Required** and save again. People in the proved domains then can't sign in to the portal with a code; phones still can. Before any domain is proved, saving with **Required** ticked says **Prove one of these domains is yours first, under Prove your domains; until then single sign-on can’t be required.**
 
 ## What the system checks
 
 - Single sign-on signs in only addresses at domains you have proved with the TXT record, and only people whose work email on their profile matches. Nobody is created by it.
 - A domain proved by another organisation stays theirs.
-- **Required** refuses web codes for every email in the listed domains, proved or not. Prove and test each domain before ticking it, or people at a domain not yet proved can't sign in to the portal at all.
+- **Required** needs at least one proved domain, and refuses web codes only for emails at proved domains; people at a domain not yet proved keep signing in with a code. Prove and test each domain before relying on it.
 - While the **Single sign-on** module is off, nobody signs in through your provider and everyone uses a code; the connection is kept.
 - The sign-in comes back to the browser that started it, and SAML answers must match a request the product sent.
 
@@ -73,7 +73,7 @@ A secret or certificate already saved shows **Saved. Leave it blank to keep it.*
 | What you see | What it means | What to do |
 |---|---|---|
 | **No TXT record with the token was found at … yet** | DNS doesn't show the record yet. | Check the name and value at your DNS provider, wait, then **Check now** again. |
-| This changed somewhere else. Refresh and try again. | Another organisation proved that domain first. | Ask the vendor. |
+| **Another organisation has verified this domain already.** | Another organisation proved that domain first; it stays theirs. | Ask the vendor. |
 | Some details need fixing. Check the highlighted fields. | A field is wrong, such as an issuer address the product can't reach. The field says why. | Correct it and save again. |
 | This change needs a code from your authenticator. Make it again and enter the code. | You cancelled **Confirm it’s you**, or its code was refused. | Save again and give a current code. |
 | The sign-in took too long. Try again. | (On the sign-in page.) The trip to the provider timed out. | Try again. |
