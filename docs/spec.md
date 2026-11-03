@@ -2338,7 +2338,7 @@ API, workers and scheduler (production values come from Secrets Manager or task 
 
 Web portal and console: `VITE_DIRECTORY_URL`, `VITE_CELL_URL` (optional; where the portal calls the cell, by default its own origin, which passes `/v1` and `/auth` to the cell; the cell address handed out at sign-in is what Settings › API clients shows integrators), `VITE_PRODUCT_NAME`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_SENTRY_DSN`, `VITE_PRIVACY_EMAIL` (the provider's privacy address on the public privacy and account deletion pages; without it they point to the store page).
 
-Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_PRIVACY_EMAIL` (as `VITE_PRIVACY_EMAIL`, for the app's Privacy screen), `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`, and `PRODUCT_SLUG` and `PRODUCT_NAME`, from which the app's name and store identifiers derive. The cell URL comes from the sign-in response, never from the build.
+Mobile (EAS environment): `EXPO_PUBLIC_DIRECTORY_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_PRIVACY_EMAIL` (as `VITE_PRIVACY_EMAIL`, for the app's Privacy screen), `EXPO_PUBLIC_PLAY_STORE_URL` and `EXPO_PUBLIC_APP_STORE_URL` (each platform's store page, which the blocking update screen opens; without one it tells the person to ask their admin for the new version, decision D136), `GOOGLE_MAPS_ANDROID_KEY`, `APP_VARIANT`, `EAS_PROJECT_ID`, and `PRODUCT_SLUG` and `PRODUCT_NAME`, from which the app's name and store identifiers derive. The cell URL comes from the sign-in response, never from the build.
 
 ## Appendix G. Glossary
 

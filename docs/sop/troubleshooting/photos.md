@@ -16,7 +16,7 @@ Photos of work, selfies, receipts, odometers and cheques are taken with the app'
 | What you see | What it means | What to do |
 |---|---|---|
 | **Allow the camera to take photos of your work. Photos are taken live, never from the gallery.** with **Allow the camera** | The app hasn't been allowed the camera yet | Tap **Allow the camera** and allow it when the phone asks. |
-| **The camera is off for this app. Allow it in the phone settings.** | The camera was refused, and the phone won't ask again | Open the phone's settings for the app, allow the camera under its permissions, then come back, tap **Back** and open the camera again. The screen has no button to open the settings. |
+| **The camera is off for this app. Allow it in the phone settings.** with **Open app settings** | The camera was refused, and the phone won't ask again | Tap **Open app settings**, allow the camera under the app's permissions, then come back, tap **Back** and open the camera again. |
 | **The photo could not be taken. Try again.** | The camera failed to take the shot | Tap **Take photo** again. Restart the app if it keeps failing. |
 | **The photo could not be saved on the phone. Try again.** | The phone couldn't keep the file | Free some space on the phone, then take it again. |
 
@@ -28,8 +28,8 @@ After **Use photo**, the form says **Photo taken. It uploads by itself.** Each p
 |---|---|---|
 | **Photo** items **Waiting** in the queue, with **Next try** | No signal, or storage didn't answer | Nothing. They upload when there is signal; tap **Sync now** to try at once. Photos are the largest uploads, so they take longest on a weak signal. |
 | A record **Waiting**, with **A photo is still uploading. This will retry by itself.** | The server hasn't got the photo yet | Nothing. It goes once its photo has. |
-| A **Photo** item **Refused** with **Some details need fixing. Check the highlighted fields.** | Storage refused the file's bytes, or the server refused the photo | Discard the photo and the record that needed it (it is refused with **Something this record needed was discarded, so it can't upload. Discard it too.**), then record it again with a new photo. |
-| A record **Refused** with **Some details need fixing. Check the highlighted fields.** | One of its photos failed the checks below | Discard it and record it again, taking the photos at the time and place. |
+| A **Photo** item **Refused** with **The server refused some of its details.** and the server's words below it | Storage refused the file's bytes, or the server refused the photo | Discard the photo and the record that needed it (it is refused with **Something this record needed was discarded, so it can't upload. Discard it too.**), then record it again with a new photo. |
+| A record **Refused** with **The server refused some of its details.** and a line for each photo the server refused | One of its photos failed the checks below | Discard it and record it again, taking the photos at the time and place. |
 
 What the server refuses in a record's photos (BR-32, `photoIssues()`): a photo taken by someone else; one that already belongs to another record; one from the gallery where the form takes the camera only; one taken more than 5 minutes from the record; one taken more than 500 m from it.
 

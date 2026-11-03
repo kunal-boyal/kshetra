@@ -24,6 +24,7 @@ import {
   HandCoins,
   LogOut,
   ReceiptText,
+  Route,
   Shield,
   Store,
   Trophy,
@@ -51,7 +52,8 @@ import { useShift } from './shift';
  * its own (accounts and forms first), the profile, language, display, the upload queue and
  * sign-out, which warns about unsent records and about recording stopping on duty.
  * Attendance opens the month calendar, Leave the balances and requests (M13), and Expenses the
- * claims (M12); requests arrive with their module.
+ * claims (M12); requests arrive with their module. Keep your route recorded opens the tracking
+ * help for anyone who punches in.
  */
 export function MeScreen() {
   const { client, session } = useApp();
@@ -133,27 +135,24 @@ export function MeScreen() {
             {items.length === 0 ? (
               <ListRow icon={CloudCheck} label={t('app.uploads_done')} />
             ) : (
-              items
-                .slice(0, QUEUE_SHOWN)
-                .map((item) => (
-                  <ListRow
-                    key={item.id}
-                    lead={
-                      <IconChip icon={CloudUpload} hue={item.state === 'parked' ? 'rose' : 'sky'} />
-                    }
-                    label={itemLabel(item, t)}
-                    detail={when(new Date(item.createdAt).toISOString(), { t, locale, timeZone })}
-                    trailing={
-                      <StatusBadge
-                        variant={item.state === 'parked' ? 'danger' : 'pending'}
-                        label={
-                          item.state === 'parked' ? t('app.upload_stuck') : t('app.upload_waiting')
-                        }
-                      />
-                    }
-                    onPress={() => router.push('/uploads')}
-                  />
-                ))
+              items.slice(0, QUEUE_SHOWN).map((item) => (
+                <ListRow
+                  key={item.id}
+                  lead={
+                    <IconChip icon={CloudUpload} hue={item.state === 'parked' ? 'rose' : 'sky'} />
+                  }
+                  label={itemLabel(item, t)}
+                  detail={when(new Date(item.createdAt).toISOString(), { t, locale, timeZone })}
+                  trailing={
+                    <StatusBadge
+                      variant={item.state === 'parked' ? 'danger' : 'pending'}
+                      // The upload queue's own words, so both say the same.
+                      label={t(item.state === 'parked' ? 'uploads.parked' : 'uploads.queued')}
+                    />
+                  }
+                  onPress={() => router.push('/uploads')}
+                />
+              ))
             )}
             {items.length > QUEUE_SHOWN ? (
               <ListRow
@@ -218,6 +217,13 @@ export function MeScreen() {
             lead={<IconChip icon={Wallet} hue="mint" />}
             label={t(statutoryOn ? 'pay.statutory_title' : 'pay.title')}
             onPress={() => router.push('/pay')}
+          />
+        ) : null}
+        {permissions.has('shift.use') ? (
+          <ListRow
+            lead={<IconChip icon={Route} hue="sky" />}
+            label={t('tracking_help.title')}
+            onPress={() => router.push('/tracking-help')}
           />
         ) : null}
         {permissions.has('leaderboard.view') ? (

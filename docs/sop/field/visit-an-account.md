@@ -85,6 +85,8 @@ For an account whose location isn't verified, where your organisation lets field
 | **You are … m away. Check in within … m of this account.** | Outside a required geofence | Go to the account and check in there |
 | **Checked in … m away, outside the geofence. The visit is marked for review.** | Outside an advisory geofence | Nothing; your manager sees the flag |
 | **This account has no verified location yet, so the distance is not checked.** | The account's place isn't verified | Propose its location if you are there |
+| **Allow location to check in or out.** | Location is off for the app | Allow location when the phone asks, or in the phone's settings for the app, then try again |
+| **Your location could not be found. Step outside and try again.** | No fix came | Step into the open and try again |
 | **This location is mocked. Turn off any app that fakes it.** | A location-faking app is on | Turn it off and try again |
 | **Your location is not accurate enough yet. Step outside and try again.** | The fix is worse than 250 m | Step into the open |
 | **Your location is only known to within … m; … m or better is needed. Step outside or wait a moment, then try again.** | Too vague to propose a location | Step outside or wait, then **Try again** |

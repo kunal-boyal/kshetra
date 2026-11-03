@@ -63,12 +63,13 @@ Forms are what your organisation asks you to record: a visit report, a demo, a s
 | What you see | What it means | What to do |
 |---|---|---|
 | **Start your day before submitting this form.** | The form needs a shift | Start your day, then submit |
+| **Allow location to submit this form.** | Location is off for the app | Allow location when the phone asks, or in the phone's settings for the app, then submit |
 | **Check in at the account first, then fill this form there.** | A visit form, not checked in there | Check in at the account |
 | **You are … m away. This form needs you within … m.** | Outside the geofence the form requires | Go to the account |
 | **Fill this in.**, **Enter a number.**, **Take a photo.** and the like | A field's problem | Fix the field shown |
 | **This could not be saved on the phone. Try again.** | The phone couldn't save | Try again |
 | **This entry is no longer on this phone.** | The draft was discarded or the phone was cleared | Start the form again |
-| **The camera is off for this app. Allow it in the phone settings.** | Camera permission was refused for good | Allow the camera in the phone's settings |
+| **The camera is off for this app. Allow it in the phone settings.** | Camera permission was refused for good | Tap **Open app settings**, allow the camera, then come back |
 | **This was recorded outside your duty hours, so it cannot be saved.** (in the upload queue) | The server found no shift at its time | See [Use the upload queue](upload-queue.md) |
 
 ## Waiting on the owner

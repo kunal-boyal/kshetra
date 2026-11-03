@@ -18,7 +18,7 @@ The apps show one sentence for each error code the server gives, in the reader's
 | Code | What the person sees | Covered in |
 |---|---|---|
 | (no connection) | The server could not be reached. Check your connection, then try again. | [Upload queue and sync](upload-queue-and-sync.md) |
-| `VALIDATION` | Some details need fixing. Check the highlighted fields. On the sign-in screen: Enter a 10-digit mobile number, such as 98765 43210. | [Upload queue and sync](upload-queue-and-sync.md), [Photos](photos.md), [Sign-in and sessions](sign-in-and-sessions.md) |
+| `VALIDATION` | Some details need fixing. Check the highlighted fields. On the sign-in screen: Enter a 10-digit mobile number, such as 98765 43210. In the field app's upload queue: The server refused some of its details., with the server's own words for each detail below it. On **My data**, for a second open request of a kind: You already have an open request of this kind. Wait for its answer before asking again. | [Upload queue and sync](upload-queue-and-sync.md), [Photos](photos.md), [Sign-in and sessions](sign-in-and-sessions.md) |
 | `UNAUTHENTICATED` | Sign in to continue. | [Sign-in and sessions](sign-in-and-sessions.md) |
 | `TOKEN_EXPIRED` | Your session needs refreshing. Try again. The apps refresh by themselves; try again if it shows. | [Sign-in and sessions](sign-in-and-sessions.md) |
 | `SESSION_REVOKED` | You have been signed out. Sign in again. | [Sign-in and sessions](sign-in-and-sessions.md) |
@@ -43,7 +43,7 @@ The apps show one sentence for each error code the server gives, in the reader's
 | `MEDIA_NOT_READY` | A photo is still uploading. This will retry by itself. | [Photos](photos.md) |
 | `PRICE_CHANGED` | Prices have changed. Check your cart, then send the order again. | [Upload queue and sync](upload-queue-and-sync.md) |
 | `TARGET_LOCKED` | This target is locked and can no longer be changed. A locked target changes only after it is unlocked; see the manager's targets procedure. | [../manager/](../manager/README.md) |
-| `PERIOD_CLOSED` | That month is closed. Its sell-through can no longer change. Shown for a closed forecast month too. | [Upload queue and sync](upload-queue-and-sync.md) |
+| `PERIOD_CLOSED` | That month is closed. Its figures can no longer change. Shown for a closed sell-through or forecast month. | [Upload queue and sync](upload-queue-and-sync.md) |
 | `NOT_CURRENT_APPROVER` | It isn't your turn to act on this, or someone else already has. Refresh your inbox. | [../manager/](../manager/README.md) |
 | `QUOTA_EXCEEDED` | This is over your limit. | [Upload queue and sync](upload-queue-and-sync.md) |
 | `IMPORT_ERRORS` | Some rows have errors. Fix them, then upload the file again. The row errors list each problem. | [../admin/](../admin/README.md) |

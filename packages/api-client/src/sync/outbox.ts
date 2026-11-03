@@ -1,3 +1,4 @@
+import type { ErrorDetail } from '@thelamp/shared';
 import { ApiError, NetworkError } from '../client';
 import type { SqlDatabase, SqlExecutor, SqlValue } from './sql';
 
@@ -18,6 +19,8 @@ export interface OutboxItem {
   lastError: string | null;
   /** The error code of the last failure, from spec 11.4, or one of the outbox's own. */
   lastErrorCode: string | null;
+  /** What the server said was wrong with each field when it refused the item (spec 11.1). */
+  lastErrorDetails: ErrorDetail[];
   state: 'queued' | 'parked';
   createdAt: number;
 }
@@ -87,6 +90,7 @@ interface OutboxRecord {
   next_attempt_at: number | null;
   last_error: string | null;
   last_error_code: string | null;
+  last_error_details: string | null;
   state: 'queued' | 'parked';
   created_at: number;
 }
@@ -103,6 +107,9 @@ function toItem(record: OutboxRecord): OutboxItem {
     nextAttemptAt: record.next_attempt_at,
     lastError: record.last_error,
     lastErrorCode: record.last_error_code,
+    lastErrorDetails: record.last_error_details
+      ? (JSON.parse(record.last_error_details) as ErrorDetail[])
+      : [],
     state: record.state,
     createdAt: record.created_at,
   };
@@ -188,9 +195,9 @@ export class Outbox {
       } catch (error) {
         const failure = classify(error);
         if (failure === 'stop') return { status: 'stopped', error };
-        const { code, message } = describe(error);
+        const { code, message, details } = describe(error);
         if (failure === 'permanent') {
-          await this.park(item, code, message);
+          await this.park(item, code, message, details);
           continue;
         }
         const retryAfter =
@@ -214,7 +221,7 @@ export class Outbox {
   async retry(id: string): Promise<void> {
     await this.db.run(
       `UPDATE outbox SET state = 'queued', attempts = 0, next_attempt_at = NULL,
-                         last_error = NULL, last_error_code = NULL
+                         last_error = NULL, last_error_code = NULL, last_error_details = NULL
         WHERE id = ?`,
       [id],
     );
@@ -227,7 +234,7 @@ export class Outbox {
   async replace(id: string, payload: unknown): Promise<void> {
     await this.db.run(
       `UPDATE outbox SET payload = ?, state = 'queued', attempts = 0, next_attempt_at = NULL,
-                         last_error = NULL, last_error_code = NULL
+                         last_error = NULL, last_error_code = NULL, last_error_details = NULL
         WHERE id = ? AND state = 'parked'`,
       [JSON.stringify(payload), id],
     );
@@ -243,7 +250,8 @@ export class Outbox {
     await this.db.transaction(async (tx) => {
       await tx.run('DELETE FROM outbox WHERE id = ?', [id]);
       await tx.run(
-        `UPDATE outbox SET state = 'parked', last_error = NULL, last_error_code = ?
+        `UPDATE outbox SET state = 'parked', last_error = NULL, last_error_code = ?,
+                           last_error_details = NULL
           WHERE EXISTS (SELECT 1 FROM json_each(outbox.depends_on) d WHERE d.value = ?)`,
         [OUTBOX_CODES.dependencyDiscarded, id],
       );
@@ -252,13 +260,19 @@ export class Outbox {
     await this.senders[item.kind]?.discard?.(item.payload);
   }
 
-  private async park(item: OutboxItem, code: string, message: string): Promise<void> {
+  private async park(
+    item: OutboxItem,
+    code: string,
+    message: string,
+    details: readonly ErrorDetail[] = [],
+  ): Promise<void> {
     await this.update(item.seq, {
       state: 'parked',
       attempts: item.attempts + 1,
       next_attempt_at: null,
       last_error: message,
       last_error_code: code,
+      last_error_details: details.length > 0 ? JSON.stringify(details) : null,
     });
   }
 
@@ -271,8 +285,20 @@ export class Outbox {
   }
 }
 
-function describe(error: unknown): { code: string; message: string } {
-  if (error instanceof ApiError) return { code: error.code, message: error.message };
-  if (error instanceof NetworkError) return { code: 'NETWORK', message: error.message };
-  return { code: 'INTERNAL', message: error instanceof Error ? error.message : String(error) };
+function describe(error: unknown): {
+  code: string;
+  message: string;
+  details: readonly ErrorDetail[];
+} {
+  if (error instanceof ApiError) {
+    return { code: error.code, message: error.message, details: error.details };
+  }
+  if (error instanceof NetworkError) {
+    return { code: 'NETWORK', message: error.message, details: [] };
+  }
+  return {
+    code: 'INTERNAL',
+    message: error instanceof Error ? error.message : String(error),
+    details: [],
+  };
 }

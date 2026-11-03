@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evidenceIssues, geofenceResult, photoIssues } from './evidence';
+import { evidenceIssues, geofenceResult, judgedMoment, photoIssues } from './evidence';
 
 const H = 3_600_000;
 const NOW = Date.parse('2026-10-14T06:00:00Z');
@@ -120,5 +120,23 @@ describe('BR-32: photos', () => {
     expect(
       photoIssues([photo({ source: 'gallery' })], submission, { galleryAllowed: true }),
     ).toEqual([]);
+  });
+});
+
+describe('the moment offline work is judged by (decision D136)', () => {
+  const at = { now: NOW, syncWindowHours: 72, skewed: false };
+  it('is when the phone saved it, inside the sync window', () => {
+    expect(judgedMoment(NOW - 30 * H, at)).toBe(NOW - 30 * H);
+    expect(judgedMoment(NOW - 72 * H, at)).toBe(NOW - 72 * H);
+    // A little ahead, within the tolerance, counts as now.
+    expect(judgedMoment(NOW + 60_000, at)).toBe(NOW);
+  });
+  it('is when it arrived without a time, past the window, ahead of the server or skewed', () => {
+    expect(judgedMoment(undefined, at)).toBe(NOW);
+    expect(judgedMoment(null, at)).toBe(NOW);
+    expect(judgedMoment(Number.NaN, at)).toBe(NOW);
+    expect(judgedMoment(NOW - 73 * H, at)).toBe(NOW);
+    expect(judgedMoment(NOW + 3 * 60_000, at)).toBe(NOW);
+    expect(judgedMoment(NOW - H, { ...at, skewed: true })).toBe(NOW);
   });
 });
