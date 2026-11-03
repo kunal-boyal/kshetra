@@ -4068,6 +4068,12 @@ export const en = {
   'types.other_hi': 'Name for many, in Hindi',
   'types.active': 'In use',
   'types.contacts': 'Keeps contact people',
+  'types.sell_through': 'Gives a monthly {term.sell_through:lower} statement',
+  'types.sell_through_help':
+    'Each month, what it received, sold and has left of each item, recorded on the phone or the portal.',
+  'types.keeps_stock': 'Holds stock',
+  'types.keeps_stock_help':
+    'Its page shows its stock item by item, people may count it on the phone, and {term.order:other:lower} supplied through it take from it once delivered.',
   'types.rules': 'Codes, locations and who adds them',
   'types.code_mode': 'Codes',
   'types.code_manual': 'Typed in',

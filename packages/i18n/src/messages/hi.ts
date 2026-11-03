@@ -4051,6 +4051,12 @@ export const hi: Record<MessageKey, Message> = {
   'types.other_hi': 'कई के लिए नाम, हिंदी में',
   'types.active': 'उपयोग में',
   'types.contacts': 'संपर्क व्यक्ति रखता है',
+  'types.sell_through': 'हर महीने {term.sell_through:lower} का विवरण देता है',
+  'types.sell_through_help':
+    'हर महीने हर आइटम का कितना आया, कितना बिका और कितना बचा, फ़ोन या पोर्टल पर दर्ज।',
+  'types.keeps_stock': 'स्टॉक रखता है',
+  'types.keeps_stock_help':
+    'इसके पेज पर आइटम-वार स्टॉक दिखता है, लोग फ़ोन पर उसे गिन सकते हैं, और इसके ज़रिए भेजे गए {term.order:other} डिलीवर होने पर इसके स्टॉक से घटते हैं।',
   'types.rules': 'कोड, लोकेशन और कौन जोड़ता है',
   'types.code_mode': 'कोड',
   'types.code_manual': 'टाइप करके',
