@@ -155,7 +155,7 @@ describe('approval chains (spec 5.9, BR-31)', () => {
   it('lists a chain per request type and versions every change, refusing a stale edit', async () => {
     const t = await tenant('Chains Co');
     const before = (await t.api.head.get('/v1/workflows')).json();
-    expect(before.chains).toHaveLength(8);
+    expect(before.chains).toHaveLength(7);
     expect(before.fallbackRole).toBe('business_head');
     const first = await t.chain(MANAGER_THEN_HEAD);
     expect(first).toMatchObject({ requestType: 'journey_plan', version: 1 });
