@@ -7,7 +7,7 @@
 | **Module** | Core (a request type of a module that is off leaves the inbox) |
 | **Related** | [Set up leave types](leave-types.md), [Set up expense policies](expense-policies.md), [Set the organisation's rules](rules.md), [Decide approvals](../manager/approvals.md) |
 
-An approval chain says who decides each kind of request, step by step: leave, attendance fixes, expense claims, orders, new accounts, account locations, journey plans and locking targets. A type without a chain goes to the requester's manager. Each save is a new version; requests already waiting keep the version that routed them.
+An approval chain says who decides each kind of request, step by step: leave, attendance fixes, expense claims, orders, new accounts, account locations and journey plans. A type without a chain goes to the requester's manager. Each save is a new version; requests already waiting keep the version that routed them.
 
 ## Before you start
 

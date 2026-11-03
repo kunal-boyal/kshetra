@@ -2,7 +2,8 @@ import { permissionClosed } from './modules';
 /**
  * The permission catalogue of spec Appendix E, grouped by its areas. A role holds a list of these,
  * and the role's data scope decides whose records each one reaches (spec 4.2). Stored roles refer
- * to permissions by name, so add new ones and never rename old ones.
+ * to permissions by name, so add new ones and never rename old ones; one taken out goes in
+ * `RETIRED_PERMISSIONS`, and a migration strips it from stored roles.
  */
 export const PERMISSIONS_BY_AREA = {
   field: [
@@ -49,8 +50,6 @@ export const PERMISSIONS_BY_AREA = {
     'form.manage',
     'metric.manage',
     'workflow.manage',
-    'policy.manage',
-    'notification_template.manage',
     'module.manage',
   ],
   catalogue_and_orders: [
@@ -106,13 +105,30 @@ export type TenantPermission = (typeof PERMISSIONS_BY_AREA)[PermissionArea][numb
 export const TENANT_PERMISSIONS: readonly TenantPermission[] =
   Object.values(PERMISSIONS_BY_AREA).flat();
 
+/**
+ * Permissions taken out of the catalogue because no route, screen or job ever used them (decision
+ * D137). Configuration files from before may still list them, and are read as if they didn't.
+ */
+export const RETIRED_PERMISSIONS: readonly string[] = [
+  'policy.manage',
+  'notification_template.manage',
+];
+
+/**
+ * A stored role's permissions as the catalogue knows them: one taken out since (decision D137) is
+ * dropped rather than failing the role.
+ */
+export function knownPermissions(stored: readonly string[]): TenantPermission[] {
+  const known = new Set<string>(TENANT_PERMISSIONS);
+  return stored.filter((permission): permission is TenantPermission => known.has(permission));
+}
+
 /** Permissions for vendor staff in the platform console (module M22). No tenant role holds them. */
 export const PLATFORM_PERMISSIONS = [
   'platform.tenant.manage',
   'platform.plan.manage',
   'platform.support.request',
   'platform.support.approve_emergency',
-  'platform.flags.manage',
   'platform.billing.manage',
   'platform.staff.manage',
 ] as const;
@@ -129,7 +145,7 @@ export type PlatformRole = (typeof PLATFORM_ROLES)[number];
 
 export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRole, readonly PlatformPermission[]> = {
   platform_admin: PLATFORM_PERMISSIONS,
-  implementation: ['platform.tenant.manage', 'platform.flags.manage'],
+  implementation: ['platform.tenant.manage'],
   support: ['platform.support.request'],
   finance: ['platform.plan.manage', 'platform.billing.manage'],
 };

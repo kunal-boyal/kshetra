@@ -218,6 +218,31 @@ describe('validateTemplate', () => {
     expect(issues[0]).toMatch(/^roles\[1\]\.permissions\[0\]: Invalid option/);
   });
 
+  it('reads a file from before D137 as if what was taken out weren’t in it', () => {
+    const template = sample();
+    template.roles[0]!.permissions.push('policy.manage' as never);
+    template.roles[1]!.permissions = ['notification_template.manage' as never, 'report.view'];
+    template.workflows.definitions.push({
+      requestType: 'target_lock' as never,
+      steps: [{ approver: { type: 'reporting_manager' } }],
+    });
+    const result = validateTemplate(template);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.template.roles[0]?.permissions).toEqual([...TENANT_PERMISSIONS]);
+    expect(result.template.roles[1]?.permissions).toEqual(['report.view']);
+    expect(result.template.workflows.definitions.map((d) => d.requestType)).toEqual([
+      'leave',
+      'order',
+    ]);
+    // A role left holding nothing is still refused, with its path.
+    template.roles[1]!.permissions = ['policy.manage' as never];
+    expect(validateTemplate(template)).toMatchObject({
+      ok: false,
+      issues: [expect.objectContaining({ path: 'roles[1].permissions' })],
+    });
+  });
+
   it('checks designations', () => {
     expect(
       issuesAfter((template) => {
