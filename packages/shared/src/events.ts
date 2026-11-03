@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { COLLECTION_MODES, COLLECTION_STATUSES } from './collections';
 import { ORDER_STATUSES } from './orders';
 import { isPeriodKey } from './periods';
 import { UserStatus } from './schemas/iam';
@@ -66,6 +67,17 @@ export const OrderEventPayload = z.object({
   visitId: z.uuid().nullable(),
   placedAt: z.iso.datetime(),
   status: z.enum(ORDER_STATUSES),
+});
+
+/** A collection recorded in the field, or its status changed (BR-63, decision D132). */
+export const CollectionEventPayload = z.object({
+  collectionId: z.uuid(),
+  userId: z.uuid(),
+  accountId: z.uuid(),
+  collectedOn: z.iso.date(),
+  amount: z.string(),
+  mode: z.enum(COLLECTION_MODES),
+  status: z.enum(COLLECTION_STATUSES),
 });
 
 /** A photo processed (spec 12.2): the record holding it, if any, learns of a duplicate (BR-40). */
@@ -237,6 +249,8 @@ export const EVENT_PAYLOADS = {
   'submission.created': SubmissionEventPayload,
   'order.placed': OrderEventPayload,
   'order.status_changed': OrderEventPayload,
+  'collection.recorded': CollectionEventPayload,
+  'collection.status_changed': CollectionEventPayload,
   'media.processed': MediaProcessedPayload,
   'submission.reviewed': SubmissionReviewedPayload,
   'plan_item.status_changed': PlanItemStatusChangedPayload,

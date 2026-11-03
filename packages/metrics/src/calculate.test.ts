@@ -134,6 +134,25 @@ describe("a person's day (spec 5.7)", () => {
     expect(facts.urea!.value).toBe('75.000');
   });
 
+  it('sums collections by amount, for chosen modes, with what waits for the office apart (BR-63, D132)', () => {
+    const facts = byKey(
+      calculateDayFacts(
+        [
+          metric('collection', 'currency', { type: 'collected' }),
+          metric('cheques', 'currency', { type: 'collected', modes: ['cheque'] }),
+        ],
+        day({
+          collections: [
+            { amount: '12000.00', mode: 'cash', confirmed: true },
+            { amount: '5000.50', mode: 'cheque', confirmed: false },
+          ],
+        }),
+      ),
+    );
+    expect(facts.collection).toMatchObject({ value: '17000.500', pending: '5000.500' });
+    expect(facts.cheques).toMatchObject({ value: '5000.500', pending: '5000.500' });
+  });
+
   it('keeps the distinct accounts visited, by type and segment', () => {
     const facts = byKey(
       calculateDayFacts(

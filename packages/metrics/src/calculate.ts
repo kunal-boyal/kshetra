@@ -25,6 +25,7 @@ export const COMPUTED_SOURCES = [
   'order_quantity',
   'order_lines',
   'sell_through',
+  'collected',
   'productive_visits',
   'external',
   'ratio',
@@ -129,6 +130,11 @@ export interface DayRecords {
    * sold through, and its value when the item had a price. Absent where none were loaded.
    */
   sellThrough?: readonly { itemCode: string; sold: string; value: string | null }[];
+  /**
+   * Collections the person took that day (BR-63, decision D132), rejected and bounced ones left
+   * out. Absent where none were loaded.
+   */
+  collections?: readonly { amount: string; mode: string; confirmed: boolean }[];
 }
 
 /** One metric's fact for one person and day. */
@@ -353,6 +359,18 @@ export function calculateDay(
         total += thousandths(source.measure === 'value' ? line.value : line.sold) ?? 0n;
       }
       return fact(key, decimal(total));
+    }
+    case 'collected': {
+      // Counted once recorded; what the office hasn't confirmed yet is shown apart.
+      let total = 0n;
+      let waiting = 0n;
+      for (const collection of day.collections ?? []) {
+        if (source.modes && !source.modes.includes(collection.mode as never)) continue;
+        const amount = thousandths(collection.amount) ?? 0n;
+        total += amount;
+        if (!collection.confirmed) waiting += amount;
+      }
+      return fact(key, decimal(total), { pending: decimal(waiting) });
     }
     case 'external': {
       let total = 0n;

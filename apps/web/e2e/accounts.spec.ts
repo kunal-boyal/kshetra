@@ -331,6 +331,8 @@ const ANSWERS: Record<string, unknown> = {
       createdAt: '2026-10-15T05:00:00.000Z',
     },
     history: [],
+    receivables: null,
+    collected: { notInBooks: '0.00', leftAfter: '42000.50' },
   },
   [`/v1/accounts/${SHOP}/statement`]: {
     from: '2026-04-01',
@@ -558,6 +560,7 @@ test('an account with invoices shows what they leave open, and passes axe (D121)
         advance: '0.00',
         creditLimit: '20000.00',
       },
+      collected: { notInBooks: '0.00', leftAfter: '13500.00' },
     },
     [`/v1/accounts/${SHOP}/invoices`]: {
       items: [

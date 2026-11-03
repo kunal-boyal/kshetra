@@ -23,6 +23,7 @@ export const mediaKind = cell.enum('media_kind', [
   'receipt',
   'odometer',
   'signature',
+  'collection',
   'import_file',
   'export_file',
   'logo',

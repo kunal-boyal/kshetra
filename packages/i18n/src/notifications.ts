@@ -84,6 +84,18 @@ export function notificationMessage(
           };
     case 'erp.reconnect':
       return { title: 'notify.erp_reconnect_title', body: 'notify.erp_reconnect_body', params };
+    case 'collection.rejected':
+      return {
+        title: 'notify.collection_rejected_title',
+        body: 'notify.collection_rejected_body',
+        params,
+      };
+    case 'collection.bounced':
+      return {
+        title: 'notify.collection_bounced_title',
+        body: 'notify.collection_bounced_body',
+        params,
+      };
     case 'support.emergency':
       return {
         title: 'notify.support_emergency_title',

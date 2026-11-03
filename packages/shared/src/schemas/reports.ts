@@ -33,6 +33,7 @@ export const REPORT_KEYS = [
   'forecast_accuracy',
   'stock_on_hand',
   'stock_ledger',
+  'collections',
 ] as const;
 export const ReportKey = z.enum(REPORT_KEYS).meta({ id: 'ReportKey' });
 
@@ -49,6 +50,7 @@ export const REPORT_MODULE: Partial<Record<(typeof REPORT_KEYS)[number], Switcha
   pay_register: 'statutory_payroll',
   stock_on_hand: 'inventory',
   stock_ledger: 'inventory',
+  collections: 'account_finance',
 };
 
 /** Reports that need a permission beyond `report.view`, as their records do elsewhere. */
@@ -63,6 +65,7 @@ export const REPORT_PERMISSION: Partial<Record<(typeof REPORT_KEYS)[number], Ten
   pay_register: 'payroll.run',
   stock_on_hand: 'stock.view',
   stock_ledger: 'stock.view',
+  collections: 'collection.view',
 };
 
 /**

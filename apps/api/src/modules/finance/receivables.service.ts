@@ -22,6 +22,7 @@ import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { AccountsService } from '../accounts/accounts.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { CollectionsService } from './collections.service';
 
 export interface InvoiceInput {
   number: string;
@@ -128,6 +129,7 @@ export class ReceivablesService {
     private readonly accounts: AccountsService,
     private readonly config: TenantConfigService,
     private readonly audit: AuditLog,
+    private readonly collections: CollectionsService,
   ) {}
 
   /** What a list of invoices would do, by its index: a document never moves account. */
@@ -313,6 +315,26 @@ export class ReceivablesService {
         after: change.after,
       });
     }
+    // The field's collections these receipts are, by BR-63 (decision D132).
+    const changedIds = plan.changed.map((change) => change.id);
+    const changedAccounts =
+      changedIds.length === 0
+        ? []
+        : await tx
+            .select({ accountId: accountReceipts.accountId })
+            .from(accountReceipts)
+            .where(
+              and(eq(accountReceipts.tenantId, tenantId), inArray(accountReceipts.id, changedIds)),
+            );
+    await this.collections.match(
+      tx,
+      tenantId,
+      [
+        ...plan.fresh.map((receipt) => receipt.accountId),
+        ...changedAccounts.map((row) => row.accountId),
+      ],
+      actor,
+    );
   }
 
   /** The documents of some accounts, by account; accounts without any are left out. */

@@ -18,6 +18,8 @@ export const WEBHOOK_EVENTS = [
   'submission.reviewed',
   'order.placed',
   'order.status_changed',
+  'collection.recorded',
+  'collection.status_changed',
 ] as const satisfies readonly EventType[];
 
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
@@ -71,6 +73,19 @@ export function webhookData(
         visitId: order.visitId,
         placedAt: order.placedAt,
         status: order.status,
+      };
+    }
+    case 'collection.recorded':
+    case 'collection.status_changed': {
+      const collection = payload as EventPayload<'collection.status_changed'>;
+      return {
+        collectionId: collection.collectionId,
+        userId: collection.userId,
+        accountId: collection.accountId,
+        collectedOn: collection.collectedOn,
+        amount: collection.amount,
+        mode: collection.mode,
+        status: collection.status,
       };
     }
     case 'account.created':

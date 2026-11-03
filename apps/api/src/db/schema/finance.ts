@@ -1,11 +1,13 @@
-import { RECEIPT_KINDS } from '@thelamp/shared';
+import { COLLECTION_MODES, COLLECTION_STATUSES, RECEIPT_KINDS } from '@thelamp/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
   date,
+  doublePrecision,
   foreignKey,
   index,
+  integer,
   jsonb,
   numeric,
   primaryKey,
@@ -15,7 +17,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { accounts } from './accounts';
-import { cell, isolation, rowVersionColumn } from './common';
+import { cell, geographyPoint, isolation, rowVersionColumn } from './common';
+import { users } from './iam';
 
 /**
  * Account finance (M11, spec 10.3, decision D79), owned by the finance module: balance snapshots
@@ -184,5 +187,98 @@ export const accountReceipts = cell
       check('receipts_amount', sql`${table.amount} > 0`),
       isolation(),
     ],
+  )
+  .enableRLS();
+
+export const collectionMode = cell.enum('collection_mode', COLLECTION_MODES);
+export const collectionStatus = cell.enum('collection_status', COLLECTION_STATUSES);
+
+/**
+ * Collections (M11, BR-63, decision D132): money a person took from an account, with its ID from
+ * the phone. They stand beside the books and never become receipts (spec 2.2): `receipt_id` names
+ * the books' receipt matched to one, by the rule or by hand. Phones keep a copy (row versions).
+ */
+export const collections = cell
+  .table(
+    'collections',
+    {
+      tenantId: uuid('tenant_id').notNull(),
+      id: uuid('id').notNull(),
+      number: integer('number').notNull(),
+      accountId: uuid('account_id').notNull(),
+      userId: uuid('user_id').notNull(),
+      deviceId: uuid('device_id'),
+      visitId: uuid('visit_id'),
+      shiftId: uuid('shift_id'),
+      /** The day it was taken on the tenant's clock, and the moment. */
+      collectedOn: date('collected_on').notNull(),
+      collectedAt: timestamp('collected_at', { withTimezone: true }).notNull(),
+      amount: numeric('amount', { precision: 18, scale: 2 }).notNull(),
+      mode: collectionMode('mode').notNull(),
+      reference: text('reference'),
+      chequeNumber: text('cheque_number'),
+      chequeBank: text('cheque_bank'),
+      chequeDate: date('cheque_date'),
+      note: text('note'),
+      point: geographyPoint('point'),
+      accuracy: doublePrecision('accuracy'),
+      inGeofence: boolean('in_geofence'),
+      status: collectionStatus('status').notNull().default('recorded'),
+      /** Why it was rejected or bounced. */
+      reason: text('reason'),
+      decidedBy: uuid('decided_by'),
+      decidedAt: timestamp('decided_at', { withTimezone: true }),
+      receiptId: uuid('receipt_id'),
+      matchedByHand: boolean('matched_by_hand').notNull().default(false),
+      matchedAt: timestamp('matched_at', { withTimezone: true }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      rowVersion: rowVersionColumn(),
+    },
+    (table) => [
+      primaryKey({ columns: [table.tenantId, table.id] }),
+      uniqueIndex('collections_tenant_number').on(table.tenantId, table.number),
+      uniqueIndex('collections_tenant_receipt')
+        .on(table.tenantId, table.receiptId)
+        .where(sql`${table.receiptId} is not null`),
+      index('collections_tenant_account_status').on(table.tenantId, table.accountId, table.status),
+      index('collections_tenant_user_day').on(table.tenantId, table.userId, table.collectedOn),
+      index('collections_tenant_status_day').on(table.tenantId, table.status, table.collectedOn),
+      index('collections_tenant_row_version').on(table.tenantId, table.rowVersion, table.id),
+      foreignKey({
+        name: 'collections_account_fk',
+        columns: [table.tenantId, table.accountId],
+        foreignColumns: [accounts.tenantId, accounts.id],
+      }),
+      foreignKey({
+        name: 'collections_user_fk',
+        columns: [table.tenantId, table.userId],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      foreignKey({
+        name: 'collections_decided_by_fk',
+        columns: [table.tenantId, table.decidedBy],
+        foreignColumns: [users.tenantId, users.id],
+      }),
+      foreignKey({
+        name: 'collections_receipt_fk',
+        columns: [table.tenantId, table.receiptId],
+        foreignColumns: [accountReceipts.tenantId, accountReceipts.id],
+      }),
+      check('collections_amount', sql`${table.amount} > 0`),
+      isolation(),
+    ],
+  )
+  .enableRLS();
+
+/** Each tenant's last collection number, locked by its upsert while a collection is recorded. */
+export const collectionCounters = cell
+  .table(
+    'collection_counters',
+    {
+      tenantId: uuid('tenant_id').notNull().primaryKey(),
+      last: integer('last').notNull(),
+    },
+    () => [isolation()],
   )
   .enableRLS();

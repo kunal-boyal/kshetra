@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "building",
-  "version": 8,
+  "version": 9,
   "name": {
     "en": "Building materials and paints",
     "hi": "बिल्डिंग मटीरियल और पेंट"
@@ -81,6 +81,9 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.record",
+        "collection.view",
+        "collection.confirm",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -170,6 +173,8 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.record",
+        "collection.view",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -229,6 +234,8 @@
         "order.view",
         "order.decide",
         "finance.view",
+        "collection.record",
+        "collection.view",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -268,6 +275,7 @@
         "expense.claim",
         "payslip.view",
         "finance.view",
+        "collection.record",
         "sell_through.record",
         "forecast.record",
         "stock.view",
@@ -291,6 +299,8 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.view",
+        "collection.confirm",
         "expense.mark_paid",
         "payroll.manage",
         "payslip.view",
@@ -838,14 +848,6 @@
           "required": true
         },
         {
-          "key": "collection",
-          "type": "currency",
-          "label": {
-            "en": "Collection",
-            "hi": "वसूली"
-          }
-        },
-        {
           "key": "stock_ok",
           "type": "yes_no",
           "label": {
@@ -1172,11 +1174,7 @@
         }
       },
       "unit": "currency",
-      "source": {
-        "type": "submission_field_sum",
-        "forms": ["dealer_visit"],
-        "field": "collection"
-      }
+      "source": { "type": "collected" }
     },
     {
       "key": "site_visits",

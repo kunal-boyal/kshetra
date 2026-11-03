@@ -34,6 +34,7 @@ import { OrdersRegisterReport } from './orders-register';
 import { AccountStatementReport } from './account-statement';
 import { OutstandingReport } from './outstanding';
 import { SellThroughReport } from './sell-through';
+import { CollectionsReport } from './collections';
 import { StockLedgerReport, StockOnHandReport } from './stock';
 import { ForecastAccuracyReport } from './forecast-accuracy';
 import { SchemeSummaryReport } from './scheme-summary';
@@ -98,6 +99,7 @@ import { TargetAchievementReport } from './target-achievement';
     SellThroughReport,
     StockOnHandReport,
     StockLedgerReport,
+    CollectionsReport,
     ForecastAccuracyReport,
     SchemeSummaryReport,
     PayRegisterReport,

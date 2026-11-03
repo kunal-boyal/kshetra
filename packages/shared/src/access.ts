@@ -67,7 +67,13 @@ export const PERMISSIONS_BY_AREA = {
     'stock.record',
     'stock.count',
   ],
-  finance: ['finance.view', 'finance.manage'],
+  finance: [
+    'finance.view',
+    'finance.manage',
+    'collection.record',
+    'collection.view',
+    'collection.confirm',
+  ],
   people_operations: [
     'leave.request',
     'regularisation.request',

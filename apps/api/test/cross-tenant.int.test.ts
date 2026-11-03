@@ -106,6 +106,8 @@ let aClaimId: string;
 /** A second claim of A's, whose ID B never uses for its own. */
 let aOtherClaimId: string;
 let aOrderId: string;
+/** A's member's collection, confirmed by A's office (BR-63, decision D132). */
+let aCollectionId: string;
 /** B's member, signed in on their bound phone. */
 let bPhoneToken: string;
 /** An account of B's own, under B's territory. */
@@ -1556,6 +1558,64 @@ const FIXTURES: Record<string, Fixture> = {
           facts: { leave_days: 1 },
         }),
       ),
+  },
+  'POST /v1/collections': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) =>
+          asB('POST', '/v1/collections', {
+            id: newId(),
+            accountId: id,
+            amount: '100',
+            mode: 'cash',
+            collectedAt: new Date().toISOString(),
+          }),
+        aAccountId,
+      ),
+  },
+  'GET /v1/collections': {
+    kind: 'own tenant',
+    run: async () => holdsNothingOfA(await asB('GET', '/v1/collections')),
+  },
+  'GET /v1/collections/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/collections/${id}`), aCollectionId),
+  },
+  'POST /v1/collections/decisions': {
+    kind: 'by ID',
+    run: async () => {
+      // Each item answers on its own, so A's collection must answer as one that doesn't exist.
+      const decide = (id: string) =>
+        asB('POST', '/v1/collections/decisions', {
+          items: [{ id, decision: 'reject', reason: 'Not received' }],
+        });
+      const theirs = await decide(aCollectionId);
+      const nowhere = await decide(newId());
+      expect(theirs.statusCode).toBe(200);
+      expect(theirs.json().results[0].error).toEqual(nowhere.json().results[0].error);
+      expect(theirs.json().results[0].error.code).toBe('NOT_FOUND');
+    },
+  },
+  'POST /v1/collections/:id/bounce': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', `/v1/collections/${id}/bounce`, { reason: 'Funds short' }),
+        aCollectionId,
+      ),
+  },
+  'POST /v1/collections/:id/match': {
+    kind: 'by ID',
+    run: () =>
+      sameAsNowhere(
+        (id) => asB('POST', `/v1/collections/${id}/match`, { receiptId: newId() }),
+        aCollectionId,
+      ),
+  },
+  'POST /v1/collections/:id/unmatch': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('POST', `/v1/collections/${id}/unmatch`), aCollectionId),
   },
   'POST /v1/approvals/decisions': {
     kind: 'by ID',
@@ -3390,6 +3450,14 @@ beforeAll(async () => {
   await admin(
     `insert into cell.forecast_lines (tenant_id, forecast_id, item_id, quantity) values ($1, $2, $3, 8)`,
     [a.tenantId, aForecastId, aItemId],
+  );
+  // A's member took a payment, which A's office confirmed (BR-63, decision D132).
+  aCollectionId = newId();
+  await admin(
+    `insert into cell.collections
+       (tenant_id, id, number, account_id, user_id, collected_on, collected_at, amount, mode, status)
+     values ($1, $2, 1, $3, $4, current_date, now(), 500, 'cheque', 'confirmed')`,
+    [a.tenantId, aCollectionId, aAccountId, a.member.id],
   );
   // A's member's phone refused a mocked fix (BR-50, decision D119).
   await admin(

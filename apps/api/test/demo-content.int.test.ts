@@ -166,6 +166,17 @@ describe('demo content (decision D70)', () => {
       );
       expect(forecast!.forecasts).toBe(counts.forecasts);
       expect(forecast!.lines).toBeGreaterThanOrEqual(forecast!.forecasts * 2);
+      // Field people collect at the accounts the company supplies; the office confirms most in
+      // the evening, and the last two days' wait (D132).
+      expect(counts.collections).toBeGreaterThan(0);
+      const [collected] = await sql<{ made: number; confirmed: number }>(
+        `select count(*)::int as made,
+                (count(*) filter (where status = 'confirmed'))::int as confirmed
+           from cell.collections where tenant_id = $1`,
+        [tenantId],
+      );
+      expect(collected!.made).toBe(counts.collections);
+      expect(collected!.confirmed).toBeGreaterThan(0);
       // The tenant runs three schemes, and some of its orders carry them (D127).
       expect(counts.schemes).toBe(3);
       const [schemed] = await sql<{ lines: number }>(

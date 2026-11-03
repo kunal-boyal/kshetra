@@ -645,6 +645,9 @@ export const en = {
   'perm.order.fulfil': 'Record deliveries',
   'perm.finance.view': 'View finance',
   'perm.finance.manage': 'Record finance entries',
+  'perm.collection.record': 'Record collections',
+  'perm.collection.view': 'See collections',
+  'perm.collection.confirm': 'Confirm, reject and match collections',
   'perm.leave.request': 'Request leave',
   'perm.regularisation.request': 'Request attendance corrections',
   'perm.expense.claim': 'Claim expenses',
@@ -2775,6 +2778,12 @@ export const en = {
   'notify.support_requested_body':
     '{staff} asks to {access} your organisation for {duration}: {reason}. Approve or decline it in Settings.',
   'support.duration': { one: '{count} hour', other: '{count} hours' },
+  'notify.collection_rejected_title': 'Collection rejected',
+  'notify.collection_rejected_body':
+    '{name} rejected your collection {number} of {amount} from {account}: {reason}',
+  'notify.collection_bounced_title': 'Cheque bounced',
+  'notify.collection_bounced_body':
+    'The cheque for your collection {number} of {amount} from {account} bounced: {reason}',
   'notify.erp_reconnect_title': 'Connect {provider} again',
   'notify.erp_reconnect_body':
     '{provider} no longer accepts the connection, so nothing is read from it or sent to it. Connect it again in Settings › ERP.',
@@ -3180,6 +3189,9 @@ export const en = {
   'metrics.source_sell_through': '{term.sell_through}',
   'metrics.about_sell_through':
     'Adds up what {term.account:other:lower} sold through from their monthly stock statements, by value or quantity.',
+  'metrics.source_collected': 'Money collected',
+  'metrics.about_collected':
+    'Adds up the money people collected from {term.account:other:lower}, by the day taken; rejected and bounced collections don’t count.',
   'metrics.measure_value': 'Value',
   'metrics.measure_quantity': 'Quantity',
   'metrics.items': 'Item codes',
@@ -3590,6 +3602,8 @@ export const en = {
   'admin.rule_targetUnlockByAdmin': 'Admins may unlock locked {term.target:other:lower}',
   'admin.rule_defaultCreditDays': 'Credit days when an invoice gives none',
   'admin.rule_countTolerancePct': 'A count is flagged past this difference (%)',
+  'admin.rule_collectionCashLimit':
+    'Cash from one {term.account:lower} in a day must stay under (₹)',
   'admin.rule_planNotificationTime': "Today's plan is sent at",
   'admin.rule_quietHoursStart': 'Quiet hours start',
   'admin.rule_quietHoursEnd': 'Quiet hours end',
@@ -3642,7 +3656,7 @@ export const en = {
   'admin.module_orders_about': 'Price lists, {term.order:other:lower} and their approvals.',
   'admin.module_account_finance': '{term.account} finance',
   'admin.module_account_finance_about':
-    'Finance snapshots, statements and ageing for each {term.account:lower}.',
+    'Finance snapshots, statements and ageing for each {term.account:lower}, and the collections the field takes.',
   'admin.module_expenses': 'Expenses',
   'admin.module_expenses_about': 'Expense policies and claims.',
   'admin.module_payroll_inputs': 'Payroll inputs',
@@ -3669,6 +3683,26 @@ export const en = {
   'report.col_moved_at': 'Last moved',
   'report.col_counted_on': 'Last counted',
   'report.col_kind': 'Kind',
+  'report.name_collections': 'Collections',
+  'report.about_collections':
+    'Every collection of the month, with how it was paid, what the office decided and the receipt in the books',
+  'report.col_collection': 'Collection',
+  'report.col_paid_by': 'Paid by',
+  'report.col_cheque_bank': 'Cheque bank',
+  'report.col_cheque_date': 'Cheque date',
+  'report.col_decided_by': 'Decided by',
+  'report.col_receipt_in_books': 'Receipt in the books',
+  'collections.mode_cash': 'Cash',
+  'collections.mode_upi': 'UPI',
+  'collections.mode_cheque': 'Cheque',
+  'collections.mode_bank_transfer': 'Bank transfer',
+  'collections.status_recorded': 'Waiting for the office',
+  'collections.status_confirmed': 'Confirmed',
+  'collections.status_rejected': 'Rejected',
+  'collections.status_bounced': 'Bounced',
+  'collections.status_in_books': 'In the books',
+  'collections.at_account': 'At the {term.account:lower}',
+  'collections.away': 'Away from the {term.account:lower}',
   'admin.rule_stockSource': 'Where stock comes from',
   'admin.rule_stockSource_help':
     'The app keeps a ledger that fulfilment, counts and entries move, or your books’ levels are loaded by file or API and nothing else moves them.',
@@ -4971,7 +5005,8 @@ export const en = {
   'api_clients.resource_attendance_help':
     'Attendance days and shifts, with the people they belong to',
   'api_clients.resource_finance': 'Finance',
-  'api_clients.resource_finance_help': 'Balances, ageing and statement entries',
+  'api_clients.resource_finance_help':
+    'Balances, ageing and statement entries, and the collections the field takes',
   'api_clients.resource_targets': '{term.target:other}',
   'api_clients.resource_targets_help': '{term.target:other} by person and month',
   'api_clients.resource_metrics': 'Metric values',
@@ -5022,6 +5057,8 @@ export const en = {
   'webhooks.event_submission.reviewed': 'Submission reviewed',
   'webhooks.event_order.placed': '{term.order} placed',
   'webhooks.event_order.status_changed': '{term.order} status changed',
+  'webhooks.event_collection.recorded': 'Collection recorded',
+  'webhooks.event_collection.status_changed': 'Collection status changed',
   'webhooks.event_webhook.test': 'Test message',
   'webhooks.create': 'Add webhook',
   'webhooks.secret_title': 'Signing secret for {url}',

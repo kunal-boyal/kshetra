@@ -1,7 +1,7 @@
 {
   "$schema": "../schema.json",
   "key": "agri",
-  "version": 10,
+  "version": 11,
   "name": { "en": "Agri inputs", "hi": "कृषि इनपुट" },
   "description": {
     "en": "For seed, crop protection and fertiliser companies: distributors, retailers and farmers; farmer meetings, demos and distributor visits that record sales, collection and liquidation; orders by the case.",
@@ -83,6 +83,9 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.record",
+        "collection.view",
+        "collection.confirm",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -169,6 +172,8 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.record",
+        "collection.view",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -225,6 +230,8 @@
         "order.view",
         "order.decide",
         "finance.view",
+        "collection.record",
+        "collection.view",
         "leave.request",
         "regularisation.request",
         "expense.claim",
@@ -261,6 +268,7 @@
         "expense.claim",
         "payslip.view",
         "finance.view",
+        "collection.record",
         "sell_through.record",
         "forecast.record",
         "stock.view",
@@ -281,6 +289,8 @@
         "order.fulfil",
         "finance.view",
         "finance.manage",
+        "collection.view",
+        "collection.confirm",
         "expense.mark_paid",
         "payroll.manage",
         "payslip.view",
@@ -806,20 +816,6 @@
               }
             ]
           }
-        },
-        {
-          "key": "collection",
-          "type": "currency",
-          "label": { "en": "Collection", "hi": "वसूली" },
-          "visibleWhen": {
-            "clauses": [
-              {
-                "field": "purpose",
-                "op": "in",
-                "value": ["collection", "sales_collection", "sales_collection_liquidation"]
-              }
-            ]
-          }
         }
       ]
     },
@@ -932,11 +928,7 @@
         "hi": { "one": "वसूली", "other": "वसूली" }
       },
       "unit": "currency",
-      "source": {
-        "type": "submission_field_sum",
-        "forms": ["distributor_visit"],
-        "field": "collection"
-      }
+      "source": { "type": "collected" }
     },
     {
       "key": "liquidation",
