@@ -6,7 +6,7 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import { ConditionEditor } from '../forms/field-editor';
 import type { AnyFormField } from '../forms/drafts';
 import { errorMessage, useLanguage } from '../i18n';
-import { useDesignations } from '../people/data';
+import { useAccess, useDesignations } from '../people/data';
 import { fieldErrors, PageHeader, Section } from '../people/shared';
 import { CustomFieldsEditor, draftOf, type FieldDraft, fieldOf } from './custom-fields-editor';
 import { useSaveType, useTypeList } from './types-data';
@@ -36,6 +36,8 @@ interface TypeDraft {
   icon: string;
   active: boolean;
   contacts: boolean;
+  sellThrough: boolean;
+  keepsStock: boolean;
   codeMode: 'manual' | 'auto';
   prefix: string;
   locationRequired: boolean;
@@ -63,6 +65,8 @@ function draftOfType(type: AccountTypeView | undefined): TypeDraft {
     icon: type?.icon ?? 'store',
     active: type?.active ?? true,
     contacts: type?.contacts ?? false,
+    sellThrough: type?.sellThrough ?? false,
+    keepsStock: type?.keepsStock ?? false,
     codeMode: type?.code.mode ?? 'manual',
     prefix: type?.code.mode === 'auto' ? type.code.prefix : '',
     locationRequired: type?.location.required ?? false,
@@ -138,6 +142,9 @@ function definitionOf(draft: TypeDraft): AccountType {
       visitsPerMonth: Number(norm.visits) || 1,
     })),
     contacts: draft.contacts,
+    // Sent whether or not they are shown, so saving never switches either off (D124, D130).
+    sellThrough: draft.sellThrough,
+    keepsStock: draft.keepsStock,
   } as AccountType;
 }
 
@@ -178,6 +185,7 @@ function Editor({
   const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const designations = useDesignations();
+  const access = useAccess();
   const save = useSaveType();
   const [draft, setDraft] = useState(() => draftOfType(type));
   const [failure, setFailure] = useState<unknown>();
@@ -287,6 +295,21 @@ function Editor({
           checked={draft.contacts}
           onChange={(event) => set({ contacts: event.target.checked })}
         />
+        <Checkbox
+          label={t('types.sell_through')}
+          detail={t('types.sell_through_help')}
+          checked={draft.sellThrough}
+          onChange={(event) => set({ sellThrough: event.target.checked })}
+        />
+        {/* Stock is the inventory module's (D130); while it is off the setting is kept as it is. */}
+        {access.modulesOff.includes('inventory') ? null : (
+          <Checkbox
+            label={t('types.keeps_stock')}
+            detail={t('types.keeps_stock_help')}
+            checked={draft.keepsStock}
+            onChange={(event) => set({ keepsStock: event.target.checked })}
+          />
+        )}
       </Section>
 
       <Section title={t('types.rules')}>

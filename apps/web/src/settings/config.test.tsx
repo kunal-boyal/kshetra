@@ -122,6 +122,57 @@ describe('account types (M2, spec 5.5)', () => {
       }),
     );
   });
+
+  it('switches stock and the monthly statement, and keeps them when saving (D124, D130)', async () => {
+    const stocked = { ...TYPE, sellThrough: true, keepsStock: true };
+    const client = fakeClient(
+      { '/v1/account-types': { items: [stocked] }, '/v1/designations': DESIGNATIONS },
+      {
+        [`POST /v1/account-types/${TYPE.id}/versions`]: ({ body }) => ({
+          ...stocked,
+          ...(body as { definition: object }).definition,
+          version: 3,
+        }),
+      },
+      ['settings.manage'],
+    );
+    renderAt(`/settings/account-types/${TYPE.id}`, client);
+    const user = userEvent.setup();
+    const holds = await screen.findByRole('checkbox', { name: /Holds stock/ });
+    expect(holds).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: /Gives a monthly sell-through statement/ }),
+    ).toBeChecked();
+    await user.click(holds);
+    await user.click(screen.getByRole('button', { name: 'Publish the next version' }));
+    await waitFor(() =>
+      expect(writesOf(client)[0]![3]).toMatchObject({
+        body: { definition: { sellThrough: true, keepsStock: false } },
+      }),
+    );
+  });
+
+  it('keeps a type’s stock while the inventory module is off, offering no switch', async () => {
+    const stocked = { ...TYPE, keepsStock: true };
+    const client = fakeClient(
+      { '/v1/account-types': { items: [stocked] }, '/v1/designations': DESIGNATIONS },
+      {
+        [`POST /v1/account-types/${TYPE.id}/versions`]: () => ({ ...stocked, version: 3 }),
+      },
+      ['settings.manage'],
+      { settings: { ...SETTING_DEFAULTS, modulesOff: ['inventory'] } },
+    );
+    renderAt(`/settings/account-types/${TYPE.id}`, client);
+    const user = userEvent.setup();
+    await screen.findByRole('checkbox', { name: /Gives a monthly/ });
+    expect(screen.queryByRole('checkbox', { name: /Holds stock/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Publish the next version' }));
+    await waitFor(() =>
+      expect(writesOf(client)[0]![3]).toMatchObject({
+        body: { definition: { sellThrough: false, keepsStock: true } },
+      }),
+    );
+  });
 });
 
 describe('territory levels (M2, spec 5.4)', () => {
