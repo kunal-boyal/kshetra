@@ -261,7 +261,7 @@ describe('tenants in the console (M22)', () => {
     const implementation = {
       ...ADMIN,
       role: 'implementation' as const,
-      permissions: ['platform.tenant.manage' as const, 'platform.flags.manage' as const],
+      permissions: ['platform.tenant.manage' as const],
     };
     const client = fakeClient(implementation, (_method, path) =>
       path === '/platform/v1/templates'
