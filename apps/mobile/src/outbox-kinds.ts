@@ -3,6 +3,7 @@ import type { MessageKey } from '@thelamp/i18n';
 import {
   AccountResult,
   type CheckOutBody,
+  CollectionResult,
   type CreateAccountBody,
   type CreateExpenseClaimBody,
   type CreateLeaveRequestBody,
@@ -14,6 +15,7 @@ import {
   MockLocationReportResult,
   OrderResult,
   type PlaceOrderBody,
+  type RecordCollectionBody,
   type EndShiftBody,
   ExpenseClaimResult,
   LeaveRequestResult,
@@ -32,6 +34,7 @@ import {
   VisitResult,
 } from '@thelamp/shared';
 import type { MobileClient } from './client';
+import { COLLECTION_KIND } from './collections';
 import type { ReceiptsPayload } from './expenses';
 import { photoSender } from './photos';
 import { FORECAST_KIND, type QueuedForecast } from './forecasts';
@@ -129,6 +132,14 @@ export function senders(
       async send(payload) {
         await client.request('POST', '/v1/orders', OrderResult, {
           body: payload as PlaceOrderBody,
+        });
+      },
+    },
+    // Collections (BR-63, D132): after the cheque's photos and the visit's check-in.
+    [COLLECTION_KIND]: {
+      async send(payload) {
+        await client.request('POST', '/v1/collections', CollectionResult, {
+          body: payload as RecordCollectionBody,
         });
       },
     },
@@ -234,6 +245,7 @@ const LABELS: Readonly<Record<string, MessageKey>> = {
   'submission.create': 'uploads.kind_submission',
   'plan_item.create': 'uploads.kind_plan_item',
   'order.place': 'uploads.kind_order',
+  [COLLECTION_KIND]: 'uploads.kind_collection',
   'regularisation.create': 'uploads.kind_regularisation',
   'leave_request.create': 'uploads.kind_leave',
   'expense_claim.create': 'uploads.kind_expense_claim',

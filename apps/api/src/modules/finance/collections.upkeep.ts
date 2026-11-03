@@ -35,7 +35,8 @@ export class CollectionsUpkeep implements OnModuleInit {
           amount_en: formatMoney(amount, { locale: 'en' }),
           amount_hi: formatMoney(amount, { locale: 'hi' }),
         },
-        link: null,
+        // The person's collections, on the phone and the portal alike.
+        link: '/collections',
         dedupeKey: `collection:${payload.collectionId}:${payload.status}`,
       });
     });

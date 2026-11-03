@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   ClipboardList,
   Crosshair,
+  HandCoins,
   MapPin,
   Phone,
   CloudUpload,
@@ -41,6 +42,7 @@ import { standalone, startEntry } from '../forms/start';
 import { useLanguage } from '../i18n';
 import { useLocalRows } from '../local-data';
 import { currentFix, type Fix } from '../location';
+import { accountCollected, overdueOf, useCollections } from '../collections';
 import { creditLeft, useBalance, useOpenInvoices } from '../finance';
 import { useAccountStock } from '../stock';
 import { useOutboxItems, useSync, useSyncStatus } from '../sync';
@@ -95,8 +97,9 @@ export function AccountScreen({ id }: { id: string }) {
   const ordersOn = !modulesOff.includes('orders');
   const financeOn = !modulesOff.includes('account_finance');
   const inventoryOn = !modulesOff.includes('inventory');
-  const openInvoices =
-    useOpenInvoices(id, financeOn && permissions.has('finance.view')).data?.items ?? [];
+  const invoices = useOpenInvoices(id, financeOn && permissions.has('finance.view')).data?.items;
+  const openInvoices = invoices ?? [];
+  const collections = useCollections(bundle?.settings.timezone ?? 'Asia/Kolkata');
 
   if (accounts === undefined) {
     return (
@@ -190,6 +193,19 @@ export function AccountScreen({ id }: { id: string }) {
     permissions.has('order.create') &&
     account.status === 'active';
   const showPrices = ordersOn && (priceLists?.length ?? 0) > 0;
+  // Money taken here (BR-63, decision D132), and what the books and the field say is owed.
+  const mayCollect =
+    financeOn && permissions.has('collection.record') && account.status === 'active';
+  const collected = accountCollected(balance, collections ?? [], account.id);
+  const overdue = overdueOf(invoices);
+  const owing = collected
+    ? overdue !== null && overdue !== '0.00'
+      ? t('collect.owes_overdue', {
+          outstanding: money(collected.outstanding),
+          overdue: money(overdue),
+        })
+      : t('collect.owes', { outstanding: money(collected.outstanding) })
+    : undefined;
   const address = [
     account.address.line,
     account.address.city,
@@ -277,6 +293,7 @@ export function AccountScreen({ id }: { id: string }) {
       mayOrder ||
       showPrices ||
       mayRecordStock ||
+      mayCollect ||
       mayForecast ? (
         <ListGroup title={t(here ? 'visit.on_this_visit' : 'account.to_do_here')}>
           {visitForms.map((form) => (
@@ -304,6 +321,16 @@ export function AccountScreen({ id }: { id: string }) {
               label={t('orders.take')}
               onPress={() =>
                 router.push({ pathname: '/order/[accountId]', params: { accountId: account.id } })
+              }
+            />
+          ) : null}
+          {mayCollect ? (
+            <ListRow
+              lead={<IconChip icon={HandCoins} hue="sand" />}
+              label={t('collect.title')}
+              {...(owing ? { detail: owing } : {})}
+              onPress={() =>
+                router.push({ pathname: '/collect/[accountId]', params: { accountId: account.id } })
               }
             />
           ) : null}
@@ -406,6 +433,12 @@ export function AccountScreen({ id }: { id: string }) {
               date: formatDate(balance.asOf, { locale }),
             })}
           />
+          {collected && collected.notInBooks !== '0.00' ? (
+            <ListRow label={money(collected.notInBooks)} detail={t('collections.not_in_books')} />
+          ) : null}
+          {collected && collected.notInBooks !== '0.00' ? (
+            <ListRow label={money(collected.leftAfter)} detail={t('collections.left_after')} />
+          ) : null}
           {balance.creditLimit !== null ? (
             <ListRow
               label={
