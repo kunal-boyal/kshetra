@@ -17,6 +17,7 @@ import {
 import { type ReactNode, useState } from 'react';
 import { SecondFactorStatus, UserResult, UserView as UserViewSchema } from '@thelamp/shared';
 import { useApp } from '../context';
+import { useMe } from '../data';
 import { errorMessage, errorReason, useLanguage } from '../i18n';
 import { customValue } from './custom-fields';
 import {
@@ -84,6 +85,8 @@ function Person({ user }: { user: UserView }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
   const [failure, setFailure] = useState<unknown>();
+  // Nobody resets their own phone (BR-38): someone who reaches them does.
+  const own = useMe(client).data?.userId === user.id;
 
   async function act(work: () => Promise<unknown>, done?: string) {
     setFailure(undefined);
@@ -313,7 +316,7 @@ function Person({ user }: { user: UserView }) {
           <p className="ks-muted">{t('person.device_none')}</p>
         )}
         <div className="flex flex-wrap gap-2">
-          {access.can('user.reset_device') && user.device ? (
+          {access.can('user.reset_device') && user.device && !own ? (
             <Button
               size="sm"
               icon={<Icon icon={RotateCcw} size="sm" />}

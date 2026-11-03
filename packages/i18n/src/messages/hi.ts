@@ -620,8 +620,6 @@ export const hi: Record<MessageKey, Message> = {
   'perm.form.manage': 'फ़ॉर्म बनाएँ',
   'perm.metric.manage': 'मेट्रिक तय करें',
   'perm.workflow.manage': 'स्वीकृति का क्रम तय करें',
-  'perm.policy.manage': 'लोगों से जुड़ी नीतियाँ तय करें',
-  'perm.notification_template.manage': 'सूचना संदेश बदलें',
   'perm.module.manage': 'मॉड्यूल चालू और बंद करें',
   'perm.catalogue.manage': 'कैटलॉग संभालें',
   'perm.price_list.manage': 'मूल्य सूचियाँ संभालें',
@@ -1245,7 +1243,6 @@ export const hi: Record<MessageKey, Message> = {
   'approval.type_new_account': 'नया {term.account}',
   'approval.type_account_location_change': '{term.account} की जगह',
   'approval.type_journey_plan': '{term.journey_plan}',
-  'approval.type_target_lock': '{term.target} लॉक',
   'import.field_accounts_code': 'कोड',
   'import.field_accounts_name': 'नाम',
   'import.field_accounts_territory_code': 'क्षेत्र कोड',
@@ -2792,6 +2789,9 @@ export const hi: Record<MessageKey, Message> = {
   'notify.support_emergency_title': 'आपात स्थिति में वेंडर सहायता ने प्रवेश किया',
   'notify.support_emergency_body':
     '{staff} {ends} तक आपका संगठन देख सकते हैं, दूसरे वेंडर एडमिन की मंज़ूरी से: {reason}। आप इसे सेटिंग्स में ख़त्म कर सकते हैं।',
+  'notify.support_second_factor_reset_title': 'वेंडर सहायता ने एक ऑथेंटिकेटर रीसेट किया',
+  'notify.support_second_factor_reset_body':
+    '{staff} ने {name} का ऑथेंटिकेटर हटाकर उनके सेशन ख़त्म कर दिए: {reason}। वेब पर अगले साइन इन पर वे नया ऑथेंटिकेटर चालू करेंगे।',
   'notify.category_imports': 'इंपोर्ट',
   'notifications.title': 'सूचनाएँ',
   'notifications.today': 'आज',
@@ -4306,7 +4306,6 @@ export const hi: Record<MessageKey, Message> = {
   'chains.type_new_account': 'नए {term.account:other}',
   'chains.type_account_location_change': '{term.account} की जगह',
   'chains.type_journey_plan': '{term.journey_plan:other}',
-  'chains.type_target_lock': '{term.target:other} लॉक करना',
   'chains.none': 'कोई श्रृंखला नहीं: अनुरोध, अनुरोध करने वाले के मैनेजर के पास जाते हैं।',
   'chains.version': 'संस्करण {version}, {when} को सहेजा',
   'chains.version_by': 'संस्करण {version}, {when} को {name} ने सहेजा',
@@ -5047,7 +5046,7 @@ export const hi: Record<MessageKey, Message> = {
   'console.hours_minutes': '{hours} घं. {minutes} मि.',
   'console.second_factor_reset': 'ऑथेंटिकेटर रीसेट करें',
   'console.second_factor_intro':
-    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है।',
+    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है। संगठन के एडमिन को बताया जाता है, और यह उसके ऑडिट लॉग में दिखता है।',
   'console.member_phone': 'उनका मोबाइल नंबर',
   'console.second_factor_reason': 'आपने कैसे पुष्टि की कि यह वही हैं',
   'console.second_factor_removed':
@@ -5106,7 +5105,9 @@ export const hi: Record<MessageKey, Message> = {
   'sso.enabled_help': 'इन डोमेन के लोग SSO से साइन इन चुन सकते हैं',
   'sso.enforced': 'ज़रूरी',
   'sso.enforced_help':
-    'इन डोमेन के लोग पोर्टल में कोड से साइन इन नहीं कर सकते; फ़ोन अब भी कर सकते हैं',
+    'डोमेन साबित होने के बाद इन डोमेन के लोग पोर्टल में कोड से साइन इन नहीं कर सकते; फ़ोन अब भी कर सकते हैं',
+  'sso.enforced_unproved':
+    'पहले "अपने डोमेन साबित करें" में इनमें से कोई डोमेन अपना साबित करें; तब तक सिंगल साइन-ऑन ज़रूरी नहीं किया जा सकता।',
   'sso.save': 'सिंगल साइन-ऑन सहेजें',
   'sso.saved': 'सहेजा गया',
   'common.copy': 'कॉपी करें',

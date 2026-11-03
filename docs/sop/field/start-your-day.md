@@ -35,6 +35,8 @@ If you don't allow location all the time, the day still starts, but the app open
 
 ### Pause and resume tracking
 
+Only roles that may pause tracking (`tracking.pause`) see **Pause tracking** and **Resume tracking**; others end the day instead.
+
 1. On the shift card, tap **Pause tracking**.
 2. Under **Why are you pausing?**, choose **A break**, **Personal time**, **No GPS where I am** or **Something else**. **Cancel** closes it without pausing.
 3. The card shows **Paused**. Location stops being recorded; you stay on duty for attendance.

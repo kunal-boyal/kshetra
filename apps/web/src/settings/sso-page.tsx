@@ -236,6 +236,12 @@ function ConnectionForm({ current }: { current: SsoConnectionResult }) {
           disabled={!draft.enabled}
           onChange={(event) => change({ enforced: event.target.checked })}
         />
+        {/* Required waits for a proved domain (decision D101); the server says when none is. */}
+        {errors.enforced ? (
+          <p className="ks-help error" role="alert">
+            {t('sso.enforced_unproved')}
+          </p>
+        ) : null}
         {failure ? (
           <p className="ks-help error" role="alert">
             {errorMessage(failure, t)}

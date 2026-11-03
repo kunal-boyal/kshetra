@@ -51,7 +51,8 @@ The inbox entry comes first. Then the event's channels are tried in order, and t
 | The app can't receive push at all | Push needs a development build of the app with the Firebase configuration. Expo Go, an emulator and the app in a browser register nothing. |
 | The phone's maker stops the app in the background | Follow **Keep your route recorded**'s steps for the phone's maker ([GPS and geofences](gps-and-geofences.md)); the same battery settings stop notifications. |
 | The event has no channel outside the app | Some events, such as an export being ready or targets locked, only go to the inbox (table above). |
-| The person was signed in on another phone | Push goes to every phone that has registered for the person. After a phone reset, the new phone registers when the person signs in on it. A phone stays registered after a reset or a sign-out, so an old phone may still show the person's pushes. |
+| The person was signed in on another phone | Push goes to every phone that has registered for the person and is still signed in. A phone that signed out, whose session ended or ran out, or that was reset gets no more pushes, and its registration is removed. The new phone registers when the person signs in on it. |
+| The person was signed out | Signing out, **Sign out everywhere**, **Sign out everyone**, a phone reset, an authenticator reset or making the person inactive stops their pushes until they sign in again on a phone; the inbox still has every notification. |
 
 A push counts as sent once the push service accepts it. Whether the phone then showed it depends on the phone; the server can't see that.
 

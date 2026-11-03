@@ -227,6 +227,16 @@ export const SupportEmergencyPayload = z.object({
 });
 
 /**
+ * Vendor staff removed a member's authenticator from the console (decision D91): the tenant's
+ * admins hear of it.
+ */
+export const SupportSecondFactorResetPayload = z.object({
+  userId: z.uuid(),
+  staffName: z.string(),
+  reason: z.string(),
+});
+
+/**
  * Metric definitions changed (M2): people's facts from `from`, a date on the tenant's clock, are
  * worked out again.
  */
@@ -264,6 +274,7 @@ export const EVENT_PAYLOADS = {
   'metrics.changed': MetricsChangedPayload,
   'support.requested': SupportRequestedPayload,
   'support.emergency': SupportEmergencyPayload,
+  'support.second_factor_reset': SupportSecondFactorResetPayload,
   'sell_through.recorded': SellThroughRecordedPayload,
   'account.created': AccountEventPayload,
   'account.updated': AccountEventPayload,

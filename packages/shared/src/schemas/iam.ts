@@ -46,6 +46,8 @@ export const DesignationDefinition = z
 
 export const RoleResult = RoleDefinition.extend({
   id: z.uuid(),
+  /** None only for a role that held nothing but permissions taken out since (decision D137). */
+  permissions: z.array(Permission),
   mobileOnly: z.boolean(),
   /** One of the six roles every tenant starts with (spec 4.2). */
   system: z.boolean(),

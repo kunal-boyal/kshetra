@@ -109,7 +109,7 @@
           "$ref": "#/$defs/Key"
         },
         "definitions": {
-          "maxItems": 8,
+          "maxItems": 7,
           "type": "array",
           "items": {
             "$ref": "#/$defs/Workflow"
@@ -440,8 +440,6 @@
         "form.manage",
         "metric.manage",
         "workflow.manage",
-        "policy.manage",
-        "notification_template.manage",
         "module.manage",
         "catalogue.manage",
         "price_list.manage",
@@ -2958,8 +2956,7 @@
             "order",
             "new_account",
             "account_location_change",
-            "journey_plan",
-            "target_lock"
+            "journey_plan"
           ]
         },
         "steps": {

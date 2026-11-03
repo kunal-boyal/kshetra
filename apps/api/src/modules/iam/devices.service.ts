@@ -32,6 +32,22 @@ export class DevicesService {
     return new Map(rows.map((row) => [row.id, row.verdict]));
   }
 
+  /** Of these devices, those not reset: still bound to their person (BR-38). */
+  async bound(tx: TenantTx, tenantId: string, ids: readonly string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    const rows = await tx
+      .select({ id: devices.id })
+      .from(devices)
+      .where(
+        and(
+          eq(devices.tenantId, tenantId),
+          inArray(devices.id, [...ids]),
+          isNull(devices.revokedAt),
+        ),
+      );
+    return new Set(rows.map((row) => row.id));
+  }
+
   /**
    * Keeps the latest heartbeat of the caller's phone. It replaces the one before, so sending it
    * twice is harmless, and as telemetry rather than a change anyone makes, it isn't audited.

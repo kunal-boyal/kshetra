@@ -11,6 +11,7 @@ import { NotificationDelivery } from './delivery';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { NotificationsUpkeep } from './notifications.upkeep';
+import { CellSignedOutPhones } from './signed-out-phones';
 import {
   EmailSender,
   emailSender,
@@ -37,11 +38,12 @@ import {
     NotificationsService,
     NotificationDelivery,
     NotificationsUpkeep,
+    CellSignedOutPhones,
     { provide: PushSender, inject: [CONFIG], useFactory: (c: Config) => pushSender(c) },
     { provide: SmsSender, inject: [CONFIG], useFactory: (c: Config) => smsSender(c) },
     { provide: EmailSender, inject: [CONFIG], useFactory: (c: Config) => emailSender(c) },
     { provide: WhatsAppSender, inject: [CONFIG], useFactory: (c: Config) => whatsappSender(c) },
   ],
-  exports: [NotificationsService, EmailSender],
+  exports: [NotificationsService, EmailSender, CellSignedOutPhones],
 })
 export class NotificationsModule {}

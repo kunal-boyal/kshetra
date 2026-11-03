@@ -96,7 +96,7 @@ On their page, under **Work**, choose a **Holiday calendar**, or leave **The def
 - A number belongs to one organisation at a time. One active in another organisation is refused, without saying which (`NUMBER_IN_USE`, decision D103).
 - Adding or reactivating someone needs a free seat on your plan (`Seats.assertRoom()`, BR-45).
 - Nobody gives access they don't hold: you can't give a role with permissions or reach beyond yours (`canGrant()`).
-- You can't change your own role or status, reset your own phone, or reset your own authenticator.
+- You can't change your own role or status, reset your own phone, or reset your own authenticator. On your own page **Reset phone** isn't shown.
 - A manager must be active, must not report to the person (no loops), and must hold a designation that can have reports.
 - The exit date can't be before the joining date.
 - Someone with active reports can't be deactivated or moved to a designation that can't have reports.

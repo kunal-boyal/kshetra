@@ -298,7 +298,10 @@ export class ExpenseClaimsService implements OnModuleInit {
     return this.one(tx, access.tenantId, id);
   }
 
-  /** `POST /v1/expense-claims/{id}/paid`: back office has paid an approved claim. */
+  /**
+   * `POST /v1/expense-claims/{id}/paid`: back office has paid an approved claim. Nobody marks
+   * their own claim paid, as nobody decides their own request.
+   */
   async markPaid(
     tx: TenantTx,
     access: Access,
@@ -308,6 +311,9 @@ export class ExpenseClaimsService implements OnModuleInit {
     const row = await this.find(tx, access.tenantId, id);
     if (!row) throw notFound();
     if (!(await this.scopes.reaches(tx, access, row.userId))) throw outOfScope();
+    if (row.userId === access.userId) {
+      throw new AppError('FORBIDDEN', 'Someone else marks your own claims paid.');
+    }
     if (row.state !== 'approved') {
       throw new AppError(
         'CONFLICT',

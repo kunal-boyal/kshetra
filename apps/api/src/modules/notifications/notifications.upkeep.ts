@@ -293,30 +293,57 @@ export class NotificationsUpkeep implements OnModuleInit {
       });
     });
 
-    // Vendor support asks to enter, or entered in an emergency (decision D93): everyone who can
-    // decide on it across the organisation hears, as its admins.
+    // Vendor support asks to enter, or entered in an emergency (decision D93), or reset someone's
+    // authenticator from the console (D91): everyone who can decide on it across the organisation
+    // hears, as its admins.
     this.outbox.consume(
-      ['support.requested', 'support.emergency'],
+      ['support.requested', 'support.emergency', 'support.second_factor_reset'],
       'notifications.support',
       async (event, tx) => {
         const admins = await this.people.holding(tx, event.tenantId, 'settings.manage', NOBODY);
-        const values =
-          event.type === 'support.requested'
-            ? this.supportRequested(event.payload as EventPayload<'support.requested'>)
-            : await this.supportEmergency(
-                tx,
-                event.tenantId,
-                event.payload as EventPayload<'support.emergency'>,
-              );
+        let values: Record<string, string>;
+        let link = '/settings/support';
+        if (event.type === 'support.requested') {
+          values = this.supportRequested(event.payload as EventPayload<'support.requested'>);
+        } else if (event.type === 'support.emergency') {
+          values = await this.supportEmergency(
+            tx,
+            event.tenantId,
+            event.payload as EventPayload<'support.emergency'>,
+          );
+        } else {
+          const reset = event.payload as EventPayload<'support.second_factor_reset'>;
+          values = {
+            staff: reset.staffName,
+            reason: reset.reason,
+            name: await this.name(tx, event.tenantId, reset.userId),
+          };
+          link = `/people/${reset.userId}`;
+        }
         for (const userId of admins) {
           await this.notifications.notify(tx, event.tenantId, {
             userId,
-            event: event.type as 'support.requested' | 'support.emergency',
+            event: event.type as
+              'support.requested' | 'support.emergency' | 'support.second_factor_reset',
             values,
-            link: '/settings/support',
+            link,
             dedupeKey: `support:${event.id}`,
           });
         }
+      },
+    );
+
+    // A phone reset, a person signed out everywhere or made inactive (BR-39): the push addresses
+    // their phones registered before go, so nothing more reaches those phones.
+    this.outbox.consume(
+      ['user.updated', 'user.deactivated'],
+      'notifications.push_addresses',
+      async (event, tx) => {
+        await this.notifications.userChanged(
+          tx,
+          event.tenantId,
+          event.payload as EventPayload<'user.updated'>,
+        );
       },
     );
 

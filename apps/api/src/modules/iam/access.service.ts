@@ -3,11 +3,11 @@ import {
   AppError,
   effectivePermissions,
   isOpenTenant,
+  knownPermissions,
   API_CLIENT_ROLE_KEY,
   scopePermissions,
   SUPPORT_ROLE_KEY,
   supportPermissions,
-  type TenantPermission,
   SECOND_FACTOR_PERMISSIONS,
   ERP_CONNECTOR_PERMISSIONS,
 } from '@thelamp/shared';
@@ -114,7 +114,7 @@ export class IamAccess extends AccessResolver {
     }
     // Changing access is web-only, behind the authenticator (decisions D91 and D101): a phone's
     // token, which never gave one, carries none of those permissions, wherever it is sent from.
-    const held = (user.permissions as TenantPermission[]).filter(
+    const held = knownPermissions(user.permissions).filter(
       (permission) =>
         !auth.deviceId || !(SECOND_FACTOR_PERMISSIONS as readonly string[]).includes(permission),
     );

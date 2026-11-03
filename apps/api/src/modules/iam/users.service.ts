@@ -6,6 +6,7 @@ import {
   type DataScope,
   type DeviceHealth,
   type DeviceSummary,
+  knownPermissions,
   type MeResult,
   needsSecondFactor,
   newId,
@@ -902,7 +903,7 @@ export class UsersService {
       .select({ id: roles.id, key: roles.key, scope: roles.scope, permissions: roles.permissions })
       .from(roles)
       .where(where);
-    return role && { ...role, permissions: role.permissions as TenantPermission[] };
+    return role && { ...role, permissions: knownPermissions(role.permissions) };
   }
 }
 

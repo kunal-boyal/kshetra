@@ -20,7 +20,7 @@ import {
   type WhatsAppConsentBody,
   type WhatsAppConsentResult,
 } from '@thelamp/shared';
-import { and, desc, eq, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import {
   notificationDeliveries,
   notificationPrefs,
@@ -372,6 +372,7 @@ export class NotificationsService {
         userId: access.userId,
         token: body.token,
         locale: body.locale,
+        authRevision: access.revision,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -380,9 +381,49 @@ export class NotificationsService {
           userId: access.userId,
           token: body.token,
           locale: body.locale,
+          authRevision: access.revision,
           updatedAt: new Date(),
         },
       });
+  }
+
+  /**
+   * A user's sign-in facts changed (BR-39): a phone registered before their auth revision moved on
+   * was signed out, and a person made inactive has no phone left, so those push addresses go.
+   */
+  async userChanged(
+    tx: TenantTx,
+    tenantId: string,
+    user: { userId: string; status: string; authRevision: number },
+  ): Promise<void> {
+    await tx
+      .delete(pushTokens)
+      .where(
+        and(
+          eq(pushTokens.tenantId, tenantId),
+          eq(pushTokens.userId, user.userId),
+          ...(user.status === 'active' ? [lt(pushTokens.authRevision, user.authRevision)] : []),
+        ),
+      );
+  }
+
+  /** Phones whose sessions ended (M16): their push addresses kept until then go. */
+  async forgetPhones(
+    tx: TenantTx,
+    tenantId: string,
+    deviceIds: readonly string[],
+    endedAt: Date,
+  ): Promise<void> {
+    if (deviceIds.length === 0) return;
+    await tx
+      .delete(pushTokens)
+      .where(
+        and(
+          eq(pushTokens.tenantId, tenantId),
+          inArray(pushTokens.deviceId, [...deviceIds]),
+          lte(pushTokens.updatedAt, endedAt),
+        ),
+      );
   }
 
   /**

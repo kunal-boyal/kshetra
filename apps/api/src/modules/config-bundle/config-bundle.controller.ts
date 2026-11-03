@@ -22,8 +22,9 @@ import { TenantConfigService } from '../tenant-config/tenant-config.service';
  * each shape's fingerprint, so the bundle can't change without this moving too. 9: `erp.manage`
  * (decision D129). 10: the inventory module, its permissions and settings, and account types'
  * `keepsStock` (decision D130). 11: the collections permissions and cash limit (decision D132).
+ * 12: the permissions and request type nothing used, taken out (decision D137).
  */
-export const BUNDLE_SHAPE = 11;
+export const BUNDLE_SHAPE = 12;
 
 /** True when an `If-None-Match` header names this ETag, weak or strong. */
 function matches(header: string | undefined, etag: string): boolean {

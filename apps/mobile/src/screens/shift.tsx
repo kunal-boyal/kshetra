@@ -153,19 +153,25 @@ export function ShiftSection() {
           ? setEnding(true)
           : void end(),
   };
+  // Pausing and resuming are for those whose role holds `tracking.pause`, as the server asks.
+  const pauses = permissions.has('tracking.pause');
   const actions: ShiftAction[] = paused
     ? [
-        {
-          label: t('shift.resume'),
-          icon: Play,
-          primary: true,
-          busy,
-          onPress: () =>
-            void act(async () => {
-              await resumeShift(sync, owner);
-              await startTracking(state.intervalSeconds, notice);
-            }),
-        },
+        ...(pauses
+          ? [
+              {
+                label: t('shift.resume'),
+                icon: Play,
+                primary: true,
+                busy,
+                onPress: () =>
+                  void act(async () => {
+                    await resumeShift(sync, owner);
+                    await startTracking(state.intervalSeconds, notice);
+                  }),
+              },
+            ]
+          : []),
         endAction,
       ]
     : stopped
@@ -185,7 +191,9 @@ export function ShiftSection() {
           endAction,
         ]
       : [
-          { label: t('shift.pause'), icon: Pause, busy, onPress: () => setPausing(true) },
+          ...(pauses
+            ? [{ label: t('shift.pause'), icon: Pause, busy, onPress: () => setPausing(true) }]
+            : []),
           endAction,
         ];
 

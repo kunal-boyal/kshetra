@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { AuditLog } from '../../platform/audit';
 import { Database } from '../../platform/database';
 import { Outbox } from '../../platform/outbox';
-import { type SupportChange, SupportNotices } from '../../platform/planes';
+import {
+  type SupportChange,
+  SupportNotices,
+  type VendorSecondFactorReset,
+} from '../../platform/planes';
 
 /**
  * What vendor staff did with a support grant, as the tenant sees it (module M22, decision D93):
  * an audit entry marked with the grant, and for a request, or an emergency entry, an event its
- * admins are notified of.
+ * admins are notified of. An authenticator vendor staff reset is audited and told the same way.
  */
 @Injectable()
 export class IamSupportNotices extends SupportNotices {
@@ -56,6 +60,26 @@ export class IamSupportNotices extends SupportNotices {
           endsAt: change.endsAt.toISOString(),
         });
       }
+    });
+  }
+
+  async secondFactorReset(tenantId: string, reset: VendorSecondFactorReset): Promise<void> {
+    await this.database.forTenant(tenantId, async (tx) => {
+      await this.audit.record(
+        tx,
+        tenantId,
+        { kind: 'platform', id: reset.byStaffId },
+        {
+          action: 'user.second_factor_reset',
+          target: { type: 'user', id: reset.userId },
+          after: { removed: reset.removed, staff: reset.staffName, reason: reset.reason },
+        },
+      );
+      await this.outbox.publish(tx, tenantId, 'support.second_factor_reset', reset.userId, {
+        userId: reset.userId,
+        staffName: reset.staffName,
+        reason: reset.reason,
+      });
     });
   }
 }
