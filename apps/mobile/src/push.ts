@@ -36,6 +36,7 @@ const APP_PATHS = new Set([
   '/attendance',
   '/leave',
   '/expenses',
+  '/collections',
   '/data-requests',
 ]);
 /** The portal's paths that have a home on the phone under another path; none since D104. */

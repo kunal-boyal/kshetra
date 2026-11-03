@@ -21,6 +21,7 @@ import {
   CloudCheck,
   CloudUpload,
   FileLock2,
+  HandCoins,
   LogOut,
   ReceiptText,
   Shield,
@@ -71,6 +72,7 @@ export function MeScreen() {
   const modulesOff = config.data?.bundle.settings.modulesOff ?? [];
   const leaveOn = !modulesOff.includes('leave_attendance');
   const expensesOn = !modulesOff.includes('expenses');
+  const financeOn = !modulesOff.includes('account_finance');
   // Payslips are the estimate's or the statutory payroll's, whichever is on (D128).
   const statutoryOn = !modulesOff.includes('statutory_payroll');
   const payrollOn = !modulesOff.includes('payroll_inputs') || statutoryOn;
@@ -202,6 +204,13 @@ export function MeScreen() {
             label={t('claims.title')}
             trailing={<ClaimsOpen />}
             onPress={() => router.push('/expenses')}
+          />
+        ) : null}
+        {financeOn && permissions.has('collection.record') ? (
+          <ListRow
+            lead={<IconChip icon={HandCoins} hue="sand" />}
+            label={t('my_collections.title')}
+            onPress={() => router.push('/collections')}
           />
         ) : null}
         {payrollOn && permissions.has('payslip.view') ? (

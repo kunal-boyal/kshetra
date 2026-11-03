@@ -149,19 +149,21 @@
 
 ## Part 3 (one pull request): the phone
 
-- [ ] Add the Collect payment screen `/collect/<accountId>` (`src/screens/collect.tsx`, with the hooks in `src/collections.ts`), offline. It follows the prototype's `AppCollect`:
+- [x] Add the Collect payment screen `/collect/<accountId>` (`src/screens/collect.tsx`, with the hooks in `src/collections.ts`), offline. It follows the prototype's `AppCollect`:
   - outstanding, not due and overdue, from the synced balance;
   - the open invoices and the "settles INV-… first" preview when online;
   - the amount, the mode as chips, and the references by mode;
   - a cheque photo through `/camera?kind=collection`;
   - a hint while over the cash limit;
   - Save queues `collection.create` (after the visit's check-in when in one).
-- [ ] After saving, offer Share receipt (React Native's built-in `Share`; no new dependency).
-- [ ] Reach it from the account screen and the visit card, each showing "₹… outstanding · ₹… overdue".
-- [ ] Add My collections under More: status, with the rejection or bounce reason.
-- [ ] Show collected but not yet in the books on the account screen.
-- [ ] Write Jest tests per screen.
-- [ ] Update the store answers if the data types change. A cheque photo is a photo already declared, so no change is expected.
+- [x] After saving, offer Share receipt (React Native's built-in `Share`; no new dependency).
+- [x] Reach it from the account screen and the visit card, each showing "₹… outstanding · ₹… overdue".
+- [x] Add My collections under More: status, with the rejection or bounce reason.
+- [x] Show collected but not yet in the books on the account screen.
+- [x] Write Jest tests per screen.
+- [x] Update the store answers if the data types change. A cheque photo is a photo already declared, so no change was needed.
+
+**As built:** overdue comes from the open invoices read online, so offline the account shows only what it owes. The visit's own list (On this visit) carries Collect payment while checked in, and a collection taken then carries the visit. Notifications of a rejected or bounced collection now open `/collections`, on the phone and the portal.
 
 ## Docs, in each pull request as it applies
 
