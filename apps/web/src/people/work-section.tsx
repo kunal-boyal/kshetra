@@ -23,6 +23,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { useCalendars } from '../settings/data';
 import { read, useAccess, write } from './data';
 import { Facts, Section, useDates } from './shared';
+import { keepWhileSame } from '../query-keep';
 
 function useShifts(userId: string) {
   const { client } = useApp();
@@ -43,6 +44,7 @@ function useAttendance(userId: string, period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['attendance', userId, period],
+    placeholderData: keepWhileSame(['attendance', userId, period], [2]),
     queryFn: () =>
       read(client, `/v1/attendance?userId=${userId}&period=${period}`, AttendanceResult),
   });

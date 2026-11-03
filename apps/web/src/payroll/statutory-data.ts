@@ -8,10 +8,11 @@ import {
   type StatutoryProfileBody,
   StatutoryProfileResult,
 } from '@thelamp/shared';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useApp } from '../context';
 import { read, write } from '../people/data';
+import { keepWhileSame } from '../query-keep';
 
 /** A read that answers null where there is nothing yet, such as a month without a pay run. */
 async function readOrNull<T extends z.ZodType>(
@@ -32,6 +33,7 @@ export function usePayRun(period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['pay-run', period],
+    placeholderData: keepPreviousData,
     queryFn: () => readOrNull(client, `/v1/pay-runs/${period}`, PayRunResult),
   });
 }
@@ -40,6 +42,7 @@ export function useStatutoryPayslip(userId: string, period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['statutory-payslip', userId, period],
+    placeholderData: keepWhileSame(['statutory-payslip', userId, period], [2]),
     queryFn: () => read(client, `/v1/statutory-payslips/${userId}/${period}`, StatutoryPayslip),
   });
 }

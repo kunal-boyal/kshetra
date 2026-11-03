@@ -7,7 +7,7 @@ import {
   UNLOCK_REASON_MIN,
 } from '@thelamp/shared';
 import { Button, Icon, StatusBadge, TextAreaField } from '@thelamp/ui-web';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, LockOpen } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useApp } from '../context';
@@ -32,6 +32,7 @@ export function PlanTargets({ userId, period: month }: { userId: string; period:
   const headingId = useId();
   const targets = useQuery({
     queryKey: ['targets', period],
+    placeholderData: keepPreviousData,
     queryFn: () => read(client, `/v1/targets?period=${period}`, TargetListResult),
   });
   const performance = usePersonPerformance(period, userId);

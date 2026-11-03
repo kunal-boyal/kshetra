@@ -8,6 +8,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess } from '../people/data';
 import { PageHeader } from '../people/shared';
 import { Printable, PrintButton } from '../print';
+import { keepWhileSame } from '../query-keep';
 
 /** The days a payslip counts, each by the summary report's word for it. */
 const DAY_ROWS: readonly [DayStatusKey, MessageKey][] = [
@@ -31,6 +32,7 @@ export function PayslipPage({ userId, period }: { userId: string; period: string
   const access = useAccess();
   const payslip = useQuery({
     queryKey: ['payslip', userId, period],
+    placeholderData: keepWhileSame(['payslip', userId, period], [2]),
     queryFn: () => read(client, `/v1/payslips/${userId}/${period}`, PayslipResult),
   });
   const money = (amount: string) =>

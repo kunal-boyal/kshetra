@@ -8,6 +8,7 @@ import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { fieldErrors, Section, useDates } from '../people/shared';
 import { read, useAccess, write } from '../people/data';
+import { keepWhileSame } from '../query-keep';
 
 /**
  * An account's plan for a month (M8): planned values per targetable metric, a reference for the
@@ -22,6 +23,7 @@ export function AccountPlanSection({ accountId }: { accountId: string }) {
   const [period, setPeriod] = useState(() => todayIn(access.timezone).slice(0, 7));
   const plan = useQuery({
     queryKey: ['account-plan', accountId, period],
+    placeholderData: keepWhileSame(['account-plan', accountId, period], [2]),
     queryFn: () =>
       read(client, `/v1/account-plans?accountId=${accountId}&period=${period}`, AccountPlanResult),
   });

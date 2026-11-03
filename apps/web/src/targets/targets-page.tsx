@@ -20,7 +20,7 @@ import {
   StatusBadge,
   TextAreaField,
 } from '@thelamp/ui-web';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Lock, LockOpen, RotateCcw, Save, Target, X } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../context';
@@ -38,6 +38,7 @@ function useTargets(period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['targets', period],
+    placeholderData: keepPreviousData,
     queryFn: () => read(client, `/v1/targets?period=${period}`, TargetListResult),
   });
 }
