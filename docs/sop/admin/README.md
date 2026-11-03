@@ -1,6 +1,6 @@
 # Tenant admin SOPs
 
-For the people who set up and run their organisation in the web portal: the first admin the vendor added, and anyone later given the Admin or Business head role. These SOPs follow the order a new admin meets the work: signing in, the organisation and its words, who may do what, the geography, people and accounts, then the commercial and field configuration, and last the organisation's security and data. Settings live under **Settings** in the portal's rail, in six groups: **Organisation**, **People and access**, **Field work**, **Commerce**, **Data** and **Developers**.
+For the people who set up and run their organisation in the web portal: the first admin the vendor added, and anyone later given the Admin or Business head role. These SOPs follow the order a new admin meets the work: signing in, the organisation and its words, who may do what, the geography, people and accounts, then the commercial and field configuration, and last the organisation's security and data. Settings live under **Settings** in the portal's rail, in six groups: **Organisation**, **People and access**, **Field work**, **Commerce**, **Data** and **Developers**. **Settings** shows for anyone whose role holds the permission of at least one settings page (for example only `audit.view`, or only `billing.manage`), and opens on the first page they may use; each group and page shows only to those who may open it.
 
 | SOP | What it is for | Who |
 |---|---|---|

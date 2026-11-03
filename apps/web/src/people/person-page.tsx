@@ -18,7 +18,7 @@ import { type ReactNode, useState } from 'react';
 import { SecondFactorStatus, UserResult, UserView as UserViewSchema } from '@thelamp/shared';
 import { useApp } from '../context';
 import { useMe } from '../data';
-import { errorMessage, useLanguage } from '../i18n';
+import { errorMessage, errorReason, useLanguage } from '../i18n';
 import { customValue } from './custom-fields';
 import {
   NOTHING,
@@ -179,7 +179,7 @@ function Person({ user }: { user: UserView }) {
       {message ? <Notice>{message}</Notice> : null}
       {failure ? (
         <p className="ks-help error" role="alert">
-          {errorMessage(failure, t)}
+          {errorReason(failure, t)}
         </p>
       ) : null}
 

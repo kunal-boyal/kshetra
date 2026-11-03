@@ -128,6 +128,9 @@ export const en = {
   'stepup.intro':
     'This change decides who can sign in as whom. Enter the code your authenticator app shows now.',
   'stepup.continue': 'Continue',
+  'stepup.no_authenticator':
+    'This change needs a code from an authenticator app, and you have none set up. Set one up at Sign-in security first, then make the change again.',
+  'stepup.set_up': 'Set up an authenticator',
   'security.title': 'Sign-in security',
   'security.intro': 'How you sign in to the portal.',
   'security.sms_note':
@@ -533,6 +536,8 @@ export const en = {
   'roles.mobile_only': 'Mobile app only',
   'roles.mobile_only_help': 'People with this role sign in only on the app, never on the web.',
   'roles.built_in': 'Built in',
+  'roles.admin_fixed':
+    'This role always holds every permission, across the whole organisation. Only its name can change.',
   'roles.permission_count': {
     one: '{count} permission',
     other: '{count} permissions',
@@ -3500,6 +3505,8 @@ export const en = {
   'organisation.col_product': 'The product calls it',
   'organisation.field_rules': 'Field rules',
   'organisation.change_rules': 'All rules',
+  'organisation.change_modules': 'Change modules',
+  'organisation.module_off': 'Off',
   'organisation.rule_geofence': 'Geofence',
   'organisation.geofence_value': 'Within {metres} m',
   'organisation.rule_auto': 'Auto-approval',
@@ -3601,6 +3608,20 @@ export const en = {
   'admin.rule_journeyPlanApproval': "{term.journey_plan:other} need their manager's approval",
   'admin.rule_targetUnlockByAdmin': 'Admins may unlock locked {term.target:other:lower}',
   'admin.rule_defaultCreditDays': 'Credit days when an invoice gives none',
+  'admin.rule_ordersNeedOpenShift':
+    'Take {term.order:other:lower} on the app only after {term.punch_in:lower}',
+  'admin.rule_ordersAllowedOffline':
+    'Let the app take {term.order:other:lower} offline, sent with the next sync',
+  'admin.buckets_help':
+    'The bands of days past due that each balance is aged into, earliest first. Only the last band has no end.',
+  'admin.buckets_issue':
+    'Each band must start after the one before it ends, and only the last band may have no end.',
+  'admin.bucket_n': 'Band {n}',
+  'admin.bucket_from': 'From day',
+  'admin.bucket_to': 'To day',
+  'admin.bucket_to_help': 'Leave empty for no end, on the last band only.',
+  'admin.bucket_add': 'Add a band',
+  'admin.bucket_remove': 'Remove band {n}',
   'admin.rule_countTolerancePct': 'A count is flagged past this difference (%)',
   'admin.rule_collectionCashLimit':
     'Cash from one {term.account:lower} in a day must stay under (₹)',
@@ -3620,7 +3641,10 @@ export const en = {
   'admin.terminology_intro':
     "Your organisation's own words. The apps use them everywhere, on the web at once and on phones at their next sync.",
   'admin.terminology_empty':
-    "Leave a term empty to keep the product's word, shown faintly in each box.",
+    "Leave a term empty to keep the product's word, shown faintly in each box. Hindi left empty takes the English.",
+  'admin.term_incomplete': "Fill this in too, or clear the term to keep the product's word.",
+  'admin.terms_incomplete':
+    "Some terms are only partly filled in. Finish them, or clear them to keep the product's words. Nothing was saved.",
   'admin.term_account': '{term.account:other}',
   'admin.term_field_user': '{term.field_user:other}',
   'admin.term_activity': '{term.activity:other}',

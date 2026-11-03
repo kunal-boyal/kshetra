@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { ApiError, createClient, NetworkError, type SessionState } from './client';
+import { ApiError, createClient, NetworkError, noAuthenticator, type SessionState } from './client';
 import { memoryStore } from './stores';
 
 const TENANT = {
@@ -418,6 +418,41 @@ describe('step-up (decision D101)', () => {
     // The wrong code was said so, and the second try went through.
     expect(asked).toEqual([null, 'OTP_INVALID']);
     expect(client.session?.accessToken).toBe('stepped');
+  });
+
+  it('hands the prompt a refusal for want of an authenticator, rather than failing at once', async () => {
+    const server = fakeServer((url) =>
+      url.endsWith('/auth/v1/authenticator/step-up')
+        ? json(409, {
+            error: {
+              code: 'CONFLICT',
+              message: 'Set up an authenticator at Sign-in security first.',
+              details: [{ path: 'authenticator', issue: 'No authenticator is set up' }],
+              requestId: 'r',
+            },
+          })
+        : required(),
+    );
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    const asked: (ApiError | null)[] = [];
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store,
+      fetch: server.fetch,
+      stepUp: async (wrong) => {
+        asked.push(wrong);
+        // The person reads why, and goes to set one up.
+        return wrong ? null : '123456';
+      },
+    });
+    await expect(
+      client.request('PATCH', '/v1/users/x', z.object({ ok: z.boolean() }), { body: {} }),
+    ).rejects.toMatchObject({ code: 'SECOND_FACTOR_REQUIRED' });
+    expect(asked).toHaveLength(2);
+    expect(noAuthenticator(asked[1])).toBe(true);
+    expect(noAuthenticator(new ApiError(400, 'OTP_INVALID', 'Wrong.'))).toBe(false);
   });
 
   it('fails the change as it was when the person declines', async () => {

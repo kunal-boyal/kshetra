@@ -31,14 +31,14 @@ Ten terms change from one industry to another. The apps never print them as fixe
 ## Steps
 
 1. Open **Settings** › **Organisation** › **Terminology**. Each term has its own section, headed with your current word.
-2. For a noun, fill four boxes: **One, in English**, **Many, in English**, **One, in Hindi** and **Many, in Hindi**. For the two labels (Start day and End day), fill **In English** and **In Hindi**.
+2. For a noun, fill **One, in English** and **Many, in English**, and **One, in Hindi** and **Many, in Hindi**. For the two labels (Start day and End day), fill **In English** and **In Hindi**. A Hindi box left empty takes the English word.
 3. Words your template set are already filled in. Each empty box shows the product's word faintly. Leave every box of a term empty to keep the product's word.
-4. Select **Save**. The page says **Saved.**
+4. Select **Save**. The page says **Saved.** If a term is only partly filled in, nothing is saved: the page says **Some terms are only partly filled in. Finish them, or clear them to keep the product's words. Nothing was saved.**, and each English box still empty says **Fill this in too, or clear the term to keep the product's word.**
 5. The web uses the new words at once. Phones use them at their next sync.
 
 ## What the system checks
 
-- A term is kept only when every box for it is filled, in both languages. A term filled in English alone is dropped when you save, without a warning, and the product's word stays.
+- A term you type in needs its English whole: both **One** and **Many** for a noun. Hindi left empty takes the English, as on the other configuration pages. Nothing is saved while a term is partly filled in, so no word is dropped silently.
 - A noun's form is up to 60 characters; a label up to 40.
 - Messages that name a term change with it, such as **You are too far from this account.** becoming "You are too far from this customer." if you call accounts Customer. Write each word as it should read at the start of a sentence; the apps lower its first letter mid-sentence, leaving acronyms such as SME as they are.
 
@@ -46,7 +46,7 @@ Ten terms change from one industry to another. The apps never print them as fixe
 
 | What you see | What it means | What to do |
 |---|---|---|
-| A word you typed is gone after **Saved.** | You didn't fill every box for that term in both languages. | Fill all of its boxes and save again. |
+| Some terms are only partly filled in. Finish them, or clear them to keep the product's words. Nothing was saved. | A term has a word in some boxes but an English box is empty; that box says **Fill this in too, or clear the term to keep the product's word.** | Fill the box, or clear the whole term, and save again. |
 | Some details need fixing. Check the highlighted fields. | A box is too long or not accepted. The box says why. | Shorten it and save again. |
 | You don't have access to this. | Your role lacks `terminology.manage`. | Ask an admin. |
 | A phone still shows the old word. | The phone hasn't synced since. | Ask the person to open the app online and sync. |

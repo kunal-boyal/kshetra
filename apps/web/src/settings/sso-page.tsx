@@ -10,7 +10,7 @@ import {
 } from '@thelamp/ui-web';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
-import { errorMessage, useLanguage } from '../i18n';
+import { errorMessage, errorReason, useLanguage } from '../i18n';
 import { read, write } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section } from '../people/shared';
 import { Copyable } from './secret';
@@ -283,7 +283,7 @@ function DomainsSection({ checks }: { checks: DomainCheck[] }) {
       setOutcome({
         domain,
         ok: false,
-        text: fieldErrors(error).domain ?? errorMessage(error, t),
+        text: fieldErrors(error).domain ?? errorReason(error, t),
       });
     } finally {
       setChecking(undefined);

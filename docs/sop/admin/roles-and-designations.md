@@ -45,6 +45,7 @@ A role decides what people may do and whose records they reach. A designation is
 
 1. Select **Edit** on its row, change the names, reach, **Mobile app only** or permissions, and select **Save**.
 2. People holding the role get the change at once on the web, and on phones at their next sync.
+3. The Admin role opens with **This role always holds every permission, across the whole organisation. Only its name can change.** Its reach, **Mobile app only** and permissions show greyed out; change **Name in English** or **Name in Hindi** and select **Save**. Only the name is sent.
 
 ### Add or change a designation
 
@@ -62,7 +63,7 @@ A role decides what people may do and whose records they reach. A designation is
 
 - Nobody gives access they don't hold. You can't save a role with a permission you lack, or reaching further than you do (`canGrant()`). Permissions of modules that are off don't count against you.
 - You can't change the role you hold yourself. Ask another admin.
-- The Admin role always holds every permission across the organisation; its permissions, reach and **Mobile app only** can't change.
+- The Admin role always holds every permission across the organisation; its permissions, reach and **Mobile app only** can't change, and the form doesn't let you. Its name can.
 - A role whose permissions include `role.manage`, `user.manage`, `settings.manage`, `module.manage`, `billing.manage` or `erp.manage` makes its holders use an authenticator app on the web ([Set up sign-in security and single sign-on](security-and-sso.md)).
 - Permissions of a module that is off do nothing while it is off, though they stay ticked.
 - Two permissions nothing used, "Set people policies" and "Edit notification messages", were taken out in November 2026 (D137), and every role lost them. A role that held nothing else shows 0 permissions: tick what its people should do, or move them to another role.
@@ -75,7 +76,7 @@ A role decides what people may do and whose records they reach. A designation is
 | What you see | What it means | What to do |
 |---|---|---|
 | You don't have access to this. | The role holds a permission or reach you don't have, or it is the role you hold. | Ask an admin who holds it, or another admin, to make the change. |
-| Some details need fixing. Check the highlighted fields. | A field is wrong. For the Admin role the permissions say **The tenant admin always holds every permission across the tenant** (in English, from the server). | Correct the field. Leave the Admin role as it is. |
+| Some details need fixing. Check the highlighted fields. | A field is wrong, such as a name left empty. | Correct the field and select **Save** again. |
 | This changed somewhere else. Refresh and try again. | The key is already used; the **Key** box says **Already used by another role** or **Already used by another designation**. | Choose another key. |
 | **People with this designation have reports** under the checkboxes | You cleared **People with it can have reports** while people report to someone with it. | Move their reports first ([Add and look after people](people.md)), then save again. |
 
