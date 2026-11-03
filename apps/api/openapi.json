@@ -18335,6 +18335,14 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "readOnly": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "moving": {
+                      "default": false,
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -18349,7 +18357,9 @@
                     "permissions",
                     "deviceId",
                     "calendarKey",
-                    "support"
+                    "support",
+                    "readOnly",
+                    "moving"
                   ],
                   "additionalProperties": false
                 }

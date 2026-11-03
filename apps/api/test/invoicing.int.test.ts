@@ -307,6 +307,19 @@ describe('dunning (BR-48)', () => {
     // A mandate pays on the day of issue.
     expect(invoice).toMatchObject({ status: 'issued', dueOn: INVOICE_DAY });
     expect(await statusOf(c.tenantId)).toBe('grace');
+    // In grace everyone still works; billing admins see the stage on their billing page and in
+    // the portal's banner (decision D140).
+    const memberPhone = newPhone();
+    await world.user(c.tenantId, { phone: memberPhone });
+    const member = (await world.signIn(memberPhone)).accessToken;
+    expect((await send('GET', '/v1/me', member)).json()).toMatchObject({
+      readOnly: false,
+      moving: false,
+    });
+    expect((await send('GET', '/v1/billing', c.admin)).json().dunning).toMatchObject({
+      stage: 'grace',
+      readOnlyOn: addDays(INVOICE_DAY, 7),
+    });
     const billing = (await send('GET', `/platform/v1/tenants/${c.tenantId}/billing`, staff)).json();
     expect(billing).toMatchObject({
       account: { mandate: 'failed' },
@@ -331,7 +344,12 @@ describe('dunning (BR-48)', () => {
     const write = await send('PATCH', '/v1/settings', c.admin, { reviewAutoApproval: false });
     expect(write.statusCode).toBe(423);
     expect(write.json().error.code).toBe('TENANT_READ_ONLY');
-    expect((await send('GET', '/v1/me', c.admin)).statusCode).toBe(200);
+    // Everyone is told, not only those who hold billing.manage (decision D140).
+    for (const token of [c.admin, member]) {
+      const me = await send('GET', '/v1/me', token);
+      expect(me.statusCode).toBe(200);
+      expect(me.json()).toMatchObject({ readOnly: true, moving: false });
+    }
     expect(
       emails().filter((email) => email.subject === 'Unpaid Co can only read until paid'),
     ).not.toEqual([]);
@@ -344,6 +362,7 @@ describe('dunning (BR-48)', () => {
       receivedOn: addDays(INVOICE_DAY, 8),
     });
     expect(await statusOf(c.tenantId)).toBe('active');
+    expect((await send('GET', '/v1/me', member)).json().readOnly).toBe(false);
     expect(
       (await send('PATCH', '/v1/settings', c.admin, { reviewAutoApproval: false })).statusCode,
     ).toBe(200);

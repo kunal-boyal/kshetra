@@ -43,6 +43,8 @@ export interface ClientEvents {
   onSignedOut: () => void;
   /** The API no longer supports this version (M1, rule 8). */
   onUpgradeRequired: () => void;
+  /** A write was refused as read only or moving: who is signed in is read again (D140). */
+  onStandingRefused?: () => void;
 }
 
 /**

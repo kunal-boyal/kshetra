@@ -100,6 +100,12 @@ export interface ClientOptions {
   app?: { platform: AppPlatform; version: string };
   /** Called when the API answers `UPGRADE_REQUIRED`: the app shows its blocking update screen. */
   onUpgradeRequired?: () => void;
+  /**
+   * Called when a write is refused because the organisation may only read or is moving
+   * (`TENANT_READ_ONLY`, `TENANT_MOVING`): the app reads who is signed in again, so its banner
+   * says so (decision D140).
+   */
+  onStandingRefused?: () => void;
   fetch?: typeof fetch;
   /** Called when the session ends: signed out, revoked, or no longer refreshable. */
   onSignedOut?: () => void;
@@ -223,6 +229,9 @@ export function createClient(options: ClientOptions) {
   async function failure(response: Response): Promise<ApiError> {
     const error = await errorFrom(response);
     if (error.code === 'UPGRADE_REQUIRED') options.onUpgradeRequired?.();
+    if (error.code === 'TENANT_READ_ONLY' || error.code === 'TENANT_MOVING') {
+      options.onStandingRefused?.();
+    }
     return error;
   }
 

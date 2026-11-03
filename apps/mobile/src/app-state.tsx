@@ -56,6 +56,8 @@ export function AppProvider({
         queryClient.clear();
       },
       onUpgradeRequired: () => setUpgradeRequired(true),
+      // An upload refused as read only or moving waits; Home and the queue then say why.
+      onStandingRefused: () => void queryClient.invalidateQueries({ queryKey: ['me'] }),
     }),
   );
 

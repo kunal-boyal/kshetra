@@ -41,6 +41,7 @@ import { Brand } from './brand';
 import { LanguageToggle, ThemePicker } from './preferences-menu';
 import { SearchBox } from './search';
 import { Announcements } from './announcements';
+import { ReadOnlyBanner } from './read-only-banner';
 import { SupportBanner } from './support-banner';
 import { StepUpPrompt } from '../step-up';
 
@@ -365,6 +366,7 @@ export function AppShell() {
           ) : null}
         </header>
         <SupportBanner onSignOut={() => act(() => client.signOut())} />
+        <ReadOnlyBanner />
         <Announcements />
         <StepUpPrompt />
         <main id="content" className="mx-auto w-full max-w-[var(--content-max)] p-6">

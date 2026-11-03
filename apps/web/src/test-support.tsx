@@ -66,6 +66,8 @@ export function fakeClient(
       scope: 'tenant',
       permissions,
       deviceId: null,
+      readOnly: false,
+      moving: false,
     })),
     signOut: vi.fn(async () => {}),
     config: vi.fn(async () => ({

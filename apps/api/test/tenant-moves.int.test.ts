@@ -104,7 +104,11 @@ describe('moving a tenant between cells (M21, D95)', () => {
     );
     await sourceMoves.start(tenantId, 'cell-b');
     await expect(sourceMoves.start(tenantId, 'cell-b')).rejects.toThrow(/being moved already/);
-    expect((await call(source, 'GET', '/v1/me', session.accessToken)).statusCode).toBe(200);
+    // Everyone is told, so nothing waits without a word (decision D140).
+    expect((await call(source, 'GET', '/v1/me', session.accessToken)).json()).toMatchObject({
+      moving: true,
+      readOnly: false,
+    });
     const frozen = await call(source, 'POST', '/v1/notifications/read', session.accessToken, {
       all: true,
     });
