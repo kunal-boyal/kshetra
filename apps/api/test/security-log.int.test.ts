@@ -3,6 +3,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { newId } from '@thelamp/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StaffService } from '../src/modules/console/staff.service';
+import { digest } from '../src/modules/directory/secrets';
 import { AuditLog, SYSTEM_ACTOR } from '../src/platform/audit';
 import { Database } from '../src/platform/database';
 import { newAddress, newDevice, newPhone, startApp, testConfig, World } from './support';
@@ -138,7 +139,7 @@ describe('security logging (decision D101)', () => {
     );
   });
 
-  it('logs a refresh token presented twice', async () => {
+  it('logs a refresh token presented twice, and once more after a minute', async () => {
     const o = await organisation('Copied Token Co');
     const { refreshToken } = await world.signIn(o.managerPhone, newDevice());
     const refresh = () =>
@@ -149,6 +150,18 @@ describe('security logging (decision D101)', () => {
         remoteAddress: newAddress(),
       });
     expect((await refresh()).statusCode).toBe(200);
+    // Sent again at once, it is a second refresh at the same moment (decision D133).
+    lines = [];
+    expect((await refresh()).statusCode).toBe(200);
+    expect(security()).toContainEqual(
+      expect.objectContaining({ event: 'refresh_overlap', plane: 'directory' }),
+    );
+    // A minute on, it can only be a copy.
+    await world.directory.client.query(
+      `update directory.refresh_tokens set revoked_at = now() - interval '1 minute'
+        where token_hash = $1`,
+      [digest(refreshToken)],
+    );
     lines = [];
     expect((await refresh()).json().error.code).toBe('SESSION_REVOKED');
     expect(security()).toContainEqual(
