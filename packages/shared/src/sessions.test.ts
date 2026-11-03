@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { providerUsedMfa, sessionExpiresAt } from './sessions';
+import { providerUsedMfa, refreshOverlap, sessionExpiresAt } from './sessions';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -50,5 +50,21 @@ describe('the identity provider’s second factor (decision D101)', () => {
     expect(
       providerUsedMfa({ authnContext: ['urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken'] }),
     ).toBe(true);
+  });
+});
+
+describe('two refreshes at once (decision D133)', () => {
+  const spent = Date.UTC(2026, 10, 3, 7, 50, 28);
+
+  it('answers a token spent by a refresh moments ago from the same session', () => {
+    expect(refreshOverlap(spent, spent + 9, true)).toBe(true);
+    expect(refreshOverlap(spent, spent + 10_000, true)).toBe(true);
+  });
+
+  it('takes it for a copy once the moment has passed, or once the session ended', () => {
+    expect(refreshOverlap(spent, spent + 10_001, true)).toBe(false);
+    expect(refreshOverlap(spent, spent + 9, false)).toBe(false);
+    // A clock that runs backwards proves nothing.
+    expect(refreshOverlap(spent, spent - 1, true)).toBe(false);
   });
 });

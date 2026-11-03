@@ -9,6 +9,7 @@ import {
   type OwnSession,
   type Session,
   sessionExpiresAt,
+  refreshOverlap,
   SESSION_LIMITS,
   type SignedIn,
   type TenantSummary,
@@ -59,10 +60,14 @@ const revoked = () => new AppError('SESSION_REVOKED', 'Your session has ended. S
 
 type RefreshTokenRow = typeof refreshTokens.$inferSelect;
 
-/** A refresh token still good, and whose it is: a member's, or vendor support's grant. */
-type Claimed =
+/**
+ * A refresh token still good, and whose it is: a member's, or vendor support's grant. `overlap`
+ * says it was spent a moment ago by a refresh sent at the same time (decision D133).
+ */
+type Claimed = { overlap: boolean } & (
   | { token: RefreshTokenRow; membership: MembershipRow; grant?: never }
-  | { token: RefreshTokenRow; grant: SupportGrantRow; membership?: never };
+  | { token: RefreshTokenRow; grant: SupportGrantRow; membership?: never }
+);
 
 /**
  * Sessions: a refresh-token family per sign-in, with access tokens issued from it. Reusing a spent
@@ -102,7 +107,8 @@ export class SessionsService {
     const result = await this.database.db.transaction(async (tx) => {
       const claimed = await this.claim(tx, refreshToken);
       if (!claimed) return null;
-      await this.spend(tx, claimed.token);
+      // A second refresh at the same moment takes a new pair; its token is spent already.
+      if (!claimed.overlap) await this.spend(tx, claimed.token);
       if (claimed.grant) {
         const session = await this.issueSupport(tx, claimed.grant, claimed.token.familyId);
         return { session, tenant: this.grantSummary(claimed.grant) };
@@ -143,18 +149,24 @@ export class SessionsService {
       .where(eq(refreshTokens.tokenHash, digest(refreshToken)))
       .for('update');
     if (!token) return null;
-    if (token.revokedAt) {
+    const subject = token.supportGrantId
+      ? `support:${token.supportGrantId}`
+      : `membership:${token.membershipId}`;
+    const overlap =
+      token.revokedAt !== null &&
+      refreshOverlap(
+        token.revokedAt.getTime(),
+        Date.now(),
+        await this.familyLive(tx, token.familyId),
+      );
+    if (token.revokedAt && !overlap) {
       // Only a copy is presented twice: the family ends, and that is a security event (D101).
-      this.security.record({
-        event: 'session_reused',
-        plane: 'directory',
-        subject: token.supportGrantId
-          ? `support:${token.supportGrantId}`
-          : `membership:${token.membershipId}`,
-      });
+      this.security.record({ event: 'session_reused', plane: 'directory', subject });
       await this.endFamily(tx, token.familyId);
       return null;
     }
+    // Two refreshes sent at once (decision D133): the second goes on in the same session.
+    if (overlap) this.security.record({ event: 'refresh_overlap', plane: 'directory', subject });
     if (token.supportGrantId) {
       // Vendor support's session lasts while its grant does, and its staff member's access.
       const [grant] = await supportGrantRows(tx, eq(supportGrants.id, token.supportGrantId), 1);
@@ -167,7 +179,7 @@ export class SessionsService {
         await this.endFamily(tx, token.familyId);
         return null;
       }
-      return { token, grant };
+      return { token, grant, overlap };
     }
     const [membership] = await activeMemberships(tx, eq(memberships.id, token.membershipId!));
     const kind = token.deviceId ? 'phone' : token.sso ? 'sso' : 'web';
@@ -181,7 +193,17 @@ export class SessionsService {
       await this.endFamily(tx, token.familyId);
       return null;
     }
-    return { token, membership };
+    return { token, membership, overlap };
+  }
+
+  /** Whether a refresh-token family still has a token that may be spent. */
+  private async familyLive(tx: DirectoryTx, familyId: string): Promise<boolean> {
+    const [live] = await tx
+      .select({ id: refreshTokens.id })
+      .from(refreshTokens)
+      .where(and(eq(refreshTokens.familyId, familyId), isNull(refreshTokens.revokedAt)))
+      .limit(1);
+    return Boolean(live);
   }
 
   private async spend(tx: DirectoryTx, token: RefreshTokenRow): Promise<void> {

@@ -23,6 +23,21 @@ function directoryUrl(): string {
   return `http://${host}:${DEV_API_PORT}`;
 }
 
+/**
+ * One refresh at a time on this phone (decision D133). The app and its background task each make
+ * a client but share this module, so they take turns here, and the second finds the first's new
+ * session in the store instead of spending the same refresh token again.
+ */
+const turns = new Map<string, Promise<unknown>>();
+function lock<T>(name: string, work: () => Promise<T>): Promise<T> {
+  const next = (turns.get(name) ?? Promise.resolve()).then(work, work);
+  turns.set(
+    name,
+    next.catch(() => undefined),
+  );
+  return next;
+}
+
 export interface ClientEvents {
   /** Signed out, revoked, or no longer refreshable. */
   onSignedOut: () => void;
@@ -40,6 +55,7 @@ export function mobileClient(events: ClientEvents) {
     directoryUrl: directory,
     platform: 'app',
     store: sessionStore,
+    lock,
     device: deviceInfo,
     app: { platform: appPlatform, version: appVersion },
     // The cell's address comes from sign-in. In development it is this machine, which the

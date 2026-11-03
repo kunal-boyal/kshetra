@@ -8,6 +8,7 @@ import {
   passwordWordsIssue,
   PLATFORM_ROLE_PERMISSIONS,
   type PlatformRoleKey,
+  refreshOverlap,
   type StaffClaims,
   type StaffPasswordBody,
   type StaffResult,
@@ -353,20 +354,22 @@ export class StaffService extends StaffResolver {
         .where(eq(platformSessions.tokenHash, digest(refreshToken)))
         .for('update');
       if (!token) return null;
-      if (token.revokedAt) {
+      const actor = `staff:${token.platformUserId}`;
+      // Two refreshes sent at once, a page reloaded while its refresh was out (decision D133).
+      const overlap =
+        token.revokedAt !== null &&
+        refreshOverlap(token.revokedAt.getTime(), Date.now(), await this.familyLive(tx, token));
+      if (token.revokedAt && !overlap) {
         // Only a copy is presented twice (decision D101).
-        this.security.record({
-          event: 'session_reused',
-          plane: 'directory',
-          actor: `staff:${token.platformUserId}`,
-        });
+        this.security.record({ event: 'session_reused', plane: 'directory', actor });
       }
+      if (overlap) this.security.record({ event: 'refresh_overlap', plane: 'directory', actor });
       const [row] = await tx
         .select()
         .from(platformUsers)
         .where(eq(platformUsers.id, token.platformUserId));
       if (
-        token.revokedAt ||
+        (token.revokedAt && !overlap) ||
         token.expiresAt.getTime() <= Date.now() ||
         !row ||
         row.status !== 'active' ||
@@ -375,14 +378,26 @@ export class StaffService extends StaffResolver {
         await this.endFamily(tx, token.familyId);
         return null;
       }
-      await tx
-        .update(platformSessions)
-        .set({ revokedAt: new Date() })
-        .where(eq(platformSessions.id, token.id));
+      if (!overlap) {
+        await tx
+          .update(platformSessions)
+          .set({ revokedAt: new Date() })
+          .where(eq(platformSessions.id, token.id));
+      }
       return this.issue(tx, row, token.familyId);
     });
     if (!result) throw new AppError('SESSION_REVOKED', 'Sign in again.');
     return result;
+  }
+
+  /** Whether a staff session's family still has a token that may be spent. */
+  private async familyLive(tx: DirectoryTx, token: { familyId: string }): Promise<boolean> {
+    const [live] = await tx
+      .select({ id: platformSessions.id })
+      .from(platformSessions)
+      .where(and(eq(platformSessions.familyId, token.familyId), isNull(platformSessions.revokedAt)))
+      .limit(1);
+    return Boolean(live);
   }
 
   async signOut(refreshToken: string): Promise<void> {

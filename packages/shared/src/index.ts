@@ -1121,6 +1121,8 @@ export {
 } from './support';
 export {
   providerUsedMfa,
+  REFRESH_OVERLAP_MS,
+  refreshOverlap,
   SESSION_LIMITS,
   type SessionKind,
   sessionExpiresAt,

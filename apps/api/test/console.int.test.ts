@@ -7,6 +7,7 @@ import { hashPassword } from '../src/platform/passwords';
 import { RedisClient } from '../src/platform/redis';
 import { totpAt, totpStep } from '../src/platform/totp';
 import { newPhone, startApp, testConfig, World } from './support';
+import { digest } from '../src/modules/directory/secrets';
 
 /**
  * The platform console's API (module M22, decision D88): vendor staff set up from an invitation,
@@ -197,6 +198,12 @@ describe('vendor staff (decision D88)', () => {
     expect(refreshed.statusCode, refreshed.body).toBe(200);
     const next = refreshed.cookies.find((each) => each.name === 'thelamp_console')!;
     expect(next.value).not.toBe(cookie.value);
+    // Past the moment two refreshes may overlap (D133), the spent cookie is a copy.
+    await world.directory.client.query(
+      `update directory.platform_sessions set revoked_at = now() - interval '1 minute'
+        where token_hash = $1`,
+      [digest(cookie.value)],
+    );
     const reused = await send('POST', '/platform/v1/session/refresh', {
       headers: { ...CONSOLE, cookie: `thelamp_console=${cookie.value}` },
     });
@@ -206,6 +213,17 @@ describe('vendor staff (decision D88)', () => {
       headers: { ...CONSOLE, cookie: `thelamp_console=${next.value}` },
     });
     expect(after.json().error.code).toBe('SESSION_REVOKED');
+  });
+
+  it('answers a second refresh sent at the same moment from the same session (D133)', async () => {
+    const { signedIn } = await staffMember();
+    const cookie = signedIn.cookies.find((each) => each.name === 'thelamp_console')!;
+    const headers = { ...CONSOLE, cookie: `thelamp_console=${cookie.value}` };
+    const [one, two] = await Promise.all([
+      send('POST', '/platform/v1/session/refresh', { headers }),
+      send('POST', '/platform/v1/session/refresh', { headers }),
+    ]);
+    expect([one.statusCode, two.statusCode]).toEqual([200, 200]);
   });
 
   it('passes over a cookie left on its old path and expires it (D101)', async () => {
