@@ -479,6 +479,46 @@ describe('the web (spec 13.1)', () => {
     expect(after.json().error.code).toBe('SESSION_REVOKED');
   });
 
+  it('passes over a cookie left on its old path and expires it (D101)', async () => {
+    const person = await member('Lotus Stale');
+    await requestCode(person.phone);
+    const verified = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/otp/verify',
+      headers: web,
+      payload: { phone: person.phone, code: sender.lastCode(person.phone) },
+      remoteAddress: newAddress(),
+    });
+    const current = cookieOf(verified)!.value;
+    // A browser that kept the cookie from before Path=/ sends that copy first.
+    const refreshed = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/token/refresh',
+      headers: { ...web, cookie: `thelamp_refresh=stale; thelamp_refresh=${current}` },
+    });
+    expect(refreshed.statusCode, refreshed.body).toBe(200);
+    expect(refreshed.json().tenant).toMatchObject({ id: person.tenantIds[0] });
+    const cookies = refreshed.cookies.filter((cookie) => cookie.name === 'thelamp_refresh');
+    expect(cookies.find((cookie) => cookie.path === '/')!.value).not.toBe('');
+    expect(cookies.find((cookie) => cookie.path === '/auth/v1')).toMatchObject({ value: '' });
+
+    // Signing out expires both.
+    const signedOut = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/logout',
+      headers: web,
+      cookies: { thelamp_refresh: cookies.find((cookie) => cookie.path === '/')!.value },
+    });
+    expect(
+      signedOut.cookies
+        .filter((cookie) => cookie.name === 'thelamp_refresh')
+        .map((cookie) => [cookie.path, cookie.value]),
+    ).toEqual([
+      ['/', ''],
+      ['/auth/v1', ''],
+    ]);
+  });
+
   it('answers browsers from allowed origins only', async () => {
     const allowed = 'https://app.example.test';
     const corsApp = await startApp(testConfig({ CORS_ORIGINS: allowed }));
