@@ -1,5 +1,10 @@
 import { MediaUrlResult, ReviewQueueResult, ReviewRulesResult } from '@thelamp/shared';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';
 
@@ -27,6 +32,7 @@ export function useReviewQueue(filters: QueueFilters) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['review-queue', filters],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(
         client,

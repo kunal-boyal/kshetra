@@ -8,7 +8,12 @@ import {
   type OrderStatus,
   type PlaceOrderBody,
 } from '@thelamp/shared';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read, write } from '../people/data';
 
@@ -32,6 +37,7 @@ export function useOrders(filters: OrderFilters) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['orders', filters],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(client, `/v1/orders${search({ ...filters, cursor: pageParam })}`, OrderListResult),
     initialPageParam: undefined as string | undefined,

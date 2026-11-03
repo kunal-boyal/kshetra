@@ -10,6 +10,7 @@ import {
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read, write } from '../people/data';
+import { keepWhileSame } from '../query-keep';
 
 /** The catalogue as the phones hold it: units, measures and every item. */
 export function useCatalogue() {
@@ -43,6 +44,7 @@ export function usePriceListItems(id: string, q: string) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['price-lists', id, 'items', q],
+    placeholderData: keepWhileSame(['price-lists', id, 'items', q], [3]),
     queryFn: ({ pageParam }) => {
       const query = new URLSearchParams({ limit: '50' });
       if (q) query.set('q', q);

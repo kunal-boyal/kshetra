@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { formatDateTime } from '@thelamp/i18n';
 import {
@@ -57,6 +57,7 @@ export function AuditLog() {
   if (person) query.set('actorId', person.id);
   const log = useInfiniteQuery({
     queryKey: ['audit-log', query.toString()],
+    placeholderData: keepPreviousData,
     initialPageParam: '',
     queryFn: ({ pageParam }) =>
       read(

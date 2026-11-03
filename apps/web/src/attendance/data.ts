@@ -3,7 +3,7 @@ import {
   type DayStatusKey,
   LeaveRequestListResult,
 } from '@thelamp/shared';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';
 
@@ -12,6 +12,7 @@ export function useRegister(period: string, territoryId: string) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['attendance-register', period, territoryId],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) => {
       const query = new URLSearchParams({ period });
       if (territoryId) query.set('territoryId', territoryId);
@@ -28,6 +29,7 @@ export function useTeamLeave(period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['leave-requests', 'team', period],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       read(client, `/v1/leave-requests?team=true&period=${period}`, LeaveRequestListResult),
   });

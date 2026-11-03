@@ -27,7 +27,12 @@ import {
   StatusBadge,
   TextField,
 } from '@thelamp/ui-web';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Banknote, Download, Receipt, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
@@ -149,6 +154,7 @@ export function ExpensesPage() {
   );
   const claims = useInfiniteQuery({
     queryKey: ['expense-claims', period, state],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(
         client,

@@ -1,5 +1,5 @@
 import { DashboardResult, DashboardWaiting } from '@thelamp/shared';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';
 
@@ -8,6 +8,7 @@ export function useDashboard(period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['dashboard', period],
+    placeholderData: keepPreviousData,
     queryFn: () => read(client, `/v1/dashboard?period=${period}`, DashboardResult),
   });
 }

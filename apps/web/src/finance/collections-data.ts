@@ -5,7 +5,12 @@ import {
   CollectionResult,
   type CollectionStatusKey,
 } from '@thelamp/shared';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read, write } from '../people/data';
 
@@ -34,6 +39,7 @@ export function useCollections(filters: CollectionFilters, enabled = true) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['collections', filters],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(
         client,

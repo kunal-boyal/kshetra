@@ -5,7 +5,7 @@ import {
   LiveResult,
   TrailResult,
 } from '@thelamp/shared';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read } from '../people/data';
 
@@ -23,6 +23,7 @@ export function useAccountPins(enabled = true, period?: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['account-pins', period ?? 'now'],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       read(client, `/v1/account-pins${period ? `?period=${period}` : ''}`, AccountPinsResult),
     enabled,
@@ -41,6 +42,7 @@ export function useDensity(period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['density', period],
+    placeholderData: keepPreviousData,
     queryFn: () => read(client, `/v1/density?period=${period}`, DensityResult),
   });
 }
