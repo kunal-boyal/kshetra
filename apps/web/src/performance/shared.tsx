@@ -11,7 +11,7 @@ import {
   todayIn,
 } from '@thelamp/shared';
 import { Avatar, Icon, KpiTile, RankBadge, type RowLink, StatusBadge } from '@thelamp/ui-web';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { useApp } from '../context';
@@ -19,6 +19,7 @@ import { useConfig } from '../data';
 import { useLanguage } from '../i18n';
 import { read, useAccess } from '../people/data';
 import { metricLook } from './metric-look';
+import { keepWhileSame } from '../query-keep';
 
 /**
  * The tenant's target and score periods (D108): the one in force today, the one a day falls in,
@@ -58,6 +59,7 @@ export function usePersonPerformance(period: string, userId?: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['performance', period, userId ?? 'me'],
+    placeholderData: keepWhileSame(['performance', period, userId ?? 'me'], [1]),
     queryFn: () =>
       read(
         client,
@@ -71,6 +73,7 @@ export function useTeamPerformance(period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['performance-team', period],
+    placeholderData: keepPreviousData,
     queryFn: () => read(client, `/v1/performance/team?period=${period}`, TeamPerformance),
   });
 }
@@ -79,6 +82,7 @@ export function useLeaderboard(period: string, group?: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['leaderboard', period, group ?? 'mine'],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       read(
         client,

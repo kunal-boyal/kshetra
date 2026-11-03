@@ -56,6 +56,7 @@ import { designationName, fieldErrors, PageHeader, Section, useDates } from '../
 import { type CalendarCell, MonthCalendar } from './month-calendar';
 import { calendarOf, planDays, visitsTitle, workingDays } from './plan-days';
 import { PlanTargets } from './plan-targets';
+import { keepWhileSame } from '../query-keep';
 
 type Translate = ReturnType<typeof useLanguage>['t'];
 
@@ -82,6 +83,7 @@ function usePlan(userId: string, period: string) {
   const { client } = useApp();
   return useQuery({
     queryKey: ['plan', userId, period],
+    placeholderData: keepWhileSame(['plan', userId, period], [2]),
     queryFn: () =>
       read(client, `/v1/plan-items?userId=${userId}&period=${period}`, PlanItemListResult),
   });

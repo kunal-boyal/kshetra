@@ -114,6 +114,32 @@ describe('collections (M11, BR-63, D132)', () => {
     );
   });
 
+  it('keeps the rows on screen while another status loads', async () => {
+    let asked = 0;
+    const client = fakeClient(
+      {
+        // The first list answers; the next waits, as on a slow connection.
+        '/v1/collections': () => (asked++ === 0 ? LIST : new Promise(() => {})),
+        [`/v1/collections/${CASH}`]: collection(CASH),
+      },
+      {},
+      [...OFFICE],
+    );
+    renderAt('/collections', client);
+    await screen.findByRole('table', { name: 'Collections of the month' });
+    const chips = screen.getByRole('group', { name: 'Status' });
+    await userEvent.setup().click(within(chips).getByRole('button', { name: /^Confirmed/ }));
+    await waitFor(() =>
+      expect(client.request).toHaveBeenCalledWith(
+        'GET',
+        expect.stringContaining('status=confirmed'),
+        expect.anything(),
+      ),
+    );
+    expect(screen.getByRole('table', { name: 'Collections of the month' })).toBeVisible();
+    expect(screen.queryByText('Loading…')).toBeNull();
+  });
+
   it('rejects one beside the list only with a reason', async () => {
     const client = fakeClient(
       { '/v1/collections': LIST, [`/v1/collections/${CASH}`]: collection(CASH) },

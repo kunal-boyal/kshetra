@@ -18,6 +18,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import type { WebClient } from '../client';
 import { useApp } from '../context';
 import { read, write } from '../people/data';
+import { keepWhileSame } from '../query-keep';
 
 /** While a file is being made, the list asks again this often. */
 const BUSY_POLL_MS = 2000;
@@ -37,6 +38,7 @@ export function useReport(key: ReportKey, filters: ReportFilters, locale: Locale
   return useInfiniteQuery({
     enabled,
     queryKey: ['report', key, filters, locale],
+    placeholderData: keepWhileSame(['report', key, filters, locale], [2, 3]),
     queryFn: ({ pageParam }) =>
       read(
         client,

@@ -26,6 +26,7 @@ import { useApp } from '../context';
 import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
 import { fieldErrors, Section, useDates } from '../people/shared';
+import { keepWhileSame } from '../query-keep';
 
 type Line = ForecastMonth['lines'][number];
 
@@ -44,6 +45,7 @@ export function ForecastSection({ accountId }: { accountId: string }) {
   const [period, setPeriod] = useState(() => shiftPeriod(thisMonth, 1));
   const shown = useQuery({
     queryKey: ['forecasts', accountId, period],
+    placeholderData: keepWhileSame(['forecasts', accountId, period], [2]),
     queryFn: () =>
       read(
         client,

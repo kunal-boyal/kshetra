@@ -1,6 +1,11 @@
 import type { AccountTypeView } from '@thelamp/forms';
 import { AccountListResult, AccountOverview, type AccountStatus } from '@thelamp/shared';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { read } from '../people/data';
@@ -30,6 +35,7 @@ export function useAccounts(filters: AccountFilters, enabled = true, limit = 50)
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['accounts', filters, limit],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(
         client,

@@ -11,7 +11,7 @@ import {
   StatusBadge,
   TextField,
 } from '@thelamp/ui-web';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Download, FileText, Wallet } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
@@ -48,6 +48,7 @@ export function PayrollPage() {
 
   const months = useInfiniteQuery({
     queryKey: ['payroll', period],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(
         client,

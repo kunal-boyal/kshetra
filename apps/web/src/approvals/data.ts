@@ -10,7 +10,12 @@ import {
   DelegationListResult,
   type RequestType,
 } from '@thelamp/shared';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useApp } from '../context';
 import { read, write } from '../people/data';
 
@@ -26,6 +31,7 @@ export function useInbox(requestType?: RequestType) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['approvals', 'inbox', requestType ?? null],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(
         client,
@@ -42,6 +48,7 @@ export function useMine(status?: ApprovalStatus) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['approvals', 'mine', status ?? null],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(
         client,

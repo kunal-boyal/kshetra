@@ -11,7 +11,12 @@ import {
   UserListResult,
   UserView,
 } from '@thelamp/shared';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { z } from 'zod';
 import type { WebClient } from '../client';
@@ -86,6 +91,7 @@ export function useUsers(filters: UserFilters, limit = 50) {
   const { client } = useApp();
   return useInfiniteQuery({
     queryKey: ['users', filters, limit],
+    placeholderData: keepPreviousData,
     queryFn: ({ pageParam }) =>
       read(
         client,
