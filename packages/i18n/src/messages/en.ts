@@ -2789,6 +2789,9 @@ export const en = {
   'notify.support_emergency_title': 'Vendor support entered in an emergency',
   'notify.support_emergency_body':
     '{staff} can see your organisation until {ends}, approved by a second vendor admin: {reason}. You can end it in Settings.',
+  'notify.support_second_factor_reset_title': 'Vendor support reset an authenticator',
+  'notify.support_second_factor_reset_body':
+    "{staff} removed {name}'s authenticator and ended their sessions: {reason}. They set up a new one at their next sign-in on the web.",
   'notifications.title': 'Notifications',
   'notifications.today': 'Today',
   'notifications.earlier': 'Earlier',
@@ -5040,7 +5043,7 @@ export const en = {
   'console.hours_minutes': '{hours} h {minutes} min',
   'console.second_factor_reset': 'Reset an authenticator',
   'console.second_factor_intro':
-    'For someone who has lost their authenticator and their recovery codes, when no other admin can reset it. Confirm who is calling first.',
+    'For someone who has lost their authenticator and their recovery codes, when no other admin can reset it. Confirm who is calling first. The organisation’s admins are told, and it shows in its audit log.',
   'console.member_phone': 'Their mobile number',
   'console.second_factor_reason': 'How you confirmed it is them',
   'console.second_factor_removed':
@@ -5099,7 +5102,9 @@ export const en = {
   'sso.enabled_help': 'People in these domains can choose Sign in with SSO',
   'sso.enforced': 'Required',
   'sso.enforced_help':
-    'People in these domains can’t sign in to the portal with a code; phones still can',
+    'People in these domains, once a domain is proved, can’t sign in to the portal with a code; phones still can',
+  'sso.enforced_unproved':
+    'Prove one of these domains is yours first, under Prove your domains; until then single sign-on can’t be required.',
   'sso.save': 'Save single sign-on',
   'sso.saved': 'Saved',
   'common.copy': 'Copy',

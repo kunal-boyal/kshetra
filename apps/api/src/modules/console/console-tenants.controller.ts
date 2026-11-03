@@ -14,7 +14,10 @@ import {
   TemplateListResult,
   TenantIdParams,
 } from '@thelamp/shared';
+import { eq } from 'drizzle-orm';
+import { platformUsers } from '../../db/schema/directory';
 import { CurrentStaff, ForStaff, type StaffAccess } from '../../platform/auth';
+import { SupportNotices } from '../../platform/planes';
 import { Contract } from '../../platform/routes';
 import { AppError } from '@thelamp/shared';
 import { SecondFactorService } from '../directory/second-factor.service';
@@ -33,6 +36,7 @@ export class ConsoleTenantsController {
     private readonly secondFactors: SecondFactorService,
     private readonly directory: DirectoryDatabase,
     private readonly audit: PlatformAudit,
+    private readonly notices: SupportNotices,
   ) {}
 
   @ForStaff()
@@ -170,13 +174,26 @@ export class ConsoleTenantsController {
       ]);
     }
     const removed = await this.secondFactors.reset(tenantId, userId);
-    await this.directory.db.transaction((tx) =>
-      this.audit.record(tx, staff, 'tenant.second_factor_reset', 'tenant', tenantId, {
+    const staffName = await this.directory.db.transaction(async (tx) => {
+      await this.audit.record(tx, staff, 'tenant.second_factor_reset', 'tenant', tenantId, {
         userId,
         removed,
         reason,
-      }),
-    );
+      });
+      const [row] = await tx
+        .select({ name: platformUsers.name })
+        .from(platformUsers)
+        .where(eq(platformUsers.id, staff.staffId));
+      return row?.name ?? '';
+    });
+    // The tenant sees it too: in its audit log, and its admins hear of it (decision D93).
+    await this.notices.secondFactorReset(tenantId, {
+      byStaffId: staff.staffId,
+      staffName,
+      userId,
+      removed,
+      reason,
+    });
     return { removed };
   }
 }

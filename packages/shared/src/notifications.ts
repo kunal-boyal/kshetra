@@ -80,6 +80,13 @@ export const NOTIFICATION_KINDS = {
   'support.requested': { category: 'support', external: ['email'], urgent: false, inbox: true },
   /** Vendor support entered in an emergency, approved by a second vendor admin. */
   'support.emergency': { category: 'support', external: ['email'], urgent: true, inbox: true },
+  /** Vendor staff removed a member's authenticator from the console (decision D91). */
+  'support.second_factor_reset': {
+    category: 'support',
+    external: ['email'],
+    urgent: false,
+    inbox: true,
+  },
   /** Someone asks about their personal data; the admins answer within 30 days (decision D95). */
   'data_request.received': {
     category: 'approvals',

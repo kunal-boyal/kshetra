@@ -15,9 +15,12 @@ import { SupportService } from './modules/directory/support.service';
 import { CellHealthService } from './modules/directory/cell-health.service';
 import { IamModule } from './modules/iam/iam.module';
 import { MeteringModule } from './modules/metering/metering.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CellSignedOutPhones } from './modules/notifications/signed-out-phones';
 import { CellSeatCounts } from './modules/metering/seat-counts';
 import { DirectoryModule } from './modules/directory/directory.module';
 import { DirectoryMembers } from './modules/directory/members';
+import { DirectoryPhoneSessions } from './modules/directory/phone-sessions';
 import { SecondFactorService } from './modules/directory/second-factor.service';
 import { DirectoryTenants } from './modules/directory/tenants';
 import { CellTenantArchives } from './modules/governance/cell-tenant-archives';
@@ -35,8 +38,10 @@ import {
   MembershipSync,
   PeopleEmails,
   PeopleNames,
+  PhoneSessions,
   SeatCounts,
   SecondFactors,
+  SignedOutPhones,
   StatutoryRates,
   SupportGrants,
   SupportNotices,
@@ -62,6 +67,7 @@ import {
     BillingModule,
     MeteringModule,
     GovernanceModule,
+    NotificationsModule,
     TenantConfigModule,
   ],
   providers: [
@@ -91,6 +97,8 @@ import {
     { provide: TenantArchives, useExisting: CellTenantArchives },
     { provide: TenantModules, useExisting: CellTenantModules },
     { provide: StatutoryRates, useExisting: StatutoryRatesService },
+    { provide: PhoneSessions, useExisting: DirectoryPhoneSessions },
+    { provide: SignedOutPhones, useExisting: CellSignedOutPhones },
   ],
   exports: [
     CellAdmission,
@@ -111,6 +119,8 @@ import {
     TenantArchives,
     TenantModules,
     StatutoryRates,
+    PhoneSessions,
+    SignedOutPhones,
   ],
 })
 export class PlanesModule implements OnModuleInit {

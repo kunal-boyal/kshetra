@@ -58,13 +58,13 @@ A secret or certificate already saved shows **Saved. Leave it blank to keep it.*
 ### Try it, then require it
 
 13. In a private browser window, open the portal's **Sign in** page, choose **Company SSO**, type your **Work email** and select **Continue**. You go to your provider's sign-in and come back signed in. If your role needs an authenticator and your provider didn't ask for a second factor, the portal asks for your authenticator code too.
-14. Once sign-in works for every domain, tick **Required** and save again. People in these domains then can't sign in to the portal with a code; phones still can.
+14. Once sign-in works for every domain, tick **Required** and save again. People in the proved domains then can't sign in to the portal with a code; phones still can. Before any domain is proved, saving with **Required** ticked says **Prove one of these domains is yours first, under Prove your domains; until then single sign-on can’t be required.**
 
 ## What the system checks
 
 - Single sign-on signs in only addresses at domains you have proved with the TXT record, and only people whose work email on their profile matches. Nobody is created by it.
 - A domain proved by another organisation stays theirs.
-- **Required** refuses web codes for every email in the listed domains, proved or not. Prove and test each domain before ticking it, or people at a domain not yet proved can't sign in to the portal at all.
+- **Required** needs at least one proved domain, and refuses web codes only for emails at proved domains; people at a domain not yet proved keep signing in with a code. Prove and test each domain before relying on it.
 - While the **Single sign-on** module is off, nobody signs in through your provider and everyone uses a code; the connection is kept.
 - The sign-in comes back to the browser that started it, and SAML answers must match a request the product sent.
 

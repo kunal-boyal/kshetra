@@ -43,6 +43,23 @@ export abstract class CellAdmission {
   abstract admit(request: AdmissionRequest): Promise<Admission>;
 }
 
+/**
+ * Which phones are signed in now, as the directory knows its sessions: a cell sends push only to a
+ * phone with a live session, so nothing reaches a phone that was reset or signed out (M16).
+ */
+export abstract class PhoneSessions {
+  /** Of these devices, those with a live session in the tenant at the user's current revision. */
+  abstract signedIn(tenantId: string, deviceIds: readonly string[]): Promise<Set<string>>;
+}
+
+/**
+ * Where the directory tells a cell that phones' sessions ended (signing out, ending a session,
+ * an authenticator reset): their push addresses kept until `endedAt` go.
+ */
+export abstract class SignedOutPhones {
+  abstract forget(tenantId: string, deviceIds: readonly string[], endedAt: Date): Promise<void>;
+}
+
 /** A user's sign-in facts. The cell owns them; the directory keeps a copy to sign people in with. */
 export interface MemberState {
   tenantId: string;
@@ -230,6 +247,21 @@ export interface SupportChange {
  */
 export abstract class SupportNotices {
   abstract record(tenantId: string, change: SupportChange): Promise<void>;
+  /**
+   * Vendor staff removed a member's authenticator from the console (decision D91): an entry in the
+   * tenant's audit log, and its admins hear of it.
+   */
+  abstract secondFactorReset(tenantId: string, reset: VendorSecondFactorReset): Promise<void>;
+}
+
+/** A tenant member's authenticator, removed by vendor staff, and how they confirmed it was them. */
+export interface VendorSecondFactorReset {
+  byStaffId: string;
+  staffName: string;
+  userId: string;
+  /** An authenticator was there to remove; either way their sessions ended. */
+  removed: boolean;
+  reason: string;
 }
 
 /** A person's name, which the cell keeps, for records the directory writes about them. */

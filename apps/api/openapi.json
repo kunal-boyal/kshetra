@@ -44465,6 +44465,7 @@
               "report.scheduled",
               "support.requested",
               "support.emergency",
+              "support.second_factor_reset",
               "data_request.received",
               "data_request.due_soon",
               "data_request.closed",

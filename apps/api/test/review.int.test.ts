@@ -343,6 +343,25 @@ describe('deciding (M7)', () => {
       'FORBIDDEN',
     );
   });
+
+  it('leaves out of bulk approval what a phone that failed its integrity check sent', async () => {
+    const t = await tenant('Bulk Integrity Co');
+    const id = await submit(t.api.asha);
+    await world.database.forTenant(t.tenantId, (tx) =>
+      tx.execute(
+        `update cell.devices set integrity_verdict = 'MEETS_BASIC_INTEGRITY'
+          where tenant_id = '${t.tenantId}' and user_id = '${t.asha.id}'`,
+      ),
+    );
+    const bulk = await t.api.manager.post('/v1/reviews/bulk', { ids: [id] });
+    expect(bulk.statusCode).toBe(200);
+    expect(bulk.json()).toEqual({ approved: [], skipped: [{ id, reason: 'FLAGGED' }] });
+    // A person may still approve it, having looked.
+    const one = await t.api.manager.post(`/v1/submissions/${id}/review`, {
+      decision: 'approved',
+    });
+    expect(one.statusCode, one.body).toBe(200);
+  });
 });
 
 describe('auto-approval (M7, decision D51)', () => {
