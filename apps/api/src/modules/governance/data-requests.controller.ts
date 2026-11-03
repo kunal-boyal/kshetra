@@ -37,6 +37,19 @@ export class DataRequestsController {
     };
   }
 
+  @Get('me/data-requests/:id')
+  @SignedIn()
+  @Contract({
+    tag: 'Data',
+    summary: 'One of the caller’s own requests, with a day’s link to their copy once it is done',
+    params: IdParams,
+    response: DataRequestResult,
+  })
+  own(@CurrentAccess() access: Access, @Param() params: unknown) {
+    const { id } = IdParams.parse(params);
+    return this.database.forTenant(access.tenantId, (tx) => this.requests.getOwn(tx, access, id));
+  }
+
   @Post('me/data-requests')
   @SignedIn()
   @Contract({

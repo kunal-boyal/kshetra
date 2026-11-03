@@ -5378,6 +5378,8 @@ export const en = {
     '{person}’s request is due on {due}. Answer it in Settings › Data requests.',
   'notify.data_request_completed_title': 'Your data request is done',
   'notify.data_request_completed_body': 'Your organisation answered your request: {response}',
+  'notify.data_request_copy_ready_body':
+    'Your copy is on My data, kept 7 days from when it was prepared. Their answer: {response}',
   'notify.data_request_refused_title': 'Your data request was refused',
   'notify.data_request_refused_body': 'Your organisation refused your request: {response}',
   'data_requests.title': 'Data requests',
@@ -5403,7 +5405,7 @@ export const en = {
   'data_requests.archive_expired': 'Their archive was removed',
   'data_requests.download': 'Download their archive',
   'data_requests.archive_hint':
-    'Send it to them yourself. Each link lasts 24 hours, and the archive is kept 7 days.',
+    'Once you mark this done, they download it from My data on their phone; send it yourself to someone who can’t sign in. Each link lasts 24 hours, and the archive is kept 7 days.',
   'data_requests.correction_hint': 'Change their profile, then mark this done.',
   'data_requests.open_profile': 'Open their profile',
   'data_requests.erasure_hint': 'Deactivate them first. Erasing can’t be undone.',
@@ -5446,6 +5448,10 @@ export const en = {
   'my_data.kind_correction': 'A correction to my data',
   'my_data.kind_erasure': 'Erasing my data',
   'my_data.open': 'My data',
+  'my_data.download': 'Download my copy',
+  'my_data.copy_detail': '{size} · kept until {date}',
+  'my_data.copy_hint': 'It opens in your browser. Keep the file safe: it holds your personal data.',
+  'my_data.copy_gone': 'Your copy was removed after 7 days. Ask again for a new one.',
   'report.col_actor_kind': 'Who acted',
   'report.col_changes': 'Before and after',
   'audit.actor_user': 'A person',

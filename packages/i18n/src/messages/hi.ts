@@ -5361,6 +5361,8 @@ export const hi: Record<MessageKey, Message> = {
     '{person} का अनुरोध {due} को देय है। Settings › Data requests में इसका जवाब दें।',
   'notify.data_request_completed_title': 'आपका डेटा अनुरोध पूरा हुआ',
   'notify.data_request_completed_body': 'आपके संगठन ने आपके अनुरोध का जवाब दिया: {response}',
+  'notify.data_request_copy_ready_body':
+    'आपकी प्रति मेरा डेटा में है, तैयार होने से 7 दिन तक रखी जाती है। उनका जवाब: {response}',
   'notify.data_request_refused_title': 'आपका डेटा अनुरोध अस्वीकार हुआ',
   'notify.data_request_refused_body': 'आपके संगठन ने आपका अनुरोध अस्वीकार किया: {response}',
   'data_requests.title': 'डेटा अनुरोध',
@@ -5386,7 +5388,7 @@ export const hi: Record<MessageKey, Message> = {
   'data_requests.archive_expired': 'उनका संग्रह हटा दिया गया',
   'data_requests.download': 'उनका संग्रह डाउनलोड करें',
   'data_requests.archive_hint':
-    'इसे ख़ुद उन्हें भेजें। हर लिंक 24 घंटे चलता है, और संग्रह 7 दिन रखा जाता है।',
+    'इसे पूरा चिह्नित करते ही वे इसे अपने फ़ोन पर मेरा डेटा से डाउनलोड करते हैं; जो साइन इन नहीं कर सकते, उन्हें इसे ख़ुद भेजें। हर लिंक 24 घंटे चलता है, और संग्रह 7 दिन रखा जाता है।',
   'data_requests.correction_hint': 'उनकी प्रोफ़ाइल बदलें, फिर इसे पूरा चिह्नित करें।',
   'data_requests.open_profile': 'उनकी प्रोफ़ाइल खोलें',
   'data_requests.erasure_hint': 'पहले उन्हें निष्क्रिय करें। मिटाना वापस नहीं होता।',
@@ -5429,6 +5431,11 @@ export const hi: Record<MessageKey, Message> = {
   'my_data.kind_correction': 'मेरे डेटा में सुधार',
   'my_data.kind_erasure': 'मेरा डेटा मिटाना',
   'my_data.open': 'मेरा डेटा',
+  'my_data.download': 'मेरी प्रति डाउनलोड करें',
+  'my_data.copy_detail': '{size} · {date} तक रखी जाएगी',
+  'my_data.copy_hint':
+    'यह आपके ब्राउज़र में खुलती है। फ़ाइल सँभालकर रखें: इसमें आपका निजी डेटा है।',
+  'my_data.copy_gone': 'आपकी प्रति 7 दिन बाद हटा दी गई। नई प्रति के लिए फिर से माँगें।',
   'report.col_actor_kind': 'किसने किया',
   'report.col_changes': 'पहले और बाद में',
   'audit.actor_user': 'एक व्यक्ति',

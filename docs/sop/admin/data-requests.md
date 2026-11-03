@@ -32,10 +32,12 @@ People may ask for a copy of their personal data, for a correction, or for its e
 ### A copy of their data
 
 1. Under **Answer to them**, select **Prepare their archive**. The page says **Their archive is being prepared**, then **Their archive is ready**.
-2. Select **Download their archive**. It holds every record that refers to them.
-3. Send it to them yourself, safely. Each download link lasts 24 hours, and the archive is kept 7 days.
-4. In **Answer to them**, write what you did. They see it on their phone.
-5. Select **Mark done**.
+2. To check it, select **Download their archive**. It holds every record that refers to them.
+3. In **Answer to them**, write what you did. They see it on their phone.
+4. Select **Mark done**. They get **Your data request is done** and download it themselves from **More** › **My data** › **Download my copy** on their phone, while the archive is kept.
+5. For someone who can't sign in (a leaver, or a request logged for someone without the app), download it and send it to them yourself, safely.
+
+Each download link lasts 24 hours, and the archive is kept 7 days from when it was prepared, so mark the request done soon after preparing it. Every download, yours or theirs, is in the audit log as `data_request.downloaded`.
 
 ### A correction
 
@@ -60,6 +62,7 @@ Answered requests move to **Answered**, with the **Answer**, when and by whom, a
 
 - A request is due 30 days after it arrives; a reminder goes 7 days before (`dataRequestDueOn()`, `dataRequestReminderDue()`).
 - An access request can't be marked done before its archive is prepared.
+- The person's own download is offered only to them, only once the request is marked done, and only while the archive is kept (D141).
 - A refusal must say why.
 - Erasure needs the person deactivated first (`dataRequestCloseIssue()`).
 - A closed request can't be closed again.
@@ -69,7 +72,7 @@ Answered requests move to **Answered**, with the **Answer**, when and by whom, a
 
 | What you see | What it means | What to do |
 |---|---|---|
-| **Prepare their archive first** | You marked an access request done without its archive. | Select **Prepare their archive**, then download and send it. |
+| **Prepare their archive first** | You marked an access request done without its archive. | Select **Prepare their archive**, then **Mark done** once it is ready. |
 | **Say why it is refused** under **Answer to them** | You refused without a reason. | Write the reason and select **Refuse** again. |
 | **Deactivate them before erasing their data** | The person is still active. | Deactivate them ([Add and look after people](people.md)), then erase. |
 | Their archive could not be prepared | The archive failed. | Select **Prepare their archive** again; if it fails again, tell the vendor. |

@@ -213,12 +213,30 @@ export class DataRequestsService implements OnModuleInit {
 
   /** One request, with a day's link to its archive while kept; reading the link is audited. */
   async get(tx: TenantTx, access: Access, id: string): Promise<DataRequestResult> {
-    const result = await this.result(
-      tx,
-      access.tenantId,
-      await this.find(tx, access.tenantId, id),
-      true,
-    );
+    return this.withDownload(tx, access, await this.find(tx, access.tenantId, id), true);
+  }
+
+  /**
+   * One of the caller's own requests (decision D141). The person's copy comes once the admin has
+   * closed their access request as completed, while its archive is kept, and reading it is
+   * audited as the admin's is. Anyone else's request, like another tenant's, is not found;
+   * vendor support and API clients have no requests of their own.
+   */
+  async getOwn(tx: TenantTx, access: Access, id: string): Promise<DataRequestResult> {
+    if (access.support || access.apiClient) throw notFound();
+    const row = await this.find(tx, access.tenantId, id);
+    if (row.userId !== access.userId) throw notFound();
+    return this.withDownload(tx, access, row, row.kind === 'access' && row.status === 'completed');
+  }
+
+  private async withDownload(
+    tx: TenantTx,
+    access: Access,
+    row: Row,
+    withLink: boolean,
+  ): Promise<DataRequestResult> {
+    const id = row.id;
+    const result = await this.result(tx, access.tenantId, row, withLink);
     if (result.download) {
       await this.audit.record(tx, access.tenantId, userActor(access), {
         action: 'data_request.downloaded',
@@ -302,7 +320,7 @@ export class DataRequestsService implements OnModuleInit {
       await this.notifications.notify(tx, tenantId, {
         userId: row.userId,
         event: 'data_request.closed',
-        values: { outcome: body.outcome, response: body.response || '—' },
+        values: { outcome: body.outcome, kind: row.kind, response: body.response || '—' },
         link: '/data-requests',
         dedupeKey: `data_request.closed:${id}`,
       });

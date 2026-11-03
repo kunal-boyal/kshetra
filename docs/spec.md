@@ -738,7 +738,7 @@ Rules: BR-42, BR-43.
 - Audit viewer for tenant admins with filters and export: by month, action, kind of actor and person, with the values before and after, exported through the audit log report (decision D95).
 - Retention jobs per data class (raw locations, trails, photos, exports, notifications, audit) driven by tenant settings.
 - Tenant data export: every table and media file for the tenant as a signed archive: a ZIP of JSON lines and files with a manifest of checksums signed with the cell's Ed25519 key, kept for seven days (decision D95).
-- Requests from employees about their personal data (access, correction, erasure where lawful) are logged and handled by the tenant admin through a simple workflow: raised on the phone or logged in the portal, answered within 30 days with a reminder a week before; access with a signed archive of the person's own data; erasure, once they are deactivated, anonymising them and keeping the business records (decision D95).
+- Requests from employees about their personal data (access, correction, erasure where lawful) are logged and handled by the tenant admin through a simple workflow: raised on the phone or logged in the portal, answered within 30 days with a reminder a week before; access with a signed archive of the person's own data, which the person downloads on the phone's My data once the admin marks the request done, while it is kept (decision D141); erasure, once they are deactivated, anonymising them and keeping the business records (decision D95).
 
 ### M22. Platform console (vendor)
 
@@ -1617,7 +1617,7 @@ Every file the product takes or gives (decision D101). Only photos are served as
 | Tally files | ERP connections (BR-61), through the API | Tally's XML export, UTF-8 or UTF-16 | 20 MB, a master or voucher at most 2 million characters | Refused with any DOCTYPE or entity declaration, or of another company; parsed a message at a time, entities never resolved | `importFileRetentionDays` | Never served back |
 | Tally orders files | Made by the worker (BR-61) | Tally's XML import | 500 orders | Every value escaped | 7 days | Signed link, saved as an attachment, to holders of `erp.manage`, audited |
 | Report exports | Made by the worker | CSV, XLSX | `limits.exportRows` rows | Text that would start a formula is neutralised | 7 days | Signed link, saved as an attachment, to the requester only |
-| Data exports and personal archives | Made by the worker | ZIP of JSON lines and files, with an Ed25519-signed manifest | | | 7 days | Signed link, saved as an attachment, to whoever asked |
+| Data exports and personal archives | Made by the worker | ZIP of JSON lines and files, with an Ed25519-signed manifest | | | 7 days | Signed link, saved as an attachment, to whoever asked; a personal archive to the admins and, once its request is done, to the person on My data (D141) |
 | Invoices | Drawn from the invoice row on request | PDF | | | Not stored | Saved as an attachment |
 | Location archives | Made nightly | Parquet | | | The trail retention | Never served to people |
 | SAML metadata | Made from the connection | XML | | | Not stored | To the identity provider |
@@ -1717,7 +1717,7 @@ Account and user search use PostgreSQL trigram indexes on name and code within t
 - Minimisation: work identity and contact details, work photos, location during shifts and HR requests. The app never reads contacts, call logs, SMS, the gallery (unless a form allows gallery photos) or the microphone.
 - Access: reporting line and permissions; photos and exports through short-lived signed links.
 - Retention: per data class (5.1), enforced by jobs and lifecycle rules.
-- Rights and exit: employee data requests (M21) and full tenant export and deletion at contract end.
+- Rights and exit: employee data requests (M21), with the person's own copy downloaded on the phone through a day's link given only to them and audited (D141), and full tenant export and deletion at contract end.
 
 ### 13.4 Compliance obligations
 
