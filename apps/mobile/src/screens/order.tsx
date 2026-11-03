@@ -56,6 +56,7 @@ import {
 } from '../orders';
 import { type ItemPrice, useAccountPrices } from '../prices';
 import { cartShortfall, useAccountStock } from '../stock';
+import { useShift } from './shift';
 import { useSync } from '../sync';
 import { HUES } from './account';
 
@@ -87,6 +88,13 @@ export function OrderScreen({ accountId }: { accountId: string }) {
   const bundle = config.data?.bundle;
   const rounding = bundle?.catalogue?.rounding ?? 'per_unit_first';
   const offline = bundle?.settings.ordersAllowedOffline ?? true;
+  // D136: where orders need an open shift, the phone says so before saving, as the server judges
+  // the shift at the moment the order was taken.
+  const needsShift =
+    Boolean(bundle?.settings.ordersNeedOpenShift) &&
+    !(bundle?.access.permissions ?? []).includes('order.create_without_shift');
+  const shift = useShift().state;
+  const offDuty = needsShift && shift === null;
   const currency = bundle?.settings.currency ?? 'INR';
   // BR-62, decision D130: a supplier that holds stock, seen by this person, says what it lacks of
   // the cart. Only flagged, never refused; the server keeps the flag on the order's lines.
@@ -197,6 +205,12 @@ export function OrderScreen({ accountId }: { accountId: string }) {
     setBusy(true);
     setFailure(undefined);
     try {
+      const open = await sync.tracking.current(client.owner);
+      if (needsShift && !open) {
+        setFailure(t('orders.need_shift'));
+        setBusy(false);
+        return;
+      }
       const body = await orderBody(sync, client.owner, {
         accountId: account.id,
         lines: priced,
@@ -205,7 +219,7 @@ export function OrderScreen({ accountId }: { accountId: string }) {
         fix: fix.fix,
       });
       if (offline) {
-        await queueOrder(sync, client.owner, body);
+        await queueOrder(sync, client.owner, body, open?.shiftId);
         await sync.runner.refresh();
         // It goes now if the phone has a connection, and with the next sync if not.
         void sync.runner.sync();
@@ -244,7 +258,7 @@ export function OrderScreen({ accountId }: { accountId: string }) {
                 block
                 label={t('orders.place_total', { total: money(totals.total) })}
                 busy={busy || fix.status === 'locating'}
-                disabled={tooLarge || fix.status !== 'ready' || priced.length === 0}
+                disabled={tooLarge || offDuty || fix.status !== 'ready' || priced.length === 0}
                 onPress={() => void place()}
               />
             </View>
@@ -343,6 +357,11 @@ export function OrderScreen({ accountId }: { accountId: string }) {
         {tooLarge ? (
           <Notice tone="danger" icon={TriangleAlert}>
             {t('orders.too_large')}
+          </Notice>
+        ) : null}
+        {offDuty ? (
+          <Notice tone="pending" icon={TriangleAlert}>
+            {t('orders.need_shift')}
           </Notice>
         ) : null}
         {fix.status === 'denied' || fix.status === 'unavailable' ? (

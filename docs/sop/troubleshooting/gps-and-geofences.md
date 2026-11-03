@@ -20,7 +20,7 @@ The app records a person's location only while they are on duty, between **Start
 
 | What you see | What it means | What to do |
 |---|---|---|
-| **Allow location to start or end the day.** | The app may not use location | Tap **I agree, find my location** again and allow location when the phone asks. If the phone no longer asks, open the phone's settings for the app and allow location. |
+| **Allow location to start or end the day.**, **Allow location to check in or out.**, **Allow location to submit this form.** or **Allow location to record this payment.** | The app may not use location | Try again and allow location when the phone asks (at **Start day**, tap **I agree, find my location** again). If the phone no longer asks, open the phone's settings for the app and allow location. |
 | **Your location could not be found. Step outside and try again.** | No fix came | Step outside, wait a moment, try again. Check location is on in the phone's quick settings. |
 | **Your location is not accurate enough yet. Step outside and try again.** | The fix is worse than 250 m | Step into the open, away from tall buildings, and try again. |
 | **This location is mocked. Turn off any app that fakes it.** | The phone reports the fix as faked by an app | Uninstall or turn off the app that changes the location, and turn off any mock location setting in the phone's developer options. The refusal is reported to the server (see "Fake locations" below). |
@@ -30,7 +30,7 @@ The app records a person's location only while they are on duty, between **Start
 
 The day card shows **Not recording**, the person gets **Your location stopped** ("No location has arrived for 20 minutes. Open the app to record again."), and after 40 minutes their manager gets **No location from …**. On the manager's **Day replay** the gap shows as **No location from … to …**.
 
-1. On the phone, tap **Record again** on the day card. If recording can't start, or the person taps **Fix this**, the app opens **Keep your route recorded**.
+1. On the phone, tap **Record again** on the day card. If recording can't start, or the person taps **Fix this**, the app opens **Keep your route recorded**. It also opens any time from **More** › **Keep your route recorded**.
 2. Under **On this phone**, read the checks:
    - **Location all the time**: **Allowed** or **Not allowed**. It must be **Allowed**: the route is recorded with the screen off.
    - **Battery use for this app** (Android): **Restricted** or **Unrestricted**. It should be **Unrestricted**.

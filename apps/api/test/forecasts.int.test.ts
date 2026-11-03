@@ -21,16 +21,22 @@ afterAll(async () => {
   await app.close();
 });
 
+const H = 3_600_000;
 const MONTH = () => todayIn('Asia/Kolkata').slice(0, 7);
 const NEXT = () => shiftPeriod(MONTH(), 1);
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH';
-function as(token: string) {
+/** Calls as someone; `deviceTime` is the phone's clock as it sends (BR-44). */
+function as(token: string, deviceTime?: string) {
   const call = (method: Method, url: string, payload?: object) =>
     app.inject({
       method,
       url,
-      headers: { authorization: `Bearer ${token}`, 'idempotency-key': newId() },
+      headers: {
+        authorization: `Bearer ${token}`,
+        'idempotency-key': newId(),
+        ...(deviceTime ? { 'x-device-time': deviceTime } : {}),
+      },
       ...(payload ? { payload } : {}),
     });
   return {
@@ -64,10 +70,11 @@ async function agri(name: string) {
     managerId: asm.id,
   });
   await world.user(tenantId, { phone: phones.other, designation: 'sme', managerId: head.id });
+  const smeToken = (await world.signIn(phones.sme, newDevice())).accessToken;
   const api = {
     head: as((await world.signIn(phones.head)).accessToken),
     asm: as((await world.signIn(phones.asm)).accessToken),
-    sme: as((await world.signIn(phones.sme, newDevice())).accessToken),
+    sme: as(smeToken),
     other: as((await world.signIn(phones.other, newDevice())).accessToken),
   };
   const market = await world.territory(tenantId, `M-${newId().slice(-6)}`);
@@ -123,7 +130,7 @@ async function agri(name: string) {
     version,
   });
   expect(priced.statusCode, priced.body).toBe(200);
-  return { tenantId, head, asm, sme, api, distributor, neem, urea, list, codes };
+  return { tenantId, head, asm, sme, smeToken, api, distributor, neem, urea, list, codes };
 }
 
 type Agri = Awaited<ReturnType<typeof agri>>;
@@ -251,6 +258,40 @@ describe('forecasts by account and item (D126)', () => {
     expect(code(await t.api.other.put(path(t, NEXT()), { id: newId(), lines }))).toBe(
       'OUT_OF_SCOPE',
     );
+  });
+
+  it('judges a phone’s save on the day the phone saved it (D136)', async () => {
+    const t = await agri('Offline Forecast Agro');
+    const lines = [{ itemId: t.neem, quantity: '10' }];
+    expect((await t.api.head.patch('/v1/settings', { syncWindowHours: 168 })).statusCode).toBe(200);
+    // Saved offline in the last minute before this month locked, on the tenant's clock.
+    const before = Date.parse(`${MONTH()}-01T00:00:00+05:30`) - 60_000;
+    const savedAt = new Date(before).toISOString();
+    const sent = await t.api.sme.put(path(t, MONTH()), { id: newId(), lines, savedAt });
+    if (Date.now() - before <= 168 * H) {
+      expect(sent.statusCode, sent.body).toBe(200);
+      expect(sent.json().months[0].versions[0]).toMatchObject({ afterLock: false });
+    } else {
+      // Saved longer ago than the sync window: judged as it arrives, after the lock.
+      expect(code(sent)).toBe('PERIOD_CLOSED');
+    }
+    // A phone whose clock is 20 minutes out has its time set aside (BR-44)...
+    const skewed = as(t.smeToken, new Date(Date.now() + 20 * 60_000).toISOString());
+    expect(code(await skewed.put(path(t, MONTH()), { id: newId(), lines, savedAt }))).toBe(
+      'PERIOD_CLOSED',
+    );
+    // ...as is a time ahead of the server's, so nothing is judged by a clock set forward.
+    const ahead = new Date(Date.now() + H).toISOString();
+    expect(
+      code(await t.api.sme.put(path(t, MONTH()), { id: newId(), lines, savedAt: ahead })),
+    ).toBe('PERIOD_CLOSED');
+    // A save made this month, after the lock, stays refused.
+    const late = new Date(Date.now() - 60_000).toISOString();
+    if (Date.now() - before > 2 * 60_000) {
+      expect(
+        code(await t.api.sme.put(path(t, MONTH()), { id: newId(), lines, savedAt: late })),
+      ).toBe('PERIOD_CLOSED');
+    }
   });
 
   it('loads forecasts in bulk, for the account’s field person, open months only', async () => {

@@ -108,7 +108,7 @@ export function VisitCard({
     if (found.status !== 'ready') {
       setSaid({
         kind: 'error',
-        text: t(found.status === 'denied' ? 'shift.fix_denied' : 'shift.fix_unavailable'),
+        text: t(found.status === 'denied' ? 'visit.fix_denied' : 'location.fix_unavailable'),
       });
       return null;
     }
@@ -117,7 +117,7 @@ export function VisitCard({
       if (issue === 'GPS_MOCKED') reportMocked('visit');
       setSaid({
         kind: 'error',
-        text: t(issue === 'GPS_MOCKED' ? 'shift.fix_mocked' : 'shift.fix_vague'),
+        text: t(issue === 'GPS_MOCKED' ? 'location.fix_mocked' : 'location.fix_vague'),
       });
       return null;
     }

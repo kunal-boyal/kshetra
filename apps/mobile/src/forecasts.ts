@@ -71,7 +71,10 @@ export function useForecast(accountId: string, period: string): PhoneForecast | 
   );
 }
 
-/** Queues a save of the items changed, as a new version with its own ID. */
+/**
+ * Queues a save of the items changed, as a new version with its own ID and the moment it was
+ * saved, by which the server judges the month's lock (decision D136).
+ */
 export async function queueForecast(
   sync: { db: SqlDatabase; outbox: Outbox },
   owner: string,
@@ -80,7 +83,11 @@ export async function queueForecast(
   lines: readonly ForecastLineBody[],
 ): Promise<string> {
   const id = newId();
-  const payload: QueuedForecast = { accountId, period, body: { id, lines: [...lines] } };
+  const payload: QueuedForecast = {
+    accountId,
+    period,
+    body: { id, lines: [...lines], savedAt: new Date().toISOString() },
+  };
   await sync.db.transaction(async (tx) => {
     await sync.outbox.enqueue(tx, { id, owner, kind: FORECAST_KIND, payload });
   });

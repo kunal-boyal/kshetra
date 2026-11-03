@@ -6,6 +6,7 @@ import { SETTING_DEFAULTS } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import { Linking } from 'react-native';
 import { AppProvider, useApp } from './app-state';
 import { takeResults } from './capture-results';
 import type { MobileClient } from './client';
@@ -91,6 +92,7 @@ jest.mock('expo-crypto', () => ({
 }));
 const mockUploads: { url: string; init: { headers: Record<string, string> } }[] = [];
 const mockStorage = { status: 200 };
+const mockCamera = { granted: true, canAskAgain: true };
 jest.mock('expo/fetch', () => ({
   fetch: async (url: string, init: { headers: Record<string, string> }) => {
     mockUploads.push({ url, init });
@@ -102,7 +104,7 @@ jest.mock('expo-camera', () => {
     jest.requireActual<typeof import('react')>('react');
   const { View: Box } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    useCameraPermissions: () => [{ granted: true, canAskAgain: true }, jest.fn()],
+    useCameraPermissions: () => [{ ...mockCamera }, jest.fn()],
     CameraView: forward((props: object, ref) => {
       handle(ref, () => ({
         takePictureAsync: async () => {
@@ -269,5 +271,33 @@ describe('the camera', () => {
       },
     });
     expect(mockFiles.has((item!.payload as PhotoUpload).uri)).toBe(true);
+  });
+
+  it('opens the app settings when the camera is turned off for good', async () => {
+    mockCamera.granted = false;
+    mockCamera.canAskAgain = false;
+    const settings = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
+    const client = { session: null, owner: null, restore: jest.fn(async () => null) };
+    try {
+      await render(
+        <LanguageProvider initial="en">
+          <AppProvider
+            createClient={() => client as unknown as MobileClient}
+            queryClient={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+          >
+            <CameraScreen kind="evidence" request="form-2" />
+          </AppProvider>
+        </LanguageProvider>,
+      );
+      expect(
+        screen.getByText('The camera is off for this app. Allow it in the phone settings.'),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Allow the camera' })).toBeNull();
+      await fireEvent.press(screen.getByRole('button', { name: 'Open app settings' }));
+      expect(settings).toHaveBeenCalled();
+    } finally {
+      mockCamera.granted = true;
+      mockCamera.canAskAgain = true;
+    }
   });
 });

@@ -5,12 +5,14 @@ import {
   AppError,
   applicableLists,
   chooseSchemes,
+  clockSkewed,
   type ApprovalSubject,
   DEFAULT_REJECTION_REASONS,
   type ErrorDetail,
   type FulfilmentBody,
   gstHalves,
   issueAt,
+  judgedMoment,
   type LineDecision,
   type LineDecisionsBody,
   measureOf,
@@ -29,6 +31,7 @@ import {
   priceLine,
   quoteDifferences,
   scaled,
+  shiftCovers,
   statusAfterFulfilment,
   statusFromLines,
   todayIn,
@@ -63,6 +66,7 @@ import { AccountsService } from '../accounts/accounts.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
 import { PriceListsService } from '../catalogue/price-lists.service';
 import { ShiftsService } from '../field/shifts.service';
+import { clockSkewSeconds } from '../iam/devices.service';
 import { VisitsService } from '../field/visits.service';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
@@ -134,7 +138,12 @@ export class OrdersService {
   ) {}
 
   /** `POST /v1/orders`: prices, checks and keeps an order, then asks for its approval. */
-  async place(tx: TenantTx, access: Access, body: PlaceOrderBody): Promise<OrderResult> {
+  async place(
+    tx: TenantTx,
+    access: Access,
+    body: PlaceOrderBody,
+    deviceTime?: string,
+  ): Promise<OrderResult> {
     const { tenantId } = access;
     const settings = await this.config.settings(tx, tenantId);
     const placedAt = Date.parse(body.placedAt);
@@ -150,10 +159,19 @@ export class OrdersService {
     if (
       access.deviceId &&
       settings.ordersNeedOpenShift &&
-      !access.permissions.has('order.create_without_shift') &&
-      !shift
+      !access.permissions.has('order.create_without_shift')
     ) {
-      throw new AppError('NOT_ON_SHIFT', 'Punch in to take orders.');
+      // D136: on duty when the phone took it, so an order taken offline on duty and sent after
+      // the punch-out still counts; one taken off duty never does.
+      const now = Date.now();
+      const at = judgedMoment(placedAt, {
+        now,
+        syncWindowHours: settings.syncWindowHours,
+        skewed: clockSkewed(clockSkewSeconds(deviceTime, new Date(now))),
+      });
+      const onDuty =
+        at === placedAt ? shift : await this.shifts.at(tx, tenantId, access.userId, at);
+      if (!shiftCovers(onDuty, at)) throw new AppError('NOT_ON_SHIFT', 'Punch in to take orders.');
     }
 
     // The account, and who supplies it: its parent, or the company.

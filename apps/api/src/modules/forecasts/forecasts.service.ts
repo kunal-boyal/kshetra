@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import {
   AppError,
+  clockSkewed,
   type ForecastLineBody,
   forecastAfterLock,
   forecastMonths,
   forecastOpen,
   type ForecastResult,
   type ForecastVersion,
+  judgedMoment,
   scaled,
   shiftPeriod,
   todayIn,
@@ -17,6 +19,7 @@ import { AuditLog, userActor } from '../../platform/audit';
 import type { Access } from '../../platform/auth';
 import type { TenantTx } from '../../platform/database';
 import { AccountsService } from '../accounts/accounts.service';
+import { clockSkewSeconds } from '../iam/devices.service';
 import { CatalogueService } from '../catalogue/catalogue.service';
 import { invalid } from '../iam/actor';
 import { People } from '../iam/people';
@@ -40,6 +43,9 @@ export interface ForecastInput {
   reason?: string;
   /** Whose forecast it is; the caller's own when left out. */
   recordedBy?: string;
+  /** When a phone saved it, and the phone's clock as it sent it (decision D136). */
+  savedAt?: string;
+  deviceTime?: string;
 }
 
 /** The latest version of each account's month: no later version of it exists. */
@@ -91,7 +97,7 @@ export class ForecastsService {
   /**
    * Saves a new version of an account's month: the quantities sent over the latest version's
    * others, 0 taking an item out. Refused past the window or, after the lock, without the
-   * override; the override needs a reason.
+   * override; the override needs a reason. A phone's save is judged on the day it was saved.
    */
   async record(tx: TenantTx, access: Access, input: ForecastInput): Promise<ForecastResult> {
     const tenantId = access.tenantId;
@@ -100,7 +106,18 @@ export class ForecastsService {
     if (!input.recordedBy && (access.support || access.apiClient)) {
       throw new AppError('FORBIDDEN', 'Only a person of the organisation records a forecast.');
     }
-    const today = await this.today(tx, tenantId);
+    // D136: a save made on a phone counts on the day the phone saved it, so one made before the
+    // month locked and sent after still counts as made before.
+    const settings = await this.config.settings(tx, tenantId);
+    const now = Date.now();
+    const at = access.deviceId
+      ? judgedMoment(input.savedAt ? Date.parse(input.savedAt) : null, {
+          now,
+          syncWindowHours: settings.syncWindowHours,
+          skewed: clockSkewed(clockSkewSeconds(input.deviceTime, new Date(now))),
+        })
+      : now;
+    const today = todayIn(settings.timezone, new Date(at));
     const window = forecastMonths(today);
     if (input.period > window[window.length - 1]!) {
       throw invalid('period', `Forecast the next ${window.length} months only`);

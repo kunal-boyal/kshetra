@@ -84,7 +84,7 @@ function server(...answers: (SyncPullResult | Error)[]) {
 describe('the local database', () => {
   it('migrates once, to the latest version', async () => {
     await migrate(db);
-    expect(await db.get('PRAGMA user_version')).toEqual({ user_version: 16 });
+    expect(await db.get('PRAGMA user_version')).toEqual({ user_version: 17 });
     const tables = await db.all<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     );
@@ -329,15 +329,21 @@ describe('the outbox', () => {
     await add('photo');
     await add('visit', ['photo']);
     await add('other');
-    failures.photo = [new ApiError(400, 'PHOTO_REQUIRED', 'Take a photo.')];
+    failures.photo = [
+      new ApiError(400, 'PHOTO_REQUIRED', 'Take a photo.', [
+        { path: 'photos', issue: 'Take one at the place' },
+      ]),
+    ];
 
     expect(await outbox.run(OWNER)).toEqual({ status: 'done' });
     expect(sent).toEqual(['other']);
     const [photo, visit] = await outbox.items(OWNER);
+    // The server's words for each field stay with it, for the upload queue.
     expect(photo).toMatchObject({
       state: 'parked',
       lastErrorCode: 'PHOTO_REQUIRED',
       lastError: 'Take a photo.',
+      lastErrorDetails: [{ path: 'photos', issue: 'Take one at the place' }],
     });
     expect(visit).toMatchObject({ state: 'queued', attempts: 0 });
     expect(await outbox.counts(OWNER)).toMatchObject({ queued: 1, parked: 1 });
@@ -356,6 +362,7 @@ describe('the outbox', () => {
     expect((await outbox.items(OWNER))[0]).toMatchObject({
       state: 'queued',
       lastErrorCode: null,
+      lastErrorDetails: [],
       payload: { id: 'order', priced: 'again' },
     });
     await outbox.run(OWNER);

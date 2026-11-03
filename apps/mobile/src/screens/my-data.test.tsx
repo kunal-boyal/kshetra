@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import type { SessionState } from '@thelamp/api-client';
+import { ApiError, type SessionState } from '@thelamp/api-client';
 import { nodeSqlite } from '@thelamp/api-client/node-sqlite';
 import { claim, migrate } from '@thelamp/api-client/sync';
 import { SETTING_DEFAULTS, type SyncPullResult } from '@thelamp/shared';
@@ -76,6 +76,13 @@ function fakeClient() {
         if (path !== '/v1/me/data-requests') return {};
         if (method === 'GET') return { items };
         const body = (options as { body: { id: string; kind: string; details: string } }).body;
+        // As the server: one open request of each kind at a time.
+        const open = items as { kind: string; status: string }[];
+        if (open.some((item) => item.kind === body.kind && item.status === 'received')) {
+          throw new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
+            { path: 'kind', issue: 'An open request of this kind exists already' },
+          ]);
+        }
         const made = {
           ...ANSWERED,
           ...body,
@@ -164,5 +171,19 @@ describe('my data on the phone (M21, D95)', () => {
       },
     ]);
     await waitFor(() => expect(client.request).toHaveBeenCalled());
+  });
+
+  it('says why a second open request of the same kind is not sent', async () => {
+    await renderPhone();
+    await screen.findByText('A correction to my data · Done');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send request' }));
+    expect(await screen.findByText('A copy of my data · Open')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Send request' }));
+    expect(
+      await screen.findByText(
+        'You already have an open request of this kind. Wait for its answer before asking again.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(/Check the highlighted fields/)).toBeNull();
   });
 });

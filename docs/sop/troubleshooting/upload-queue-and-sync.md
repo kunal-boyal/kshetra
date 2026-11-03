@@ -11,7 +11,7 @@ Everything a person records on the phone is saved there first and waits in the u
 
 ## Before you start
 
-- On the phone, open **More**. Under **Upload queue** it lists the first few items with **Waiting** or **Needs you**; tap one, or **See all … waiting**, to open the **Upload queue** screen. With nothing left it says **Everything has uploaded**.
+- On the phone, open **More**. Under **Upload queue** it lists the first few items with **Waiting** or **Refused**, as the queue does; tap one, or **See all … waiting**, to open the **Upload queue** screen. With nothing left it says **Everything has uploaded**.
 - In the portal, a manager can see what the phone last reported: **People** › the person › **Phone** shows **Last sync** and **Waiting to upload** ("… waiting, … refused").
 
 ## What you see, and what to do
@@ -34,7 +34,7 @@ On the **Upload queue** screen each item shows **Saved** with its time, and a wa
 | No connection: **The server could not be reached. Check your connection, then try again.** | Wait for signal, or tap **Sync now** once there is some. |
 | A failure the server may get over: a server error, **Too many attempts. Wait a moment, then try again.**, or **A photo is still uploading. This will retry by itself.** | Nothing. The phone tries again after 5 seconds, then doubles the wait up to 15 minutes. |
 | The organisation is read only or suspended (**Your organisation's subscription is read-only for now. Ask an admin about billing.**), or being moved to a new server (**Your organisation is being moved to a new server. You can look around; changes can be made again shortly.**) | Items wait and go once the organisation is open again. See [Access and modules](access-and-modules.md). |
-| It needs another item to go first | The rest of a day waits for its **Start day** (the item's name is the tenant's word, such as **Punch in**); an order or a collection waits for its visit's **Check-in**; a record with photos waits for its **Photo** items. If the item it needs was refused, fix or discard that one first. |
+| It needs another item to go first: it says **Waits for … to upload first.**, or **Waits for …, which was refused. Try that again or discard it.** | The rest of a day waits for its **Start day** (the item's name is the tenant's word, such as **Punch in**); an order waits for its visit's **Check-in** and the day's **Start day**; a collection waits for its visit's **Check-in**; a record with photos waits for its **Photo** items. If the item it needs was refused, fix or discard that one first. |
 | The app is signed out, or needs an update | Nothing uploads until the person signs in again or updates the app ([Sign-in and sessions](sign-in-and-sessions.md)). |
 
 Items go in the order they were saved. One item that keeps failing for a passing reason holds back the ones after it until it goes.
@@ -51,7 +51,7 @@ A refused item shows **Refused** and the reason in red, with **Try again** and *
 |---|---|---|
 | **Prices have changed. Check your cart, then send the order again.** | The order was priced on the phone with prices or schemes the server no longer has (BR-14) | Tap **Price it again**. The phone syncs, prices the cart as things are now and sends the order again under the same ID. If it says **Nothing on this order can be ordered here now. Discard it and take a new one.**, discard it and take a new order. |
 | **This request was already sent with different details. Start it again.** | The server already has this record, as it was first sent; the copy on the phone differs (BR-46) | Check the record in the portal. If the server's copy is right, discard the phone's. If not, discard it and record it again as a new record. |
-| **You are not on duty. Tap Start day first.** | The record was made with no open day | Discard it. Next time, start the day first. A form that allows capture off duty doesn't need one. |
+| **You are not on duty. Tap Start day first.** | The record was made with no open day. An order is judged at the moment the phone took it, so this means it was taken off duty, or on a phone whose clock was more than ten minutes out (decision D136) | Discard it. Next time, start the day first. A form that allows capture off duty doesn't need one. |
 | **This was recorded outside your duty hours, so it cannot be saved.** | It was recorded before **Start day** or after **End day** | Discard it. |
 | **Your day passed the longest allowed shift and was closed.** | It was recorded past **Longest shift** (14 hours by default) | Discard it. The admin sets **Longest shift** under **Settings** › **Rules**. |
 | **Your day has already started.** | A second **Start day** for a day already open | Discard it; the open day carries on. |
@@ -59,10 +59,10 @@ A refused item shows **Refused** and the reason in red, with **Try again** and *
 | **Your location looks simulated. …**, **Your location is out of date. …**, **Your location is not accurate enough. …** | The record's location failed the evidence checks (BR-32) | It can't be fixed from the queue. Discard it and record it again with a fresh location. See [GPS and geofences](gps-and-geofences.md). |
 | **You are too far from this account.** | A check-in or form outside a geofence that must not be left (BR-33) | Discard it and record it again at the place. See [GPS and geofences](gps-and-geofences.md). |
 | **Add a photo to continue.** | The record needs a photo it doesn't have | Discard it and record it again with the photo. |
-| **Some details need fixing. Check the highlighted fields.** | The server found something wrong with what was sent | The queue has no fields to highlight. Note the record, discard it and record it again; if it keeps happening, report it to vendor support with the time. |
+| **The server refused some of its details.**, with a line for each, such as **• This item can no longer be ordered** | The server found something wrong with what was sent; each line is the server's own words for one detail, in English | Read the lines. Note the record, discard it and record it again with that put right; if it keeps happening, report it to vendor support with the time and the lines. |
 | **You don't have access to this.**, **This is outside the people and places you look after.** or **This feature is switched off for your organisation.** | The person's role, scope or modules changed since they recorded it | Have an admin check the role and modules ([Access and modules](access-and-modules.md)), then **Try again**, or discard it. |
 | **This changed somewhere else. Refresh and try again.** | Something it refers to changed on the server | **Sync now**, then **Try again**. If it is refused again, discard it. |
-| **That month is closed. Its sell-through can no longer change.** | A sell-through statement or forecast for a month that has closed (BR-53, BR-54) | Discard it. A manager or back office corrects the month in the portal, where the rules allow. |
+| **That month is closed. Its figures can no longer change.** | A sell-through statement or forecast for a month that has closed (BR-53, BR-54); a forecast saved on the phone counts on the day it was saved, if it uploads within the sync window (decision D136) | Discard it. A manager or back office corrects the month in the portal, where the rules allow. |
 | **This is over your limit.** | A leave request or claim over the balance or cap | Discard it and ask for less, or ask the manager. |
 | **This version of the app can't upload this record. Update the app.** | The app no longer knows this kind of record | Update the app, then **Try again**. |
 

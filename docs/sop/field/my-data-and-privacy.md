@@ -44,7 +44,7 @@ Your organisation's admins answer the request on the portal. A copy is prepared 
 | What you see | What it means | What to do |
 |---|---|---|
 | **Connect to the internet to see or send requests.** | No signal | Move to signal and **Try again** |
-| **Some details need fixing. Check the highlighted fields.** | You already have an open request of that kind | Wait for its answer, or choose another kind |
+| **You already have an open request of this kind. Wait for its answer before asking again.** | You already have an open request of that kind | Wait for its answer, or choose another kind |
 | **The server could not be reached. Check your connection, then try again.** | No connection when sending | Try again with signal |
 
 ## Waiting on the owner

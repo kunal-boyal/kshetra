@@ -1,3 +1,4 @@
+import { ApiError } from '@thelamp/api-client';
 import { spacing } from '@thelamp/design-tokens';
 import { formatDate } from '@thelamp/i18n';
 import { DATA_REQUEST_KINDS, type DataRequestKindKey } from '@thelamp/shared';
@@ -17,6 +18,17 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useMyDataRequests, useRaiseDataRequest } from '../data-requests';
 import { errorMessage, useLanguage } from '../i18n';
+
+/**
+ * Why a request wasn't sent. The server names `kind` when one of that kind is open already, which
+ * this screen says in words, as it highlights no fields.
+ */
+function failureText(error: unknown, t: ReturnType<typeof useLanguage>['t']): string {
+  if (error instanceof ApiError && error.details.some((detail) => detail.path === 'kind')) {
+    return t('my_data.already_open');
+  }
+  return errorMessage(error, t);
+}
 
 /**
  * My data (module M21, decision D95): the person asks their organisation for a copy of their
@@ -80,7 +92,7 @@ export function MyDataScreen() {
       />
       {failure ? (
         <Text tone="danger" role="alert">
-          {errorMessage(failure, t)}
+          {failureText(failure, t)}
         </Text>
       ) : null}
       {sent ? <Notice>{t('my_data.sent', { date: formatDate(sent, { locale }) })}</Notice> : null}

@@ -145,7 +145,9 @@ export function CollectScreen({ accountId }: { accountId: string }) {
     try {
       const found = await currentFix();
       if (found.status !== 'ready') {
-        setFailure(t(found.status === 'denied' ? 'shift.fix_denied' : 'shift.fix_unavailable'));
+        setFailure(
+          t(found.status === 'denied' ? 'collect.fix_denied' : 'location.fix_unavailable'),
+        );
         return;
       }
       const given = (text: string) => (text.trim() ? text.trim() : null);

@@ -24,9 +24,10 @@ jest.mock('expo-network', () => ({
 }));
 jest.mock('expo-battery', () => ({ isBatteryOptimizationEnabledAsync: async () => false }));
 // The phone stands at Connaught Place, New Delhi, known to within 12 m.
+const mockLocation = { granted: true };
 jest.mock('expo-location', () => ({
   Accuracy: { High: 4, Highest: 6 },
-  requestForegroundPermissionsAsync: async () => ({ granted: true }),
+  requestForegroundPermissionsAsync: async () => ({ granted: mockLocation.granted }),
   getBackgroundPermissionsAsync: async () => ({ granted: true }),
   hasStartedLocationUpdatesAsync: async () => false,
   getCurrentPositionAsync: async () => ({
@@ -297,6 +298,23 @@ describe('visits on the phone (M6)', () => {
     ).toBeOnTheScreen();
     expect(await new Visits(db).current(OWNER)).toBeNull();
     expect(posts(client)).toEqual([]);
+  });
+
+  it('asks for location to check in, in words about the visit, not the day', async () => {
+    mockLocation.granted = false;
+    try {
+      const db = await phone(true);
+      const client = await renderAt(HERE, db);
+      await fireEvent.press(await screen.findByRole('button', { name: 'Check in' }));
+      expect(
+        (await screen.findAllByText('Allow location to check in or out.')).length,
+      ).toBeGreaterThan(0);
+      expect(screen.queryByText(/start or end the day/)).toBeNull();
+      expect(await new Visits(db).current(OWNER)).toBeNull();
+      expect(posts(client)).toEqual([]);
+    } finally {
+      mockLocation.granted = true;
+    }
   });
 
   it('lets an advisory geofence through, marked outside', async () => {

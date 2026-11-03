@@ -29,7 +29,12 @@ jest.mock('../outbox-kinds', () => {
   return {
     senders: () => ({
       note: {
-        send: async (payload: { refuse?: boolean; offline?: boolean }) => {
+        send: async (payload: { refuse?: boolean; offline?: boolean; lines?: boolean }) => {
+          if (payload.lines) {
+            throw new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
+              { path: 'lines.0.itemId', issue: 'This item can no longer be ordered' },
+            ]);
+          }
           if (payload.refuse) throw new ApiError(400, 'VALIDATION', 'Bad note.');
           if (payload.offline) throw new NetworkError(new TypeError('Network request failed'));
         },
@@ -49,7 +54,7 @@ const nothingNew = (): SyncPullResult => {
 };
 
 /** A signed-in client that answers like the API. */
-function fakeClient() {
+function fakeClient(permissions: string[] = []) {
   let session: SessionState | null = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -90,7 +95,7 @@ function fakeClient() {
         settings: SETTING_DEFAULTS,
         terminology: {},
         designations: [],
-        access: { role: 'field_user', scope: 'self', permissions: [] },
+        access: { role: 'field_user', scope: 'self', permissions },
       },
     })),
   };
@@ -104,12 +109,20 @@ function fakeClient() {
 }
 
 /** A phone database holding these notes, saved by the signed-in person. */
-async function phoneWith(...notes: { n: number; refuse?: boolean; offline?: boolean }[]) {
+async function phoneWith(
+  ...notes: { n: number; refuse?: boolean; offline?: boolean; lines?: boolean; after?: number }[]
+) {
   const db = nodeSqlite();
   await migrate(db);
   const outbox = new Outbox(db, {});
   for (const note of notes) {
-    await outbox.enqueue(db, { id: `note-${note.n}`, owner: OWNER, kind: 'note', payload: note });
+    await outbox.enqueue(db, {
+      id: `note-${note.n}`,
+      owner: OWNER,
+      kind: 'note',
+      payload: note,
+      ...(note.after ? { dependsOn: [`note-${note.after}`] } : {}),
+    });
   }
   return { db, outbox };
 }
@@ -121,8 +134,12 @@ function Shown({ page }: { page: 'home' | 'uploads' | 'me' }) {
   return page === 'me' ? <MeScreen /> : <UploadsScreen />;
 }
 
-async function renderPhone(db: SqlDatabase, page: 'home' | 'uploads' | 'me') {
-  const fake = fakeClient();
+async function renderPhone(
+  db: SqlDatabase,
+  page: 'home' | 'uploads' | 'me',
+  permissions: string[] = [],
+) {
+  const fake = fakeClient(permissions);
   await render(
     <LanguageProvider initial="en">
       <AppProvider
@@ -174,9 +191,7 @@ describe('the upload queue', () => {
 
     expect(await screen.findByText('Note 1')).toBeOnTheScreen();
     expect(screen.getByText('Refused')).toBeOnTheScreen();
-    expect(
-      screen.getByText('Some details need fixing. Check the highlighted fields.'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('The server refused some of its details.')).toBeOnTheScreen();
     expect(screen.getByText('Note 2')).toBeOnTheScreen();
     expect(screen.getByText('Waiting')).toBeOnTheScreen();
     expect(
@@ -197,10 +212,38 @@ describe('the upload queue', () => {
     expect((await outbox.items(OWNER)).map((item) => item.id)).toEqual(['note-2']);
   });
 
+  it('shows what the server said of each field, and what a waiting record goes after', async () => {
+    const { db } = await phoneWith({ n: 1, lines: true }, { n: 2, after: 1 });
+    await renderPhone(db, 'uploads');
+
+    expect(await screen.findByText('The server refused some of its details.')).toBeOnTheScreen();
+    expect(screen.getByText('• This item can no longer be ordered')).toBeOnTheScreen();
+    expect(screen.queryByText(/Check the highlighted fields/)).toBeNull();
+    expect(
+      screen.getByText('Waits for Note 1, which was refused. Try that again or discard it.'),
+    ).toBeOnTheScreen();
+  });
+
   it('says when everything has uploaded', async () => {
     const { db } = await phoneWith({ n: 1 });
     await renderPhone(db, 'uploads');
     expect(await screen.findByText('Everything has uploaded')).toBeOnTheScreen();
+  });
+});
+
+describe('More', () => {
+  it('opens the tracking help for anyone who punches in', async () => {
+    const { db } = await phoneWith();
+    await renderPhone(db, 'me', ['shift.use']);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Keep your route recorded' }));
+    expect(router.push).toHaveBeenCalledWith('/tracking-help');
+  });
+
+  it('keeps it from people who never punch in', async () => {
+    const { db } = await phoneWith();
+    await renderPhone(db, 'me');
+    expect(await screen.findByText('Everything has uploaded')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Keep your route recorded' })).toBeNull();
   });
 });
 
@@ -215,8 +258,9 @@ describe('signing out', () => {
   it('warns about unsent records first, and keeps them on the phone', async () => {
     const { db, outbox } = await phoneWith({ n: 1, refuse: true });
     const fake = await renderPhone(db, 'me');
-    // More lists what waits, inline (decision D104).
-    expect(await screen.findByText(/^(Waiting|Needs you)$/)).toBeOnTheScreen();
+    // More lists what waits, inline (decision D104), in the upload queue's own words.
+    expect(await screen.findByText(/^(Waiting|Refused)$/)).toBeOnTheScreen();
+    expect(screen.queryByText('Needs you')).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
     expect(

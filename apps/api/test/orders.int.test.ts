@@ -605,6 +605,53 @@ describe('orders (M10)', () => {
       skipReason: 'condition',
     });
   });
+
+  it('D136: with orders needing a shift, judges the shift when the phone took the order', async () => {
+    const t = await agri('Shift Agro');
+    expect((await t.api.head.patch('/v1/settings', { ordersNeedOpenShift: true })).statusCode).toBe(
+      200,
+    );
+    const H = 3_600_000;
+    const at = (moment: number) => ({
+      fix: { ...fix(), capturedAt: new Date(moment).toISOString() },
+      placedAt: new Date(moment).toISOString(),
+    });
+    const lines = [t.line(t.neem, '1')];
+    // Never punched in: refused.
+    expect(
+      code(await t.api.sme.post('/v1/orders', t.order(t.distributor, lines, at(Date.now())))),
+    ).toBe('NOT_ON_SHIFT');
+    // A shift from three hours ago to an hour ago.
+    const shiftId = newId();
+    const opened = await t.api.sme.post('/v1/shifts', {
+      id: shiftId,
+      startedAt: new Date(Date.now() - 3 * H).toISOString(),
+      location: HERE,
+      accuracy: 15,
+      mocked: false,
+      consentVersion: '2026-10',
+    });
+    expect(opened.statusCode, opened.body).toBe(201);
+    const closed = await t.api.sme.post(`/v1/shifts/${shiftId}/end`, {
+      location: HERE,
+      accuracy: 15,
+      mocked: false,
+      endedAt: new Date(Date.now() - H).toISOString(),
+    });
+    expect(closed.statusCode, closed.body).toBe(200);
+    // Taken offline on duty and sent after the punch-out: it counts.
+    const onDuty = await t.api.sme.post(
+      '/v1/orders',
+      t.order(t.distributor, lines, at(Date.now() - 2 * H)),
+    );
+    expect(onDuty.statusCode, onDuty.body).toBe(201);
+    // Taken after the punch-out: refused, though a shift had started before it.
+    expect(
+      code(
+        await t.api.sme.post('/v1/orders', t.order(t.distributor, lines, at(Date.now() - 30_000))),
+      ),
+    ).toBe('NOT_ON_SHIFT');
+  });
 });
 
 describe('modules switched off (M2, spec 5.13, decision D64)', () => {
