@@ -44,6 +44,7 @@ Your state decides whether GST is charged as CGST and SGST, or as IGST. Change d
 
 - Seats: adding or reactivating a person past the plan's limit is refused (BR-45). Billable seats are counted from people's active days in the month.
 - When an invoice is overdue, a notice at the top of this page says how much and since when. People can keep working until a date; after it your organisation can only read until it is paid, and later it is suspended (BR-48, `dunning()`).
+- You don't need to open this page to know (decision D140). During the grace period, everyone holding `billing.manage` sees an amber banner on every portal page: **A payment is overdue. Everyone can keep working until {date}; after that your organisation can only read until it is paid.**, with **Open Billing**. Once the organisation is read only, everyone sees a red banner: you read **Your organisation can only read for now: changes can’t be saved, and what people record on their phones waits to upload. Billing says why and what to do.** with **Open Billing**; everyone else reads **… Ask an admin about billing.**, and the field app says so on **Home** and the **Upload queue**.
 - Invoices are numbered in an unbroken series and never change once issued.
 
 ## If something goes wrong
@@ -51,7 +52,8 @@ Your state decides whether GST is charged as CGST and SGST, or as IGST. Change d
 | What you see | What it means | What to do |
 |---|---|---|
 | **{amount} has been overdue since {since}. Everyone can keep working until {readOnly}; after that your organisation can only read until it is paid.** | An invoice is overdue. | Pay it by bank transfer, quoting its number. |
-| Your organisation's subscription is read-only for now. Ask an admin about billing. | Payment is overdue past the grace period; changes are refused everywhere. | Pay the overdue invoice; this page still works. |
+| **A payment is overdue. Everyone can keep working until {date}; after that your organisation can only read until it is paid.** (banner) | An invoice is overdue and the grace period runs. Only billing admins see it. | Select **Open Billing** and pay it by bank transfer, quoting its number. |
+| **Your organisation can only read for now: changes can’t be saved, and what people record on their phones waits to upload. Billing says why and what to do.** (banner), or Your organisation's subscription is read-only for now. Ask an admin about billing. | Payment is overdue past the grace period, or a dedicated install's licence lapsed; changes are refused everywhere. Everyone sees a banner. | Pay the overdue invoice; this page still works. |
 | Your organisation's subscription is suspended. Ask an admin about billing. | Payment is long overdue. | Call the vendor. |
 | No subscription yet. Contact us to subscribe before your trial ends. | You are on a trial. | Ask the vendor to set up your subscription. |
 | Your organisation has used all its seats. Ask an admin to add more. | The seat limit is reached. | Deactivate leavers, or ask the vendor for more seats. |

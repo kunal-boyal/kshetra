@@ -107,3 +107,72 @@ describe('the frame (decision D104)', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/settings/security'));
   });
 });
+
+describe('the read-only banner (decision D140)', () => {
+  const standing = (client: ReturnType<typeof fakeClient>, change: object) => {
+    const me = client.me.getMockImplementation()!;
+    client.me.mockImplementation(async () => ({ ...(await me()), ...change }));
+    return client;
+  };
+
+  it('tells everyone the organisation only reads, and asks them to see an admin', async () => {
+    const client = standing(fakeClient({ '/v1/notifications': NOTIFICATIONS }, {}, ['user.view']), {
+      readOnly: true,
+    });
+    renderAt('/notifications', client);
+    expect(await screen.findByText(/can only read for now/)).toHaveTextContent(
+      'Ask an admin about billing.',
+    );
+    expect(screen.queryByRole('link', { name: 'Open Billing' })).toBeNull();
+    // Nobody but a billing admin reads billing.
+    expect(client.request.mock.calls.map(([, path]) => path)).not.toContain('/v1/billing');
+  });
+
+  it('takes a billing admin to Billing while read only', async () => {
+    const client = standing(
+      fakeClient({ '/v1/notifications': NOTIFICATIONS }, {}, ['billing.manage']),
+      { readOnly: true },
+    );
+    renderAt('/notifications', client);
+    expect(await screen.findByText(/Billing says why and what to do/)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open Billing' })).toHaveAttribute(
+      'href',
+      '/settings/billing',
+    );
+  });
+
+  it('warns a billing admin during grace of the day it will read only', async () => {
+    const dunning = {
+      overdueSince: '2026-11-01',
+      stage: 'grace',
+      readOnlyOn: '2026-11-08',
+      suspendOn: '2026-11-22',
+      outstanding: '11800.00',
+    };
+    renderAt(
+      '/notifications',
+      fakeClient({ '/v1/notifications': NOTIFICATIONS, '/v1/billing': { dunning } }, {}, [
+        'billing.manage',
+      ]),
+    );
+    expect(await screen.findByText(/A payment is overdue/)).toHaveTextContent(/8 Nov 2026/);
+    expect(screen.getByRole('link', { name: 'Open Billing' })).toBeVisible();
+  });
+
+  it('says nothing of grace to someone without billing', async () => {
+    const client = fakeClient({ '/v1/notifications': NOTIFICATIONS }, {}, ['user.view']);
+    renderAt('/notifications', client);
+    expect(await screen.findByRole('link', { name: 'Home' })).toBeInTheDocument();
+    expect(screen.queryByText(/payment is overdue|can only read/)).toBeNull();
+  });
+
+  it('tells everyone while the organisation is moving', async () => {
+    const client = standing(
+      fakeClient({ '/v1/notifications': NOTIFICATIONS }, {}, ['billing.manage']),
+      { moving: true },
+    );
+    renderAt('/notifications', client);
+    expect(await screen.findByText(/being moved to a new server/)).toBeVisible();
+    expect(screen.queryByText(/can only read/)).toBeNull();
+  });
+});

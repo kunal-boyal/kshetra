@@ -12,6 +12,7 @@ import { useLanguage } from '../i18n';
 import { repriceRefused } from '../orders';
 import { itemLabel } from '../outbox-kinds';
 import { useOutboxItems, useSync, useSyncStatus } from '../sync';
+import { StandingNotice } from './standing';
 
 type Translate = ReturnType<typeof useLanguage>['t'];
 
@@ -84,6 +85,7 @@ export function UploadsScreen() {
         />
       </View>
       {status?.offline ? <Notice>{t('uploads.offline')}</Notice> : null}
+      <StandingNotice />
 
       {items.length === 0 ? (
         <EmptyState icon={CloudCheck} hue="mint" title={t('uploads.empty_title')}>

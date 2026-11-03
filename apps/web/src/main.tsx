@@ -31,14 +31,19 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, staleTime: 60_000, refetchOnWindowFocus: true } },
 });
 // Signing out, or a session the server ends, forgets the person's data and returns to sign-in.
-const client = webClient(() => {
-  queryClient.clear();
-  applyBrand(null);
-  // Someone already there stays, with any reason single sign-on came back with (decision D91).
-  // The public pages stay public (decision D100).
-  const path = window.location.pathname as (typeof PUBLIC_PATHS)[number];
-  if (!PUBLIC_PATHS.includes(path)) void router.navigate({ to: '/sign-in' });
-});
+const client = webClient(
+  () => {
+    queryClient.clear();
+    applyBrand(null);
+    // Someone already there stays, with any reason single sign-on came back with (decision D91).
+    // The public pages stay public (decision D100).
+    const path = window.location.pathname as (typeof PUBLIC_PATHS)[number];
+    if (!PUBLIC_PATHS.includes(path)) void router.navigate({ to: '/sign-in' });
+  },
+  // A write refused as read only or moving reads who is signed in again, so the banner says so
+  // at once (decision D140).
+  () => void queryClient.invalidateQueries({ queryKey: ['me'] }),
+);
 const router = createAppRouter({ client, queryClient });
 
 // The access token lives in memory only, so a reload asks the directory's cookie for a new one.

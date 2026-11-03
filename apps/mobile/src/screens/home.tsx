@@ -33,6 +33,7 @@ import { useSyncStatus } from '../sync';
 import { Announcements } from './announcements';
 import { MonthGlance } from './my-month';
 import { ShiftSection, useShift } from './shift';
+import { StandingNotice } from './standing';
 import { TodayPlan, useTodayPlan } from './today-plan';
 import { VisitNow } from './visit';
 
@@ -172,8 +173,8 @@ export function StartTiles() {
 
 /**
  * Home (spec 8.1, decision D104, the prototype's AppHome): the person with a greeting for the hour,
- * the date and the day's route, and the inbox with its count; what waits to upload and the
- * vendor's announcements; the shift with its time, distance and visits; the visit in progress;
+ * the date and the day's route, and the inbox with its count; whether the organisation can save
+ * changes, what waits to upload and the vendor's announcements; the shift with its time, distance and visits; the visit in progress;
  * today's plan with the next stop; things to start; and My month at a glance.
  */
 export function HomeScreen() {
@@ -213,6 +214,7 @@ export function HomeScreen() {
           onPress={() => router.push('/notifications')}
         />
       </View>
+      <StandingNotice />
       <Banner />
       <Announcements />
       {me.isPending ? <Text tone="muted">{t('common.loading')}</Text> : null}

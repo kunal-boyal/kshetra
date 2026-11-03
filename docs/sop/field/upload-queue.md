@@ -22,19 +22,24 @@ Almost everything you record on the phone (the day's start and end, check-ins, f
 - Amber, **… items are waiting to upload.**, or **Offline. … items are saved on this phone.** without signal: nothing to do; they upload by themselves.
 - Red, **… items were refused. Open the upload queue to see why.**: tap **View**.
 
+While your organisation can't save changes, a notice above the banner says why, and items wait instead of being refused (decision D140):
+
+- **Your organisation can only read for now: changes can’t be saved, and what you record on a phone waits to upload. Ask an admin about billing.** Keep working; everything waits on the phone and uploads by itself once your organisation is open again.
+- **Your organisation is being moved to a new server. You can look around; changes can be made again shortly, and what you record on a phone uploads then.** Keep working; items upload once the move ends.
+
 **More** shows the same under **Upload queue**: up to three items, each **Waiting** or **Refused**, as the queue itself says, **See all … waiting** for the rest, and **Send now** to try at once. With nothing waiting, it says **Everything has uploaded**. The foot of **More** shows the app version and when it last synced (**Synced …**).
 
 ### Open the queue
 
 1. Tap **View** on the banner, or an item under **Upload queue** on **More**.
 2. **Upload queue** says **What you save on this phone waits here until it reaches the server.** and when it last synced (**Last synced …**, or **Not synced yet**).
-3. Tap **Sync now** to try at once. Without signal it says **No signal. Everything uploads by itself when it returns.**
+3. Tap **Sync now** to try at once. Without signal it says **No signal. Everything uploads by itself when it returns.** While your organisation is read only or moving, the queue shows the same notice as **Home**, and its items stay **Waiting**.
 4. Each item shows what it is (such as **Check-in**, **Form**, **Order**, **Collection**, **Expense claim**, **Photo**), **Saved …**, and **Waiting** or **Refused**. A waiting item may say **Next try …** and why it is waiting. One that goes after another item says which: **Waits for … to upload first.**, or **Waits for …, which was refused. Try that again or discard it.** when that item was refused.
 
 ### Deal with a refused item
 
 1. Read why under the item. It is the server's reason, such as **This was recorded too long ago to be counted.** Where the server refused some of the record's details, it says **The server refused some of its details.**, and lists below it, one per line, what the server said of each (in English, as the server words it), such as **• This item can no longer be ordered**.
-2. If the cause is fixed (for example, your manager reset your device, or your organisation is no longer read only), tap **Try again**.
+2. If the cause is fixed (for example, your manager reset your device), tap **Try again**.
 3. For an order refused because prices changed, tap **Price it again** instead ([Take an order](place-an-order.md)).
 4. If the item can never upload, tap **Discard**. It asks **Discard this record? It is deleted from this phone and will never upload.** Tap **Discard it**, or **Keep it**.
 5. Items that needed a discarded one park with **Something this record needed was discarded, so it can't upload. Discard it too.**
@@ -51,7 +56,7 @@ Signing out keeps the queue on the phone for your next sign-in on it ([Install t
 - A record captured more than your organisation's sync window ago (72 hours by default) is refused.
 - A record captured outside your shift is refused where it needs one. The shift, and a forecast's month, are judged at the moment the phone saved the record, as long as it uploads within the sync window and the phone's clock was right (decision D136).
 - The server judges every capture again: the fix, the geofence, the shift and the prices (BR-14, BR-32, BR-33, BR-36).
-- Not enough signal, a server error, too many requests, or a photo still uploading are passing reasons: the item backs off and tries again. Any other refusal parks it.
+- Not enough signal, a server error, too many requests, a photo still uploading, or your organisation being read only or moving are passing reasons: the item backs off and tries again. Any other refusal parks it.
 
 ## If something goes wrong
 
@@ -65,5 +70,6 @@ Signing out keeps the queue on the phone for your next sign-in on it ([Install t
 | **This phone is not registered for your account. Ask your manager to reset your device.** | The phone isn't bound to you | Ask your manager, then **Try again** |
 | **A photo is still uploading. This will retry by itself.** | The photo hasn't reached storage yet | Wait |
 | **This version of the app can't upload this record. Update the app.** | An older build | Install the newer build, then **Try again** |
-| **Your organisation is being moved to a new server. You can look around; changes can be made again shortly.** | A planned move | Wait; items try again |
+| **Your organisation can only read for now: changes can’t be saved, and what you record on a phone waits to upload. Ask an admin about billing.** (on **Home** and the queue), or **Your organisation's subscription is read-only for now. Ask an admin about billing.** under an item | A payment is overdue, or the licence lapsed | Keep working and tell an admin; items wait and go once it is open again |
+| **Your organisation is being moved to a new server. You can look around; changes can be made again shortly, and what you record on a phone uploads then.** (on **Home** and the queue), or **Your organisation is being moved to a new server. You can look around; changes can be made again shortly.** under an item | A planned move | Wait; items try again |
 | **The server could not be reached. Check your connection, then try again.** | No connection | Wait for signal |

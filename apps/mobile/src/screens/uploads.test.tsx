@@ -29,7 +29,15 @@ jest.mock('../outbox-kinds', () => {
   return {
     senders: () => ({
       note: {
-        send: async (payload: { refuse?: boolean; offline?: boolean; lines?: boolean }) => {
+        send: async (payload: {
+          refuse?: boolean;
+          offline?: boolean;
+          lines?: boolean;
+          readOnly?: boolean;
+        }) => {
+          if (payload.readOnly) {
+            throw new ApiError(423, 'TENANT_READ_ONLY', 'Your organisation can only read.');
+          }
           if (payload.lines) {
             throw new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
               { path: 'lines.0.itemId', issue: 'This item can no longer be ordered' },
@@ -53,8 +61,14 @@ const nothingNew = (): SyncPullResult => {
   return { entities: { users: none, territories: none }, cursor: 'c1', more: false };
 };
 
+/** Whether the organisation only reads or is moving (decision D140). */
+interface Standing {
+  readOnly?: boolean;
+  moving?: boolean;
+}
+
 /** A signed-in client that answers like the API. */
-function fakeClient(permissions: string[] = []) {
+function fakeClient(permissions: string[] = [], standing: Standing = {}) {
   let session: SessionState | null = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -86,6 +100,9 @@ function fakeClient(permissions: string[] = []) {
       scope: 'self',
       permissions: [],
       deviceId: '01a10000-0000-7000-8000-000000000003',
+      readOnly: false,
+      moving: false,
+      ...standing,
     })),
     config: jest.fn(async () => ({
       status: 'fresh',
@@ -110,7 +127,14 @@ function fakeClient(permissions: string[] = []) {
 
 /** A phone database holding these notes, saved by the signed-in person. */
 async function phoneWith(
-  ...notes: { n: number; refuse?: boolean; offline?: boolean; lines?: boolean; after?: number }[]
+  ...notes: {
+    n: number;
+    refuse?: boolean;
+    offline?: boolean;
+    lines?: boolean;
+    readOnly?: boolean;
+    after?: number;
+  }[]
 ) {
   const db = nodeSqlite();
   await migrate(db);
@@ -138,8 +162,9 @@ async function renderPhone(
   db: SqlDatabase,
   page: 'home' | 'uploads' | 'me',
   permissions: string[] = [],
+  standing: Standing = {},
 ) {
-  const fake = fakeClient(permissions);
+  const fake = fakeClient(permissions, standing);
   await render(
     <LanguageProvider initial="en">
       <AppProvider
@@ -228,6 +253,44 @@ describe('the upload queue', () => {
     const { db } = await phoneWith({ n: 1 });
     await renderPhone(db, 'uploads');
     expect(await screen.findByText('Everything has uploaded')).toBeOnTheScreen();
+  });
+});
+
+describe('a read-only or moving organisation (decision D140)', () => {
+  const READ_ONLY = /can only read for now: changes can’t be saved/;
+  const MOVING = /being moved to a new server/;
+
+  it('says so on Home while the organisation only reads', async () => {
+    const { db } = await phoneWith();
+    await renderPhone(db, 'home', [], { readOnly: true });
+    expect(await screen.findByText(READ_ONLY)).toBeOnTheScreen();
+    expect(screen.queryByText(MOVING)).toBeNull();
+  });
+
+  it('says so on Home while the organisation moves', async () => {
+    const { db } = await phoneWith();
+    await renderPhone(db, 'home', [], { moving: true });
+    expect(await screen.findByText(MOVING)).toBeOnTheScreen();
+    expect(screen.queryByText(READ_ONLY)).toBeNull();
+  });
+
+  it('keeps refused uploads waiting in the queue, and says why', async () => {
+    const { db, outbox } = await phoneWith({ n: 1, readOnly: true });
+    await renderPhone(db, 'uploads', [], { readOnly: true });
+    expect(await screen.findByText(READ_ONLY)).toBeOnTheScreen();
+    expect(await screen.findByText('Note 1')).toBeOnTheScreen();
+    // A read-only refusal is no reason to give up: the record waits to go again.
+    expect(await screen.findByText('Waiting')).toBeOnTheScreen();
+    expect(screen.queryByText('Refused')).toBeNull();
+    expect((await outbox.items(OWNER)).map((item) => item.state)).toEqual(['queued']);
+  });
+
+  it('says nothing of it while the organisation can save', async () => {
+    const { db } = await phoneWith();
+    await renderPhone(db, 'uploads');
+    expect(await screen.findByText('Everything has uploaded')).toBeOnTheScreen();
+    expect(screen.queryByText(READ_ONLY)).toBeNull();
+    expect(screen.queryByText(MOVING)).toBeNull();
   });
 });
 

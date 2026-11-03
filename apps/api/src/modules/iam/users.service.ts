@@ -245,6 +245,8 @@ export class UsersService {
       deviceId: access.deviceId ?? null,
       calendarKey: user.calendarKey,
       support: null,
+      readOnly: access.readOnly,
+      moving: access.moving ?? false,
     };
   }
 
@@ -268,6 +270,8 @@ export class UsersService {
         scope: support.write ? 'write' : 'read',
         endsAt: support.endsAt.toISOString(),
       },
+      readOnly: access.readOnly,
+      moving: access.moving ?? false,
     };
   }
 

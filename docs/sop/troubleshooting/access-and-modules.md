@@ -48,10 +48,18 @@ Switching a module off hides its screens, takes its permissions from every role 
 
 An invoice went unpaid past its grace period (BR-48), or a dedicated install's licence lapsed (BR-49). Everyone can still sign in and read; changes are refused, except what settles the bill. On phones, what people record waits in the upload queue and goes once the organisation is open again.
 
+Everyone is told, on every screen, before they try to change anything (decision D140):
+
+- In the portal, a red banner under the top bar says **Your organisation can only read for now: changes can’t be saved, and what you record on a phone waits to upload. Ask an admin about billing.** Holders of `billing.manage` read **Your organisation can only read for now: changes can’t be saved, and what people record on their phones waits to upload. Billing says why and what to do.**, with **Open Billing**, which opens **Settings** › **Billing**.
+- In the field app, **Home** and the **Upload queue** say the same as the portal's first sentence.
+- A change refused as read only makes the portal and the app check again at once, so the banner appears even if the organisation turned read only since the page opened. Once it is open again, the banner goes the next time the page or app reads who is signed in (within a minute, or on coming back to the window).
+
+To open it again:
+
 1. The admin with `billing.manage` (Admin by default) opens **Settings** › **Billing**. It says how things stand, for example "… has been overdue since …, so your organisation can only read for now. Pay before … to avoid suspension."
 2. They settle the invoice with the vendor. Once finance records the payment, writes work again at once.
 
-Only the billing admin sees the standing; others meet the sentence when they try to change something. The stages are a grace period (everyone works on; "Everyone can keep working until …"), then read only, then suspension.
+The stages are a grace period, then read only, then suspension. During grace everyone works on; only holders of `billing.manage` see an amber banner in the portal, **A payment is overdue. Everyone can keep working until {date}; after that your organisation can only read until it is paid.**, with **Open Billing**.
 
 ### "Your organisation's subscription is suspended. Ask an admin about billing."
 
@@ -63,7 +71,7 @@ Vendor support is in the organisation under a **See only** grant. To change some
 
 ### "Your organisation is being moved to a new server. You can look around; changes can be made again shortly."
 
-The vendor is moving the organisation to another server (decision D95). Reading works; every change waits, even billing. Phones keep what people record in the upload queue. When the move ends, the app and the portal find the new server by themselves; the phone fetches its copies again in full. Moves follow [docs/runbooks/moving-a-tenant.md](../../runbooks/moving-a-tenant.md).
+The vendor is moving the organisation to another server (decision D95). Reading works; every change waits, even billing. Phones keep what people record in the upload queue. While it moves, everyone sees a blue banner in the portal, and a notice on the field app's **Home** and **Upload queue**: **Your organisation is being moved to a new server. You can look around; changes can be made again shortly, and what you record on a phone uploads then.** When the move ends, the app and the portal find the new server by themselves; the phone fetches its copies again in full. Moves follow [docs/runbooks/moving-a-tenant.md](../../runbooks/moving-a-tenant.md).
 
 ### "Your organisation has used all its seats. Ask an admin to add more."
 

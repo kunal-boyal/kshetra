@@ -53,7 +53,7 @@ The screen also says **This phone becomes your work phone. Your manager can move
 - A code is six digits, lasts five minutes and allows five tries. You can ask for three codes in ten minutes.
 - The server answers the same way for a number it doesn't know, so a wrong number just never gets an SMS. Check the number with your admin if no code ever arrives.
 - With device binding on (the default), a phone must be the one your user is bound to, or becomes it when you have none (BR-38). A manager resets it (`user.reset_device`).
-- Your user and your organisation must be active. While your organisation is read only or suspended, what you record waits on the phone and uploads once it is active again.
+- Your user and your organisation must be active. While your organisation is read only or suspended, what you record waits on the phone and uploads once it is active again; while it is read only, **Home** says so.
 
 ## If something goes wrong
 

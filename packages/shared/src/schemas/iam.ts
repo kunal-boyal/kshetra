@@ -350,6 +350,13 @@ export const MeResult = z.object({
   calendarKey: Key.nullable().default(null),
   /** Set for vendor support under a grant (decision D93), who is no user of the tenant. */
   support: SupportSession.nullable().default(null),
+  /**
+   * The organisation may only read (BR-48, BR-49): writes answer `TENANT_READ_ONLY`, and every
+   * screen says so (decision D140).
+   */
+  readOnly: z.boolean().default(false),
+  /** The organisation is moving to another cell (decision D95): writes answer `TENANT_MOVING`. */
+  moving: z.boolean().default(false),
 });
 
 export type RoleDefinition = z.output<typeof RoleDefinition>;

@@ -322,6 +322,34 @@ describe('errors', () => {
     expect(error).toMatchObject({ status: 429, code: 'RATE_LIMITED', retryAfterSeconds: 42 });
   });
 
+  it('says when a write is refused because the organisation only reads or is moving', async () => {
+    const onStandingRefused = vi.fn();
+    const refusals = ['TENANT_READ_ONLY', 'TENANT_MOVING', 'FORBIDDEN'];
+    const server = fakeServer((url) => {
+      if (url.endsWith('/auth/v1/otp/verify')) {
+        return json(200, { status: 'signed_in', tenant: TENANT, session: session('a1', 'r1') });
+      }
+      const code = refusals.shift();
+      return json(code === 'FORBIDDEN' ? 403 : 423, {
+        error: { code, message: 'No', requestId: 'x' },
+      });
+    });
+    const client = createClient({
+      directoryUrl: '',
+      platform: 'app',
+      store: memoryStore(),
+      fetch: server.fetch,
+      onStandingRefused,
+    });
+    await client.verifyCode('9000000001', '123456');
+    const write = () => client.request('PATCH', '/v1/users/x', z.unknown(), { body: {} });
+    await expect(write()).rejects.toMatchObject({ code: 'TENANT_READ_ONLY' });
+    await expect(write()).rejects.toMatchObject({ code: 'TENANT_MOVING' });
+    expect(onStandingRefused).toHaveBeenCalledTimes(2);
+    await expect(write()).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(onStandingRefused).toHaveBeenCalledTimes(2);
+  });
+
   it('tell a phone app when it must update, and it names its version on every call', async () => {
     const onUpgradeRequired = vi.fn();
     const server = fakeServer(() =>

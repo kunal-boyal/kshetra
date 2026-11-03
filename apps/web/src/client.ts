@@ -15,7 +15,7 @@ function cellUrl(): string {
  * the access token only in memory, so a reload restores the session from the cookie (spec 13.1).
  * Refreshes take turns across tabs, so two tabs never spend the same refresh token.
  */
-export function webClient(onSignedOut: () => void) {
+export function webClient(onSignedOut: () => void, onStandingRefused?: () => void) {
   return createClient({
     directoryUrl: import.meta.env.VITE_DIRECTORY_URL ?? '',
     platform: 'web',
@@ -26,6 +26,7 @@ export function webClient(onSignedOut: () => void) {
         : work(),
     cellUrl,
     onSignedOut,
+    ...(onStandingRefused ? { onStandingRefused } : {}),
     stepUp: askForStepUp,
   });
 }

@@ -5014,6 +5014,15 @@ export const en = {
   'support.col_closed': 'Closed by',
   'support.activity': 'What vendor support did',
   'support.activity_none': 'Nothing recorded under this access.',
+  'banner.read_only':
+    'Your organisation can only read for now: changes can’t be saved, and what you record on a phone waits to upload. Ask an admin about billing.',
+  'banner.read_only_admin':
+    'Your organisation can only read for now: changes can’t be saved, and what people record on their phones waits to upload. Billing says why and what to do.',
+  'banner.grace':
+    'A payment is overdue. Everyone can keep working until {date}; after that your organisation can only read until it is paid.',
+  'banner.moving':
+    'Your organisation is being moved to a new server. You can look around; changes can be made again shortly, and what you record on a phone uploads then.',
+  'banner.open_billing': 'Open Billing',
   'support.banner_read':
     'You are in {organisation} as vendor support, to see only, until {time}. Everything you do is recorded.',
   'support.banner_write':
