@@ -15,6 +15,7 @@ const FINGERPRINTS: Record<number, string> = {
   9: '9ce5bf7d73d4245c',
   10: 'cdf362a0abe97d9a',
   11: '53378c8f79d55c1e',
+  12: '45f6da32eb568fd0',
 };
 
 describe('the config bundle’s shape', () => {
