@@ -424,7 +424,7 @@ function Cart({
         </p>
       ) : null}
       {prices.data && offered.length === 0 ? (
-        <p className="ks-muted">{t('prices.none_body')}</p>
+        <p className="ks-muted">{t('orders.desk_no_prices')}</p>
       ) : null}
       <SupplierShortfall
         supplier={supplier ?? null}

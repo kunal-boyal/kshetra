@@ -39,8 +39,8 @@
 | **Most GPS accuracy counted toward the geofence** (0 to 500 metres) | A fix's accuracy is added to the radius, up to this much, so a poor fix near the edge still counts as inside. |
 | **Oldest record a phone may send** (24 to 168 hours) | Records captured longer ago than this are refused when they arrive. |
 | **Longest shift** (8 to 24 hours) | A shift still open after this long is closed at that time. |
-| **Ask for a selfie at start day** (the label uses your word for Start day) | A selfie at the start of each shift. |
-| **Odometer at start day and end day** | **Not asked**, **Asked, may be skipped**, or **Required**: a reading and a photo of it at the start and end of each shift. Shown beside the tracked distance, never in its place. Per-km claims can take their kilometres from it. |
+| **Ask for a selfie when the day starts** | A selfie at the start of each shift. |
+| **Odometer when the day starts and ends** | **Not asked**, **Asked, may be skipped**, or **Required**: a reading and a photo of it at the start and end of each shift. Shown beside the tracked distance, never in its place. Per-km claims can take their kilometres from it. |
 | **One phone per person, until a manager resets it** | Binds each person to the first phone they sign in on. |
 
 ### Orders (with Orders on)
@@ -93,7 +93,7 @@ A band keeps its key, so the amounts already loaded against it stay. Balance imp
 
 | Setting | What it does |
 |---|---|
-| **Cash from one account in a day must stay under (₹)** | Cash at or above this from one account in a day is refused (section 269ST). Leave it blank for no limit. |
+| **Cash from one account in a day must stay under** (in the organisation's currency, shown before the amount) | Cash at or above this from one account in a day is refused (section 269ST). Leave it blank for no limit. |
 
 ### Stock (with Inventory on)
 

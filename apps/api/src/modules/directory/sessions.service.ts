@@ -453,7 +453,7 @@ export class SessionsService {
     if (proved) {
       throw new AppError(
         'SSO_REQUIRED',
-        'Your organisation signs you in with its own sign-in. Choose Sign in with SSO.',
+        'Your organisation signs you in with its own sign-in. Choose Company SSO.',
       );
     }
   }

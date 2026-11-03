@@ -486,6 +486,42 @@ describe('the order desk', () => {
       },
     ]);
   });
+
+  it('says where prices are kept when no list prices anything for the account, not the phone’s words', async () => {
+    const client = fakeClient(
+      {
+        '/v1/account-types': { items: [RETAILER] },
+        '/v1/accounts': {
+          items: [{ id: SHOP, code: 'R-1', name: 'Sharma Agro' }],
+          nextCursor: null,
+        },
+        '/v1/catalogue': {
+          version: 1,
+          units: BUNDLE.catalogue.units,
+          measureTypes: [],
+          items: [item(NEEM, 'NEEM')],
+        },
+        [`/v1/accounts/${SHOP}/prices`]: { date: '2026-10-24', lists: [], items: [] },
+        [`/v1/accounts/${SHOP}/schemes`]: {
+          date: '2026-10-24',
+          account: { type: 'retailer', territories: [] },
+          schemes: [],
+        },
+      },
+      {},
+      ['order.create', 'order.view', 'account.view'],
+      BUNDLE,
+    );
+    renderAt('/orders/new', client);
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByRole('searchbox', { name: 'Find by name or code' }),
+      'sharma',
+    );
+    await user.click(await screen.findByRole('button', { name: 'Sharma Agro (R-1)' }));
+    expect(await screen.findByText(/Prices are kept at Settings › Price lists\./)).toBeVisible();
+    expect(screen.queryByText(/on this phone/)).toBeNull();
+  });
 });
 
 describe('schemes on orders (D127)', () => {

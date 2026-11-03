@@ -22,7 +22,7 @@ A person's journey plan (Beat plan in the agri template, Tour plan in pharma, PJ
 1. Open **People**, choose the person, then **Plan**. The page is headed **… · …** with the person and month.
 2. Under **Routes**, choose **Add a route**, or **Edit** beside a route.
 3. Give the **Route name** and tick the **Days of the week** it runs.
-4. In **Add a account to the route** (the tenant's word for account), choose each account in turn. **Stops, first to last** lists them; use **Move … up**, **Move … down** and **Remove …** to order them. The map shows the route stop by stop.
+4. In **Add to the route**, choose each account in turn (**Choose the account**, in the tenant's word for account). **Stops, first to last** lists them; use **Move … up**, **Move … down** and **Remove …** to order them. The map shows the route stop by stop.
 5. Keep **In use** ticked for a route that should plan visits. A route not in use shows **Switched off**.
 6. Choose **Save route**.
 
@@ -30,7 +30,7 @@ A person's journey plan (Beat plan in the agri template, Tour plan in pharma, PJ
 
 1. Choose the month with **Previous month** and **Next month**.
 2. Choose **Plan from routes**. It plans a visit for each account on each day a route in use falls on, from today on, and says how many it planned. Running it again plans nothing twice.
-3. To add a single visit, go to **Plan a visit**: choose the account (**Choose a account**), the **Date**, a **Purpose** and any **Instructions** for the person (up to 1,000 characters), then choose **Plan a visit**. It says **Visit planned.**
+3. To add a single visit, go to **Plan a visit**: choose the account (**Choose the account**), the **Date**, a **Purpose** and any **Instructions** for the person (up to 1,000 characters), then choose **Plan a visit**. It says **Visit planned.**
 4. To cancel a visit, choose **Cancel visit** on its row, then confirm **Cancel the visit to … on …?** Only a visit still planned can be cancelled.
 5. The calendar shows each day's stops, **Leave**, **Leave asked** and **Weekly off**; the table lists the month's visits by **Date**, account, **Purpose**, **On the route** and **Status**.
 

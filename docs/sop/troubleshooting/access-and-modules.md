@@ -42,7 +42,7 @@ The module the action belongs to is off.
 2. Find the module. **On** ticked means it is on; **Always on** is Core; **Not in your plan** means the plan leaves it out ("Your plan doesn't include this module. Ask us to add it to your plan to switch it on.").
 3. To switch it on, tick **On** and tap **Save**. The page says **Saved.**
 
-Switching a module off hides its screens, takes its permissions from every role and makes its routes refuse; phones drop their copies of its data at the next sync. **Statutory payroll** and **Inventory** stay off until an admin switches them on. With **Integrations** off, API clients get no tokens and webhooks send nothing; with **Single sign-on** off, everyone signs in to the web with a code. A module outside the plan is for the vendor to add ([Manage plans and a tenant's usage](../vendor/plans-and-usage.md)).
+Switching a module off hides its screens, takes its permissions from every role and makes its routes refuse; phones drop their copies of its data at the next sync. **Statutory payroll** and **Inventory** stay off until an admin switches them on. With **Integrations** off, API clients get no tokens, webhooks send nothing and ERP connections neither read nor send; with **Single sign-on** off, everyone signs in to the web with a code. A module outside the plan is for the vendor to add ([Manage plans and a tenant's usage](../vendor/plans-and-usage.md)).
 
 ### "Your organisation's subscription is read-only for now. Ask an admin about billing."
 

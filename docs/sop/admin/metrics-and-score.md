@@ -60,7 +60,7 @@ A metric is what is counted for each person every day, then rolled up to months,
 ### Set the score
 
 7. Under **The score**, select metrics in **Add a metric to the score** and give each a **Weight of** it. The page shows what the weights add up to; they need not make 100, as each metric's share is its weight over the total. **Remove** takes a metric out.
-8. Set **Most one metric can count, in percent**: from 100 to 200. At 100, going past a target counts no more than meeting it.
+8. Set **Most one metric can count, in percent**: from 100 to 200. At 100, going past the target counts no more than meeting it.
 9. Choose **Count targets and scores by**: a month, or a quarter or the year of your financial year. If you change it, choose **Starting from**: a period still to come, so no day counts twice. A notice shows the change waiting; choose the current kind again to call it off.
 10. Select **Save the score**. You see **Saved.**
 

@@ -473,18 +473,36 @@ function Checked({ view, onChangeColumns }: { view: ImportView; onChangeColumns:
   );
 }
 
+/** Where what an import brought in is seen; a target without a page of its own goes back to Imports. */
+function openAfter(target: ImportView['target']) {
+  if (target.startsWith('accounts:'))
+    return { to: '/accounts', label: 'import.open_accounts' } as const;
+  switch (target) {
+    case 'users':
+      return { to: '/people', label: 'import.open_people' } as const;
+    case 'territories':
+      return { to: '/territories', label: 'import.open_territories' } as const;
+    case 'items':
+      return { to: '/settings/catalogue', label: 'import.open_items' } as const;
+    case 'targets':
+      return { to: '/targets', label: 'import.open_targets' } as const;
+    case 'holidays':
+      return { to: '/settings/calendars', label: 'import.open_holidays' } as const;
+    default:
+      return { to: '/imports', label: 'import.back_to_imports' } as const;
+  }
+}
+
 function Committed({ view }: { view: ImportView }) {
   const { t } = useLanguage();
+  const open = openAfter(view.target);
   return (
     <Section title={t('import.status_committed')}>
       <p role="status">
         {t('import.done', { created: view.created ?? 0, updated: view.updated ?? 0 })}
       </p>
-      <Link
-        to={view.target === 'users' ? '/people' : '/territories'}
-        className="ks-btn secondary self-start"
-      >
-        {t(view.target === 'users' ? 'import.open_people' : 'import.open_territories')}
+      <Link to={open.to} className="ks-btn secondary self-start">
+        {t(open.label)}
       </Link>
     </Section>
   );

@@ -55,7 +55,7 @@ You claim travel and other costs against your organisation's expense policies: p
 | What you see | What it means | What to do |
 |---|---|---|
 | **This policy has no rate for your designation** | Your designation isn't covered | Ask your admin |
-| **Claim for a day that has passed or today** | The day picked is in the future | Pick the day of the expense |
+| **The day can’t be in the future** | The day picked is in the future | Pick the day of the expense |
 | **Enter the opening and closing readings** / **The closing reading is below the opening one** | The readings are missing or wrong | Correct the readings |
 | **Add photos of the opening and closing readings** | Odometer photos are missing | Tap **Photograph a reading** |
 | **Enter the days** / **Enter the bill amount** | The figure the policy pays by is missing | Fill it in |

@@ -157,7 +157,7 @@ function ZohoCard({
             {live.status === 'connected' ? (
               <>
                 <MappingsForm connection={live} />
-                <Runs connectionId={live.id} />
+                <Runs connection={live} />
               </>
             ) : null}
             <Disconnect connection={live} />
@@ -230,7 +230,7 @@ function SapCard({ connection }: { connection: ErpConnectionResult | null }) {
             {live.status === 'connected' ? (
               <>
                 <MappingsForm connection={live} />
-                <Runs connectionId={live.id} />
+                <Runs connection={live} />
               </>
             ) : null}
             <Disconnect connection={live} />
@@ -312,7 +312,7 @@ function TallyCard({ connection }: { connection: ErpConnectionResult | null }) {
             <TallyUpload connectionId={live.id} />
             <MappingsForm connection={live} />
             <TallyOrders connection={live} />
-            <Runs connectionId={live.id} tally />
+            <Runs connection={live} />
             <Disconnect connection={live} />
           </>
         )}
@@ -847,7 +847,7 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
     >
       <h3 className="ks-title">{t('erp.mappings')}</h3>
       <fieldset className="flex flex-col gap-2">
-        <legend className="ks-label">{t('erp.read')}</legend>
+        <legend className="ks-label">{t('erp.read', { provider })}</legend>
         {readKeys.map((key) => (
           <Checkbox
             key={key}
@@ -859,7 +859,7 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
       </fieldset>
       <SelectField
         label={t('erp.account_type')}
-        help={t('erp.account_type_help')}
+        help={t('erp.account_type_help', { provider })}
         value={draft.accountType}
         error={errors.accountType}
         onChange={(event) => change({ accountType: event.target.value })}
@@ -944,7 +944,7 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
         </>
       ) : (
         <TextField
-          label={t('erp.territory_field')}
+          label={t('erp.territory_field', { provider })}
           help={t(sap ? 'erp.sap_territory_field_help' : 'erp.territory_field_help')}
           value={draft.territoryField}
           error={errors.territoryField}
@@ -1054,11 +1054,11 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
       </fieldset>
       <fieldset className="flex flex-col gap-2">
         <legend className="ks-label">{t('erp.units')}</legend>
-        <p className="ks-help">{t('erp.units_help')}</p>
+        <p className="ks-help">{t('erp.units_help', { provider })}</p>
         {draft.units.map((entry, index) => (
           <div key={index} className="flex flex-wrap items-end gap-2">
             <TextField
-              label={t('erp.unit_name')}
+              label={t('erp.unit_name', { provider })}
               value={entry.name}
               onChange={(event) =>
                 change({
@@ -1197,7 +1197,10 @@ function MappingsForm({ connection }: { connection: ErpConnectionResult }) {
  * Each run with what it read and wrote, and the latest run's problems in words. Tally's runs are
  * its files: no Sync now, and an orders file can be saved, or made again, for 7 days.
  */
-function Runs({ connectionId, tally = false }: { connectionId: string; tally?: boolean }) {
+function Runs({ connection }: { connection: ErpConnectionResult }) {
+  const connectionId = connection.id;
+  const tally = connection.provider === 'tally';
+  const provider = PROVIDER_NAMES[connection.provider];
   const { client } = useApp();
   const queryClient = useQueryClient();
   const { t, locale } = useLanguage();
@@ -1276,7 +1279,7 @@ function Runs({ connectionId, tally = false }: { connectionId: string; tally?: b
       render: (run) => (
         <StatusBadge variant={RUN_BADGE[run.status]}>
           {t(`erp.run_${run.status}`)}
-          {run.stoppedBy ? ` · ${t(`erp.stopped_${run.stoppedBy}`)}` : ''}
+          {run.stoppedBy ? ` · ${t(`erp.stopped_${run.stoppedBy}`, { provider })}` : ''}
         </StatusBadge>
       ),
     },
@@ -1333,7 +1336,9 @@ function Runs({ connectionId, tally = false }: { connectionId: string; tally?: b
           </Button>
         )}
       </div>
-      {asked ? <p role="status">{t(tally ? 'erp.tally_file_asked' : 'erp.sync_asked')}</p> : null}
+      {asked ? (
+        <p role="status">{t(tally ? 'erp.tally_file_asked' : 'erp.sync_asked', { provider })}</p>
+      ) : null}
       {failure ? (
         <p className="ks-help error" role="alert">
           {errorMessage(failure, t)}
@@ -1354,12 +1359,14 @@ function Runs({ connectionId, tally = false }: { connectionId: string; tally?: b
           empty={<p className="ks-muted">{t('erp.runs_none')}</p>}
         />
       )}
-      {latest && latest.problems.length > 0 ? <Problems problems={latest.problems} /> : null}
+      {latest && latest.problems.length > 0 ? (
+        <Problems problems={latest.problems} provider={provider} />
+      ) : null}
     </section>
   );
 }
 
-function Problems({ problems }: { problems: readonly ErpProblem[] }) {
+function Problems({ problems, provider }: { problems: readonly ErpProblem[]; provider: string }) {
   const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-2">
@@ -1370,7 +1377,7 @@ function Problems({ problems }: { problems: readonly ErpProblem[] }) {
             {t('erp.problem', {
               entity: t(`erp.entity_${problem.entity}`),
               label: problem.label,
-              issue: t(`erp.issue_${problem.issue}`),
+              issue: t(`erp.issue_${problem.issue}`, { provider }),
             })}
             {problem.detail ? ` ${problem.field ? `${problem.field}: ` : ''}${problem.detail}` : ''}
           </li>

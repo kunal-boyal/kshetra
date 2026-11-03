@@ -75,7 +75,7 @@ A secret or certificate already saved shows **Saved. Leave it blank to keep it.*
 | **No TXT record with the token was found at … yet** | DNS doesn't show the record yet. | Check the name and value at your DNS provider, wait, then **Check now** again. |
 | **Another organisation has verified this domain already.** | Another organisation proved that domain first; it stays theirs. | Ask the vendor. |
 | Some details need fixing. Check the highlighted fields. | A field is wrong, such as an issuer address the product can't reach. The field says why. | Correct it and save again. |
-| Sign in again with your authenticator to open this organisation. | You cancelled **Confirm it’s you**, or its code was refused. | Save again and give a current code. |
+| This change needs a code from your authenticator. Make it again and enter the code. | You cancelled **Confirm it’s you**, or its code was refused. | Save again and give a current code. |
 | The sign-in took too long. Try again. | (On the sign-in page.) The trip to the provider timed out. | Try again. |
 | Your organisation’s sign-in didn’t complete. Try again, or ask your administrator. | The provider refused, or its answer didn't check out. | Check the provider's settings and the certificate or secret. |
 | That email isn’t one your organisation signs in with SSO. | The email's domain isn't proved. | Prove it under **Prove your domains**. |

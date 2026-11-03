@@ -45,17 +45,17 @@ Connect the system your books are kept in. Customers, items and prices, invoices
 
 ### Set what comes in, and where
 
-12. Under **What comes in, and where**, tick what to read: **Customers, as accounts**, **Items and their prices**, **Invoices**, **Payments**.
-13. Choose what **Customers become**: the account type Zoho's customers are. Each customer's number in the books becomes its code.
+12. Under **What comes in, and where**, tick what to read under **Read from Zoho Books** (**Read from SAP Business One**, **Read from Tally**): **Customers, as accounts**, **Items and their prices**, **Invoices**, **Payments**.
+13. Choose what **Customers become**: the account type customers from the books become. Each keeps its customer code from the books as its code.
 14. Territories:
-    - Zoho and SAP: **Zoho field holding the territory code** (for SAP, a user field on business partners, such as `U_Territory`). Leave it empty to keep each account's territory here.
+    - Zoho and SAP: **Zoho Books field holding the territory code** (for SAP, **SAP Business One field holding the territory code**, a user field on business partners, such as `U_Territory`). Leave it empty to keep each account's territory here.
     - Tally: **Customer groups** (Tally groups whose ledgers are customers, separated by commas), and **Territories by group**, a **Group in Tally** and its **Territory** per row, added with **Add a group**. A ledger takes the nearest group listed above it.
     - All: **Territory for new customers**, used when a new customer's field or group gives none.
 15. Prices:
     - Zoho: **Price list for item rates** (or **The default list**), and under **Zoho price books** a **Price book ID in Zoho** and the list it goes **Into the price list**, added with **Add a price book**. Only per-item sales price books can be read.
     - SAP: under **SAP price lists**, a **Price list number in SAP** and its price list, added with **Add a price list**.
     - Tally: under **Price levels**, a **Price level in Tally** and its price list, added with **Add a price level**.
-16. **Units named differently**: only where the books' unit isn't the name of one of yours, for example pcs for piece. Fill in **Unit in Zoho** and **Your unit**, added with **Add a unit**.
+16. **Units named differently**: only where the books' unit isn't the name of one of yours, for example pcs for piece. Fill in **Unit in Zoho Books** (**Unit in SAP Business One**, **Unit in Tally**) and **Your unit**, added with **Add a unit**.
 17. Tax, for SAP and Tally: **SAP field holding the GST rate** (a user field on items, such as `U_GST`), and **GST rate when the field is empty** (Tally: **GST rate when Tally gives none**). An item with neither is left out and listed.
 18. Zoho and SAP: **Days of invoices to read** (7 to 730). Zoho only: **Your Zoho plan’s daily calls** (Free is 1,000, Standard 2,000, Professional 5,000; a tenth is always left for you).
 19. Tally: **Sales voucher types** and **Receipt voucher types** (each with every type under them, separated by commas), and the **Voucher type for orders** they go into Tally as.
@@ -64,9 +64,9 @@ Connect the system your books are kept in. Customers, items and prices, invoices
 
 ### Run and check
 
-22. Zoho and SAP read every hour. To read now, select **Sync now** under **Runs**. The run appears when it finishes.
+22. Zoho and SAP read every hour. To read now, select **Sync now** under **Runs**. You see "Reading Zoho Books now. The run appears here when it finishes." (or SAP Business One).
 23. **Runs** lists each run's **Started**, **Kind** (**Read**, **Orders out** or **File read**), **Result** (**Running**, **Done**, **Done, with problems** or **Failed**, with why it stopped), **Records** per kind (read, written, left out) and, for Zoho and SAP, **Calls**.
-24. Under the runs, "The last run left out 3 records" lists each record and why, such as "Items, ABC-01: it has no SKU in Zoho." Fix it in the books; the next run picks it up.
+24. Under the runs, "The last run left out 3 records" lists each record and why, such as "Items, ABC-01: it has no SKU in Zoho Books.", naming the books connected. Fix it in the books; the next run picks it up.
 
 ### Send orders to Tally
 

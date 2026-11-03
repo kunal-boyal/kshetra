@@ -18,7 +18,7 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import { useApp } from '../context';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
-import { fieldErrors, PageHeader, Section } from '../people/shared';
+import { currencySymbol, fieldErrors, PageHeader, Section } from '../people/shared';
 import { useAdmin } from './data';
 import { useMetricDefinitions } from './metrics-data';
 
@@ -289,6 +289,7 @@ export function RulesPage() {
             <TextField
               label={t('admin.rule_collectionCashLimit')}
               help={t('admin.rule_collectionCashLimit_help')}
+              prefix={currencySymbol(settings.currency, locale)}
               inputMode="decimal"
               value={value('collectionCashLimit') ?? ''}
               {...(errors.collectionCashLimit ? { error: errors.collectionCashLimit } : {})}

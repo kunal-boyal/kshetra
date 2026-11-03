@@ -34,7 +34,7 @@ Targets (the tenant's word for them) say what each person should reach in a mont
 ### Lock targets
 
 1. Select the people whose targets are right.
-2. Choose **Lock … people**. It asks **Lock the targets of … people?** and says: **Once locked, only an administrator can unlock them, with a reason.**
+2. Choose **Lock … people**. It asks **Lock the targets of … people?** and says: **Once locked, only someone who may unlock targets can unlock them, with a reason.**
 3. Confirm with **Lock … people**. It says **Targets locked for … people.** Each row then shows **Locked by …**.
 
 ### Unlock a person's targets

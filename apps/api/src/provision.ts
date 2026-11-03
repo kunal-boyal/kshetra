@@ -18,7 +18,8 @@ import { userActor } from './platform/audit';
 import { AccessResolver } from './platform/auth';
 import { Database } from './platform/database';
 
-const USAGE = `Usage: pnpm provision --name <name> --slug <slug> (--template <generic|agri> | --file <path>)
+const USAGE = `Usage: pnpm provision --name <name> --slug <slug>
+                      (--template <generic|agri|pharma|fmcg|building> | --file <path>)
                       --admin-name <name> --admin-phone <number>
                       [--admin-code <code>] [--admin-email <email>]
                       [--trial-days <1-${TRIAL_DAYS_MOST}>]

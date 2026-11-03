@@ -14,6 +14,15 @@ import { ArrowLeft } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useLanguage } from '../i18n';
 
+/** The sign a currency is written with in the reader's language, such as ₹ for INR. */
+export function currencySymbol(currency: string, locale: Locale): string {
+  return (
+    new Intl.NumberFormat(localeTag(locale), { style: 'currency', currency })
+      .formatToParts(0)
+      .find((part) => part.type === 'currency')?.value ?? currency
+  );
+}
+
 /** A designation's name in the reader's language, singular. */
 export function designationName(
   key: string,

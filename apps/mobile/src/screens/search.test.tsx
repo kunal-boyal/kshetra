@@ -140,6 +140,12 @@ async function renderSearch(permissions: string[]) {
 }
 
 describe('search on the phone (phase 4 step A1, D110)', () => {
+  it('promises only what the phone searches, not orders', async () => {
+    await renderSearch(['account.view']);
+    expect(await screen.findByPlaceholderText(/^Search screens, people and /)).toBeOnTheScreen();
+    expect(screen.queryByPlaceholderText(/order/i)).toBeNull();
+  });
+
   it('finds the accounts the phone keeps and opens one', async () => {
     await renderSearch(['account.view']);
     await fireEvent.changeText(await screen.findByLabelText('Search'), 'janpath');

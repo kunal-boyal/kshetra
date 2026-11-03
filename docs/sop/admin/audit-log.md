@@ -28,7 +28,7 @@ The audit log records every change made in your organisation: who made it, when,
 ### Export it
 
 1. Set the filters as you want them in the file.
-2. Select **Export as CSV** or **Export as Excel**. The page says **Preparing your file. Find it in Reports, under Exports.**
+2. Select **Export as CSV** or **Export as Excel**. The page says **Preparing your file. Find it in Reports, under Your downloads.**
 3. Select **Open Reports** and download the file from **Your downloads** when it is ready (the message says "Exports", but the list is headed **Your downloads**). Files are kept 7 days.
 
 ### Other places the log shows

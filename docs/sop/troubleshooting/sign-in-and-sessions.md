@@ -94,7 +94,7 @@ Changing who signs in as whom asks for a fresh authenticator code, good for ten 
 - A wrong code is asked for again, three times at most.
 - Vendor support can't make these changes under a support grant; the tenant's admin makes them.
 - Someone with no authenticator set up can't step up. Instead of asking for a code, **Confirm it’s you** says **This change needs a code from an authenticator app, and you have none set up. Set one up at Sign-in security first, then make the change again.**, with **Set up an authenticator**, which opens **Sign-in security**, and **Cancel**. Either leaves the change undone. This happens to an admin of a demo tenant, or one who signs in only through single sign-on. Once their authenticator is set up, they make the change again.
-- **Cancel** shows **Sign in again with your authenticator to open this organisation.** The change simply wasn't made; there is no need to sign in again.
+- **Cancel** shows **This change needs a code from your authenticator. Make it again and enter the code.** The change simply wasn't made; there is no need to sign in again.
 
 ### Single sign-on
 

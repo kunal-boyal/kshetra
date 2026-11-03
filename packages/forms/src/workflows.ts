@@ -85,38 +85,43 @@ export type Approver = z.output<typeof Approver>;
 export type WorkflowStep = z.output<typeof WorkflowStep>;
 export type Workflow = z.output<typeof Workflow>;
 
-const label = (en: string, hi: string) => ({ en, hi });
+/**
+ * A fact's words are the apps' (`chains.fact_<key>` in the strings), so they follow the reader's
+ * language and the tenant's terms; the field itself carries only its key.
+ */
+const label = (key: string) => ({ en: key, hi: key });
 
 /**
  * The facts a step's condition may test, per request type (spec 5.9). The module that owns a type
- * supplies them when a request starts, as values keyed like these fields.
+ * supplies them when a request starts, as values keyed like these fields. Each key has a message,
+ * `chains.fact_<key>`, which names it on screen.
  */
 export const REQUEST_FACTS: Record<RequestType, readonly AnyField[]> = {
   leave: [
     {
       type: 'number',
       key: 'leave_days',
-      label: label('Leave days', 'छुट्टी के दिन'),
+      label: label('leave_days'),
       required: false,
       decimals: 1,
     },
-    { type: 'yes_no', key: 'paid', label: label('Paid leave', 'सवेतन छुट्टी'), required: false },
+    { type: 'yes_no', key: 'paid', label: label('paid'), required: false },
   ],
   regularisation: [
     {
       type: 'number',
       key: 'days_ago',
-      label: label('Days ago', 'कितने दिन पहले'),
+      label: label('days_ago'),
       required: false,
       decimals: 0,
     },
   ],
   expense: [
-    { type: 'currency', key: 'amount', label: label('Amount', 'राशि'), required: false },
+    { type: 'currency', key: 'amount', label: label('amount'), required: false },
     {
       type: 'yes_no',
       key: 'over_policy',
-      label: label('Over the policy', 'नीति से अधिक'),
+      label: label('over_policy'),
       required: false,
     },
   ],
@@ -124,19 +129,19 @@ export const REQUEST_FACTS: Record<RequestType, readonly AnyField[]> = {
     {
       type: 'currency',
       key: 'total',
-      label: label('Order total', 'ऑर्डर की कुल राशि'),
+      label: label('total'),
       required: false,
     },
     {
       type: 'yes_no',
       key: 'over_credit',
-      label: label('Over the credit limit', 'उधार सीमा से अधिक'),
+      label: label('over_credit'),
       required: false,
     },
     {
       type: 'yes_no',
       key: 'short_stock',
-      label: label('More than the supplier holds', 'सप्लायर के स्टॉक से अधिक'),
+      label: label('short_stock'),
       required: false,
     },
   ],

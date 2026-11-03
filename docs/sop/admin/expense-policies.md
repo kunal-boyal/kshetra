@@ -12,7 +12,7 @@ Each policy says how a claim is paid, at what rate, within which caps, and what 
 ## Before you start
 
 - Designations are in place, if rates differ by designation.
-- For per-km claims from odometer readings, decide whether people record the odometer at the start and end of their day. That is the **Odometer at start day and end day** setting on [Set the organisation's rules](rules.md) (the label uses your words for Start day and End day: "Odometer at punch in and punch out" in the agri template).
+- For per-km claims from odometer readings, decide whether people record the odometer at the start and end of their day. That is the **Odometer when the day starts and ends** setting on [Set the organisation's rules](rules.md).
 - Decide each new policy's **Key** now. Policies stay once added, as claims name them; switch one off instead.
 
 ## Steps

@@ -259,4 +259,28 @@ describe('one import', () => {
       ],
     ]);
   });
+
+  it.each([
+    ['items', 'Open the catalogue', '/settings/catalogue'],
+    ['accounts:retailer', /^Open /, '/accounts'],
+    ['invoices', 'Back to imports', '/imports'],
+  ])('leads from a finished %s import to where it is seen', async (target, name, href) => {
+    const client = fakeClient(
+      {
+        [`/v1/imports/${JOB}`]: job({
+          target,
+          status: 'committed',
+          created: 1,
+          updated: 0,
+          totalRows: 1,
+        }),
+      },
+      {},
+      PERMISSIONS,
+    );
+    renderAt(`/imports/${JOB}`, client);
+    expect(await screen.findByText('Imported: 1 added, 0 changed.')).toBeVisible();
+    expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+    expect(screen.queryByRole('link', { name: 'Open territories' })).toBeNull();
+  });
 });

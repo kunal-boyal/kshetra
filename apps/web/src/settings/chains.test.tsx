@@ -1,3 +1,4 @@
+import { TERMINOLOGY_DEFAULTS } from '@thelamp/i18n';
 import { REQUEST_TYPES } from '@thelamp/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -101,6 +102,41 @@ describe('approval chains (spec 5.9)', () => {
     expect(
       within(claims).getByText('No chain: requests go to the requester’s manager.'),
     ).toBeVisible();
+  });
+
+  it('names a fact in the tenant’s own terms', async () => {
+    const steps = [
+      {
+        ...MANAGER,
+        condition: { match: 'all', clauses: [{ field: 'total', op: 'gt', value: 50000 }] },
+      },
+    ];
+    const pages = PAGES();
+    const client = fakeClient(
+      {
+        ...pages,
+        '/v1/workflows': {
+          ...pages['/v1/workflows'],
+          chains: pages['/v1/workflows'].chains.map((chain) =>
+            chain.requestType === 'order' ? { ...chain, version: 1, steps } : chain,
+          ),
+        },
+      },
+      {},
+      ['workflow.manage'],
+      {
+        terminology: {
+          en: { ...TERMINOLOGY_DEFAULTS.en, 'term.order': { one: 'Indent', other: 'Indents' } },
+          hi: TERMINOLOGY_DEFAULTS.hi,
+        },
+      },
+    );
+    renderAt('/settings/approvals', client);
+    const user = userEvent.setup();
+    const types = await screen.findByRole('list', { name: 'Request types' });
+    await user.click(within(types).getByRole('button', { name: /^Indents/ }));
+    const orders = screen.getByRole('complementary', { name: 'Indents' });
+    expect(within(orders).getByText('When Indent total more than 50000')).toBeVisible();
   });
 
   it('adds a step with a condition and saves the chain on the version shown', async () => {
