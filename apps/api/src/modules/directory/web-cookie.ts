@@ -2,7 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type Session, WEB_CLIENT, WEB_CLIENT_HEADER } from '@thelamp/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from '../../config';
-import { sessionCookie } from '../../platform/session-cookie';
+import {
+  expireLegacySessionCookie,
+  readSessionCookie,
+  sessionCookie,
+} from '../../platform/session-cookie';
 import { CONFIG } from '../../platform/tokens';
 import { SessionsService } from './sessions.service';
 
@@ -24,15 +28,16 @@ export class WebCookie {
 
   constructor(
     private readonly sessions: SessionsService,
-    @Inject(CONFIG) config: Config,
+    @Inject(CONFIG) private readonly config: Config,
   ) {
     const cookie = sessionCookie(config, 'refresh');
     this.name = cookie.name;
     this.attributes = cookie.options;
   }
 
+  /** The session's refresh token, passing over a copy left on the legacy path (D101). */
   read(request: FastifyRequest): string | undefined {
-    return request.cookies[this.name];
+    return readSessionCookie(request, this.config, 'refresh').token;
   }
 
   /** The cookie's attributes, the same when it is set and when it is cleared. */
@@ -42,6 +47,7 @@ export class WebCookie {
 
   clear(reply: FastifyReply): void {
     void reply.clearCookie(this.name, this.options());
+    expireLegacySessionCookie(reply, this.config, 'refresh');
   }
 
   /**
@@ -66,6 +72,9 @@ export class WebCookie {
       ...this.options(),
       expires: new Date(session.refreshTokenExpiresAt),
     });
+    if (readSessionCookie(request, this.config, 'refresh').stale) {
+      expireLegacySessionCookie(reply, this.config, 'refresh');
+    }
     return {
       tokenType: session.tokenType,
       accessToken: session.accessToken,

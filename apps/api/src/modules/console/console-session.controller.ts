@@ -31,7 +31,11 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from '../../config';
 import { CurrentStaff, ForStaff, Public, type StaffAccess } from '../../platform/auth';
 import { Contract } from '../../platform/routes';
-import { sessionCookie } from '../../platform/session-cookie';
+import {
+  expireLegacySessionCookie,
+  readSessionCookie,
+  sessionCookie,
+} from '../../platform/session-cookie';
 import { CONFIG } from '../../platform/tokens';
 import { STAFF_SESSION_HOURS, StaffService } from './staff.service';
 
@@ -94,11 +98,12 @@ export class ConsoleSessionController {
   async signIn(
     @Body() body: unknown,
     @ClientIp() ip: string,
+    @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     const { email, password, code } = StaffSignInBody.parse(body);
     const { session, refreshToken } = await this.staff.signIn(email, password, code, ip);
-    void reply.setCookie(this.cookieName, refreshToken, this.cookieOptions());
+    this.setCookie(request, reply, refreshToken);
     return session;
   }
 
@@ -113,7 +118,7 @@ export class ConsoleSessionController {
   @Header('Cache-Control', 'no-store')
   async refresh(@Req() request: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
     const { session, refreshToken } = await this.staff.refresh(this.cookie(request));
-    void reply.setCookie(this.cookieName, refreshToken, this.cookieOptions());
+    this.setCookie(request, reply, refreshToken);
     return session;
   }
 
@@ -125,9 +130,10 @@ export class ConsoleSessionController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
-    const token = request.cookies[this.cookieName];
+    const { token } = readSessionCookie(request, this.config, 'console');
     if (token && isConsole(request)) await this.staff.signOut(token);
     void reply.clearCookie(this.cookieName, this.cookieOptions());
+    expireLegacySessionCookie(reply, this.config, 'console');
   }
 
   @ForStaff()
@@ -151,6 +157,7 @@ export class ConsoleSessionController {
     @CurrentStaff() staff: StaffAccess,
     @Body() body: unknown,
     @ClientIp() ip: string,
+    @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     const { session, refreshToken } = await this.staff.changePassword(
@@ -158,7 +165,7 @@ export class ConsoleSessionController {
       StaffPasswordBody.parse(body),
       ip,
     );
-    void reply.setCookie(this.cookieName, refreshToken, this.cookieOptions());
+    this.setCookie(request, reply, refreshToken);
     return session;
   }
 
@@ -212,9 +219,17 @@ export class ConsoleSessionController {
 
   /** The session cookie, only for the console's own requests (see the class comment). */
   private cookie(request: FastifyRequest): string {
-    const token = request.cookies[this.cookieName];
+    const { token } = readSessionCookie(request, this.config, 'console');
     if (!token || !isConsole(request)) throw new AppError('SESSION_REVOKED', 'Sign in again.');
     return token;
+  }
+
+  /** Sets the session cookie, and expires a copy left on the legacy path (decision D101). */
+  private setCookie(request: FastifyRequest, reply: FastifyReply, refreshToken: string): void {
+    void reply.setCookie(this.cookieName, refreshToken, this.cookieOptions());
+    if (readSessionCookie(request, this.config, 'console').stale) {
+      expireLegacySessionCookie(reply, this.config, 'console');
+    }
   }
 
   private cookieOptions() {

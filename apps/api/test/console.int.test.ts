@@ -208,6 +208,21 @@ describe('vendor staff (decision D88)', () => {
     expect(after.json().error.code).toBe('SESSION_REVOKED');
   });
 
+  it('passes over a cookie left on its old path and expires it (D101)', async () => {
+    const { signedIn } = await staffMember();
+    const cookie = signedIn.cookies.find((each) => each.name === 'thelamp_console')!;
+    // The browser sends the copy on the longer path first.
+    const refreshed = await send('POST', '/platform/v1/session/refresh', {
+      headers: { ...CONSOLE, cookie: `thelamp_console=stale; thelamp_console=${cookie.value}` },
+    });
+    expect(refreshed.statusCode, refreshed.body).toBe(200);
+    const cookies = refreshed.cookies.filter((each) => each.name === 'thelamp_console');
+    expect(cookies.find((each) => each.path === '/')!.value).not.toBe('');
+    expect(cookies.find((each) => each.path === '/platform/v1/session')).toMatchObject({
+      value: '',
+    });
+  });
+
   it('locks an account after ten wrong tries, answering as wrong details do (D101)', async () => {
     const { email, secret } = await staffMember();
     await forgetEmailLimit(email);
