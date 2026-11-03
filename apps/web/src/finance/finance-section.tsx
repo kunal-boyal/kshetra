@@ -32,6 +32,7 @@ import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
 import { Facts, fieldErrors, Section } from '../people/shared';
 import { Printable, PrintButton } from '../print';
+import { AccountCollections } from './account-collections';
 import { ReceivablesPanel } from './receivables';
 
 type Translate = ReturnType<typeof useLanguage>['t'];
@@ -189,6 +190,7 @@ export function FinanceSection({
       ) : (
         <p className="ks-muted">{t('finance.no_balance')}</p>
       )}
+      <AccountCollections accountId={accountId} collected={finance.data?.collected} />
 
       <div className="grid items-end gap-4 md:grid-cols-3">
         <SelectField

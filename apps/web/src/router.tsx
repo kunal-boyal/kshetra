@@ -24,6 +24,8 @@ import { TargetsPage } from './targets/targets-page';
 import { CataloguePage } from './catalogue/catalogue-page';
 import { ItemEditorPage } from './catalogue/item-editor-page';
 import { OrderDeskPage } from './orders/order-desk-page';
+import { CollectionPage } from './finance/collection-page';
+import { CollectionsPage } from './finance/collections-page';
 import { OrderPage } from './orders/order-page';
 import { OrdersPage } from './orders/orders-page';
 import { PriceListPage } from './catalogue/price-list-page';
@@ -271,6 +273,19 @@ const order = createRoute({
   component: function OrderRoute() {
     const { orderId } = order.useParams();
     return <OrderPage key={orderId} orderId={orderId} />;
+  },
+});
+const collectionsRoute = createRoute({
+  getParentRoute: () => app,
+  path: '/collections',
+  component: CollectionsPage,
+});
+const collection = createRoute({
+  getParentRoute: () => app,
+  path: '/collections/$collectionId',
+  component: function CollectionRoute() {
+    const { collectionId } = collection.useParams();
+    return <CollectionPage key={collectionId} collectionId={collectionId} />;
   },
 });
 const targets = createRoute({
@@ -654,6 +669,8 @@ const tree = root.addChildren([
     payslip,
     newOrder,
     order,
+    collectionsRoute,
+    collection,
     targets,
     teamPerformance,
     personPerformance,
