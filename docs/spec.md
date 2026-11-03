@@ -358,7 +358,7 @@ Values belong to the submitting or ordering user and to the local date of captur
 
 A workflow engine routes every request type through tenant-defined steps.
 
-Request types in version 1: leave, attendance regularisation, expense claim, order, new account, account location change, journey plan (monthly tour plan) and, optionally, target lock.
+Request types in version 1: leave, attendance regularisation, expense claim, order, new account, account location change, journey plan (monthly tour plan). Target lock, once listed as optional, was removed by D137: locking targets is `target.lock` on the targets themselves, never a request.
 
 | Step property | Options |
 |---|---|
@@ -2297,13 +2297,13 @@ Permissions are strings of the form `<area>.<action>`. Roles hold lists of them,
 | Maps | `live_map.view`, `trail.view` |
 | People | `user.view`, `user.manage`, `user.reset_device`, `user.sign_out_all`, `role.manage`, `designation.manage` |
 | Territories and accounts | `territory.manage`, `account.view`, `account.manage`, `account.import`, `account.approve`, `sell_through.record` (D124), `stock.view`, `stock.record`, `stock.count` (D130) |
-| Configuration | `settings.manage`, `terminology.manage`, `form.manage`, `metric.manage`, `workflow.manage`, `policy.manage`, `notification_template.manage`, `module.manage` |
+| Configuration | `settings.manage`, `terminology.manage`, `form.manage`, `metric.manage`, `workflow.manage`, `module.manage` (`policy.manage` and `notification_template.manage`, which nothing used, removed by D137) |
 | Catalogue and orders | `catalogue.manage`, `price_list.manage`, `order.create`, `order.create_without_shift`, `order.view`, `order.decide`, `order.line_decide`, `order.fulfil`, `scheme.manage` (D127) |
 | Finance | `finance.view`, `finance.manage`, `collection.record`, `collection.view`, `collection.confirm` (D132) |
 | People operations | `leave.request`, `regularisation.request`, `expense.claim`, `approval.act`, `calendar.manage`, `leave_type.manage`, `expense_policy.manage`, `expense.mark_paid`, `payroll.manage`, `payslip.view`, `payroll.run`, `salary.manage` (D128) |
 | Data | `report.view`, `export.create`, `report.schedule`, `dashboard.manage`, `import.run`, `audit.view` (`report.schedule` and `dashboard.manage` belong to the advanced analytics module, D122) |
 | Integrations and billing | `api_client.manage`, `webhook.manage`, `erp.manage` (D129), `billing.manage` |
-| Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.flags.manage`, `platform.billing.manage`, `platform.staff.manage` (inviting and disabling vendor staff, decision D88) |
+| Platform (vendor staff only) | `platform.tenant.manage`, `platform.plan.manage`, `platform.support.request`, `platform.support.approve_emergency`, `platform.billing.manage`, `platform.staff.manage` (inviting and disabling vendor staff, decision D88); `platform.flags.manage`, which nothing used, removed by D137 |
 
 ## Appendix F. Environment variables
 

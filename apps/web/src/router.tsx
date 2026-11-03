@@ -76,7 +76,7 @@ import { ReportsPage, reportsSearch } from './reports/reports-page';
 import { ApprovalChainsPage } from './settings/approvals-page';
 import { RolesPage } from './settings/roles-page';
 import { RulesPage } from './settings/rules-page';
-import { SettingsLayout } from './settings/settings-layout';
+import { SettingsHome, SettingsLayout } from './settings/settings-layout';
 import { TerminologyPage } from './settings/terminology-page';
 import { TypeEditorPage } from './settings/type-editor-page';
 import { TypesPage } from './settings/types-page';
@@ -387,9 +387,7 @@ const settings = createRoute({
 const settingsIndex = createRoute({
   getParentRoute: () => settings,
   path: '/',
-  beforeLoad: () => {
-    throw redirect({ to: '/settings/organisation' });
-  },
+  component: SettingsHome,
 });
 const organisation = createRoute({
   getParentRoute: () => settings,

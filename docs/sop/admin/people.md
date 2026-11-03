@@ -76,7 +76,7 @@ For someone whose role needs an authenticator and who has lost it and their reco
 
 1. If people report to them, transfer those people to another manager first.
 2. On their page, under **Profile**, select **Deactivate**, then **Deactivate** again to confirm. They are signed out everywhere and can't sign in again. Their history stays, and their seat is freed.
-3. To bring someone back, select **Reactivate** on their page.
+3. To bring someone back, select **Reactivate** on their page. If their number now signs in to another organisation, the page says **This mobile number is already in use. Use another number, or ask the person to be removed from their current organisation first.**
 
 ### Sign everyone out
 
@@ -96,7 +96,7 @@ On their page, under **Work**, choose a **Holiday calendar**, or leave **The def
 - A number belongs to one organisation at a time. One active in another organisation is refused, without saying which (`NUMBER_IN_USE`, decision D103).
 - Adding or reactivating someone needs a free seat on your plan (`Seats.assertRoom()`, BR-45).
 - Nobody gives access they don't hold: you can't give a role with permissions or reach beyond yours (`canGrant()`).
-- You can't change your own role or status, reset your own phone, or reset your own authenticator.
+- You can't change your own role or status, reset your own phone, or reset your own authenticator. On your own page **Reset phone** isn't shown.
 - A manager must be active, must not report to the person (no loops), and must hold a designation that can have reports.
 - The exit date can't be before the joining date.
 - Someone with active reports can't be deactivated or moved to a designation that can't have reports.
@@ -110,7 +110,9 @@ On their page, under **Work**, choose a **Holiday calendar**, or leave **The def
 | **This mobile number is already in use. Use another number, or ask the person to be removed from their current organisation first.** under **Mobile number** | The number is active in another organisation. | Use another number, or ask the person to have their old organisation deactivate them. |
 | **Another user has this mobile number** or **Another user has this code** | Someone in your organisation already has it. | Find them with **Search**; use another code or number. |
 | Your organisation has used all its seats. Ask an admin to add more. | The plan's seat limit is reached. | Deactivate a leaver, or ask the vendor for more seats ([Check your plan, billing details and invoices](billing.md)). |
-| This changed somewhere else. Refresh and try again. | Shown above the form for the clashes above, and when you deactivate someone people still report to. | Read the field messages; for a manager, transfer their reports first. |
+| **People still report to this person. Move their reports to another manager first.** | You selected **Deactivate** for someone people report to. | Transfer their reports to another manager, then deactivate them. |
+| **This mobile number is already in use. Use another number, or ask the person to be removed from their current organisation first.** on their page | You selected **Reactivate**, and their number is active in another organisation now. | Give them another number first, or ask the other organisation to deactivate them. |
+| This changed somewhere else. Refresh and try again. | Shown above the form for the clashes above. | Read the field messages. |
 | You don't have access to this. | The role you chose goes beyond your own access, or you acted on yourself. | Ask another admin. |
 | This is outside the people and places you look after. | The person is outside your role's reach. | Ask someone whose role reaches them. |
 | Sign in again with your authenticator to open this organisation. | You cancelled **Confirm it’s you**, or the code was refused. | Make the change again and give a current code. |

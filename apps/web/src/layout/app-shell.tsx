@@ -33,6 +33,7 @@ import { useConfig, useMe } from '../data';
 import { useWaiting } from '../dashboard/data';
 import { designationName } from '../people/shared';
 import { useOrganisation } from '../settings/data';
+import { settingsEntry } from '../settings/settings-layout';
 import { useUnread } from '../notifications/data';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
@@ -280,20 +281,12 @@ export function AppShell() {
       ],
     },
   ].filter((section) => section.links.length > 0);
-  const settings = only(
-    access.can('role.manage') ||
-      access.can('designation.manage') ||
-      access.can('settings.manage') ||
-      access.can('terminology.manage') ||
-      access.can('module.manage') ||
-      access.can('form.manage') ||
-      access.can('catalogue.manage') ||
-      access.can('price_list.manage') ||
-      access.can('scheme.manage') ||
-      access.can('territory.manage') ||
-      access.can('metric.manage'),
-    { to: '/settings', icon: Settings, label: t('nav.settings') },
-  );
+  // From the settings pages' own permissions, so a new page brings its holders in.
+  const settings = only(settingsEntry(access) !== undefined, {
+    to: '/settings',
+    icon: Settings,
+    label: t('nav.settings'),
+  });
 
   useEffect(() => {
     setTerms(config.data?.bundle.terminology);

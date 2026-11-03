@@ -42,6 +42,7 @@ It leaves out your names, address, GSTIN, logo, brand colour and Maps key, which
 - An import adds and updates; it never removes anything.
 - Some entries are **Kept** as they are here, such as the role you hold and the Admin role. The page says so when it happens.
 - Keys never change, a field keeps its type, and a metric keeps its unit, as on the pages that edit them.
+- A file exported before November 2026 may list the permissions `policy.manage` and `notification_template.manage`, or a chain for locking targets, which the product has since taken out (D137). The import reads the file as if they weren't there, with no problem shown.
 - Forms and account types get a new version; phones get them at their next sync.
 - **Import the file** is unavailable when the file would change nothing.
 

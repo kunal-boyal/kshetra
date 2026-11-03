@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import {
   AppError,
   canGrant,
+  knownPermissions,
   newId,
   type RoleDefinition,
   type RoleResult,
   SYSTEM_ROLES,
-  type TenantPermission,
   type UpdateRoleBody,
 } from '@thelamp/shared';
 import { and, asc, eq } from 'drizzle-orm';
@@ -33,7 +33,7 @@ function toResult(row: RoleRow): RoleResult {
     key: row.key,
     name: row.name,
     scope: row.scope,
-    permissions: row.permissions as TenantPermission[],
+    permissions: knownPermissions(row.permissions),
     mobileOnly: row.mobileOnly,
     system: row.system,
   };
@@ -127,7 +127,7 @@ export class RolesService {
     const next = {
       name: input.name ?? role.name,
       scope: input.scope ?? role.scope,
-      permissions: input.permissions ?? (role.permissions as TenantPermission[]),
+      permissions: input.permissions ?? knownPermissions(role.permissions),
       mobileOnly: input.mobileOnly ?? role.mobileOnly,
     };
     if (!canGrant(access, toResult(role)) || !canGrant(access, next)) throw beyondOwnAccess();

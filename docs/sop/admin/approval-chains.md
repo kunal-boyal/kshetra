@@ -7,7 +7,7 @@
 | **Module** | Core (a request type of a module that is off leaves the inbox) |
 | **Related** | [Set up leave types](leave-types.md), [Set up expense policies](expense-policies.md), [Set the organisation's rules](rules.md), [Decide approvals](../manager/approvals.md) |
 
-An approval chain says who decides each kind of request, step by step: leave, attendance fixes, expense claims, orders, new accounts, account locations, journey plans and locking targets. A type without a chain goes to the requester's manager. Each save is a new version; requests already waiting keep the version that routed them.
+An approval chain says who decides each kind of request, step by step: leave, attendance fixes, expense claims, orders, new accounts, account locations and journey plans. A type without a chain goes to the requester's manager. Each save is a new version; requests already waiting keep the version that routed them.
 
 ## Before you start
 
@@ -30,7 +30,7 @@ An approval chain says who decides each kind of request, step by step: leave, at
    - **The nearest above with a designation**: choose the **Designation**.
    - **Anyone with a role who reaches them**: choose the **Role**. Anyone with that role whose data scope reaches the requester may decide.
    - **Whoever fills a slot of the account** (the tenant's word for account): choose the **Slot**. Only for requests about an account.
-   - **One named person**: choose the **Person**.
+   - **One named person**: under **Person**, type part of their name, code or mobile number (**A name, code or mobile number**) and select them from the matches. Everyone active you reach can be found, however many people the organisation has. To name someone else later, select **Change** beside the person.
 6. To use a step only sometimes, select **Add a condition** under **Use this step only when**, and build it as in the form builder: **Match** all or any, then each condition's **Field**, **Is** and **Value**. The fields depend on the request type:
    - Leave: "Leave days", "Paid leave".
    - Attendance fixes: "Days ago".

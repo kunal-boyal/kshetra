@@ -9050,8 +9050,7 @@
                 "order",
                 "new_account",
                 "account_location_change",
-                "journey_plan",
-                "target_lock"
+                "journey_plan"
               ]
             }
           },
@@ -9114,8 +9113,7 @@
                           "order",
                           "new_account",
                           "account_location_change",
-                          "journey_plan",
-                          "target_lock"
+                          "journey_plan"
                         ]
                       },
                       "additionalProperties": {
@@ -9277,8 +9275,7 @@
                       "order",
                       "new_account",
                       "account_location_change",
-                      "journey_plan",
-                      "target_lock"
+                      "journey_plan"
                     ]
                   },
                   "facts": {
@@ -13246,7 +13243,7 @@
                           "$ref": "#/components/schemas/Key"
                         },
                         "definitions": {
-                          "maxItems": 8,
+                          "maxItems": 7,
                           "type": "array",
                           "items": {
                             "$ref": "#/components/schemas/Workflow"
@@ -23498,7 +23495,6 @@
                             "$ref": "#/components/schemas/DataScope"
                           },
                           "permissions": {
-                            "minItems": 1,
                             "type": "array",
                             "items": {
                               "$ref": "#/components/schemas/Permission"
@@ -23602,7 +23598,6 @@
                       "$ref": "#/components/schemas/DataScope"
                     },
                     "permissions": {
-                      "minItems": 1,
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Permission"
@@ -23719,7 +23714,6 @@
                       "$ref": "#/components/schemas/DataScope"
                     },
                     "permissions": {
-                      "minItems": 1,
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Permission"
@@ -31236,8 +31230,7 @@
                 "order",
                 "new_account",
                 "account_location_change",
-                "journey_plan",
-                "target_lock"
+                "journey_plan"
               ]
             }
           },
@@ -31300,8 +31293,7 @@
                         "order",
                         "new_account",
                         "account_location_change",
-                        "journey_plan",
-                        "target_lock"
+                        "journey_plan"
                       ]
                     },
                     "version": {
@@ -32830,8 +32822,7 @@
               "order",
               "new_account",
               "account_location_change",
-              "journey_plan",
-              "target_lock"
+              "journey_plan"
             ]
           },
           "requestId": {
@@ -44498,6 +44489,7 @@
               "report.scheduled",
               "support.requested",
               "support.emergency",
+              "support.second_factor_reset",
               "data_request.received",
               "data_request.due_soon",
               "data_request.closed",
@@ -46188,8 +46180,6 @@
           "form.manage",
           "metric.manage",
           "workflow.manage",
-          "policy.manage",
-          "notification_template.manage",
           "module.manage",
           "catalogue.manage",
           "price_list.manage",
@@ -52410,7 +52400,6 @@
                 "platform.plan.manage",
                 "platform.support.request",
                 "platform.support.approve_emergency",
-                "platform.flags.manage",
                 "platform.billing.manage",
                 "platform.staff.manage"
               ]
@@ -57293,8 +57282,7 @@
               "order",
               "new_account",
               "account_location_change",
-              "journey_plan",
-              "target_lock"
+              "journey_plan"
             ]
           },
           "steps": {
@@ -57332,8 +57320,7 @@
                     "order",
                     "new_account",
                     "account_location_change",
-                    "journey_plan",
-                    "target_lock"
+                    "journey_plan"
                   ]
                 },
                 "version": {

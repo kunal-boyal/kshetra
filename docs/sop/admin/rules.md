@@ -4,7 +4,7 @@
 |---|---|
 | **Who** | Admin or Business head (`settings.manage`) |
 | **Where** | Web portal › **Settings** › **Organisation** › **Rules** |
-| **Module** | Core; the **Collections** group needs **Account finance**, the **Stock** group needs **Inventory** |
+| **Module** | Core; the **Orders** group needs **Orders**, the **Ageing** and **Collections** groups need **Account finance**, the **Stock** group needs **Inventory** |
 | **Related** | [Build and publish a form](forms.md), [Set up expense policies](expense-policies.md), [Set up leave types](leave-types.md), [Set up metrics and the score](metrics-and-score.md), [Set up the organisation and its brand](organisation-and-branding.md), [Switch modules on and off](modules.md), [Review submissions](../manager/review-submissions.md) |
 
 **Rules** is how the apps work for your organisation: region, field work, approvals, evidence checks, notifications, how long records are kept, and maps. Set it when the organisation starts, and come back when a policy changes. One **Save** sends only what you changed, and the server checks every range.
@@ -43,6 +43,15 @@
 | **Odometer at start day and end day** | **Not asked**, **Asked, may be skipped**, or **Required**: a reading and a photo of it at the start and end of each shift. Shown beside the tracked distance, never in its place. Per-km claims can take their kilometres from it. |
 | **One phone per person, until a manager resets it** | Binds each person to the first phone they sign in on. |
 
+### Orders (with Orders on)
+
+The group is headed with your word for orders.
+
+| Setting | What it does |
+|---|---|
+| **Take orders on the app only after start day** (your words for orders and Start day) | A field person can't send an order from the phone while not on duty; they are asked to start their day first. Holders of `order.create_without_shift` and the order desk on the web aren't held to it. Off by default. |
+| **Let the app take orders offline, sent with the next sync** (your word for orders) | On (the default), an order waits on the phone and goes when there is signal. Off, the phone sends it at once and needs a connection. |
+
 ### Approvals
 
 | Setting | What it does |
@@ -68,6 +77,17 @@ The thresholds are fixed; the page shows the values in force.
 | Setting | What it does |
 |---|---|
 | **Metric to set forecasts beside** | A money metric whose account plan the forecast's value is compared with in the forecast accuracy report. **None** leaves it out. |
+
+### Ageing (with Account finance on)
+
+**The bands of days past due that each balance is aged into, earliest first. Only the last band has no end.** Each band, **Band 1**, **Band 2** and so on, has **From day** and **To day**; leave **To day** empty on the last band only. The defaults are 0 to 30, 31 to 60, 61 to 90, 91 to 180 and over 180 days.
+
+- To change a band, edit its days.
+- **Add a band** adds one after the last (up to eight): the last band, if it had no end, gets 30 days, and the new band starts the day after and has no end.
+- The bin button beside a band (**Remove band 2** and so on) removes it; one band always stays.
+- If the bands overlap, leave a gap the wrong way round, or a band other than the last has no end, the group says **Each band must start after the one before it ends, and only the last band may have no end.** and **Save** stays greyed out until they are fixed (`bucketsIssue()`, BR-20).
+
+A band keeps its key, so the amounts already loaded against it stay. Balance imports name each band's column by its days, such as "0-30 days".
 
 ### Collections (with Account finance on)
 
@@ -110,12 +130,12 @@ The thresholds are fixed; the page shows the values in force.
 
 - **Automatic approval** of forms set to automatic review is on **Review**, for holders of `review_rules.manage`.
 - The organisation's name, address, tax ID, logo, brand colour and privacy policy link are on **Settings** › **Organisation** › **Organisation**; modules on **Modules**.
-- The ageing buckets account finance reports by, and whether orders need an open shift or may be taken offline, have no screen. They change only through a configuration file (**Settings** › **Data** › **Export and import**, its `settings` section).
 
 ## What the system checks
 
 - Every number is within its range; the time zone, currency and country are known codes; English stays among the languages.
 - The forecast metric is an active money metric.
+- Ageing bands follow one another without overlapping, one to eight of them, and only the last has no end.
 - Location days are archived only once no phone can still send points for them (BR-41), and points are never deleted before their day is archived.
 
 ## If something goes wrong

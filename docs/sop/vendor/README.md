@@ -9,7 +9,7 @@ The console's rail has three sections: **Customers** (**Tenants**, **New tenant*
 | Role | Permissions (`PLATFORM_ROLE_PERMISSIONS`) | What it does |
 |---|---|---|
 | Platform admin | every platform permission | Everything, including inviting and disabling staff, and approving another's emergency support access |
-| Implementation | `platform.tenant.manage`, `platform.flags.manage` | Creates, suspends, reactivates and terminates tenants; announcements |
+| Implementation | `platform.tenant.manage` | Creates, suspends, reactivates and terminates tenants; announcements |
 | Support | `platform.support.request` | Sees tenants and asks for support access; resets a tenant user's lost authenticator |
 | Finance | `platform.plan.manage`, `platform.billing.manage` | Plans, billing details, subscriptions, invoices, payments, billing settings and payroll rate sets |
 

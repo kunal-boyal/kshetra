@@ -1,12 +1,14 @@
 export {
   canGrant,
   DATA_SCOPES,
+  knownPermissions,
   needsSecondFactor,
   PERMISSIONS_BY_AREA,
   PLATFORM_PERMISSIONS,
   PLATFORM_ROLE_PERMISSIONS,
   PLATFORM_ROLES,
   type PlatformRole as PlatformRoleKey,
+  RETIRED_PERMISSIONS,
   scopeContains,
   SECOND_FACTOR_PERMISSIONS,
   SYSTEM_ROLES,
@@ -447,6 +449,7 @@ export {
   ACCOUNT_REQUEST_TYPES,
   nextStep,
   REQUEST_TYPES,
+  RETIRED_REQUEST_TYPES,
   routeRequest,
   SKIP_REASONS,
 } from './workflow';

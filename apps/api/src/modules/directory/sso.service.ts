@@ -298,6 +298,26 @@ export class SsoService {
           { path: 'domains', issue: `Another organisation signs in ${taken.domain} already` },
         ]);
       }
+      // Requiring SSO needs a domain proved first (decision D101): only a proved domain signs
+      // anyone in, so before one is, requiring it would leave its people no way in.
+      if (body.enabled && body.enforced) {
+        const [proved] = await tx
+          .select({ domain: ssoDomains.domain })
+          .from(ssoDomains)
+          .where(
+            and(
+              eq(ssoDomains.tenantId, tenantId),
+              inArray(ssoDomains.domain, body.domains),
+              isNotNull(ssoDomains.verifiedAt),
+            ),
+          )
+          .limit(1);
+        if (!proved) {
+          throw new AppError('VALIDATION', 'Check the highlighted fields.', [
+            { path: 'enforced', issue: 'Prove a domain is yours before requiring single sign-on' },
+          ]);
+        }
+      }
       // Each domain keeps its token and proof while it stays; one taken out goes.
       await tx
         .delete(ssoDomains)

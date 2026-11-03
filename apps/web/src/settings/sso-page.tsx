@@ -10,7 +10,7 @@ import {
 } from '@thelamp/ui-web';
 import { type FormEvent, useState } from 'react';
 import { useApp } from '../context';
-import { errorMessage, useLanguage } from '../i18n';
+import { errorMessage, errorReason, useLanguage } from '../i18n';
 import { read, write } from '../people/data';
 import { Facts, fieldErrors, PageHeader, Section } from '../people/shared';
 import { Copyable } from './secret';
@@ -236,6 +236,12 @@ function ConnectionForm({ current }: { current: SsoConnectionResult }) {
           disabled={!draft.enabled}
           onChange={(event) => change({ enforced: event.target.checked })}
         />
+        {/* Required waits for a proved domain (decision D101); the server says when none is. */}
+        {errors.enforced ? (
+          <p className="ks-help error" role="alert">
+            {t('sso.enforced_unproved')}
+          </p>
+        ) : null}
         {failure ? (
           <p className="ks-help error" role="alert">
             {errorMessage(failure, t)}
@@ -277,7 +283,7 @@ function DomainsSection({ checks }: { checks: DomainCheck[] }) {
       setOutcome({
         domain,
         ok: false,
-        text: fieldErrors(error).domain ?? errorMessage(error, t),
+        text: fieldErrors(error).domain ?? errorReason(error, t),
       });
     } finally {
       setChecking(undefined);
