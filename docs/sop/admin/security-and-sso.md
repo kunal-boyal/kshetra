@@ -20,7 +20,7 @@
 - On the web, anyone whose role holds `role.manage`, `user.manage`, `settings.manage`, `module.manage`, `billing.manage` or `erp.manage` also gives a code from an authenticator app. Anyone else may turn one on at **Sign-in security** in their profile menu. Phones never ask for it.
 - A web session ends after 12 hours without use and after 7 days at most. A single sign-on session lasts 12 hours. Phones stay signed in for 30 days without use and 90 days at most.
 - Whether each person may use one phone only is a rule ([Rules](rules.md)).
-- Changes that decide who signs in as whom ask for a fresh authenticator code, a step-up: changing a person's mobile number or email, resetting someone's authenticator, and saving single sign-on. A box **Confirm it’s you** appears at the top of the page; type the code in **Authenticator code** and select **Continue**. A code counts for ten minutes.
+- Changes that decide who signs in as whom ask for a fresh authenticator code, a step-up: changing a person's mobile number or email, resetting someone's authenticator, and saving single sign-on. A box **Confirm it’s you** appears at the top of the page; type the code in **Authenticator code** and select **Continue**. A code counts for ten minutes. If you have no authenticator, the box says so and offers **Set up an authenticator** instead of asking for a code; set one up, then make the change again.
 
 ## Steps
 
@@ -73,7 +73,7 @@ A secret or certificate already saved shows **Saved. Leave it blank to keep it.*
 | What you see | What it means | What to do |
 |---|---|---|
 | **No TXT record with the token was found at … yet** | DNS doesn't show the record yet. | Check the name and value at your DNS provider, wait, then **Check now** again. |
-| This changed somewhere else. Refresh and try again. | Another organisation proved that domain first. | Ask the vendor. |
+| **Another organisation has verified this domain already.** | Another organisation proved that domain first; it stays theirs. | Ask the vendor. |
 | Some details need fixing. Check the highlighted fields. | A field is wrong, such as an issuer address the product can't reach. The field says why. | Correct it and save again. |
 | Sign in again with your authenticator to open this organisation. | You cancelled **Confirm it’s you**, or its code was refused. | Save again and give a current code. |
 | The sign-in took too long. Try again. | (On the sign-in page.) The trip to the provider timed out. | Try again. |

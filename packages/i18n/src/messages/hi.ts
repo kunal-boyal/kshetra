@@ -117,6 +117,9 @@ export const hi: Record<MessageKey, Message> = {
   'stepup.intro':
     'यह बदलाव तय करता है कि कौन किसके नाम से साइन इन कर सकता है। अपने ऑथेंटिकेटर ऐप में अभी दिख रहा कोड डालें।',
   'stepup.continue': 'आगे बढ़ें',
+  'stepup.no_authenticator':
+    'इस बदलाव के लिए ऑथेंटिकेटर ऐप का कोड चाहिए, और आपका कोई ऑथेंटिकेटर सेट नहीं है। पहले साइन-इन सुरक्षा में एक सेट करें, फिर बदलाव दोबारा करें।',
+  'stepup.set_up': 'ऑथेंटिकेटर सेट करें',
   'security.title': 'साइन-इन सुरक्षा',
   'security.intro': 'आप पोर्टल में कैसे साइन इन करते हैं।',
   'security.sms_note':
@@ -515,6 +518,8 @@ export const hi: Record<MessageKey, Message> = {
   'roles.mobile_only': 'केवल मोबाइल ऐप',
   'roles.mobile_only_help': 'इस भूमिका वाले लोग केवल ऐप पर साइन इन करते हैं, वेब पर कभी नहीं।',
   'roles.built_in': 'पहले से बनी',
+  'roles.admin_fixed':
+    'इस भूमिका के पास हमेशा पूरे संगठन में हर अनुमति रहती है। केवल इसका नाम बदला जा सकता है।',
   'roles.permission_count': {
     one: '{count} अनुमति',
     other: '{count} अनुमतियाँ',
@@ -3490,6 +3495,8 @@ export const hi: Record<MessageKey, Message> = {
   'organisation.col_product': 'प्रोडक्ट का शब्द',
   'organisation.field_rules': 'फ़ील्ड के नियम',
   'organisation.change_rules': 'सभी नियम',
+  'organisation.change_modules': 'मॉड्यूल बदलें',
+  'organisation.module_off': 'बंद',
   'organisation.rule_geofence': 'जियोफ़ेंस',
   'organisation.geofence_value': '{metres} मी के भीतर',
   'organisation.rule_auto': 'अपने-आप मंज़ूरी',
@@ -3591,6 +3598,19 @@ export const hi: Record<MessageKey, Message> = {
   'admin.rule_journeyPlanApproval': '{term.journey_plan:other} को मैनेजर की स्वीकृति चाहिए',
   'admin.rule_targetUnlockByAdmin': 'एडमिन लॉक किए गए {term.target:other} खोल सकते हैं',
   'admin.rule_defaultCreditDays': 'जब इनवॉइस में न दिए हों तो उधार के दिन',
+  'admin.rule_ordersNeedOpenShift': 'ऐप पर {term.order:other} केवल {term.punch_in} के बाद लें',
+  'admin.rule_ordersAllowedOffline':
+    'ऐप को बिना इंटरनेट के भी {term.order:other} लेने दें, जो अगली सिंक पर भेजे जाएँ',
+  'admin.buckets_help':
+    'देय तिथि के बाद के दिनों के खंड, जिनमें हर बकाया क्रम से बाँटा जाता है। केवल आख़िरी खंड का कोई अंत नहीं होता।',
+  'admin.buckets_issue':
+    'हर खंड पिछले खंड के ख़त्म होने के बाद शुरू होना चाहिए, और केवल आख़िरी खंड बिना अंत का हो सकता है।',
+  'admin.bucket_n': 'खंड {n}',
+  'admin.bucket_from': 'किस दिन से',
+  'admin.bucket_to': 'किस दिन तक',
+  'admin.bucket_to_help': 'अंत न हो तो खाली छोड़ें, केवल आख़िरी खंड में।',
+  'admin.bucket_add': 'खंड जोड़ें',
+  'admin.bucket_remove': 'खंड {n} हटाएँ',
   'admin.rule_countTolerancePct': 'इस अंतर (%) से ज़्यादा होने पर गिनती चिह्नित होती है',
   'admin.rule_collectionCashLimit': 'एक {term.account} से एक दिन की नकद वसूली इससे कम रहे (₹)',
   'admin.rule_planNotificationTime': 'आज की योजना भेजने का समय',
@@ -3609,7 +3629,10 @@ export const hi: Record<MessageKey, Message> = {
   'admin.terminology_intro':
     'आपके संगठन के अपने शब्द। ऐप हर जगह इन्हें इस्तेमाल करते हैं, वेब पर तुरंत और फ़ोन पर अगले सिंक पर।',
   'admin.terminology_empty':
-    'उत्पाद का शब्द रखने के लिए खाना खाली छोड़ें, जो हर खाने में हल्का दिखता है।',
+    'उत्पाद का शब्द रखने के लिए खाना खाली छोड़ें, जो हर खाने में हल्का दिखता है। हिंदी खाली छोड़ने पर अंग्रेज़ी शब्द लिया जाता है।',
+  'admin.term_incomplete': 'इसे भी भरें, या उत्पाद का शब्द रखने के लिए यह शब्द खाली करें।',
+  'admin.terms_incomplete':
+    'कुछ शब्द अधूरे भरे हैं। उन्हें पूरा करें, या उत्पाद के शब्द रखने के लिए खाली करें। कुछ भी सहेजा नहीं गया।',
   'admin.term_account': '{term.account:other}',
   'admin.term_field_user': '{term.field_user:other}',
   'admin.term_activity': '{term.activity:other}',

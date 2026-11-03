@@ -1,4 +1,4 @@
-import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import { Link, Navigate, Outlet, useRouterState } from '@tanstack/react-router';
 import { cn } from '@thelamp/ui-web';
 import { useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
@@ -10,6 +10,11 @@ interface Page {
   to: string;
   label: (t: Translate) => string;
   shown: (access: Access) => boolean;
+  /**
+   * For a page anyone in Settings may read: who it alone brings to Settings, those who change it.
+   * Otherwise whoever it is shown to.
+   */
+  opens?: (access: Access) => boolean;
 }
 
 const always = () => true;
@@ -55,8 +60,18 @@ export const SETTINGS_GROUPS = [
         label: (t) => t('nav.roles'),
         shown: can('role.manage', 'user.manage'),
       },
-      { to: '/settings/designations', label: (t) => t('nav.designations'), shown: always },
-      { to: '/settings/people-fields', label: (t) => t('nav.user_fields'), shown: always },
+      {
+        to: '/settings/designations',
+        label: (t) => t('nav.designations'),
+        shown: always,
+        opens: can('designation.manage'),
+      },
+      {
+        to: '/settings/people-fields',
+        label: (t) => t('nav.user_fields'),
+        shown: always,
+        opens: can('settings.manage'),
+      },
       {
         to: '/settings/approvals',
         label: (t) => t('nav.approval_chains'),
@@ -168,6 +183,24 @@ export const SETTINGS_GROUPS = [
 ] as const satisfies readonly { key: string; pages: readonly Page[] }[];
 
 type GroupKey = (typeof SETTINGS_GROUPS)[number]['key'];
+
+/**
+ * The first settings page the caller may open, or undefined when Settings has nothing for them:
+ * the navigation shows Settings from the pages' own permissions, so a page added here with its
+ * permission brings its holders in without another list to keep.
+ */
+export function settingsEntry(access: Access): string | undefined {
+  return SETTINGS_GROUPS.flatMap((group) => group.pages as readonly Page[]).find((page) =>
+    (page.opens ?? page.shown)(access),
+  )?.to;
+}
+
+/** `/settings` itself: the caller's first page, which isn't the organisation for everyone. */
+export function SettingsHome() {
+  const access = useAccess();
+  if (!access.ready) return null;
+  return <Navigate to={settingsEntry(access) ?? '/'} replace />;
+}
 
 /** Whether a path is a page or one beneath it, such as an account type's editor. */
 const under = (path: string, to: string) => path === to || path.startsWith(`${to}/`);

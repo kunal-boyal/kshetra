@@ -746,9 +746,8 @@ export class UsersService {
   /** Refuses a number that signs in to another organisation: one person, one (decision D103). */
   private async checkNumberFree(tenantId: string, phone: string): Promise<void> {
     if ((await this.members.activeElsewhere([phone], tenantId)).has(phone)) {
-      throw new AppError('CONFLICT', 'This mobile number is already in use.', [
-        { path: 'phone', issue: NUMBER_IN_USE },
-      ]);
+      // The whole reason, as the field says it: the portal shows it where there is no field.
+      throw new AppError('CONFLICT', NUMBER_IN_USE, [{ path: 'phone', issue: NUMBER_IN_USE }]);
     }
   }
 

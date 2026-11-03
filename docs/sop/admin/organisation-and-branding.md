@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Who** | Admin (`settings.manage`); the module switches on this page also need `module.manage` |
+| **Who** | Admin (`settings.manage`) |
 | **Where** | Web portal › **Settings** › **Organisation** › **Organisation** |
 | **Module** | Core |
 | **Related** | [Switch modules on and off](modules.md), [Use your organisation's own words](terminology.md), [Set the organisation's rules](rules.md), [Export and import the configuration](configuration-export-import.md) |
@@ -44,7 +44,7 @@ The Organisation page holds your organisation's name, legal details, logo, colou
 ### The rest of the page
 
 - **Your words** lists the product's word for each term beside yours, in English and Hindi. Select **Change words** to change them ([Use your organisation's own words](terminology.md)).
-- **Modules** lists each module with a switch. Prefer the Modules page for switching ([Switch modules on and off](modules.md)); see the warning under "If something goes wrong".
+- **Modules** shows whether each module is **On** or **Off** (Core is **Always on**). Nothing is switched here: select **Change modules** to switch them on the Modules page, the one place that knows your plan and switches **Inventory** and **Statutory payroll** on ([Switch modules on and off](modules.md)).
 - **Field rules** sums up the **Geofence**, **Auto-approval**, **Tracking**, **Phones** and **Photo keeping** rules. Select **All rules** to change them ([Set the organisation's rules](rules.md)).
 - **Export configuration** opens **Export and import** ([Export and import the configuration](configuration-export-import.md)).
 
@@ -62,5 +62,4 @@ The Organisation page holds your organisation's name, legal details, logo, colou
 | This image is larger than 2 MB. Choose a smaller one. | The logo file is too big. | Make the image smaller and choose it again. |
 | Too light: white text on it would be hard to read. | The colour fails the contrast check. **Save** stays unavailable. | Select the **Use {colour} instead** button, or choose a darker colour. |
 | Some details need fixing. Check the highlighted fields. | A field is wrong, such as a GSTIN of the wrong length or a privacy address that isn't `https://`. The field says what. | Correct the field and select **Save** again. |
-| You switched **Inventory** or **Statutory payroll** on here, the page said **Saved.**, but the switch went back to off. | These two modules switch on only from the Modules page. | Switch them on at **Settings** › **Organisation** › **Modules** ([Switch modules on and off](modules.md)). |
-| You don't have access to this. | Your role lacks `settings.manage`, or `module.manage` for the module switches. | Ask an admin. |
+| You don't have access to this. | Your role lacks `settings.manage`. | Ask an admin. |

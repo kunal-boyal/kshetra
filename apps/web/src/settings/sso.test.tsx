@@ -55,6 +55,13 @@ function ssoClient(connection: object | null) {
     {
       'POST /v1/sso/domains/verify': ({ body }: RequestOptions) => {
         const { domain } = body as { domain: string };
+        if (domain === 'taken.example') {
+          throw new ApiError(
+            409,
+            'CONFLICT',
+            'Another organisation has verified this domain already.',
+          );
+        }
         if (domain === 'sunrise-agro.example') {
           throw new ApiError(400, 'VALIDATION', 'Check the fields.', [
             {
@@ -151,6 +158,22 @@ describe('single sign-on settings (spec M1, D91)', () => {
         'No TXT record with the token was found at _thelamp-sso.sunrise-agro.example yet',
       ),
     ).toBeVisible();
+  });
+
+  it('says when another organisation proved a domain first', async () => {
+    const client = ssoClient({
+      ...OIDC,
+      domains: ['taken.example'],
+      domainChecks: checksOf(['taken.example']),
+    });
+    renderAt('/settings/sso', client);
+    const user = userEvent.setup();
+    const proofs = await screen.findByRole('region', { name: 'Prove your domains' });
+    await user.click(within(proofs).getByRole('button', { name: 'Check now' }));
+    expect(
+      await within(proofs).findByText('Another organisation has verified this domain already.'),
+    ).toBeVisible();
+    expect(within(proofs).queryByText(/changed somewhere else/)).toBeNull();
   });
 
   it('sets up SAML with a certificate, and shows a domain the API refused', async () => {

@@ -38,7 +38,7 @@ Everyone signs in with their mobile number and a six-digit code sent by SMS; the
 
 ### "This mobile number is already in use"
 
-An admin adding a person or changing their number sees, under **Mobile number**: "This mobile number is already in use. Use another number, or ask the person to be removed from their current organisation first." In an import of people the same sentence shows against the row. **Reactivate** on the person's page refuses for the same reason, but shows only **This changed somewhere else. Refresh and try again.**
+An admin adding a person or changing their number sees, under **Mobile number**: "This mobile number is already in use. Use another number, or ask the person to be removed from their current organisation first." In an import of people the same sentence shows against the row. **Reactivate** on the person's page refuses for the same reason, with the same sentence.
 
 - Why: the number is active in another organisation. A person belongs to one at a time, and the message never says which (decision D103).
 - What to do: ask the person. If they have left the other organisation, its admin must deactivate them there first; once they are inactive there, this organisation can add the number. Otherwise use another number.
@@ -93,7 +93,7 @@ Changing who signs in as whom asks for a fresh authenticator code, good for ten 
 
 - A wrong code is asked for again, three times at most.
 - Vendor support can't make these changes under a support grant; the tenant's admin makes them.
-- Someone with no authenticator set up can't step up: after they enter any code, the change fails with **This changed somewhere else. Refresh and try again.**, which here means "set up an authenticator first". This happens to an admin of a demo tenant, or one who signs in only through single sign-on. They set one up first at **Your profile and settings** › **Sign-in security** › **Set up an authenticator**, then make the change again.
+- Someone with no authenticator set up can't step up. Instead of asking for a code, **Confirm it’s you** says **This change needs a code from an authenticator app, and you have none set up. Set one up at Sign-in security first, then make the change again.**, with **Set up an authenticator**, which opens **Sign-in security**, and **Cancel**. Either leaves the change undone. This happens to an admin of a demo tenant, or one who signs in only through single sign-on. Once their authenticator is set up, they make the change again.
 - **Cancel** shows **Sign in again with your authenticator to open this organisation.** The change simply wasn't made; there is no need to sign in again.
 
 ### Single sign-on
@@ -143,4 +143,4 @@ The phone shows **Update the app** with **This version of the app is no longer s
 - SMS codes in production need MSG91 with DLT registration of the entity, the sender ID and the one-time-code template. Until then nobody can sign in by SMS on a production cell.
 - A second SMS provider behind the code sender, for outages, is planned but not built; until then the fallback is waiting.
 - The app isn't on Google Play yet, so **Open the store** has no listing to open; updates come as an installable file.
-- Texts the server writes for one field, such as the "already in use" sentence, are English even for Hindi readers (D42 open item).
+- Texts the server writes, such as the "already in use" sentence beside a field or a conflict's reason on a person's page, are English even for Hindi readers (D42 open item).

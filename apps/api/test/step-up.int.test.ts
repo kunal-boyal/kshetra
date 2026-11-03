@@ -93,6 +93,19 @@ describe('step-up (D101)', () => {
     expect(changed.statusCode, changed.body).toBe(200);
   });
 
+  it('says to set up an authenticator first when the person has none', async () => {
+    const o = await organisation('No Authenticator Co');
+    const signedIn = await world.signIn(o.managerPhone);
+    const tried = await as(signedIn.accessToken, 'POST', '/auth/v1/authenticator/step-up', {
+      code: '123456',
+    });
+    expect(tried.statusCode).toBe(409);
+    expect(tried.json().error).toMatchObject({
+      code: 'CONFLICT',
+      details: [{ path: 'authenticator', issue: 'No authenticator is set up' }],
+    });
+  });
+
   it('isn’t open to phones, which hold no such permissions anyway', async () => {
     const o = await organisation('Phone Co');
     const phone = await world.signIn(o.managerPhone, newDevice());

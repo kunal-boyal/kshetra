@@ -41,6 +41,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Whether a step-up was refused because the person has no authenticator to give a code from
+ * (decision D101): they set one up first, at Sign-in security.
+ */
+export function noAuthenticator(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.code === 'CONFLICT' &&
+    error.details.some((detail) => detail.path === 'authenticator')
+  );
+}
+
 /** The API could not be reached at all: no network, or the server is down. */
 export class NetworkError extends Error {
   constructor(cause: unknown) {
@@ -93,7 +105,8 @@ export interface ClientOptions {
   onSignedOut?: () => void;
   /**
    * Asks the person for a fresh authenticator code when a change needs one (step-up, decision
-   * D101): given the last wrong attempt's error, if any; null when they decline.
+   * D101): given the last wrong attempt's error, if any, which may say they have no authenticator
+   * (`noAuthenticator()`); null when they decline.
    */
   stepUp?: (wrong: ApiError | null) => Promise<string | null>;
 }
@@ -358,7 +371,9 @@ export function createClient(options: ClientOptions) {
         if (state) await keep({ ...state, ...token });
         return;
       } catch (error) {
-        if (!(error instanceof ApiError) || error.code !== 'OTP_INVALID') throw error;
+        // A wrong code is asked for again; so is one from nobody's authenticator, saying so.
+        if (!(error instanceof ApiError)) throw error;
+        if (error.code !== 'OTP_INVALID' && !noAuthenticator(error)) throw error;
         wrong = error;
       }
     }

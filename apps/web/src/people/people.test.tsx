@@ -638,6 +638,30 @@ describe("a person's page", () => {
     ]);
   });
 
+  it('says why the server refused a change, not that it changed somewhere else', async () => {
+    const client = fakeClient({
+      [`PATCH /v1/users/${PRIYA}`]: () => {
+        throw new ApiError(
+          409,
+          'CONFLICT',
+          'People still report to this person. Move their reports to another manager first.',
+          [{ path: 'status', issue: 'This person has active reports' }],
+        );
+      },
+    });
+    renderAt(`/people/${PRIYA}`, client);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Deactivate' }));
+    const question = screen.getByRole('group', { name: /Deactivate Priya Nair/ });
+    await user.click(within(question).getByRole('button', { name: 'Deactivate' }));
+    expect(
+      await screen.findByText(
+        'People still report to this person. Move their reports to another manager first.',
+      ),
+    ).toHaveAttribute('role', 'alert');
+    expect(screen.queryByText(/changed somewhere else/)).toBeNull();
+  });
+
   it('says so when the person is out of reach', async () => {
     const client = fakeClient();
     renderAt('/people/01a10000-0000-7000-8000-000000000099', client);
