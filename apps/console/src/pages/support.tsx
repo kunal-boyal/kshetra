@@ -24,6 +24,7 @@ import { Link } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { useConsole } from '../context';
 import { useConsoleMutations, useSupportGrants } from '../data';
+import { UnshownErrors } from '../fields';
 import { errorMessage, fieldErrors, useLanguage } from '../i18n';
 import { holds, VIEWER_TIME_ZONE } from './shared';
 
@@ -311,6 +312,7 @@ function AskForm({ tenant }: { tenant: ConsoleTenant }) {
   return (
     <form className="flex max-w-xl flex-col gap-4" onSubmit={send} noValidate>
       <h3 className="heading-md">{t('console.support_ask_title')}</h3>
+      <UnshownErrors errors={errors} shown={['reason', 'scope', 'hours']} />
       <TextAreaField
         label={t('console.support_reason')}
         help={t('console.support_reason_help')}

@@ -1,3 +1,4 @@
+import { ApiError } from '@thelamp/api-client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -143,5 +144,43 @@ describe('support access in the console (M22, D93)', () => {
         emergency: true,
       },
     );
+  });
+  it('says why a request was refused, on the tenant or for the server’s own reason', async () => {
+    let asked = 0;
+    const client = fakeClient(RAVI, (method, path) => {
+      if (method === 'POST' && path === '/platform/v1/support-grants') {
+        asked += 1;
+        return asked === 1
+          ? new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
+              { path: 'tenantId', issue: 'This organisation is not open' },
+            ])
+          : new ApiError(
+              409,
+              'CONFLICT',
+              'You already have a request or access for this organisation. End it first.',
+            );
+      }
+      if (path.startsWith('/platform/v1/support-grants')) return { items: [] };
+      if (billingAnswer(path)) return billingAnswer(path);
+      if (path.endsWith('/entitlements')) return OPEN;
+      if (path.includes('/usage')) return { items: [] };
+      return TENANT;
+    });
+    renderConsole(`/tenants/${TENANT.id}`, client);
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByLabelText(/^Why/, {}, { timeout: 5000 }),
+      'Checking the visit report',
+    );
+    await user.click(screen.getByRole('button', { name: 'Ask' }));
+    // No field shows the tenant, so its problem shows above the form.
+    expect(await screen.findByText('This organisation is not open')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Ask' }));
+    expect(
+      await screen.findByText(
+        'You already have a request or access for this organisation. End it first.',
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText(/This changed somewhere else/)).not.toBeInTheDocument();
   });
 });

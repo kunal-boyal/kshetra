@@ -4,7 +4,11 @@ import { PLATFORM_PERMISSIONS, PLATFORM_ROLES } from '../access';
 import { TENANT_STATUSES } from '../tenants';
 import { Key } from './config';
 import { PhoneInput } from './auth';
+import { BillingAccountBody, OpeningSubscription } from './invoicing';
 import { ProvisionTenantInput, TenantSlug } from './provisioning';
+
+/** The longest trial, on creating a tenant or reopening one (decision D134). */
+export const TRIAL_DAYS_MOST = 90;
 
 /**
  * The platform console's API (module M22, decision D88): vendor staff, their sign-in with a
@@ -194,9 +198,35 @@ export const TenantIdParams = z.strictObject({ id: z.uuid() });
 export const CreateTenantBody = ProvisionTenantInput.extend({
   id: z.uuid(),
   /** Trial days, for a tenant that opens on trial. */
-  trialDays: z.int().min(1).max(90).default(30),
+  trialDays: z.int().min(1).max(TRIAL_DAYS_MOST).default(30),
   /** The plan it starts on (decision D89); none leaves every module open. */
   planId: z.uuid().nullable().default(null),
+  /**
+   * A tenant that opens active is billed from the start (decision D134): its billing details and
+   * its subscription on its plan. A tenant on trial takes neither.
+   */
+  billing: BillingAccountBody.optional(),
+  subscription: OpeningSubscription.optional(),
+}).superRefine((body, ctx) => {
+  const issue = (path: string, message: string) =>
+    ctx.addIssue({ code: 'custom', path: [path], message });
+  if (body.status === 'trial') {
+    if (body.billing) issue('billing', 'A tenant on trial starts without billing details');
+    if (body.subscription) issue('subscription', 'A tenant on trial starts without a subscription');
+    return;
+  }
+  if (!body.planId) issue('planId', 'Choose the plan it is billed on');
+  if (!body.billing) issue('billing', 'Give its billing details, or open it on trial');
+  if (!body.subscription) issue('subscription', 'Start its subscription, or open it on trial');
+});
+
+/**
+ * `POST /platform/v1/tenants/{id}/reactivate` (decision D134): a suspended tenant opens again only
+ * on trial or billed. One with an active subscription, a trial still running, or the demo flag
+ * needs nothing; any other needs a new trial end, the last day of the trial on the vendor's clock.
+ */
+export const ReactivateTenantBody = z.strictObject({
+  trialEndsOn: z.iso.date().optional(),
 });
 
 /** Suspending says why, for the tenant's record. */
@@ -246,6 +276,7 @@ export type ConsoleTenant = z.infer<typeof ConsoleTenant>;
 export type ConsoleTenantSummary = z.infer<typeof ConsoleTenantSummary>;
 export type ConsoleTenantActivity = z.infer<typeof ConsoleTenantActivity>;
 export type CreateTenantBody = z.output<typeof CreateTenantBody>;
+export type ReactivateTenantBody = z.output<typeof ReactivateTenantBody>;
 export type ConsoleTenantQuery = z.output<typeof ConsoleTenantQuery>;
 export type InviteStaffBody = z.output<typeof InviteStaffBody>;
 export type StaffPasswordBody = z.output<typeof StaffPasswordBody>;

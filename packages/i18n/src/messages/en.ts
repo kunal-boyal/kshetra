@@ -4494,6 +4494,14 @@ export const en = {
   'console.suspend_question': 'Suspend {name}? Nobody there can sign in until it is reactivated.',
   'console.suspend_reason': 'Why',
   'console.reactivate': 'Reactivate',
+  'console.reactivate_trial_ends': 'New trial ends on',
+  'console.reactivate_needs':
+    'It has no subscription and its trial has ended. Give a new trial end to reopen it on trial, or start a subscription under Billing, which reopens it.',
+  'console.active_billed_note':
+    'An active tenant is billed from the start, so it needs its plan, its subscription and its billing details. To bill it later, open it on trial.',
+  'console.trial_only_note':
+    'Opening a tenant active starts its subscription, which needs billing access, so it opens on trial.',
+  'console.error_reason': '{reason}',
   'console.tenant_name': 'Organisation name',
   'console.slug_help': 'Lowercase letters, digits and hyphens; it never changes',
   'console.opens_as': 'Opens as',
@@ -4537,7 +4545,7 @@ export const en = {
   'console.password_changed': 'Your password is changed, and your other sessions have ended.',
   'console.disable_question': 'Disable {name}?',
   'console.disable_note':
-    'They are signed out at once and can never sign in again. Invite them afresh if needed.',
+    'They are signed out at once and can’t sign in again. Inviting them afresh, with the same email, sends a new setup link.',
   'console.plans': 'Plans',
   'console.new_plan': 'New plan',
   'console.col_plan': 'Plan',

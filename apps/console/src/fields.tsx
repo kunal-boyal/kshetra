@@ -61,3 +61,40 @@ export function EmailField({ value, onChange, checked, error, required, ...field
     />
   );
 }
+
+/**
+ * The field problems no field on the form shows, such as a request's tenant or the fifth tenant
+ * of an announcement, at the top of the form, so a refusal is never silent. `named` puts each
+ * one's path first, for a form whose one field holds many, as a rate set's JSON does.
+ */
+export function UnshownErrors({
+  errors,
+  shown,
+  named = false,
+}: {
+  errors: Readonly<Record<string, string>>;
+  shown: readonly string[];
+  named?: boolean;
+}) {
+  const issues = [
+    ...new Set(
+      Object.entries(errors)
+        .filter(([path]) => !shown.includes(path))
+        .map(([path, issue]) => (named ? `${path}: ${issue}` : issue)),
+    ),
+  ];
+  if (issues.length === 0) return null;
+  return (
+    <div className="ks-help error" role="alert">
+      {issues.length === 1 ? (
+        issues[0]
+      ) : (
+        <ul className="m-0 pl-5">
+          {issues.map((issue) => (
+            <li key={issue}>{issue}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

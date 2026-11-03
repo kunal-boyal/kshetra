@@ -1,3 +1,4 @@
+import { ApiError } from '@thelamp/api-client';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -75,6 +76,28 @@ describe('announcements in the console (M22, D93)', () => {
       surfaces: ['web'],
       tenantIds: [TENANT.id],
     });
+  });
+
+  it('shows a refused tenant above the form, as no field shows it alone', async () => {
+    const client = fakeClient(ADMIN, (method, path) => {
+      if (method === 'POST') {
+        return new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
+          { path: 'tenantIds.0', issue: 'There is no such tenant' },
+        ]);
+      }
+      if (path.startsWith('/platform/v1/tenants')) return { items: [TENANT], nextCursor: null };
+      return { items: [] };
+    });
+    renderConsole('/announcements', client);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText(/^Title in English/), 'New reports');
+    await user.type(screen.getByLabelText(/^Title in Hindi/), 'नई रिपोर्टें');
+    await user.type(screen.getByLabelText(/^Message in English/), 'Visit reports are faster.');
+    await user.type(screen.getByLabelText(/^Message in Hindi/), 'विज़िट रिपोर्टें तेज़ हैं।');
+    await user.selectOptions(screen.getByLabelText('Who'), 'some');
+    await user.click(await screen.findByRole('checkbox', { name: 'Sunrise Agro' }));
+    await user.click(screen.getByRole('button', { name: 'Announce' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('There is no such tenant');
   });
 
   it('lets other staff read, not announce', async () => {

@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { StaffResolver } from '../../platform/auth';
 import { ColumnCipher } from '../../platform/column-cipher';
+import { BillingModule } from '../billing/billing.module';
 import { DirectoryModule } from '../directory/directory.module';
 import { ProvisioningModule } from '../provisioning/provisioning.module';
 import { ConsoleSessionController } from './console-session.controller';
@@ -17,7 +18,7 @@ import { TenantTermination } from './tenant-termination';
  */
 @Global()
 @Module({
-  imports: [DirectoryModule, ProvisioningModule],
+  imports: [DirectoryModule, ProvisioningModule, BillingModule],
   controllers: [ConsoleSessionController, ConsoleTenantsController, ConsoleTerminationController],
   providers: [
     ColumnCipher,

@@ -108,25 +108,40 @@ export const BillingAccountResult = z
  * `PUT /platform/v1/tenants/{id}/subscription`: start or change a tenant's subscription. Annual
  * subscriptions commit to seats for the term; monthly ones pay for the seats each month used.
  */
+const subscriptionTerms = {
+  cycle: z.enum(BILLING_CYCLES),
+  /** Seats paid for upfront on an annual subscription. */
+  committedSeats: z.int().min(1).max(1_000_000).nullable().default(null),
+  /** The first day billed, on the vendor's clock; today when left out. */
+  startsOn: z.iso.date().optional(),
+};
+
+function annualSeats(
+  body: { cycle: (typeof BILLING_CYCLES)[number]; committedSeats: number | null },
+  ctx: z.RefinementCtx,
+) {
+  if (body.cycle === 'year' && body.committedSeats === null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['committedSeats'],
+      message: 'An annual subscription commits to a number of seats',
+    });
+  }
+}
+
 export const SubscriptionBody = z
-  .strictObject({
-    planId: z.uuid(),
-    cycle: z.enum(BILLING_CYCLES),
-    /** Seats paid for upfront on an annual subscription. */
-    committedSeats: z.int().min(1).max(1_000_000).nullable().default(null),
-    /** The first day billed, on the vendor's clock; today when left out. */
-    startsOn: z.iso.date().optional(),
-  })
-  .superRefine((body, ctx) => {
-    if (body.cycle === 'year' && body.committedSeats === null) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['committedSeats'],
-        message: 'An annual subscription commits to a number of seats',
-      });
-    }
-  })
+  .strictObject({ planId: z.uuid(), ...subscriptionTerms })
+  .superRefine(annualSeats)
   .meta({ id: 'SubscriptionBody' });
+
+/**
+ * The subscription a tenant created active starts with (decision D134): its plan is the tenant's
+ * own, so only the cycle, the seats and the first day billed.
+ */
+export const OpeningSubscription = z
+  .strictObject(subscriptionTerms)
+  .superRefine(annualSeats)
+  .meta({ id: 'OpeningSubscription' });
 
 export const SubscriptionResult = z
   .object({

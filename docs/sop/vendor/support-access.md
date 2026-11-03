@@ -77,8 +77,9 @@ You can end your own requests and grants; a platform admin can end anyone's.
 
 | What you see | What it means | What to do |
 |---|---|---|
-| This changed somewhere else. Refresh and try again. | You already have a request or access open for this tenant; the request was already decided or lapsed; the access already ended; or the access is no longer open | Refresh. End your earlier request before asking again; ask again if it lapsed or ended |
-| You select **Ask** and nothing appears | The tenant is suspended or terminated, so it can't be entered (the console doesn't show the reason) | Check the tenant's status on its page |
+| You already have a request or access for this organisation. End it first. | You already have a request or access open for this tenant | End your earlier request before asking again |
+| This request was already decided or has lapsed. / This access has already ended. / This access is not open. Ask for it again. | The request or grant moved on meanwhile | Refresh; ask again if it lapsed or ended |
+| Above the form: "This organisation is not open" | The tenant is suspended or terminated, so it can't be entered | Check the tenant's status on its page |
 | You don't have access to this. | You tried to approve your own emergency request, or to end someone else's without being a platform admin | Ask another platform admin |
 | In the portal: "That support link has expired or was already used. Open the portal again from the console." | The link is older than a minute or was used | Select **Open the portal** again |
 | In the portal: "Your support access lets you look, not change anything." | The grant is **See only** | Ask for **See and change** if the change is needed and the tenant agrees |

@@ -254,7 +254,7 @@ export function useConsoleMutations() {
     createTenant: useMutation({
       mutationFn: (body: z.input<typeof CreateTenantBody>) =>
         client.request('POST', '/platform/v1/tenants', ConsoleTenant, body),
-      onSuccess: () => refresh(['tenants', 'cells', 'plans']),
+      onSuccess: () => refresh(['tenants', 'cells', 'plans', 'tenant-billing']),
     }),
     suspend: useMutation({
       mutationFn: ({ id, reason }: { id: string; reason: string }) =>
@@ -262,8 +262,13 @@ export function useConsoleMutations() {
       onSuccess: () => refresh(['tenants', 'tenant']),
     }),
     reactivate: useMutation({
-      mutationFn: (id: string) =>
-        client.request('POST', `/platform/v1/tenants/${id}/reactivate`, ConsoleTenant),
+      mutationFn: ({ id, trialEndsOn }: { id: string; trialEndsOn?: string }) =>
+        client.request(
+          'POST',
+          `/platform/v1/tenants/${id}/reactivate`,
+          ConsoleTenant,
+          trialEndsOn ? { trialEndsOn } : {},
+        ),
       onSuccess: () => refresh(['tenants', 'tenant']),
     }),
     terminate: useMutation({

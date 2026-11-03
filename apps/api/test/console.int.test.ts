@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { newId, type PlatformRoleKey } from '@thelamp/shared';
+import { addDays, BILLING_TIME_ZONE, newId, type PlatformRoleKey, todayIn } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { STAFF_LIMITS, StaffService } from '../src/modules/console/staff.service';
+import { TenantProvisioner } from '../src/modules/provisioning/provisioner';
 import { hashPassword } from '../src/platform/passwords';
 import { RedisClient } from '../src/platform/redis';
 import { totpAt, totpStep } from '../src/platform/totp';
@@ -409,6 +410,88 @@ describe('vendor staff (decision D88)', () => {
     expect(confirmed.json()).toMatchObject({ id: otherId, status: 'active' });
   });
 
+  it('resets the last admin from the command line, by email alone, in the audit (D134)', async () => {
+    const admin = await staffMember();
+    const staff = app.get(StaffService);
+    const found = await staff.byEmail(admin.email.toUpperCase());
+    expect(found).toMatchObject({ email: admin.email, status: 'active' });
+    expect(await staff.byEmail(`nobody-${newId().slice(-8)}@vendor.example`)).toBeUndefined();
+
+    const { setupUrl } = await staff.reset(null, found!.id);
+    expect((await send('GET', '/platform/v1/me', { token: admin.token })).json().error.code).toBe(
+      'SESSION_REVOKED',
+    );
+    const token = setupUrl.split('#')[1]!;
+    const setUp = await send('POST', '/platform/v1/setup', {
+      body: { token, password: 'a fresh long passphrase' },
+    });
+    expect(setUp.statusCode, setUp.body).toBe(200);
+    const { rows } = await world.directory.client.query(
+      `select platform_user_id, detail from directory.platform_audit
+       where action = 'staff.reset' and target_id = $1`,
+      [found!.id],
+    );
+    expect(rows).toEqual([{ platform_user_id: null, detail: { via: 'command_line' } }]);
+  });
+
+  it('invites someone again on their own row, invited or disabled, never active (D134)', async () => {
+    const admin = await staffMember();
+    const email = `again-${newId().slice(-8)}@vendor.example`;
+    const invite = (role: string) =>
+      send('POST', '/platform/v1/staff', {
+        token: admin.token,
+        body: { id: newId(), email, name: 'Ravi Menon', role },
+      });
+    const first = await invite('support');
+    expect(first.statusCode, first.body).toBe(201);
+    const id = first.json().staff.id;
+
+    // A lapsed or lost invitation: a new form, a new ID, the same row and a new link.
+    const second = await invite('finance');
+    expect(second.statusCode, second.body).toBe(201);
+    expect(second.json().staff).toMatchObject({ id, role: 'finance', status: 'invited' });
+    const oldToken = (first.json().setupUrl as string).split('#')[1]!;
+    expect(
+      (
+        await send('POST', '/platform/v1/setup', { body: { token: oldToken, password: PASSWORD } })
+      ).json().error.code,
+    ).toBe('UNAUTHENTICATED');
+
+    // Set up, then disabled: invited afresh on the same row, without the old password.
+    const token = (second.json().setupUrl as string).split('#')[1]!;
+    const setUp = await send('POST', '/platform/v1/setup', { body: { token, password: PASSWORD } });
+    await send('POST', '/platform/v1/setup/confirm', {
+      body: { token, code: code(setUp.json().secret) },
+    });
+    expect((await invite('support')).json().error.code).toBe('CONFLICT');
+    await send('POST', `/platform/v1/staff/${id}/disable`, { token: admin.token });
+    const third = await invite('support');
+    expect(third.statusCode, third.body).toBe(201);
+    expect(third.json().staff).toMatchObject({ id, role: 'support', status: 'invited' });
+    await forgetLastCode(email);
+    const old = await send('POST', '/platform/v1/session', {
+      body: { email, password: PASSWORD, code: code(setUp.json().secret) },
+    });
+    expect(old.json().error.code).toBe('UNAUTHENTICATED');
+
+    const { rows } = await world.directory.client.query(
+      `select count(*)::int as n from directory.platform_users where lower(email) = lower($1)`,
+      [email],
+    );
+    expect(rows[0].n).toBe(1);
+    const audit = await world.directory.client.query(
+      `select detail from directory.platform_audit
+       where action = 'staff.invited' and target_id = $1 order by at`,
+      [id],
+    );
+    expect(audit.rows.map((row: { detail: { again?: boolean } }) => row.detail.again)).toEqual([
+      undefined,
+      true,
+      true,
+    ]);
+    expect(audit.rows[2].detail.before).toEqual({ status: 'disabled', role: 'finance' });
+  });
+
   it('lets platform admins invite and disable staff, whose sessions end at once', async () => {
     const admin = await staffMember();
     const support = await staffMember('support');
@@ -604,6 +687,210 @@ describe('tenants in the console (M22)', () => {
     expect(summary.seatsBought).toBeGreaterThanOrEqual(30);
     expect(summary.seatsInUse).toBeGreaterThanOrEqual(1);
     expect(summary.tenants).toBeGreaterThanOrEqual(summary.paying + summary.trial);
+  });
+
+  it('reopens a tenant only on trial or billed (D134)', async () => {
+    const { token } = await staffMember();
+    const id = newId();
+    const created = await send('POST', '/platform/v1/tenants', {
+      token,
+      body: {
+        id,
+        name: 'Lapsed Agro',
+        slug: `lapsed-${newId().slice(-8)}`,
+        template: 'agri',
+        status: 'trial',
+        trialDays: 7,
+        admin: { name: 'Kiran Patil', phone: newPhone() },
+      },
+    });
+    expect(created.statusCode, created.body).toBe(201);
+    // Its trial ended without a subscription, so the billing job suspended it.
+    await world.directory.client.query(
+      `update directory.tenants set status = 'suspended', trial_ends_at = now() - interval '1 day'
+       where id = $1`,
+      [id],
+    );
+    const reopen = (body?: object) =>
+      send('POST', `/platform/v1/tenants/${id}/reactivate`, { token, ...(body ? { body } : {}) });
+
+    const bare = await reopen();
+    expect(bare.json().error).toMatchObject({
+      code: 'VALIDATION',
+      details: [{ path: 'trialEndsOn', issue: expect.stringContaining('no subscription') }],
+    });
+    const today = todayIn(BILLING_TIME_ZONE, new Date());
+    for (const trialEndsOn of [today, addDays(today, 91)]) {
+      const wrong = await reopen({ trialEndsOn });
+      expect(wrong.json().error.details).toEqual([
+        { path: 'trialEndsOn', issue: 'Choose a day after today, within 90 days' },
+      ]);
+    }
+    expect((await send('GET', `/platform/v1/tenants/${id}`, { token })).json().status).toBe(
+      'suspended',
+    );
+
+    const ends = addDays(today, 14);
+    const reopened = await reopen({ trialEndsOn: ends });
+    expect(reopened.statusCode, reopened.body).toBe(200);
+    expect(reopened.json().status).toBe('trial');
+    // The trial lasts the whole of its last day on the vendor's clock.
+    expect(todayIn(BILLING_TIME_ZONE, new Date(Date.parse(reopened.json().trialEndsAt) - 1))).toBe(
+      ends,
+    );
+    const { rows } = await world.directory.client.query(
+      `select detail from directory.platform_audit
+       where action = 'tenant.reactivated' and target_id = $1`,
+      [id],
+    );
+    expect(rows).toEqual([{ detail: { before: 'suspended', after: 'trial', trialEndsOn: ends } }]);
+  });
+
+  it('reopens a demo tenant as before, with no trial (D134)', async () => {
+    const { token } = await staffMember();
+    const { tenantId } = await app.get(TenantProvisioner).provision(
+      {
+        name: 'Demo Paints',
+        slug: `demo-${newId().slice(-8)}`,
+        template: 'generic',
+        status: 'active',
+        admin: { code: 'ADMIN-1', name: 'Demo Admin', phone: newPhone() },
+      },
+      undefined,
+      { demo: true },
+    );
+    await send('POST', `/platform/v1/tenants/${tenantId}/suspend`, {
+      token,
+      body: { reason: 'Demo paused' },
+    });
+    const reopened = await send('POST', `/platform/v1/tenants/${tenantId}/reactivate`, { token });
+    expect(reopened.json()).toMatchObject({ status: 'active', demo: true, trialEndsAt: null });
+  });
+
+  it('opens a tenant active only with its billing details and subscription (D134)', async () => {
+    const admin = await staffMember();
+    const token = admin.token;
+    const settings = await send('PUT', '/platform/v1/billing/settings', {
+      token,
+      body: {
+        seller: {
+          legalName: 'Example Field Software Private Limited',
+          gstin: '27ZZZZZ0000Z1ZQ',
+          address: 'Unit 4, Example Business Park, Pune 411045',
+          stateCode: '27',
+          email: 'billing@vendor.example',
+          sac: '998314',
+        },
+        invoicePrefix: 'TL',
+        gstRate: '18',
+        paymentTermsDays: 15,
+        graceDays: 7,
+        readOnlyDays: 14,
+      },
+    });
+    expect(settings.statusCode, settings.body).toBe(200);
+    const planId = newId();
+    const plan = await send('POST', '/platform/v1/plans', {
+      token,
+      body: {
+        id: planId,
+        key: `open${newId().slice(-6)}`,
+        name: { en: 'Open', hi: 'ओपन' },
+        priceMonth: '499',
+        priceYear: '4990',
+        modules: ['core'],
+      },
+    });
+    expect(plan.statusCode, plan.body).toBe(201);
+    const base = {
+      name: 'Billed Paints',
+      template: 'generic',
+      status: 'active',
+      admin: { name: 'Kiran Patil', phone: newPhone() },
+    };
+
+    // Active with nothing to bill it is refused before anything is made.
+    const bare = await send('POST', '/platform/v1/tenants', {
+      token,
+      body: { ...base, id: newId(), slug: `bare-${newId().slice(-8)}` },
+    });
+    expect(bare.json().error.code).toBe('VALIDATION');
+    expect(
+      bare
+        .json()
+        .error.details.map((each: { path: string }) => each.path)
+        .sort(),
+    ).toEqual(['billing', 'planId', 'subscription']);
+    const today = todayIn(BILLING_TIME_ZONE, new Date());
+    const billing = {
+      legalName: 'Billed Paints Private Limited',
+      address: 'Plot 9, MIDC Industrial Area, Nashik 422010',
+      stateCode: '27',
+      email: `accounts-${newId().slice(-8)}@customer.example`,
+    };
+    const lateId = newId();
+    const late = await send('POST', '/platform/v1/tenants', {
+      token,
+      body: {
+        ...base,
+        id: lateId,
+        slug: `late-${newId().slice(-8)}`,
+        planId,
+        billing,
+        subscription: { cycle: 'month', startsOn: addDays(today, 40) },
+      },
+    });
+    expect(late.json().error.details).toEqual([
+      { path: 'subscription.startsOn', issue: 'Start within a month of today' },
+    ]);
+    expect((await send('GET', `/platform/v1/tenants/${lateId}`, { token })).statusCode).toBe(404);
+    const slug = `billed-${newId().slice(-8)}`;
+
+    // Finance's own access is needed to start a subscription; Implementation opens on trial.
+    const implementation = await staffMember('implementation');
+    const body = {
+      ...base,
+      id: newId(),
+      slug,
+      planId,
+      billing,
+      subscription: { cycle: 'month', startsOn: today },
+    };
+    expect(
+      (await send('POST', '/platform/v1/tenants', { token: implementation.token, body })).json()
+        .error.code,
+    ).toBe('FORBIDDEN');
+
+    const created = await send('POST', '/platform/v1/tenants', { token, body });
+    expect(created.statusCode, created.body).toBe(201);
+    expect(created.json()).toMatchObject({
+      status: 'active',
+      trialEndsAt: null,
+      plan: { id: planId },
+    });
+    const billed = (await send('GET', `/platform/v1/tenants/${body.id}/billing`, { token })).json();
+    expect(billed.account).toMatchObject({ legalName: billing.legalName });
+    expect(billed.subscription).toMatchObject({ status: 'active', startedOn: today });
+    // The same create again makes nothing twice.
+    expect((await send('POST', '/platform/v1/tenants', { token, body })).statusCode).toBe(201);
+    const { rows } = await world.directory.client.query(
+      `select count(*)::int as n from directory.subscriptions where tenant_id = $1`,
+      [body.id],
+    );
+    expect(rows[0].n).toBe(1);
+
+    // Suspended while billed, it reopens active with nothing more.
+    await send('POST', `/platform/v1/tenants/${body.id}/suspend`, {
+      token,
+      body: { reason: 'Checking the account' },
+    });
+    const withTrial = await send('POST', `/platform/v1/tenants/${body.id}/reactivate`, {
+      token,
+      body: { trialEndsOn: addDays(today, 5) },
+    });
+    expect(withTrial.json().error.details[0].path).toBe('trialEndsOn');
+    const reopened = await send('POST', `/platform/v1/tenants/${body.id}/reactivate`, { token });
+    expect(reopened.json().status).toBe('active');
   });
 
   it('keeps tenant management from staff without it', async () => {

@@ -47,5 +47,6 @@ Tell tenants something in their portal, on their phones or both, for a while: pl
 |---|---|---|
 | Under **Ends**: "End after it starts" | The end is at or before the start | Move the end later |
 | Under **Ends**: "Show it for 31 days at most" | The window is longer than 31 days | Shorten it, and announce again later if needed |
+| Above the form: "There is no such tenant" | A tenant ticked under **Only these tenants** no longer exists | Untick it and announce again |
 | **Announce** stays greyed out | A title or message in one language is empty, no place is ticked, or **Only these tenants** has none ticked | Fill in what is missing |
 | You don't see **New announcement** | Your role can only read announcements | Ask Implementation or a platform admin |

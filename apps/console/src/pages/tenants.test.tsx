@@ -186,6 +186,119 @@ describe('tenants in the console (M22)', () => {
     expect((sent[0] as { id: string }).id).toBe((sent[1] as { id: string }).id);
   });
 
+  it('opens a tenant active only with its subscription and billing details (D134)', async () => {
+    const sent: unknown[] = [];
+    const client = fakeClient(ADMIN, (method, path, body) => {
+      if (path === '/platform/v1/templates') {
+        return {
+          items: [
+            {
+              key: 'generic',
+              version: 2,
+              name: { en: 'Generic', hi: 'सामान्य' },
+              description: { en: 'Anyone', hi: '' },
+              terms: { en: 'Field user · Journey plan · Planned visit', hi: '' },
+            },
+          ],
+        };
+      }
+      if (path === '/platform/v1/plans') return { items: [PLAN] };
+      if (billingAnswer(path)) return billingAnswer(path);
+      if (path.endsWith('/entitlements')) return OPEN;
+      if (path.includes('/usage')) return { items: [] };
+      if (method === 'POST') {
+        sent.push(body);
+        return { ...TENANT, status: 'active', id: (body as { id: string }).id };
+      }
+      return TENANT;
+    });
+    const { router } = renderConsole('/tenants/new', client);
+    const user = userEvent.setup();
+    const next = () => user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.type(await screen.findByLabelText(/^Organisation name/), 'Billed Paints');
+    await next();
+    await screen.findByRole('button', { name: /Generic/ });
+    await next();
+    await user.type(screen.getByLabelText(/^Name/), 'Kiran Patil');
+    await user.type(screen.getByLabelText(/^Mobile number/), '98765 43210');
+    await next();
+    await user.selectOptions(screen.getByLabelText('Opens as'), 'active');
+    expect(screen.getByText(/An active tenant is billed from the start/)).toBeVisible();
+    // A plan, the subscription and the billing details before it can go on.
+    const go = screen.getByRole('button', { name: 'Continue' });
+    expect(go).toBeDisabled();
+    await waitFor(() =>
+      expect(within(screen.getByLabelText('Plan')).getAllByRole('option')).toHaveLength(2),
+    );
+    await user.selectOptions(screen.getByLabelText('Plan'), 'Growth');
+    expect(screen.getByLabelText(/^Legal name/)).toHaveValue('Billed Paints');
+    await user.selectOptions(screen.getByLabelText('Billed'), 'year');
+    await user.clear(screen.getByLabelText(/^Seats committed/));
+    await user.type(screen.getByLabelText(/^Seats committed/), '20');
+    await user.type(screen.getByLabelText(/^Address/), 'Plot 9, MIDC, Nashik 422010');
+    await user.type(screen.getByLabelText(/^Billing email/), 'accounts@paints.example');
+    expect(go).toBeEnabled();
+    await next();
+    await user.click(screen.getByRole('button', { name: 'Create the tenant' }));
+    await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/tenants\/01/));
+    expect(sent[0]).toMatchObject({
+      status: 'active',
+      planId: PLAN.id,
+      subscription: { cycle: 'year', committedSeats: 20, startsOn: expect.any(String) },
+      billing: {
+        legalName: 'Billed Paints',
+        gstin: null,
+        address: 'Plot 9, MIDC, Nashik 422010',
+        stateCode: '27',
+        email: 'accounts@paints.example',
+        language: 'en',
+      },
+    });
+    expect(sent[0]).not.toHaveProperty('trialDays');
+  });
+
+  it('opens a tenant only on trial for staff without billing access (D134)', async () => {
+    const implementation = {
+      ...ADMIN,
+      role: 'implementation' as const,
+      permissions: ['platform.tenant.manage' as const],
+    };
+    const client = fakeClient(implementation, (_method, path) =>
+      path === '/platform/v1/templates'
+        ? {
+            items: [
+              {
+                key: 'generic',
+                version: 2,
+                name: { en: 'Generic', hi: 'सामान्य' },
+                description: { en: 'Anyone', hi: '' },
+                terms: { en: 'Field user · Journey plan · Planned visit', hi: '' },
+              },
+            ],
+          }
+        : path === '/platform/v1/plans'
+          ? { items: [PLAN] }
+          : { items: [] },
+    );
+    renderConsole('/tenants/new', client);
+    const user = userEvent.setup();
+    const next = () => user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.type(await screen.findByLabelText(/^Organisation name/), 'Trial Paints');
+    await next();
+    await screen.findByRole('button', { name: /Generic/ });
+    await next();
+    await user.type(screen.getByLabelText(/^Name/), 'Kiran Patil');
+    await user.type(screen.getByLabelText(/^Mobile number/), '98765 43210');
+    await next();
+    const opens = screen.getByLabelText(/^Opens as/);
+    expect(
+      within(opens)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Trial']);
+    expect(screen.getByText(/needs billing access, so it opens on trial/)).toBeVisible();
+  });
+
   it('suspends a tenant with a reason, asking first, and reactivates it', async () => {
     let status: string = 'trial';
     const client = fakeClient(ADMIN, (method, path, body) => {
@@ -197,7 +310,8 @@ describe('tenants in the console (M22)', () => {
       if (billingAnswer(path)) return billingAnswer(path);
       if (path.endsWith('/entitlements')) return OPEN;
       if (path.includes('/usage')) return { items: [] };
-      return { ...TENANT, status };
+      // Its trial still runs, so it reopens on it with nothing more.
+      return { ...TENANT, status, trialEndsAt: '2099-01-01T00:00:00.000Z' };
     });
     renderConsole(`/tenants/${TENANT.id}`, client);
     expect(await screen.findByRole('heading', { name: 'Sunrise Agro' })).toBeInTheDocument();
@@ -213,6 +327,40 @@ describe('tenants in the console (M22)', () => {
     expect(screen.getByText('Suspended')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reactivate' }));
     expect(await screen.findByRole('button', { name: 'Suspend' })).toBeInTheDocument();
+  });
+
+  it('reopens a tenant with neither trial nor subscription only on a new trial end (D134)', async () => {
+    const sent: unknown[] = [];
+    let status: string = 'suspended';
+    const client = fakeClient(ADMIN, (method, path, body) => {
+      if (method === 'POST' && path.endsWith('/reactivate')) {
+        sent.push(body);
+        if (sent.length === 1) {
+          return new ApiError(400, 'VALIDATION', 'Check the highlighted fields.', [
+            { path: 'trialEndsOn', issue: 'Choose a day after today, within 90 days' },
+          ]);
+        }
+        status = 'trial';
+      }
+      if (billingAnswer(path)) return billingAnswer(path);
+      if (path.endsWith('/entitlements')) return OPEN;
+      if (path.includes('/usage')) return { items: [] };
+      return { ...TENANT, status, trialEndsAt: '2026-01-31T18:30:00.000Z' };
+    });
+    renderConsole(`/tenants/${TENANT.id}`, client);
+    const reopen = await screen.findByRole('button', { name: 'Reactivate' });
+    expect(screen.getByText(/It has no subscription and its trial has ended/)).toBeVisible();
+    expect(reopen).toBeDisabled();
+    const user = userEvent.setup();
+    const ends = screen.getByLabelText(/^New trial ends on/);
+    await user.type(ends, '2099-12-31');
+    await user.click(reopen);
+    expect(await screen.findByText('Choose a day after today, within 90 days')).toBeVisible();
+    await user.clear(ends);
+    await user.type(ends, '2099-01-15');
+    await user.click(screen.getByRole('button', { name: 'Reactivate' }));
+    expect(await screen.findByRole('button', { name: 'Suspend' })).toBeInTheDocument();
+    expect(sent).toEqual([{ trialEndsOn: '2099-12-31' }, { trialEndsOn: '2099-01-15' }]);
   });
 
   it('heads a tenant with its slug, template and since when, its figures and a month of activity', async () => {
