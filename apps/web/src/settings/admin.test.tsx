@@ -166,7 +166,10 @@ describe('rules (M2, spec 5.1)', () => {
     await user.type(radius, '450');
     await user.click(screen.getByRole('checkbox', { name: /Ask for a selfie/ }));
     // Odometer readings at the punches (decision D99).
-    await user.selectOptions(screen.getByRole('combobox', { name: /^Odometer at/ }), 'required');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: /^Odometer when the day starts/ }),
+      'required',
+    );
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Saved.')).toBeVisible();
     expect(writesOf(client)[0]![3]).toMatchObject({
@@ -185,6 +188,16 @@ describe('rules (M2, spec 5.1)', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Saved.')).toBeVisible();
     expect(writesOf(client)[0]![3]).toMatchObject({ body: { collectionCashLimit: null } });
+  });
+
+  it('counts the cash limit in the organisation’s own currency', async () => {
+    const client = fakeClient({}, {}, ADMIN, {
+      settings: { ...SETTING_DEFAULTS, currency: 'USD' },
+    });
+    renderAt('/settings/rules', client);
+    const limit = await screen.findByRole('textbox', { name: /in a day must stay under$/ });
+    expect(limit.closest('.ks-affix')).toHaveTextContent('$');
+    expect(screen.queryByText(/₹/)).toBeNull();
   });
 
   it('switches evidence checks off one at a time, each naming its threshold (BR-50)', async () => {

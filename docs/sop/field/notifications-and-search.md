@@ -40,7 +40,7 @@ The app tells you when something needs you or was decided: a request approved or
 ### Search
 
 1. On **Home**, tap the search button (**Search**).
-2. Type part of a name. Results come under **Screens** (the screens you may open), **Accounts** (the tenant's word) and, for managers who may replay a person's day, **People**.
+2. Type part of a name in the box (**Search screens, people and accounts**). Your orders aren't searched here; they are in the **Orders** tab. Results come under **Screens** (the screens you may open), **Accounts** (the tenant's word) and, for managers who may replay a person's day, **People**.
 3. Tap a result to open it. **The phone searches the screens you can open and the people and accounts it keeps, even without signal.**
 
 ### Announcements

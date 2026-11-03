@@ -55,7 +55,7 @@ The list shows only what your role may import.
 
 14. When there are no problems, select **Import {count} rows**, for example **Import 240 rows**.
 15. Confirm with **Import {count} rows** again. Every row is checked again and written together; if anything changed since the check, nothing is written.
-16. The page says **Imported: {created} added, {updated} changed.** You also get an **Import done** notification. After people, select **Open people**; after territories, **Open territories**.
+16. The page says **Imported: {created} added, {updated} changed.** You also get an **Import done** notification. Then open what you imported: **Open people**, **Open territories**, **Open accounts** (in your word for accounts), **Open the catalogue** for items, **Open targets** or **Open holiday calendars**; after anything else, **Back to imports**.
 
 ### See earlier imports
 
@@ -79,7 +79,6 @@ The list shows only what your role may import.
 | **Has problems** status, with **Problems** listed | Rows fail the checks. The **Problem** column says why, in English from the server. | Fix the rows in the file and select **Upload a fixed file**. |
 | The import stopped, and nothing was imported. … | The file couldn't be read or written; the reason follows. You also get an **Import failed** notification. | Select **Upload a file again** and try once more; if it fails again, send the file to the vendor. |
 | Some rows have errors. Fix them, then upload the file again. | Something changed between the check and the import. | Upload the file again. |
-| After importing accounts, items, targets or account plans, the button says **Open territories** | The page offers only people or territories after an import. | Open **Accounts**, or the page for what you imported, from the rail. |
 | The type you want isn't in **What to import** | Your role lacks its permission, or the type is switched off. | Ask an admin. |
 
 ## Waiting on the owner

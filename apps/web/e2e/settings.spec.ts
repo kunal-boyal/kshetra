@@ -1164,7 +1164,7 @@ test('Settings › ERP shows Zoho Books and SAP Business One, each with its runs
   await expect(sap.getByRole('form', { name: 'What comes in, and where' })).toBeVisible();
   await expect(sap.getByLabel(/SAP field holding the GST rate/)).toHaveValue('U_GST');
   await expect(
-    page.getByText('No Number Traders: it has no customer number in Zoho.', { exact: false }),
+    page.getByText('No Number Traders: it has no customer number in Zoho Books.', { exact: false }),
   ).toBeVisible();
   await expectAccessible(page);
 });

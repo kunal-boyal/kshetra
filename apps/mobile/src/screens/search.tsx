@@ -129,7 +129,7 @@ export function SearchScreen() {
         label={t('search.label')}
         labelHidden
         icon={Search}
-        placeholder={t('search.placeholder')}
+        placeholder={t('search.phone_placeholder')}
         value={text}
         onChangeText={setText}
         autoFocus

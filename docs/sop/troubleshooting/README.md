@@ -57,7 +57,7 @@ The apps show one sentence for each error code the server gives, in the reader's
 | `SYNC_RESET` | Your phone needs a full refresh. It is starting now. The phone does it by itself. | [Upload queue and sync](upload-queue-and-sync.md) |
 | `OTP_INVALID` | That code is not right. Check it and try again. | [Sign-in and sessions](sign-in-and-sessions.md) |
 | `OTP_EXPIRED` | This code has expired. Ask for a new one. | [Sign-in and sessions](sign-in-and-sessions.md) |
-| `SECOND_FACTOR_REQUIRED` | Sign in again with your authenticator to open this organisation. Seen when a change that needs the authenticator was cancelled. | [Sign-in and sessions](sign-in-and-sessions.md) |
+| `SECOND_FACTOR_REQUIRED` | This change needs a code from your authenticator. Make it again and enter the code. Seen when a change that needs the authenticator was cancelled. | [Sign-in and sessions](sign-in-and-sessions.md) |
 | `SSO_REQUIRED` | Your organisation signs you in with its own sign-in. Enter your work email to continue. | [Sign-in and sessions](sign-in-and-sessions.md) |
 | `SUPPORT_READ_ONLY` | Your support access lets you look, not change anything. | [Access and modules](access-and-modules.md) |
 | `UPGRADE_REQUIRED` | Update the app to continue. The phone shows **Update the app** instead of its screens. | [Sign-in and sessions](sign-in-and-sessions.md) |

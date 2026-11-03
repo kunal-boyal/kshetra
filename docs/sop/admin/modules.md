@@ -24,7 +24,7 @@ Modules are the parts of the product your organisation uses. Your plan decides w
 | **Expenses** | Expense policies and claims. | `expense.claim`, `expense_policy.manage`, `expense.mark_paid` |
 | **Payroll inputs** | A monthly attendance summary and a provisional pay preview. | `payroll.manage`, `payslip.view` |
 | **Statutory payroll** | Salary structures, PF, ESI, professional tax, the labour welfare fund and TDS, and a monthly pay run with frozen payslips. Off until you switch it on; awaits review by a chartered accountant. | `payroll.run`, `salary.manage`, and `payslip.view` while it is on |
-| **Integrations** | The public API and webhooks. | `api_client.manage`, `webhook.manage`, `erp.manage` (so the ERP connections go with it) |
+| **Integrations** | The public API, webhooks and ERP connections. | `api_client.manage`, `webhook.manage`, `erp.manage` (so the ERP connections go with it) |
 | **Single sign-on** | Signing in to the web with your own identity provider, through OIDC or SAML. | none |
 | **Advanced analytics** | Custom dashboards and scheduled reports. | `report.schedule`, `dashboard.manage` |
 | **Inventory** | Live stock at each account that holds it, kept by the app from fulfilment, counts and entries, or loaded from your books. Off until you switch it on. | `stock.view`, `stock.record`, `stock.count` |
@@ -46,7 +46,7 @@ Modules are the parts of the product your organisation uses. Your plan decides w
 - Switching a module off hides its screens, takes its permissions from every role, and closes it for everyone. Its routes answer **This feature is switched off for your organisation.** Nothing is deleted: switch it on again and everything is there (`effectivePermissions()`, `closedByModules()`).
 - A role keeps its ticked permissions while their module is off; they simply do nothing until it is on again.
 - **Statutory payroll** and **Inventory** are opt-in: they stay off until you tick **On** here, even when your plan includes them (`OPT_IN_MODULES`).
-- While **Integrations** is off, API clients get no tokens and webhooks send nothing; both are kept for when it is on again. The card says so.
+- While **Integrations** is off, API clients get no tokens, webhooks send nothing and ERP connections neither read nor send; all are kept for when it is on again. The card says so.
 - While **Single sign-on** is off, nobody signs in through your identity provider, and everyone signs in to the web with a one-time code. The connection is kept. The card says so, and **Settings** › **People and access** › **Single sign-on** disappears.
 - A module outside your plan can't be switched on.
 

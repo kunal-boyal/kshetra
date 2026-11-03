@@ -426,8 +426,8 @@ Each module lists what it does, the rules it applies (section 7) and its accepta
 
 | User | Method |
 |---|---|
-| Mobile app, every role | Mobile number and a 6-digit one-time code by SMS, with WhatsApp as a fallback channel |
-| Web portal | Mobile number and OTP, or email and OTP. A tenant on the SSO module can require OIDC or SAML for web users. |
+| Mobile app, every role | Mobile number and a 6-digit one-time code by SMS. WhatsApp as a fallback channel for the code is planned, not built. |
+| Web portal | Mobile number and OTP. A tenant on the SSO module offers Company SSO (OIDC or SAML) and can require it for web users. Email and OTP is planned, not built. |
 | Tenant admins on the web | A TOTP authenticator code in addition to OTP, for anyone whose role can change access (role, user, settings, module or billing management); set up at the first such sign-in, with ten single-use recovery codes. Anyone else may set one up from Sign-in security, and is then asked for it too. After SSO, the identity provider's own second factor counts; without one, ours is asked for. Phones keep OTP and device binding, and their tokens never carry the permissions that change access (D101). Changing a person's phone or email, resetting an authenticator or changing SSO needs a fresh authenticator code from the last ten minutes; SSO signs in only addresses at domains proved by a DNS TXT record, and binds each person to the provider's issuer and subject (D101). |
 | Platform console | Email, password and TOTP for vendor staff, or the vendor's own identity provider. Passwords of 12 characters or more, without the product's or the person's names and not known from breaches; staff change their own, and a platform admin resets a lost password or authenticator with a new setup link (D101). |
 
@@ -440,7 +440,7 @@ Flow and rules:
 5. Mobile sign-in binds the device when the tenant has device binding on. Another phone receives `DEVICE_NOT_BOUND` until a manager (within scope) or an admin resets the binding. Web sessions are never bound.
 6. Access tokens last 15 minutes. Refresh tokens rotate on every use; reusing an already-rotated refresh token revokes the whole token family. A web session ends after 12 hours unused and 7 days after its sign-in, an SSO session 12 hours after, and a phone's after 30 days unused and 90 after its sign-in (D101).
 7. Every request re-checks that the user, tenant and device are active and that the user's auth revision matches the token (BR-39).
-8. Each platform has a minimum supported app version; older apps show a blocking update screen.
+8. Each platform has a minimum supported app version; older apps show a blocking update screen. Its store link works once the app is in the stores (14, open while the listings wait on the company's accounts).
 9. A role can restrict its users to the mobile app (default for field users), in which case the web answers `USE_MOBILE_APP`.
 
 Acceptance criteria:
@@ -449,7 +449,7 @@ Acceptance criteria:
 - [ ] A second phone for a bound user gets `DEVICE_NOT_BOUND`; after a reset the new phone signs in and the old phone's tokens fail on their next request.
 - [ ] Reusing a rotated refresh token signs out every session in that family.
 - [ ] Deactivating a user signs them out on their next request on every device.
-- [ ] A user in two tenants switches between them without signing in again.
+- [ ] A number active in one tenant can't be added, imported, given or reactivated in another, and the refusal never names the other tenant (D103).
 
 ### M2. Tenant administration
 
@@ -871,7 +871,7 @@ Navigation adapts to the user's permissions and the tenant's modules. Field user
 
 | Screen | Contents and behaviour |
 |---|---|
-| Sign in | Mobile number with the phone keypad, OTP field with SMS autofill, resend timer, tenant picker for multi-tenant users; clear errors for wrong code, expired code, unregistered device and no network |
+| Sign in | Mobile number with the phone keypad, OTP field with SMS autofill, resend timer; a code signs straight in to the person's one organisation (D103), so there is no tenant picker; clear errors for wrong code, expired code, unregistered device and no network |
 | Home | Tenant name and greeting; sync banner (amber with the count of waiting items, red when something was refused; tapping opens the upload queue); shift card (off duty with Start day, or on duty since a time with pause, resume and End day); today's plan items with Visit buttons and statuses; "My month" tiles for key metrics against target with pending values apart; quick actions for the user's most used forms; recent submissions with statuses |
 | Consent sheet | The tracking explanation (M5) in the user's language with the interval filled in; accept and cancel |
 | Plan | Calendar strip, plan items per day, route on a map, ad hoc plan items where allowed, approval status of the month's plan |
@@ -880,13 +880,13 @@ Navigation adapts to the user's permissions and the tenant's modules. Field user
 | Form | Rendered from the form version: sections, fields with the right keyboard per type, visibility rules, product-lines table, photo strip with count against minimum and maximum, signature pad, inline validation, save draft, submit. Footnote: "Saved on the phone first and uploaded when there is signal." The value checks are the server's own (`checkFormValues`), run against the phone's copies of accounts, contacts and the catalogue (D46). |
 | Camera | Full-screen live camera, shutter and retake; no gallery unless the form allows it; each photo stores its time and position |
 | Orders | Account picker (prefilled inside a visit), supplier shown, item search by name or code, unit selector and steppers, line previews, cart summary with taxable value, tax and total, note, attachment, place order; my orders with statuses |
-| Me | Attendance calendar with coloured day tiles and a summary; leave with balances; regularisation; expense claims with a live amount and receipt capture; my requests with step-by-step status; my performance detail |
+| My work (opened from More) | Attendance calendar with coloured day tiles and a summary; leave with balances; regularisation; expense claims with a live amount and receipt capture; my collections; my requests with step-by-step status; my performance detail |
 | Team (managers) | On duty now with last-seen age and current visit; approvals inbox; review queue; team performance; a user's day and route |
-| More | Profile; tenant switcher; upload queue (each item with label, time, status and last error, retry and discard for refused items, Sync now); device health with fix-it links (per-brand battery help, permissions); language; privacy notice; sign out (warns about unsent items) |
+| More | Profile; upload queue (each item with label, time, status and last error, retry and discard for refused items, Sync now); My work (accounts, forms, attendance, leave, claims, collections, leaderboard, with live counts); device health with fix-it links (per-brand battery help, permissions); language and display; My data; privacy notice; sign out (warns about unsent items). No tenant switcher: a person belongs to one organisation (D103). |
 
 ### 8.2 Web portal
 
-Left navigation, filtered by permissions and modules: Home, Reviews, Approvals, Live map, Planning (Targets, Journey plans, Account plans), People, Accounts, Orders, Finance, Expenses and leave, Reports, Imports, Settings. A period picker in the header drives every period-based screen. Settings holds organisation, roles, territories, account types, forms (visual builder with a live phone preview), metrics and score, workflows, people policies, catalogue and price lists, notifications, integrations, billing and the audit log.
+Left navigation (the rail, `apps/web/src/layout/app-shell.tsx`), filtered by permissions and modules, in sections: Daily work (Home, Review, Approvals, Orders, Collections, Expenses, Payroll, Pay run, Live map), Team (People, Organisation chart, Attendance, Targets, Performance or My month), Places (Accounts, Territories) and Data (Reports, Imports), with Settings at its foot. Journey plans and account plans open from a person's page and an account's page, and finance from an account's page. The app bar holds search, notifications and the person's menu; each period-based screen has its own month picker (a single picker in the header for every screen is planned, not built). Settings holds organisation, roles, territories, account types, forms (visual builder with a live phone preview), metrics and score, workflows, people policies, catalogue and price lists, notifications, integrations, billing and the audit log.
 
 | Screen | Contents |
 |---|---|
@@ -1520,7 +1520,7 @@ Pull, from server to device:
 1. `GET /v1/sync/pull?entities=accounts,plan_items,...&cursor=<opaque>` returns, per entity, rows with `row_version` above the cursor that fall inside the user's sync scope, plus tombstones and a new cursor. Pages hold up to 500 rows per entity.
 2. Scope changes (an account reassigned away from the user) arrive as a full pass of that entity: the server sends every row the user may now hold, and the phone drops the rows the pass did not send (decision D40). Rows removed for everyone arrive as tombstones.
 3. The config bundle and catalogue use ETags; a changed `config_version` triggers a refetch.
-4. A full refresh runs on first sign-in, after a tenant switch, and when the server answers `SYNC_RESET` (cursor too old or schema changed).
+4. A full refresh runs on first sign-in, when a cursor comes from another cell (after the tenant moved, D95), and when the server answers `SYNC_RESET` (cursor too old or schema changed).
 
 Push, from device to server:
 
@@ -1775,7 +1775,7 @@ Main branch:
 
 Migrations follow expand and contract: add columns or tables in one release, backfill in a job, switch reads, and remove old structures in a later release. Migrations never hold long locks on large tables (`CREATE INDEX CONCURRENTLY`, batched backfills).
 
-Mobile: EAS Build profiles `development` (dev client, `.dev` package), `preview` (internal distribution) and `production` (store builds). EAS Update ships JavaScript fixes within the same runtime version; native changes need a store release. Play staged rollout and TestFlight come before full release. EAS manages store credentials, which are never committed.
+Mobile: EAS Build profiles `development` (dev client, `.dev` package), `preview` (internal distribution) and `production` (store builds). EAS Update ships JavaScript fixes within the same runtime version; native changes need a store release. Play staged rollout and TestFlight come before full release. EAS manages store credentials, which are never committed. Until the store listings are approved (an open item that waits on the company's accounts, `docs/progress.md`), phones install an internal-distribution build from EAS rather than from Google Play.
 
 Risky features ship behind feature flags per tenant and per cell, controlled from the platform console.
 
@@ -1829,7 +1829,7 @@ Each phase ends with a working product and its exit criteria. Durations are plan
 
 | Phase | Scope | Exit criteria |
 |---|---|---|
-| 0. Foundation (3–4 weeks) | Monorepo, CI, local environment and `CLAUDE.md`; directory module with OTP sign-in, tokens and tenant switching; tenant context and RLS; IAM with roles, scopes, designations and closure tables; audit; outbox; config bundle; terminology resolver and i18n; templates package with the generic and agri templates; provisioning CLI; web and mobile shells with sign-in | A user signs in on a phone and on the web into either of two seeded tenants; the cross-tenant contract test passes; both templates validate |
+| 0. Foundation (3–4 weeks) | Monorepo, CI, local environment and `CLAUDE.md`; directory module with OTP sign-in, tokens and tenant switching (removed since: a person belongs to one organisation, D103); tenant context and RLS; IAM with roles, scopes, designations and closure tables; audit; outbox; config bundle; terminology resolver and i18n; templates package with the generic and agri templates; provisioning CLI; web and mobile shells with sign-in | A user signs in on a phone and on the web into either of two seeded tenants; the cross-tenant contract test passes; both templates validate |
 | 1. Field core, the MVP (8–10 weeks) | M2–M9; M16 with push and SMS; M17; M18 with home dashboards, activity log, attendance register and target against achievement; M19 for users, territories, accounts and targets; mobile offline sync; location pipeline with compaction; media pipeline; form builder with the version 1 field types | One tenant runs a pilot week: punch-in, tracking, planned and ad hoc visits with photos, review, metrics and leaderboard updates, imports that reconcile with the source files; the device protocol passes on two Android brands |
 | 2. Commerce and people (6–8 weeks) | M10, M11, M12, M13; M15 with the workflow engine for every request type; WhatsApp channel; remaining standard reports and exports; M19 for catalogue, price lists, finance and HR data | Order totals reconcile with three real invoices to the paisa; leave, regularisation and claims pass through configured chains; the attendance register matches a manual check |
 | 3. SaaS readiness (6–8 weeks) | M20, M21, M22, M23; pharma and FMCG templates; SSO; TOTP for admins; partition automation and archive; read-replica routing; tenant export, import and cell-move tooling; WAF, alarms and a restore drill; penetration test; Play and App Store releases; from the review of an outside demo (D96), odometer readings at punch-in and punch-out, the GPS audit trail report and printing to PDF | A new tenant is onboarded from the console in under a day; billing charges a test tenant end to end; no high or critical penetration test findings remain open; apps are approved in both stores, or managed distribution is in place |

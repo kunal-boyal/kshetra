@@ -82,7 +82,7 @@ The Lamp उन संगठनों के लिए है जो इसे �
 
 | Declaration | Answer |
 |---|---|
-| Privacy policy | `https://<web_domain>/privacy`; the same notice is in the app at Me › Privacy and on the sign-in screen |
+| Privacy policy | `https://<web_domain>/privacy`; the same notice is in the app at More › Privacy and on the sign-in screen |
 | Ads | No ads. The advertising ID permission is blocked in `app.config.ts`, so the advertising ID declaration is "No" |
 | App access | Restricted: see [Review account](#review-account) |
 | Content rating | IARC questionnaire, category "Utility, productivity, communication or other": no violence, sexuality, language, controlled substances, gambling, user interaction between strangers or sharing of location with other users outside the organisation; the app shares the user's location with their organisation, so answer "Yes" to sharing location and say it is with the employer only. Expect "Everyone" or "3+" |

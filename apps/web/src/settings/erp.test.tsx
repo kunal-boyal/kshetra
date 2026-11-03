@@ -224,10 +224,10 @@ describe('Settings › ERP (D129)', () => {
       'Done, with problems',
     );
     expect(
-      within(runs).getByText(/No Number Traders: it has no customer number in Zoho\./),
+      within(runs).getByText(/No Number Traders: it has no customer number in Zoho Books\./),
     ).toBeVisible();
     await user.click(within(runs).getByRole('button', { name: 'Sync now' }));
-    expect(await within(runs).findByRole('status')).toHaveTextContent('Reading Zoho now.');
+    expect(await within(runs).findByRole('status')).toHaveTextContent('Reading Zoho Books now.');
 
     await user.click(screen.getByRole('button', { name: 'Disconnect' }));
     const confirm = screen.getByRole('group', { name: /Disconnect Zoho Books\?/ });
@@ -259,6 +259,24 @@ const sapConnection = (patch: object = {}) => ({
   ...patch,
 });
 
+const SAP_RUN = {
+  ...RUN,
+  id: '01a10000-0000-7000-8000-0000000000fa',
+  status: 'failed',
+  stoppedBy: 'reconnect',
+  counts: { item: { read: 1, created: 0, updated: 0, unchanged: 0, skipped: 1 } },
+  problems: [
+    {
+      entity: 'item',
+      externalId: 'ITM-7',
+      label: 'Unnamed item',
+      issue: 'no_sku',
+      field: null,
+      detail: null,
+    },
+  ],
+};
+
 function sapClient(current: object | null) {
   let held = current;
   return fakeClient(
@@ -269,7 +287,7 @@ function sapClient(current: object | null) {
           { provider: 'sap_b1', configured: true, connection: held },
         ],
       }),
-      [`/v1/erp-connections/${SAP_ID}/runs`]: { items: [] },
+      [`/v1/erp-connections/${SAP_ID}/runs`]: { items: [SAP_RUN] },
       '/v1/territories': { items: [] },
       '/v1/price-lists': { items: [{ id: WHOLESALE, name: 'Wholesale' }] },
     },
@@ -287,6 +305,7 @@ function sapClient(current: object | null) {
         held = sapConnection({ settings: { ...SETTINGS, ...(body as object) } });
         return held;
       },
+      [`POST /v1/erp-connections/${SAP_ID}/runs`]: () => ({ ...SAP_RUN, status: 'running' }),
     },
     ['erp.manage'],
     BUNDLE,
@@ -342,6 +361,30 @@ describe('SAP Business One in Settings › ERP (D129)', () => {
     expect(writesOf(client)[0]![3]).toMatchObject({
       body: { taxRateField: 'U_GST', defaultTaxRate: '18', pushOrders: true },
     });
+  });
+
+  it('names SAP, never Zoho, in the mappings, the runs and their problems', async () => {
+    const client = sapClient(sapConnection());
+    renderAt('/settings/erp', client);
+    const user = userEvent.setup();
+    const sap = await screen.findByRole('region', { name: 'SAP Business One' });
+    const form = within(sap).getByRole('form', { name: 'What comes in, and where' });
+    expect(within(form).getByRole('group', { name: 'Read from SAP Business One' })).toBeVisible();
+    expect(
+      within(form).getByLabelText(/SAP Business One field holding the territory/),
+    ).toBeVisible();
+    const runs = within(sap).getByRole('region', { name: 'Runs' });
+    expect(await within(runs).findByRole('table', { name: 'Runs' })).toHaveTextContent(
+      'SAP Business One refused the connection',
+    );
+    expect(
+      within(runs).getByText(/Unnamed item: it has no SKU in SAP Business One\./),
+    ).toBeVisible();
+    await user.click(within(runs).getByRole('button', { name: 'Sync now' }));
+    expect(await within(runs).findByRole('status')).toHaveTextContent(
+      'Reading SAP Business One now.',
+    );
+    expect(sap).not.toHaveTextContent(/Zoho/);
   });
 });
 

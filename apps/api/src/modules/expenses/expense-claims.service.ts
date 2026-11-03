@@ -49,7 +49,7 @@ const OWNER = 'expense_claim';
 const SAYS: Record<ExpenseIssue['issue'], string> = {
   inactive_policy: 'This expense policy is switched off',
   no_rate: 'This policy has no rate for your designation',
-  future: 'Claim for a day that has passed or today',
+  future: 'The day can’t be in the future',
   days_needed: 'Enter the days',
   readings_needed: 'Enter the opening and closing readings',
   closing_before_opening: 'The closing reading is below the opening one',

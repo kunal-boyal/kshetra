@@ -113,7 +113,7 @@ On their page, under **Work**, choose a **Holiday calendar**, or leave **The def
 | This changed somewhere else. Refresh and try again. | Shown above the form for the clashes above, and when you deactivate someone people still report to. | Read the field messages; for a manager, transfer their reports first. |
 | You don't have access to this. | The role you chose goes beyond your own access, or you acted on yourself. | Ask another admin. |
 | This is outside the people and places you look after. | The person is outside your role's reach. | Ask someone whose role reaches them. |
-| Sign in again with your authenticator to open this organisation. | You cancelled **Confirm it’s you**, or the code was refused. | Make the change again and give a current code. |
+| This change needs a code from your authenticator. Make it again and enter the code. | You cancelled **Confirm it’s you**, or the code was refused. | Make the change again and give a current code. |
 
 The bold messages come from the server, in English.
 

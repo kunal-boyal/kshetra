@@ -53,7 +53,7 @@ describe('the public pages (spec 13.3, decision D100)', () => {
       await screen.findByRole('heading', { level: 1, name: 'Deleting your account and data' }),
     ).toBeVisible();
     expect(
-      screen.getByText('In the app: Me › My data › Erasing my data › Send request.'),
+      screen.getByText('In the app: More › My data › Erasing my data › Send request.'),
     ).toBeVisible();
     expect(screen.getByText(/what is deleted and what is kept/i)).toBeVisible();
     await userEvent.click(screen.getByRole('link', { name: 'Read the privacy notice' }));

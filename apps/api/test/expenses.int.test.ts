@@ -246,7 +246,7 @@ describe('expense claims (BR-29)', () => {
           expenseDate: after(TODAY(), 1),
         })
       ).json().error.details,
-    ).toEqual([{ path: 'expenseDate', issue: 'Claim for a day that has passed or today' }]);
+    ).toEqual([{ path: 'expenseDate', issue: 'The day can’t be in the future' }]);
     expect(
       (await claim(t.field, { policy: 'visits', description: 'Visits' })).json().error.details,
     ).toEqual([{ path: 'expenseDate', issue: 'You completed no visits on this day' }]);

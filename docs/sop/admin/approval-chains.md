@@ -35,7 +35,7 @@ An approval chain says who decides each kind of request, step by step: leave, at
    - Leave: "Leave days", "Paid leave".
    - Attendance fixes: "Days ago".
    - Expense claims: "Amount", "Over the policy".
-   - Orders: "Order total", "Over the credit limit", "More than the supplier holds".
+   - Orders: "Order total" (in your word for order), "Over the credit limit", "More than the supplier holds".
 7. Under **When nobody is found**, choose **Skip the step** or **Send it to a role**, and then the **Role to send it to**.
 8. Set **Remind after (hours)** and **Escalate after (hours)**, and for an escalation, **Escalate to** a role. Leave either empty for never.
 9. For orders only, tick **Decide line by line** to let this step accept or reject each line.

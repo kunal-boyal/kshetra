@@ -212,7 +212,7 @@ function sentence(
   t: Translate,
   locale: Locale,
 ): string {
-  const facts = REQUEST_FACTS[type];
+  const facts = factsOf(type, t);
   const value = (entry: unknown) =>
     typeof entry === 'boolean'
       ? t(entry ? 'common.yes' : 'common.no')
@@ -332,6 +332,14 @@ function ChainSummary({
 }
 
 type Translate = ReturnType<typeof useLanguage>['t'];
+
+/** A request type's facts, each named in the reader's words and the tenant's terms. */
+function factsOf(type: RequestType, t: Translate) {
+  return REQUEST_FACTS[type].map((fact) => {
+    const name = t(`chains.fact_${fact.key}` as Parameters<Translate>[0]);
+    return { ...fact, label: { en: name, hi: name } };
+  });
+}
 
 function describe(approver: Approver, choices: Choices, t: Translate): string {
   const name = (list: Option[], key: string) =>
@@ -546,7 +554,7 @@ function ChainEditor({
               legend={t('chains.condition')}
               addLabel={t('chains.add_condition')}
               condition={step.condition}
-              earlier={REQUEST_FACTS[type]}
+              earlier={factsOf(type, t)}
               onChange={(condition) => {
                 const rest = without(step, 'condition');
                 update(index, condition ? { ...rest, condition } : rest);

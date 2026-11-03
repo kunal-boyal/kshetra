@@ -31,7 +31,7 @@ You sign in once on your work phone with your mobile number and a six-digit code
 5. Tap **Sign in**.
 6. If no SMS arrives, wait for the countdown (**You can ask for a new code in … seconds.**) and tap **Send a new code**. To correct the number, tap **Use a different number**.
 
-The screen also says **This phone becomes your work phone. Your manager can move you to a new phone if you change it.** From your first sign-in, your user is bound to this phone; another phone is refused until a manager resets your device. The line at the foot, **Location is recorded only between start day and end day.**, is the promise the app keeps: tracking runs only while you are on duty. **Privacy** opens the privacy notice before you sign in.
+The screen also says **This phone becomes your work phone. Your manager can move you to a new phone if you change it.** From your first sign-in, your user is bound to this phone; another phone is refused until a manager resets your device. The line at the foot, **Location is recorded only between starting and ending your day.**, is the promise the app keeps: tracking runs only while you are on duty. **Privacy** opens the privacy notice before you sign in.
 
 ### Choose the language and the display
 

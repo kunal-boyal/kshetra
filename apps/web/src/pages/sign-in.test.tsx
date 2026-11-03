@@ -349,7 +349,7 @@ describe('signing in with single sign-on (decision D91)', () => {
 
   it('moves to single sign-on when the organisation requires it', async () => {
     const client = fakeClient(async () => {
-      throw new ApiError(403, 'SSO_REQUIRED', 'Sign in with SSO.');
+      throw new ApiError(403, 'SSO_REQUIRED', 'Choose Company SSO.');
     });
     renderApp(client);
     await enterNumberAndCode();

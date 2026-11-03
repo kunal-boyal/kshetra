@@ -115,8 +115,7 @@ export const en = {
   'signin.code_autofill': 'The code fills itself in when the SMS arrives.',
   'signin.work_phone':
     'This phone becomes your work phone. Your manager can move you to a new phone if you change it.',
-  'signin.on_duty_only':
-    'Location is recorded only between {term.punch_in:lower} and {term.punch_out:lower}.',
+  'signin.on_duty_only': 'Location is recorded only between starting and ending your day.',
 
   // The web portal's frame (spec 8.2).
   'shell.navigation': 'Main menu',
@@ -306,6 +305,7 @@ export const en = {
   'nav.people': 'People',
   'search.label': 'Search',
   'search.placeholder': 'Search people, {term.account:other:lower}, {term.order:other:lower}',
+  'search.phone_placeholder': 'Search screens, people and {term.account:other:lower}',
   'search.results': 'Search results',
   'search.group_screens': 'Screens',
   'search.group_people': 'People',
@@ -770,6 +770,11 @@ export const en = {
   'import.done': 'Imported: {created} added, {updated} changed.',
   'import.open_people': 'Open people',
   'import.open_territories': 'Open territories',
+  'import.open_accounts': 'Open {term.account:other:lower}',
+  'import.open_items': 'Open the catalogue',
+  'import.open_targets': 'Open {term.target:other:lower}',
+  'import.open_holidays': 'Open holiday calendars',
+  'import.back_to_imports': 'Back to imports',
   'import.failed': 'The import stopped, and nothing was imported. {reason}',
   'import.upload_again': 'Upload a file again',
   'import.field_users_code': 'Employee code',
@@ -889,7 +894,7 @@ export const en = {
   'plan.empty_body': 'Plan from routes, or add a visit below.',
   'plan.add': 'Plan a visit',
   'plan.added': 'Visit planned.',
-  'plan.choose_account': 'Choose a {term.account:lower}',
+  'plan.choose_account': 'Choose the {term.account:lower}',
   'plan.routes': 'Routes',
   'plan.no_routes': 'No routes yet.',
   'plan.route_off': 'Switched off',
@@ -897,7 +902,7 @@ export const en = {
   'plan.edit_route': 'Edit route',
   'plan.route_name': 'Route name',
   'plan.route_days': 'Days of the week',
-  'plan.route_add_place': 'Add a {term.account:lower} to the route',
+  'plan.route_add_place': 'Add to the route',
   'plan.route_places': 'Stops, first to last',
   'plan.route_remove': 'Remove {name}',
   'plan.route_active': 'In use',
@@ -1521,7 +1526,7 @@ export const en = {
   'catalogue.list_empty': 'No prices yet',
   'catalogue.list_empty_body': 'Add items to this list on its own page.',
   'catalogue.prices_kept':
-    'A {term.order:lower} keeps the prices of the day it was placed. If a phone sends one after a price changed, the person is asked to accept the new total.',
+    '{term.order:other} keep the prices of the day each was placed. If a phone sends one after a price changed, the person is asked to accept the new total.',
   'catalogue.search': 'Find by code, name, product or category',
   'catalogue.caption': 'Catalogue items',
   'catalogue.item': 'Item',
@@ -1564,7 +1569,7 @@ export const en = {
     "Switched off, it can't be ordered or chosen in new forms, but past records keep it.",
   'prices.title': 'Price lists',
   'prices.intro':
-    'Who pays what. The most specific list that applies to a {term.account:lower} prices each item; between lists equally specific, the higher priority wins.',
+    'Who pays what. The most specific list that applies to each {term.account:lower} prices each item; between lists equally specific, the higher priority wins.',
   'prices.add_list': 'Add a price list',
   'prices.new_list': 'New price list',
   'prices.caption': 'Price lists',
@@ -1688,7 +1693,7 @@ export const en = {
   'orders.status_cancelled': 'Cancelled',
   'orders.placed_on': 'Placed by {name}, {when}',
   'orders.not_an_invoice':
-    "An {term.order:lower} is a request from the field. Accepting it doesn't create an invoice, reduce stock or count as sales, unless a metric counts accepted {term.order:other:lower}.",
+    "{term.order:other} are requests from the field. Accepting one doesn't create an invoice, reduce stock or count as sales, unless a metric counts accepted {term.order:other:lower}.",
   'orders.supplier': 'Supplied by',
   'orders.supplier_company': 'Your company',
   'orders.note': 'Note',
@@ -1734,6 +1739,8 @@ export const en = {
   'orders.desk_intro':
     'Taken by phone or at the counter. Each line is priced as the server will price it, from the lists that apply today.',
   'orders.choose_account': 'Which {term.account:lower}',
+  'orders.desk_no_prices':
+    'No price list prices anything for this {term.account:lower} yet, so there is nothing to add. Prices are kept at Settings › Price lists.',
   'orders.accounts_found': '{term.account:other} found',
   'orders.for_account': 'For {name}',
   'orders.change_account': 'Choose another',
@@ -2181,7 +2188,7 @@ export const en = {
   'claims.send_total': 'Send the claim · {amount}',
   'claims.issue_inactive_policy': 'This expense policy is switched off',
   'claims.issue_no_rate': 'This policy has no rate for your designation',
-  'claims.issue_future': 'Claim for a day that has passed or today',
+  'claims.issue_future': 'The day can’t be in the future',
   'claims.issue_days_needed': 'Enter the days',
   'claims.issue_readings_needed': 'Enter the opening and closing readings',
   'claims.issue_closing_before_opening': 'The closing reading is below the opening one',
@@ -2535,7 +2542,7 @@ export const en = {
   'targets.intro':
     'Set each period’s {term.target:other:lower} for the people you look after, then lock them. Locked {term.target:other:lower} no longer change.',
   'targets.no_metrics_title': 'Nothing to set yet',
-  'targets.no_metrics_body': 'No metric can carry a {term.target:lower} yet.',
+  'targets.no_metrics_body': 'No metric can carry {term.target:other:lower} yet.',
   'targets.caption': '{term.target:other} for the month, by person',
   'targets.select': 'Select',
   'targets.person': 'Person',
@@ -2557,7 +2564,8 @@ export const en = {
     one: 'Lock the {term.target:other:lower} of {count} person?',
     other: 'Lock the {term.target:other:lower} of {count} people?',
   },
-  'targets.lock_note': 'Once locked, only an administrator can unlock them, with a reason.',
+  'targets.lock_note':
+    'Once locked, only someone who may unlock {term.target:other:lower} can unlock them, with a reason.',
   'targets.copy': { one: 'Copy for {count} person', other: 'Copy for {count} people' },
   'targets.copied': {
     one: '{term.target:other} copied for {count} person.',
@@ -3266,7 +3274,7 @@ export const en = {
   'perm.scheme.manage': 'Manage schemes and promotions',
   'report.name_scheme_summary': 'Scheme summary',
   'report.about_scheme_summary':
-    'Each scheme that reached a {term.order:lower} this month: the {term.order:other:lower} and lines, the discount given and the goods given free',
+    'Each scheme used on {term.order:other:lower} this month: the {term.order:other:lower} and lines, the discount given and the goods given free',
   'report.col_scheme': 'Scheme',
   'report.col_scheme_key': 'Scheme key',
   'report.col_scheme_kind': 'Kind',
@@ -3507,7 +3515,7 @@ export const en = {
   'organisation.auto_off': 'Reviewers decide every record',
   'organisation.rule_tracking': 'Tracking',
   'organisation.tracking_value':
-    'Every {seconds} seconds, only between {term.punch_in:lower} and {term.punch_out:lower}',
+    'Every {seconds} seconds, only between the start and the end of the day',
   'organisation.rule_phones': 'Phones',
   'organisation.phones_one': 'One work phone a person',
   'organisation.phones_any': 'Any phone',
@@ -3590,8 +3598,8 @@ export const en = {
   'admin.rule_geofenceAccuracyCapMeters': 'Most GPS accuracy counted toward the geofence',
   'admin.rule_syncWindowHours': 'Oldest record a phone may send',
   'admin.rule_maxShiftHours': 'Longest shift',
-  'admin.rule_attendanceSelfie': 'Ask for a selfie at {term.punch_in:lower}',
-  'admin.rule_odometer': 'Odometer at {term.punch_in:lower} and {term.punch_out:lower}',
+  'admin.rule_attendanceSelfie': 'Ask for a selfie when the day starts',
+  'admin.rule_odometer': 'Odometer when the day starts and ends',
   'admin.rule_odometer_help':
     'A reading and a photo of it. Shown beside the tracked distance, never in its place.',
   'admin.odometer_off': 'Not asked',
@@ -3602,8 +3610,7 @@ export const en = {
   'admin.rule_targetUnlockByAdmin': 'Admins may unlock locked {term.target:other:lower}',
   'admin.rule_defaultCreditDays': 'Credit days when an invoice gives none',
   'admin.rule_countTolerancePct': 'A count is flagged past this difference (%)',
-  'admin.rule_collectionCashLimit':
-    'Cash from one {term.account:lower} in a day must stay under (₹)',
+  'admin.rule_collectionCashLimit': 'Cash from one {term.account:lower} in a day must stay under',
   'admin.rule_planNotificationTime': "Today's plan is sent at",
   'admin.rule_quietHoursStart': 'Quiet hours start',
   'admin.rule_quietHoursEnd': 'Quiet hours end',
@@ -3932,12 +3939,12 @@ export const en = {
   'perm.payroll.run': 'Run and approve the monthly payroll',
   'perm.salary.manage': 'Manage salary structures and statutory details',
   'admin.module_integrations': 'Integrations',
-  'admin.module_integrations_about': 'The public API and webhooks.',
+  'admin.module_integrations_about': 'The public API, webhooks and ERP connections.',
   'admin.module_sso': 'Single sign-on',
   'admin.module_sso_about':
     'Signing in to the web with your own identity provider, through OIDC or SAML.',
   'admin.module_integrations_off':
-    'While it is off, API clients get no tokens and webhooks send nothing. Both are kept for when it is on again.',
+    'While it is off, API clients get no tokens, webhooks send nothing and ERP connections neither read nor send. All are kept for when it is on again.',
   'admin.module_sso_off':
     'While it is off, nobody signs in through your identity provider, and everyone signs in to the web with a one-time code. The connection is kept for when it is on again.',
   'admin.module_advanced_analytics': 'Advanced analytics',
@@ -4231,7 +4238,7 @@ export const en = {
   'score.choose': 'Choose one',
   'score.cap': 'Most one metric can count, in percent',
   'score.cap_help':
-    'From 100 to 200. At 100, going past a {term.target:lower} counts no more than meeting it.',
+    'From 100 to 200. At 100, going past the {term.target:lower} counts no more than meeting it.',
   'score.period': 'Count {term.target:other:lower} and scores by',
   'score.period_help':
     'A month, or a quarter or the year of your financial year. A change starts where the current period ends, so no day counts twice.',
@@ -4346,6 +4353,14 @@ export const en = {
   'chains.always': 'Always',
   'chains.and': ' and ',
   'chains.or': ' or ',
+  'chains.fact_leave_days': 'Leave days',
+  'chains.fact_paid': 'Paid leave',
+  'chains.fact_days_ago': 'Days ago',
+  'chains.fact_amount': 'Amount',
+  'chains.fact_over_policy': 'Over the policy',
+  'chains.fact_total': '{term.order} total',
+  'chains.fact_over_credit': 'Over the credit limit',
+  'chains.fact_short_stock': 'More than the supplier holds',
   'chains.steps': 'Steps',
   'chains.reminder_after': 'A reminder after {hours} hours',
   'chains.escalates': 'After {hours} hours, it goes to {role}',
@@ -4846,7 +4861,7 @@ export const en = {
   'error.SSO_REQUIRED':
     'Your organisation signs you in with its own sign-in. Enter your work email to continue.',
   'error.SECOND_FACTOR_REQUIRED':
-    'Sign in again with your authenticator to open this organisation.',
+    'This change needs a code from your authenticator. Make it again and enter the code.',
   'signin.totp_title': 'Enter your authenticator code',
   'signin.totp_intro':
     'You can change who does what in {organisation}, so we ask for the code from your authenticator app too.',
@@ -5051,7 +5066,6 @@ export const en = {
     'Removed. They set up a new authenticator at their next sign-in.',
   'console.second_factor_none': 'They had no authenticator; their sessions have ended.',
   'console.reset': 'Reset',
-  'signin.sso_link': 'Sign in with SSO',
   'signin.sso_title': 'Sign in with your organisation',
   'signin.sso_intro': 'Enter your work email, and we take you to your organisation’s sign-in page.',
   'signin.sso_email': 'Work email',
@@ -5059,7 +5073,6 @@ export const en = {
   'signin.sso_continue': 'Continue',
   'signin.sso_none':
     'Your organisation doesn’t use single sign-on for this email. Sign in with your mobile number.',
-  'signin.sso_back': 'Sign in with your mobile number',
   'signin.sso_failed_expired': 'The sign-in took too long. Try again.',
   'signin.sso_failed_refused':
     'Your organisation’s sign-in didn’t complete. Try again, or ask your administrator.',
@@ -5100,7 +5113,7 @@ export const en = {
   'sso.domains': 'Email domains',
   'sso.domains_help': 'One a line, such as sunrise-agro.example',
   'sso.enabled': 'On',
-  'sso.enabled_help': 'People in these domains can choose Sign in with SSO',
+  'sso.enabled_help': 'People in these domains can choose Company SSO',
   'sso.enforced': 'Required',
   'sso.enforced_help':
     'People in these domains can’t sign in to the portal with a code; phones still can',
@@ -5413,16 +5426,16 @@ export const en = {
   'erp.choose_organisation': 'Organisation to connect',
   'erp.use_organisation': 'Use this organisation',
   'erp.mappings': 'What comes in, and where',
-  'erp.read': 'Read from Zoho',
+  'erp.read': 'Read from {provider}',
   'erp.read_customers': 'Customers, as {term.account:other:lower}',
   'erp.read_items': 'Items and their prices',
   'erp.read_invoices': 'Invoices',
   'erp.read_payments': 'Payments',
   'erp.account_type': 'Customers become',
   'erp.account_type_help':
-    'The type of {term.account:lower} Zoho’s customers are. Each customer’s number in Zoho becomes its code.',
+    'The type of {term.account:lower} that customers from {provider} become. Each keeps its customer code from {provider} as its code.',
   'erp.not_chosen': 'Not chosen',
-  'erp.territory_field': 'Zoho field holding the territory code',
+  'erp.territory_field': '{provider} field holding the territory code',
   'erp.territory_field_help':
     'The name of a custom field on Zoho’s customers. Leave it empty to keep each one’s territory here.',
   'erp.default_territory': 'Territory for new customers',
@@ -5438,8 +5451,8 @@ export const en = {
   'erp.add_price_book': 'Add a price book',
   'erp.units': 'Units named differently',
   'erp.units_help':
-    'Only where Zoho’s unit isn’t the name of one of yours, for example pcs for piece.',
-  'erp.unit_name': 'Unit in Zoho',
+    'Only where a unit in {provider} isn’t the name of one of yours, for example pcs for piece.',
+  'erp.unit_name': 'Unit in {provider}',
   'erp.unit_ours': 'Your unit',
   'erp.add_unit': 'Add a unit',
   'erp.remove_row': 'Remove row {n}',
@@ -5456,7 +5469,7 @@ export const en = {
   'erp.runs': 'Runs',
   'erp.runs_none': 'No runs yet. The first runs within the hour, or now with Sync now.',
   'erp.sync_now': 'Sync now',
-  'erp.sync_asked': 'Reading Zoho now. The run appears here when it finishes.',
+  'erp.sync_asked': 'Reading {provider} now. The run appears here when it finishes.',
   'erp.col_started': 'Started',
   'erp.col_kind': 'Kind',
   'erp.col_status': 'Result',
@@ -5470,8 +5483,8 @@ export const en = {
   'erp.run_partial': 'Done, with problems',
   'erp.run_failed': 'Failed',
   'erp.stopped_daily_limit': 'stopped at the day’s calls',
-  'erp.stopped_rate_limited': 'paused by Zoho’s limit',
-  'erp.stopped_reconnect': 'Zoho refused the connection',
+  'erp.stopped_rate_limited': 'paused by {provider}’s limit',
+  'erp.stopped_reconnect': '{provider} refused the connection',
   'erp.stopped_error': 'stopped by an error',
   'erp.stopped_bad_file': 'the file couldn’t be read',
   'erp.run_counts': '{entity}: {read} read, {written} written, {skipped} left out',
@@ -5486,14 +5499,14 @@ export const en = {
     other: 'The last run left out {n} records',
   },
   'erp.problem': '{entity}, {label}: {issue}.',
-  'erp.issue_no_customer_number': 'it has no customer number in Zoho',
+  'erp.issue_no_customer_number': 'it has no customer number in {provider}',
   'erp.issue_no_account_type': 'choose what customers become first',
   'erp.issue_no_territory': 'no territory, and no territory for new customers is chosen',
-  'erp.issue_no_sku': 'it has no SKU in Zoho',
+  'erp.issue_no_sku': 'it has no SKU in {provider}',
   'erp.issue_unknown_customer': 'its customer isn’t here yet',
-  'erp.issue_duplicate_code': 'another Zoho record has the same code',
+  'erp.issue_duplicate_code': 'another record in {provider} has the same code',
   'erp.issue_not_per_item': 'only per-item sales price books can be read',
-  'erp.issue_not_in_books': 'its customer or an item isn’t in Zoho yet; it waits',
+  'erp.issue_not_in_books': 'its customer or an item isn’t in {provider} yet; it waits',
   'erp.issue_no_tax_rate': 'it has no GST rate, and no default rate is set',
   'erp.issue_refused': 'it was refused',
   'erp.disconnect': 'Disconnect',
@@ -5621,7 +5634,7 @@ export const en = {
   'audit_log.none': 'Nothing matches in this month.',
   'audit_log.export_csv': 'Export as CSV',
   'audit_log.export_xlsx': 'Export as Excel',
-  'audit_log.exporting': 'Preparing your file. Find it in Reports, under Exports.',
+  'audit_log.exporting': 'Preparing your file. Find it in Reports, under Your downloads.',
   'audit_log.open_reports': 'Open Reports',
   // The privacy notice (spec 13.3, decision D100), shown in the app and at the portal's /privacy.
   'privacy.title': 'Privacy notice',
@@ -5662,7 +5675,7 @@ export const en = {
     'Your data is kept in India, for as long as your organisation’s settings say: location points for 7 to 90 days, routes and photos for longer. When your organisation stops using {product}, its data is returned to it and deleted.',
   'privacy.rights_title': 'Your rights',
   'privacy.rights_1':
-    'You may ask for a copy of your data and for corrections, and, once you have left your organisation, for your data to be erased: in the app at Me › My data, or through your organisation. Requests are answered within 30 days.',
+    'You may ask for a copy of your data and for corrections, and, once you have left your organisation, for your data to be erased: in the app at More › My data, or through your organisation. Requests are answered within 30 days.',
   'privacy.rights_contact':
     'If you have a complaint, raise it with your organisation first. You may also write to the provider at {email}.',
   'privacy.rights_contact_store':
@@ -5675,7 +5688,7 @@ export const en = {
   'deletion.intro':
     'Your sign-in to {product} comes from the organisation you work with: it adds you and removes you, and your data is part of its records.',
   'deletion.how_title': 'How to ask',
-  'deletion.how_app': 'In the app: Me › My data › Erasing my data › Send request.',
+  'deletion.how_app': 'In the app: More › My data › Erasing my data › Send request.',
   'deletion.how_organisation':
     'Or ask your organisation’s admin, who handles it in the portal at Settings › Data requests.',
   'deletion.how_email':

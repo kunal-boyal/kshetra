@@ -7,7 +7,7 @@
 | **Module** | Orders; Inventory for stock moving on fulfilment |
 | **Related** | [Decide approvals](../manager/approvals.md), [Keep distributors' stock](stock.md), [Keep receivables and statements](receivables-and-statements.md), [Schemes](../admin/schemes.md), [Reports](reports.md) |
 
-Orders come from field people's phones and from the order desk. Each goes through its approval chain; once accepted, the back office records what went out (fulfilment) or cancels it. An order is a request from the field: accepting it doesn't create an invoice, reduce your own stock or count as sales, unless a metric counts accepted orders.
+Orders come from field people's phones and from the order desk. Each goes through its approval chain; once accepted, the back office records what went out (fulfilment) or cancels it. Orders are requests from the field: accepting one doesn't create an invoice, reduce your own stock or count as sales, unless a metric counts accepted orders.
 
 ## Before you start
 
@@ -85,7 +85,7 @@ For an order taken by phone call or at the counter (`order.create`).
 | Prices changed since they were shown. Check the lines and place it again. | A price or scheme changed after the desk priced the lines. | Check the lines, then place it again. |
 | This order is too large to place. | The order breaks the size limit. | Split it into smaller orders. |
 | This item is on the order already in another unit. Change that line instead. | One item, two units. | Change the existing line's quantity. |
-| No price list on this phone covers it yet. Prices arrive with the next sync. | No price list covers the item for this account. | Ask your admin to price it in Settings › **Price lists**. |
+| No price list prices anything for this account yet, so there is nothing to add. Prices are kept at Settings › Price lists. | No price list covers this account. | Ask your admin to price it in Settings › **Price lists**. |
 | Some details need fixing. Check the highlighted fields. | A rejection without a reason, or fulfilment more than ordered or less than already fulfilled. | Fix the highlighted field. |
 | This changed somewhere else. Refresh and try again. | The order was decided, fulfilled or cancelled meanwhile, or it can't be fulfilled in its status. | Reload the order. |
 | It isn't your turn to act on this, or someone else already has. Refresh your inbox. | The order isn't at your step. | Reload; check **Approval steps**. |
