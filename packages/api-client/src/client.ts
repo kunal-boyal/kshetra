@@ -234,8 +234,18 @@ export function createClient(options: ClientOptions) {
   }
 
   async function refresh(): Promise<SessionState> {
+    const held = session;
     refreshing ??= lock('session-refresh', async () => {
-      const before = await current();
+      // Another client on this device, such as the app beside its background task, may have
+      // refreshed while this one waited: take what it stored rather than spend the same token
+      // again (decision D133).
+      const stored = web ? null : await options.store.load();
+      if (stored && held && stored.refreshToken !== held.refreshToken && !expiring(stored)) {
+        session = stored;
+        loaded = true;
+        return stored;
+      }
+      const before = stored ?? (await current());
       if (!web && !before?.refreshToken) throw new ApiError(401, 'SESSION_REVOKED', 'Sign in.');
       try {
         const result = await directory(

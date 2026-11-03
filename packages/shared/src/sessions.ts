@@ -24,6 +24,23 @@ export function sessionExpiresAt(kind: SessionKind, startedAt: number, now: numb
   return Math.min(now + limits.idleMs, startedAt + limits.absoluteMs);
 }
 
+/**
+ * How long a refresh token spent by a refresh may come back without ending its session (decision
+ * D133). Two refreshes may leave at once with the same token: the app and its background task on a
+ * phone, or a page reloaded while its refresh was still in flight. The second is answered from the
+ * same session; later, a spent token coming back is a copy, and the session ends (D101).
+ */
+export const REFRESH_OVERLAP_MS = 10_000;
+
+/**
+ * Whether a spent refresh token coming back is a second refresh at the same moment rather than a
+ * copy (decision D133): spent by a refresh within `REFRESH_OVERLAP_MS`, its session still going.
+ * A token spent by signing out ends its session, so it never overlaps.
+ */
+export function refreshOverlap(spentAt: number, now: number, sessionLive: boolean): boolean {
+  return sessionLive && now >= spentAt && now - spentAt <= REFRESH_OVERLAP_MS;
+}
+
 /** OIDC `amr` values that name a second factor (RFC 8176). */
 const MFA_METHODS = new Set([
   'mfa',

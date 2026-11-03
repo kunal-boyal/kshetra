@@ -182,6 +182,43 @@ describe('refreshing', () => {
     expect(locked).toEqual(['session-refresh']);
   });
 
+  it('lets a second client on the device take the first one’s refresh (D133)', async () => {
+    // The app and its background task: two clients, one store, one lock, both finding the
+    // access token expired at once.
+    let refreshes = 0;
+    const server = fakeServer(async (url, init) => {
+      if (url.endsWith('/auth/v1/token/refresh')) {
+        refreshes += 1;
+        expect(JSON.parse(String(init.body))).toEqual({ refreshToken: 'r1' });
+        return json(200, { session: session('a2', 'r2'), tenant: TENANT });
+      }
+      const auth = (init.headers as Record<string, string>).authorization;
+      return auth === 'Bearer a2'
+        ? json(200, ME)
+        : json(401, { error: { code: 'TOKEN_EXPIRED', message: 'Expired', requestId: 'x' } });
+    });
+    const store = memoryStore();
+    await store.save({ tenant: TENANT, ...session('a1', 'r1') } as SessionState);
+    let turn: Promise<unknown> = Promise.resolve();
+    const lock = <T>(_name: string, work: () => Promise<T>): Promise<T> => {
+      const next = turn.then(work, work);
+      turn = next.catch(() => undefined);
+      return next;
+    };
+    const options = {
+      directoryUrl: '',
+      platform: 'app' as const,
+      store,
+      fetch: server.fetch,
+      lock,
+    };
+    const app = createClient(options);
+    const task = createClient(options);
+    const [fromApp, fromTask] = await Promise.all([app.me(), task.me()]);
+    expect([fromApp.userId, fromTask.userId]).toEqual([USER, USER]);
+    expect(refreshes).toBe(1);
+  });
+
   it('ends the session when the server revokes it', async () => {
     const onSignedOut = vi.fn();
     const server = fakeServer(() =>

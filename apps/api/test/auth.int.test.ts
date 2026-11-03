@@ -3,6 +3,7 @@ import { createLocalJWKSet, jwtVerify } from 'jose';
 import { NUMBER_IN_USE } from '@thelamp/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { MemoryOtpSender } from '../src/modules/directory/otp-sender';
+import { digest } from '../src/modules/directory/secrets';
 import { SigningKey } from '../src/modules/directory/signing-key';
 import { SYSTEM } from '../src/modules/iam/actor';
 import { UsersService } from '../src/modules/iam/users.service';
@@ -31,6 +32,13 @@ const requestCode = (phone: string, address?: string) =>
 const verifyCode = (phone: string, code: string, address?: string) =>
   post('/auth/v1/otp/verify', { phone, code }, address);
 const refresh = (refreshToken: string) => post('/auth/v1/token/refresh', { refreshToken });
+/** Marks a spent refresh token as spent some seconds ago, past the overlap of two refreshes. */
+const spentAgo = (refreshToken: string, seconds: number) =>
+  world.directory.client.query(
+    `update directory.refresh_tokens set revoked_at = now() - make_interval(secs => $2)
+      where token_hash = $1`,
+    [digest(refreshToken), seconds],
+  );
 const me = (accessToken: string) =>
   app.inject({ method: 'GET', url: '/v1/me', headers: { authorization: `Bearer ${accessToken}` } });
 
@@ -294,8 +302,35 @@ describe('sessions', () => {
     expect(second.refreshToken).not.toBe(first.refreshToken);
     expect((await me(second.accessToken)).statusCode).toBe(200);
 
+    // Past the moment two refreshes may overlap (D133), the spent token is a copy.
+    await spentAgo(first.refreshToken, 60);
     expect((await refresh(first.refreshToken)).json().error.code).toBe('SESSION_REVOKED');
     expect((await refresh(second.refreshToken)).json().error.code).toBe('SESSION_REVOKED');
+  });
+
+  it('answer a second refresh sent at the same moment from the same session (D133)', async () => {
+    const person = await member('Falcon Twin');
+    const first = await signIn(person.phone);
+    // The app and its background task both refresh with the token they hold.
+    const [one, two] = await Promise.all([
+      refresh(first.refreshToken),
+      refresh(first.refreshToken),
+    ]);
+    expect([one.statusCode, two.statusCode]).toEqual([200, 200]);
+    const tokens = [one, two].map((answer) => answer.json().session);
+    expect(tokens[0].refreshToken).not.toBe(tokens[1].refreshToken);
+    // Each goes on, and the session's access tokens still work.
+    for (const token of tokens) expect((await me(token.accessToken)).statusCode).toBe(200);
+    expect((await refresh(tokens[0].refreshToken)).statusCode).toBe(200);
+    expect((await refresh(tokens[1].refreshToken)).statusCode).toBe(200);
+  });
+
+  it('never let a token spent by signing out back in, however soon (D133)', async () => {
+    const person = await member('Falcon Gone');
+    const session = await signIn(person.phone);
+    const rotated = (await refresh(session.refreshToken)).json().session;
+    await post('/auth/v1/logout', { refreshToken: rotated.refreshToken });
+    expect((await refresh(session.refreshToken)).json().error.code).toBe('SESSION_REVOKED');
   });
 
   it('end on sign-out', async () => {

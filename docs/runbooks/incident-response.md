@@ -26,6 +26,7 @@ Every process writes JSON lines to CloudWatch Logs, in `/<cell>/api`, `/worker`,
   - `sign_in_failed`: with a masked `subject` and the `reason`;
   - `reauthentication_failed`;
   - `session_reused`: a spent refresh token came back, so a copy exists and its family was ended;
+  - `refresh_overlap`: a refresh token spent in the last 10 seconds came back while its session went on, taken as two refreshes sent at once and answered (D133); many for one subject, or from two addresses, would deserve a look;
   - `audit`: every committed audit entry's action, actor and target, without its values.
 
 Each line is `{"level", "timestamp", "context", "message": {…}}`, the event's fields under `message`. In CloudWatch Logs Insights, on the cell's `api` group:

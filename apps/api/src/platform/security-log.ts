@@ -13,6 +13,8 @@ import { currentRequest } from './request-context';
  * - `sign_in_failed`: a sign-in step failed, naming whom it was for (masked) and why.
  * - `reauthentication_failed`: a signed-in person's password or code didn't check out.
  * - `session_reused`: a spent refresh token came back, and its whole family ended.
+ * - `refresh_overlap`: a refresh token spent a moment ago came back while its session went on,
+ *   two refreshes sent at once, and the second was answered from the same session (D133).
  * - `audit`: an audit entry committed, mirrored here without its values.
  */
 export type SecurityEventKind =
@@ -21,6 +23,7 @@ export type SecurityEventKind =
   | 'sign_in_failed'
   | 'reauthentication_failed'
   | 'session_reused'
+  | 'refresh_overlap'
   | 'audit';
 
 export interface SecurityEvent {
