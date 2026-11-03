@@ -152,11 +152,88 @@ describe('personal data requests (M21, D95)', () => {
     });
     expect(done.json()).toMatchObject({ status: 'completed', closedBy: 'Anita Rao' });
     expect(await notified(t.tenantId, t.person.id, 'data_request.closed')).toEqual([
-      { values: { outcome: 'completed', response: 'Your archive was emailed to you' } },
+      {
+        values: {
+          outcome: 'completed',
+          kind: 'access',
+          response: 'Your archive was emailed to you',
+        },
+      },
     ]);
     expect((await t.phone.get('/v1/me/data-requests')).json().items).toEqual([
       expect.objectContaining({ id, status: 'completed' }),
     ]);
+  });
+
+  it('gives the person their copy once the request is done, and only them (D141)', async () => {
+    const t = await organisation('Copy Traders');
+    const id = newId();
+    await t.phone.post('/v1/me/data-requests', { id, kind: 'access' });
+    await t.admin.post(`/v1/data-requests/${id}/archive`);
+    await app.get(DataRequestsService).runArchive(t.tenantId, id);
+
+    // Prepared but not yet answered: the person sees it is ready, with no link yet.
+    const waiting = await t.phone.get(`/v1/me/data-requests/${id}`);
+    expect(waiting.statusCode, waiting.body).toBe(200);
+    expect(waiting.json()).toMatchObject({
+      status: 'received',
+      archive: { status: 'ready' },
+      download: null,
+    });
+
+    await t.admin.post(`/v1/data-requests/${id}/close`, {
+      outcome: 'completed',
+      response: 'Download it from My data',
+    });
+    const done = await t.phone.get(`/v1/me/data-requests/${id}`);
+    expect(done.statusCode, done.body).toBe(200);
+    const copy = done.json();
+    expect(copy).toMatchObject({ status: 'completed', archive: { status: 'ready' } });
+    const bytes = await app.get(ObjectStore).get(new URL(copy.download.url).pathname.slice(1));
+    expect(verifyArchive(bytes, app.get(ArchiveSigner).publicKeyPem).subject).toBe(t.person.id);
+    // The list never carries a link.
+    expect((await t.phone.get('/v1/me/data-requests')).json().items[0].download).toBeNull();
+
+    // Reading the link is audited, as the admin's is; reading the list is not.
+    const downloads = () =>
+      app.get(Database).forTenant(t.tenantId, async (tx) => {
+        const result = await tx.execute(
+          sql`select actor_id from cell.audit_log where tenant_id = ${t.tenantId} and action = 'data_request.downloaded' and target_id = ${id}`,
+        );
+        return result.rows as { actor_id: string }[];
+      });
+    expect(await downloads()).toEqual([{ actor_id: t.person.id }]);
+
+    // Nobody else reads it through the person's route, not even the admin; nor an API client.
+    expect((await t.admin.get(`/v1/me/data-requests/${id}`)).json().error.code).toBe('NOT_FOUND');
+    const colleague = newPhone();
+    await world.user(t.tenantId, { phone: colleague, name: 'Mira Das', designation: 'executive' });
+    const other = as((await world.signIn(colleague, newDevice())).accessToken);
+    expect((await other.get(`/v1/me/data-requests/${id}`)).json().error.code).toBe('NOT_FOUND');
+    const made = (
+      await t.admin.post('/v1/api-clients', { id: newId(), name: 'HR', scopes: ['people:write'] })
+    ).json();
+    const issued = await app.inject({
+      method: 'POST',
+      url: '/auth/v1/oauth/token',
+      remoteAddress: newAddress(),
+      payload: {
+        grant_type: 'client_credentials',
+        client_id: made.client.clientId,
+        client_secret: made.clientSecret,
+      },
+    });
+    const client = as(issued.json().access_token as string);
+    expect((await client.get(`/v1/me/data-requests/${id}`)).statusCode).toBe(403);
+    expect(await downloads()).toHaveLength(1);
+
+    // Seven days on, the copy is gone.
+    await app.get(DataRequestsService).upkeep(t.tenantId, new Date(Date.now() + 8 * 86_400_000));
+    expect((await t.phone.get(`/v1/me/data-requests/${id}`)).json()).toMatchObject({
+      archive: { status: 'expired' },
+      download: null,
+    });
+    expect(await downloads()).toHaveLength(1);
   });
 
   it('erases a deactivated person, keeps what they did, and forgets their sign-in', async () => {

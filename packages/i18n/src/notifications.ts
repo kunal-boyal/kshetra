@@ -74,7 +74,11 @@ export function notificationMessage(
       return values.outcome === 'completed'
         ? {
             title: 'notify.data_request_completed_title',
-            body: 'notify.data_request_completed_body',
+            // A completed access request's copy waits on My data (decision D141).
+            body:
+              values.kind === 'access'
+                ? 'notify.data_request_copy_ready_body'
+                : 'notify.data_request_completed_body',
             params,
           }
         : {

@@ -640,6 +640,10 @@ const FIXTURES: Record<string, Fixture> = {
     kind: 'own tenant',
     run: async () => holdsNothingOfA(await asBPhone('GET', '/v1/me/data-requests')),
   },
+  'GET /v1/me/data-requests/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asBPhone('GET', `/v1/me/data-requests/${id}`), aDataRequestId),
+  },
   'POST /v1/me/data-requests': {
     kind: 'write',
     run: async () => {

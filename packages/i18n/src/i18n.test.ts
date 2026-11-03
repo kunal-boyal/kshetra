@@ -12,6 +12,7 @@ import {
   formatWeekday,
 } from './format';
 import { en, type MessageKey } from './messages/en';
+import { notificationMessage } from './notifications';
 import { amountInWords } from './words';
 import { resolveTerminology, TERMINOLOGY_DEFAULTS } from './terminology';
 import { createTranslator, MESSAGES, placeholders, translate, pluralForm } from './translate';
@@ -193,5 +194,29 @@ describe('amounts in words (decision D128)', () => {
     expect(amountInWords('271667.00', 'en')).toBe(
       'Two lakh seventy-one thousand six hundred sixty-seven rupees',
     );
+  });
+});
+
+describe('notification messages (decision D58)', () => {
+  it('tells a person whose access request is done that their copy is on My data (D141)', () => {
+    const access = notificationMessage(
+      'data_request.closed',
+      { outcome: 'completed', kind: 'access', response: 'Here it is' },
+      'en',
+    );
+    expect(translate(access.body, { locale: 'en', params: access.params })).toBe(
+      'Your copy is on My data, kept 7 days from when it was prepared. Their answer: Here it is',
+    );
+    const correction = notificationMessage(
+      'data_request.closed',
+      { outcome: 'completed', kind: 'correction', response: 'Fixed' },
+      'en',
+    );
+    expect(correction.body).toBe('notify.data_request_completed_body');
+    // Notifications stored before the kind was kept read as they did.
+    expect(
+      notificationMessage('data_request.closed', { outcome: 'completed', response: '—' }, 'en')
+        .body,
+    ).toBe('notify.data_request_completed_body');
   });
 });

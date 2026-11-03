@@ -5,6 +5,9 @@ import { claim, migrate } from '@thelamp/api-client/sync';
 import { SETTING_DEFAULTS, type SyncPullResult } from '@thelamp/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { formatDate } from '@thelamp/i18n';
+import { todayIn } from '@thelamp/shared';
+import { Linking } from 'react-native';
 import { AppProvider, useApp } from '../app-state';
 import type { MobileClient } from '../client';
 import { LanguageProvider } from '../i18n';
@@ -47,13 +50,29 @@ const full = <T,>(rows: T[]) => ({
   removed: [],
 });
 
-function fakeClient() {
+const IN_5_DAYS = new Date(Date.now() + 5 * 86_400_000).toISOString();
+const LINK = 'https://storage.example/personal-data.zip?signature=abc';
+
+/** An access request the organisation completed, its copy kept 5 days more (D141). */
+const COPY = {
+  ...ANSWERED,
+  id: '01a10000-0000-7000-8000-0000000000a2',
+  kind: 'access',
+  details: '',
+  response: 'Your copy is ready',
+  archive: { status: 'ready', bytes: 2_516_582, sha256: 'ab12', expiresAt: IN_5_DAYS },
+};
+
+function fakeClient(
+  initial: object[] = [ANSWERED],
+  own: (id: string) => object = (id) => ({ ...COPY, id, download: { url: LINK, expiresAt: '' } }),
+) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
     accessTokenExpiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
   };
-  let items: object[] = [ANSWERED];
+  let items: object[] = initial;
   const client = {
     session,
     owner: `${TENANT.id}:${ASHA}`,
@@ -73,6 +92,8 @@ function fakeClient() {
     heartbeat: jest.fn(async () => undefined),
     request: jest.fn<(...args: unknown[]) => Promise<unknown>>(
       async (method, path, _s, options) => {
+        const one = /^\/v1\/me\/data-requests\/(.+)$/.exec(String(path));
+        if (one) return own(one[1]!);
         if (path !== '/v1/me/data-requests') return {};
         if (method === 'GET') return { items };
         const body = (options as { body: { id: string; kind: string; details: string } }).body;
@@ -120,8 +141,8 @@ function Shown() {
   return <MyDataScreen />;
 }
 
-async function renderPhone() {
-  const fake = fakeClient();
+async function renderPhone(...args: Parameters<typeof fakeClient>) {
+  const fake = fakeClient(...args);
   const db = nodeSqlite();
   await migrate(db);
   await claim(db, fake.client.owner);
@@ -185,5 +206,53 @@ describe('my data on the phone (M21, D95)', () => {
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByText(/Check the highlighted fields/)).toBeNull();
+  });
+
+  it('opens the person’s copy in the browser once their access request is done (D141)', async () => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const client = await renderPhone([COPY, ANSWERED]);
+    const kept = formatDate(todayIn('Asia/Kolkata', new Date(IN_5_DAYS)), { locale: 'en' });
+    expect(await screen.findByText(`2.4 MB · kept until ${kept}`)).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'It opens in your browser. Keep the file safe: it holds your personal data.',
+      ),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Download my copy' }));
+    await waitFor(() => expect(open).toHaveBeenCalledWith(LINK));
+    expect(client.request).toHaveBeenCalledWith(
+      'GET',
+      `/v1/me/data-requests/${COPY.id}`,
+      expect.anything(),
+    );
+    open.mockRestore();
+  });
+
+  it('offers nothing to download for a request still open or a copy removed', async () => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const gone = { ...COPY, archive: { ...COPY.archive, status: 'expired' } };
+    await renderPhone([gone]);
+    expect(
+      await screen.findByText('Your copy was removed after 7 days. Ask again for a new one.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Download my copy' })).toBeNull();
+    // Prepared but not yet answered: the copy waits for the organisation to mark it done.
+    await screen.unmount();
+    await renderPhone([{ ...COPY, status: 'received', response: null, closedAt: null }]);
+    expect(await screen.findByText('A copy of my data · Open')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Download my copy' })).toBeNull();
+    expect(screen.queryByText(/Your copy was removed/)).toBeNull();
+    open.mockRestore();
+  });
+
+  it('opens nothing when the copy went between reading the list and pressing', async () => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    await renderPhone([COPY], (id) => ({ ...COPY, id, download: null }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Download my copy' }));
+    expect(
+      await screen.findByText('Your copy was removed after 7 days. Ask again for a new one.'),
+    ).toBeOnTheScreen();
+    expect(open).not.toHaveBeenCalled();
+    open.mockRestore();
   });
 });
