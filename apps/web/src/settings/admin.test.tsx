@@ -175,6 +175,18 @@ describe('rules (M2, spec 5.1)', () => {
     expect(Object.keys((writesOf(client)[0]![3] as { body: object }).body)).toHaveLength(3);
   });
 
+  it('sets the day’s cash limit for collections, blank for none (BR-63, D132)', async () => {
+    const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN);
+    renderAt('/settings/rules', client);
+    const user = userEvent.setup();
+    const limit = await screen.findByRole('textbox', { name: /in a day must stay under/ });
+    expect(limit).toHaveValue('200000.00');
+    await user.clear(limit);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Saved.')).toBeVisible();
+    expect(writesOf(client)[0]![3]).toMatchObject({ body: { collectionCashLimit: null } });
+  });
+
   it('switches evidence checks off one at a time, each naming its threshold (BR-50)', async () => {
     const client = fakeClient({}, { 'PATCH /v1/settings': ({ body }) => saved(body) }, ADMIN);
     renderAt('/settings/rules', client);

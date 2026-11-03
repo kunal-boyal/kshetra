@@ -253,6 +253,60 @@ describe("an account's finance (M11, D79)", () => {
     expect(within(finance).queryByRole('img', { name: 'Ageing' })).toBeNull();
   });
 
+  it('shows what the field collected that the books don’t show yet, and the latest collections (D132)', async () => {
+    const pages = snapshot({});
+    const finance = pages[`/v1/accounts/${SHOP}/finance`] as Record<string, unknown>;
+    finance.collected = { notInBooks: '12000.00', leftAfter: '30000.50' };
+    renderAt(
+      `/accounts/${SHOP}`,
+      fakeClient(
+        {
+          ...pages,
+          '/v1/collections': {
+            items: [
+              {
+                id: '01a10000-0000-7000-8000-0000000000d1',
+                number: 'COL-000001',
+                account: { id: SHOP, code: 'D-81', name: 'Beej Bhandar' },
+                collector: { id: SHOP, code: 'SME-04', name: 'Suresh Rao' },
+                collectedOn: '2026-11-02',
+                collectedAt: '2026-11-02T06:30:00.000Z',
+                amount: '12000.00',
+                mode: 'upi',
+                reference: 'UPI 4471',
+                chequeNumber: null,
+                chequeBank: null,
+                chequeDate: null,
+                note: null,
+                photos: [],
+                inGeofence: true,
+                status: 'recorded',
+                reason: null,
+                decidedBy: null,
+                decidedAt: null,
+                receipt: null,
+                can: { decide: false, bounce: false, match: false, unmatch: false },
+              },
+            ],
+            nextCursor: null,
+            summary: null,
+          },
+        },
+        {},
+        ['account.view', 'finance.view', 'collection.view'],
+        BUNDLE,
+      ),
+    );
+    const section = await screen.findByRole('region', { name: 'Finance' });
+    await waitFor(() => expect(section).toHaveTextContent('Collected, not yet in the books'));
+    expect(section).toHaveTextContent('₹12,000.00');
+    expect(section).toHaveTextContent('Left after it₹30,000.50');
+    const recent = within(section).getByRole('list', { name: 'Latest collections' });
+    expect(within(recent).getByRole('link', { name: 'COL-000001' })).toBeVisible();
+    expect(recent).toHaveTextContent('UPI · UPI 4471 · Suresh Rao');
+    expect(recent).toHaveTextContent('Waiting for the office');
+  });
+
   it('marks a limit run past', async () => {
     renderAt(
       `/accounts/${SHOP}`,

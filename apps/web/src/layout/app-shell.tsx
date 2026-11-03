@@ -13,6 +13,7 @@ import {
   Map as MapIcon,
   Sheet,
   ShoppingCart,
+  HandCoins,
   MapPinned,
   Network,
   Settings,
@@ -189,6 +190,12 @@ export function AppShell() {
           to: '/orders',
           icon: ShoppingCart,
           label: t('nav.orders'),
+        }),
+        // Collections (decision D132), for those who see them.
+        ...only(access.can('collection.view') && !access.modulesOff.includes('account_finance'), {
+          to: '/collections',
+          icon: HandCoins,
+          label: t('nav.collections'),
         }),
         ...only(
           (access.can('expense.mark_paid') || access.can('approval.act')) &&

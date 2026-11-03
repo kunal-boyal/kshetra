@@ -271,6 +271,24 @@ export function RulesPage() {
           onChange={(event) => set('forecastPlanMetric', event.target.value || null)}
         />,
       )}
+      {settings.modulesOff.includes('account_finance')
+        ? null
+        : group(
+            t('collections.title'),
+            <TextField
+              label={t('admin.rule_collectionCashLimit')}
+              help={t('admin.rule_collectionCashLimit_help')}
+              inputMode="decimal"
+              value={value('collectionCashLimit') ?? ''}
+              {...(errors.collectionCashLimit ? { error: errors.collectionCashLimit } : {})}
+              onChange={(event) =>
+                set(
+                  'collectionCashLimit',
+                  event.target.value.trim() === '' ? null : event.target.value.trim(),
+                )
+              }
+            />,
+          )}
       {settings.modulesOff.includes('inventory')
         ? null
         : group(
