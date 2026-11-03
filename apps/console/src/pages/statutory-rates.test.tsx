@@ -1,3 +1,4 @@
+import { ApiError } from '@thelamp/api-client';
 import { REFERENCE_RATE_SETS, STATUTORY_RULES_VERSION } from '@thelamp/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -91,6 +92,27 @@ describe('payroll rates in the console (D128)', () => {
     await user.click(within(form).getByRole('button', { name: 'Add the set' }));
     await waitFor(() => expect(sent).toHaveLength(1));
     expect(sent[0]).toMatchObject({ id: 'vendor-2027-04', from: '2027-04-01' });
+  });
+
+  it('says what the server refused in a set, by its path, with its reason', async () => {
+    const client = fakeClient(ADMIN, (method, path) => {
+      if (method === 'POST' && path === '/platform/v1/statutory-rates') {
+        return new ApiError(409, 'CONFLICT', 'A rate set has this ID.', [
+          { path: 'id', issue: 'A rate set has this ID' },
+        ]);
+      }
+      return rates();
+    });
+    renderConsole('/billing/payroll-rates', client);
+    const user = userEvent.setup();
+    const form = await screen.findByRole('form', { name: 'Add a rate set' });
+    const json = within(form).getByRole('textbox', { name: /rate set/i });
+    await user.clear(json);
+    await user.click(json);
+    await user.paste(JSON.stringify(REFERENCE_RATE_SETS[1]));
+    await user.click(within(form).getByRole('button', { name: 'Add the set' }));
+    expect(await within(form).findByText('id: A rate set has this ID')).toBeVisible();
+    expect(within(form).getByText('A rate set has this ID.')).toBeVisible();
   });
 
   it('shows support the sets without the forms', async () => {

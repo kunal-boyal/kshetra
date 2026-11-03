@@ -429,7 +429,7 @@ Each module lists what it does, the rules it applies (section 7) and its accepta
 | Mobile app, every role | Mobile number and a 6-digit one-time code by SMS, with WhatsApp as a fallback channel |
 | Web portal | Mobile number and OTP, or email and OTP. A tenant on the SSO module can require OIDC or SAML for web users. |
 | Tenant admins on the web | A TOTP authenticator code in addition to OTP, for anyone whose role can change access (role, user, settings, module or billing management); set up at the first such sign-in, with ten single-use recovery codes. Anyone else may set one up from Sign-in security, and is then asked for it too. After SSO, the identity provider's own second factor counts; without one, ours is asked for. Phones keep OTP and device binding, and their tokens never carry the permissions that change access (D101). Changing a person's phone or email, resetting an authenticator or changing SSO needs a fresh authenticator code from the last ten minutes; SSO signs in only addresses at domains proved by a DNS TXT record, and binds each person to the provider's issuer and subject (D101). |
-| Platform console | Email, password and TOTP for vendor staff, or the vendor's own identity provider. Passwords of 12 characters or more, without the product's or the person's names and not known from breaches; staff change their own, and a platform admin resets a lost password or authenticator with a new setup link (D101). |
+| Platform console | Email, password and TOTP for vendor staff, or the vendor's own identity provider. Passwords of 12 characters or more, without the product's or the person's names and not known from breaches; staff change their own, and a platform admin resets a lost password or authenticator with a new setup link (D101); the last platform admin is reset from the command line, and inviting a disabled or still-invited email again starts that staff member's row afresh (D134). |
 
 Flow and rules:
 
@@ -742,7 +742,7 @@ Rules: BR-42, BR-43.
 
 ### M22. Platform console (vendor)
 
-- Tenants: create from a template, choose a cell (shared or dedicated), plan and trial length; suspend, reactivate, and terminate with the export and deletion procedure: a suspended tenant is terminated with its slug typed again, a final export is prepared for the customer, and its data is deleted 30 days later, its invoices kept, with a deletion certificate in the platform audit (decision D95).
+- Tenants: create from a template, choose a cell (shared or dedicated), plan and trial length, or open active with its subscription and billing details; suspend, reactivate (only on trial or billed: every open tenant is on trial or billed, D134), and terminate with the export and deletion procedure: a suspended tenant is terminated with its slug typed again, a final export is prepared for the customer, and its data is deleted 30 days later, its invoices kept, with a deletion certificate in the platform audit (decision D95).
 - Plans, entitlements, feature flags and limits per tenant.
 - Usage per tenant per month: active users, seats, storage, SMS and WhatsApp volumes, API calls.
 - Support access: a vendor user requests access to a tenant with a reason; the tenant admin approves it for a fixed time (default 4 hours). Emergency access needs a second vendor admin and notifies the tenant admin. Grants are read-only unless they say otherwise.
@@ -2165,6 +2165,7 @@ Tenant
 ```mermaid
 stateDiagram-v2
   [*] --> trial
+  [*] --> active: created with its subscription
   trial --> active: subscription started
   trial --> suspended: trial ended unpaid
   active --> grace: payment failed
@@ -2172,7 +2173,8 @@ stateDiagram-v2
   grace --> read_only: grace period ended
   read_only --> active: paid
   read_only --> suspended: continued non-payment
-  suspended --> active: paid and reactivated
+  suspended --> active: paid and reactivated, or subscription started
+  suspended --> trial: reactivated with a trial left or a new trial end
   suspended --> terminated: contract ended, export delivered, data deleted
 ```
 

@@ -66,7 +66,8 @@ An invoice unpaid after its due day, or a refused automatic charge, makes the te
 
 - The tenant's billing card says where it stands, for example "Overdue since {date}: in grace until {date}, then read only.", with what is **Outstanding**. **Next step** on **Billing** says the same for each invoice: "Read only from {date}", "Read only; suspended from {date}" or "Suspended since {date}; data kept".
 - The billing contact and the tenant's admins are emailed when it falls overdue, on days 3 and 6 of grace, when it turns read only, three days before suspension, and on suspension.
-- Recording the payment moves a tenant in grace or read only back to Active at once. A suspended tenant stays suspended until someone with `platform.tenant.manage` selects **Reactivate** on its page ([Suspend or terminate a tenant](suspend-terminate-a-tenant.md)). A reactivated tenant stays open while you sort the payment out; it moves again only when its stage changes.
+- Recording the payment moves a tenant in grace or read only back to Active at once. A suspended tenant stays suspended until someone with `platform.tenant.manage` selects **Reactivate** on its page ([Suspend or terminate a tenant](suspend-terminate-a-tenant.md)); its subscription is still running, so it opens as Active. A reactivated tenant stays open while you sort the payment out; it moves again only when its stage changes.
+- A tenant whose subscription ended, or whose trial ended without one, opens again only on a new trial or by starting a subscription here (decision D134): every open tenant is on trial or billed.
 
 ## Keep the billing settings
 
@@ -90,7 +91,12 @@ On a local, test or demo database the settings are fictional example details. **
 | What you see | What it means | What to do |
 |---|---|---|
 | Invoices can’t be issued until the seller’s details are set in billing settings. | The seller's details are incomplete | Complete **Billing settings** |
-| This changed somewhere else. Refresh and try again. | One of: the billing details are missing; the seller's details aren't ready (or are the example on production); automatic payment isn't available yet; an annual subscription can't change before renewal; the current subscription is ending; the tenant is terminated; there is no subscription to cancel | Check each in turn. For automatic payment, record transfers instead. For an ending subscription, start the new one after it ends |
+| Add the tenant’s billing details first. | Starting a subscription before the tenant's billing details | Select **Add billing details** first |
+| Set the seller’s details in the console’s billing settings first. / Production invoices need the vendor’s own details and GSTIN, not the example. | The seller's details aren't ready, or are the example on production | Complete **Billing settings** |
+| Automatic payment is not available yet. Pay invoices by bank transfer. | No payment gateway is set up yet | Record payments received by transfer instead |
+| An annual subscription changes at its renewal. Cancel it to end it at its term. | You tried to change an annual subscription before its renewal | Cancel it to end at its term, then start the new one |
+| The current subscription is ending; start again after it. | The subscription is cancelled but hasn't ended yet | Start the new one after it ends |
+| A terminated tenant can’t subscribe. / The tenant has no subscription to cancel. | As it says | Refresh the page |
 | Under **Starts on**: "Start within a month of today" | The start date is too far away | Choose a date within 31 days of today |
 | Under **Amount (₹)**: "Enter an amount up to …, which is what is owed" | The amount is more than the invoice owes, or nothing | Enter what was received on this invoice, up to what it owes |
 | Under **GSTIN**: "The GSTIN is for another state", "Check the GSTIN for a typing error" or "Enter the 15-character GSTIN" | The GSTIN doesn't check out | Check it against the customer's registration and the **Place of supply** |

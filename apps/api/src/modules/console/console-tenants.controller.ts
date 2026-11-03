@@ -8,6 +8,7 @@ import {
   ConsoleTenantSummary,
   CreateTenantBody,
   normaliseMobile,
+  ReactivateTenantBody,
   SecondFactorResetBody,
   SecondFactorResetResult,
   SuspendTenantBody,
@@ -115,12 +116,17 @@ export class ConsoleTenantsController {
   @HttpCode(200)
   @Contract({
     tag: 'Platform console',
-    summary: 'Reactivate a suspended tenant',
+    summary: 'Reactivate a suspended tenant, billed or on trial (a new trial end if neither)',
     params: TenantIdParams,
+    body: ReactivateTenantBody,
     response: ConsoleTenant,
   })
-  reactivate(@CurrentStaff() staff: StaffAccess, @Param() params: unknown) {
-    return this.tenants.reactivate(staff, TenantIdParams.parse(params).id);
+  reactivate(@CurrentStaff() staff: StaffAccess, @Param() params: unknown, @Body() body: unknown) {
+    return this.tenants.reactivate(
+      staff,
+      TenantIdParams.parse(params).id,
+      ReactivateTenantBody.parse(body ?? {}),
+    );
   }
 
   @ForStaff()

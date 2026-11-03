@@ -1,7 +1,7 @@
 import { ApiError, NetworkError } from '@thelamp/api-client';
 import { formatNumber, type MessageKey, translate } from '@thelamp/i18n';
 import { type PagerText, PagerTextProvider } from '@thelamp/ui-web';
-import type { Locale } from '@thelamp/shared';
+import type { ErrorCode, Locale } from '@thelamp/shared';
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import { applyLocale, savedLocale } from './preferences';
 
@@ -54,10 +54,35 @@ export function useLanguage(): Language {
   return language;
 }
 
-/** What went wrong, in the reader's language (spec 8.4). */
+/**
+ * Refusals whose general text can't say why, where the server's own message does: "Add the
+ * tenant's billing details first.", "Suspend the tenant before terminating it."
+ */
+const REASONED: ReadonlySet<ErrorCode> = new Set([
+  'CONFLICT',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'IDEMPOTENCY_CONFLICT',
+  'VALIDATION',
+]);
+
+/**
+ * What went wrong, in the reader's language (spec 8.4). A refusal the server gave its own reason
+ * for shows that reason. The API's messages are English (decision D42's open item), so a Hindi
+ * reader sees a Hindi line saying it couldn't be done, then the reason. A form's field problems
+ * show by their fields, so a validation refusal with them keeps the general text.
+ */
 export function errorMessage(error: unknown, t: Language['t']): string {
   if (error instanceof NetworkError) return t('common.offline');
-  if (error instanceof ApiError) return t(`error.${error.code}`);
+  if (error instanceof ApiError) {
+    const reason = error.message.trim();
+    const own =
+      REASONED.has(error.code) &&
+      !(error.code === 'VALIDATION' && error.details.length > 0) &&
+      reason !== '' &&
+      reason !== translate(`error.${error.code}`, { locale: 'en' });
+    return own ? t('console.error_reason', { reason }) : t(`error.${error.code}`);
+  }
   return t('error.INTERNAL');
 }
 

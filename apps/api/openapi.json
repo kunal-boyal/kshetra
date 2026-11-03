@@ -3855,6 +3855,12 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "billing": {
+                    "$ref": "#/components/schemas/BillingAccountBody"
+                  },
+                  "subscription": {
+                    "$ref": "#/components/schemas/OpeningSubscription"
                   }
                 },
                 "required": [
@@ -4575,7 +4581,7 @@
     "/platform/v1/tenants/{id}/reactivate": {
       "post": {
         "operationId": "ConsoleTenantsController.reactivate",
-        "summary": "Reactivate a suspended tenant",
+        "summary": "Reactivate a suspended tenant, billed or on trial (a new trial end if neither)",
         "tags": [
           "Platform console"
         ],
@@ -4597,6 +4603,24 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "trialEndsOn": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Success",
@@ -44699,6 +44723,40 @@
           "token_type",
           "expires_in",
           "scope"
+        ],
+        "additionalProperties": false
+      },
+      "OpeningSubscription": {
+        "type": "object",
+        "properties": {
+          "cycle": {
+            "type": "string",
+            "enum": [
+              "month",
+              "year"
+            ]
+          },
+          "committedSeats": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          }
+        },
+        "required": [
+          "cycle"
         ],
         "additionalProperties": false
       },
