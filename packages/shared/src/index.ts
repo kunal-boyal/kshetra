@@ -198,6 +198,7 @@ export {
   ImportSummary,
   AccountsImportTarget,
   ImportTarget,
+  ImportTargetsResult,
   UpdateImportMappingBody,
 } from './schemas/imports';
 export {

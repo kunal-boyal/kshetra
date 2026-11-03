@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { Languages } from 'lucide-react';
 import { Button } from './button';
 import { DataTable } from './data';
+import { SelectField } from './fields';
 import { Picker } from './picker';
 import { EmptyState } from './surfaces';
 import { TextField } from './text-field';
@@ -60,6 +61,35 @@ describe('Picker', () => {
     expect(select).toHaveValue('hi');
     expect(screen.getByRole('option', { name: 'हिन्दी' })).toHaveAttribute('lang', 'hi');
     expect(container.querySelector('.ks-picker svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+});
+
+describe('SelectField', () => {
+  it('lists grouped options under their group, in the order the groups first appear', () => {
+    render(
+      <SelectField
+        label="What to import"
+        options={[
+          { value: 'users', label: 'People', group: 'Organisation' },
+          { value: 'invoices', label: 'Invoices', group: 'Finance' },
+          { value: 'territories', label: 'Territories', group: 'Organisation' },
+          { value: 'other', label: 'Other' },
+        ]}
+      />,
+    );
+    const groups = screen.getAllByRole('group');
+    expect(groups.map((group) => group.getAttribute('label'))).toEqual(['Organisation', 'Finance']);
+    expect(
+      within(groups[0]!)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['People', 'Territories']);
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'People',
+      'Territories',
+      'Invoices',
+      'Other',
+    ]);
   });
 });
 

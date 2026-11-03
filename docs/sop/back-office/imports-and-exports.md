@@ -11,8 +11,8 @@ An import adds or updates many records at once from a spreadsheet. Every row is 
 
 ## Before you start
 
-- The **Imports** page offers people, territories, each account type, catalogue items, targets and account plans, each to those who hold the permission that owns it. Back office usually imports none of these; an admin does ([Import records from a spreadsheet](../admin/imports.md)).
-- Statement entries, invoices, receipts and credit notes, stock movements and stock levels, sell-through and forecasts aren't on the page yet. The server takes them as file imports and through the bulk API, so today they arrive through an [ERP connection](../admin/erp-connections.md) or an integrator's API client ([API clients and webhooks](../admin/api-clients-and-webhooks.md)). Balances and ageing, monthly gross and salary structures have a file import on the server but neither a page nor a bulk route: enter them on their own screens.
+- **What to import** lists, in groups, what your role may import now, each only where it can succeed (D139). Back office's are usually under **Finance** (**Balances and ageing**, **Statement entries**, **Invoices**, **Receipts and credit notes**, with `finance.manage`), **Catalogue and stock** (**Stock levels** while stock comes from the books, **Stock movements** while the app keeps it, **Sell-through by item** while an account type gives stock statements), **Plans and performance** (**Forecasts**, and **External metric values** once a metric is loaded from outside) and **Payroll** (**Monthly gross**, **Salary structures**). People, territories, holidays, accounts, catalogue items, targets and account plans are usually an admin's. The full list, with what each needs, is in [Import records from a spreadsheet](../admin/imports.md).
+- While an ERP connection is live, **Invoices** and **Receipts and credit notes** say **Your ERP connection writes these too. A file updates any with the same number, so load only what your books don’t send.** Systems can also send these records by themselves (below).
 - A file is .xlsx or .csv, up to 20 MB and 20,000 rows, and your plan may set a lower row limit. The headings can sit under a title.
 - Names and codes in the file must match the product's: account codes, item codes, employee codes.
 
@@ -29,7 +29,7 @@ An import adds or updates many records at once from a spreadsheet. Every row is 
 7. The check shows **Ready** (new and updated rows), **Problems** and **Skipped** (empty rows). **Problems** lists each **Row**, **Column**, **Value in the file** and **Problem**; **Preview** shows the first rows as they will be imported.
 8. With problems, nothing can be imported: fix the file and choose **Upload a fixed file**, or **Change columns**.
 9. With none, choose **Import … rows**, then confirm **Import … rows now?**. Every row is checked again and written together; if anything changed since the check, nothing is written.
-10. It says **Imported: … added, … changed.** **Earlier imports** lists every import with its **File**, **What**, **Status**, **Rows**, **Result** and **Started**.
+10. It says **Imported: … added, … changed.** and links to where the records show: **Open accounts** (in your word for accounts) after finance, stock, sell-through and forecasts, which show on each account's page; **Open payroll** after monthly gross; **Open people** after salary structures; **Open performance** after external metric values; or **Back to imports** if your role can't open that page. **Earlier imports** lists every import with its **File**, **What**, **Status**, **Rows**, **Result** and **Started**.
 
 ### Systems that send records by themselves
 

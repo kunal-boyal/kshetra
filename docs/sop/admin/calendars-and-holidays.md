@@ -23,7 +23,7 @@ Each person keeps a calendar of weekly offs and holidays; anyone not given one k
 4. To add a holiday, fill in **Date** and **Holiday** on that calendar's card. Tick **Optional** for a holiday that is listed but a working day unless the person takes leave. Select **Add the holiday**. You see **Saved.**
 5. To take one off, select **Take off** beside it, then **Take off** again to confirm, or **Keep it**.
 
-Holidays are added one at a time. The server can import a year of holidays from a file, but the portal's **Imports** page doesn't offer holidays yet.
+To add a year of holidays at once, import them: on **Imports**, choose **Holidays** under **People and places** in **What to import**; each row names the calendar, the date, the holiday and whether it is optional ([Import records from a spreadsheet](imports.md)). **Open holiday calendars** then leads back here.
 
 ### Give a person a calendar
 

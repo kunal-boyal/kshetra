@@ -21,12 +21,12 @@ The product keeps no ledger of its own: what an account (the tenant's word, such
 
 Four kinds of record come from your books:
 
-- **Balances and ageing**: each account's outstanding, credit limit, inventory value and ageing amounts on a date (no bulk route or connection brings these yet: record them on the account's **Finance** section);
+- **Balances and ageing**: each account's outstanding, credit limit, inventory value and ageing amounts on a date (no bulk route or connection brings these yet: import them, or record them on the account's **Finance** section);
 - **Statement entries**: the account's ledger lines, a debit or a credit each;
 - **Invoices**: invoice numbers, dates, due dates and amounts;
 - **Receipts and credit notes**: what was received, naming the invoices it pays where your books do.
 
-The portal's **Imports** page doesn't offer these yet: it offers people, territories, accounts, catalogue items, targets and account plans only. The server takes them as file imports and through the bulk API, so today they arrive through an [ERP connection](../admin/erp-connections.md) or an integrator's API client ([API clients and webhooks](../admin/api-clients-and-webhooks.md)). Send them after each day's or week's close, as your books allow.
+Import them on **Imports**, under **Finance** in **What to import** ([Import and export](imports-and-exports.md)); **Open accounts** then leads to the accounts, whose **Finance** section shows them. Invoices, receipts and statement entries can also arrive through an [ERP connection](../admin/erp-connections.md) or an integrator's API client ([API clients and webhooks](../admin/api-clients-and-webhooks.md)). While a connection is live, **Invoices** and **Receipts and credit notes** say **Your ERP connection writes these too. A file updates any with the same number, so load only what your books don’t send.** Send them after each day's or week's close, as your books allow.
 
 Invoices and receipts are keyed by their number: sending a number again corrects that document. Statement entries are keyed by reference and only ever added.
 

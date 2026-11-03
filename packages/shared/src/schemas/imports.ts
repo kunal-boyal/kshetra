@@ -137,6 +137,17 @@ export const ImportListResult = z.object({
 });
 
 /**
+ * `GET /v1/imports/targets`: what the caller may import now (decision D139): the targets their
+ * permissions open, each where it can succeed, such as stock levels only while stock comes from
+ * the books. `fromBooks` says a live ERP connection writes the target too.
+ */
+export const ImportTargetsResult = z
+  .object({
+    items: z.array(z.object({ target: ImportTarget, fromBooks: z.boolean() })),
+  })
+  .meta({ id: 'ImportTargetsResult' });
+
+/**
  * `PUT /v1/imports/{id}/mapping`: another sheet to read, or the mapping to check the rows with,
  * optionally saved under a name for the next file like this one.
  */
@@ -161,4 +172,5 @@ export type ImportResult = z.infer<typeof ImportResult>;
 export type ImportSummary = z.infer<typeof ImportSummary>;
 export type ImportListQuery = z.output<typeof ImportListQuery>;
 export type ImportListResult = z.infer<typeof ImportListResult>;
+export type ImportTargetsResult = z.infer<typeof ImportTargetsResult>;
 export type UpdateImportMappingBody = z.output<typeof UpdateImportMappingBody>;

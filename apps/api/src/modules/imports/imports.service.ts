@@ -7,6 +7,8 @@ import {
   type ImportListResult,
   type ImportProblem,
   type ImportResult,
+  type ImportTarget,
+  type ImportTargetsResult,
   IMPORT_DEFAULT_ROWS,
   issueAt,
   newId,
@@ -215,6 +217,25 @@ export class ImportsService implements OnModuleInit {
     const job = await this.find(tx, access.tenantId, id);
     this.target(access, job.target);
     return this.result(tx, job);
+  }
+
+  /**
+   * What the caller may import now (decision D139): each target their permissions open, where it
+   * can succeed, and whether a live ERP connection writes it too. A closed module's targets are
+   * gone with its permissions.
+   */
+  async offered(tx: TenantTx, access: Access): Promise<ImportTargetsResult> {
+    const books = await this.targets.fromBooks(tx, access.tenantId);
+    const items: ImportTargetsResult['items'] = [];
+    for (const source of this.targets.all()) {
+      if (!access.permissions.has(source.permission)) continue;
+      const offered = source.offered
+        ? await source.offered(tx, access.tenantId)
+        : [source.name as ImportTarget];
+      for (const target of offered) items.push({ target, fromBooks: books.has(target) });
+    }
+    items.sort((a, b) => a.target.localeCompare(b.target));
+    return { items };
   }
 
   async list(tx: TenantTx, access: Access, query: ImportListQuery): Promise<ImportListResult> {

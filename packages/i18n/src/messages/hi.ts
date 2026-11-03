@@ -665,6 +665,14 @@ export const hi: Record<MessageKey, Message> = {
     'स्प्रेडशीट से एक साथ कई रिकॉर्ड जोड़ें या बदलें। हर पंक्ति पहले जाँची जाती है, और पूरी फ़ाइल सही होने पर ही कुछ सहेजा जाता है।',
   'imports.new': 'नया इम्पोर्ट',
   'imports.target': 'क्या इम्पोर्ट करना है',
+  'imports.group_organisation': 'लोग और जगहें',
+  'imports.group_accounts': '{term.account:other}',
+  'imports.group_catalogue': 'कैटलॉग और स्टॉक',
+  'imports.group_plans': 'योजनाएँ और प्रदर्शन',
+  'imports.group_finance': 'वित्त',
+  'imports.group_payroll': 'पेरोल',
+  'imports.from_books':
+    'आपका ERP कनेक्शन भी इन्हें लिखता है। फ़ाइल उसी नंबर वाले रिकॉर्ड बदल देती है, इसलिए सिर्फ़ वही इम्पोर्ट करें जो आपकी बहियाँ नहीं भेजतीं।',
   'imports.example': 'उदाहरण फ़ाइल डाउनलोड करें',
   'imports.example_help':
     'आपने जो चुना है उसकी एक Excel फ़ाइल: इसकी पहली शीट भरें। दूसरी में उदाहरण की पंक्तियाँ हैं, और तीसरी बताती है कि हर कॉलम में क्या भरना है।',
@@ -770,6 +778,8 @@ export const hi: Record<MessageKey, Message> = {
   'import.open_items': 'कैटलॉग खोलें',
   'import.open_targets': '{term.target:other} खोलें',
   'import.open_holidays': 'छुट्टियों के कैलेंडर खोलें',
+  'import.open_performance': 'प्रदर्शन खोलें',
+  'import.open_payroll': 'पेरोल खोलें',
   'import.back_to_imports': 'इम्पोर्ट पर वापस जाएँ',
   'import.failed': 'इम्पोर्ट रुक गया, और कुछ भी इम्पोर्ट नहीं हुआ। {reason}',
   'import.upload_again': 'फिर से फ़ाइल अपलोड करें',

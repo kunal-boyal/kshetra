@@ -19,6 +19,7 @@ import {
   ImportListQuery,
   ImportListResult,
   ImportResult,
+  ImportTargetsResult,
   UpdateImportMappingBody,
 } from '@thelamp/shared';
 import { type Access, CurrentAccess, Requires } from '../../platform/auth';
@@ -96,6 +97,17 @@ export class ImportsController {
   list(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = ImportListQuery.parse(query);
     return this.database.forTenant(access.tenantId, (tx) => this.imports.list(tx, access, input));
+  }
+
+  @Get('targets')
+  @Contract({
+    tag: 'Imports',
+    summary: 'What the caller may import now, and what a live ERP connection writes too',
+    response: ImportTargetsResult,
+  })
+  @Requires('import.run')
+  targets(@CurrentAccess() access: Access) {
+    return this.database.forTenant(access.tenantId, (tx) => this.imports.offered(tx, access));
   }
 
   @Get('example')

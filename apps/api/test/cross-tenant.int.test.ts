@@ -1252,6 +1252,14 @@ const FIXTURES: Record<string, Fixture> = {
       holdsNothingOfA(await asB('GET', `/v1/imports?cursor=${aImportId}`));
     },
   },
+  'GET /v1/imports/targets': {
+    kind: 'own tenant',
+    run: async () => {
+      const offered = await asB('GET', '/v1/imports/targets');
+      expect(offered.statusCode).toBe(200);
+      holdsNothingOfA(offered);
+    },
+  },
   'GET /v1/imports/:id': {
     kind: 'by ID',
     run: () => sameAsNowhere((id) => asB('GET', `/v1/imports/${id}`), aImportId),

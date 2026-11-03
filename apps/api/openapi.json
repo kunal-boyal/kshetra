@@ -17255,6 +17255,44 @@
         }
       }
     },
+    "/v1/imports/targets": {
+      "get": {
+        "operationId": "ImportsController.targets",
+        "summary": "What the caller may import now, and what a live ERP connection writes too",
+        "tags": [
+          "Imports"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "x-access": "Every one of: import.run",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportTargetsResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error in the format of spec 11.1, its code from spec 11.4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/items/{itemId}": {
       "put": {
         "operationId": "ItemsController.put",
@@ -41633,6 +41671,34 @@
             "pattern": "^accounts:[a-z][a-z0-9_]{0,39}$"
           }
         ]
+      },
+      "ImportTargetsResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "$ref": "#/components/schemas/ImportTargetOutput"
+                },
+                "fromBooks": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "target",
+                "fromBooks"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
       },
       "InfoTextField": {
         "type": "object",

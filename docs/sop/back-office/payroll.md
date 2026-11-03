@@ -21,7 +21,7 @@ The product offers two levels of payroll. **Payroll inputs** gives each person's
 1. Open **Payroll** in the left rail. The heading is **Payroll · …**; choose the month with **Previous month** and **Next month**. The page carries the words: **Attendance-based estimate. This is not a statutory payroll document.**
 2. Each row gives the **Person**, **Monthly gross** (**No gross yet** where none is set), **Paid days** (**… of …**: paid days of the month's scheduled working days), and **Estimate** (**so far this month** for the month under way).
 3. To set or change a gross, choose **Set gross** on the row. Under **Monthly gross for …**, give the **Monthly gross** and **From month** (earlier months keep the gross they had). Choose **Save**, or **Cancel**.
-4. Set each person's gross this way, one at a time. The server can import monthly gross from a file, but the portal's **Imports** page doesn't offer it yet, and the bulk API has no route for it.
+4. To set many at once, import them: on **Imports**, choose **Monthly gross** under **Payroll** in **What to import** ([Import and export](imports-and-exports.md)); **Open payroll** then leads back here. The bulk API has no route for it.
 
 ### Payroll inputs: a payslip preview and the summary
 
@@ -35,7 +35,7 @@ Admin (`salary.manage`).
 1. Open **People**, choose the person, and go to **Salary**.
 2. Under **A new structure**, give **From month**, **Basic** and the allowances (**Dearness allowance**, **House rent allowance**, **Conveyance**, **Special allowance**). Choose **Save the structure**. **Salary structures** lists each with its **Monthly gross** and **Wages (PF and ESI)**. A structure applies from its month until the next.
 3. Under **Statutory details**, give the **Work state** (where they work, for professional tax and the welfare fund), **UAN**, **ESI number**, and tick **PF member**, **PF on the full wage, not the ceiling**, **Women’s professional tax slabs** and **PAN on file with you** as they apply. Choose **Save the details**.
-4. Structures are entered a person at a time. As with the monthly gross, the server's file import for them isn't offered on the **Imports** page yet.
+4. To enter many at once, import them: on **Imports**, choose **Salary structures** under **Payroll** in **What to import**, while statutory payroll is on ([Import and export](imports-and-exports.md)); **Open people** then leads to the people, whose **Salary** section shows them.
 
 ### Statutory payroll: run the month
 

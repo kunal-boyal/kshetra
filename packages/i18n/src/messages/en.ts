@@ -679,6 +679,14 @@ export const en = {
     'Add or update many records at once from a spreadsheet. Every row is checked first, and nothing is written unless the whole file is right.',
   'imports.new': 'New import',
   'imports.target': 'What to import',
+  'imports.group_organisation': 'People and places',
+  'imports.group_accounts': '{term.account:other}',
+  'imports.group_catalogue': 'Catalogue and stock',
+  'imports.group_plans': 'Plans and performance',
+  'imports.group_finance': 'Finance',
+  'imports.group_payroll': 'Payroll',
+  'imports.from_books':
+    'Your ERP connection writes these too. A file updates any with the same number, so load only what your books don’t send.',
   'imports.example': 'Download an example',
   'imports.example_help':
     'An Excel file for what you chose: fill its first sheet. The second shows example rows, and the third says what each column holds.',
@@ -778,6 +786,8 @@ export const en = {
   'import.open_items': 'Open the catalogue',
   'import.open_targets': 'Open {term.target:other:lower}',
   'import.open_holidays': 'Open holiday calendars',
+  'import.open_performance': 'Open performance',
+  'import.open_payroll': 'Open payroll',
   'import.back_to_imports': 'Back to imports',
   'import.failed': 'The import stopped, and nothing was imported. {reason}',
   'import.upload_again': 'Upload a file again',

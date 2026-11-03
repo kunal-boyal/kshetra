@@ -82,7 +82,16 @@ export interface ImportTargetSource {
    * records, so the example reads as the tenant's file would.
    */
   example(tx: TenantTx, tenantId: string, target: ImportTarget): Promise<ExampleRow[]>;
+  /**
+   * The targets this source offers now, where an import can succeed (decision D139): a family's
+   * members, such as each active `accounts:<type>`, or none while a setting rules it out. Left
+   * out, the source offers its own name.
+   */
+  offered?(tx: TenantTx, tenantId: string): Promise<ImportTarget[]>;
 }
+
+/** Targets something besides files writes for a tenant now, such as a live ERP connection. */
+export type BooksWriter = (tx: TenantTx, tenantId: string) => Promise<readonly ImportTarget[]>;
 
 /** An example row: each field's value as a cell would hold it, by field key; blank when absent. */
 export type ExampleRow = Readonly<Record<string, string>>;
@@ -98,6 +107,7 @@ export class ImportRefused extends Error {
 @Injectable()
 export class ImportTargets {
   private readonly sources = new Map<string, ImportTargetSource>();
+  private readonly writers: BooksWriter[] = [];
 
   register(source: ImportTargetSource): void {
     if (this.sources.has(source.name)) throw new Error(`${source.name} is registered already.`);
@@ -114,5 +124,21 @@ export class ImportTargets {
   /** Every registered source, for listing what a person may import. */
   all(): ImportTargetSource[] {
     return [...this.sources.values()];
+  }
+
+  /**
+   * Registers what else writes targets (decision D139): the ERP module says which targets a live
+   * connection writes, so the Imports page can say a file loads beside it.
+   */
+  writtenBy(writer: BooksWriter): void {
+    this.writers.push(writer);
+  }
+
+  /** The targets something besides files writes for the tenant now. */
+  async fromBooks(tx: TenantTx, tenantId: string): Promise<Set<ImportTarget>> {
+    const written = new Set<ImportTarget>();
+    for (const writer of this.writers)
+      for (const target of await writer(tx, tenantId)) written.add(target);
+    return written;
   }
 }
