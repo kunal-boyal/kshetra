@@ -465,19 +465,20 @@ export class ErpRuns {
       const ids = (
         await this.ordersService.acceptedSince(tx, run.tenantId, run.connection.createdAt, 500)
       ).filter((id) => !sentOrders.has(id));
-      const found = await this.ordersService.forErp(tx, run.tenantId, [
-        ...again,
-        ...ids.slice(0, batch),
-      ]);
+      const wanted = [...again, ...ids.slice(0, batch)];
+      const found = await this.ordersService.forErp(tx, run.tenantId, wanted);
       const accounts = await this.accounts.refs(
         tx,
         run.tenantId,
         [...found.values()].map((order) => order.accountId),
       );
-      return [...found].map(([id, order]) => ({
-        id,
-        order: { ...order, accountCode: accounts.get(order.accountId)?.code ?? '' },
-      }));
+      // In the order asked for, oldest first: the database answers in an order of its own.
+      return [...new Set(wanted)].flatMap((id) => {
+        const order = found.get(id);
+        return order
+          ? [{ id, order: { ...order, accountCode: accounts.get(order.accountId)?.code ?? '' } }]
+          : [];
+      });
     });
   }
 

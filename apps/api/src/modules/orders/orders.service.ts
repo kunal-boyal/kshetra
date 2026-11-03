@@ -1150,7 +1150,8 @@ export class OrdersService {
           gte(orders.placedAt, since),
         ),
       )
-      .orderBy(asc(orders.placedAt))
+      // Oldest first; orders placed in the same moment by their number.
+      .orderBy(asc(orders.placedAt), asc(orders.number))
       .limit(limit);
     return rows.map((row) => row.id);
   }
