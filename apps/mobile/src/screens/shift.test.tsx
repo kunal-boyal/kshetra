@@ -64,7 +64,7 @@ const full = <T,>(rows: T[]) => ({
   removed: [],
 });
 
-function fakeClient() {
+function fakeClient(permissions: string[] = ['shift.use', 'tracking.pause']) {
   const session: SessionState = {
     tenant: TENANT,
     accessToken: 'a1',
@@ -99,7 +99,7 @@ function fakeClient() {
         accountTypes: [],
         forms: [],
         catalogue: { units: [], measureTypes: [] },
-        access: { role: 'field_user', scope: 'self', permissions: ['shift.use', 'tracking.pause'] },
+        access: { role: 'field_user', scope: 'self', permissions },
       },
     })),
   };
@@ -112,8 +112,8 @@ function Shown({ page }: { page: 'home' | 'punch-in' }) {
   return page === 'home' ? <ShiftSection /> : <PunchInScreen />;
 }
 
-async function renderPhone(page: 'home' | 'punch-in', db: SqlDatabase) {
-  const fake = fakeClient();
+async function renderPhone(page: 'home' | 'punch-in', db: SqlDatabase, permissions?: string[]) {
+  const fake = fakeClient(permissions);
   await render(
     <LanguageProvider initial="en">
       <AppProvider
@@ -263,6 +263,14 @@ describe('the shift on the phone (M5)', () => {
     });
     expect(await new Outbox(db, {}).items(OWNER)).toEqual([]);
     expect(await new Visits(db).current(OWNER)).toBeNull();
+  });
+
+  it('offers pausing only to those whose role may pause tracking', async () => {
+    mockTracking = true;
+    await renderPhone('home', await freshDatabase(true), ['shift.use']);
+    expect(await screen.findByText('Tracking')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'End day' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Pause tracking' })).toBeNull();
   });
 
   it('says when recording stopped by itself, and how to fix it', async () => {

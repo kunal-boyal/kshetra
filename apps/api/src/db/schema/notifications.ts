@@ -143,6 +143,8 @@ export const pushTokens = cell
       userId: uuid('user_id').notNull(),
       token: text('token').notNull(),
       locale: text('locale').notNull(),
+      // The user's auth revision when the phone registered: a later one signed it out (BR-39).
+      authRevision: integer('auth_revision'),
       updatedAt: at('updated_at').notNull().defaultNow(),
     },
     (table) => [

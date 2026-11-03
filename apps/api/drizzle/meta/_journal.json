@@ -771,6 +771,13 @@
       "when": 1793645227131,
       "tag": "0109_collection_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1793705812396,
+      "tag": "0112_push_sessions",
+      "breakpoints": true
     }
   ]
 }

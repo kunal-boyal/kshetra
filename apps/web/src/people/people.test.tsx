@@ -638,6 +638,19 @@ describe("a person's page", () => {
     ]);
   });
 
+  it('offers no phone reset on your own record', async () => {
+    const client = fakeClient();
+    client.me.mockResolvedValue({ ...(await client.me()), userId: RAHUL });
+    renderAt(`/people/${RAHUL}`, client);
+    expect(await screen.findByRole('heading', { name: 'Rahul Verma' })).toBeInTheDocument();
+    const phone = screen.getByRole('region', { name: 'Phone' });
+    expect(phone).toHaveTextContent('2 waiting, 1 refused');
+    await waitFor(() =>
+      expect(within(phone).queryByRole('button', { name: 'Reset phone' })).toBeNull(),
+    );
+    expect(within(phone).getByRole('button', { name: 'Sign out everywhere' })).toBeInTheDocument();
+  });
+
   it('says so when the person is out of reach', async () => {
     const client = fakeClient();
     renderAt('/people/01a10000-0000-7000-8000-000000000099', client);

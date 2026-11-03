@@ -2787,6 +2787,9 @@ export const hi: Record<MessageKey, Message> = {
   'notify.support_emergency_title': 'आपात स्थिति में वेंडर सहायता ने प्रवेश किया',
   'notify.support_emergency_body':
     '{staff} {ends} तक आपका संगठन देख सकते हैं, दूसरे वेंडर एडमिन की मंज़ूरी से: {reason}। आप इसे सेटिंग्स में ख़त्म कर सकते हैं।',
+  'notify.support_second_factor_reset_title': 'वेंडर सहायता ने एक ऑथेंटिकेटर रीसेट किया',
+  'notify.support_second_factor_reset_body':
+    '{staff} ने {name} का ऑथेंटिकेटर हटाकर उनके सेशन ख़त्म कर दिए: {reason}। वेब पर अगले साइन इन पर वे नया ऑथेंटिकेटर चालू करेंगे।',
   'notify.category_imports': 'इंपोर्ट',
   'notifications.title': 'सूचनाएँ',
   'notifications.today': 'आज',
@@ -5024,7 +5027,7 @@ export const hi: Record<MessageKey, Message> = {
   'console.hours_minutes': '{hours} घं. {minutes} मि.',
   'console.second_factor_reset': 'ऑथेंटिकेटर रीसेट करें',
   'console.second_factor_intro':
-    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है।',
+    'उस व्यक्ति के लिए जिसने अपना ऑथेंटिकेटर और रिकवरी कोड खो दिए हैं, जब कोई और एडमिन इसे रीसेट न कर सके। पहले पुष्टि करें कि फ़ोन कौन कर रहा है। संगठन के एडमिन को बताया जाता है, और यह उसके ऑडिट लॉग में दिखता है।',
   'console.member_phone': 'उनका मोबाइल नंबर',
   'console.second_factor_reason': 'आपने कैसे पुष्टि की कि यह वही हैं',
   'console.second_factor_removed':
@@ -5083,7 +5086,9 @@ export const hi: Record<MessageKey, Message> = {
   'sso.enabled_help': 'इन डोमेन के लोग SSO से साइन इन चुन सकते हैं',
   'sso.enforced': 'ज़रूरी',
   'sso.enforced_help':
-    'इन डोमेन के लोग पोर्टल में कोड से साइन इन नहीं कर सकते; फ़ोन अब भी कर सकते हैं',
+    'डोमेन साबित होने के बाद इन डोमेन के लोग पोर्टल में कोड से साइन इन नहीं कर सकते; फ़ोन अब भी कर सकते हैं',
+  'sso.enforced_unproved':
+    'पहले "अपने डोमेन साबित करें" में इनमें से कोई डोमेन अपना साबित करें; तब तक सिंगल साइन-ऑन ज़रूरी नहीं किया जा सकता।',
   'sso.save': 'सिंगल साइन-ऑन सहेजें',
   'sso.saved': 'सहेजा गया',
   'common.copy': 'कॉपी करें',

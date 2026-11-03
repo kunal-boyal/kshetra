@@ -16,6 +16,7 @@ import { OwnSessionsController } from './own-sessions.controller';
 import { DirectoryDatabase } from './directory.database';
 import { DirectoryMembers } from './members';
 import { OtpService } from './otp.service';
+import { DirectoryPhoneSessions } from './phone-sessions';
 import { msg91Settings } from '../../platform/msg91';
 import {
   ConsoleOtpSender,
@@ -94,6 +95,7 @@ export class DirectoryHealth {
     },
     OtpService,
     SessionsService,
+    DirectoryPhoneSessions,
     SecondFactorService,
     WebCookie,
     SsoService,
@@ -113,6 +115,7 @@ export class DirectoryHealth {
     DirectoryHealth,
     OtpSender,
     DirectoryMembers,
+    DirectoryPhoneSessions,
     DirectoryTenants,
     DirectoryDatabase,
     SigningKey,

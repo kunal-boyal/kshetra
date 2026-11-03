@@ -44,6 +44,7 @@ Field people claim expenses on their phone under the organisation's expense poli
 - A receipt photo seen before is flagged, never blocked (BR-40).
 - Tracked and odometer kilometres are flagged when they differ by more than 10% of the larger and at least 2 km (`distanceGap()`, decision D115).
 - Only an approved claim can be marked paid, once. Marking paid is recorded in the audit log.
+- Nobody marks their own claim paid: someone else in the office does, as nobody decides their own request.
 
 ## If something goes wrong
 
@@ -51,5 +52,6 @@ Field people claim expenses on their phone under the organisation's expense poli
 |---|---|---|
 | This changed somewhere else. Refresh and try again. | The claim isn't approved, or is already paid. | Reload; pay only claims **Approved, to be paid**. |
 | This is outside the people and places you look after. | The person is outside your scope. | Ask someone whose scope covers them. |
+| You don't have access to this. | The claim is your own. | Ask someone else in the office to mark it paid. |
 | No claims | Nobody claimed in this month or status. | Change the month or status. |
 | This feature is switched off for your organisation. | Expenses is switched off. | Ask your admin. |

@@ -56,9 +56,9 @@ Reset the phone:
 5. Tap **Reset phone** again to confirm. The page says **The phone is reset.**
 6. The person signs in on the new phone. Whichever phone signs in first becomes theirs, so the old phone must not sign in again.
 
-For a lost or stolen phone, reset it as above, then tap **Sign out everywhere** on the same page and confirm. It says **They are signed out everywhere.** The old phone can no longer reach the person's data, but it stays registered for push, so notifications meant for the person may still show on it.
+For a lost or stolen phone, reset it as above, then tap **Sign out everywhere** on the same page and confirm. It says **They are signed out everywhere.** The old phone can no longer reach the person's data, and it gets no more push notifications.
 
-Who may do it: Admin, Business head and Manager (`user.reset_device`), only for people within their scope. Nobody resets their own phone: "You cannot reset your own device. Ask your manager or an admin to do it." shows as **You don't have access to this.** By practice ([docs/runbooks/device-reset.md](../../runbooks/device-reset.md)) vendor support asks the tenant's admin rather than resetting a phone under a support grant.
+Who may do it: Admin, Business head and Manager (`user.reset_device`), only for people within their scope. Nobody resets their own phone: on your own page **Reset phone** isn't shown; ask your manager or an admin. By practice ([docs/runbooks/device-reset.md](../../runbooks/device-reset.md)) vendor support asks the tenant's admin rather than resetting a phone under a support grant.
 
 ### "Use the mobile app for this" on the web
 
@@ -102,7 +102,7 @@ On the web, a tenant with **Single sign-on** on lets people in its email domains
 
 | What you see | What it means | What to do |
 |---|---|---|
-| **Your organisation signs you in with its own sign-in. Enter your work email to continue.** after the SMS code | The organisation requires SSO for this person's email domain (**Required** on **Settings** › **Single sign-on**) | The page switches to the SSO step. Enter the work email and **Continue**. |
+| **Your organisation signs you in with its own sign-in. Enter your work email to continue.** after the SMS code | The organisation requires SSO for this person's email domain, and has proved the domain (**Required** on **Settings** › **Single sign-on**). A domain not yet proved never refuses the code | The page switches to the SSO step. Enter the work email and **Continue**. |
 | **Your organisation doesn’t use single sign-on for this email. Sign in with your mobile number.** | No SSO connection covers that email's domain | Use **Mobile number**, or ask the admin to add and prove the domain. |
 | **The sign-in took too long. Try again.** | The provider's answer came back too late, or in a different browser from the one that started | Start again, and finish in the same browser. |
 | **Your organisation’s sign-in didn’t complete. Try again, or ask your administrator.** | The identity provider refused, or its answer didn't check out | The admin checks the connection's settings with the provider. |

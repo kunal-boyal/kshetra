@@ -18,7 +18,7 @@ This is the tenant's user, not vendor staff: a staff member who lost their own a
 
 ## Steps
 
-1. Open the tenant's page and find the **Reset an authenticator** card. It says it is for someone who has lost their authenticator and their recovery codes, when no other admin can reset it.
+1. Open the tenant's page and find the **Reset an authenticator** card. It says it is for someone who has lost their authenticator and their recovery codes, when no other admin can reset it, and that the organisation's admins are told.
 2. Enter **Their mobile number**: the ten digits they sign in with.
 3. In **How you confirmed it is them**, write how you checked, in a sentence.
 4. Select **Reset**.
@@ -29,7 +29,7 @@ This is the tenant's user, not vendor staff: a staff member who lost their own a
 
 - The number must belong to someone in this tenant; the person is found by it.
 - Their authenticator is removed, and every session they have ends, whether or not they had one.
-- The reset is recorded in the platform audit, with the reason you gave. It doesn't reach the tenant's own audit log or its admins, so tell the customer's contact what you did.
+- The reset is recorded in the platform audit, with the reason you gave, and in the tenant's own audit log as vendor staff's, with your name and the reason. The tenant's admins are told in their inbox and by email (**Vendor support reset an authenticator**), with a link to the person's page.
 
 ## If something goes wrong
 
