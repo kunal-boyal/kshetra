@@ -16,8 +16,8 @@
   },
   "dependencies": {
     "@expo-google-fonts/mukta": "^0.4.1",
-    "@sentry/react-native": "~7.11.0",
-    "@tanstack/react-query": "^5.104.1",
+    "@sentry/react-native": "~7.13.0",
+    "@tanstack/react-query": "^5.105.0",
     "@thelamp/api-client": "workspace:*",
     "@thelamp/design-tokens": "workspace:*",
     "@thelamp/forms": "workspace:*",
