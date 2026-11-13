@@ -86,20 +86,14 @@ overrides:
   'import-in-the-middle>es-module-lexer': 3.0.3
   # GHSA-mrhx-c7xc-m3w5 (decision D100): Expo's CLI and a lint plugin bring zod 4 below the fix.
   'zod@>=4.0.0 <4.6.6': ^4.6.6
+  # node-forge under Expo's CLI (decision D100): 1.4.2 (2026-10-27) fixes the advisories on 1.4.0
+  # and is past two weeks old; 1.4.3 (2026-11-04) is not yet.
+  'node-forge@<1.4.2': 1.4.2
 
 # Advisories `pnpm audit` may pass over, each reviewed in docs/security/dependency-advisories.md
 # (decision D100). Remove an entry as soon as its fix is old enough to take.
 auditConfig:
   ignoreGhsas:
-    # node-forge under Expo's CLI signs development builds only. 1.4.1 (2026-10-27) fixes the
-    # five found on 2026-10-31 and is taken on 2026-11-10, once two weeks old; then check it closes
-    # the first too.
-    - GHSA-86w9-cpqp-85rv
-    - GHSA-7wch-p9px-956x
-    - GHSA-jc66-7q78-782g
-    - GHSA-8hrf-8g6f-7xwp
-    - GHSA-hqq3-7jhf-c5jx
-    - GHSA-5x38-2vff-x55p
     # undici under jsdom and Testcontainers (tests) and Scalar's build; the fixes arrived on 2026-10-15.
     - GHSA-xjj6-f33q-929c
     - GHSA-2m5v-pch6-74hx
