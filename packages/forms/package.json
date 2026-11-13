@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@thelamp/shared": "workspace:*",
-    "re2js": "^2.8.8",
+    "re2js": "^2.9.1",
     "zod": "catalog:"
   },
   "devDependencies": {
