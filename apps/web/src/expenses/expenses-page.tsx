@@ -13,7 +13,6 @@ import {
   todayIn,
 } from '@thelamp/shared';
 import {
-  type BadgeVariant,
   Button,
   type Column,
   Confirm,
@@ -23,6 +22,7 @@ import {
   Icon,
   PageHeader,
   PeriodStepper,
+  SplitDetail,
   StatTile,
   StatusBadge,
   TextField,
@@ -41,51 +41,9 @@ import { errorMessage, useLanguage } from '../i18n';
 import { read, useAccess, write } from '../people/data';
 import { useDates } from '../people/shared';
 import { useStartExport } from '../reports/data';
-
-const STATE_BADGE: Record<ExpenseState, BadgeVariant> = {
-  pending: 'waiting',
-  approved: 'success',
-  rejected: 'danger',
-  cancelled: 'neutral',
-  paid: 'neutral',
-};
+import { ClaimDetail, FLAG_BADGE, STATE_BADGE, whereItIs } from './claim-detail';
 
 type Translate = ReturnType<typeof useLanguage>['t'];
-
-/** Where a claim is (decision D104): with whom at which step, waiting to be paid, or decided. */
-export function whereItIs(
-  claim: ExpenseClaimResult,
-  t: Translate,
-  date: (value: string) => string,
-): string {
-  const steps = claim.approval?.steps ?? [];
-  switch (claim.state) {
-    case 'pending': {
-      const at = steps.find((step) => step.status === 'pending');
-      return at
-        ? t('expenses.where_step', {
-            names: at.approvers.map((person) => person.name).join(', '),
-            n: String(at.index + 1),
-            m: String(steps.length),
-          })
-        : t('expenses.where_waiting');
-    }
-    case 'approved':
-      return t('expenses.where_to_pay');
-    case 'paid':
-      return claim.paidAt
-        ? t('expenses.where_paid_on', { date: date(claim.paidAt.slice(0, 10)) })
-        : t('expenses.state_paid');
-    case 'rejected': {
-      const by = steps.find((step) => step.status === 'rejected')?.actedBy;
-      return by
-        ? t('expenses.where_rejected_by', { name: by.name })
-        : t('approval.status_rejected');
-    }
-    case 'cancelled':
-      return t('expenses.where_withdrawn');
-  }
-}
 
 /** A policy in one line: its rate, its caps, and whether a bill is needed. */
 export function policyLine(
@@ -111,21 +69,12 @@ export function policyLine(
   return parts.join(' · ');
 }
 
-const FLAG_BADGE: Record<string, BadgeVariant> = {
-  duplicate_receipt: 'danger',
-  receipt_missing: 'pending',
-  capped: 'neutral',
-  // A reading changed from the shift's punch readings (decision D99).
-  odometer_changed: 'pending',
-  // Tracked and odometer kilometres beyond the tolerance (decision D115).
-  distance_gap: 'pending',
-};
-
 /**
  * Expense claims (M12, decision D83): claims for a month by the people the caller reaches,
  * newest day first, with what each policy and its caps made of them and what reviewers should
- * look at. Back office marks approved claims paid, asking first; the Expense register in Reports
- * exports them for payroll.
+ * look at, and the chosen claim beside the list with its receipts (decision D142). Back office
+ * marks approved claims paid, asking first; the Expense register in Reports exports them for
+ * payroll.
  */
 export function ExpensesPage() {
   const { client } = useApp();
@@ -139,6 +88,7 @@ export function ExpensesPage() {
   const [state, setState] = useState<ExpenseState | null>(null);
   const [exporting, setExporting] = useState(false);
   const [paying, setPaying] = useState<ExpenseClaimResult>();
+  const [chosenId, setChosenId] = useState<string | null>(null);
   const [reference, setReference] = useState('');
   const [failure, setFailure] = useState<unknown>();
   const [busy, setBusy] = useState(false);
@@ -167,6 +117,7 @@ export function ExpensesPage() {
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
   const rows = claims.data?.pages.flatMap((page) => page.items) ?? [];
+  const chosen = rows.find((row) => row.id === chosenId) ?? rows[0] ?? null;
   const summary = claims.data?.pages[0]?.summary ?? null;
   const count = (value: number) => formatNumber(value, { locale });
   const active = (policies.data?.items ?? []).filter((policy) => policy.active);
@@ -200,6 +151,7 @@ export function ExpensesPage() {
       setPaying(undefined);
       setReference('');
       await queryClient.invalidateQueries({ queryKey: ['expense-claims'] });
+      await queryClient.invalidateQueries({ queryKey: ['expense-claim'] });
     } catch (caught) {
       setFailure(caught);
     } finally {
@@ -225,7 +177,24 @@ export function ExpensesPage() {
       .join(' · ');
 
   const columns: Column<ExpenseClaimResult>[] = [
-    { key: 'date', header: t('expenses.col_date'), render: (row) => dates.date(row.expenseDate) },
+    {
+      key: 'date',
+      header: t('expenses.col_date'),
+      render: (row) => (
+        <button
+          type="button"
+          className="ks-cell-link whitespace-nowrap"
+          aria-pressed={row.id === chosen?.id}
+          aria-label={t('expenses.show_claim', {
+            name: row.user.name,
+            date: dates.date(row.expenseDate),
+          })}
+          onClick={() => setChosenId(row.id)}
+        >
+          {dates.date(row.expenseDate)}
+        </button>
+      ),
+    },
     {
       key: 'person',
       header: t('expenses.col_person'),
@@ -441,24 +410,31 @@ export function ExpensesPage() {
       ) : claims.isPending ? (
         <p className="ks-muted">{t('common.loading')}</p>
       ) : (
-        <DataTable
-          caption={t('expenses.title')}
-          columns={columns}
-          rows={rows}
-          rowKey={(row) => row.id}
-          empty={
-            <EmptyState icon={<Icon icon={Receipt} />} title={t('expenses.none_title')}>
-              {t('expenses.none_body')}
-            </EmptyState>
-          }
-          {...(claims.hasNextPage
-            ? {
-                more: {
-                  busy: claims.isFetchingNextPage,
-                  onClick: () => void claims.fetchNextPage(),
-                },
+        <SplitDetail
+          detailLabel={chosen ? chosen.description : t('expenses.title')}
+          list={
+            <DataTable
+              caption={t('expenses.title')}
+              columns={columns}
+              rows={rows}
+              rowKey={(row) => row.id}
+              selectedKey={chosen?.id ?? null}
+              empty={
+                <EmptyState icon={<Icon icon={Receipt} />} title={t('expenses.none_title')}>
+                  {t('expenses.none_body')}
+                </EmptyState>
               }
-            : {})}
+              {...(claims.hasNextPage
+                ? {
+                    more: {
+                      busy: claims.isFetchingNextPage,
+                      onClick: () => void claims.fetchNextPage(),
+                    },
+                  }
+                : {})}
+            />
+          }
+          detail={chosen ? <ClaimDetail key={chosen.id} id={chosen.id} /> : null}
         />
       )}
       {active.length > 0 ? (

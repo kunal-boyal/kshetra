@@ -149,6 +149,16 @@ export const ExpenseClaimResult = z
   })
   .meta({ id: 'ExpenseClaim' });
 
+/**
+ * `GET /v1/expense-claims/{id}`: one claim, for those it is shown to (decision D142): its
+ * claimant and whoever reaches them, the people taking part in its approval, and payers once it
+ * is approved. For each receipt seen on another claim before, that claim, when the reader may
+ * read it too.
+ */
+export const ExpenseClaimDetail = ExpenseClaimResult.extend({
+  seenBefore: z.array(z.object({ receiptId: z.uuid(), claimId: z.uuid().nullable() })),
+}).meta({ id: 'ExpenseClaimDetail' });
+
 export const ExpenseClaimListQuery = z.strictObject({
   userId: z.uuid().optional(),
   /** Claims for days in this month. */
@@ -198,6 +208,7 @@ export type ExpensePoliciesBody = z.output<typeof ExpensePoliciesBody>;
 export type ExpenseState = z.infer<typeof ExpenseState>;
 export type CreateExpenseClaimBody = z.output<typeof CreateExpenseClaimBody>;
 export type ExpenseClaimResult = z.infer<typeof ExpenseClaimResult>;
+export type ExpenseClaimDetail = z.infer<typeof ExpenseClaimDetail>;
 export type ExpenseClaimListQuery = z.output<typeof ExpenseClaimListQuery>;
 export type ExpenseClaimListResult = z.infer<typeof ExpenseClaimListResult>;
 export type AddReceiptsBody = z.output<typeof AddReceiptsBody>;

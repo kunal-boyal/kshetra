@@ -22,7 +22,8 @@ Field people claim expenses on their phone under the organisation's expense poli
 2. The tiles sum the month: **Claimed**, **Waiting for a decision**, **Over the policy** (cut by the caps, never paid) and **Approved for payment**, each with its number of claims.
 3. Under **Status**, choose **Waiting**, **Approved**, **Rejected**, **Cancelled** or **Paid** to narrow the list.
 4. Each claim shows its **Day**, **Person**, **Policy** (with its rate and caps, such as **up to … a day** or **bill needed**), **Bills** (how many receipts), **Amount**, **Over policy**, **Where it is** (**…, step … of …**, **Approved, to be paid**, **Paid on …**, **Rejected by …** or **Withdrawn**) and **Status**.
-5. Look at a claim's flags before paying it. The page counts its receipts but doesn't show the photos: **Receipt seen before** (the same receipt photo on another claim), **No receipt yet**, **Readings changed from the shift** and **Tracked and odometer km differ**. A per-km claim also shows **… km on the odometer** and **… km tracked**.
+5. Look at a claim's flags before paying it: **Receipt seen before** (the same receipt photo on another claim), **No receipt yet**, **Readings changed from the shift** and **Tracked and odometer km differ**. A per-km claim also shows **… km on the odometer** and **… km tracked**.
+6. Choose a claim's **Day** to show it beside the list: who claimed what for which day, the amount and what the policy made of it, the odometer readings beside the tracked distance, **Where it is**, and its **Receipts** and **Odometer photos**. Choose a photo to open it full size. A receipt used before says **Receipt … was used on another claim before.**; **Show that claim** shows that claim in its place, and **Back to this claim** returns. You see the claims of the people you reach, those whose approval you take part in, and, as someone who pays claims, every approved or paid claim (decision D142).
 
 ### Mark a claim paid
 

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IamModule } from '../iam/iam.module';
 import { TenantConfigModule } from '../tenant-config/tenant-config.module';
+import { MediaReaders } from './media-readers';
 import { MediaUrls } from './media-urls';
 import { PhotosController } from './photos.controller';
 import { PhotosService } from './photos.service';
@@ -13,7 +14,7 @@ import { PhotosService } from './photos.service';
 @Module({
   imports: [IamModule, TenantConfigModule],
   controllers: [PhotosController],
-  providers: [PhotosService, MediaUrls],
-  exports: [PhotosService],
+  providers: [PhotosService, MediaUrls, MediaReaders],
+  exports: [PhotosService, MediaReaders],
 })
 export class PhotosModule {}

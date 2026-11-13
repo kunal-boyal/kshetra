@@ -7,6 +7,7 @@ import {
   claimIssues,
   type CreateExpenseClaimBody,
   distanceGap,
+  type ExpenseClaimDetail,
   type ExpenseClaimListQuery,
   type ExpenseClaimListResult,
   type ExpenseClaimResult,
@@ -32,6 +33,7 @@ import { VisitsService } from '../field/visits.service';
 import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
 import { Scopes } from '../iam/scopes';
+import { MediaReaders } from '../media/media-readers';
 import { PhotosService } from '../media/photos.service';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
 import { ApprovalsService } from '../workflow/approvals.service';
@@ -91,9 +93,28 @@ export class ExpenseClaimsService implements OnModuleInit {
     private readonly photos: PhotosService,
     private readonly config: TenantConfigService,
     private readonly audit: AuditLog,
+    private readonly readers: MediaReaders,
   ) {}
 
   onModuleInit(): void {
+    // A claim's receipts and odometer photos go to whoever may read the claim (decision D142),
+    // and so do the odometer photos of the shift a per-km claim was begun from (D99), never the
+    // shift's selfies.
+    this.readers.register(OWNER, async (tx, access, id) => {
+      const row = await this.find(tx, access.tenantId, id);
+      return row ? this.readable(tx, access, row) : false;
+    });
+    this.readers.register('shift', async (tx, access, shiftId, kind) => {
+      if (kind !== 'odometer') return false;
+      const rows = await tx
+        .select()
+        .from(expenseClaims)
+        .where(
+          and(eq(expenseClaims.tenantId, access.tenantId), eq(expenseClaims.shiftId, shiftId)),
+        );
+      for (const row of rows) if (await this.readable(tx, access, row)) return true;
+      return false;
+    });
     this.requestTypes.register({
       type: 'expense',
       fallbackPermission: 'approval.act',
@@ -336,6 +357,58 @@ export class ExpenseClaimsService implements OnModuleInit {
       after: { state: 'paid', reference: body.reference ?? null },
     });
     return this.one(tx, access.tenantId, id);
+  }
+
+  /**
+   * Whether the caller may read a claim (decision D142): their own, one of someone they reach,
+   * one whose approval they take part in or stand in for (D113), or, for those who pay claims, one
+   * approved or paid.
+   */
+  async readable(tx: TenantTx, access: Access, row: Row): Promise<boolean> {
+    if (access.userId && row.userId === access.userId) return true;
+    if (await this.scopes.reaches(tx, access, row.userId)) return true;
+    if (
+      row.workflowInstanceId &&
+      (await this.approvals.involves(tx, access, row.workflowInstanceId))
+    ) {
+      return true;
+    }
+    return (
+      access.permissions.has('expense.mark_paid') &&
+      (row.state === 'approved' || row.state === 'paid')
+    );
+  }
+
+  /**
+   * `GET /v1/expense-claims/{id}`: one claim for those it is shown to, with where each receipt
+   * seen before was used, when the reader may read that claim too (BR-40, decision D142).
+   */
+  async get(tx: TenantTx, access: Access, id: string): Promise<ExpenseClaimDetail> {
+    const row = await this.find(tx, access.tenantId, id);
+    if (!row) throw notFound();
+    if (!(await this.readable(tx, access, row))) throw outOfScope();
+    const [result] = await this.results(tx, access.tenantId, [row]);
+    const receipts = (await this.photos.ownedBy(tx, access.tenantId, OWNER, [id])).filter(
+      (photo) => photo.kind === 'receipt' && photo.duplicateOfId !== null,
+    );
+    const owners = await this.photos.owners(
+      tx,
+      access.tenantId,
+      receipts.map((photo) => photo.duplicateOfId!),
+    );
+    const seenBefore = [];
+    for (const receipt of receipts) {
+      const owner = owners.get(receipt.duplicateOfId!);
+      const other =
+        owner?.ownerType === OWNER && owner.ownerId !== id
+          ? await this.find(tx, access.tenantId, owner.ownerId)
+          : undefined;
+      seenBefore.push({
+        receiptId: receipt.id,
+        claimId: other && (await this.readable(tx, access, other)) ? other.id : null,
+      });
+    }
+    return { ...result!, seenBefore };
   }
 
   /**

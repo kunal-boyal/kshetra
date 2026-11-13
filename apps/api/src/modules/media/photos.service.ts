@@ -41,6 +41,7 @@ import { notFound, outOfScope } from '../iam/actor';
 import { People } from '../iam/people';
 import { Scopes } from '../iam/scopes';
 import { TenantConfigService } from '../tenant-config/tenant-config.service';
+import { MediaReaders } from './media-readers';
 import { MediaUrls } from './media-urls';
 
 /** How long an upload link lasts (spec 12.2). */
@@ -96,6 +97,7 @@ export class PhotosService implements OnModuleInit {
     private readonly outbox: Outbox,
     private readonly schedules: Schedules,
     private readonly audit: AuditLog,
+    private readonly readers: MediaReaders,
   ) {}
 
   onModuleInit(): void {
@@ -272,7 +274,10 @@ export class PhotosService implements OnModuleInit {
     return this.result(tx, access.tenantId, id);
   }
 
-  /** Step 6: a link to one variant, for whoever took it and those whose scope reaches them. */
+  /**
+   * Step 6: a link to one variant, for whoever took it, those whose scope reaches them, and
+   * whoever the module that owns its record shows that record to (decision D142).
+   */
   async url(
     tx: TenantTx,
     access: Access,
@@ -286,7 +291,8 @@ export class PhotosService implements OnModuleInit {
     if (!row || !isPhoto(row.kind)) throw notFound();
     if (
       row.userId !== access.userId &&
-      !(row.userId && (await this.scopes.reaches(tx, access, row.userId)))
+      !(row.userId && (await this.scopes.reaches(tx, access, row.userId))) &&
+      !(await this.readers.may(tx, access, row))
     ) {
       throw outOfScope();
     }
@@ -433,6 +439,26 @@ export class PhotosService implements OnModuleInit {
    * creates it. The caller has checked them first; one held elsewhere stays where it is.
    */
   /** The photos records of a type hold, by record: each one's kind and whether it repeats another. */
+  /** The record each photo belongs to, without locking: who owns it, by type and ID. */
+  async owners(
+    tx: TenantTx,
+    tenantId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, { ownerType: string; ownerId: string }>> {
+    if (ids.length === 0) return new Map();
+    const rows = await tx
+      .select({ id: media.id, ownerType: media.ownerType, ownerId: media.ownerId })
+      .from(media)
+      .where(and(eq(media.tenantId, tenantId), inArray(media.id, [...ids])));
+    return new Map(
+      rows.flatMap((row) =>
+        row.ownerType && row.ownerId
+          ? [[row.id, { ownerType: row.ownerType, ownerId: row.ownerId }] as const]
+          : [],
+      ),
+    );
+  }
+
   async ownedBy(
     tx: TenantTx,
     tenantId: string,

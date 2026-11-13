@@ -4,7 +4,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import sharp from 'sharp';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { expenseClaims } from '../src/db/schema';
+import { expenseClaims, media } from '../src/db/schema';
 import { TrailsService } from '../src/modules/field/trails.service';
 import { PhotosService } from '../src/modules/media/photos.service';
 import { Database } from '../src/platform/database';
@@ -159,6 +159,86 @@ async function tenant(name: string) {
 
 const claim = (api: Api, body: object) =>
   api.post('/v1/expense-claims', { id: newId(), expenseDate: LAST_MONTH(), ...body });
+
+describe('who sees a claim and its photos (decision D142)', () => {
+  it('shows them to the people deciding it, standing in included, and to nobody else', async () => {
+    const t = await tenant('Receipt Readers Co');
+    const phones = { peer: newPhone(), stranger: newPhone() };
+    // Another manager, outside the claimant's team, and someone in that manager's team.
+    const peer = await world.user(t.tenantId, {
+      phone: phones.peer,
+      designation: 'manager',
+      managerId: t.headId,
+    });
+    await world.user(t.tenantId, {
+      phone: phones.stranger,
+      designation: 'executive',
+      managerId: peer.id,
+      joiningDate: '2020-01-01',
+    });
+    const asPeer = as((await world.signIn(phones.peer)).accessToken);
+    const asStranger = as((await world.signIn(phones.stranger, newDevice())).accessToken);
+
+    const bytes = await jpeg(11);
+    const receipt = await upload(t.field, 'receipt', bytes);
+    const first = await claim(t.field, {
+      policy: 'meals',
+      description: 'Client lunch',
+      billAmount: '300',
+      receiptIds: [receipt],
+    });
+    expect(first.statusCode, first.body).toBe(201);
+    const id = first.json().id;
+    await app.get(PhotosService).process(t.tenantId, receipt);
+    const thumbnail = (api: Api) => api.get(`/v1/media/${receipt}/url?variant=thumbnail`);
+
+    // Outside the claimant's team, the other manager sees neither.
+    expect((await asPeer.get(`/v1/expense-claims/${id}`)).json().error.code).toBe('OUT_OF_SCOPE');
+    expect((await thumbnail(asPeer)).json().error.code).toBe('OUT_OF_SCOPE');
+
+    // Once the claimant's manager hands their approvals over for today (D113), they see both.
+    const handed = await t.manager.post('/v1/approval-delegations', {
+      id: newId(),
+      delegateId: peer.id,
+      startsOn: TODAY(),
+      endsOn: TODAY(),
+    });
+    expect(handed.statusCode, handed.body).toBeLessThan(300);
+    const shown = await asPeer.get(`/v1/expense-claims/${id}`);
+    expect(shown.statusCode, shown.body).toBe(200);
+    expect(shown.json()).toMatchObject({ id, receipts: [receipt], seenBefore: [] });
+    expect((await thumbnail(asPeer)).statusCode).toBe(200);
+
+    // The same receipt on a second claim names the first, for a reader of both (BR-40).
+    const again = await upload(t.field, 'receipt', bytes);
+    const second = await claim(t.field, {
+      policy: 'meals',
+      description: 'Client lunch again',
+      billAmount: '40',
+      expenseDate: after(LAST_MONTH(), 2),
+      receiptIds: [again],
+    });
+    await app.get(PhotosService).process(t.tenantId, again);
+    expect((await asPeer.get(`/v1/expense-claims/${second.json().id}`)).json()).toMatchObject({
+      seenBefore: [{ receiptId: again, claimId: id }],
+    });
+
+    // Someone who takes no part is refused both.
+    expect((await asStranger.get(`/v1/expense-claims/${id}`)).json().error.code).toBe(
+      'OUT_OF_SCOPE',
+    );
+    expect((await thumbnail(asStranger)).json().error.code).toBe('OUT_OF_SCOPE');
+
+    // A photo that failed its checks stays hidden, even from those who may read the claim.
+    await app.get(Database).forTenant(t.tenantId, (tx) =>
+      tx
+        .update(media)
+        .set({ status: 'rejected' })
+        .where(and(eq(media.tenantId, t.tenantId), eq(media.id, receipt))),
+    );
+    expect((await thumbnail(asPeer)).json().error.code).toBe('CONFLICT');
+  });
+});
 
 describe('expense claims (BR-29)', () => {
   it('FX-21 and FX-22, caps across the month, and what refuses a claim', async () => {

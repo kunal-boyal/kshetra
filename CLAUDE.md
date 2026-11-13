@@ -255,7 +255,7 @@ docs/        the specification, decisions.md, versions.md, runbooks/
 ## Photos (decision D44)
 
 - Photos never pass through the API: the phone uploads straight to storage through `POST /v1/media/presign`'s link, then confirms. Use the `media.upload` outbox kind and `preparePhoto()` and `queuePhoto()` in `apps/mobile/src/photos.ts`; the camera screen (`/camera?kind=&request=`) does both and hands the IDs back through `capture-results.ts`.
-- Records that use photos attach them by ID in the transaction that creates the record, after checking their owner and status (spec 12.2, step 5). Read them only through `GET /v1/media/{id}/url`.
+- Records that use photos attach them by ID in the transaction that creates the record, after checking their owner and status (spec 12.2, step 5). Read them only through `GET /v1/media/{id}/url`, which serves the taker, those whose scope reaches them, and whoever the owning module's check registered with `MediaReaders` lets read the record (decision D142), as expenses does for a claim's approvers, their stand-ins and payers (`ExpenseClaimsService.readable()`, `GET /v1/expense-claims/{id}`).
 - In tests the object store is in memory; `MemoryObjectStore.receive(url, bytes)` stands in for the phone's upload and refuses bytes that weren't signed for.
 
 ## Shifts and tracking (decision D47)

@@ -36,6 +36,7 @@ const claim = (id: string, patch: object) => ({
 });
 const MEALS = '01a10000-0000-7000-8000-0000000000e1';
 const DA = '01a10000-0000-7000-8000-0000000000e2';
+const RECEIPT = '01a10000-0000-7000-8000-0000000000f1';
 const PAGES = {
   '/v1/expense-policies': {
     items: [
@@ -227,6 +228,48 @@ describe('expense claims (M12)', () => {
     expect(
       writesOf(client).map(([method, path, , options]) => [method, path, options?.body]),
     ).toEqual([['POST', `/v1/expense-claims/${MEALS}/paid`, { reference: 'NEFT 4471' }]]);
+  });
+
+  it('shows the chosen claim beside the list, with its receipts and where one was used before (D142)', async () => {
+    const [meals, da] = PAGES['/v1/expense-claims'].items as object[];
+    const client = fakeClient(
+      {
+        ...PAGES,
+        [`/v1/expense-claims/${MEALS}`]: {
+          ...meals,
+          seenBefore: [{ receiptId: RECEIPT, claimId: DA }],
+        },
+        [`/v1/expense-claims/${DA}`]: { ...da, seenBefore: [] },
+        [`/v1/media/${RECEIPT}/url`]: { url: 'https://media.example/receipt.jpg', expiresAt: '' },
+      },
+      {},
+      ['approval.act'],
+    );
+    renderAt('/expenses', client);
+    const detail = await screen.findByRole('complementary', { name: 'Team lunch' });
+    expect(within(detail).getByText('Rahul Verma (SUN-004), for', { exact: false })).toBeVisible();
+    expect(
+      await within(detail).findByRole('link', { name: 'Receipt 1, opens full size' }),
+    ).toHaveAttribute('href', 'https://media.example/receipt.jpg');
+    expect(client.request).toHaveBeenCalledWith(
+      'GET',
+      `/v1/media/${RECEIPT}/url?variant=thumbnail`,
+      expect.anything(),
+    );
+
+    // The receipt was used on the daily allowance claim before: that claim shows in its place.
+    const user = userEvent.setup();
+    expect(within(detail).getByText('Receipt 1 was used on another claim before.')).toBeVisible();
+    await user.click(within(detail).getByRole('button', { name: 'Show that claim' }));
+    expect(await within(detail).findByRole('heading', { name: 'Tour' })).toBeVisible();
+    expect(within(detail).getByText('No receipts.')).toBeVisible();
+    await user.click(within(detail).getByRole('button', { name: 'Back to this claim' }));
+    expect(await within(detail).findByRole('heading', { name: 'Team lunch' })).toBeVisible();
+
+    // Choosing another row shows it beside the list.
+    const [, second] = screen.getAllByRole('button', { name: /^Show the claim of Rahul Verma/ });
+    await user.click(second!);
+    expect(await screen.findByRole('complementary', { name: 'Tour' })).toBeVisible();
   });
 
   it('asks the API for the month and status chosen', async () => {

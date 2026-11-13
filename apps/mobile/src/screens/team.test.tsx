@@ -169,6 +169,51 @@ const ORDER_REQUEST = {
   page: '/orders/01a10000-0000-7000-8000-0000000000a4',
 };
 
+// An expense claim waiting for the manager, with a receipt (decision D142).
+const EXPENSE = '01a10000-0000-7000-8000-0000000000b5';
+const CLAIM = '01a10000-0000-7000-8000-0000000000a5';
+const RECEIPT = '01a10000-0000-7000-8000-0000000000a6';
+const EXPENSE_REQUEST = {
+  ...APPROVAL,
+  id: EXPENSE,
+  requestType: 'expense',
+  requestId: CLAIM,
+  subject: { title: '450.00 · Hotel stay', accountId: null, detail: null },
+  version: 1,
+  steps: [pendingStep(0)],
+};
+const CLAIM_DETAIL = {
+  id: CLAIM,
+  userId: RAHUL,
+  user: { id: RAHUL, code: 'SUN-004', name: 'Rahul Verma' },
+  policy: 'stay',
+  policyVersion: 1,
+  expenseDate: '2026-10-11',
+  description: 'Hotel stay',
+  quantity: null,
+  rate: null,
+  odometerOpen: null,
+  odometerClose: null,
+  trackedKm: null,
+  shiftId: null,
+  billAmount: '450.00',
+  calculated: '450.00',
+  amount: '450.00',
+  capped: false,
+  receipts: [RECEIPT],
+  odometerPhotos: [],
+  flags: ['duplicate_receipt'],
+  state: 'pending',
+  approval: null,
+  paidAt: null,
+  paymentReference: null,
+  createdAt: '2026-10-12T05:00:00.000Z',
+  decidedAt: null,
+  seenBefore: [{ receiptId: RECEIPT, claimId: null }],
+};
+/** Requests the inbox holds besides the usual three, for one test. */
+let alsoWaiting: object[] = [];
+
 const READ_AT = new Date().toISOString();
 const before = (minutes: number) => new Date(Date.parse(READ_AT) - minutes * 60_000).toISOString();
 const TODAY = todayIn('Asia/Kolkata');
@@ -290,7 +335,15 @@ function fakeClient(permissions: string[] = ['submission.review'], emptyInbox = 
           if (url.includes('requestType=leave')) {
             return { items: [LEAVE_REQUEST], nextCursor: null, counts };
           }
-          return { items: [APPROVAL, LEAVE_REQUEST, ORDER_REQUEST], nextCursor: null, counts };
+          return {
+            items: [APPROVAL, LEAVE_REQUEST, ORDER_REQUEST, ...alsoWaiting],
+            nextCursor: null,
+            counts,
+          };
+        }
+        if (method === 'GET' && url === `/v1/expense-claims/${CLAIM}`) return CLAIM_DETAIL;
+        if (method === 'GET' && url.startsWith(`/v1/media/${RECEIPT}/url`)) {
+          return { url: 'https://objects.test/receipt.jpg', expiresAt: '2030-01-01T00:00:00.000Z' };
         }
         if (method === 'POST' && url === `/v1/approvals/${LEAVE}/decision`) {
           throw new ApiError(409, 'CONFLICT', 'Someone decided first.');
@@ -336,7 +389,7 @@ function fakeClient(permissions: string[] = ['submission.review'], emptyInbox = 
   return { client, create: () => client as unknown as MobileClient };
 }
 
-type Page = 'team' | 'item' | 'day' | 'approval' | 'handed' | 'approvals';
+type Page = 'team' | 'item' | 'day' | 'approval' | 'handed' | 'approvals' | 'expense';
 
 function Shown({ page }: { page: Page }) {
   const { session, restored } = useApp();
@@ -344,6 +397,7 @@ function Shown({ page }: { page: Page }) {
   if (page === 'day') return <PersonDayScreen userId={RAHUL} />;
   if (page === 'approval') return <ApprovalItemScreen id={REQUEST} />;
   if (page === 'handed') return <ApprovalItemScreen id={LEAVE} />;
+  if (page === 'expense') return <ApprovalItemScreen id={EXPENSE} />;
   if (page === 'approvals') return <ApprovalsScreen />;
   return page === 'team' ? <TeamScreen /> : <ReviewItemScreen id={CLEAN} />;
 }
@@ -550,6 +604,27 @@ describe('approvals in the Team tab (M15, D76)', () => {
 });
 
 describe('deciding for someone away (M15, D113)', () => {
+  it('shows an expense claim’s amount, flags and receipts before deciding (D142)', async () => {
+    alsoWaiting = [EXPENSE_REQUEST];
+    try {
+      const client = await renderPhone('expense', ['approval.act']);
+      expect(await screen.findByText('₹450.00')).toBeOnTheScreen();
+      expect(screen.getByText('Hotel stay')).toBeOnTheScreen();
+      expect(screen.getByText('Receipt seen before')).toBeOnTheScreen();
+      const [receipt] = await screen.findAllByLabelText('Receipt 1, opens full size');
+      expect(receipt).toBeOnTheScreen();
+      await waitFor(() =>
+        expect(client.request).toHaveBeenCalledWith(
+          'GET',
+          `/v1/media/${RECEIPT}/url?variant=thumbnail`,
+          expect.anything(),
+        ),
+      );
+    } finally {
+      alsoWaiting = [];
+    }
+  });
+
   it('says whom the manager decides for on a request handed over to them', async () => {
     await renderPhone('handed', ['approval.act']);
     expect(await screen.findByText('On behalf of Sunita Rao')).toBeOnTheScreen();

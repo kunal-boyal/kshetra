@@ -2,6 +2,7 @@ import { Body, Controller, Get, Headers, HttpCode, Param, Post, Put, Query } fro
 import {
   AddReceiptsBody,
   CreateExpenseClaimBody,
+  ExpenseClaimDetail,
   ExpenseClaimListQuery,
   ExpenseClaimListResult,
   ExpenseClaimResult,
@@ -95,6 +96,20 @@ export class ExpensesController {
   list(@CurrentAccess() access: Access, @Query() query: unknown) {
     const input = ExpenseClaimListQuery.parse(query);
     return this.database.forTenant(access.tenantId, (tx) => this.claims.list(tx, access, input));
+  }
+
+  @Get('expense-claims/:id')
+  @Contract({
+    tag: 'Expenses',
+    summary: 'One claim, for its claimant, those who reach them, its approvers and payers',
+    params: IdParams,
+    response: ExpenseClaimDetail,
+  })
+  @SignedIn()
+  @InModule('expenses')
+  get(@CurrentAccess() access: Access, @Param('id') id: string) {
+    const claimId = pathId(id);
+    return this.database.forTenant(access.tenantId, (tx) => this.claims.get(tx, access, claimId));
   }
 
   @Post('expense-claims/:id/receipts')

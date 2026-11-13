@@ -24,7 +24,8 @@ The kinds of request are **Leave**, **Attendance correction**, **Expense claim**
 2. To see one kind only, choose its button, which carries the kind and how many wait, such as **Leave (…)**; **All (…)** shows every kind.
 3. Each request shows its title, **Asked by …, …**, and **Approval steps**: each step with who approved or rejected it, who it waits for, and steps **Skipped**, **Escalated** or **Not reached**. A request you see because you stand in for someone says **On behalf of …**.
 4. Choose **Approve**, or choose **Reject**, write **Why are you rejecting it?** (at least 3 characters; the person who asked sees it), then **Reject** again. **Cancel** steps back.
-5. An **Order** shows **Open to decide** instead. It opens the order's own page, where you accept or reject it whole or line by line ([Process orders](../back-office/process-orders.md)).
+5. An **Expense claim** shows **Show the claim**: the claim opens in the card with its amount, what the policy made of it, its flags and its **Receipts** and **Odometer photos**, each opening full size. **Hide the claim** closes it. You see it, and its photos, as long as you take part in its approval, standing in for someone included, even when the person is outside your team (decision D142).
+6. An **Order** shows **Open to decide** instead. It opens the order's own page, where you accept or reject it whole or line by line ([Process orders](../back-office/process-orders.md)).
 
 ### Approve several together
 
@@ -56,8 +57,9 @@ While a handover stands, what waits for you waits for your stand-in too; you can
 2. Choose a kind under **Type of request**, or **All**.
 3. Each card says **You decide.** or which step it is at. Choose **Approve** to approve it there.
 4. To reject, choose **Reject**: the request opens. Write **Why are you rejecting it?** (at least 3 characters), then choose **Reject**.
-5. An order says **Decide this on the web portal, which asks for the reason and each line.**
-6. **Back to Team** returns to the tab.
+5. An expense claim, opened, shows its amount, description, flags, **Receipts** and **Odometer photos**; tap a photo to open it full size (decision D142).
+6. An order says **Decide this on the web portal, which asks for the reason and each line.**
+7. **Back to Team** returns to the tab.
 
 The phone decides one request at a time and needs a signal: nothing is kept on the phone.
 

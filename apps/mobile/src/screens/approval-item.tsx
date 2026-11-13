@@ -20,6 +20,7 @@ import { StyleSheet, View } from 'react-native';
 import { useDecideRequest, useWaitingRequest } from '../approvals';
 import { useConfig } from '../data';
 import { errorMessage, useLanguage } from '../i18n';
+import { ClaimPanel } from './claim-panel';
 
 /** Reasons need at least this many characters, as the server checks (M15). */
 const NOTE_MIN = 3;
@@ -38,8 +39,8 @@ function Back() {
 
 /**
  * `/approvals/<id>`: one request waiting for the person's decision (M15): what it is, who asked
- * and when, whom the person decides for if someone handed over to them (D113), its chain so far;
- * approve, or reject with a reason.
+ * and when, whom the person decides for if someone handed over to them (D113), an expense claim's
+ * amount and receipts (D142), its chain so far; approve, or reject with a reason.
  */
 export function ApprovalItemScreen({ id }: { id: string }) {
   const { t } = useLanguage();
@@ -114,6 +115,8 @@ function Deciding({ item }: { item: ApprovalResult }) {
           />
         </View>
       ) : null}
+
+      {item.requestType === 'expense' ? <ClaimPanel id={item.requestId} /> : null}
 
       {item.steps.length > 0 ? (
         <ListGroup title={t('approvals.chain')}>

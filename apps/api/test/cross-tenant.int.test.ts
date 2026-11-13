@@ -3012,6 +3012,10 @@ const FIXTURES: Record<string, Fixture> = {
       await sameAsNowhere((id) => asB('GET', `/v1/expense-claims?userId=${id}`), a.member.id);
     },
   },
+  'GET /v1/expense-claims/:id': {
+    kind: 'by ID',
+    run: () => sameAsNowhere((id) => asB('GET', `/v1/expense-claims/${id}`), aOtherClaimId),
+  },
   'POST /v1/expense-claims/:id/receipts': {
     kind: 'by ID',
     run: () =>

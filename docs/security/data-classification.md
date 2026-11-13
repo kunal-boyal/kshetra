@@ -21,7 +21,7 @@ The classes of data the product holds and what each class requires (ASVS 5.0 V14
 |---|---|---|---|---|---|---|
 | In transit | TLS 1.2 or later, everywhere | Same | Same | Same | Same | Same |
 | At rest | Never stored as itself: hashed (digests, scrypt, HMAC) or sealed under `COLUMN_KEY`; keys in Secrets Manager or KMS | KMS: RDS, S3 media under the cell's media key, backups | KMS | KMS | KMS | No requirement |
-| Who may read | Its owner, once, when made; never shown again | The person, and people whose scope reaches them (the reporting line, permissions); files only through five-minute signed links after a scope check | Within the tenant, by permission and scope | Within the tenant, by permission and scope | Vendor staff by platform permission | Anyone |
+| Who may read | Its owner, once, when made; never shown again | The person, and people whose scope reaches them (the reporting line, permissions), and for an expense claim's photos also the people taking part in its approval and those who pay it (D142); files only through five-minute signed links after that check | Within the tenant, by permission and scope | Within the tenant, by permission and scope | Vendor staff by platform permission | Anyone |
 | Tenant isolation | Row-level security and `tenant_id` on every row | Same | Same | Same | Directory plane, staff only | None |
 | In logs | Never; `maskToken()` where a token must be named | Never | Masked (`maskPhone()`, `maskEmail()`) or by ID | By ID | Yes | Yes |
 | In error reports | Never; `scrub()` removes it | Never | Removed by `scrub()` | IDs only | Yes | Yes |
