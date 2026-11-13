@@ -447,18 +447,36 @@ export class ApprovalsService {
   async get(tx: TenantTx, access: Access, id: string): Promise<ApprovalResult> {
     const instance = await this.find(tx, access.tenantId, id);
     this.refuseClosed(access, instance);
-    const steps = await this.steps(tx, access.tenantId, [id]);
     const delegators = await this.standingInFor(tx, access);
-    const involved =
-      instance.requesterId === access.userId ||
-      steps.some(
-        (step) =>
-          step.approverIds.includes(access.userId) ||
-          step.approverIds.some((approver) => delegators.includes(approver)),
-      );
-    if (!involved) throw outOfScope();
+    if (!(await this.involved(tx, access, instance, delegators))) throw outOfScope();
     const [result] = await this.results(tx, access.tenantId, [instance], { access, delegators });
     return result!;
+  }
+
+  /**
+   * Whether the caller takes part in a request: they asked, or they are, or stand in today for,
+   * an approver of any of its steps (decision D113). Modules show a request's own record to these
+   * people (decision D142).
+   */
+  async involves(tx: TenantTx, access: Access, id: string): Promise<boolean> {
+    const instance = await this.find(tx, access.tenantId, id);
+    return this.involved(tx, access, instance, await this.standingInFor(tx, access));
+  }
+
+  private async involved(
+    tx: TenantTx,
+    access: Access,
+    instance: { id: string; requesterId: string },
+    delegators: readonly string[],
+  ): Promise<boolean> {
+    if (!access.userId) return false;
+    if (instance.requesterId === access.userId) return true;
+    const steps = await this.steps(tx, access.tenantId, [instance.id]);
+    return steps.some(
+      (step) =>
+        step.approverIds.includes(access.userId) ||
+        step.approverIds.some((approver) => delegators.includes(approver)),
+    );
   }
 
   /**

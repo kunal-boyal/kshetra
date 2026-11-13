@@ -29,7 +29,7 @@ Which fields of a record a caller may read or change beyond the record itself (A
 | Submission | Review status | Same | Reviewers, never on their own work; auto-approval by rule | `ReviewService.record()` |
 | Expense claim, leave request | Amounts, capped amounts, days | The person and approvers | Nobody: computed from the policy and calendar (`capClaim()`, `leaveDays()`) | `ExpenseClaimsService`, `LeaveRequestsService` |
 | Targets | Values | The person and their reporting line | Planners for others, never for themselves; a locked set only after an unlock | `TargetsService` |
-| Photo | The file | The capturer, and others in scope once checked; a rejected photo is shown to nobody, original included | Nobody: replaced only by a new photo | `PhotosService` |
+| Photo | The file | The capturer, and others in scope once checked, and whoever the owning record's module shows that record to (`MediaReaders`, D142: a claim's approvers, their stand-ins and payers); a rejected photo is shown to nobody, original included | Nobody: replaced only by a new photo | `PhotosService` |
 | Personal data request | The archive's download link | `settings.manage`; the person themselves once their access request is completed, while the archive is kept (D141); the person's route answers `NOT_FOUND` for anyone else's request and is closed to API clients. Every link given is audited | Nobody: the worker writes it | `DataRequestsService.get()`, `getOwn()` |
 | Audit entry | All | `audit.view` | Nobody: append-only | `AuditLog` |
 | Any record | Anything | Vendor support under a read grant | Nobody: writes answer `SUPPORT_READ_ONLY` | `IamAccess` |

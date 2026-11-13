@@ -4,6 +4,7 @@ import {
   claimBase,
   claimIssues,
   type CreateExpenseClaimBody,
+  ExpenseClaimDetail,
   type ExpenseClaimResult,
   ExpenseClaimListResult,
   type ExpenseIssue,
@@ -63,6 +64,21 @@ export function useMyClaims(period: string) {
       ))!.items,
       readAt: new Date().toISOString(),
     };
+  });
+}
+
+/**
+ * One claim, read online, for whoever it is shown to: its claimant, those who reach them, and the
+ * people deciding it, standing in included (decision D142).
+ */
+export function useClaimDetail(id: string, enabled = true) {
+  const { client } = useApp();
+  return useQuery({
+    enabled,
+    queryKey: ['expense-claim', id],
+    queryFn: async () =>
+      (await client.request('GET', `/v1/expense-claims/${id}`, ExpenseClaimDetail))!,
+    retry: false,
   });
 }
 

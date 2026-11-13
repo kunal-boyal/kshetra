@@ -94,6 +94,66 @@ describe('the approvals inbox', () => {
     );
   });
 
+  it('opens an expense claim in place, with its receipts (D142)', async () => {
+    const CLAIM = '01a10000-0000-7000-8000-0000000000e5';
+    const RECEIPT = '01a10000-0000-7000-8000-0000000000f5';
+    const expense = request(FIRST, '450.00 · Hotel stay', {
+      requestType: 'expense',
+      requestId: CLAIM,
+      subject: { title: '450.00 · Hotel stay', accountId: null, detail: null },
+    });
+    const client = fakeClient(
+      {
+        '/v1/approvals/inbox': { items: [expense], nextCursor: null, counts: { expense: 1 } },
+        '/v1/expense-policies': { items: [] },
+        [`/v1/expense-claims/${CLAIM}`]: {
+          id: CLAIM,
+          userId: SME,
+          user: suresh,
+          policy: 'stay',
+          policyVersion: 1,
+          expenseDate: '2026-10-11',
+          description: 'Hotel stay',
+          quantity: null,
+          rate: null,
+          odometerOpen: null,
+          odometerClose: null,
+          trackedKm: null,
+          shiftId: null,
+          billAmount: '450.00',
+          calculated: '450.00',
+          amount: '450.00',
+          capped: false,
+          receipts: [RECEIPT],
+          odometerPhotos: [],
+          flags: [],
+          state: 'pending',
+          approval: null,
+          paidAt: null,
+          paymentReference: null,
+          createdAt: '2026-10-12T05:00:00.000Z',
+          decidedAt: null,
+          seenBefore: [],
+        },
+        [`/v1/media/${RECEIPT}/url`]: { url: 'https://media.example/stay.jpg', expiresAt: '' },
+      },
+      {},
+      ['approval.act'],
+    );
+    renderAt('/approvals', client);
+    const card = await screen.findByRole('article', { name: '450.00 · Hotel stay' });
+    const user = userEvent.setup();
+    const show = within(card).getByRole('button', { name: 'Show the claim' });
+    expect(show).toHaveAttribute('aria-expanded', 'false');
+    await user.click(show);
+    expect(await within(card).findByRole('heading', { name: 'Hotel stay' })).toBeVisible();
+    expect(
+      await within(card).findByRole('link', { name: 'Receipt 1, opens full size' }),
+    ).toBeVisible();
+    await user.click(within(card).getByRole('button', { name: 'Hide the claim' }));
+    expect(within(card).queryByRole('heading', { name: 'Hotel stay' })).toBeNull();
+  });
+
   it('shows each chain, filters by type, and approves the chosen requests together', async () => {
     const first = request(FIRST, 'Beej Bhandar (D-81)', {
       steps: [

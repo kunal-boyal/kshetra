@@ -114,6 +114,23 @@ const ANSWERS: Record<string, unknown> = {
   },
 };
 
+// The chosen claim beside the list, its receipt used on the tour claim before (decision D142).
+ANSWERS['/v1/expense-claims/01a10000-0000-7000-8000-0000000000e1'] = {
+  ...claim('01a10000-0000-7000-8000-0000000000e1', {}),
+  seenBefore: [
+    {
+      receiptId: '01a10000-0000-7000-8000-0000000000f1',
+      claimId: '01a10000-0000-7000-8000-0000000000e2',
+    },
+  ],
+};
+
+/** A 1 px PNG, standing in for a receipt photo. */
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+
 async function mockSignedIn(page: Page) {
   await page.route('**/auth/v1/token/refresh', (route) =>
     route.fulfill({
@@ -153,6 +170,12 @@ async function mockSignedIn(page: Page) {
       },
     }),
   );
+  await page.route('**/v1/media/**', (route) =>
+    route.fulfill({ json: { url: `${ORIGIN}/receipt.png`, expiresAt: later() } }),
+  );
+  await page.route('**/receipt.png', (route) =>
+    route.fulfill({ body: PIXEL, contentType: 'image/png' }),
+  );
   for (const prefix of ['expense-policies', 'expense-claims']) {
     await page.route(`**/v1/${prefix}**`, (route) => {
       const answer = ANSWERS[new URL(route.request().url()).pathname];
@@ -185,7 +208,11 @@ for (const theme of ['light', 'outdoor']) {
     await page.addInitScript((chosen) => localStorage.setItem('theme', chosen), theme);
     await page.goto('/expenses');
     await expect(page.getByRole('heading', { level: 1, name: /^Expenses · / })).toBeVisible();
-    await expect(page.getByText('Receipt seen before')).toBeVisible();
+    await expect(page.getByText('Receipt seen before').first()).toBeVisible();
+    // The first claim beside the list, with its receipt (decision D142).
+    const detail = page.getByRole('complementary', { name: 'Team lunch' });
+    await expect(detail.getByRole('link', { name: 'Receipt 1, opens full size' })).toBeVisible();
+    await expect(detail.getByText('Receipt 1 was used on another claim before.')).toBeVisible();
     await expect(page.getByText('42 km on the odometer · 30.4 km tracked')).toBeVisible();
     await expect(page.getByText('Tracked and odometer km differ')).toBeVisible();
     await expectAccessible(page);

@@ -19,9 +19,20 @@ import {
   Pager,
 } from '@thelamp/ui-web';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { ArrowRight, Check, CircleCheck, Inbox, Send, Undo2, X } from 'lucide-react';
+import {
+  ArrowRight,
+  Check,
+  ChevronUp,
+  CircleCheck,
+  Inbox,
+  ReceiptText,
+  Send,
+  Undo2,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { MessageKey } from '@thelamp/i18n';
+import { ClaimDetail } from '../expenses/claim-detail';
 import { errorMessage, useLanguage } from '../i18n';
 import { useAccess } from '../people/data';
 import { fieldErrors, PageHeader, useDates } from '../people/shared';
@@ -317,6 +328,7 @@ function Request({
         ) : null}
       </Heading>
       {item.steps.length ? <ApprovalSteps item={item} /> : null}
+      {item.requestType === 'expense' ? <ClaimInPlace id={item.requestId} /> : null}
       {failure && !fieldErrors(failure).note ? (
         <p className="ks-help error" role="alert">
           {errorMessage(failure, t)}
@@ -374,6 +386,34 @@ function Request({
         )}
       </div>
     </article>
+  );
+}
+
+/**
+ * An expense claim in full, with its receipts, opened in place in the inbox, so whoever decides it
+ * sees what was claimed and the bills behind it (decision D142).
+ */
+function ClaimInPlace({ id }: { id: string }) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-3">
+      <Button
+        variant="secondary"
+        size="sm"
+        className="self-start"
+        aria-expanded={open}
+        icon={<Icon icon={open ? ChevronUp : ReceiptText} size="sm" />}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? t('approvals.hide_claim') : t('approvals.show_claim')}
+      </Button>
+      {open ? (
+        <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-4">
+          <ClaimDetail id={id} />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

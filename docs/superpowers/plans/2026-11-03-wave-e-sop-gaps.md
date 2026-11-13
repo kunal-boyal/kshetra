@@ -58,14 +58,16 @@
 
 **Exists:** a claim's result carries its receipts and odometer photos as media IDs; the Expenses page shows only a count. `PhotosService.url()` serves only the taker or someone whose scope reaches them, so an approver by role or a delegate (D113) outside scope can't see the receipt, and the inbox shows only the claim's title. `ApprovalsService.get()` already works out who is involved. The portal has a thumbnail pattern (`usePhotoLink`, `ChequePhoto`).
 
-- [ ] A media reader seam: `MediaReaders.register(ownerType, check)`; `PhotosService.url()` asks the owning module when the caller neither took the photo nor reaches its taker. Status checks stay.
-- [ ] Expenses registers `expense_claim` through `ExpenseClaimsService.readable()`: in reach, involved in its approval (`ApprovalsService.involves()`, shared with `get()`), or `expense.mark_paid` once approved.
-- [ ] `GET /v1/expense-claims/{id}` (`@SignedIn()`, `@Contract`, cross-tenant fixture), `OUT_OF_SCOPE` for anyone else.
-- [ ] `ClaimDetail` (`apps/web/src/expenses/claim-detail.tsx`): amounts, policy, flags in words, readings beside tracked km, photos that open full size; beside the Expenses list, and in place in the Approvals inbox.
-- [ ] The phone's `/approvals/<id>` shows the same receipts.
-- [ ] "Receipt seen before" links to the other claim only when the reader may read it.
-- [ ] Tests: an approver by role outside scope and a delegate read the claim and a receipt; a stranger is refused; another tenant `NOT_FOUND`; a rejected photo stays hidden; Vitest, Jest, Playwright.
-- [ ] Docs: `back-office/expense-payouts.md`, `manager/approvals.md`, CLAUDE.md's Photos section.
+- [x] A media reader seam: `MediaReaders.register(ownerType, check)`; `PhotosService.url()` asks the owning module when the caller neither took the photo nor reaches its taker. Status checks stay.
+- [x] Expenses registers `expense_claim` through `ExpenseClaimsService.readable()`: in reach, involved in its approval (`ApprovalsService.involves()`, shared with `get()`), or `expense.mark_paid` once approved.
+- [x] `GET /v1/expense-claims/{id}` (`@SignedIn()`, `@Contract`, cross-tenant fixture), `OUT_OF_SCOPE` for anyone else.
+- [x] `ClaimDetail` (`apps/web/src/expenses/claim-detail.tsx`): amounts, policy, flags in words, readings beside tracked km, photos that open full size; beside the Expenses list, and in place in the Approvals inbox.
+- [x] The phone's `/approvals/<id>` shows the same receipts.
+- [x] "Receipt seen before" links to the other claim only when the reader may read it.
+- [x] Tests: an approver by role outside scope and a delegate read the claim and a receipt; a stranger is refused; another tenant `NOT_FOUND`; a rejected photo stays hidden; Vitest, Jest, Playwright.
+- [x] Docs: `back-office/expense-payouts.md`, `manager/approvals.md`, CLAUDE.md's Photos section.
+
+**As built (D142):** the reader check also gets the photo's kind, so a claim's readers see its shift's odometer photos and never the punch selfie; in the inbox the claim opens in place behind **Show the claim**, so a long inbox loads no claim until asked.
 
 ## E5. A read-only banner for everyone
 

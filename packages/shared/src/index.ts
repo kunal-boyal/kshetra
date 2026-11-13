@@ -1067,6 +1067,7 @@ export {
   AddReceiptsBody,
   CreateExpenseClaimBody,
   EXPENSE_STATES,
+  ExpenseClaimDetail,
   ExpenseClaimListQuery,
   ExpenseClaimListResult,
   ExpenseClaimResult,
